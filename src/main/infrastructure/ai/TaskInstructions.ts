@@ -1,8 +1,24 @@
 import type { TaskKind } from '../../domain/ai/types'
 
+const SYNTHESIS_RULES = [
+  'Tu organises une idée développée (un « neurone » et son arbre de réponses) en un résultat exploitable.',
+  '- N’utilise que ce que contient l’arbre : n’invente ni fait, ni montant, ni date.',
+  '- sourceRefs : alias [sN] des nœuds de l’arbre qui justifient chaque élément.',
+  'Plan d’action :',
+  '- ref : identifiant court en minuscules (t1, c1…). Une condition (« J’ai l’argent ? ») a 2 à 4 enfants,',
+  '  chacun avec branchLabel (Oui / Non…) ; au plus 5 niveaux de parentRef.',
+  '- dependencies : fromRef doit être fait avant toRef (after_done) ou toRef attend un déclencheur (on_trigger).',
+  '- Montants : ils te sont masqués en fourchettes ; si une étape a un coût cité, mets amountCents au milieu de la',
+  '  fourchette et cite la réponse dans sourceRefs, l’application remettra la valeur exacte.',
+  '- Date non donnée par l’utilisateur : pas de dueDate, mets toSchedule. Info manquante : investigation + gaps.',
+  'Synthèse de réflexion :',
+  '- keyPoints (au moins 1) = pistes retenues ; decisions ; pros / cons ; openQuestions = ce qui reste à trancher.',
+  '- Phrases courtes, tutoiement, dans la langue de l’utilisateur.'
+].join('\n')
+
 /**
  * Consignes propres à chaque type de tâche, ajoutées après le cadre système (bloc stable, mis en cache).
- * Les tâches de raisonnement (etendre, synthetiser…) reçoivent les leurs avec leur feature (spec 002).
+ * Les tâches de raisonnement (etendre, synthetiser, reviser) reçoivent les leurs avec la spec 002.
  */
 export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
   categoriser: [
@@ -34,6 +50,11 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     '  level = insufficient, sufficient (on peut organiser l’idée) ou complete (rien d’important ne manque).',
     '- Si une réponse mentionne une ressource datée ou chiffrée, renseigne detectedOpportunity (valeurs de l’utilisateur).',
     '- Demande d’œuvre finie (poème, image, code…) : kind = out_of_scope et propose d’aider à y réfléchir.'
+  ].join('\n'),
+  synthetiser: SYNTHESIS_RULES,
+  reviser: [
+    SYNTHESIS_RULES,
+    '- Correction : repars de la proposition précédente, applique la consigne de l’utilisateur, garde le reste.'
   ].join('\n'),
   anonymiser: [
     'Liste les noms de personnes (prénoms, noms) et de lieux (villes, quartiers, pays, établissements nommés)',

@@ -44,7 +44,10 @@ export function createDispatcher(routes: readonly IpcRoute[], logger?: Logger): 
     try {
       return { success: true, data: await route.run(payload) }
     } catch (error) {
-      if (error instanceof AppError) return { success: false, error: { code: error.code, message: error.message } }
+      if (error instanceof AppError) {
+        const { code, message, details } = error
+        return { success: false, error: { code, message, ...(details === undefined ? {} : { details }) } }
+      }
       // Détails internes (chemins, SQL…) jamais renvoyés ni journalisés.
       logger?.error('ipc.unexpected', { channel })
       return { success: false, error: { code: 'INTERNAL', message: 'Erreur interne' } }

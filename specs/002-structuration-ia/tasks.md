@@ -63,15 +63,15 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 ## Phase 5: User Story 3 — Verrouillage, synthèse, éclosion (Priority: P1) 🎯 MVP
 
 ### Tests ⚠️
-- [ ] T018 [P] [US3] Contrôles P1–P5 et S1 (refs, branches 2..4, profondeur plan ≤ 5, Kahn, `sourceRefs`) dans `tests/unit/neurons/plan-checks.test.ts`
-- [ ] T019 [P] [US3] Provenance P6 : extraction FR des montants/dates, 0 valeur inventée sur 20 arbres, nœud « à trouver » ajouté dans `tests/unit/neurons/provenance.test.ts`
-- [ ] T020 [P] [US3] Intégration fusion : `CONTEXT_INSUFFICIENT` sans `force`, verrouillage forcé, synthèse Action et Réflexion, rien d'écrit avant confirm, confirm tout-ou-rien (erreur injectée à chaque étape), `STALE` après modification de l'arbre, revise (`superseded`), reject, reopen (plan/synthèse « précédents » conservés), exemple positif enregistré dans `tests/integration/neurons/fusion.test.ts`
+- [x] T018 [P] [US3] Contrôles P1–P5 et S1 (refs, branches 2..4, profondeur plan ≤ 5, Kahn, `sourceRefs`) dans `tests/unit/neurons/plan-checks.test.ts`
+- [x] T019 [P] [US3] Provenance P6 : extraction FR des montants/dates, 0 valeur inventée sur 20 arbres, nœud « à trouver » ajouté dans `tests/unit/neurons/provenance.test.ts`
+- [x] T020 [P] [US3] Intégration fusion : `CONTEXT_INSUFFICIENT` sans `force`, verrouillage forcé, synthèse Action et Réflexion, rien d'écrit avant confirm, confirm tout-ou-rien (erreur injectée à chaque étape), `STALE` après modification de l'arbre, revise (`superseded`), reject, reopen (plan/synthèse « précédents » conservés), exemple positif enregistré dans `tests/integration/neurons/fusion.test.ts`
 
 ### Implementation
-- [ ] T021 [P] [US3] `domain/neurons/planChecks.ts` (P1–P5 + Kahn) et `provenance.ts` + `extractValues.ts` (P6)
-- [ ] T022 [US3] `FusionService.lock/revise/reject` (appels `synthetiser`/`reviser`, contrôles, une seule synthèse `proposed`) dans `src/main/application/neurons/FusionService.ts`
-- [ ] T023 [US3] `SynthesisApplier` (transaction, `base_version`, écriture plan ou synthèse, état `hatched`, version +1, `change_log` avec `batch_id`, `ExampleStore.record`) et `reopen` dans `src/main/application/neurons/SynthesisApplier.ts`
-- [ ] T024 [US3] Handlers `fusion:*` + événement `synthesis:stale` dans `src/main/ipc/fusionHandlers.ts`
+- [x] T021 [P] [US3] `domain/neurons/planChecks.ts` (P1–P5 + Kahn) et `provenance.ts` + `extractValues.ts` (P6)
+- [x] T022 [US3] `FusionService.lock/revise/reject` (appels `synthetiser`/`reviser`, contrôles, une seule synthèse `proposed`) dans `src/main/application/neurons/FusionService.ts`
+- [x] T023 [US3] `SynthesisApplier` (transaction, `base_version`, écriture plan ou synthèse, état `hatched`, version +1, `change_log` avec `batch_id`, `ExampleStore.record`) et `reopen` dans `src/main/application/neurons/SynthesisApplier.ts`
+- [x] T024 [US3] Handlers `fusion:*` + événement `synthesis:stale` dans `src/main/ipc/fusionHandlers.ts`
 
 **Checkpoint**: MVP du moteur — pousser, jauger, verrouiller, éclore (Action et Réflexion)
 

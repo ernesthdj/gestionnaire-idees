@@ -27,7 +27,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'growth:answer',
   'growth:more',
   'growth:dismiss',
-  'growth:addBranch'
+  'growth:addBranch',
+  'fusion:lock',
+  'fusion:revise',
+  'fusion:confirm',
+  'fusion:reject',
+  'fusion:reopen'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -38,7 +43,8 @@ export const MAIN_WINDOW_EVENTS = [
   'context:newImport',
   'neuron:created',
   'neuron:thinking',
-  'neuron:thought'
+  'neuron:thought',
+  'synthesis:stale'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

@@ -1,3 +1,5 @@
+import type { ActionPlanOut, ReflectionSummaryOut } from '../ai/neurons'
+
 /** Vues et entrées IPC du moteur de neurones (spec 002 contracts/ipc-neurons.md). */
 
 export type Nature = 'action' | 'reflection'
@@ -66,4 +68,31 @@ export interface TreeView {
 export interface RootListView {
   readonly items: readonly RootView[]
   readonly nextCursor: string | null
+}
+
+export type SynthesisStatus = 'proposed' | 'confirmed' | 'rejected' | 'superseded' | 'stale'
+
+export type SynthesisContent =
+  | { readonly type: 'action_plan'; readonly plan: ActionPlanOut }
+  | { readonly type: 'reflection_summary'; readonly summary: ReflectionSummaryOut }
+
+/** Synthèse proposée au verrouillage : rien n'est appliqué avant `fusion:confirm`. */
+export type SynthesisView = SynthesisContent & {
+  readonly id: string
+  readonly rootId: string
+  readonly status: SynthesisStatus
+  readonly baseVersion: number
+  readonly instruction: string | null
+  /** Verrouillage demandé avant que le contexte soit suffisant : résultat possiblement non optimal. */
+  readonly forced: boolean
+  /** Produite par l'IA locale faute de Claude : qualité moindre. */
+  readonly degraded: boolean
+  /** Alias `sN` cités dans `sourceRefs` → identifiant du sous-neurone. */
+  readonly sources: Readonly<Record<string, string>>
+  readonly createdAt: string
+}
+
+export interface ConfirmView {
+  readonly batchId: string
+  readonly root: RootView
 }

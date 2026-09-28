@@ -38,3 +38,8 @@ export function descendantsOf<T extends TreeNode>(nodes: readonly T[], id: strin
   }
   return result
 }
+
+/** Alias courts des nœuds envoyés à l'IA (`s0` = racine, puis ordre de création) : jamais d'identifiant interne. */
+export function aliasesOf(nodes: readonly { readonly id: string }[]): Map<string, string> {
+  return new Map(nodes.map((node, index) => [node.id, `s${index}`]))
+}

@@ -1,5 +1,5 @@
 import type { Nature } from '@shared/ipc/neurons'
-import { pathTo } from '../../domain/neurons/tree'
+import { aliasesOf, pathTo } from '../../domain/neurons/tree'
 import type { GrowthNode } from '../../infrastructure/db/repositories/GrowthRepository'
 
 /** Dimensions de référence par nature (analyse U1) : orientent les questions vers l'exécution ou l'exploration. */
@@ -28,7 +28,7 @@ export function buildGrowthInput(input: {
   const path = pathTo(input.nodes, input.targetId)
   const onPath = new Set(path.map((node) => node.id))
   const others = input.nodes.filter((node) => !onPath.has(node.id))
-  const alias = new Map(input.nodes.map((node, index) => [node.id, `s${index}`]))
+  const alias = aliasesOf(input.nodes)
   const describe = (node: GrowthNode): string =>
     `- [${alias.get(node.id) ?? '?'}] ${node.title}${node.content !== null && node.content !== node.title ? ` — ${node.content}` : ''}`
 

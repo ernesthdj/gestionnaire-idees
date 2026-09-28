@@ -87,6 +87,20 @@ export function applyDeterministicRules(text: string): string {
     .replace(POSTCODE_PATTERN, '[lieu]')
 }
 
+/** Montants en euros écrits dans le texte (même reconnaissance que l'anonymisation), en valeur numérique. */
+export function amountsIn(text: string): number[] {
+  return [...text.matchAll(AMOUNT_PATTERN)]
+    .map((match) => parseAmount(match[1] ?? match[2] ?? ''))
+    .filter((value) => Number.isFinite(value))
+}
+
+/** Tous les nombres écrits dans le texte, avec ou sans devise (« 250 », « 1 200,50 », « 2k »). */
+export function numbersIn(text: string): number[] {
+  return [...text.matchAll(new RegExp(String.raw`(?<![\d.,])${NUMBER}(?![\d\p{L}])`, 'giu'))]
+    .map((match) => parseAmount(match[0]))
+    .filter((value) => Number.isFinite(value))
+}
+
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

@@ -3,13 +3,16 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
+import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
 import { NeuronService } from './application/neurons/NeuronService'
+import { SynthesisApplier } from './application/neurons/SynthesisApplier'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
 import { resolveOllamaUrl } from './infrastructure/ai/OllamaProvider'
 import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
 import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
+import { FusionRepository } from './infrastructure/db/repositories/FusionRepository'
 import { GrowthRepository } from './infrastructure/db/repositories/GrowthRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
@@ -18,6 +21,7 @@ import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { appRoutes } from './ipc/appHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
+import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
@@ -105,10 +109,26 @@ export function bootstrap(): AppContext {
   })
   const neurons = new NeuronService({ repository: new NeuronRepository(database.db), gateway: ai.gateway })
   neuronsRef.current = neurons
+  const growthRepository = new GrowthRepository(database.db)
   const growth = new GrowthService({
-    repository: new GrowthRepository(database.db),
+    repository: growthRepository,
     neurons,
     gateway: ai.gateway,
+    emit: (event) => broadcast(event.type, event)
+  })
+  const fusionRepository = new FusionRepository(database.db)
+  const fusion = new FusionService({
+    repository: fusionRepository,
+    tree: growthRepository,
+    neurons,
+    gateway: ai.gateway,
+    applier: new SynthesisApplier({
+      repository: fusionRepository,
+      tree: growthRepository,
+      neurons,
+      examples,
+      onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id })
+    }),
     emit: (event) => broadcast(event.type, event)
   })
 
@@ -117,7 +137,14 @@ export function bootstrap(): AppContext {
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
   registerRoutes(
     ipcMain,
-    [...appRoutes, ...aiRoutes, ...contextRoutes, ...createNeuronRoutes(neurons), ...createGrowthRoutes(growth)],
+    [
+      ...appRoutes,
+      ...aiRoutes,
+      ...contextRoutes,
+      ...createNeuronRoutes(neurons),
+      ...createGrowthRoutes(growth),
+      ...createFusionRoutes(fusion)
+    ],
     logger,
     rendererFileUrl
   )
