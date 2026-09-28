@@ -136,3 +136,15 @@ export interface GrowthResultView {
   /** Ex. `FEW_EXTENSIONS`, `OUT_OF_SCOPE`, `DEPTH_LIMIT`, `AI_UNAVAILABLE`, `BUDGET_EXCEEDED`. */
   readonly notice?: { readonly code: string; readonly message: string }
 }
+
+/**
+ * Correction d'un élément d'une synthèse proposée (`fusion:editProposed`) : `ref` d'un nœud de plan (titre,
+ * montant, date ; `null` efface) ou `section.index` d'un point de synthèse de réflexion (texte).
+ */
+export interface SynthesisPatch {
+  readonly ref: string
+  readonly title?: string
+  readonly amountCents?: number | null
+  readonly dueDate?: string | null
+  readonly text?: string
+}

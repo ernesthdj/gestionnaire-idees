@@ -90,11 +90,14 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 6: User Story 4 — Verrouiller, aperçu, fusion (Priority: P1) 🎯 MVP
 
-- [ ] T029 [US4] **Spike** animation de fusion : interpoler avec Motion les positions des sous-neurones React Flow vers le parent (600–800 ms) + changement d'aspect ; repli overlay SVG si non concluant ; décision consignée dans research.md (R3)
-- [ ] T030 [P] [US4] Tests `SynthesisPreview` (Action : tâches/conditions/dates éditables ; Réflexion : sections ; Réviser/Refuser/Confirmer ; périmé non confirmable ; avertissement « insuffisant » avec manques ; axe) `tests/unit/renderer/preview.test.tsx`
-- [ ] T031 [US4] Canal `fusion:editProposed` (patch revalidé P1–P6/S1) côté main + test d'intégration `tests/integration/fusion/edit-proposed.test.ts`
-- [ ] T032 [US4] `SynthesisPreview` branché sur `fusion:lock|revise|reject|confirm|editProposed` (002/003)
-- [ ] T033 [US4] `FusionAnimation` (résorption → aspect éclos → migration vers le réseau ~600 ms ; fondu court en mode réduit) + notification « Annuler » 10 s
+- [x] T029 [US4] **Spike** animation de fusion : interpoler avec Motion les positions des sous-neurones React Flow vers le parent (600–800 ms) + changement d'aspect ; repli overlay SVG si non concluant ; décision consignée dans research.md (R3)
+  *(décision consignée dans research.md R3 : fusion en HTML/Motion dans la scène de plongée, migration par transition CSS sur `transform` du nœud React Flow)*
+- [x] T030 [P] [US4] Tests `SynthesisPreview` (Action : tâches/conditions/dates éditables ; Réflexion : sections ; Réviser/Refuser/Confirmer ; périmé non confirmable ; avertissement « insuffisant » avec manques ; axe) `tests/unit/renderer/preview.test.tsx`
+- [x] T031 [US4] Canal `fusion:editProposed` (patch revalidé P1–P6/S1) côté main + test d'intégration `tests/integration/fusion/edit-proposed.test.ts`
+  *(+ `fusion:getProposed` : retrouve un aperçu ouvert sans appel à l'IA ; correction via `domain/neurons/synthesisPatch.ts`, P1–P5/S1 revérifiés, P6 non appliquée à une valeur écrite par l'utilisateur)*
+- [x] T032 [US4] `SynthesisPreview` branché sur `fusion:lock|revise|reject|confirm|editProposed` (002/003)
+- [x] T033 [US4] `FusionAnimation` (résorption → aspect éclos → migration vers le réseau ~600 ms ; fondu court en mode réduit) + notification « Annuler » 10 s
+  *(notification « … a éclos » 10 s livrée ; le bouton « Annuler » arrive avec l'historique T040/T041)*
 
 **Checkpoint**: MVP-1 démontrable — capturer, voir, plonger, faire pousser, verrouiller, voir éclore
 

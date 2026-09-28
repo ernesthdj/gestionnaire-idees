@@ -87,7 +87,9 @@ export function movedPositions(
 /** Vue de l'écran Idées → nœuds (zones + idées) et arêtes (liens) React Flow. Positions = centres (nodeOrigin 0.5). */
 export function buildGraph(
   view: IdeasCanvasView,
-  layout: CanvasLayout
+  layout: CanvasLayout,
+  /** Idée en train de migrer vers le réseau : sa position change avec une transition. */
+  migratingId: string | null = null
 ): { nodes: CanvasNode[]; edges: LinkEdgeType[] } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean => highlighted !== null && !highlighted.has(id)
@@ -110,6 +112,7 @@ export function buildGraph(
     type: 'neuron',
     position: layout.positions.get(neuron.id) ?? { x: 0, y: 0 },
     data: { neuron, dimmed: isDimmed(neuron.id) },
+    ...(neuron.id === migratingId ? { className: 'neuron-migrating' } : {}),
     ariaLabel: neuronAriaLabel(neuron),
     deletable: false
   }))

@@ -1,9 +1,17 @@
 import type { z } from 'zod'
 import { ActionPlanOut, ReflectionSummaryOut } from '@shared/ai/neurons'
-import type { ConfirmView, Nature, SynthesisContent, SynthesisView, TreeView } from '@shared/ipc/neurons'
+import type {
+  ConfirmView,
+  Nature,
+  SynthesisContent,
+  SynthesisPatch,
+  SynthesisView,
+  TreeView
+} from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
 import { checkPlan, checkReflection, type CheckFailure } from '../../domain/neurons/planChecks'
 import { applyProvenance } from '../../domain/neurons/provenance'
+import { patchPlan, patchReflection } from '../../domain/neurons/synthesisPatch'
 import { aliasesOf } from '../../domain/neurons/tree'
 import type { FusionRepository, SynthesisRow } from '../../infrastructure/db/repositories/FusionRepository'
 import type { GrowthNode, GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
@@ -93,6 +101,31 @@ export class FusionService {
     // L'arbre a pu changer pendant l'appel : la correction serait alors fondée sur une version dépassée.
     this.deps.applier.current(row.id)
     return this.propose(row.rootId, row.baseVersion, result, { instruction: input.instruction, forced: row.forced })
+  }
+
+  /** Aperçu encore ouvert pour cette idée (retour dans la plongée), sans appel à l'IA ; périmé → `null`. */
+  proposed(rootId: string): SynthesisView | null {
+    const row = this.deps.repository.proposedFor(rootId)
+    if (row === undefined) return null
+    if (row.baseVersion !== this.deps.neurons.getTree(rootId).root.version) {
+      this.stale(row)
+      return null
+    }
+    return this.view(row)
+  }
+
+  /** Correction d'un élément de l'aperçu, revalidée (P1–P5 / S1) avant d'être enregistrée (spec 003 T031). */
+  editProposed(input: { readonly synthesisId: string; readonly patch: SynthesisPatch }): SynthesisView {
+    const row = this.deps.applier.current(input.synthesisId)
+    const known = new Set(aliasesOf(this.deps.tree.nodes(row.rootId)).values())
+    const payload: unknown = JSON.parse(row.payloadJson)
+    const outcome =
+      row.type === 'action_plan'
+        ? patchPlan(ActionPlanOut.parse(payload), input.patch, known)
+        : patchReflection(ReflectionSummaryOut.parse(payload), input.patch, known)
+    if (!outcome.ok) throw new AppError('VALIDATION', outcome.message)
+    this.deps.repository.updatePayload(row.id, outcome.payload)
+    return this.view(this.deps.applier.current(row.id))
   }
 
   reject(input: { readonly synthesisId: string; readonly reason?: string }): { readonly ok: true } {

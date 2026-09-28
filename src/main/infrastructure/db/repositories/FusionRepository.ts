@@ -123,6 +123,15 @@ export class FusionRepository {
     return id
   }
 
+  /** Contenu corrigé d'une proposition (avant confirmation, rien d'autre n'est modifié). */
+  updatePayload(id: string, payload: unknown): void {
+    this.db
+      .update(syntheses)
+      .set({ payloadJson: JSON.stringify(payload) })
+      .where(and(eq(syntheses.id, id), eq(syntheses.status, 'proposed')))
+      .run()
+  }
+
   decide(id: string, status: Exclude<SynthesisStatus, 'proposed'>, batchId?: string): void {
     this.db
       .update(syntheses)

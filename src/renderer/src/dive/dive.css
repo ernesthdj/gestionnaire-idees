@@ -28,6 +28,19 @@
   box-shadow: 0 0 24px 2px color-mix(in oklab, var(--cat-ink) 35%, transparent);
 }
 
+.dive-node-hatched {
+  border: 4px double var(--cat-ink);
+  outline: 2px solid color-mix(in oklab, var(--cat-ink) 45%, transparent);
+  outline-offset: 6px;
+  box-shadow: 0 0 36px 8px color-mix(in oklab, var(--cat-ink) 45%, transparent);
+  transition:
+    box-shadow 600ms,
+    outline-offset 600ms;
+}
+[data-reduced-motion='true'] .dive-node-hatched {
+  transition: none;
+}
+
 .dive-node-parent {
   opacity: 0.45;
   border-style: solid;

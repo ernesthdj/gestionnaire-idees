@@ -4,6 +4,7 @@ import { useReducedMotionPreference } from '../motion/useReducedMotionPreference
 import { IdeasPage } from '../pages/IdeasPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
+import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
 import { useEffectiveSettings } from './useAppSettings'
 import { useApplyTheme } from './useApplyTheme'
@@ -85,6 +86,7 @@ export function AppShell(): React.JSX.Element {
           <main className="min-h-0 flex-1 overflow-hidden">
             <CurrentView view={view} />
           </main>
+          <Toast />
         </div>
       </div>
     </MotionConfig>

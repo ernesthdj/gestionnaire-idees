@@ -1,47 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Nature } from '../../../src/shared/ipc/neurons'
+import { readyRoot, reflectionSummary, screenPlan } from '../../support/fusion'
 import { createNeuronHarness, etendreReply, type NeuronHarness } from '../../support/neurons'
-
-/** Plan « 2e écran » : condition « J'ai l'argent ? » (source s2 = réponse budget) et ses deux branches. */
-function screenPlan(extra: { amountCents?: number } = {}) {
-  return {
-    raw: {
-      nodes: [
-        { ref: 'c1', type: 'condition', title: 'J’ai l’argent ?', question: 'Budget prêt ?', sourceRefs: ['s2'] },
-        {
-          ref: 't1',
-          type: 'task',
-          title: 'Commander l’écran',
-          parentRef: 'c1',
-          branchLabel: 'Oui',
-          sourceRefs: ['s1'],
-          ...extra
-        },
-        {
-          ref: 't2',
-          type: 'task',
-          title: 'Attendre la mission mariage',
-          parentRef: 'c1',
-          branchLabel: 'Non',
-          sourceRefs: ['s3']
-        },
-        { ref: 't3', type: 'task', title: 'Installer l’écran', sourceRefs: ['s0'] }
-      ],
-      dependencies: [{ fromRef: 't1', toRef: 't3', kind: 'after_done' }],
-      gaps: []
-    }
-  }
-}
-
-const reflectionSummary = {
-  raw: {
-    keyPoints: [{ text: 'Le 35 mm suffit pour le reportage', sourceRefs: ['s1'] }],
-    decisions: [{ text: 'Tester en location d’abord', sourceRefs: ['s2'] }],
-    pros: [{ text: 'Plus discret', sourceRefs: ['s3'] }],
-    cons: [{ text: 'Moins polyvalent', sourceRefs: ['s1'] }],
-    openQuestions: [{ text: 'Revendre le 24-70 ?' }]
-  }
-}
 
 describe('verrouillage, synthèse et éclosion (US3)', () => {
   let t: NeuronHarness
@@ -49,22 +8,6 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
     t = createNeuronHarness()
   })
   afterEach(() => t.dispose())
-
-  /** Neurone développé avec 3 réponses : jauge « suffisant » (plancher E4 franchi). */
-  async function readyRoot(nature: Nature = 'action', answers = ['Cette semaine', '250 €', 'Un 27 pouces']) {
-    const root = await t.neurons.create({
-      text: nature === 'action' ? 'Acheter un 2e écran' : 'Passer au 35 mm fixe ?',
-      nature
-    })
-    t.h.claude.enqueue(etendreReply(['Pour quand ?', 'Quel budget ?', 'Quel modèle ?']))
-    let tree = (await t.growth.develop(root.id)).tree
-    for (const [index, text] of answers.entries()) {
-      const extension = tree.extensions[0]
-      t.h.claude.enqueue(etendreReply([], index === answers.length - 1 ? 'sufficient' : 'insufficient'))
-      tree = (await t.growth.answer({ extensionId: extension?.id ?? '', answer: { text } })).tree
-    }
-    return tree
-  }
 
   it('should_refuse_lock_with_missing_dimensions_when_context_is_insufficient', async () => {
     const root = await t.neurons.create({ text: 'Idée floue', nature: 'action' })
@@ -91,7 +34,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_propose_action_plan_with_condition_branches_without_writing_anything', async () => {
-    const tree = await readyRoot('action')
+    const tree = await readyRoot(t, 'action')
     t.h.claude.enqueue(screenPlan())
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     expect(proposal.type).toBe('action_plan')
@@ -108,7 +51,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_propose_structured_reflection_summary', async () => {
-    const tree = await readyRoot('reflection', ['Pour le reportage', 'Poids du sac', 'Location possible'])
+    const tree = await readyRoot(t, 'reflection', ['Pour le reportage', 'Poids du sac', 'Location possible'])
     t.h.claude.enqueue(reflectionSummary)
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     expect(proposal.type).toBe('reflection_summary')
@@ -117,7 +60,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_return_the_pending_proposal_without_new_call_on_second_lock', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     const first = await t.fusion.lock({ rootId: tree.root.id })
     const calls = t.h.claude.requests.length
@@ -127,7 +70,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_retry_once_with_the_defect_when_a_check_fails', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     const invalid = {
       raw: { nodes: [{ ref: 't1', type: 'task', title: 'X', sourceRefs: ['s99'] }], dependencies: [], gaps: [] }
     }
@@ -140,7 +83,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_fail_with_cycle_detected_after_two_looping_plans', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     const looping = {
       raw: {
         nodes: [
@@ -160,7 +103,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_replace_invented_amount_by_to_find_element', async () => {
-    const tree = await readyRoot('action', ['Cette semaine', 'Oui', 'Un 27 pouces'])
+    const tree = await readyRoot(t, 'action', ['Cette semaine', 'Oui', 'Un 27 pouces'])
     t.h.claude.enqueue(screenPlan({ amountCents: 39_900 }))
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     if (proposal.type !== 'action_plan') throw new Error('plan attendu')
@@ -171,7 +114,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_hatch_on_confirm_in_one_batch_and_learn_the_example', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     const version = t.neurons.getTree(tree.root.id).root.version
@@ -191,7 +134,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_store_neuron_ids_as_sources_of_a_confirmed_reflection', async () => {
-    const tree = await readyRoot('reflection', ['Pour le reportage', 'Poids du sac', 'Location possible'])
+    const tree = await readyRoot(t, 'reflection', ['Pour le reportage', 'Poids du sac', 'Location possible'])
     t.h.claude.enqueue(reflectionSummary)
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     t.fusion.confirm(proposal.id)
@@ -203,7 +146,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   it.each([['retireCurrentResults'], ['insertPlan'], ['setRootState'], ['decide'], ['log'], ['record']] as const)(
     'should_apply_nothing_when_%s_fails_during_confirm',
     async (step) => {
-      const tree = await readyRoot()
+      const tree = await readyRoot(t)
       t.h.claude.enqueue(screenPlan())
       const proposal = await t.fusion.lock({ rootId: tree.root.id })
       const fail = (): never => {
@@ -220,7 +163,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   )
 
   it('should_mark_proposal_stale_when_tree_changes_before_confirm', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     t.growth.addBranch({ parentId: tree.root.id, title: 'Vérifier le bureau' })
@@ -232,7 +175,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_supersede_the_proposal_on_revise', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan(), screenPlan())
     const first = await t.fusion.lock({ rootId: tree.root.id })
     const revised = await t.fusion.revise({ synthesisId: first.id, instruction: 'Ajoute la comparaison des prix' })
@@ -243,7 +186,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_reject_a_proposal_and_allow_a_new_lock', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan(), screenPlan())
     const first = await t.fusion.lock({ rootId: tree.root.id })
     expect(t.fusion.reject({ synthesisId: first.id, reason: 'Pas le bon angle' })).toEqual({ ok: true })
@@ -254,7 +197,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_reopen_a_hatched_neuron_keeping_previous_plan', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     t.fusion.confirm(proposal.id)
@@ -268,7 +211,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
   })
 
   it('should_refuse_locking_a_hatched_neuron', async () => {
-    const tree = await readyRoot()
+    const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     t.fusion.confirm((await t.fusion.lock({ rootId: tree.root.id })).id)
     await expect(t.fusion.lock({ rootId: tree.root.id })).rejects.toMatchObject({ code: 'INVALID_STATE' })

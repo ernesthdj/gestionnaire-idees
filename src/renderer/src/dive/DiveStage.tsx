@@ -34,6 +34,8 @@ interface DiveStageProps {
   readonly model: DiveModel
   readonly pending: readonly PendingChild[]
   readonly reduced: boolean
+  /** Confirmation en cours : tout se résorbe vers le neurone central, qui prend l'aspect éclos. */
+  readonly fusing: boolean
   readonly categoryColor: string
   readonly selectedExtensionId: string | null
   readonly onOpen: (neuronId: string) => void
@@ -96,11 +98,21 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
     focusNode.current?.focus()
   }, [model.focus.id])
 
-  const appear = (timing: { duration: number; movement: boolean }) => ({
-    initial: timing.movement ? { opacity: 0, scale: 0.6 } : { opacity: 0 },
-    animate: { opacity: 1, scale: 1 },
-    transition: { duration: timing.duration / 1000 }
-  })
+  const fusion = timingFor('fusion', reduced)
+  const hatchTiming = timingFor('migrate', reduced)
+  /** Apparition (pousse) ; pendant la fusion, l'élément glisse vers le centre et s'efface. */
+  const appear = (timing: { duration: number; movement: boolean }, point?: Point) =>
+    props.fusing && point !== undefined
+      ? {
+          initial: false as const,
+          animate: fusion.movement ? { opacity: 0, scale: 0.2, x: -point.x, y: -point.y } : { opacity: 0 },
+          transition: { duration: fusion.duration / 1000, ease: 'easeIn' as const }
+        }
+      : {
+          initial: timing.movement ? { opacity: 0, scale: 0.6 } : { opacity: 0 },
+          animate: { opacity: 1, scale: 1 },
+          transition: { duration: timing.duration / 1000 }
+        }
 
   const at = (point: Point, size: number): Box => ({
     left: point.x - size / 2,
@@ -119,7 +131,11 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
         animate={{ opacity: 1, scale }}
         transition={{ duration: dive.duration / 1000 }}
       >
-        <svg className="pointer-events-none absolute overflow-visible" aria-hidden="true" style={{ left: 0, top: 0 }}>
+        <svg
+          className={`pointer-events-none absolute overflow-visible transition-opacity ${props.fusing ? 'opacity-0' : ''}`}
+          aria-hidden="true"
+          style={{ left: 0, top: 0, transitionDuration: `${fusion.duration}ms` }}
+        >
           {layout.parent === null ? null : (
             <line x1={0} y1={0} x2={layout.parent.x} y2={0} className="dive-line dive-line-faded" />
           )}
@@ -139,7 +155,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
           })}
         </svg>
 
-        {model.parent === null || layout.parent === null ? null : (
+        {props.fusing || model.parent === null || layout.parent === null ? null : (
           <button
             type="button"
             onClick={props.onUp}
@@ -151,15 +167,17 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
           </button>
         )}
 
-        <div
+        <motion.div
           ref={focusNode}
           tabIndex={-1}
-          aria-label={`Neurone ciblé : ${model.focus.title}`}
-          className="dive-node dive-node-focus absolute"
+          aria-label={props.fusing ? `${model.focus.title} éclôt` : `Neurone ciblé : ${model.focus.title}`}
+          className={`dive-node dive-node-focus absolute ${props.fusing ? 'dive-node-hatched' : ''}`}
           style={at({ x: 0, y: 0 }, 112)}
+          animate={props.fusing && hatchTiming.movement ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+          transition={{ delay: fusion.duration / 1000, duration: hatchTiming.duration / 1000 }}
         >
           <span className="dive-title dive-title-focus">{model.focus.title}</span>
-        </div>
+        </motion.div>
 
         {items.map((item, index) => {
           const point = layout.items[index] as Point
@@ -169,7 +187,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
                 <motion.button
                   key={item.neuron.id}
                   type="button"
-                  {...appear(grow)}
+                  {...appear(grow, point)}
                   onClick={() => props.onOpen(item.neuron.id)}
                   aria-label={`${KIND_LABELS[item.neuron.kind]} : ${item.neuron.title}${item.neuron.origin === 'ai' ? ' (proposé par l’IA)' : ''}${item.neuron.descendants > 0 ? `, ${item.neuron.descendants} sous-neurones` : ''} — plonger`}
                   className={`dive-node dive-node-child absolute ${item.neuron.kind === 'investigation' ? 'dive-node-investigation' : ''}`}
@@ -187,7 +205,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
               return (
                 <motion.div
                   key={`pending-${item.pending.extensionId}`}
-                  {...appear(grow)}
+                  {...appear(grow, point)}
                   role="status"
                   aria-label={`Nouveau sous-neurone : ${item.pending.title}`}
                   className="dive-node dive-node-child dive-node-pending absolute"
@@ -202,7 +220,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
                   key={item.suggestion.id}
                   suggestion={item.suggestion}
                   style={at(point, 72)}
-                  motionProps={appear(ghostIn)}
+                  motionProps={appear(ghostIn, point)}
                   onAccept={() => props.onAcceptSuggestion(item.suggestion.id)}
                   onDismiss={() => props.onDismissSuggestion(item.suggestion.id)}
                 />
@@ -212,7 +230,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
                 <motion.button
                   key={item.extension.id}
                   type="button"
-                  {...appear(ghostIn)}
+                  {...appear(ghostIn, point)}
                   onClick={() => props.onSelectExtension(item.extension.id)}
                   aria-label={`Question : ${item.extension.question}`}
                   aria-pressed={props.selectedExtensionId === item.extension.id}

@@ -134,3 +134,11 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* Migration d'une idée qui vient d'éclore, de l'incubateur vers le réseau (~600 ms, FR-019). */
+.react-flow__node.neuron-migrating {
+  transition: transform 600ms ease-in-out;
+}
+[data-reduced-motion='true'] .react-flow__node.neuron-migrating {
+  transition: none;
+}

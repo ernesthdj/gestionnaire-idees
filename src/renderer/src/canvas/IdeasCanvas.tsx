@@ -72,6 +72,9 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const openDive = useUiStore((state) => state.openDive)
+  const hatchedId = useUiStore((state) => state.hatchedId)
+  const clearHatched = useUiStore((state) => state.clearHatched)
+  const [migratingId, setMigratingId] = useState<string | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
@@ -107,8 +110,26 @@ function CanvasInner(): React.JSX.Element {
   const graph = useMemo(() => {
     if (view === undefined || layout === null) return { nodes: [] as CanvasNode[], edges: [] }
     const positions = new Map([...layout.positions, ...dragged.current])
-    return buildGraph(view, { zones: layout.zones, positions })
-  }, [view, layout])
+    // Idée qui vient d'éclore : elle apparaît d'abord à son ancienne place dans l'incubateur.
+    const hatched = hatchedId === null ? undefined : view.network.find((neuron) => neuron.id === hatchedId)
+    if (hatched?.position != null) positions.set(hatched.id, hatched.position)
+    return buildGraph(view, { zones: layout.zones, positions }, migratingId)
+  }, [view, layout, hatchedId, migratingId])
+
+  // …puis glisse vers sa place dans le réseau.
+  useEffect(() => {
+    if (hatchedId === null || view?.network.some((neuron) => neuron.id === hatchedId) !== true) return
+    const frame = requestAnimationFrame(() => {
+      setMigratingId(hatchedId)
+      clearHatched()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [hatchedId, view, clearHatched])
+  useEffect(() => {
+    if (migratingId === null) return
+    const timer = setTimeout(() => setMigratingId(null), timingFor('migrate', reduced).duration + 100)
+    return () => clearTimeout(timer)
+  }, [migratingId, reduced])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])

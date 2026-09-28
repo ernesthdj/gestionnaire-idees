@@ -7,7 +7,10 @@ type Handler = (payload: unknown) => unknown
 
 /** À lever dans un gestionnaire simulé pour que le canal réponde par un échec `{ code, message }`. */
 export class FakeIpcError extends Error {
-  constructor(readonly code: string) {
+  constructor(
+    readonly code: string,
+    readonly details?: Readonly<Record<string, unknown>>
+  ) {
     super(code)
   }
 }
@@ -22,7 +25,10 @@ export function installFakeApi(handlers: Partial<Record<MainWindowChannel, Handl
     try {
       return { success: true, data: await handler(payload) }
     } catch (error) {
-      if (error instanceof FakeIpcError) return { success: false, error: { code: error.code, message: error.message } }
+      if (error instanceof FakeIpcError) {
+        const details = error.details === undefined ? {} : { details: error.details }
+        return { success: false, error: { code: error.code, message: error.message, ...details } }
+      }
       throw error
     }
   })

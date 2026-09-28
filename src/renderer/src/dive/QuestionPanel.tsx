@@ -3,11 +3,13 @@ import { Button } from '../components/atoms/Button'
 import type { DiveModel } from './diveModel'
 import { MAX_AI_DEPTH } from './diveModel'
 import { Gauge } from './Gauge'
+import type { FusionActions } from '../fusion/useFusion'
 import type { DiveActions } from './useDive'
 
 interface QuestionPanelProps {
   readonly model: DiveModel
   readonly actions: DiveActions
+  readonly fusion: FusionActions
   readonly selectedExtensionId: string | null
   readonly onSelectExtension: (extensionId: string) => void
 }
@@ -19,6 +21,7 @@ interface QuestionPanelProps {
 export function QuestionPanel({
   model,
   actions,
+  fusion,
   selectedExtensionId,
   onSelectExtension
 }: QuestionPanelProps): React.JSX.Element {
@@ -48,6 +51,8 @@ export function QuestionPanel({
   return (
     <aside aria-label="Questions de l’IA" className="flex h-full flex-col gap-4 overflow-auto p-4 text-sm">
       <Gauge gauge={model.gauge} />
+
+      <LockSection model={model} fusion={fusion} />
 
       <p role="status" aria-live="polite" className="min-h-5 text-xs text-content-muted">
         {actions.thinking ? 'L’IA réfléchit aux questions suivantes…' : ''}
@@ -234,5 +239,54 @@ export function QuestionPanel({
         </section>
       )}
     </aside>
+  )
+}
+
+/**
+ * Verrouiller (FR-017) : actif dès « suffisant » ; avant, le moteur refuse (sans appel à l'IA) et l'on affiche
+ * les manques avec « Verrouiller quand même » (résultat possiblement non optimal).
+ */
+function LockSection({
+  model,
+  fusion
+}: {
+  readonly model: DiveModel
+  readonly fusion: FusionActions
+}): React.JSX.Element {
+  const ready = model.gauge !== null && model.gauge.level !== 'insufficient'
+  const working = fusion.state.kind === 'working'
+  if (fusion.state.kind === 'insufficient') {
+    return (
+      <div role="alert" className="space-y-2 rounded-lg border border-content-muted/40 p-3 text-xs">
+        <p className="font-semibold">Le contexte est encore insuffisant : le résultat risque de ne pas être optimal.</p>
+        {fusion.state.missing.length > 0 ? <p>Il manque : {fusion.state.missing.join(', ')}</p> : null}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => void fusion.lock(true)}>
+            Verrouiller quand même
+          </Button>
+          <Button onClick={fusion.cancelWarning}>Continuer à répondre</Button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-1">
+      <Button
+        variant={ready ? 'primary' : 'secondary'}
+        className="w-full"
+        disabled={working}
+        onClick={() => void fusion.lock()}
+      >
+        Verrouiller 🔒
+      </Button>
+      <p role="status" aria-live="polite" className="min-h-4 text-xs text-content-muted">
+        {working ? fusion.state.label : ready ? 'Le contexte suffit : tu peux faire éclore l’idée.' : ''}
+      </p>
+      {fusion.error === null ? null : (
+        <p role="alert" className="text-xs">
+          {fusion.error}
+        </p>
+      )}
+    </div>
   )
 }

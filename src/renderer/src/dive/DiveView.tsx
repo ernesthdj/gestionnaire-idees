@@ -2,9 +2,13 @@ import './dive.css'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
+import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
+import { SynthesisPreview } from '../fusion/SynthesisPreview'
+import { useFusion } from '../fusion/useFusion'
 import { call } from '../lib/ipc'
+import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { Breadcrumb } from './Breadcrumb'
 import { DiveStage } from './DiveStage'
@@ -26,6 +30,11 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const dive = useDive(rootId)
+  const fusion = useFusion(rootId)
+  const hatch = useUiStore((state) => state.hatch)
+  const [fusing, setFusing] = useState(false)
+  const fusionTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(fusionTimer.current), [])
   const [focusId, setFocusId] = useState<string | null>(null)
   const [selectedExtensionId, setSelectedExtensionId] = useState<string | null>(null)
   const ids = { nature: useId(), category: useId() }
@@ -76,7 +85,15 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
     if (model.parent === null) onClose()
     else goTo(model.parent.id)
   }
-  upRef.current = up
+  upRef.current = fusing ? () => undefined : up
+
+  // Confirmation : résorption des sous-neurones, aspect éclos, puis retour à la carte où l'idée migre (FR-019).
+  const onConfirmed = (): void => {
+    setFocusId(null)
+    setFusing(true)
+    const total = timingFor('fusion', reduced).duration + timingFor('migrate', reduced).duration
+    fusionTimer.current = setTimeout(() => hatch(rootId, `« ${model.root.title} » a éclos.`), total)
+  }
   // Supprimer le neurone ciblé ramène à son parent.
   const actions: DiveActions = {
     ...dive,
@@ -139,6 +156,7 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
             model={model}
             pending={dive.pending}
             reduced={reduced}
+            fusing={fusing}
             categoryColor={model.root.category?.color ?? '#71717a'}
             selectedExtensionId={selectedExtensionId}
             onOpen={(id) => goTo(id)}
@@ -149,12 +167,21 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
           />
         </section>
         <div className="min-w-0 basis-[38%] border-l border-content-muted/20">
-          <QuestionPanel
-            model={model}
-            actions={actions}
-            selectedExtensionId={selectedExtensionId}
-            onSelectExtension={setSelectedExtensionId}
-          />
+          {fusing ? (
+            <p role="status" className="p-4 text-sm text-content-muted">
+              L’idée éclôt…
+            </p>
+          ) : fusion.synthesis !== null ? (
+            <SynthesisPreview fusion={fusion} onConfirmed={onConfirmed} />
+          ) : (
+            <QuestionPanel
+              model={model}
+              actions={actions}
+              fusion={fusion}
+              selectedExtensionId={selectedExtensionId}
+              onSelectExtension={setSelectedExtensionId}
+            />
+          )}
         </div>
       </div>
     </div>
