@@ -5,6 +5,9 @@
  */
 export const MAIN_WINDOW_CHANNELS = [
   'app:ping',
+  'app:getSettings',
+  'app:setSettings',
+  'app:completeOnboarding',
   'ai:status',
   'ai:setClaudeKey',
   'ai:clearClaudeKey',
@@ -46,6 +49,9 @@ export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
 
 /** Événements poussés du processus principal vers la fenêtre principale. */
 export const MAIN_WINDOW_EVENTS = [
+  'app:navigate',
+  'app:settingsChanged',
+  'shortcut:unavailable',
   'ai:budgetAlert',
   'context:newImport',
   'neuron:created',
@@ -64,4 +70,30 @@ export function isMainWindowChannel(channel: string): channel is MainWindowChann
 
 export function isMainWindowEvent(event: string): event is MainWindowEvent {
   return (MAIN_WINDOW_EVENTS as readonly string[]).includes(event)
+}
+
+/** Argument passé au preload pour désigner sa fenêtre (`--gi-window=main` ou `--gi-window=capture`). */
+export const WINDOW_ARG_PREFIX = '--gi-window='
+
+/** Canaux de la fenêtre de capture : son preload n'expose rien d'autre (moindre privilège). */
+export const CAPTURE_WINDOW_CHANNELS = [
+  'capture:getDraft',
+  'capture:saveDraft',
+  'capture:submit',
+  'capture:close'
+] as const
+
+export type CaptureWindowChannel = (typeof CAPTURE_WINDOW_CHANNELS)[number]
+
+/** `capture:shown` : la fenêtre (pré-chargée, cachée) vient d'être affichée ; l'interface se remet à zéro. */
+export const CAPTURE_WINDOW_EVENTS = ['capture:shown'] as const
+
+export type CaptureWindowEvent = (typeof CAPTURE_WINDOW_EVENTS)[number]
+
+export function isCaptureWindowChannel(channel: string): channel is CaptureWindowChannel {
+  return (CAPTURE_WINDOW_CHANNELS as readonly string[]).includes(channel)
+}
+
+export function isCaptureWindowEvent(event: string): event is CaptureWindowEvent {
+  return (CAPTURE_WINDOW_EVENTS as readonly string[]).includes(event)
 }

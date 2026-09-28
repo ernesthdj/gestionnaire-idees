@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { AppError } from '../../../src/main/domain/errors'
-import { createDispatcher, defineRoute, isTrustedSender } from '../../../src/main/ipc/registry'
+import { createDispatcher, defineRoute, senderPage } from '../../../src/main/ipc/registry'
 
 const echo = defineRoute({
   channel: 'app:ping',
@@ -66,26 +66,28 @@ describe('createDispatcher', () => {
   })
 })
 
-describe('isTrustedSender', () => {
+describe('senderPage', () => {
   const app = 'file:///C:/app/out/renderer/'
+  const dev = 'http://localhost:5173'
 
-  it('should_accept_app_renderer_file_when_packaged', () => {
-    expect(isTrustedSender('file:///C:/app/out/renderer/index.html', undefined, app)).toBe(true)
+  it.each([
+    ['file:///C:/app/out/renderer/index.html', undefined, 'main'],
+    ['file:///C:/app/out/renderer/capture.html', undefined, 'capture'],
+    ['http://localhost:5173/', dev, 'main'],
+    ['http://localhost:5173/capture.html?x=1', dev, 'capture']
+  ])('should_identify_%s_as_an_app_page', (frameUrl, devUrl, page) => {
+    expect(senderPage(frameUrl, devUrl, app)).toBe(page)
   })
 
-  it('should_reject_other_local_file_when_packaged', () => {
-    expect(isTrustedSender('file:///C:/Users/x/Downloads/piege.html', undefined, app)).toBe(false)
-  })
-
-  it('should_accept_dev_server_url_when_in_development', () => {
-    expect(isTrustedSender('http://localhost:5173/', 'http://localhost:5173', app)).toBe(true)
-  })
-
-  it('should_reject_external_url_when_sender_is_remote', () => {
-    expect(isTrustedSender('https://example.com/', 'http://localhost:5173', app)).toBe(false)
-  })
-
-  it('should_reject_missing_frame_url', () => {
-    expect(isTrustedSender(undefined, undefined, app)).toBe(false)
+  it.each([
+    ['file:///C:/Users/x/Downloads/piege.html', undefined, 'autre fichier local'],
+    ['file:///C:/app/out/renderer/autre.html', undefined, 'page inconnue du dossier renderer'],
+    ['https://example.com/', dev, 'site distant'],
+    ['http://localhost:51730/', dev, 'port voisin du serveur de dev'],
+    ['http://localhost:5173/', undefined, 'serveur de dev hors développement'],
+    [undefined, undefined, 'cadre sans URL'],
+    ['pas une url', undefined, 'URL illisible']
+  ] as const)('should_reject_%s_when_%s', (frameUrl, devUrl, reason) => {
+    expect(senderPage(frameUrl, devUrl, app), reason).toBeNull()
   })
 })

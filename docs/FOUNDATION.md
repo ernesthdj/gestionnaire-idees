@@ -304,17 +304,17 @@ graph TD
 
 ## 5. Stack Technologique
 
-| Couche | Technologie | Justification |
-|--------|-------------|---------------|
-| Shell desktop | **Electron** | Widget always-on-top, tray, raccourci global, fenêtre transparente (compagnon), démarrage avec Windows |
-| UI | **React + TypeScript (strict) + Tailwind** | Stack frontend de référence de mentalyas |
-| Organigramme | **React Flow** (pressenti) | Nœuds/liens/zoom/drag prêts à l'emploi |
-| IA locale | **Ollama** (modèle 7-8B, RTX 3070 8 Go) | Gratuit, privé, hors ligne — petites tâches |
-| IA distante | **Claude (API Anthropic, SDK TypeScript)** | Raisonnement profond à la demande |
-| Calendrier | **Microsoft Graph + MSAL** (compte perso Hotmail) | API officielle, OAuth2 |
-| Stockage | Base locale (SQLite pressenti) — à fixer en niveau 3 | Mono-utilisateur, hors ligne |
-| Secrets | Chiffrement OS (DPAPI via `safeStorage` d'Electron) | Clé API + tokens hors du code |
-| Démarrage | Lancement avec Windows + icône zone de notification | Décidé |
+| Couche        | Technologie                                          | Justification                                                                                          |
+| ------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Shell desktop | **Electron**                                         | Widget always-on-top, tray, raccourci global, fenêtre transparente (compagnon), démarrage avec Windows |
+| UI            | **React + TypeScript (strict) + Tailwind**           | Stack frontend de référence de mentalyas                                                               |
+| Organigramme  | **React Flow** (pressenti)                           | Nœuds/liens/zoom/drag prêts à l'emploi                                                                 |
+| IA locale     | **Ollama** (modèle 7-8B, RTX 3070 8 Go)              | Gratuit, privé, hors ligne — petites tâches                                                            |
+| IA distante   | **Claude (API Anthropic, SDK TypeScript)**           | Raisonnement profond à la demande                                                                      |
+| Calendrier    | **Microsoft Graph + MSAL** (compte perso Hotmail)    | API officielle, OAuth2                                                                                 |
+| Stockage      | Base locale (SQLite pressenti) — à fixer en niveau 3 | Mono-utilisateur, hors ligne                                                                           |
+| Secrets       | Chiffrement OS (DPAPI via `safeStorage` d'Electron)  | Clé API + tokens hors du code                                                                          |
+| Démarrage     | Lancement avec Windows + icône zone de notification  | Décidé                                                                                                 |
 
 ## 6. Algorithmes & Patterns Techniques
 - **Strategy / Adapter (`AIProvider`)** — moteurs IA interchangeables (Ollama / Claude).

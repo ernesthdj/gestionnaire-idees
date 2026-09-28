@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
+import { app, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
@@ -17,11 +17,12 @@ import { FusionRepository } from './infrastructure/db/repositories/FusionReposit
 import { GrowthRepository } from './infrastructure/db/repositories/GrowthRepository'
 import { LinkRepository } from './infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
+import { AppSettingsRepository } from './infrastructure/db/repositories/AppSettingsRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
-import { appRoutes } from './ipc/appHandlers'
+import { createAppRoutes } from './ipc/appHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
@@ -37,12 +38,16 @@ export interface AppContext {
   readonly ai: AiEngine
   readonly examples: ExampleStore
   readonly neurons: NeuronService
+  readonly appSettings: AppSettingsRepository
   stop(): void
 }
 
-/** Envoie un événement de la liste blanche à toutes les fenêtres ouvertes. */
-function broadcast(event: MainWindowEvent, payload: unknown): void {
-  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(event, payload)
+/** Ce que la coquille (fenêtres, raccourci, démarrage) offre aux services. */
+export interface ShellPort {
+  /** Événement de la liste blanche vers la fenêtre principale. */
+  sendToMain(event: MainWindowEvent, payload: unknown): void
+  replaceShortcut(accelerator: string): boolean
+  applyLaunchAtLogin(enabled: boolean): void
 }
 
 /** Dossier des migrations : sources en développement, ressources de l'installeur une fois empaqueté. */
@@ -53,7 +58,8 @@ function migrationsFolder(): string {
 }
 
 /** Initialise les services du processus principal. Toutes les données vivent dans %APPDATA%. */
-export function bootstrap(): AppContext {
+export function bootstrap(shell: ShellPort): AppContext {
+  const broadcast = (event: MainWindowEvent, payload: unknown): void => shell.sendToMain(event, payload)
   const logger = createLogger(stdoutSink)
   const dataDir = app.getPath('userData')
   const secrets = new SecretStore(join(dataDir, 'secrets'), safeStorage)
@@ -142,13 +148,19 @@ export function bootstrap(): AppContext {
     emit: (event) => broadcast(event.type, event)
   })
 
+  const appSettings = new AppSettingsRepository(database.db)
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
   registerRoutes(
     ipcMain,
     [
-      ...appRoutes,
+      ...createAppRoutes({
+        version: app.getVersion(),
+        settings: appSettings,
+        replaceShortcut: (accelerator) => shell.replaceShortcut(accelerator),
+        applyLaunchAtLogin: (enabled) => shell.applyLaunchAtLogin(enabled)
+      }),
       ...aiRoutes,
       ...contextRoutes,
       ...createNeuronRoutes(neurons),
@@ -167,6 +179,7 @@ export function bootstrap(): AppContext {
     ai,
     examples,
     neurons,
+    appSettings,
     stop: () => {
       stopWatching()
       ai.stop()

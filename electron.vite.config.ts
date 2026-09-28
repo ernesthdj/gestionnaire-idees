@@ -22,6 +22,15 @@ export default defineConfig({
   },
   renderer: {
     plugins: [react(), tailwindcss()],
-    resolve: { alias: { '@shared': shared, '@renderer': resolve(import.meta.dirname, 'src/renderer/src') } }
+    resolve: { alias: { '@shared': shared, '@renderer': resolve(import.meta.dirname, 'src/renderer/src') } },
+    build: {
+      rollupOptions: {
+        // Deux pages : fenêtre principale et fenêtre de capture.
+        input: {
+          index: resolve(import.meta.dirname, 'src/renderer/index.html'),
+          capture: resolve(import.meta.dirname, 'src/renderer/capture.html')
+        }
+      }
+    }
   }
 })

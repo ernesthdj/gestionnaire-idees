@@ -24,14 +24,19 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 2: Foundational (coquille)
 
-- [ ] T003 Clés `settings` `app.*` + `capture.draft` (migration avec `down`)
-- [ ] T004 `WindowManager` (fenêtre principale à la demande, capture pré-chargée cachée, toutes durcies) + preloads `main.ts` / `capture.ts` distincts
-- [ ] T005 [P] `lifecycle.ts` : instance unique, `--hidden`, `setLoginItemSettings`
-- [ ] T006 [P] `TrayController` (Capturer / Ouvrir / À valider (n) / Quitter)
-- [ ] T007 [P] Handlers `app:*` + événement `app:navigate`
-- [ ] T008 [P] Motion : `useReducedMotionPreference` (système OU `app.motion`), `durations.ts` (FR-025), `MotionConfig` global + tests `tests/unit/ui/motion.test.ts`
-- [ ] T009 `AppShell` : navigation Idées · À valider (compteur) · Historique, ⚙, thème, QueryClient (invalidation sur événements 002), Zustand
-- [ ] T010 [P] Tests composants coquille (clavier, focus visible, axe clair/sombre) `tests/unit/renderer/app-shell.test.tsx`
+- [x] T003 Clés `settings` `app.*` + `capture.draft` (migration avec `down`)
+  *(fait sans migration : la table `settings` existe déjà ; valeurs par défaut dans le code (`DEFAULT_APP_SETTINGS`, une seule source), chaque clé validée Zod à la lecture et à l'écriture — `AppSettingsRepository`)*
+- [x] T004 `WindowManager` (fenêtre principale à la demande, capture pré-chargée cachée, toutes durcies) + preloads `main.ts` / `capture.ts` distincts
+  *(fait avec **un seul preload** qui n'expose que l'API de sa fenêtre selon `--gi-window=` : un preload en sandbox ne peut charger aucun autre fichier, et deux preloads partageaient un fichier commun au build ; le main vérifie en plus la page émettrice de chaque canal — `senderPage`)*
+- [x] T005 [P] `lifecycle.ts` : instance unique, `--hidden`, `setLoginItemSettings`
+  *(démarrage avec Windows appliqué seulement une fois installée : en développement il enregistrerait electron.exe)*
+- [x] T006 [P] `TrayController` (Capturer / Ouvrir / À valider (n) / Quitter)
+  *(icône provisoire dessinée en mémoire ; compteur « À valider » branché avec T042)*
+- [x] T007 [P] Handlers `app:*` + événement `app:navigate`
+  *(`app:openMain` non exposé : la navigation est pilotée par le main — zone de notification, capture — via l'événement `app:navigate`)*
+- [x] T008 [P] Motion : `useReducedMotionPreference` (système OU `app.motion`), `durations.ts` (FR-025), `MotionConfig` global + tests `tests/unit/ui/motion.test.ts`
+- [x] T009 `AppShell` : navigation Idées · À valider (compteur) · Historique, ⚙, thème, QueryClient (invalidation sur événements 002), Zustand
+- [x] T010 [P] Tests composants coquille (clavier, focus visible, axe clair/sombre) `tests/unit/renderer/app-shell.test.tsx`
 
 **Checkpoint**: app installable, démarre en arrière-plan, navigue
 

@@ -54,6 +54,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 | Commande | Effet |
 |----------|-------|
 | `npm run dev` | Lance l'app en developpement (rechargement a chaud) |
+| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo`, 100 idees / 50 liens fictifs) |
 | `npm test` | Tests Vitest |
 | `npm run typecheck` | Verification TypeScript (main/preload + renderer) |
 | `npm run lint` / `npm run format` | ESLint / Prettier |

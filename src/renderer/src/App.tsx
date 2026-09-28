@@ -1,32 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
-import { AiSettingsPage } from './pages/settings/ai/AiSettingsPage'
-import { ContextPage } from './pages/settings/ai/ContextPage'
+import { AppShell } from './app/AppShell'
 
-const TABS = [
-  { id: 'ai', label: 'IA' },
-  { id: 'context', label: 'Contexte IA' }
-] as const
-type TabId = (typeof TABS)[number]['id']
-
-/** Coquille provisoire : la navigation complète (Idées, À valider, Historique) arrive avec la spec 003. */
+/** Racine de la fenêtre principale : données IPC via TanStack Query, puis la coquille. */
 export function App(): React.JSX.Element {
-  const [tab, setTab] = useState<TabId>('ai')
+  // Données locales (IPC) : pas de rafraîchissement au retour du focus, une seule nouvelle tentative.
+  const [client] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } } })
+  )
   return (
-    <div className="min-h-screen bg-surface text-content">
-      <nav aria-label="Réglages" className="flex justify-center gap-2 border-b border-content-muted/20 p-2">
-        {TABS.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            aria-current={tab === entry.id ? 'page' : undefined}
-            onClick={() => setTab(entry.id)}
-            className={`h-8 rounded-md px-4 text-sm ${tab === entry.id ? 'bg-surface-raised font-semibold' : 'text-content-muted'}`}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </nav>
-      {tab === 'ai' ? <AiSettingsPage /> : <ContextPage />}
-    </div>
+    <QueryClientProvider client={client}>
+      <AppShell />
+    </QueryClientProvider>
   )
 }

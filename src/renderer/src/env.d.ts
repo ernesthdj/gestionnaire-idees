@@ -1,2 +1,2 @@
 /// <reference types="vite/client" />
-// Le type global `window.api` est déclaré dans src/preload/index.d.ts (inclus via tsconfig.web.json).
+// Les types globaux `window.api` et `window.captureApi` sont déclarés dans src/preload/index.d.ts (inclus via tsconfig.web.json).
