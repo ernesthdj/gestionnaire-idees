@@ -1,7 +1,7 @@
-# Specification Quality Checklist: Interface MVP-1 (F1 · F3 · F4)
+# Specification Quality Checklist: Interface MVP-1 « Brainstormer » (v2)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-28
+**Created**: 2026-09-28 (révision « Brainstormer »)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Itération 1 : validation OK. Les mentions « Windows », « zone de notification », « raccourci `Ctrl+Alt+Espace` »
-  sont des contraintes produit (plateforme cible et défaut décidé au brainstorm), pas des choix d'implémentation.
-- Périmètre borné : Planning, Outlook, Conseiller et Compagnon explicitement exclus (MVP-2).
-- Délai d'annulation depuis la notification (10 s) fixé comme défaut raisonnable (Assumptions), pas de clarification nécessaire.
+- Réécriture complète suite aux amendements L1b/L4b et à la maquette `docs/design/neurones-dispositions-2a-2b-2c.png`.
+- Les durées d'animation (FR-025) sont des exigences d'expérience décidées au brainstorm, pas des choix techniques.
+- « Markdown », « Windows », « zone de notification » : contraintes produit (format d'export et plateforme cible).
+- Planning, Outlook, conseiller, compagnon, « Passer à l'action » et pont hub explicitement exclus (MVP-2 / v2).

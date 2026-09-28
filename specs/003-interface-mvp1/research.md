@@ -1,55 +1,47 @@
-# Research — 003 Interface MVP-1
+# Research — 003 Interface MVP-1 « Brainstormer » (v2)
 
-> S'appuie sur 001 (outillage, sécurité, base, IPC) et 002 (modèle central).
+> Remplace la recherche v1 (liste / revue / organigramme dagre). S'appuie sur 001 et 002.
 
-## R1 — Fenêtres
-- **Décision** : 2 fenêtres `BrowserWindow`, toutes durcies (contextIsolation, sandbox, CSP) :
-  - **Capture** : créée au démarrage et **gardée cachée** (pré-chargée), `frame: false`, `alwaysOnTop: true`, `skipTaskbar: true`, `resizable: false`, ~560×120 px, positionnée au centre-haut de l'écran contenant le curseur (`screen.getCursorScreenPoint` + `getDisplayNearestPoint`).
-  - **App complète** : créée à la demande, cachée (pas détruite) à la fermeture.
-- **Rationale** : pré-charger la fenêtre de capture est la seule façon fiable d'atteindre un affichage « instantané » (SC-001).
-- **Alternatives** : créer la fenêtre à chaque raccourci (≈ 300-800 ms, trop lent).
+## R1 — Fenêtres, raccourci, zone de notification, démarrage (inchangé v1)
+- Fenêtre de **capture pré-chargée et cachée** (frameless, alwaysOnTop, écran du curseur) ; fenêtre principale créée à la demande et cachée à la fermeture ; deux preloads distincts (moindre privilège) ; `globalShortcut` ; fermeture `blur()` + `hide()` pour rendre le focus ; `Tray` ; `setLoginItemSettings` + `--hidden` ; instance unique.
 
-## R2 — Raccourci global & retour du focus
-- **Décision** : `globalShortcut.register` (défaut `Control+Alt+Space`) ; en cas d'échec (raccourci pris) → notification + réglage. À la fermeture, `captureWindow.blur()` puis `hide()` : Windows rend le focus à la fenêtre active précédente. Vérification manuelle sur les apps courantes (navigateur, VS Code, Explorateur).
-- **Alternatives** : module natif pour mémoriser/restaurer le handle de fenêtre (complexité injustifiée tant que le comportement natif suffit — à réévaluer si le test manuel échoue).
+## R2 — Rendu de la carte neuronale
+- **Décision** : **React Flow** (`@xyflow/react`) comme toile (déplacement, zoom, arêtes, sélection, navigation clavier, rendu limité aux éléments visibles) avec **nœuds personnalisés circulaires** (brut / en développement / éclos / sous-neurone / extension « + ») et **arêtes personnalisées** (libellé, pointillés pour les suggestions).
+- **Positions** :
+  - Incubateur et réseau : **`d3-force`** (simulation physique douce : répulsion, attraction des liens, contrainte de zone gauche/droite) ; positions stabilisées puis mémorisées (`pos_x/pos_y`, 002) ; la **dérive** des bruts = faible bruit appliqué à la simulation, suspendu pendant l'interaction.
+  - Plongée : **disposition radiale** calculée (neurone centré, enfants répartis sur un arc, parent estompé à gauche) — quelques lignes de géométrie, pas de bibliothèque.
+- **Rationale** : React Flow apporte l'accessibilité et la performance ; `d3-force` donne l'aspect organique des maquettes (dagre, pensé pour des organigrammes hiérarchiques, est abandonné).
+- **Alternatives** : SVG maison + `d3-zoom` (contrôle total mais accessibilité et virtualisation à refaire) ; Cytoscape (lourd, style moins libre).
 
-## R3 — Zone de notification & démarrage avec Windows
-- **Décision** : `Tray` avec menu contextuel (Capturer, Ouvrir l'app, À valider (n), Quitter) et info-bulle ; badge « À valider » via le libellé du menu et l'icône (variante avec pastille). Démarrage : `app.setLoginItemSettings({ openAtLogin, args: ["--hidden"] })` ; lancé avec `--hidden` → aucune fenêtre ouverte. Instance unique : `app.requestSingleInstanceLock()`.
+## R3 — Animations
+- **Décision** : **Motion** (`motion`, ex-Framer Motion) pour les animations de nœuds : pousse (échelle + opacité, 250 ms), halo (pulsation), suggestion (150 ms), **fusion** (les sous-neurones interpolent leur position vers le centre du parent + réduction d'échelle, 600–800 ms, puis changement d'aspect) et **migration** (interpolation de la position incubateur → réseau, ~600 ms), plongée (transition de la vue React Flow `setViewport` avec durée 400 ms).
+- **Accessibilité** : hook `useReducedMotionPreference()` = préférence système (`prefers-reduced-motion`) **ou** réglage de l'app ; en mode réduit : durées 0 ou fondus ≤ 150 ms, dérive coupée, halo statique. `MotionConfig reducedMotion` positionné globalement.
+- **Risque** : animer des positions de nœuds React Flow avec Motion — **spike** en tout début de US4 (T0xx) pour valider l'approche (valeurs Motion → positions de nœuds à chaque frame), avec repli : animation des nœuds en overlay SVG pendant la fusion puis remplacement.
 
-## R4 — État côté interface
-- **Décision** : **TanStack Query** pour les données venant de l'IPC (cache, invalidation sur événements `proposal:created`, `tree:changed`…) ; **Zustand** pour l'état d'interface (section active, sélection, filtres) ; **React Hook Form + Zod** pour les formulaires (réglages, édition dans la revue). Navigation par état (Zustand) plutôt qu'un routeur : 4 sections + réglages, pas d'URL à partager.
-- **Rationale** : conforme au standard frontend de mentalyas ; pas de routeur inutile (YAGNI).
-- **Alternatives** : React Router (surdimensionné pour une app desktop à 5 écrans).
+## R4 — État côté interface (inchangé v1)
+- TanStack Query pour les données IPC (invalidation sur événements `neuron:*`, `synthesis:*`, `links:*`) ; Zustand pour l'état d'interface (zone, neurone plongé, pile du fil d'Ariane, filtres) ; React Hook Form + Zod pour les formulaires ; navigation par état (pas de routeur).
 
-## R5 — Organigramme
-- **Décision** : **React Flow** (`@xyflow/react`) avec types de nœuds personnalisés (idée, tâche, condition en losange, opportunité) ; mise en page automatique **dagre** (`@dagrejs/dagre`, graphe orienté haut → bas) à la première ouverture d'une idée, puis positions mémorisées ; `MiniMap`, `Controls`, `Background` ; idées repliées = 1 nœud, dépliées = sous-graphe. Performance : `onlyRenderVisibleElements`, nœuds mémoïsés.
-- **Alternatives** : elkjs (plus puissant mais plus lourd), dessin manuel en SVG (des semaines de travail).
+## R5 — Aperçu de synthèse éditable
+- **Décision** : l'aperçu lit `SynthesisView` (002) ; l'édition d'un élément appelle une mise à jour de la synthèse **proposée** (payload modifié côté main, revalidé : contrôles P1–P6 / S1) avant confirmation ; pas d'édition directe des tables de résultat avant `fusion:confirm`.
+- **Nouveau canal** : `fusion:editProposed { synthesisId, patch }` (ajout à l'IPC de 002, implémenté ici).
 
-## R6 — Application d'une proposition (tout-ou-rien)
-- **Décision** : `ProposalApplier` dans une **transaction SQLite unique** : (1) vérifier `base_version` = version courante (sinon `STALE`) ; (2) appliquer la sélection de l'utilisateur (éléments cochés + éditions) ; (3) convertir `ref` → uuid ; (4) insérer nœuds, dépendances, liens ; (5) recalculer les statuts ; (6) écrire `change_log` (avant/après) avec un `batch_id` ; (7) incrémenter `ideas.version`, statut `structured` ; (8) enregistrer l'exemple positif (001 `ExampleStore.record`). Toute exception → rollback.
+## R6 — Annulation par lot
+- **Décision** : `HistoryService` rejoue `change_log` à l'envers par `batch_id` dans une transaction ; contrôle de conflit (état actuel = `after_json` du lot) ; annuler une fusion : racine → `developing`, plan/synthèse du lot → `is_current = 0`, synthèse → `proposed` si l'arbre n'a pas changé, sinon `stale` ; exemple positif retiré (001).
 
-## R7 — Annulation
-- **Décision** : annulation par **lot** (`batch_id`) en rejouant `change_log` à l'envers dans une transaction ; avant de restaurer, vérifier pour chaque entité que son état actuel = `after_json` du lot ; sinon **conflit** → annulation refusée avec la liste des éléments modifiés depuis (FR-018). L'annulation écrit elle-même un lot (réversible).
-- **Alternatives** : instantanés complets de l'idée (plus simple mais lourd, et masque les conflits).
+## R7 — Export Markdown
+- **Décision** : générateur pur `renderNeuronMarkdown(tree, result, links)` (titres, nature, catégorie, arbre questions/réponses en listes imbriquées, plan en cases à cocher avec conditions et dépendances, ou synthèse en sections, liens) ; écriture **dans le main** après `dialog.showSaveDialog` (le renderer ne touche pas au disque) ; nom de fichier assaini ; UTF-8.
+- **Rationale** : lisible par Claude Code, `/brainstorm`, Obsidian, NotebookLM.
 
-## R8 — Propagation des statuts
-- **Décision** : fonction pure `computeStatuses(nodes, dependencies, activeBranches)` : ordre topologique (Kahn, 002) ; une tâche est `blocked` si une dépendance `after_done` n'est pas `done`, si un `on_trigger` n'est pas atteint, ou si elle est dans une branche inactive (alors affichée grisée, statut conservé) ; sinon `ready` (sauf `in_progress`/`done`/`abandoned` fixés par l'utilisateur). Recalcul complet de l'idée à chaque changement (≤ 60 nœuds : négligeable).
+## R8 — Tests d'accessibilité
+- **Décision** : `@testing-library/react` + `jsdom` + **`axe-core`** appelé directement (petite assertion maison `expectNoAxeViolations`) ; `vitest-axe` écarté (dernière version 0.1, non maintenue).
 
-## R9 — Catégorisation en arrière-plan
-- **Décision** : `CaptureService` enregistre l'idée (`category = null`, statut `raw`) puis demande `categoriser` au moteur 001 **sans attendre** ; si l'IA locale est indisponible, la demande part dans la `LocalQueue` (001, T058) et sera rejouée. Le résultat n'est appliqué que si `category_source ≠ user`.
-
-## R10 — Tâches périodiques
-- **Décision** : au démarrage puis toutes les 6 h : archivage des propositions `pending` > 14 jours (statut `archived`) ; marquage `stale` des propositions dont l'idée a changé (filet de sécurité en plus de l'événement 002).
-
-## R11 — Thème & accessibilité
-- **Décision** : tokens CSS clair/sombre (`[data-theme]`) avec mode « système » (`nativeTheme.shouldUseDarkColors`) ; contrôle AA des couleurs de catégorie dans les deux thèmes ; tests d'accessibilité automatisés des composants avec `vitest-axe` (+ `@testing-library/react`) et vérification clavier manuelle.
-
-## Dépendances annoncées (nouvelles par rapport à 001)
-| Paquet | Rôle |
-|--------|------|
-| `@xyflow/react` | Organigramme interactif |
-| `@dagrejs/dagre` | Mise en page automatique de l'arbre |
-| `zustand` | État d'interface |
-| `@tanstack/react-query` | Données IPC côté interface |
-| `react-hook-form`, `@hookform/resolvers` | Formulaires validés par Zod |
-| `@testing-library/react`, `vitest-axe`, `jsdom` | Tests de composants et d'accessibilité |
+## Dépendances annoncées (à valider avant installation — T001)
+| Paquet | Version | Rôle |
+|--------|---------|------|
+| `@xyflow/react` | 12.12 | Toile, nœuds, arêtes, zoom, clavier |
+| `d3-force` (+ `@types/d3-force`) | 3.0 | Disposition organique incubateur/réseau |
+| `motion` | 13.4 | Animations (pousse, fusion, migration, halo) |
+| `zustand` | 5.0 | État d'interface |
+| `@tanstack/react-query` | 5.104 | Données IPC |
+| `react-hook-form` + `@hookform/resolvers` | 7.89 / 5.9 | Formulaires validés Zod |
+| `@testing-library/react`, `jsdom`, `axe-core` | 16.3 / 30.1 / 4.13 | Tests de composants et d'accessibilité |

@@ -1,26 +1,21 @@
-# Quickstart — Vérifier la structuration IA (002)
+# Quickstart — Vérifier le moteur de neurones (002 v2)
 
 ## Prérequis
-- Feature 001 implémentée (moteur IA, base chiffrée, IPC).
-- Tests : aucun réseau (FakeProvider scripté avec des sorties fixes).
-- Manuel : Ollama + clé Claude de test ; **idées fictives uniquement**.
+Feature 001 (AIGateway avec cadre v2, base chiffrée, IPC). Tests sans réseau (FakeProvider scripté).
+Manuel : Ollama + clé Claude de test ; **neurones fictifs uniquement**.
 
 ## Scénarios automatisés
 | # | Commande | Prouve | Réf. |
 |---|----------|--------|------|
-| 1 | `npx vitest run tests/unit/structuring/session-state` | Transitions de la machine à états, limite de 8 questions, abandon | FR-002/005/013 |
-| 2 | `npx vitest run tests/unit/structuring/cycles` | Boucles détectées, profondeur > 5 rejetée | FR-007, SC-003 |
-| 3 | `npx vitest run tests/unit/structuring/provenance` | 0 montant/date inventé sur 20 questionnaires fixtures ; tâches d'investigation ajoutées | FR-008, SC-002 |
-| 4 | `npx vitest run tests/unit/structuring/consistency` | Règles K1–K7 | FR-006/007 |
-| 5 | `npx vitest run tests/integration/structuring` | Flux complet idée → proposition `pending`, idée inchangée, reprise après redémarrage simulé, proposition périmée, idempotence des réponses | FR-004/010/011, SC-006/007 |
+| 1 | `npx vitest run tests/unit/neurons/growth` | ≥ 3 extensions au démarrage (retry + repli), doublons retirés, profondeur 6, 1 sous-neurone par extension, cascade de suppression | FR-003–007, SC-001 |
+| 2 | `npx vitest run tests/unit/neurons/gauge` | Plancher 3 réponses, niveaux, manques | FR-008/009 |
+| 3 | `npx vitest run tests/unit/neurons/plan-checks` | P1–P5 (refs, branches, profondeur, boucles) | FR-011 |
+| 4 | `npx vitest run tests/unit/neurons/provenance` | 0 valeur inventée sur 20 arbres fixtures | FR-016, SC-003 |
+| 5 | `npx vitest run tests/integration/neurons` | Création → développement → réponses → verrouillage (normal/forcé) → confirmation tout-ou-rien (erreur injectée) → éclosion ; périmée ; correction ; réouverture ; persistance après redémarrage simulé ; liens suggérés/acceptés/refusés | FR-010–018, SC-005/006 |
 
-## Scénarios manuels (`npm run dev`)
-1. Créer l'idée « acheter un 2e écran pour le PC » → Structurer → répondre (modèle 27", budget ~250 €, « Non » à l'argent, mission mariage 1 250 € le 15/11) → la proposition contient la condition « argent ? », les deux branches, l'opportunité « mission mariage » liée par « finance » et le déclencheur « au paiement ». (Répéter 10 fois pour SC-001.)
-2. Répondre « je ne sais pas » au prix → une tâche « Trouver le prix » apparaît, sans montant.
-3. Fermer l'app au milieu du questionnaire → rouvrir → reprise à la même question.
-4. Modifier le texte de l'idée pendant le questionnaire → la proposition finale est marquée périmée.
-5. Écrire « écris-moi un poème » en réponse → recentrage poli.
-6. Couper le réseau → proposition du mode dégradé local, indicateur visible.
-
-## Résultat attendu
-Tests verts ; scénarios manuels conformes ; aucune ligne créée dans `nodes`/`dependencies` avant F3.
+## Scénarios manuels
+1. Neurone Action « acheter un 2e écran pour le PC » → développer → répondre (27", ~250 €, « Non » à l'argent, mission mariage 1 250 € le 15/11) → jauge « suffisant » → verrouiller → plan avec condition « argent ? » et ses 2 branches, opportunité et déclencheur → confirmer (×10 pour SC-002).
+2. Neurone Réflexion « concept de mon portfolio photo » → développer → questions d'exploration (public, style, critères) → verrouiller → synthèse (pistes, décisions, pour/contre, questions ouvertes).
+3. Faire éclore « Mission mariage » puis « 2e écran » → suggestion de lien « financement » (×10 pour SC-007).
+4. Demander « écris-moi le poème » dans un neurone → refus de produire + extensions pour y réfléchir.
+5. Couper le réseau → ajout de branches possible, extensions IA en attente, message clair.

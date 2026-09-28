@@ -1,23 +1,26 @@
-# Quickstart — Vérifier l'interface MVP-1 (003)
+# Quickstart — Vérifier l'interface MVP-1 « Brainstormer » (003 v2)
 
 ## Prérequis
-Features 001 et 002 implémentées ; dépendances de research.md validées et installées ; données **fictives** uniquement.
+Features 001 et 002 implémentées ; dépendances de research.md validées et installées ; données **fictives**.
 
 ## Scénarios automatisés
 | # | Commande | Prouve | Réf. |
 |---|----------|--------|------|
-| 1 | `npx vitest run tests/unit/tree/statuses` | Propagation bloquée/prête, branches inactives, déclencheurs | FR-022–024, SC-007 |
-| 2 | `npx vitest run tests/integration/review/apply` | Acceptation tout-ou-rien (erreur injectée → aucune donnée modifiée), sélection/éditions, `STALE`, `DEPENDENCY_EXCLUDED` | FR-013/014/017, SC-004 |
-| 3 | `npx vitest run tests/integration/history/undo` | Annulation exacte, conflit détecté après édition manuelle | FR-018, SC-005 |
-| 4 | `npx vitest run tests/integration/capture` | Idée conservée IA arrêtée, catégorie rejouée, choix utilisateur jamais écrasé | FR-009/010, SC-002 |
-| 5 | `npx vitest run tests/unit/renderer` | Composants : clavier complet, rôles/labels, axe sans violation (clair et sombre) | FR-005, SC-008 |
+| 1 | `npx vitest run tests/unit/ui/layout` | Radial (plongée) et contraintes de zones (force) : aucun chevauchement, bruts à gauche, éclos à droite | FR-009/013 |
+| 2 | `npx vitest run tests/unit/ui/motion` | Préférence réduite (système OU réglage) → durées 0 / fondus ≤ 150 ms, dérive coupée | FR-012/025, SC-006 |
+| 3 | `npx vitest run tests/unit/markdown` | Export : arbre, plan (cases, conditions, dépendances), synthèse, liens ; nom de fichier assaini | FR-022, SC-007 |
+| 4 | `npx vitest run tests/integration/history` | Annulation d'une fusion exacte ; conflit après réouverture + nouvelles réponses | FR-024, SC-008 |
+| 5 | `npx vitest run tests/integration/capture` | Neurone créé sans IA ; nature/catégorie appliquées ensuite ; choix utilisateur jamais écrasé | FR-008 |
+| 6 | `npx vitest run tests/unit/renderer` | Composants : clavier complet, axe-core sans violation en clair et sombre (canvas, plongée, aperçu, À valider, réglages) | FR-005, SC-005 |
 
-## Scénarios manuels (`npm run dev`, puis build installé pour le démarrage Windows)
-1. Depuis VS Code, un navigateur et l'Explorateur : `Ctrl+Alt+Espace` → taper → `Entrée` → la fenêtre disparaît, le focus revient (chronométrer : < 5 s).
-2. Arrêter Ollama → capturer 3 idées → « À classer » ; relancer Ollama → catégories appliquées.
-3. Structurer l'idée « 2e écran » (002) → À valider (badge) → décocher « Épargner », corriger un montant → Accepter → organigramme à jour → « Annuler » dans les 10 s → état initial.
-4. Organigramme : choisir « Non » à « J'ai l'argent ? », marquer « Mission payée » atteint → « Réserver X € » passe à prête ; « Oui » grisé.
-5. Générer 50 idées / 300 nœuds fictifs (`npm run seed:demo`) → zoom/déplacement fluides.
-6. Installer le build, activer « Démarrer avec Windows », redémarrer la session → icône présente, aucune fenêtre ouverte.
-7. Prendre le raccourci avec une autre app → message et choix d'un autre raccourci.
-8. Parcours de premier lancement avec un profil de données vierge.
+## Scénarios manuels (`npm run dev`)
+1. Capture depuis VS Code / navigateur / Explorateur → neurone brut dans l'incubateur ; focus rendu (< 5 s).
+2. Plonger dans « 2e écran » → ≥ 3 extensions → répondre à 3 (dont « Non » à l'argent + mission mariage) → jauge « suffisant » → Verrouiller → aperçu plan → corriger un montant → Confirmer → **fusion + migration** vers le réseau → « Annuler » dans les 10 s → retour exact.
+3. Neurone Réflexion « concept portfolio » → synthèse structurée → éclore → exporter en Markdown → ouvrir dans VS Code / Obsidian.
+4. Suggestion de lien « financement » entre « Mission mariage » et « 2e écran » → accepter depuis le réseau, refuser une autre depuis À valider.
+5. Windows « Afficher les animations » désactivé → aucune animation de mouvement ; idem avec le réglage de l'app.
+6. Générer 100 neurones / 50 liens fictifs (`npm run seed:demo`) → fluidité (déplacement, zoom, dérive).
+7. Build installé + démarrage avec Windows → icône présente, aucune fenêtre ouverte.
+
+## Chronométrage
+SC-002 (idée simple → éclosion < 3 min, sans aide) : 3 essais, consignés dans § Résultats.

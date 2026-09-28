@@ -81,8 +81,8 @@ Règle : au-delà de 20 par `(task_kind)`, les plus anciens (hors `import`) sont
 ## Types (non persistés)
 
 ```ts
-type TaskKind = "categoriser" | "resumer" | "anonymiser" | "briefing_texte"
-              | "questionner" | "decomposer" | "restructurer" | "suggerer";
+type TaskKind = "categoriser" | "resumer" | "anonymiser" | "briefing_texte"          // → locale
+              | "etendre" | "synthetiser" | "reviser" | "suggerer_liens" | "suggerer";  // → claude
 type Engine = "ollama" | "claude";
 type AIErrorCode = "AI_UNAVAILABLE" | "AI_INVALID_OUTPUT" | "AI_REFUSAL"
                  | "BUDGET_EXCEEDED" | "AUTH_FAILED" | "ANONYMIZATION_FAILED" | "QUEUED";

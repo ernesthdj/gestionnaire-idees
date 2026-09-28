@@ -15,7 +15,7 @@
 - **Alternatives** : Jest (configuration TS/ESM plus lourde). Playwright-Electron réservé aux tests de bout en bout ultérieurs (hors F9).
 
 ## R3 — Appels Claude
-- **Décision** : SDK officiel `@anthropic-ai/sdk` ; `client.messages.parse` + `zodOutputFormat(schema)` (helper `@anthropic-ai/sdk/helpers/zod`) → `parsed_output` (null = sortie invalide) ; `thinking: { type: "adaptive" }` ; `output_config.effort` par type (questionner → `low`, décomposer/restructurer/suggérer → `high`) ; `max_tokens` 16 000 (non streaming).
+- **Décision** : SDK officiel `@anthropic-ai/sdk` ; `client.messages.parse` + `zodOutputFormat(schema)` (helper `@anthropic-ai/sdk/helpers/zod`) → `parsed_output` (null = sortie invalide) ; `thinking: { type: "adaptive" }` ; `output_config.effort` par type (`etendre` → `low`, `suggerer_liens` → `medium`, `synthetiser`/`reviser`/`suggerer` → `high`) ; `max_tokens` 16 000 (non streaming).
 - **Modèle** : `claude-opus-5` par défaut (décision mentalyas), configurable.
 - **Refus** : tester `stop_reason === "refusal"` avant lecture ; fallbacks serveur activés pour Opus 5 (`betas: ["server-side-fallback-2026-07-01"]`, `fallbacks: "default"`) → requêtes via `client.beta.messages` quand activé ; à vérifier en implémentation contre la doc du SDK (combinaison `parse` + beta).
 - **Cache** : `cache_control: { type: "ephemeral" }` sur le bloc système stable (cadre + profil) ; vérifier `usage.cache_read_input_tokens` > 0 sur les tours suivants.

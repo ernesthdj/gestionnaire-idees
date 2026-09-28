@@ -9,6 +9,10 @@
 > F2 → arborescence plan.md complétée ; U1 → T060. B2 reste accepté tel quel.
 > Couverture après remédiation : 27/27 exigences couvertes.
 
+> **Révision « Brainstormer » (2026-09-28)** : cadre système v2 (partenaire de brainstorm sur tout sujet,
+> refus des œuvres finies uniquement), TaskKind révisés (`etendre`, `synthetiser`, `reviser`, `suggerer_liens`,
+> `suggerer`). Aucun impact sur la couverture ni sur les tâches déjà réalisées (T001–T006).
+
 ## Findings
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |

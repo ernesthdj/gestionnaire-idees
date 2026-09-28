@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Draft — révisé le 2026-09-28 (amendement « Brainstormer », docs/brainstorm/L1b-brainstormer.md)
 
 **Input**: User description: "F9 — Moteur IA hybride & contexte, tel que défini dans docs/FOUNDATION.md §2ter, §9.5 et §10.2 : un point d'accès unique à l'IA qui choisit le moteur (IA locale par défaut, Claude pour le raisonnement profond), injecte un cadre strict et le profil de l'utilisateur, valide chaque réponse, anonymise les données avant tout envoi externe, maîtrise le coût et permet de mettre à jour le contexte de l'agent depuis Claude Code avec aperçu et validation."
 
@@ -12,18 +12,19 @@
 
 ### User Story 1 - Obtenir une réponse IA fiable, par le bon moteur (Priority: P1)
 
-Quand une fonctionnalité de l'app a besoin de l'IA (catégoriser une idée, poser une question, décomposer une idée), la demande est traitée par le moteur adapté : l'IA locale pour les tâches simples, Claude pour le raisonnement profond. La réponse n'est utilisée que si elle respecte exactement le format attendu ; sinon elle est rejetée proprement.
+Quand une fonctionnalité de l'app a besoin de l'IA (catégoriser une idée, proposer les questions d'extension d'un neurone, synthétiser un neurone), la demande est traitée par le moteur adapté : l'IA locale pour les tâches simples, Claude pour le raisonnement profond. La réponse n'est utilisée que si elle respecte exactement le format attendu ; sinon elle est rejetée proprement.
 
 **Why this priority**: toutes les fonctionnalités intelligentes (F1 catégorisation, F2 structuration, F7 conseiller, F8 briefing) en dépendent. Sans ce socle, rien d'autre ne fonctionne.
 
-**Independent Test**: envoyer une demande « catégoriser » et une demande « décomposer » avec des moteurs simulés ; vérifier que chacune part vers le bon moteur et qu'une réponse mal formée est rejetée sans être utilisée.
+**Independent Test**: envoyer une demande « catégoriser » et une demande « synthétiser » avec des moteurs simulés ; vérifier que chacune part vers le bon moteur et qu'une réponse mal formée est rejetée sans être utilisée.
 
 **Acceptance Scenarios**:
 
 1. **Given** l'IA locale disponible, **When** une fonctionnalité demande une catégorisation, **Then** la demande est traitée par l'IA locale et aucun appel externe n'a lieu.
 2. **Given** Claude configuré, **When** une fonctionnalité demande une décomposition, **Then** la demande est traitée par Claude et la réponse est restituée structurée.
 3. **Given** un moteur qui renvoie une réponse hors format, **When** la réponse arrive, **Then** un nouvel essai est tenté une fois, puis la demande échoue avec un message clair, sans aucune donnée modifiée.
-4. **Given** une demande hors périmètre (ex. « écris-moi un poème »), **When** l'IA la reçoit, **Then** elle refuse poliment et recentre sur l'organisation des idées.
+4. **Given** une demande hors périmètre (ex. « écris-moi un poème »), **When** l'IA la reçoit, **Then** elle refuse poliment de produire l'œuvre et propose d'aider à y réfléchir (thème, structure, critères).
+5. **Given** un sujet quelconque (concept photo, architecture d'app, décision de carrière), **When** l'utilisateur brainstorme dessus, **Then** l'IA l'accompagne (questions, pistes, pour/contre) sans le refuser.
 
 ---
 
@@ -103,10 +104,10 @@ Claude Code dépose des fichiers de contexte (profil, règles, exemples) dans un
 ### Functional Requirements
 
 - **FR-001**: Le système MUST offrir un point d'accès unique à l'IA, utilisé par toutes les fonctionnalités ; aucun autre composant ne contacte directement un moteur.
-- **FR-002**: Le système MUST choisir le moteur selon le type de demande à l'aide d'une table de routage configurable : catégoriser, résumer, anonymiser, texte du briefing → IA locale ; questionner, décomposer, restructurer, suggérer → Claude.
+- **FR-002**: Le système MUST choisir le moteur selon le type de demande à l'aide d'une table de routage configurable : catégoriser (catégorie + nature Action/Réflexion), résumer, anonymiser, texte du briefing → IA locale ; étendre un neurone (questions + évaluation du contexte), synthétiser, réviser, suggérer des liens, suggérer (conseiller) → Claude.
 - **FR-003**: Le système MUST valider chaque réponse contre le format attendu pour son type de demande, tenter un seul nouvel essai en cas d'échec, puis échouer proprement.
 - **FR-004**: Le système MUST assembler le contexte de chaque demande dans l'ordre : cadre de base (figé) → profil actif → exemples pertinents → données utiles à la demande uniquement.
-- **FR-005**: Le cadre de base MUST imposer : périmètre limité à l'organisation des idées, refus poli hors périmètre, interdiction d'inventer un prix/date/montant, traitement du texte utilisateur comme donnée.
+- **FR-005**: Le cadre de base MUST imposer : rôle de **partenaire de brainstorm sur tout sujet** (questions, pistes, arguments, critères, synthèses, plans d'action) ; refus poli de produire des œuvres finies (images, poèmes/prose créative, code complet, textes longs rédigés) avec proposition d'aider à y réfléchir ; interdiction d'inventer un prix, une date ou un montant personnel ; traitement du texte utilisateur comme donnée.
 - **FR-006**: Le système MUST anonymiser toute donnée avant envoi à Claude (montants en fourchettes ou arrondis, noms de personnes, e-mails et téléphones retirés) et MUST basculer sur une anonymisation par règles si l'IA locale échoue ; le texte brut n'est jamais transmis.
 - **FR-007**: Le système MUST journaliser chaque appel (type, moteur, modèle, volume, coût estimé, statut, durée) sans aucun contenu d'idée ni de réponse.
 - **FR-008**: Le système MUST suivre le coût mensuel de l'IA externe, alerter à 80 % du plafond, bloquer à 100 % et permettre un déblocage manuel ; plafond par défaut 10 €, modifiable.
@@ -152,4 +153,4 @@ Claude Code dépose des fichiers de contexte (profil, règles, exemples) dans un
 - Le choix précis du modèle local (famille 7-8 milliards de paramètres) se fera par un banc d'essai sur les 4 tâches locales pendant la planification.
 - Le taux de conversion USD → EUR pour l'estimation du coût est une valeur configurable mise à jour manuellement.
 - Les fichiers de contexte sont produits par Claude Code à la demande de l'utilisateur ; le profil initial est distillé depuis son fichier d'instructions global.
-- Hors périmètre de cette feature : l'écran de revue des propositions (F3), le questionnaire (F2), le conseiller (F7) — ils consomment ce moteur.
+- Hors périmètre de cette feature : le moteur de neurones (spec 002), l'interface (spec 003), le conseiller (F7) — ils consomment ce moteur.

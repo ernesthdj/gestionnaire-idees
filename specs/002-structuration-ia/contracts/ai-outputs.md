@@ -1,54 +1,54 @@
-# Contrat — Sorties IA de la structuration (schémas Zod partagés, `src/shared/ai/structuring.ts`)
+# Contrat — Sorties IA du moteur de neurones (schémas Zod partagés, `src/shared/ai/neurons.ts`)
 
-Validés par le moteur 001 (`messages.parse` / format Ollama) **puis** par les contrôles métier (R4, R5, R9).
+Validés par le moteur 001 **puis** par les contrôles déterministes de l'app.
 
 ```ts
-QuestionOut = {
-  kind: "question" | "ready" | "out_of_scope",
-  text: string,                    // 1..300
-  quickReplies?: string[],         // 0..4, chacune 1..40
-  detectedOpportunity?: {
-    title: string,                 // 1..120
-    amountCents?: number,          // entier ≥ 0
-    expectedDate?: string          // YYYY-MM-DD
-  }
+CategoriserOut = { categorySlug: "general"|"achat"|"projet"|"sortie"|"photo"|"it", nature: "action"|"reflection" }
+
+EtendreOut = {
+  kind: "extensions" | "out_of_scope",
+  outOfScopeMessage?: string,                    // 1..300, requis si out_of_scope
+  extensions: Array<{
+    question: string,                            // 1..300
+    quickReplies: string[],                      // 0..4, chacune 1..40
+    dimension: string,                           // 1..40
+    answerKind?: "answer" | "condition" | "opportunity"   // indication pour le sous-neurone
+  }>,                                            // ≥ 3 si cible = racine au démarrage ; sinon 0..5
+  assessment: {
+    level: "insufficient" | "sufficient" | "complete",
+    covered: string[],                           // ≤ 12
+    missing: string[]                            // ≤ 12
+  },
+  detectedOpportunity?: { title: string, amountCents?: number, expectedDate?: string }
 }
 
-DecompositionOut = {
-  nodes: Array<{
-    ref: string,                   // /^[a-z][a-z0-9]{0,15}$/, unique dans la proposition
-    type: "task" | "condition" | "opportunity",
-    title: string,                 // 1..120
-    parentRef?: string,            // doit exister ; profondeur ≤ 5
-    branchLabel?: string,          // requis si le parent est une condition ; 1..40
-    question?: string,             // requis si type = condition ; 1..200
-    amountCents?: number,          // soumis au contrôle de provenance R5
-    dueDate?: string,              // YYYY-MM-DD, soumis à R5
-    toSchedule?: boolean,
-    investigation?: boolean
-  }>,                              // 1..60 nœuds
-  dependencies: Array<{
-    fromRef: string, toRef: string,
-    kind: "after_done" | "on_trigger",
-    triggerLabel?: string          // requis si on_trigger ; 1..80
-  }>,
-  ideaLinks: Array<{ targetAlias: "I1"|"I2"|"I3"|"I4"|"I5", kind: "finances" | "related" | "blocks" }>,
-  gaps: string[]                   // 0..10, chacune ≤ 200
+ActionPlanOut = {
+  nodes: Array<{ ref, type: "task"|"condition"|"opportunity", title, parentRef?, branchLabel?, question?,
+                 amountCents?, dueDate?, toSchedule?, investigation?, sourceRefs: string[] }>,   // 1..60
+  dependencies: Array<{ fromRef, toRef, kind: "after_done"|"on_trigger", triggerLabel? }>,
+  gaps: string[]
 }
 
-// Restructuration : même forme + opérations
-RestructureOut = DecompositionOut & {
-  operations: Array<{ op: "add" | "update" | "remove", ref?: string, existingNodeId?: string }>
+ReflectionSummaryOut = {
+  keyPoints:     Array<{ text: string, sourceRefs: string[] }>,   // 1..10, text ≤ 300
+  decisions:     Array<{ text: string, sourceRefs: string[] }>,   // 0..10
+  pros:          Array<{ text: string, sourceRefs: string[] }>,   // 0..10
+  cons:          Array<{ text: string, sourceRefs: string[] }>,   // 0..10
+  openQuestions: Array<{ text: string }>                          // 0..10
 }
+
+SuggererLiensOut = { links: Array<{ targetAlias: "N1"|…|"N10", label: string /*1..40*/, justification: string /*1..200*/ }> } // 0..3
 ```
+`sourceRefs` = alias des sous-neurones (`s1…sN`) fournis dans le contexte ; `ref` = identifiants temporaires du plan.
 
-## Règles de cohérence (post-parsing)
+## Contrôles déterministes
 | # | Règle | Échec → |
 |---|-------|---------|
-| K1 | `ref` uniques ; `parentRef`, `fromRef`, `toRef` existent | `AI_INVALID_OUTPUT` (1 retry) |
-| K2 | Enfant d'une condition ⇒ `branchLabel` ; chaque condition a 2..4 branches | `AI_INVALID_OUTPUT` |
-| K3 | Profondeur ≤ 5 | `DEPTH_EXCEEDED` |
-| K4 | Pas de boucle (Kahn, dépendances existantes ∪ nouvelles) | `CYCLE_DETECTED` (1 retry) |
-| K5 | `targetAlias` ∈ candidates fournies | lien retiré |
-| K6 | Provenance montants/dates (R5) | valeur retirée + tâche d'investigation ajoutée |
-| K7 | `existingNodeId` (restructuration) appartient à l'idée | `AI_INVALID_OUTPUT` |
+| E1 | Démarrage : ≥ 3 extensions | 1 retry, puis repli (extensions reçues + message) |
+| E2 | Extension dont la question duplique une extension écartée/répondue (normalisée) | retirée |
+| E3 | Profondeur de la cible ≥ 6 | aucune extension demandée ; suggestion « neurone distinct » |
+| E4 | Plancher jauge : < 3 réponses → `insufficient` | niveau forcé |
+| P1–P5 | Plan : refs existantes, branches 2..4, profondeur plan ≤ 5, sans boucle (Kahn), `sourceRefs` existants | `AI_INVALID_OUTPUT` (1 retry) / `CYCLE_DETECTED` / `DEPTH_EXCEEDED` |
+| P6 | Provenance montants/dates (réponses de l'utilisateur uniquement) | valeur retirée + nœud « à trouver » |
+| S1 | Réflexion : `sourceRefs` existants, au moins 1 point clé | `AI_INVALID_OUTPUT` (1 retry) |
+| L1 | Liens : `targetAlias` ∈ candidats, pas d'empreinte refusée | suggestion retirée |

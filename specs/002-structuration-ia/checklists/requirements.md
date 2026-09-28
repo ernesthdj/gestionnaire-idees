@@ -1,7 +1,7 @@
-# Specification Quality Checklist: Structuration IA — questionnaire & décomposition (F2)
+# Specification Quality Checklist: Moteur de neurones (F2 v2)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-28
+**Created**: 2026-09-28 (révision « Brainstormer »)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Itération 1 : SC-005 initialement formulé « retour < 200 ms » (trop technique) → reformulé en
-  « retour visible immédiat (perçu comme instantané) » + délai utilisateur de 10 s par question. Validé.
-- Périmètre explicitement borné : aucune application de proposition (F3), aucun affichage d'arbre accepté (F4).
-- Aucune clarification nécessaire : décisions issues de `docs/FOUNDATION.md` §2bis, §9.2, §10.1.
+- Révision complète suite aux amendements L1b/L4b (questionnaire linéaire → moteur de neurones).
+- Seul point non tranché par mentalyas (verrouillage forcé avant « suffisant ») : défaut raisonnable retenu
+  (autorisé avec avertissement), documenté dans Assumptions — pas de marqueur de clarification bloquant.
+- Interface explicitement exclue (spec 003) ; conversion Réflexion → Action exclue (MVP-2).

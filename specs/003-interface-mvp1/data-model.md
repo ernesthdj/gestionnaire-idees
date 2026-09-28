@@ -1,56 +1,50 @@
-# Data Model — 003 Interface MVP-1 (compléments au modèle central de 002)
+# Data Model — 003 Interface MVP-1 (v2)
 
-## Modifications de tables existantes (002)
-| Table | Changement | Raison |
-|-------|-----------|--------|
-| `proposals` | `status` += `archived` ; + `selection_json?` (éléments cochés + éditions au moment de l'acceptation) ; + `batch_id?` | FR-014, FR-019, R6 |
-| `change_log` | + `batch_id` (text, index) ; + `kind` (`accept` \| `manual_edit` \| `undo`) ; + `undone_by_batch?` | R7 annulation par lot |
-| `nodes` | `status` inchangé ; `active_branch` (bool) sur les enfants directs d'une condition ; `position_x/y` utilisés | FR-021, FR-023 |
-| `dependencies` | `trigger_reached_at` utilisé (null = non atteint) | FR-024 |
-| `ideas` | `category_source` : jamais écrasé par l'IA si `user` | FR-010 |
+> Le modèle central est défini par la spec 002 (`neurons`, `extensions`, `context_assessments`, `syntheses`,
+> `plan_*`, `reflection_summaries`, `neuron_links`, `change_log`, `settings`). Cette feature n'ajoute que des
+> clés de réglages et des vues.
 
-## Nouvelles clés dans `settings` (table clé/valeur de 002)
+## Clés `settings` ajoutées
 | Clé | Défaut | Validation |
 |-----|--------|-----------|
-| `app.shortcut` | `Control+Alt+Space` | accélérateur Electron valide, testé à l'enregistrement |
+| `app.shortcut` | `Control+Alt+Space` | accélérateur valide, testé à l'enregistrement |
 | `app.launchAtLogin` | `true` | booléen |
 | `app.theme` | `system` | `light` \| `dark` \| `system` |
+| `app.motion` | `auto` | `auto` (suit le système) \| `reduced` |
 | `app.onboardingDone` | `false` | booléen |
-| `capture.draft` | `""` | ≤ 2000 caractères |
-| `structuring.question_limit` | 8 (002) | 3..15 |
+| `capture.draft` | `""` | ≤ 2000 |
 
-## Types de vue (non persistés)
+## Vues d'interface (non persistées)
 ```ts
-interface TreeView {                 // idée dépliée dans l'organigramme
-  idea: IdeaView;
-  nodes: Array<NodeView & { depth: number; inactive: boolean }>;
-  dependencies: DependencyView[];
-  links: IdeaLinkView[];
+interface IdeasCanvasView {
+  counts: { raw: number; developing: number; hatched: number };
+  incubator: RootView[];                  // raw + developing (avec premiers sous-neurones pour developing)
+  network: RootView[];                    // hatched
+  links: LinkView[];                      // accepted + suggested
 }
-interface ProposalReviewView {       // écran de revue
-  proposal: ProposalView;
-  items: Array<{ ref: string; change: "add" | "update" | "remove"; node: ProposedNode; dependsOn: string[] }>;
-  stale: boolean; degraded: boolean;
+interface DiveView {                      // plongée
+  breadcrumb: Array<{ neuronId: string; title: string }>;
+  focus: NeuronView;                      // neurone centré
+  parent?: NeuronView;                    // estompé
+  children: NeuronView[];
+  extensions: ExtensionView[];            // emplacements « + »
+  gauge: { level: "insufficient" | "sufficient" | "complete"; missing: string[]; answered: number };
+  synthesis?: SynthesisView;              // aperçu en attente
+  result?: ActionPlanView | ReflectionSummaryView;   // si éclos
 }
-interface HistoryEntryView { batchId: string; kind: "accept" | "manual_edit" | "undo"; ideaId: string; summary: string; at: string; undoable: boolean }
+interface HistoryEntryView { batchId: string; kind: "confirm_synthesis" | "manual_edit" | "link" | "undo"; rootId: string; summary: string; at: string; undoable: boolean }
 ```
 
-## Transitions — proposition
+## Transitions d'interface (plongée)
 ```mermaid
 stateDiagram-v2
-    [*] --> pending
-    pending --> accepted: accept (transaction OK)
-    pending --> rejected: reject (+ raison)
-    pending --> superseded: correction IA / nouvelle proposition pour la même idée
-    pending --> stale: idée modifiée
-    pending --> archived: > 14 jours
-    accepted --> pending: undo de l'acceptation (idée inchangée depuis)
-    accepted --> stale: undo de l'acceptation (idée modifiée depuis)
-    pending --> superseded: revise (correction)
+    [*] --> Canvas
+    Canvas --> Dive: double-clic / Entrée sur un neurone
+    Dive --> Dive: double-clic sur un sous-neurone (fil d'Ariane +1)
+    Dive --> Dive: clic parent / fil d'Ariane (−1)
+    Dive --> Preview: Verrouiller
+    Preview --> Dive: Réviser / Refuser / Fermer
+    Preview --> Fusion: Confirmer
+    Fusion --> Canvas: fin d'animation (neurone éclos dans le réseau)
+    Dive --> Canvas: Échap / fil d'Ariane « Idées »
 ```
-**Annulation d'une acceptation** *(analyse I2)* : le lot restaure l'arbre, le statut et la version de l'idée ;
-la proposition repasse `pending` (ou `stale`) et l'exemple positif associé est retiré.
-
-## Statuts de nœud (R8)
-`ready` ⇄ `blocked` calculés ; `in_progress`, `done`, `abandoned` fixés par l'utilisateur ; une tâche d'une
-branche inactive est affichée grisée et exclue des « prêtes ».

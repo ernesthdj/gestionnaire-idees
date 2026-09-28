@@ -1,184 +1,200 @@
-# Feature Specification: Interface MVP-1 — coquille, capture, validation, organigramme (F1 · F3 · F4)
+# Feature Specification: Interface MVP-1 « Brainstormer » — coquille, capture, neurones, fusion, réseau
 
 **Feature Branch**: `003-interface-mvp1`
 
-**Created**: 2026-09-28
+**Created**: 2026-09-28 · **Révisée** : 2026-09-28 (amendements L1b « Brainstormer » et L4b « neurones » — remplace la version liste/revue/organigramme, conservée dans l'historique git)
 
 **Status**: Draft
 
-**Input**: User description: "Boucler le MVP-1 : la coquille de l'app (démarrage avec Windows, icône de zone de notification, navigation latérale, réglages, premier lancement minimal), F1 Capture rapide (docs/FOUNDATION.md §9.1), F3 Aperçu & validation (§9.3) et F4 Organigramme (§9.4), avec les parcours P0, P1, P2 et P4 et les écrans E1, E3, E5, E6, E8, E9, E10, E11 du niveau 4 (§11). S'appuie sur les features 001 (moteur IA) et 002 (structuration)."
+**Input**: User description: "Interface du MVP-1 selon docs/FOUNDATION.md §0 et la maquette docs/design/neurones-dispositions-2a-2b-2c.png : coquille (zone de notification, démarrage avec Windows, navigation Idées · À valider · Historique, réglages), capture rapide, écran Idées en deux zones (incubateur des neurones bruts et en développement / réseau des neurones éclos reliés), plongée dans un neurone (fil d'Ariane, panneau de questions de l'IA, jauge, verrouillage), aperçu de synthèse et animation de fusion, suivi des neurones Action éclos, lecture des synthèses Réflexion, suggestions de liens, historique avec annulation, export Markdown, animations respectant la préférence « réduire les animations ». S'appuie sur 001 (moteur IA) et 002 (moteur de neurones)."
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Capturer une idée en quelques secondes (Priority: P1)
 
-Depuis n'importe quelle application, l'utilisateur appuie sur un raccourci clavier global : une petite fenêtre de saisie apparaît au premier plan, il tape son idée, `Entrée`, la fenêtre disparaît et le focus revient là où il était. En arrière-plan, l'IA locale propose une catégorie. L'app tourne en permanence, discrète, avec une icône dans la zone de notification et un démarrage automatique avec Windows.
+Depuis n'importe quelle application, un raccourci clavier global ouvre une petite fenêtre de saisie ; l'utilisateur tape son idée, `Entrée`, la fenêtre disparaît et le focus revient là où il était. Un nouveau neurone brut apparaît dans l'incubateur ; l'IA locale lui propose une nature (Action/Réflexion) et une catégorie en arrière-plan. L'app vit dans la zone de notification et démarre avec Windows.
 
-**Why this priority**: porte d'entrée de tout le système ; si capturer est pénible, l'agenda ne s'alimente pas.
+**Why this priority**: porte d'entrée du Brainstormer.
 
-**Independent Test**: depuis un éditeur de texte, déclencher le raccourci, taper une idée, valider ; vérifier l'affichage quasi instantané, le retour du focus et l'idée enregistrée (catégorisée ou « À classer »).
+**Independent Test**: depuis un éditeur, raccourci → texte → `Entrée` ; vérifier l'affichage perçu instantané, le retour du focus, le neurone brut créé (nature/catégorie proposées, ou « À classer » si l'IA locale est arrêtée).
 
 **Acceptance Scenarios**:
 
-1. **Given** l'app lancée en arrière-plan, **When** l'utilisateur appuie sur le raccourci depuis une autre application, **Then** la fenêtre de capture apparaît au premier plan, champ prêt à la saisie, de façon perçue comme instantanée.
-2. **Given** une idée tapée, **When** l'utilisateur appuie sur `Entrée`, **Then** l'idée est enregistrée, une confirmation brève s'affiche, la fenêtre se ferme et le focus revient à l'application précédente.
-3. **Given** du texte tapé, **When** l'utilisateur appuie sur `Échap` ou clique ailleurs, **Then** la fenêtre se ferme et le texte est conservé en brouillon pour la prochaine ouverture.
-4. **Given** une idée tapée, **When** l'utilisateur appuie sur `Ctrl+Entrée`, **Then** l'idée est enregistrée et l'app complète s'ouvre sur son questionnaire de structuration.
-5. **Given** l'IA locale arrêtée, **When** une idée est capturée, **Then** elle est enregistrée avec la catégorie « À classer » et sera catégorisée plus tard.
-6. **Given** une idée catégorisée par l'IA, **When** l'utilisateur la consulte, **Then** la catégorie est marquée « proposée par l'IA » et modifiable en un clic.
+1. **Given** l'app en arrière-plan, **When** l'utilisateur appuie sur le raccourci, **Then** la fenêtre de capture apparaît au premier plan sur l'écran actif, prête à la saisie.
+2. **Given** une idée tapée, **When** `Entrée`, **Then** le neurone est créé, une confirmation brève s'affiche, la fenêtre se ferme et le focus revient à l'application précédente.
+3. **Given** du texte tapé, **When** `Échap` ou clic extérieur, **Then** la fenêtre se ferme et le texte est gardé en brouillon.
+4. **Given** une idée tapée, **When** `Ctrl+Entrée`, **Then** le neurone est créé et l'app s'ouvre directement en plongée dans ce neurone, développement lancé.
+5. **Given** l'IA locale arrêtée, **When** une idée est capturée, **Then** le neurone est créé (nature Réflexion par défaut, catégorie « À classer ») et sera classé plus tard.
 
 ---
 
-### User Story 2 - Relire et valider une proposition de l'IA (Priority: P1)
+### User Story 2 - Voir tout son cerveau : incubateur et réseau (Priority: P1)
 
-Les propositions de l'IA (décompositions, restructurations) arrivent dans une file « À valider » signalée par un badge. L'écran de revue montre l'arbre proposé et la liste des changements (ajout, modification, suppression). L'utilisateur peut décocher des éléments, corriger un texte, un montant ou une date, puis accepter, refuser (avec raison facultative) ou demander une correction à l'IA. L'acceptation s'applique en une fois, tout ou rien, et reste annulable.
+L'écran Idées montre deux zones : à gauche l'**incubateur** (neurones bruts en pointillés qui dérivent lentement, neurones en développement avec leurs premiers sous-neurones), à droite le **réseau** (neurones éclos à double anneau et halo, reliés par des liens libellés). Un en-tête résume « N brutes · N en dév. · N écloses ». L'utilisateur peut créer une idée (« + Une idée ? »), zoomer, recentrer, filtrer (nature, catégorie), rechercher.
 
-**Why this priority**: principe « humain dans la boucle » ; sans validation, les propositions de F2 ne deviennent jamais des tâches.
+**Why this priority**: c'est la vision neuronale demandée ; l'écran d'accueil du Brainstormer.
 
-**Independent Test**: à partir d'une proposition préparée (fixture), décocher une tâche, corriger un montant, accepter ; vérifier l'arbre créé, l'historique, puis annuler et vérifier le retour à l'état initial.
+**Independent Test**: charger un jeu de neurones fictifs dans les trois états ; vérifier la répartition dans les deux zones, les aspects distincts, les liens, les compteurs, les filtres et la navigation au clavier.
 
 **Acceptance Scenarios**:
 
-1. **Given** une proposition en attente, **When** l'utilisateur ouvre la revue, **Then** il voit l'arbre et la liste des changements avec des marqueurs distincts pour ajout, modification et suppression.
-2. **Given** une proposition, **When** l'utilisateur décoche une tâche dont une autre dépend, **Then** un avertissement lui propose de décocher aussi la tâche dépendante ou d'annuler.
-3. **Given** une proposition éditée, **When** l'utilisateur accepte, **Then** tous les éléments cochés sont appliqués ensemble ; si une erreur survient, rien n'est appliqué.
-4. **Given** une proposition acceptée, **When** l'utilisateur choisit « Annuler » dans la notification ou l'historique, **Then** l'état précédent est restauré.
-5. **Given** une proposition, **When** l'utilisateur la refuse avec une raison, **Then** rien n'est modifié et la raison est conservée comme exemple pour l'agent.
-6. **Given** une proposition, **When** l'utilisateur demande une correction (« uniquement via la mission »), **Then** une nouvelle version remplace l'ancienne dans la file.
-7. **Given** une proposition dont l'idée a changé depuis, **When** elle est affichée, **Then** elle est marquée « périmée » et ne peut pas être acceptée telle quelle.
+1. **Given** des neurones dans les trois états, **When** l'utilisateur ouvre Idées, **Then** bruts et en développement sont dans l'incubateur, éclos dans le réseau, chacun avec un aspect distinct, et les compteurs sont justes.
+2. **Given** des liens acceptés, **When** le réseau s'affiche, **Then** chaque lien porte son libellé ; les liens suggérés apparaissent en pointillés avec ✓ / ✗.
+3. **Given** beaucoup de neurones, **When** l'utilisateur filtre par nature ou catégorie, ou recherche un mot, **Then** seuls les neurones correspondants restent mis en évidence.
+4. **Given** aucun neurone, **When** l'écran s'ouvre, **Then** un état vide explique comment capturer la première idée.
+5. **Given** la souris inutilisée, **When** l'utilisateur navigue au clavier, **Then** il peut parcourir les neurones, en ouvrir un et revenir, avec un focus visible.
 
 ---
 
-### User Story 3 - Explorer et faire vivre l'organigramme (Priority: P1)
+### User Story 3 - Plonger dans un neurone et le faire pousser (Priority: P1)
 
-L'onglet Organigramme montre toutes les idées sous forme de carte : une carte par idée (repliée, couleur de sa catégorie), les liens entre idées (« finance »), et, en dépliant une idée, son arbre (tâches, conditions en losange, opportunités). L'utilisateur choisit la branche réelle d'une condition (les autres sont grisées mais conservées), coche une tâche faite (les tâches qui en dépendent se débloquent), marque un déclencheur atteint, et peut éditer directement un texte, une date ou un montant.
+Un double-clic (ou `Entrée`) sur un neurone ouvre la **plongée** : zoom sur le neurone, fil d'Ariane (Idées › 2e écran › Budget ?), badge de profondeur, parent estompé (clic = remonter). Un panneau latéral affiche la question de l'IA sélectionnée, ses réponses rapides, un champ libre et « Je ne sais pas » ; autour du neurone, les extensions proposées apparaissent comme des emplacements « + ». Répondre fait pousser un sous-neurone ; l'utilisateur peut ajouter sa propre branche, écarter une extension, demander « plus de questions », modifier ou supprimer un sous-neurone. La jauge de contexte (barre + manques) est visible en permanence.
 
-**Why this priority**: c'est la « carte » de l'agenda organique et l'endroit où le plan avance au quotidien.
+**Why this priority**: c'est l'interaction centrale.
 
-**Independent Test**: charger l'arbre « 2e écran » accepté ; choisir « Non » à la condition, marquer « Mission payée » atteint ; vérifier que « Réserver X € » passe de bloquée à prête et que la branche « Oui » est grisée.
+**Independent Test**: plonger dans un neurone fictif, répondre à 3 extensions, ajouter une branche, remonter via le fil d'Ariane ; vérifier les sous-neurones, la jauge et la navigation.
 
 **Acceptance Scenarios**:
 
-1. **Given** des idées structurées, **When** l'utilisateur ouvre l'Organigramme, **Then** il voit une carte par idée, colorée par catégorie, avec les liens entre idées, et peut zoomer, se déplacer et utiliser une mini-carte.
-2. **Given** une condition « J'ai l'argent ? », **When** l'utilisateur choisit « Non », **Then** la branche « Non » devient active, la branche « Oui » est grisée et reste réactivable.
-3. **Given** une tâche dont une autre dépend, **When** l'utilisateur la marque faite, **Then** la tâche dépendante passe de « bloquée » à « prête ».
-4. **Given** un déclencheur « au paiement de la mission », **When** l'utilisateur le marque atteint, **Then** les tâches qui l'attendent deviennent prêtes.
-5. **Given** un nœud, **When** l'utilisateur modifie son titre, sa date ou son montant, **Then** la modification est appliquée directement et inscrite dans l'historique.
-6. **Given** beaucoup d'idées, **When** l'utilisateur filtre par catégorie ou statut, recherche un mot ou fait le focus sur une idée, **Then** seule la sélection (et ses voisines directes pour le focus) est affichée.
-7. **Given** aucune idée structurée, **When** l'utilisateur ouvre l'Organigramme, **Then** un état vide explique comment capturer et structurer une idée.
+1. **Given** un neurone brut, **When** l'utilisateur plonge dedans, **Then** le développement se lance, au moins 3 extensions apparaissent et le panneau montre la première question.
+2. **Given** une extension, **When** l'utilisateur répond, **Then** un sous-neurone pousse immédiatement (animation courte) et un indicateur montre que l'IA réfléchit aux suivantes.
+3. **Given** un sous-neurone, **When** l'utilisateur double-clique dessus, **Then** la plongée descend d'un niveau (fil d'Ariane mis à jour) ; **When** il clique le parent estompé ou le fil d'Ariane, **Then** il remonte.
+4. **Given** la jauge, **When** une réponse fait évoluer le contexte, **Then** la barre et la liste des manques se mettent à jour ; le bouton « Verrouiller 🔒 » devient actif à « suffisant ».
+5. **Given** une extension non pertinente, **When** l'utilisateur l'écarte, **Then** elle disparaît.
 
 ---
 
-### User Story 4 - Naviguer dans l'app et la régler (Priority: P2)
+### User Story 4 - Verrouiller, confirmer, voir la fusion (Priority: P1)
 
-L'app complète s'ouvre depuis l'icône de la zone de notification. Une navigation latérale gauche donne accès à Idées · À valider (badge) · Organigramme · Historique (le Planning viendra avec le MVP-2) ; les réglages (⚙) sont en haut à droite : raccourci, démarrage avec Windows, apparence (clair/sombre), nombre maximal de questions, et l'accès aux réglages IA de la feature 001.
+« Verrouiller 🔒 » demande la synthèse à l'IA ; un aperçu compact s'affiche (plan : tâches, conditions, dates ; ou synthèse : pistes, décisions, pour/contre, questions ouvertes). L'utilisateur peut corriger un élément, demander une révision avec une consigne, refuser, ou confirmer. À la confirmation, les sous-neurones se résorbent dans le neurone principal (animation de fusion), le neurone prend l'aspect « éclos » et migre de l'incubateur vers le réseau. Si la jauge est « insuffisant », un avertissement liste les manques et demande confirmation avant de lancer la synthèse.
 
-**Why this priority**: indispensable au confort, mais les stories 1 à 3 sont démontrables sur des écrans isolés.
+**Why this priority**: le moment « récompense » et la garantie « rien sans validation ».
 
-**Independent Test**: ouvrir l'app depuis l'icône, parcourir les 4 sections au clavier, changer le thème et le raccourci, redémarrer ; vérifier que les réglages sont conservés.
+**Independent Test**: verrouiller un neurone Action et un neurone Réflexion fictifs (IA simulée) ; corriger un montant, confirmer ; vérifier la fusion, la migration et l'historique ; annuler et vérifier le retour.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'app en arrière-plan, **When** l'utilisateur clique l'icône de la zone de notification, **Then** un menu propose : Capturer une idée, Ouvrir l'app, À valider (nombre), Quitter.
-2. **Given** l'app complète, **When** l'utilisateur navigue au clavier, **Then** chaque section et chaque action est accessible sans souris, avec un focus visible.
-3. **Given** un raccourci déjà utilisé par une autre application, **When** l'app tente de l'enregistrer, **Then** l'utilisateur est prévenu et invité à en choisir un autre.
-4. **Given** « Démarrer avec Windows » activé, **When** l'utilisateur ouvre sa session, **Then** l'app démarre discrètement dans la zone de notification.
+1. **Given** un neurone « suffisant », **When** l'utilisateur verrouille, **Then** l'aperçu de synthèse adapté à la nature s'affiche et rien n'est encore appliqué.
+2. **Given** un aperçu, **When** l'utilisateur confirme, **Then** l'animation de fusion joue, le neurone devient éclos et apparaît dans le réseau ; une notification propose « Annuler » pendant 10 secondes.
+3. **Given** un aperçu, **When** l'utilisateur demande une révision avec une consigne, **Then** un nouvel aperçu remplace le précédent.
+4. **Given** un neurone « insuffisant », **When** l'utilisateur verrouille, **Then** un avertissement liste les manques et la synthèse ne part qu'après confirmation.
+5. **Given** la préférence système « réduire les animations », **When** une fusion a lieu, **Then** elle est remplacée par un fondu court, sans mouvement.
 
 ---
 
-### User Story 5 - Premier lancement guidé (Priority: P3)
+### User Story 5 - Suivre et exploiter un neurone éclos (Priority: P2)
 
-Au tout premier lancement, un parcours court vérifie l'IA locale (instructions si absente), fait choisir et essayer le raccourci, propose (facultatif) de configurer Claude et le profil, puis invite à capturer la première idée.
+En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, conditions en losange, opportunités) ; l'utilisateur coche une tâche faite (les dépendantes se débloquent), choisit la branche réelle d'une condition (les autres grisées), marque un déclencheur atteint, édite un titre, une date ou un montant. En plongée dans un neurone **Réflexion** éclos : la synthèse structurée s'affiche, avec les sous-neurones sources de chaque point. Les deux peuvent être **rouverts** (retour en développement) ou **exportés en Markdown**.
 
-**Why this priority**: améliore la prise en main, mais les réglages permettent déjà tout configurer.
+**Why this priority**: donne une suite concrète à l'éclosion ; les stories 1 à 4 forment déjà un MVP démontrable.
 
-**Independent Test**: démarrer avec des données vides ; suivre le parcours en sautant les étapes facultatives ; vérifier qu'il ne réapparaît plus ensuite.
+**Independent Test**: sur un neurone Action éclos fictif, choisir « Non » à « argent ? », marquer « mission payée » ; vérifier les statuts. Exporter un neurone Réflexion et vérifier le fichier Markdown.
 
 **Acceptance Scenarios**:
 
-1. **Given** un premier lancement, **When** l'app démarre, **Then** le parcours s'affiche ; seules les étapes « IA locale » et « Raccourci » sont obligatoires.
-2. **Given** le parcours terminé ou passé, **When** l'app redémarre, **Then** il ne s'affiche plus (réaccessible depuis les réglages).
+1. **Given** un plan, **When** l'utilisateur marque une tâche faite, **Then** ses dépendantes passent de bloquées à prêtes.
+2. **Given** une condition, **When** l'utilisateur choisit une branche, **Then** les autres sont grisées et restent réactivables.
+3. **Given** un déclencheur, **When** il est marqué atteint, **Then** les tâches qui l'attendent deviennent prêtes.
+4. **Given** un neurone éclos, **When** l'utilisateur l'exporte, **Then** un fichier Markdown contient le titre, la nature, l'arbre des questions/réponses et le plan ou la synthèse, à l'emplacement choisi.
+5. **Given** un neurone éclos, **When** l'utilisateur le rouvre, **Then** il repasse en développement dans l'incubateur, son plan ou sa synthèse précédents restant consultables.
+
+---
+
+### User Story 6 - À valider, Historique, Réglages, premier lancement (Priority: P2)
+
+« À valider » regroupe les suggestions de liens en attente et les aperçus de synthèse laissés ouverts. « Historique » liste les changements (fusions, éditions, liens) avec « Annuler » quand c'est possible. Les réglages (⚙) couvrent raccourci, démarrage avec Windows, thème, animations (auto / réduites) et l'accès aux réglages IA. Un premier lancement court vérifie l'IA locale et fait essayer le raccourci.
+
+**Why this priority**: confort et maîtrise ; non bloquant pour la démonstration du cœur.
+
+**Independent Test**: accepter/refuser une suggestion depuis À valider ; annuler une fusion depuis l'historique ; changer le thème et l'option d'animations ; relancer l'app.
+
+**Acceptance Scenarios**:
+
+1. **Given** des suggestions de liens, **When** l'utilisateur ouvre À valider, **Then** il les accepte ou refuse avec leur justification visible ; le compteur du menu et de l'icône se met à jour.
+2. **Given** une fusion récente, **When** l'utilisateur l'annule depuis l'historique, **Then** le neurone revient en développement avec son arbre intact ; en cas de modification ultérieure incompatible, un conflit est signalé.
+3. **Given** « animations réduites » dans les réglages, **When** l'app anime un changement, **Then** seules des transitions instantanées ou des fondus courts sont utilisés, même si le système ne le demande pas.
+4. **Given** un premier lancement, **When** l'app démarre, **Then** le parcours (IA locale, raccourci obligatoires ; Claude, profil facultatifs) s'affiche une seule fois.
 
 ---
 
 ### Edge Cases
 
-- Raccourci global indisponible au démarrage : l'app fonctionne via l'icône de la zone de notification et signale le problème.
-- Fenêtre de capture ouverte pendant qu'un jeu ou une vidéo est en plein écran : elle s'affiche au-dessus sans voler durablement le focus.
-- Deux propositions en attente pour la même idée : la plus récente remplace l'autre, marquée « remplacée ».
-- Annulation d'une validation après que l'utilisateur a modifié l'arbre à la main : l'annulation ne restaure que ce que la validation avait changé, et prévient en cas de conflit.
-- Idée supprimée ou archivée alors qu'une proposition la concerne : la proposition devient « périmée ».
-- Organigramme de 50 idées et 300 nœuds : navigation fluide.
-- Plusieurs écrans : la fenêtre de capture s'ouvre sur l'écran actif.
-- Propositions en attente depuis plus de 14 jours : archivées automatiquement, récupérables.
+- Raccourci indisponible : l'app fonctionne via la zone de notification et signale le problème.
+- IA externe indisponible pendant la plongée : branches manuelles possibles, extensions IA et verrouillage en attente, message clair.
+- Un neurone est modifié pendant qu'un aperçu de synthèse est ouvert : l'aperçu est marqué périmé et doit être régénéré.
+- Plus de 100 neurones : les neurones hors de la vue ne sont pas animés ; la dérive est suspendue quand l'utilisateur interagit.
+- Export vers un emplacement non accessible : message d'erreur, rien n'est perdu.
+- Plusieurs écrans : la capture s'ouvre sur l'écran actif.
+- Annulation d'une fusion après réouverture et nouvelles réponses : conflit signalé, annulation refusée.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-**Coquille & réglages**
-- **FR-001**: L'app MUST fonctionner en arrière-plan avec une icône de zone de notification (menu : Capturer, Ouvrir l'app, À valider (n), Quitter) et MUST pouvoir démarrer avec Windows (réglage activé par défaut).
-- **FR-002**: L'app complète MUST offrir une navigation latérale (Idées, À valider avec badge, Organigramme, Historique) et un accès aux réglages en haut à droite.
-- **FR-003**: Les utilisateurs MUST pouvoir régler : raccourci de capture, démarrage avec Windows, thème clair/sombre/système, nombre maximal de questions (3 à 15), et accéder aux réglages IA (feature 001).
-- **FR-004**: L'app MUST afficher un parcours de premier lancement (IA locale et raccourci obligatoires ; Claude, profil facultatifs), une seule fois, réaccessible depuis les réglages.
-- **FR-005**: Toute l'interface MUST être utilisable entièrement au clavier, avec focus visible et contrastes conformes au niveau AA.
+**Coquille**
+- **FR-001**: L'app MUST tourner en arrière-plan avec une icône de zone de notification (Capturer, Ouvrir, À valider (n), Quitter), démarrer avec Windows (activé par défaut) et n'avoir qu'une seule instance.
+- **FR-002**: La navigation latérale MUST proposer Idées, À valider (avec compteur) et Historique ; les réglages MUST être accessibles en haut à droite.
+- **FR-003**: Les réglages MUST couvrir : raccourci, démarrage avec Windows, thème (clair/sombre/système), animations (automatique selon le système / réduites) et l'accès aux réglages IA et contexte (feature 001).
+- **FR-004**: Un premier lancement MUST guider (IA locale et raccourci obligatoires ; Claude et profil facultatifs), une seule fois, réaccessible.
+- **FR-005**: Toute l'interface MUST être utilisable au clavier seul, avec focus visible, contrastes AA en clair et en sombre.
 
-**F1 — Capture**
-- **FR-006**: Un raccourci clavier global configurable (défaut `Ctrl+Alt+Espace`) MUST ouvrir la fenêtre de capture au premier plan, sur l'écran actif, champ prêt à la saisie.
-- **FR-007**: La fenêtre de capture MUST supporter : `Entrée` enregistrer, `Maj+Entrée` retour à la ligne, `Ctrl+Entrée` enregistrer et structurer, `Échap`/clic extérieur fermer en conservant le brouillon ; texte vide ignoré ; 2 000 caractères maximum.
-- **FR-008**: Après enregistrement, la fenêtre MUST afficher une confirmation brève, se fermer et rendre le focus à l'application précédente.
-- **FR-009**: Une idée capturée MUST être enregistrée même si aucune IA n'est disponible ; la catégorisation par l'IA locale est faite en arrière-plan, et rejouée plus tard si l'IA est indisponible.
-- **FR-010**: La catégorie proposée par l'IA MUST être signalée comme telle et modifiable en un clic ; un choix de l'utilisateur n'est jamais écrasé par l'IA.
+**Capture (F1)**
+- **FR-006**: Un raccourci global configurable (défaut `Ctrl+Alt+Espace`) MUST ouvrir la capture au premier plan sur l'écran actif.
+- **FR-007**: La capture MUST gérer `Entrée` (créer), `Maj+Entrée` (retour ligne), `Ctrl+Entrée` (créer et plonger), `Échap`/clic extérieur (fermer, brouillon conservé), 2 000 caractères max, texte vide ignoré ; puis rendre le focus à l'application précédente.
+- **FR-008**: Un neurone capturé MUST être créé même sans IA ; nature et catégorie proposées en arrière-plan, signalées comme telles, modifiables en un clic.
 
-**F3 — Validation**
-- **FR-011**: Le système MUST présenter les propositions en attente dans une file « À valider » avec un compteur visible (navigation et icône de notification).
-- **FR-012**: L'écran de revue MUST afficher l'arbre proposé et la liste des changements marqués ajout / modification / suppression, avec le caractère « dégradé » éventuel.
-- **FR-013**: Les utilisateurs MUST pouvoir décocher un élément, modifier titre, montant et date avant acceptation ; décocher un élément dont un autre dépend MUST déclencher un avertissement.
-- **FR-014**: L'acceptation MUST appliquer tous les éléments cochés en une seule opération tout-ou-rien, créer l'arbre de l'idée (tâches, conditions, opportunités, dépendances, liens), mettre à jour le statut de l'idée et enregistrer l'historique.
-- **FR-015**: Les utilisateurs MUST pouvoir refuser une proposition avec une raison facultative (« pas pertinent », « faux », « plus tard », texte libre) ; la décision MUST alimenter les exemples de l'agent (acceptée = positif, refusée = négatif).
-- **FR-016**: Les utilisateurs MUST pouvoir demander une correction à l'IA avec une consigne ; la nouvelle version remplace l'ancienne.
-- **FR-017**: Une proposition dont l'idée a changé depuis sa création MUST être marquée « périmée » et ne MUST PAS être acceptée sans être régénérée.
-- **FR-018**: Les utilisateurs MUST pouvoir annuler une validation depuis la notification qui suit et depuis l'historique ; l'annulation restaure l'état précédent et signale les conflits avec des modifications manuelles ultérieures.
-- **FR-019**: Les propositions en attente depuis plus de 14 jours MUST être archivées automatiquement et rester consultables.
+**Écran Idées**
+- **FR-009**: L'écran Idées MUST présenter l'incubateur (bruts + en développement) et le réseau (éclos), avec trois aspects distincts : brut (contour pointillé), en développement (plein, sous-neurones visibles), éclos (double anneau + halo).
+- **FR-010**: Le réseau MUST afficher les liens libellés ; les liens suggérés MUST être distincts (pointillés) et acceptables/refusables sur place.
+- **FR-011**: L'écran MUST offrir : compteurs par état, « + Une idée ? », zoom, recentrer, filtres (nature, catégorie), recherche, état vide.
+- **FR-012**: Les neurones bruts MUST dériver lentement ; la dérive MUST se suspendre pendant l'interaction et être désactivée en mode animations réduites.
 
-**F4 — Organigramme**
-- **FR-020**: L'organigramme MUST afficher une carte par idée (repliée par défaut, couleur de catégorie), les liens entre idées, et au dépliage l'arbre de l'idée avec des formes distinctes pour idée, tâche, condition et opportunité.
-- **FR-021**: L'organigramme MUST offrir zoom, déplacement, mini-carte, mise en page automatique à la première ouverture et mémorisation des positions déplacées.
-- **FR-022**: Les statuts de tâche MUST être : bloquée, prête, en cours, faite, abandonnée ; une tâche est bloquée tant qu'une dépendance n'est pas faite ou qu'un déclencheur n'est pas atteint ; tout changement MUST se propager aux tâches dépendantes.
-- **FR-023**: Les utilisateurs MUST pouvoir choisir la branche active d'une condition ; les autres branches sont grisées, conservées et réactivables.
-- **FR-024**: Les utilisateurs MUST pouvoir marquer un déclencheur comme atteint (et l'annuler).
-- **FR-025**: Les utilisateurs MUST pouvoir modifier directement titre, date et montant d'un nœud et ajouter une tâche ; ces éditions sont appliquées sans passer par la validation et inscrites dans l'historique.
-- **FR-026**: L'organigramme MUST offrir filtres par catégorie et statut, recherche texte, focus sur une idée et ses voisines directes, et un état vide explicatif.
-- **FR-027**: Un panneau de détail MUST montrer le nœud sélectionné (idée d'origine, dépendances, montant, branche, statut) à côté de la carte.
+**Plongée & croissance**
+- **FR-013**: Double-clic ou `Entrée` sur un neurone MUST ouvrir la plongée : neurone centré, sous-neurones autour, fil d'Ariane, badge de profondeur, parent estompé cliquable, panneau latéral.
+- **FR-014**: Le panneau MUST afficher la question sélectionnée, ses réponses rapides, un champ libre, « Je ne sais pas », les autres extensions, « Plus de questions », « Ajouter ma branche », et la jauge (niveau + manques).
+- **FR-015**: Répondre MUST faire apparaître le sous-neurone immédiatement, puis afficher un indicateur tant que l'IA prépare les extensions suivantes.
+- **FR-016**: Les utilisateurs MUST pouvoir écarter une extension, modifier et supprimer un sous-neurone (confirmation si descendants), changer la nature et la catégorie du neurone.
 
-**Historique**
-- **FR-028**: L'historique MUST lister les changements (validations, éditions manuelles, annulations) du plus récent au plus ancien, avec l'action « Annuler » quand elle est possible.
+**Fusion**
+- **FR-017**: « Verrouiller » MUST être actif dès « suffisant » ; avant, il MUST afficher les manques et demander confirmation.
+- **FR-018**: L'aperçu de synthèse MUST être compact et adapté à la nature (plan ou synthèse), éditable élément par élément, avec Réviser (consigne), Refuser et Confirmer ; un aperçu périmé MUST être signalé et non confirmable.
+- **FR-019**: La confirmation MUST déclencher l'animation de fusion, l'aspect éclos et la migration vers le réseau, puis une notification « Annuler » pendant 10 secondes.
+
+**Neurones éclos**
+- **FR-020**: La plongée dans un neurone Action éclos MUST afficher le plan et permettre : changer le statut d'une tâche (avec propagation aux dépendantes), choisir une branche, marquer un déclencheur, éditer titre/date/montant, ajouter une tâche.
+- **FR-021**: La plongée dans un neurone Réflexion éclos MUST afficher la synthèse structurée avec, pour chaque point, l'accès aux sous-neurones sources.
+- **FR-022**: Les utilisateurs MUST pouvoir rouvrir un neurone éclos et exporter tout neurone éclos en Markdown (titre, nature, catégorie, arbre questions/réponses, plan ou synthèse, liens).
+
+**À valider & Historique**
+- **FR-023**: « À valider » MUST lister les suggestions de liens et les aperçus de synthèse en attente, avec leur justification, et permettre de décider sur place.
+- **FR-024**: L'historique MUST lister les changements (fusions, éditions, liens, annulations) et permettre d'annuler un lot ; l'annulation d'une fusion ramène le neurone en développement et signale les conflits.
+
+**Animations**
+- **FR-025**: Les animations MUST suivre les durées : pousse 250 ms, plongée/remontée 400 ms, fusion 600–800 ms, éclosion/migration ~600 ms, apparition de suggestion 150 ms, halo en pulsation lente ; toutes MUST être remplacées par des transitions instantanées ou des fondus courts si le système ou les réglages demandent des animations réduites.
 
 ### Key Entities
 
-- **Réglages de l'app**: raccourci, démarrage avec Windows, thème, nombre maximal de questions, premier lancement effectué.
-- **Brouillon de capture**: texte en cours non validé.
-- **Proposition** (feature 002) : statut étendu avec « archivée » ; sélection de l'utilisateur (éléments cochés, éditions) au moment de l'acceptation.
-- **Nœud, Dépendance, Lien entre idées, Historique** (feature 002) : désormais créés et modifiés par cette feature.
-- **Position de nœud**: coordonnées mémorisées sur la carte.
+- **Réglages de l'app**: raccourci, démarrage, thème, animations, premier lancement effectué, brouillon de capture.
+- **Vues** (issues de 002) : neurone racine, arbre, extensions, jauge, synthèse, plan, synthèse structurée, liens.
+- **Lot d'historique**: ensemble de changements annulables (issu de 002 `change_log`).
+- **Export Markdown**: fichier généré à la demande (pas stocké dans l'app).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Une idée est capturée (raccourci → saisie → fermeture) en moins de 5 secondes pour une phrase courte, et la fenêtre de capture apparaît de façon perçue comme instantanée dans 95 % des ouvertures.
-- **SC-002**: 100 % des idées capturées sont conservées, IA disponible ou non (test avec IA arrêtée).
-- **SC-003**: Une proposition typique (≤ 15 éléments) est relue et acceptée en moins de 1 minute.
-- **SC-004**: 0 état partiellement appliqué : une erreur simulée pendant l'acceptation laisse les données inchangées dans 100 % des cas.
-- **SC-005**: Toute validation annulée dans la minute restaure exactement l'état précédent (comparaison avant/après).
-- **SC-006**: L'organigramme reste fluide (déplacement et zoom sans saccade perceptible) avec 50 idées et 300 nœuds.
-- **SC-007**: Marquer une tâche faite met à jour le statut de toutes ses dépendantes immédiatement (perçu comme instantané).
-- **SC-008**: 100 % des actions principales (capturer, naviguer, valider, refuser, cocher, choisir une branche) sont réalisables au clavier seul.
+- **SC-001**: Capture d'une phrase courte (raccourci → fermeture) en moins de 5 secondes ; fenêtre perçue instantanée dans 95 % des ouvertures.
+- **SC-002**: Un nouvel utilisateur (mentalyas) fait pousser un neurone jusqu'à « suffisant » et le fait éclore sans aide en moins de 3 minutes sur un sujet simple.
+- **SC-003**: Chaque réponse fait apparaître son sous-neurone de façon perçue comme instantanée.
+- **SC-004**: L'écran Idées reste fluide (déplacement, zoom, dérive) avec 100 neurones et 50 liens.
+- **SC-005**: 100 % des actions principales (capturer, naviguer, plonger, répondre, verrouiller, confirmer, cocher, accepter un lien, annuler) sont réalisables au clavier seul.
+- **SC-006**: Avec « animations réduites », aucun mouvement autre que des fondus courts n'est joué (vérification sur les 7 animations).
+- **SC-007**: Un export Markdown s'ouvre correctement dans un éditeur Markdown standard et contient 100 % des éléments du neurone (arbre, plan/synthèse, liens).
+- **SC-008**: Toute fusion annulée dans les 10 secondes restaure exactement l'état précédent.
 
 ## Assumptions
 
-- Features 001 (moteur IA, base, réglages IA) et 002 (idées, sessions, propositions, modèle central) sont implémentées.
-- Le Planning (F5), Outlook (F6), le Conseiller (F7) et le Compagnon (F8) relèvent du MVP-2 ; l'action « à planifier » des tâches est conservée dans les données mais sans envoi vers Outlook dans cette feature.
-- Les propositions « suggestion » (F7) utiliseront le même écran de revue plus tard.
-- Mono-utilisateur, Windows 11, un ou plusieurs écrans.
-- Délai d'annulation depuis la notification : 10 secondes ; depuis l'historique : sans limite tant qu'aucun conflit n'empêche la restauration.
+- Features 001 (moteur IA, réglages IA, contexte) et 002 (moteur de neurones : croissance, jauge, fusion, liens, `change_log`) sont implémentées.
+- Planning, Outlook, conseiller proactif, compagnon et « Passer à l'action » relèvent du MVP-2 ; l'entrée Planning est ajoutée à la navigation à ce moment-là.
+- Pont vers le hub ProjectMaster : v2.
+- La maquette `docs/design/neurones-dispositions-2a-2b-2c.png` fait référence pour la disposition ; la direction visuelle finale (couleurs, typographie) viendra des designs de mentalyas et pourra ajuster les tokens.

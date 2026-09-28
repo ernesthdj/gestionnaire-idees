@@ -1,14 +1,14 @@
 ---
-description: "Task list — 003 Interface MVP-1 (F1 · F3 · F4)"
+description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 ---
 
-# Tasks: Interface MVP-1 — coquille, capture, validation, organigramme
+# Tasks: Interface MVP-1 « Brainstormer »
 
-**Input**: Design documents from `/specs/003-interface-mvp1/`
+**Input**: Design documents from `/specs/003-interface-mvp1/` (révision)
 
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/ ; **features 001 et 002 terminées**
+**Prerequisites**: features 001 et 002 (moteur de neurones) terminées
 
-**Tests**: **Obligatoires** (constitution V), écrits d'abord ; `should_<comportement>_when_<condition>` ; aucun réseau.
+**Tests**: **Obligatoires** (constitution V), écrits d'abord ; `should_<comportement>_when_<condition>`.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -16,149 +16,115 @@ description: "Task list — 003 Interface MVP-1 (F1 · F3 · F4)"
 
 ## Phase 1: Setup
 
-- [ ] T001 Faire valider puis installer les dépendances annoncées (research.md § Dépendances) ; configurer Vitest en `jsdom` pour `tests/unit/renderer`
-- [ ] T002 [P] Fixtures FICTIVES : propositions (dont « 2e écran » acceptable), arbres, et script `scripts/seed-demo.ts` (50 idées / 300 nœuds) + commande `npm run seed:demo`, dans `tests/fixtures/mvp1/`
+- [ ] T001 Faire valider puis installer les dépendances (research.md) ; Vitest en `jsdom` pour `tests/unit/renderer` ; helper `expectNoAxeViolations` (axe-core) dans `tests/support/axe.ts`
+- [ ] T002 [P] Fixtures FICTIVES (neurones dans les 3 états, arbres, synthèses, liens) + `scripts/seed-demo.ts` (100 neurones / 50 liens) + `npm run seed:demo`
 
 ---
 
 ## Phase 2: Foundational (coquille)
 
-**⚠️ CRITICAL**: requis par toutes les stories
+- [ ] T003 Clés `settings` `app.*` + `capture.draft` (migration avec `down`)
+- [ ] T004 `WindowManager` (fenêtre principale à la demande, capture pré-chargée cachée, toutes durcies) + preloads `main.ts` / `capture.ts` distincts
+- [ ] T005 [P] `lifecycle.ts` : instance unique, `--hidden`, `setLoginItemSettings`
+- [ ] T006 [P] `TrayController` (Capturer / Ouvrir / À valider (n) / Quitter)
+- [ ] T007 [P] Handlers `app:*` + événement `app:navigate`
+- [ ] T008 [P] Motion : `useReducedMotionPreference` (système OU `app.motion`), `durations.ts` (FR-025), `MotionConfig` global + tests `tests/unit/ui/motion.test.ts`
+- [ ] T009 `AppShell` : navigation Idées · À valider (compteur) · Historique, ⚙, thème, QueryClient (invalidation sur événements 002), Zustand
+- [ ] T010 [P] Tests composants coquille (clavier, focus visible, axe clair/sombre) `tests/unit/renderer/app-shell.test.tsx`
 
-- [ ] T003 Migration : `proposals` (+ `archived`, `selection_json`, `batch_id`), `change_log` (+ `batch_id`, `kind`, `undone_by_batch`), clés `settings` `app.*` et `capture.draft` (data-model.md) avec `down`
-- [ ] T004 `WindowManager` : fenêtre principale (créée à la demande, cachée à la fermeture) et fenêtre de capture pré-chargée cachée, toutes deux durcies ; deux preloads distincts `src/preload/main.ts` / `src/preload/capture.ts` dans `src/main/shell/WindowManager.ts`
-- [ ] T005 [P] Instance unique + lancement `--hidden` + `setLoginItemSettings` dans `src/main/shell/lifecycle.ts`
-- [ ] T006 [P] `TrayController` (menu Capturer / Ouvrir / À valider (n) / Quitter, info-bulle, icône avec pastille) dans `src/main/shell/TrayController.ts`
-- [ ] T007 [P] Handlers `app:getSettings|setSettings|completeOnboarding|openMain` + événement `app:navigate` dans `src/main/ipc/appHandlers.ts` (validation Zod, `SHORTCUT_UNAVAILABLE`)
-- [ ] T008 `AppShell` : navigation latérale (Idées, À valider + badge, Organigramme, Historique), ⚙ en haut à droite, Zustand (section/sélection), QueryClient (invalidation sur événements), thème clair/sombre/système dans `src/renderer/src/app/AppShell.tsx` ; intégrer `IdeasPage`/`QuestionnairePage` de 002 (fin de la route provisoire)
-- [ ] T009 [P] Tests composants de la coquille (navigation au clavier, focus visible, axe sans violation en clair et sombre) dans `tests/unit/renderer/app-shell.test.tsx`
-
-**Checkpoint**: app installable qui démarre en arrière-plan, s'ouvre depuis l'icône et navigue
-
----
-
-## Phase 3: User Story 1 — Capture rapide (Priority: P1) 🎯 MVP
-
-**Goal**: raccourci → saisie → `Entrée` → idée enregistrée, focus rendu, catégorisation en arrière-plan
-
-**Independent Test**: depuis une autre app, capturer une idée ; IA arrêtée → « À classer » puis catégorie rejouée
-
-### Tests ⚠️
-- [ ] T010 [P] [US1] Intégration `CaptureService` : idée enregistrée IA arrêtée (SC-002) ; demande `categoriser` mise en file (001 LocalQueue) puis appliquée ; catégorie `user` jamais écrasée (FR-010) ; brouillon conservé ; texte vide rejeté dans `tests/integration/capture/capture.test.ts`
-- [ ] T011 [P] [US1] Composant `CaptureApp` : `Entrée`, `Maj+Entrée`, `Ctrl+Entrée`, `Échap`, compteur 2 000, confirmation, restauration du brouillon ; axe dans `tests/unit/renderer/capture-app.test.tsx`
-
-### Implementation
-- [ ] T012 [US1] `CaptureService` (création via `IdeaService` 002, catégorisation non bloquante via AIGateway 001, application conditionnelle) dans `src/main/application/capture/CaptureService.ts`
-- [ ] T013 [US1] `GlobalShortcut` (enregistrement, échec → événement `shortcut:unavailable` + notification, ré-enregistrement au changement de réglage) dans `src/main/shell/GlobalShortcut.ts`
-- [ ] T014 [US1] Affichage de la capture sur l'écran du curseur, centre-haut ; fermeture `blur()` + `hide()` pour rendre le focus (R2) dans `WindowManager.ts`
-- [ ] T015 [US1] Handlers `capture:getDraft|saveDraft|submit|close` (exposés **uniquement** au preload de capture) ; `structureNow` → `app:openMain` sur le questionnaire dans `src/main/ipc/captureHandlers.ts`
-- [ ] T016 [US1] `CaptureApp` (E1) dans `src/renderer/src/capture/CaptureApp.tsx`
-- [ ] T017 [US1] Badge « proposée par l'IA » + changement de catégorie en un clic dans `IdeasPage` ; événement `idea:categorized`
-- [ ] T018 [US1] Vérification manuelle focus/délai (quickstart #1, #2, #7) **+ capture au-dessus d'une vidéo plein écran et d'un jeu fenêtré sans vol durable du focus** consignée dans `quickstart.md` § Résultats *(analyse C3)*
-
-**Checkpoint**: capture quotidienne utilisable
+**Checkpoint**: app installable, démarre en arrière-plan, navigue
 
 ---
 
-## Phase 4: User Story 2 — Revue & validation (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 — Capture (Priority: P1) 🎯 MVP
 
-**Goal**: file À valider, revue éditable, acceptation tout-ou-rien, refus, correction, périmée, annulation
-
-**Independent Test**: fixture « 2e écran » → décocher, corriger un montant, accepter → arbre ; annuler → état initial
-
-### Tests ⚠️
-- [ ] T019 [P] [US2] Purs : `buildReviewItems` (add/update/remove), `checkExclusions` (dépendantes → `DEPENDENCY_EXCLUDED` + `blockedRefs`), `applySelection` (éditions validées) dans `tests/unit/review/review-domain.test.ts`
-- [ ] T020 [P] [US2] Intégration `ProposalApplier` : création nœuds/dépendances/liens, ref→uuid, statuts recalculés, `change_log` par lot, version idée +1, exemple positif enregistré ; **erreur injectée à chaque étape → aucune donnée modifiée** (SC-004) ; `STALE` si version changée dans `tests/integration/review/apply.test.ts`
-- [ ] T021 [P] [US2] Intégration refus (raison → exemple négatif via `ExampleStore.record`), correction (`superseded` + nouvelle proposition), nouvelle proposition sur même idée → ancienne `superseded`, archivage > 14 j dans `tests/integration/review/lifecycle.test.ts`
-- [ ] T022 [P] [US2] Intégration annulation par lot : restauration exacte (SC-005), conflit après édition manuelle → `UNDO_CONFLICT` avec liste, annulation elle-même annulable ; **annulation d'une acceptation** → idée revenue à son statut et sa version d'avant, proposition → `pending` (ou `stale` si l'idée a changé depuis), exemple positif retiré dans `tests/integration/history/undo.test.ts` *(analyse I2)*
-- [ ] T051 [P] [US2] Intégration `revise` : correction d'une **première** décomposition (idée non structurée) → nouvelle proposition validée (K1–K7), ancienne `superseded`, tours d'origine réutilisés + consigne ; correction d'une restructuration idem dans `tests/integration/review/revise.test.ts` *(analyse I1)*
-
-### Implementation
-- [ ] T023 [P] [US2] Domaine revue (`buildReviewItems`, `checkExclusions`, `applySelection`) dans `src/main/domain/review/`
-- [ ] T024 [US2] `ProposalApplier` (transaction unique, R6) dans `src/main/application/review/ProposalApplier.ts`
-- [ ] T052 [US2] Ajouter `StructuringService.revise(proposalId, instruction)` (feature 002) : reprend les tours de la session d'origine + la consigne, appelle `decomposer`/`restructurer` selon l'origine, applique K1–K7 et la provenance, crée la nouvelle proposition et passe l'ancienne à `superseded` — `src/main/application/structuring/StructuringService.ts` *(analyse I1)*
-- [ ] T025 [US2] `ReviewService` (list, get, accept, reject, correct **via `StructuringService.revise`** (T052), supersede) dans `src/main/application/review/ReviewService.ts`
-- [ ] T026 [US2] `HistoryService` (list paginée, undo par lot avec contrôle de conflit, R7 ; pour un lot `accept` : restaurer statut/version de l'idée, remettre la proposition `pending`/`stale`, retirer l'exemple positif) dans `src/main/application/history/HistoryService.ts`
-- [ ] T027 [P] [US2] `PeriodicJobs` (archivage 14 j, filet « périmée », au démarrage + toutes les 6 h) dans `src/main/application/maintenance/PeriodicJobs.ts`
-- [ ] T028 [US2] Handlers `review:*` et `history:*` + événement `review:countChanged` (badge nav + tray) dans `src/main/ipc/reviewHandlers.ts`, `historyHandlers.ts`
-- [ ] T029 [US2] `ReviewListPage` (E8) et `ReviewPage` (E5 : aperçu arbre + liste des changements, cases, édition RHF+Zod, avertissement dépendances, Refuser/Corriger/Accepter, indicateurs périmée/dégradée) dans `src/renderer/src/pages/review/`
-- [ ] T030 [US2] Notification post-acceptation avec « Annuler » (10 s) et `HistoryPage` (E10) dans `src/renderer/src/pages/history/HistoryPage.tsx`
-- [ ] T031 [P] [US2] Tests composants `ReviewPage` (clavier complet, axe, avertissement de dépendance) dans `tests/unit/renderer/review-page.test.tsx`
-
-**Checkpoint**: MVP fonctionnel de bout en bout — idée → questions → proposition → validation → arbre
+- [ ] T011 [P] [US1] Intégration `CaptureService` : neurone créé sans IA, nature/catégorie appliquées ensuite, choix `user` jamais écrasé, brouillon, texte vide `tests/integration/capture/capture.test.ts`
+- [ ] T012 [P] [US1] Composant `CaptureApp` (touches, compteur, confirmation, brouillon, axe) `tests/unit/renderer/capture-app.test.tsx`
+- [ ] T013 [US1] `CaptureService` (→ `NeuronService.create` 002) + `GlobalShortcut` (échec → notification + réglage) + affichage écran du curseur + fermeture `blur()`/`hide()`
+- [ ] T014 [US1] Handlers `capture:*` (preload de capture uniquement) ; `diveNow` → `app:openMain { diveRootId }`
+- [ ] T015 [US1] `CaptureApp.tsx` (E1)
+- [ ] T016 [US1] Vérification manuelle focus/délai + vidéo plein écran (quickstart #1) consignée
 
 ---
 
-## Phase 5: User Story 3 — Organigramme (Priority: P1) 🎯 MVP
+## Phase 4: User Story 2 — Écran Idées : incubateur & réseau (Priority: P1) 🎯 MVP
 
-**Goal**: carte des idées, arbre déplié, statuts propagés, branches, déclencheurs, édition, filtres, détail
-
-**Independent Test**: arbre « 2e écran » accepté → « Non » + « Mission payée » → « Réserver X € » prête, « Oui » grisé
-
-### Tests ⚠️
-- [ ] T032 [P] [US3] `computeStatuses` : dépendances `after_done`, déclencheurs, branches inactives, statuts fixés par l'utilisateur, cascade sur 3 niveaux dans `tests/unit/tree/statuses.test.ts`
-- [ ] T033 [P] [US3] Intégration `TreeService` : setNodeStatus (transitions invalides refusées), chooseBranch, setTrigger, editNode, addTask (profondeur ≤ 5), savePositions ; chaque changement → `change_log` `manual_edit` + version idée +1 + événement `tree:changed` ; **`map:overview` : filtres catégorie et statut, recherche, focus + voisines directes** dans `tests/integration/tree/tree-service.test.ts` *(analyse C1)*
-
-### Implementation
-- [ ] T034 [P] [US3] `computeStatuses` + règles de branches/déclencheurs dans `src/main/domain/tree/`
-- [ ] T035 [US3] `TreeService` + `map:overview` (filtres catégorie/statut, recherche FTS5, focus + voisines) dans `src/main/application/tree/TreeService.ts`
-- [ ] T036 [US3] Handlers `map:*` et `tree:*` dans `src/main/ipc/treeHandlers.ts`
-- [ ] T037 [P] [US3] Nœuds personnalisés React Flow (idée repliée/dépliée, tâche avec statut, condition en losange, opportunité €) avec couleurs de catégorie AA dans `src/renderer/src/pages/map/nodes/`
-- [ ] T038 [US3] `MapPage` (E6, split 62/38) : React Flow, dagre à la première ouverture, positions mémorisées, MiniMap/Controls, filtres, recherche, focus, état vide, `onlyRenderVisibleElements` dans `src/renderer/src/pages/map/MapPage.tsx`
-- [ ] T039 [US3] `DetailPanel` : idée d'origine, dépendances, montant, branche (choix), statut, déclencheur (atteint), édition RHF+Zod, « Ajouter une tâche » dans `src/renderer/src/pages/map/DetailPanel.tsx`
-- [ ] T040 [US3] Navigation clavier dans la carte (Tab entre nœuds, Entrée ouvrir/déplier, flèches pour déplacer la vue) + test composant `tests/unit/renderer/map-keyboard.test.tsx`
-- [ ] T041 [US3] Vérification de fluidité 50 idées / 300 nœuds (`npm run seed:demo`, quickstart #5) consignée dans `quickstart.md` § Résultats
-
-**Checkpoint**: MVP-1 complet côté fonctionnalités (F1, F2, F3, F4, F9)
+- [ ] T017 [P] [US2] Tests `forceLayout` : bruts/en dév. contraints à gauche, éclos à droite, pas de chevauchement, positions stables après convergence, dérive suspendue pendant l'interaction `tests/unit/ui/layout.test.ts`
+- [ ] T018 [P] [US2] Intégration `CanvasService.get` (compteurs, répartition, filtres, recherche, liens acceptés + suggérés) + `savePositions` `tests/integration/canvas/canvas.test.ts`
+- [ ] T019 [US2] `CanvasService` + handlers `canvas:*`
+- [ ] T020 [P] [US2] Nœuds personnalisés `RawNode` (pointillé), `DevelopingNode`, `HatchedNode` (double anneau + halo Motion), couleurs de catégorie AA, **badge « proposé par l'IA » sur nature/catégorie + changement en un clic (menu contextuel)** *(analyse C1, FR-008)* ; arête `LabeledEdge` (libellé ; pointillés + ✓/✗ si suggérée)
+- [ ] T021 [US2] `IdeasCanvas` (React Flow) : deux zones, en-tête compteurs, « + Une idée ? », zoom/recentrer, filtres, recherche, état vide, `onlyRenderVisibleElements`, dérive des bruts (coupée en mode réduit)
+- [ ] T022 [US2] Navigation clavier du canvas (Tab entre neurones, Entrée = plonger, flèches = déplacer la vue) + test `tests/unit/renderer/canvas-keyboard.test.tsx`
 
 ---
 
-## Phase 6: User Story 4 — Navigation & réglages (Priority: P2)
+## Phase 5: User Story 3 — Plongée & croissance (Priority: P1) 🎯 MVP
 
-- [ ] T042 [P] [US4] Test composant `SettingsPage` (raccourci validé/indisponible, démarrage Windows, thème, limite 3..15, lien réglages IA) dans `tests/unit/renderer/settings-page.test.tsx`
-- [ ] T043 [US4] `SettingsPage` (E9) : raccourci (capture de la combinaison), démarrage avec Windows, thème, nombre max de questions, accès aux pages IA/Contexte de 001, relancer le premier lancement dans `src/renderer/src/pages/settings/SettingsPage.tsx`
-- [ ] T044 [US4] Vérification manuelle démarrage Windows + icône (quickstart #6)
-
----
-
-## Phase 7: User Story 5 — Premier lancement (Priority: P3)
-
-- [ ] T045 [P] [US5] Test composant du parcours (étapes obligatoires/facultatives, ne réapparaît pas) dans `tests/unit/renderer/onboarding.test.tsx`
-- [ ] T046 [US5] `OnboardingFlow` (E11) : Bienvenue → IA locale (statut 001 + guidage) → Raccourci (essai immédiat) → Claude (facultatif, page 001) → Profil (facultatif, import 001) → Fin (« capture ta première idée ») dans `src/renderer/src/pages/onboarding/OnboardingFlow.tsx`
+- [ ] T023 [P] [US3] Tests `radialLayout` (centre, arc des enfants, parent à gauche, emplacements « + ») `tests/unit/ui/radial.test.ts`
+- [ ] T024 [P] [US3] Tests composants `QuestionPanel` + `Gauge` + `Breadcrumb` (réponses rapides, texte, « Je ne sais pas », « Plus de questions », « Ajouter ma branche », écarter ; jauge + manques ; remonter ; clavier ; axe) `tests/unit/renderer/dive.test.tsx`
+- [ ] T025 [US3] `CanvasService.dive` (`DiveView` : fil d'Ariane, focus, parent, enfants, extensions, jauge, synthèse, résultat) + handler `dive:get`
+- [ ] T026 [US3] `DiveView` : transition de plongée/remontée (400 ms, réduite si besoin), disposition radiale, sous-neurones, emplacements « + », parent estompé cliquable, badge de profondeur
+- [ ] T027 [US3] `QuestionPanel`, `Gauge`, `Breadcrumb` branchés sur `growth:*` (002) ; sous-neurone affiché **immédiatement** (mise à jour optimiste confirmée par l'événement) + indicateur « réfléchit… » ; pousse animée 250 ms
+- [ ] T028 [US3] Édition/suppression de sous-neurone (confirmation si descendants), changement de nature/catégorie depuis la plongée
 
 ---
 
-## Phase 8: Polish & Cross-Cutting
+## Phase 6: User Story 4 — Verrouiller, aperçu, fusion (Priority: P1) 🎯 MVP
 
-- [ ] T047 [P] Revue sécurité : chaque preload n'expose que ses canaux ; CSP des 2 fenêtres ; aucune navigation externe ; checklist constitution I
-- [ ] T048 [P] Passe accessibilité globale (contrastes des 6 couleurs de catégorie en clair/sombre, focus, libellés) — correctifs
-- [ ] T049 [P] Packaging `electron-builder` (installeur NSIS, icônes tray, modules natifs) en **brouillon soumis à revue** (constitution : pas de modification de packaging sans revue)
-- [ ] T053 Mesure SC-003 : relecture + acceptation de 5 propositions fixtures (≤ 15 éléments) chronométrées, objectif < 1 min chacune, consignée dans `quickstart.md` § Résultats *(analyse C2)*
-- [ ] T050 Exécuter tout `quickstart.md` ; mettre à jour `docs/JOURNAL.md` et `CLAUDE.md` (commandes, état MVP-1)
+- [ ] T029 [US4] **Spike** animation de fusion : interpoler avec Motion les positions des sous-neurones React Flow vers le parent (600–800 ms) + changement d'aspect ; repli overlay SVG si non concluant ; décision consignée dans research.md (R3)
+- [ ] T030 [P] [US4] Tests `SynthesisPreview` (Action : tâches/conditions/dates éditables ; Réflexion : sections ; Réviser/Refuser/Confirmer ; périmé non confirmable ; avertissement « insuffisant » avec manques ; axe) `tests/unit/renderer/preview.test.tsx`
+- [ ] T031 [US4] Canal `fusion:editProposed` (patch revalidé P1–P6/S1) côté main + test d'intégration `tests/integration/fusion/edit-proposed.test.ts`
+- [ ] T032 [US4] `SynthesisPreview` branché sur `fusion:lock|revise|reject|confirm|editProposed` (002/003)
+- [ ] T033 [US4] `FusionAnimation` (résorption → aspect éclos → migration vers le réseau ~600 ms ; fondu court en mode réduit) + notification « Annuler » 10 s
+
+**Checkpoint**: MVP-1 démontrable — capturer, voir, plonger, faire pousser, verrouiller, voir éclore
+
+---
+
+## Phase 7: User Story 5 — Neurones éclos : suivi, lecture, réouverture, export (Priority: P2)
+
+- [ ] T034 [P] [US5] Tests `computeStatuses` (après/déclencheur/branches inactives/statuts utilisateur, cascade) `tests/unit/plan/statuses.test.ts`
+- [ ] T035 [P] [US5] Intégration `PlanService` (statut + propagation, branche, déclencheur, édition, ajout de tâche ; `change_log` `manual_edit`) `tests/integration/plan/plan-service.test.ts`
+- [ ] T036 [P] [US5] Tests `renderNeuronMarkdown` (Action et Réflexion, liens, caractères spéciaux, nom de fichier assaini) `tests/unit/markdown/render.test.ts`
+- [ ] T037 [US5] `computeStatuses` + `PlanService` + handlers `plan:*`
+- [ ] T038 [US5] `PlanFollowUp` (tâches à statut, conditions en losange + choix de branche, déclencheurs, édition) et `ReflectionReader` (sections + accès aux sous-neurones sources)
+- [ ] T039 [US5] `MarkdownExporter` (dialogue natif, écriture main) + handler `export:markdown` + bouton Exporter ; bouton Rouvrir (`fusion:reopen` 002)
+
+---
+
+## Phase 8: User Story 6 — À valider, historique, réglages, premier lancement (Priority: P2)
+
+- [ ] T040 [P] [US6] Intégration `HistoryService` : annulation exacte d'une fusion (racine → développement, plan/synthèse non courants, synthèse `proposed`/`stale`, exemple retiré), conflit après réouverture + réponses, annulation annulable `tests/integration/history/undo.test.ts`
+- [ ] T041 [US6] `HistoryService` + handlers `history:*` + `HistoryPage`
+- [ ] T042 [US6] `PendingPage` (liens suggérés avec justification, aperçus en attente) + handler `pending:list` + compteur `pending:countChanged` (navigation + tray)
+- [ ] T043 [P] [US6] `SettingsPage` (raccourci, démarrage, thème, animations, liens vers réglages IA/Contexte 001) + test composant
+- [ ] T044 [US6] `OnboardingFlow` (IA locale + raccourci obligatoires ; Claude, profil facultatifs) + test composant
+
+---
+
+## Phase 9: Polish
+
+- [ ] T045 [P] Revue sécurité (preloads, CSP, export, navigation) — checklist constitution I
+- [ ] T046 [P] Passe accessibilité globale (contrastes catégories clair/sombre, focus, libellés ARIA des neurones)
+- [ ] T047 [P] Intégration de la direction visuelle de mentalyas dans `tokens.css` (couleurs, typographie) quand elle est fournie
+- [ ] T048 [P] Packaging `electron-builder` en **brouillon soumis à revue**
+- [ ] T049 Quickstart complet (dont SC-002 chronométré, SC-004 avec seed-demo) ; `docs/JOURNAL.md`, `CLAUDE.md`
 
 ---
 
 ## Dependencies & Execution Order
 
-- **Prérequis** : 001 (AIGateway, LocalQueue, ExampleStore, réglages IA) et 002 (IdeaService, propositions, modèle central).
-- Setup → Foundational → **US1 → US2 → US3** (MVP-1) → US4 → US5 → Polish.
-- US3 dépend de US2 (arbres créés par l'acceptation) ; US2 réutilise `computeStatuses` (T034) → faire T032/T034 **avant** T024.
-- US5 dépend de US4 (réglages) et de 001 (pages IA).
+- Prérequis : 001 + 002. Setup → Foundational → **US1 → US2 → US3 → US4** (MVP-1) → US5 → US6 → Polish.
+- US3 dépend de US2 (plongée depuis le canvas) ; US4 dépend de US3 ; **T029 (spike) avant T033**.
+- US5 : `computeStatuses` (T034/T037) avant `PlanFollowUp` ; export indépendant.
+- US6 : historique dépend de US4 (lots de fusion).
 
 ### Parallel Opportunities
-- Foundational : T005, T006, T007, T009 en parallèle après T003/T004.
-- US2 : T019–T022 en parallèle ; T023 et T027 en parallèle ; puis T024 → T025/T026 → T028 → T029/T030.
-- US3 : T032/T033 ; T034 et T037 en parallèle ; puis T035 → T036 → T038 → T039 → T040.
-
-## Parallel Example: User Story 2
-
-```text
-Tests : T019 domaine · T020 apply · T021 lifecycle · T022 undo
-Impl. : T023 domaine revue ‖ T027 jobs → T024 applier → T025 service ‖ T026 history → T028 handlers → T029 écrans ‖ T030
-```
+- Foundational : T005–T008, T010 en parallèle après T003/T004.
+- US2 : T017/T018/T020 en parallèle ; US3 : T023/T024 ; US5 : T034/T035/T036.
 
 ## Implementation Strategy
 
-1. **MVP-1** : Foundational + US1 + US2 + US3 → l'app complète du quotidien (capturer, structurer, valider, suivre).
-2. Puis US4 (réglages), US5 (premier lancement), Polish (packaging en brouillon revu).
-3. Chaque incrément : tests verts, JOURNAL, **commit uniquement après confirmation de mentalyas**.
+1. **MVP-1** : Foundational + US1 → US4 (le cœur visuel du Brainstormer).
+2. Puis US5 (suivi, export), US6 (À valider, historique, réglages, premier lancement), Polish.
+3. Tests verts, JOURNAL, **commit après confirmation de mentalyas**.

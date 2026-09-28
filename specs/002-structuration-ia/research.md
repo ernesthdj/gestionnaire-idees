@@ -1,44 +1,38 @@
-# Research — 002 Structuration IA
+# Research — 002 Moteur de neurones (v2)
 
-> S'appuie sur les décisions de `specs/001-moteur-ia-hybride/research.md` (outillage, tests, Claude,
-> Ollama, base, IPC). Aucune nouvelle dépendance n'est introduite par cette feature.
+> S'appuie sur 001 (outillage, base chiffrée, IPC, AIGateway). **Aucune nouvelle dépendance.**
+> Remplace la recherche de la version « questionnaire linéaire ».
 
-## R1 — Pilotage du questionnaire
-- **Décision** : machine à états explicite côté application (`asking → ready → decomposing → proposed`, + `abandoned`, `failed`) ; l'IA renvoie à chaque tour un `QuestionOut` (`question` | `ready` | `out_of_scope`) ; le **compteur et la limite sont tenus par l'app**, pas par l'IA.
-- **Rationale** : l'IA ne peut pas « oublier » la limite ; transitions testables sans IA.
-- **Alternatives** : laisser l'IA décider seule de la fin (non déterministe, coût non borné).
+## R1 — Un seul appel IA par réponse (extensions + jauge)
+- **Décision** : type de demande `etendre` (Claude, effort `low`) qui renvoie **à la fois** les nouvelles extensions pour le neurone ciblé et l'évaluation de contexte de tout l'arbre. Appelé : (a) au démarrage du développement (cible = racine, **≥ 3 extensions exigées**) ; (b) après chaque réponse (cible = nouveau sous-neurone, 0..n extensions) ; (c) à la demande « plus de questions » sur un nœud.
+- **Rationale** : divise par deux les appels (FR-009), jauge toujours cohérente avec les extensions.
+- **Alternatives** : appel séparé `evaluer_contexte` (2× plus d'appels) ; jauge purement locale (ne sait pas juger les manques d'un sujet quelconque).
 
-## R2 — Contexte envoyé à chaque tour
-- **Décision** : idée + tours précédents (question/réponse) + ≤ 5 idées liées résumées (titres, catégorie, statut) ; `effort: low` pour `questionner`, `high` pour `decomposer`/`restructurer` ; le bloc stable (cadre + profil) est mis en cache par le moteur 001.
-- **Rationale** : questions rapides et peu coûteuses ; décomposition soignée.
+## R2 — Contexte envoyé à `etendre`
+- **Décision** : nature + racine + **chemin** racine → cible (textes complets) + **résumé des autres branches** (titres seulement) + extensions déjà écartées (pour ne pas les reproposer) + profil (via 001). Borne : ~3 000 tokens de données ; au-delà, les branches les plus anciennes sont résumées en une ligne.
+- **Rationale** : pertinence locale (le chemin) sans envoyer tout l'arbre.
 
-## R3 — Références temporaires → identifiants
-- **Décision** : l'IA produit des `ref` locales à la proposition (`"t1"`, `"c1"`) ; la proposition les conserve telles quelles ; la conversion en identifiants définitifs se fait à l'acceptation (F3), dans une transaction.
-- **Rationale** : une proposition refusée ne crée rien ; pas d'identifiants orphelins.
+## R3 — Plancher et garde-fous déterministes
+- **Décision** : l'app impose le **plancher** (< 3 réponses → `insufficient`, quoi que dise l'IA), le **minimum de 3 extensions** au démarrage (1 retry, puis repli avec message), et le **plafond de profondeur 6** (au-delà : aucune extension IA demandée sur ce chemin, suggestion de neurone distinct).
+- **Rationale** : l'IA propose, l'app garantit les règles (constitution III).
 
-## R4 — Détection de boucles
-- **Décision** : tri topologique (algorithme de Kahn) sur l'union des dépendances existantes de l'idée et des nouvelles ; si des nœuds restent non triés → boucle → rejet.
-- **Rationale** : linéaire, simple, testable ; donne aussi un ordre d'exécution utile à F4/F5.
-- **Alternatives** : parcours en profondeur avec marquage (équivalent, moins lisible pour un débutant).
+## R4 — Synthèse par nature
+- **Décision** : type `synthetiser` (Claude, effort `high`) avec deux schémas : `ActionPlanOut` (nœuds de plan à `ref` temporaires, conditions 2–4 branches, dépendances `after_done`/`on_trigger`, opportunités, dates, investigations) et `ReflectionSummaryOut` (pistes retenues, décisions, arguments pour/contre, questions ouvertes, chacun relié aux sous-neurones sources par `sourceRefs`). Correction : `reviser` (même schéma + consigne).
+- **Rationale** : un seul moteur, deux sorties typées ; `sourceRefs` rend la synthèse traçable (Réflexion) et sert au contrôle de provenance.
 
-## R5 — Garantie « ne jamais inventer » (FR-008)
-- **Décision** : contrôle de provenance déterministe après l'IA :
-  1. extraire des réponses de l'utilisateur (et du texte de l'idée) tous les montants (`1250`, `1 250 €`, `1.250,00`) et dates (formats FR usuels + relatifs simples « le 15/11 ») normalisés ;
-  2. tout `amountCents` / `dueDate` de la proposition absent de cet ensemble est **retiré**, et une tâche d'investigation « Trouver … » est ajoutée sous le même parent ;
-  3. l'événement est journalisé (sans contenu) pour mesurer SC-002.
-- **Rationale** : on ne fait pas confiance à la seule consigne donnée à l'IA ; la règle est vérifiable.
-- **Alternatives** : consigne seule (non garantie).
+## R5 — Contrôles de cohérence (plan d'action)
+- **Décision** : conservés de la v1 : références existantes, branches 2–4, profondeur ≤ 5 du **plan** (distincte de celle de l'arbre de croissance), absence de boucle (tri de Kahn), provenance montants/dates (extraction FR des réponses de l'utilisateur ; valeur non trouvée → retirée + élément « à trouver »).
 
-## R6 — Proposition périmée
-- **Décision** : `ideas.version` incrémentée à chaque modification de l'idée ou de son arbre ; la session mémorise la version de départ ; `proposals.base_version ≠ ideas.version` → statut `stale`.
+## R6 — Confirmation tout-ou-rien
+- **Décision** : `SynthesisApplier` dans une transaction : vérifie `base_version` (sinon `stale`), écrit le plan (`plan_nodes`, `plan_dependencies`) ou la synthèse (`reflection_summaries`), passe la racine à `hatched`, incrémente sa version, journalise (`change_log`, `batch_id`), enregistre l'exemple positif (001 `ExampleStore.record`). Réouverture (FR-015) : racine → `developing`, plan/synthèse conservés et marqués « précédents ».
+- **Note** : l'annulation par lot (undo) et l'écran d'historique sont portés par la spec 003 ; le `batch_id` est posé ici.
 
-## R7 — Reprise après coupure
-- **Décision** : au démarrage, toute session `decomposing` ou `asking` avec un appel IA en vol depuis > 10 min revient à son dernier état stable (dernière question affichée ou `ready`) ; les tours sont écrits avant chaque appel IA.
+## R7 — Suggestions de liens
+- **Décision** : à chaque éclosion, `suggerer_liens` (Claude, effort `medium`) avec la synthèse du neurone éclos + **candidats** = jusqu'à 10 neurones éclos (même catégorie, recherche plein texte FTS5 sur titres/synthèses, les plus récents), désignés par alias `N1…N10`. Sortie : 0..3 `{ targetAlias, label (≤ 40), justification (≤ 200) }` ; alias inconnu → suggestion retirée ; empreinte des refus conservée.
 
-## R8 — Mode dégradé
-- **Décision** : si Claude est indisponible ou bloqué par le budget, proposer (a) attendre ou (b) questionnaire par l'IA locale via `allowDegraded` du moteur 001 ; la proposition porte l'indicateur `degraded: true`, affiché à l'utilisateur.
+## R8 — Nature et catégorie
+- **Décision** : `categoriser` (IA locale) renvoie `{ categorySlug, nature }` ; non bloquant, rejoué via la file locale (001) ; jamais appliqué si la source est `user`. Défaut sans IA : nature `reflection`, catégorie `null` (« À classer »).
 
-## R9 — Idées liées candidates
-- **Décision** : pour le contexte et pour `ideaLinks`, candidates = 5 idées non archivées de même catégorie ou partageant des mots significatifs (recherche plein texte SQLite FTS5 sur le texte des idées) ; l'IA ne peut lier qu'à ces candidates (alias `I1…I5`), toute autre référence est rejetée.
-- **Rationale** : borne le contexte, empêche les références inventées.
-- **Alternatives** : envoyer toutes les idées (coût, confidentialité).
+## R9 — Modèle d'arbre
+- **Décision** : table unique `neurons` (racine et sous-neurones, `root_id` + `parent_id` + `depth`) plutôt que deux tables ; suppression d'un sous-neurone = suppression en cascade applicative de ses descendants (et de leurs extensions) dans une transaction.
+- **Rationale** : parcours et affichage uniformes, requêtes simples par `root_id`.

@@ -46,7 +46,7 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 - [ ] T012 [P] Exposer l'API `contextBridge` minimale typée dans `src/preload/index.ts`
 - [ ] T013 [P] Définir les types de domaine purs (`TaskKind`, `Engine`, `AIErrorCode`, `Result`) dans `src/main/domain/ai/types.ts`
 - [ ] T014 [P] Définir l'interface `AIProvider` et `FakeProvider` (réponses scriptées) dans `src/main/application/ai/AIProvider.ts` et `tests/support/FakeProvider.ts`
-- [ ] T015 [P] Écrire le cadre système v1 (texte figé, versionné) dans `src/main/infrastructure/ai/SystemFrame.ts` (contracts/ai-gateway.md § Cadre)
+- [ ] T015 [P] Écrire le cadre système **v2 « Brainstormer »** (texte figé, versionné) dans `src/main/infrastructure/ai/SystemFrame.ts` (contracts/ai-gateway.md § Cadre)
 - [ ] T016 [P] Créer le logger à liste blanche de champs (jamais de contenu, jeton, montant) dans `src/main/infrastructure/logging/logger.ts` + test `tests/unit/logging/logger.test.ts`
 
 **Checkpoint**: squelette lancé (`npm run dev`), base chiffrée créée, IPC validé — stories démarrables
@@ -57,7 +57,7 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 **Goal**: `AIGateway` route, assemble le contexte, valide la sortie, gère refus/échecs, journalise
 
-**Independent Test**: demandes `categoriser` et `decomposer` avec FakeProvider → bon moteur ; sortie malformée → 1 nouvel essai puis `AI_INVALID_OUTPUT`
+**Independent Test**: demandes `categoriser` et `synthetiser` avec FakeProvider → bon moteur ; sortie malformée → 1 nouvel essai puis `AI_INVALID_OUTPUT`
 
 ### Tests for User Story 1 ⚠️
 

@@ -1,53 +1,43 @@
-# Contrat IPC — Interface MVP-1
+# Contrat IPC — Interface MVP-1 « Brainstormer » (v2)
 
 Format uniforme `{ success: true, data } | { success: false, error: { code, message } }` ; payloads validés Zod.
-Les canaux `idea:*` et `structuring:*` (002) et `ai:*` / `context:*` (001) restent inchangés.
+Les canaux `neuron:*`, `growth:*`, `fusion:*`, `links:*` (002) et `ai:*` / `context:*` (001) sont consommés tels quels.
 
 ## Coquille & réglages
-| Canal | Entrée | Sortie `data` | Erreurs |
-|-------|--------|---------------|---------|
-| `app:getSettings` | — | `AppSettingsView` | — |
-| `app:setSettings` | `Partial<{ shortcut, launchAtLogin, theme, questionLimit }>` | `AppSettingsView` | `VALIDATION`, `SHORTCUT_UNAVAILABLE` |
-| `app:completeOnboarding` | — | `{ ok: true }` | — |
-| `app:openMain` | `{ section?: "ideas"\|"review"\|"map"\|"history", ideaId?, proposalId? }` | `{ ok: true }` | — |
-
-## Capture (fenêtre de capture uniquement)
 | Canal | Entrée | Sortie | Erreurs |
 |-------|--------|--------|---------|
-| `capture:getDraft` | — | `{ text }` | — |
-| `capture:saveDraft` | `{ text: string(≤2000) }` | `{ ok }` | `VALIDATION` |
-| `capture:submit` | `{ text: string(1..2000), structureNow: boolean }` | `{ ideaId }` | `VALIDATION` |
+| `app:getSettings` | — | `AppSettingsView` | — |
+| `app:setSettings` | `Partial<{ shortcut, launchAtLogin, theme, motion }>` | `AppSettingsView` | `VALIDATION`, `SHORTCUT_UNAVAILABLE` |
+| `app:completeOnboarding` | — | `{ ok }` | — |
+| `app:openMain` | `{ section?: "ideas"\|"pending"\|"history", diveRootId? }` | `{ ok }` | — |
+
+## Capture (preload de capture uniquement)
+| Canal | Entrée | Sortie | Erreurs |
+|-------|--------|--------|---------|
+| `capture:getDraft` / `capture:saveDraft` | — / `{ text: string(≤2000) }` | `{ text }` / `{ ok }` | `VALIDATION` |
+| `capture:submit` | `{ text: string(1..2000), diveNow: boolean }` | `{ rootId }` | `VALIDATION` |
 | `capture:close` | — | `{ ok }` | — |
 
-## Revue & validation
+## Écran Idées & plongée
 | Canal | Entrée | Sortie | Erreurs |
 |-------|--------|--------|---------|
-| `review:list` | `{ status?: "pending"\|"archived" }` | `ProposalView[]` | — |
-| `review:get` | `{ proposalId }` | `ProposalReviewView` | `NOT_FOUND` |
-| `review:accept` | `{ proposalId, selection: { excludedRefs: string[], edits: Array<{ ref, title?, amountCents?, dueDate? }> } }` | `{ batchId, ideaId }` | `NOT_FOUND`, `STALE`, `DEPENDENCY_EXCLUDED`, `VALIDATION`, `APPLY_FAILED` |
-| `review:reject` | `{ proposalId, reason?: "not_relevant"\|"wrong"\|"later", note?: string(≤300) }` | `{ ok }` | `NOT_FOUND` |
-| `review:correct` | `{ proposalId, instruction: string(1..500) }` | `ProposalView` (nouvelle, l'ancienne `superseded`) | `NOT_FOUND`, `AI_*` |
+| `canvas:get` | `{ nature?, categoryId?, search? }` | `IdeasCanvasView` | — |
+| `canvas:savePositions` | `{ positions: Array<{ rootId, x, y }> }` | `{ ok }` | `VALIDATION` |
+| `dive:get` | `{ rootId, focusNeuronId? }` | `DiveView` | `NOT_FOUND` |
+| `fusion:editProposed` | `{ synthesisId, patch: { ref: string, title?, amountCents?: int≥0\|null, dueDate?: date\|null, text? } }` | `SynthesisView` (revalidée) | `NOT_FOUND`, `STALE`, `VALIDATION` |
+| `plan:setTaskStatus` | `{ nodeId, status: "ready"\|"in_progress"\|"done"\|"abandoned" }` | `DiveView` | `NOT_FOUND`, `INVALID_TRANSITION` |
+| `plan:chooseBranch` | `{ conditionNodeId, branchNodeId }` | `DiveView` | `NOT_FOUND` |
+| `plan:setTrigger` | `{ dependencyId, reached: boolean }` | `DiveView` | `NOT_FOUND` |
+| `plan:editNode` / `plan:addTask` | `{ nodeId, title?, amountCents?, dueDate? }` / `{ rootId, parentNodeId?, title }` | `DiveView` | `NOT_FOUND`, `VALIDATION`, `DEPTH_EXCEEDED` |
 
-`DEPENDENCY_EXCLUDED` renvoie `{ blockedRefs }` : l'interface propose d'exclure aussi les dépendantes.
-
-## Organigramme & arbre
+## À valider, historique, export
 | Canal | Entrée | Sortie | Erreurs |
 |-------|--------|--------|---------|
-| `map:overview` | `{ categoryIds?, statuses?, search?, focusIdeaId? }` | `{ ideas: IdeaCardView[], links: IdeaLinkView[] }` | — |
-| `tree:get` | `{ ideaId }` | `TreeView` | `NOT_FOUND` |
-| `tree:setNodeStatus` | `{ nodeId, status: "in_progress"\|"done"\|"abandoned"\|"ready" }` | `TreeView` | `NOT_FOUND`, `INVALID_TRANSITION` |
-| `tree:chooseBranch` | `{ conditionNodeId, branchNodeId }` | `TreeView` | `NOT_FOUND` |
-| `tree:setTrigger` | `{ dependencyId, reached: boolean }` | `TreeView` | `NOT_FOUND` |
-| `tree:editNode` | `{ nodeId, title?: string(1..120), amountCents?: int≥0 \| null, dueDate?: date \| null }` | `TreeView` | `NOT_FOUND`, `VALIDATION` |
-| `tree:addTask` | `{ ideaId, parentNodeId?, title }` | `TreeView` | `NOT_FOUND`, `DEPTH_EXCEEDED` |
-| `tree:savePositions` | `{ ideaId, positions: Array<{ nodeId, x, y }> }` | `{ ok }` | — |
-
-## Historique
-| Canal | Entrée | Sortie | Erreurs |
-|-------|--------|--------|---------|
+| `pending:list` | — | `{ links: LinkView[], syntheses: SynthesisView[] }` | — |
 | `history:list` | `{ cursor?, limit?: 1..100 }` | `{ items: HistoryEntryView[], nextCursor }` | — |
-| `history:undo` | `{ batchId }` | `{ undoBatchId }` | `NOT_FOUND`, `UNDO_CONFLICT` (+ `{ conflicts: string[] }`) |
+| `history:undo` | `{ batchId }` | `{ undoBatchId }` | `NOT_FOUND`, `UNDO_CONFLICT` (+ `conflicts`) |
+| `export:markdown` | `{ rootId }` | `{ saved: boolean, path?: string }` (dialogue d'enregistrement côté main) | `NOT_FOUND`, `NOT_HATCHED`, `WRITE_FAILED` |
 
 ## Événements main → renderer
-`review:countChanged { pending }` · `tree:changed { ideaId }` · `idea:categorized { ideaId, categoryId }` ·
-`app:navigate { section, ideaId?, proposalId? }` · `shortcut:unavailable { shortcut }`.
+`pending:countChanged { count }` · `app:navigate { section, diveRootId? }` · `shortcut:unavailable { shortcut }` ·
++ événements de 002 (`neuron:thinking`, `neuron:categorized`, `synthesis:stale`, `links:suggested`).

@@ -1,39 +1,38 @@
-# Implementation Plan: Structuration IA — questionnaire & décomposition (F2)
+# Implementation Plan: Moteur de neurones — croissance, jauge, fusion, réseau (F2 v2)
 
-**Branch**: `002-structuration-ia` | **Date**: 2026-09-28 | **Spec**: [spec.md](./spec.md)
+**Branch**: `002-structuration-ia` | **Date**: 2026-09-28 (révision « Brainstormer ») | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/002-structuration-ia/spec.md`
 
 ## Summary
 
-Transformer une idée brute en **proposition d'arbre de tâches** : un `StructuringService` pilote une
-machine à états (questions une à une, limite 8, reprise), interroge le moteur IA de la feature 001
-(`questionner` effort bas, `decomposer`/`restructurer` effort haut), puis valide la sortie par schéma
-**et** par des contrôles métier déterministes (références, branches, profondeur ≤ 5, absence de boucle
-par tri de Kahn, provenance des montants/dates, liens limités aux idées candidates). Le résultat est
-une proposition `pending` — rien n'est appliqué (F3). La feature crée aussi le **modèle de données
-central** (idées, catégories, sessions, propositions, nœuds, dépendances, liens, historique) et un
-écran minimal de liste d'idées + questionnaire.
+Moteur générique du Brainstormer côté processus principal : un `GrowthService` fait pousser l'arbre d'un
+neurone (appel `etendre` unique par réponse → nouvelles extensions + jauge), avec des garde-fous
+déterministes (≥ 3 extensions au démarrage, plancher de jauge, profondeur 6, doublons). Un `FusionService`
+obtient la synthèse typée par nature (`ActionPlanOut` / `ReflectionSummaryOut`), la contrôle (refs, branches,
+boucles, provenance), et l'applique en transaction à la confirmation (`SynthesisApplier`). Un `LinkService`
+suggère des liens entre neurones éclos. Modèle de données central (`neurons`, `extensions`,
+`context_assessments`, `syntheses`, `plan_*`, `reflection_summaries`, `neuron_links`, `change_log`, `settings`).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (`strict: true`), Node.js LTS (Electron)
+**Language/Version**: TypeScript 6 (`strict`), Node.js (Electron 44)
 
-**Primary Dependencies**: celles de la feature 001 (Electron, React, Tailwind, Zod, Drizzle, `@anthropic-ai/sdk` via AIGateway) — **aucune nouvelle dépendance**
+**Primary Dependencies**: 001 uniquement (Drizzle, Zod, AIGateway) — **aucune nouvelle dépendance**
 
-**Storage**: SQLite chiffré (001) ; nouvelles tables + FTS5 pour la recherche d'idées
+**Storage**: SQLite chiffré ; FTS5 pour les racines et les synthèses
 
-**Testing**: Vitest ; FakeProvider scripté ; fixtures de questionnaires fictifs
+**Testing**: Vitest ; FakeProvider scripté ; fixtures d'arbres fictifs
 
 **Target Platform**: Windows 11 desktop
 
-**Project Type**: desktop-app (Electron)
+**Project Type**: desktop-app (Electron) — moteur côté `main`, sans interface (spec 003)
 
-**Performance Goals**: retour visuel immédiat à chaque action ; nouvelle question < 10 s (p90) ; contrôles métier < 50 ms pour 60 nœuds
+**Performance Goals**: sous-neurone créé et renvoyé avant l'appel IA (retour immédiat) ; extensions + jauge < 10 s p90 ; contrôles de plan < 50 ms pour 60 nœuds
 
-**Constraints**: aucune écriture dans l'arbre d'une idée (F3) ; 0 valeur inventée ; 1 session ouverte par idée
+**Constraints**: 1 appel IA par réponse ; aucune écriture de résultat sans confirmation ; données envoyées bornées (~3 000 tokens)
 
-**Scale/Scope**: ~1 000 idées, ≤ 60 nœuds par proposition
+**Scale/Scope**: ~1 000 racines ; arbres jusqu'à ~100 sous-neurones
 
 ## Constitution Check
 
@@ -41,61 +40,45 @@ central** (idées, catégories, sessions, propositions, nœuds, dépendances, li
 
 | Principe | Vérification | Statut |
 |----------|--------------|--------|
-| I. Sécurité | Payloads IPC Zod ; Drizzle paramétré (FTS5 via requêtes liées) ; rendu React en texte (pas de HTML injecté) ; texte d'idée balisé comme donnée | ✅ |
-| II. Humain dans la boucle | Propositions `pending` uniquement ; aucune écriture dans `nodes`/`dependencies`/`idea_links` (test SC-007) | ✅ |
-| III. IA cadrée & vérifiable | Tout passe par AIGateway ; schémas + règles K1–K7 ; provenance R5 déterministe ; `out_of_scope` géré | ✅ |
-| IV. Local d'abord | Contexte borné (≤ 5 idées candidates résumées) ; anonymisation par 001 ; mode dégradé local signalé | ✅ |
-| V. Qualité & tests | Machine à états, Kahn, provenance, cohérence testés unitairement ; intégration sans réseau | ✅ |
-| VI. Simplicité | Pas de nouvelle dépendance ; références temporaires plutôt qu'écritures anticipées ; FTS5 natif plutôt qu'un moteur de recherche | ✅ |
+| I. Sécurité | IPC Zod ; Drizzle paramétré ; FTS5 via requêtes liées ; texte balisé comme donnée | ✅ |
+| II. Humain dans la boucle | Synthèse `proposed` → rien d'écrit avant `fusion:confirm` ; tout-ou-rien ; verrouillage forcé seulement après confirmation | ✅ |
+| III. IA cadrée | Cadre v2 (001) ; garde-fous E1–E4, P1–P6, S1, L1 déterministes ; `out_of_scope` géré | ✅ |
+| IV. Local d'abord | Catégorie/nature en local ; contexte borné et anonymisé (001) ; branches manuelles hors ligne | ✅ |
+| V. Tests | Garde-fous et applier testés unitairement ; intégration complète sans réseau | ✅ |
+| VI. Simplicité | Table `neurons` unique ; un appel pour extensions + jauge ; pas de nouvelle dépendance | ✅ |
 
-**Re-check post-design** : ✅ aucune violation.
+**Re-check post-design** : ✅.
 
 ## Project Structure
 
 ### Documentation (this feature)
-
 ```text
 specs/002-structuration-ia/
-├── plan.md · research.md · data-model.md · quickstart.md
-├── contracts/
-│   ├── ipc-structuring.md   # Canaux idea:* et structuring:*
-│   └── ai-outputs.md        # QuestionOut, DecompositionOut, RestructureOut + règles K1–K7
+├── plan.md · research.md · data-model.md · quickstart.md · analysis-report.md
+├── contracts/ai-outputs.md · contracts/ipc-neurons.md
 ├── checklists/requirements.md
 └── tasks.md
 ```
 
-### Source Code (ajouts à la structure de la feature 001)
-
+### Source Code (ajouts)
 ```text
-src/
-├── main/
-│   ├── domain/
-│   │   ├── ideas/                 # Idea, Category, statuts, règles de version
-│   │   └── structuring/           # SessionStateMachine, topoSort (Kahn), depth, provenance, consistency (K1–K7)
-│   ├── application/
-│   │   └── structuring/           # StructuringService, IdeaService, CandidateFinder, ContextBuilder
-│   ├── infrastructure/db/
-│   │   ├── schema.ts              # + tables data-model.md
-│   │   └── repositories/          # IdeaRepository, SessionRepository, ProposalRepository
-│   └── ipc/
-│       ├── ideaHandlers.ts
-│       └── structuringHandlers.ts
-├── shared/
-│   ├── ai/structuring.ts          # Schémas Zod de sortie IA
-│   └── ipc/structuring.ts         # Schémas Zod IPC + vues
-└── renderer/src/pages/
-    ├── ideas/IdeasPage.tsx        # Liste minimale (créer, filtrer, « Structurer »)
-    └── structuring/QuestionnairePage.tsx
-
+src/main/
+├── domain/neurons/          # tree (profondeur, cascade), guards (E1–E4), gauge, planChecks (P1–P5, Kahn), provenance (P6), extractValues, fingerprint
+├── application/neurons/     # NeuronService, GrowthService, ContextBuilder, FusionService, SynthesisApplier, LinkService, CandidateFinder
+├── infrastructure/db/       # schema.ts (+ tables v2), repositories/{Neuron,Extension,Synthesis,Link}Repository.ts
+└── ipc/                     # neuronHandlers.ts, growthHandlers.ts, fusionHandlers.ts, linkHandlers.ts
+src/shared/
+├── ai/neurons.ts            # schémas Zod de sortie IA
+└── ipc/neurons.ts           # schémas Zod IPC + vues
 tests/
-├── unit/structuring/              # session-state, cycles, provenance, consistency
-├── integration/structuring/       # flux complet, reprise, périmée, idempotence
-└── fixtures/structuring/          # questionnaires et sorties IA FICTIFS (dont « 2e écran »)
+├── unit/neurons/            # growth, gauge, plan-checks, provenance, fingerprint
+├── integration/neurons/     # cycle complet, persistance, liens
+└── fixtures/neurons/        # arbres FICTIFS (2e écran, portfolio, mission mariage…)
 ```
 
-**Structure Decision**: même projet Electron ; logique pure (machine à états, graphe, provenance) dans
-`domain/structuring` sans dépendance externe, orchestrée par `application/structuring`.
+**Structure Decision**: logique pure dans `domain/neurons` ; orchestration dans `application/neurons` ; aucune
+dépendance d'interface.
 
 ## Complexity Tracking
 
-Aucune violation à justifier.
+Aucune violation.
