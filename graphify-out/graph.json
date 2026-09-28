@@ -1,0 +1,678 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "core_idea_to_task_flow",
+        "label": "Flux id\u00e9e \u2192 t\u00e2che \u2192 rappel quotidien",
+        "nodes": [
+          "claude_quick_idea_capture",
+          "claude_task_structuring",
+          "claude_daily_reminder"
+        ],
+        "relation": "form",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "CLAUDE.md"
+      },
+      {
+        "id": "project_lifecycle_workflow",
+        "label": "Cycle de vie projet (hub new \u2192 brainstorm \u2192 pipeline \u2192 hub end)",
+        "nodes": [
+          "claude_hub_new",
+          "claude_brainstorm",
+          "claude_pipeline",
+          "claude_hub_end",
+          "claude_graphify_project"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "CLAUDE.md"
+      },
+      {
+        "id": "initial_scaffolding",
+        "label": "Scaffolding initial coquille vide",
+        "nodes": [
+          "journal_feat_init",
+          "claude_src_dir",
+          "claude_tests_dir",
+          "journal_journal",
+          "claude_hub_new"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "docs/JOURNAL.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "Gestionnaire_id\u00e9es (projet)",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L1-L7",
+      "source_url": null,
+      "captured_at": "2026-09-28",
+      "author": "mentalyas",
+      "contributor": null,
+      "id": "claude_gestionnaire_idees",
+      "community": 1,
+      "norm_label": "gestionnaire_idees (projet)"
+    },
+    {
+      "label": "Desktop App (type projet)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_desktop_app",
+      "community": 1,
+      "norm_label": "desktop app (type projet)"
+    },
+    {
+      "label": "Capture rapide d'id\u00e9es du quotidien",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Noter vite fait \u00e0 la main ce qui vient sur le moment et qu'on oublie ensuite (id\u00e9es g\u00e9n\u00e9rales, achats, projets, sorties).",
+      "id": "claude_quick_idea_capture",
+      "community": 1,
+      "norm_label": "capture rapide d'idees du quotidien"
+    },
+    {
+      "label": "Cat\u00e9gories d'id\u00e9es (g\u00e9n\u00e9rales, achats, projets, sorties)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_idea_categories",
+      "community": 1,
+      "norm_label": "categories d'idees (generales, achats, projets, sorties)"
+    },
+    {
+      "label": "Structuration des id\u00e9es en t\u00e2ches",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_task_structuring",
+      "community": 1,
+      "norm_label": "structuration des idees en taches"
+    },
+    {
+      "label": "Rappel quotidien",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_daily_reminder",
+      "community": 1,
+      "norm_label": "rappel quotidien"
+    },
+    {
+      "label": "/hub new (scaffolding)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_hub_new",
+      "community": 2,
+      "norm_label": "/hub new (scaffolding)"
+    },
+    {
+      "label": "Workspace ProjectMaster",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_projectmaster_workspace",
+      "community": 2,
+      "norm_label": "workspace projectmaster"
+    },
+    {
+      "label": "/brainstorm (brainstorm initial)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L14",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Stack et d\u00e9pendances volontairement diff\u00e9r\u00e9es jusqu'au brainstorm (r\u00e8gle 'coquille vide').",
+      "id": "claude_brainstorm",
+      "community": 0,
+      "norm_label": "/brainstorm (brainstorm initial)"
+    },
+    {
+      "label": "/pipeline (agents)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L48",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_pipeline",
+      "community": 0,
+      "norm_label": "/pipeline (agents)"
+    },
+    {
+      "label": "Graphify projet (graphify-out/)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L23,L49",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Seed\u00e9 \u00e0 la cr\u00e9ation, mis \u00e0 jour \u00e0 chaque /hub end.",
+      "id": "claude_graphify_project",
+      "community": 2,
+      "norm_label": "graphify projet (graphify-out/)"
+    },
+    {
+      "label": "/hub end",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L49",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_hub_end",
+      "community": 2,
+      "norm_label": "/hub end"
+    },
+    {
+      "label": "Stack (\u00e0 d\u00e9finir)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L41-L43",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_stack_tbd",
+      "community": 0,
+      "norm_label": "stack (a definir)"
+    },
+    {
+      "label": "R\u00e8gles globales ~/.claude/CLAUDE.md",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L31",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_global_claude_md",
+      "community": 3,
+      "norm_label": "regles globales ~/.claude/claude.md"
+    },
+    {
+      "label": "Suivi acad\u00e9mique",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "L33-L39",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_suivi_academique",
+      "community": 0,
+      "norm_label": "suivi academique"
+    },
+    {
+      "label": "src/",
+      "file_type": "code",
+      "source_file": "CLAUDE.md",
+      "source_location": "L24",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_src_dir",
+      "community": 0,
+      "norm_label": "src/"
+    },
+    {
+      "label": "tests/",
+      "file_type": "code",
+      "source_file": "CLAUDE.md",
+      "source_location": "L25",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_tests_dir",
+      "community": 0,
+      "norm_label": "tests/"
+    },
+    {
+      "label": "Journal \u2014 Gestionnaire_id\u00e9es",
+      "file_type": "document",
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L1",
+      "source_url": null,
+      "captured_at": "2026-09-28",
+      "author": null,
+      "contributor": null,
+      "id": "journal_journal",
+      "community": 3,
+      "norm_label": "journal \u2014 gestionnaire_idees"
+    },
+    {
+      "label": "R\u00e8gles apprises (table)",
+      "file_type": "rationale",
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L3-L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "journal_regles_apprises",
+      "community": 3,
+      "norm_label": "regles apprises (table)"
+    },
+    {
+      "label": "SESSION 0 \u2014 2026-09-28",
+      "file_type": "document",
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L11",
+      "source_url": null,
+      "captured_at": "2026-09-28",
+      "author": null,
+      "contributor": null,
+      "id": "journal_session_0",
+      "community": 3,
+      "norm_label": "session 0 \u2014 2026-09-28"
+    },
+    {
+      "label": "FEAT init \u2014 scaffolding initial",
+      "file_type": "document",
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L13-L15",
+      "source_url": null,
+      "captured_at": "2026-09-28T08:47",
+      "author": null,
+      "contributor": null,
+      "rationale": "Coquille vide cr\u00e9\u00e9e \u2014 stack et d\u00e9pendances \u00e0 d\u00e9finir apr\u00e8s brainstorm.",
+      "id": "journal_feat_init",
+      "community": 0,
+      "norm_label": "feat init \u2014 scaffolding initial"
+    }
+  ],
+  "links": [
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_desktop_app"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_quick_idea_capture"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_task_structuring"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_daily_reminder"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_hub_new"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_projectmaster_workspace"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_global_claude_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "journal_journal"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_src_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "claude_gestionnaire_idees",
+      "target": "claude_tests_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_gestionnaire_idees"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.3,
+      "source_file": "CLAUDE.md",
+      "source_location": "L5-L7",
+      "weight": 1.0,
+      "source": "claude_daily_reminder",
+      "target": "claude_desktop_app"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_quick_idea_capture",
+      "target": "claude_idea_categories"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_task_structuring",
+      "target": "claude_quick_idea_capture"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "claude_daily_reminder",
+      "target": "claude_task_structuring"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "claude_graphify_project",
+      "target": "claude_hub_new"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_hub_new"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "claude_hub_new",
+      "target": "claude_projectmaster_workspace"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "claude_brainstorm",
+      "target": "claude_stack_tbd"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "L47-L48",
+      "weight": 1.0,
+      "source": "claude_brainstorm",
+      "target": "claude_pipeline"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L35-L37",
+      "weight": 1.0,
+      "source": "claude_suivi_academique",
+      "target": "claude_brainstorm"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_brainstorm"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "claude_graphify_project",
+      "target": "claude_hub_end"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_stack_tbd"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.2,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L3-L7",
+      "weight": 1.0,
+      "source": "journal_regles_apprises",
+      "target": "claude_global_claude_md"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_src_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "journal_feat_init",
+      "target": "claude_tests_dir"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "journal_journal",
+      "target": "journal_regles_apprises"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "journal_journal",
+      "target": "journal_session_0"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "journal_session_0",
+      "target": "journal_feat_init"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "core_idea_to_task_flow",
+      "label": "Flux id\u00e9e \u2192 t\u00e2che \u2192 rappel quotidien",
+      "nodes": [
+        "claude_quick_idea_capture",
+        "claude_task_structuring",
+        "claude_daily_reminder"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md"
+    },
+    {
+      "id": "project_lifecycle_workflow",
+      "label": "Cycle de vie projet (hub new \u2192 brainstorm \u2192 pipeline \u2192 hub end)",
+      "nodes": [
+        "claude_hub_new",
+        "claude_brainstorm",
+        "claude_pipeline",
+        "claude_hub_end",
+        "claude_graphify_project"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md"
+    },
+    {
+      "id": "initial_scaffolding",
+      "label": "Scaffolding initial coquille vide",
+      "nodes": [
+        "journal_feat_init",
+        "claude_src_dir",
+        "claude_tests_dir",
+        "journal_journal",
+        "claude_hub_new"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/JOURNAL.md"
+    }
+  ],
+  "built_at_commit": "09ec8cd3fce55298149972818ea72984ee54fe80"
+}
