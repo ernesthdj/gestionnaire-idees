@@ -85,3 +85,14 @@
 **Fichiers :** `src/main/domain/ai/cost.ts`, `src/main/application/ai/BudgetGuard.ts`, `src/main/infrastructure/db/repositories/{AiConfigRepository,AiCallRepository}.ts`, migration `0001_cache_write_tokens` (+ down), `src/main/composition/aiEngine.ts`, `src/main/bootstrap.ts`, `src/main/index.ts`, tests (138 au total)
 **Résumé :** Coût réel en millicentimes d'euro (entrée, sortie, lecture ET écriture de cache ; taux USD→EUR configurable ; modèle de bascule tarifé). BudgetGuard : blocage si dépense du mois + majorant de l'appel > plafond (10 € par défaut), déblocage manuel valable pour le mois en cours seulement, alerte unique par mois dès 80 %. Passerelle réordonnée : journal puis budget (le total inclut l'appel). Configuration IA = document JSON validé Zod avec valeurs par défaut (plafond, seuil, modèles, routage, repli). Moteur IA complet assemblé au démarrage (Ollama, Claude, anonymiseur, budget, file locale sondée toutes les 30 s).
 
+
+### [2026-09-28 16:20] FEAT — réglages IA (spec 001 US4 : T039-T042, T060)
+**Fichiers :** `src/main/ipc/aiHandlers.ts`, `src/shared/ipc/{ai,channels}.ts`, `src/shared/app-api.ts`, `src/preload/index.ts` (événements en liste blanche), `src/main/{bootstrap,composition/aiEngine}.ts`, `AIProvider.ts` (codes de problème), `ClaudeProvider.ts` (`ping` sans tokens), `src/renderer/src/pages/settings/ai/*`, `components/{atoms/Button,molecules/Section}.tsx`, tests (163 au total)
+**Résumé :** Canaux `ai:*` (état, clé masquée, config validée, test de connexion, déblocage du mois) + événement `ai:budgetAlert`. Clé API jamais en clair (fichiers, base, journal, réponses : testé). Écran Réglages › IA (tokens neutres provisoires) : statut Ollama + étapes d'installation, clé Claude, choix du modèle, repli vers Claude, jauge de budget accessible (`progressbar`), déblocage avec case de confirmation (pas de boîte de dialogue). Modèle local par défaut `qwen3.5:9b`.
+**Essai réel :** qwen3.5:9b installé (gemma4:26b supprimé à la demande de mentalyas, trop lourd pour 8 Go de VRAM). Catégorisation structurée : 37 s au premier appel (chargement du modèle), 0,7 s ensuite.
+**Reste :** T043 (vérification clavier/contraste à l'écran, manuelle).
+
+### [2026-09-28 16:35] DOCS — idée « blocs et mini-widgets » (v2)
+**Fichiers :** `docs/brainstorm/L4c-widgets.md`, `docs/FOUNDATION.md` (§0.3), `specs/003-interface-mvp1/{spec,tasks}.md` (FR-026, T050)
+**Résumé :** Idée de mentalyas : blocs libres sur la toile où Claude génère des mini-widgets (HTML/CSS/TS) qui interagissent avec les idées. Décisions : livraison v2, toile préparée dès le MVP-1 (nœud « bloc » vide) ; sécurité : iframe sandbox sans same-origin ni réseau, capacités par widget via postMessage validé, écritures = propositions, code visible et figé avant exécution ; portée limitée aux données de l'app (pas d'Internet). Amendement du cadre IA et de la constitution à prévoir en v2.
+

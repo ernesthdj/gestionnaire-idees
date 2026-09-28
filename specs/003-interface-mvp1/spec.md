@@ -149,6 +149,8 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 - **FR-011**: L'écran MUST offrir : compteurs par état, « + Une idée ? », zoom, recentrer, filtres (nature, catégorie), recherche, état vide.
 - **FR-012**: Les neurones bruts MUST dériver lentement ; la dérive MUST se suspendre pendant l'interaction et être désactivée en mode animations réduites.
 
+- **FR-026**: La toile MUST accepter un type de nœud générique « bloc » (conteneur vide que l'utilisateur place, déplace, redimensionne et supprime, avec position et taille persistées), sans exécution de code en MVP-1 ; il servira de support aux mini-widgets de la v2 (docs/brainstorm/L4c-widgets.md).
+
 **Plongée & croissance**
 - **FR-013**: Double-clic ou `Entrée` sur un neurone MUST ouvrir la plongée : neurone centré, sous-neurones autour, fil d'Ariane, badge de profondeur, parent estompé cliquable, panneau latéral.
 - **FR-014**: Le panneau MUST afficher la question sélectionnée, ses réponses rapides, un champ libre, « Je ne sais pas », les autres extensions, « Plus de questions », « Ajouter ma branche », et la jauge (niveau + manques).

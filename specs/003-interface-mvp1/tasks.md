@@ -54,6 +54,7 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 - [ ] T019 [US2] `CanvasService` + handlers `canvas:*`
 - [ ] T020 [P] [US2] Nœuds personnalisés `RawNode` (pointillé), `DevelopingNode`, `HatchedNode` (double anneau + halo Motion), couleurs de catégorie AA, **badge « proposé par l'IA » sur nature/catégorie + changement en un clic (menu contextuel)** *(analyse C1, FR-008)* ; arête `LabeledEdge` (libellé ; pointillés + ✓/✗ si suggérée)
 - [ ] T021 [US2] `IdeasCanvas` (React Flow) : deux zones, en-tête compteurs, « + Une idée ? », zoom/recentrer, filtres, recherche, état vide, `onlyRenderVisibleElements`, dérive des bruts (coupée en mode réduit)
+- [ ] T050 [US2] Type de nœud « bloc » (conteneur vide : placer, déplacer, redimensionner, supprimer ; position/taille persistées ; aucun code exécuté) — support des mini-widgets v2 (FR-026, L4c)
 - [ ] T022 [US2] Navigation clavier du canvas (Tab entre neurones, Entrée = plonger, flèches = déplacer la vue) + test `tests/unit/renderer/canvas-keyboard.test.tsx`
 
 ---
