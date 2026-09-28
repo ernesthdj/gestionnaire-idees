@@ -90,15 +90,15 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T028 [P] [US2] Jeu de 50 textes fictifs (montants, noms, e-mails, téléphones, IBAN) dans `tests/fixtures/anonymizer/cases.json`
-- [ ] T029 [P] [US2] Tests des règles déterministes (fourchettes de montants, retrait e-mail/téléphone/IBAN) dans `tests/unit/ai/anonymizer-rules.test.ts`
-- [ ] T030 [P] [US2] Tests du pipeline (IA locale OK → noms retirés ; IA locale KO → repli règles + heuristique ; échec total → `ANONYMIZATION_FAILED`, rien envoyé) dans `tests/unit/ai/anonymizer.test.ts`
+- [x] T028 [P] [US2] Jeu de 50 textes fictifs (montants, noms, e-mails, téléphones, IBAN) dans `tests/fixtures/anonymizer/cases.json`
+- [x] T029 [P] [US2] Tests des règles déterministes (fourchettes de montants, retrait e-mail/téléphone/IBAN) dans `tests/unit/ai/anonymizer-rules.test.ts`
+- [x] T030 [P] [US2] Tests du pipeline (IA locale OK → noms retirés ; IA locale KO → repli règles + heuristique ; échec total → `ANONYMIZATION_FAILED`, rien envoyé) dans `tests/unit/ai/anonymizer.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T031 [P] [US2] Règles déterministes pures dans `src/main/domain/ai/anonymizationRules.ts`
-- [ ] T032 [US2] `Anonymizer` (règles + IA locale pour les noms + heuristique de repli) dans `src/main/application/ai/Anonymizer.ts`
-- [ ] T033 [US2] Brancher l'anonymisation obligatoire sur tout appel `engine = claude` dans `src/main/application/ai/AIGateway.ts`
+- [x] T031 [P] [US2] Règles déterministes pures dans `src/main/domain/ai/anonymizationRules.ts`
+- [x] T032 [US2] `Anonymizer` (règles + IA locale pour les noms + heuristique de repli) dans `src/main/application/ai/Anonymizer.ts`
+- [x] T033 [US2] Brancher l'anonymisation obligatoire sur tout appel `engine = claude` dans `src/main/application/ai/AIGateway.ts`
 
 **Checkpoint**: SC-002 vérifié — aucun envoi brut possible
 

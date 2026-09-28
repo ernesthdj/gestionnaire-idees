@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
-import { effortFor, maxTokensFor, resolveEngine } from '../../domain/ai/routing'
+import { effortFor, isLocalOnly, maxTokensFor, resolveEngine } from '../../domain/ai/routing'
 import type { AIError, AIErrorCode, Engine, Result, TaskKind, Usage } from '../../domain/ai/types'
 import { ProviderError, type AIProvider, type CompletionResponse } from './AIProvider'
 import { assembleContext } from './ContextAssembler'
@@ -87,7 +87,7 @@ export class AIGateway {
     let degraded = false
 
     if (engine === 'ollama' && !(await this.deps.providers.ollama.isAvailable()).up) {
-      if (config.allowClaudeFallback) {
+      if (config.allowClaudeFallback && !isLocalOnly(request.kind)) {
         engine = 'claude'
       } else if (request.noQueue === true) {
         return failure('AI_UNAVAILABLE', "L'IA locale est indisponible", true)

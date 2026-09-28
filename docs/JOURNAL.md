@@ -10,6 +10,8 @@
 | 4 | Le preload en sandbox ne peut pas charger de dépendance npm (zod…) : n'y importer que du code local sans dépendance | `src/preload/`, `src/shared/ipc/channels.ts` | 2026-09-28 |
 | 5 | Drizzle importe `better-sqlite3` : utiliser un alias npm vers la variante chiffrée plutôt que dupliquer le paquet | `package.json` | 2026-09-28 |
 | 7 | Ne jamais trier une file par horodatage + identifiant aléatoire : deux insertions dans la même milliseconde donnent un ordre non déterministe → trier par `rowid` | `PendingRequestRepository.ts` | 2026-09-28 |
+| 8 | Une tâche qui traite des données brutes (anonymisation) doit être « strictement locale » par construction, pas seulement par configuration | `routing.ts`, `AIGateway.ts` | 2026-09-28 |
+| 9 | L'outil d'écriture transforme les échappements Unicode d'espaces insécables en caractères invisibles (rejetés par ESLint) : utiliser la classe `\s`, qui les couvre déjà | `anonymizationRules.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -68,4 +70,9 @@
 **Résumé :** AIGateway = seul point d'accès IA : routage configurable (local/Claude), anonymisation obligatoire avant Claude (échec → rien n'est envoyé), budget vérifié avant l'appel, validation Zod + 1 nouvel essai, refus distingué, idempotence 5 min, concurrence Ollama 1 / Claude 2, mode dégradé local, journal sans contenu. File locale persistante (rejeu FIFO, abandon après 5 échecs). OllamaProvider (127.0.0.1 imposé, format JSON Schema). ClaudeProvider : `beta.messages.parse` + `betaZodOutputFormat`, réflexion adaptative, cache de prompt sur le dernier bloc stable, fallbacks serveur `default` pour Opus 5 (vérifié T024), erreurs typées du SDK.
 **Bug corrigé :** ordre FIFO non déterministe (tri par identifiant aléatoire) → tri par `rowid`.
 **Reste :** T027 (banc d'essai) attend Ollama ; câblage de la passerelle au démarrage après US2 (anonymisation) et US3 (budget).
+
+### [2026-09-28 14:30] SECURITY — anonymisation avant envoi à Claude (spec 001 US2 : T028-T033)
+**Fichiers :** `src/main/domain/ai/anonymizationRules.ts`, `src/main/application/ai/Anonymizer.ts`, `src/main/domain/ai/routing.ts` (tâches strictement locales), `src/main/application/ai/AIGateway.ts`, `src/shared/ai/schemas.ts` (`PersonsOut`), `tests/fixtures/anonymizer/cases.json` (50 textes fictifs), 3 fichiers de tests (104 tests au total)
+**Résumé :** Couche 1 déterministe (liens, e-mails, IBAN, téléphones BE/FR, montants → fourchettes <100 / 100-500 / 500-1000 / 1000-2500 / >2500 €), toujours appliquée. Couche 2 : l'IA locale LISTE les noms (elle ne réécrit pas le texte) et le code les remplace ; noms absents du texte ignorés. Repli sans IA : masquage des mots capitalisés hors liste de mots courants et sigles courts. La tâche `anonymiser` est strictement locale (routage forcé, aucun repli vers Claude). SC-002 vérifié : 0 fuite sur 50 textes, avec et sans IA locale.
+**Limites connues :** adresses postales et noms de lieux non couverts par la couche 1 (masqués seulement par le repli heuristique) ; dates conservées (utiles au raisonnement).
 

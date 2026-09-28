@@ -39,8 +39,18 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   suggerer: 8000
 }
 
+/**
+ * Tâches qui ne quittent JAMAIS la machine, quelle que soit la configuration :
+ * anonymiser consiste à traiter le texte brut — l'envoyer à Claude annulerait sa raison d'être.
+ */
+const LOCAL_ONLY_KINDS: ReadonlySet<TaskKind> = new Set<TaskKind>(['anonymiser'])
+
+export function isLocalOnly(kind: TaskKind): boolean {
+  return LOCAL_ONLY_KINDS.has(kind)
+}
+
 export function resolveEngine(kind: TaskKind, routing: RoutingTable): Engine {
-  return routing[kind]
+  return isLocalOnly(kind) ? 'ollama' : routing[kind]
 }
 
 export function effortFor(kind: TaskKind): Effort {

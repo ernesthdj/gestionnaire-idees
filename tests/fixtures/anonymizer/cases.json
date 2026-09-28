@@ -1,0 +1,252 @@
+[
+  {
+    "text": "Payer 1 247,50 € à Marc pour la mission du 15/11.",
+    "persons": ["Marc"],
+    "mustNotContain": ["1 247,50 €", "Marc"]
+  },
+  {
+    "text": "Sophie Lambert m'a proposé un deal à 250€, le rappeler au 0470/12.34.56.",
+    "persons": ["Sophie Lambert"],
+    "mustNotContain": ["0470/12.34.56", "250€", "Sophie", "Lambert"]
+  },
+  {
+    "text": "Envoyer le devis de 1.250 euros à k.benali@mail.test avant vendredi.",
+    "persons": ["Karim"],
+    "mustNotContain": ["k.benali@mail.test", "1.250 euros", "Karim"]
+  },
+  {
+    "text": "Virement de 80 EUR sur le compte BE68 5390 0754 7034 pour la réservation.",
+    "persons": ["Julie Dubois"],
+    "mustNotContain": ["BE68 5390 0754 7034", "80 EUR", "Julie", "Dubois"]
+  },
+  {
+    "text": "Réunion avec Thomas : budget € 3200, contact contact@fictif.test.",
+    "persons": ["Thomas"],
+    "mustNotContain": ["contact@fictif.test", "€ 3200", "Thomas"]
+  },
+  {
+    "text": "Acheter l'écran à 640,00 € chez le magasin, demander à Léa Martin.",
+    "persons": ["Léa Martin"],
+    "mustNotContain": ["640,00 €", "Léa", "Martin"]
+  },
+  {
+    "text": "Rembourser Yann (2 999 €) sur BE68 5390 0754 7034.",
+    "persons": ["Yann"],
+    "mustNotContain": ["BE68 5390 0754 7034", "2 999 €", "Yann"]
+  },
+  {
+    "text": "Appeler Nadia au 06 12 34 56 78 pour le shooting, cachet 45 euros.",
+    "persons": ["Nadia"],
+    "mustNotContain": ["06 12 34 56 78", "45 euros", "Nadia"]
+  },
+  {
+    "text": "Le client Olivier Petit paie 1 247,50 € ; facture à julie_d@exemple.org.",
+    "persons": ["Olivier Petit"],
+    "mustNotContain": ["julie_d@exemple.org", "1 247,50 €", "Olivier", "Petit"]
+  },
+  {
+    "text": "Idée : Camille pourrait financer 250€ du projet, voir 0032 2 345 67 89.",
+    "persons": ["Camille"],
+    "mustNotContain": ["0032 2 345 67 89", "250€", "Camille"]
+  },
+  {
+    "text": "Payer 1.250 euros à Marc pour la mission du 15/11.",
+    "persons": ["Marc"],
+    "mustNotContain": ["1.250 euros", "Marc"]
+  },
+  {
+    "text": "Sophie Lambert m'a proposé un deal à 80 EUR, le rappeler au 0470/12.34.56.",
+    "persons": ["Sophie Lambert"],
+    "mustNotContain": ["0470/12.34.56", "80 EUR", "Sophie", "Lambert"]
+  },
+  {
+    "text": "Envoyer le devis de € 3200 à k.benali@mail.test avant vendredi.",
+    "persons": ["Karim"],
+    "mustNotContain": ["k.benali@mail.test", "€ 3200", "Karim"]
+  },
+  {
+    "text": "Virement de 640,00 € sur le compte FR76 3000 6000 0112 3456 7890 189 pour la réservation.",
+    "persons": ["Julie Dubois"],
+    "mustNotContain": ["FR76 3000 6000 0112 3456 7890 189", "640,00 €", "Julie", "Dubois"]
+  },
+  {
+    "text": "Réunion avec Thomas : budget 2 999 €, contact contact@fictif.test.",
+    "persons": ["Thomas"],
+    "mustNotContain": ["contact@fictif.test", "2 999 €", "Thomas"]
+  },
+  {
+    "text": "Acheter l'écran à 45 euros chez le magasin, demander à Léa Martin.",
+    "persons": ["Léa Martin"],
+    "mustNotContain": ["45 euros", "Léa", "Martin"]
+  },
+  {
+    "text": "Rembourser Yann (1 247,50 €) sur FR76 3000 6000 0112 3456 7890 189.",
+    "persons": ["Yann"],
+    "mustNotContain": ["FR76 3000 6000 0112 3456 7890 189", "1 247,50 €", "Yann"]
+  },
+  {
+    "text": "Appeler Nadia au 06 12 34 56 78 pour le shooting, cachet 250€.",
+    "persons": ["Nadia"],
+    "mustNotContain": ["06 12 34 56 78", "250€", "Nadia"]
+  },
+  {
+    "text": "Le client Olivier Petit paie 1.250 euros ; facture à julie_d@exemple.org.",
+    "persons": ["Olivier Petit"],
+    "mustNotContain": ["julie_d@exemple.org", "1.250 euros", "Olivier", "Petit"]
+  },
+  {
+    "text": "Idée : Camille pourrait financer 80 EUR du projet, voir 0032 2 345 67 89.",
+    "persons": ["Camille"],
+    "mustNotContain": ["0032 2 345 67 89", "80 EUR", "Camille"]
+  },
+  {
+    "text": "Payer € 3200 à Marc pour la mission du 15/11.",
+    "persons": ["Marc"],
+    "mustNotContain": ["€ 3200", "Marc"]
+  },
+  {
+    "text": "Sophie Lambert m'a proposé un deal à 640,00 €, le rappeler au 0470/12.34.56.",
+    "persons": ["Sophie Lambert"],
+    "mustNotContain": ["0470/12.34.56", "640,00 €", "Sophie", "Lambert"]
+  },
+  {
+    "text": "Envoyer le devis de 2 999 € à k.benali@mail.test avant vendredi.",
+    "persons": ["Karim"],
+    "mustNotContain": ["k.benali@mail.test", "2 999 €", "Karim"]
+  },
+  {
+    "text": "Virement de 45 euros sur le compte BE71096123456769 pour la réservation.",
+    "persons": ["Julie Dubois"],
+    "mustNotContain": ["BE71096123456769", "45 euros", "Julie", "Dubois"]
+  },
+  {
+    "text": "Réunion avec Thomas : budget 1 247,50 €, contact contact@fictif.test.",
+    "persons": ["Thomas"],
+    "mustNotContain": ["contact@fictif.test", "1 247,50 €", "Thomas"]
+  },
+  {
+    "text": "Acheter l'écran à 250€ chez le magasin, demander à Léa Martin.",
+    "persons": ["Léa Martin"],
+    "mustNotContain": ["250€", "Léa", "Martin"]
+  },
+  {
+    "text": "Rembourser Yann (1.250 euros) sur BE71096123456769.",
+    "persons": ["Yann"],
+    "mustNotContain": ["BE71096123456769", "1.250 euros", "Yann"]
+  },
+  {
+    "text": "Appeler Nadia au 06 12 34 56 78 pour le shooting, cachet 80 EUR.",
+    "persons": ["Nadia"],
+    "mustNotContain": ["06 12 34 56 78", "80 EUR", "Nadia"]
+  },
+  {
+    "text": "Le client Olivier Petit paie € 3200 ; facture à julie_d@exemple.org.",
+    "persons": ["Olivier Petit"],
+    "mustNotContain": ["julie_d@exemple.org", "€ 3200", "Olivier", "Petit"]
+  },
+  {
+    "text": "Idée : Camille pourrait financer 640,00 € du projet, voir 0032 2 345 67 89.",
+    "persons": ["Camille"],
+    "mustNotContain": ["0032 2 345 67 89", "640,00 €", "Camille"]
+  },
+  {
+    "text": "Payer 2 999 € à Marc pour la mission du 15/11.",
+    "persons": ["Marc"],
+    "mustNotContain": ["2 999 €", "Marc"]
+  },
+  {
+    "text": "Sophie Lambert m'a proposé un deal à 45 euros, le rappeler au 0470/12.34.56.",
+    "persons": ["Sophie Lambert"],
+    "mustNotContain": ["0470/12.34.56", "45 euros", "Sophie", "Lambert"]
+  },
+  {
+    "text": "Envoyer le devis de 1 247,50 € à k.benali@mail.test avant vendredi.",
+    "persons": ["Karim"],
+    "mustNotContain": ["k.benali@mail.test", "1 247,50 €", "Karim"]
+  },
+  {
+    "text": "Virement de 250€ sur le compte BE68 5390 0754 7034 pour la réservation.",
+    "persons": ["Julie Dubois"],
+    "mustNotContain": ["BE68 5390 0754 7034", "250€", "Julie", "Dubois"]
+  },
+  {
+    "text": "Réunion avec Thomas : budget 1.250 euros, contact contact@fictif.test.",
+    "persons": ["Thomas"],
+    "mustNotContain": ["contact@fictif.test", "1.250 euros", "Thomas"]
+  },
+  {
+    "text": "Acheter l'écran à 80 EUR chez le magasin, demander à Léa Martin.",
+    "persons": ["Léa Martin"],
+    "mustNotContain": ["80 EUR", "Léa", "Martin"]
+  },
+  {
+    "text": "Rembourser Yann (€ 3200) sur BE68 5390 0754 7034.",
+    "persons": ["Yann"],
+    "mustNotContain": ["BE68 5390 0754 7034", "€ 3200", "Yann"]
+  },
+  {
+    "text": "Appeler Nadia au 06 12 34 56 78 pour le shooting, cachet 640,00 €.",
+    "persons": ["Nadia"],
+    "mustNotContain": ["06 12 34 56 78", "640,00 €", "Nadia"]
+  },
+  {
+    "text": "Le client Olivier Petit paie 2 999 € ; facture à julie_d@exemple.org.",
+    "persons": ["Olivier Petit"],
+    "mustNotContain": ["julie_d@exemple.org", "2 999 €", "Olivier", "Petit"]
+  },
+  {
+    "text": "Idée : Camille pourrait financer 45 euros du projet, voir 0032 2 345 67 89.",
+    "persons": ["Camille"],
+    "mustNotContain": ["0032 2 345 67 89", "45 euros", "Camille"]
+  },
+  {
+    "text": "Payer 1 247,50 € à Marc pour la mission du 15/11.",
+    "persons": ["Marc"],
+    "mustNotContain": ["1 247,50 €", "Marc"]
+  },
+  {
+    "text": "Sophie Lambert m'a proposé un deal à 250€, le rappeler au 0470/12.34.56.",
+    "persons": ["Sophie Lambert"],
+    "mustNotContain": ["0470/12.34.56", "250€", "Sophie", "Lambert"]
+  },
+  {
+    "text": "Envoyer le devis de 1.250 euros à k.benali@mail.test avant vendredi.",
+    "persons": ["Karim"],
+    "mustNotContain": ["k.benali@mail.test", "1.250 euros", "Karim"]
+  },
+  {
+    "text": "Virement de 80 EUR sur le compte FR76 3000 6000 0112 3456 7890 189 pour la réservation.",
+    "persons": ["Julie Dubois"],
+    "mustNotContain": ["FR76 3000 6000 0112 3456 7890 189", "80 EUR", "Julie", "Dubois"]
+  },
+  {
+    "text": "Réunion avec Thomas : budget € 3200, contact contact@fictif.test.",
+    "persons": ["Thomas"],
+    "mustNotContain": ["contact@fictif.test", "€ 3200", "Thomas"]
+  },
+  {
+    "text": "Acheter l'écran à 640,00 € chez le magasin, demander à Léa Martin.",
+    "persons": ["Léa Martin"],
+    "mustNotContain": ["640,00 €", "Léa", "Martin"]
+  },
+  {
+    "text": "Rembourser Yann (2 999 €) sur FR76 3000 6000 0112 3456 7890 189.",
+    "persons": ["Yann"],
+    "mustNotContain": ["FR76 3000 6000 0112 3456 7890 189", "2 999 €", "Yann"]
+  },
+  {
+    "text": "Appeler Nadia au 06 12 34 56 78 pour le shooting, cachet 45 euros.",
+    "persons": ["Nadia"],
+    "mustNotContain": ["06 12 34 56 78", "45 euros", "Nadia"]
+  },
+  {
+    "text": "Le client Olivier Petit paie 1 247,50 € ; facture à julie_d@exemple.org.",
+    "persons": ["Olivier Petit"],
+    "mustNotContain": ["julie_d@exemple.org", "1 247,50 €", "Olivier", "Petit"]
+  },
+  {
+    "text": "Idée : Camille pourrait financer 250€ du projet, voir 0032 2 345 67 89.",
+    "persons": ["Camille"],
+    "mustNotContain": ["0032 2 345 67 89", "250€", "Camille"]
+  }
+]

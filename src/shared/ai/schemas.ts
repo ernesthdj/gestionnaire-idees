@@ -13,3 +13,9 @@ export const OutOfScope = z.object({
   message: z.string().min(1).max(300)
 })
 export type OutOfScope = z.infer<typeof OutOfScope>
+
+/** Sortie de `anonymiser` (IA locale uniquement) : noms de personnes présents dans le texte. */
+export const PersonsOut = z.object({
+  persons: z.array(z.string().min(1).max(60)).max(20)
+})
+export type PersonsOut = z.infer<typeof PersonsOut>
