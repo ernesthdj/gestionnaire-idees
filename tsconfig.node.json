@@ -14,5 +14,5 @@
     "tests/**/*",
     "scripts/**/*"
   ],
-  "exclude": ["tests/unit/renderer/**/*"]
+  "exclude": ["tests/unit/renderer/**/*", "tests/support/axe.ts", "tests/support/renderer-setup.ts"]
 }

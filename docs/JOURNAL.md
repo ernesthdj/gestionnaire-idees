@@ -156,3 +156,8 @@
 **Branche :** main
 **Commits pushes :** 21 (27 commits sur la journée)
 
+
+### [2026-09-28 21:35] CONFIG — spec 003 : dépendances de l'interface et jeu de démonstration (T001-T002)
+**Fichiers :** `package.json` (+7 dépendances, +5 de dev, versions exactes), `vitest.config.ts` (projets `node` / `renderer` en jsdom), `tsconfig.{web,node}.json`, `tests/support/{axe,renderer-setup}.ts`, `tests/unit/renderer/button.test.tsx`, `src/main/infrastructure/db/demo/seedDemo.ts`, `src/main/index.ts` (profil `--demo`), `tests/integration/db/seed-demo.test.ts`, `specs/003-interface-mvp1/tasks.md` (311 tests)
+**Résumé :** Dépendances validées par mentalyas : `@xyflow/react`, `d3-force`, `motion`, `zustand`, `@tanstack/react-query`, `react-hook-form`, `@hookform/resolvers` ; dev : `@types/d3-force`, `@testing-library/react` (+ `@testing-library/dom`, requis), `jsdom`, `axe-core`. `npm audit` inchangé (4 alertes connues de drizzle-kit). Tests de composants en jsdom avec assertion `expectNoAxeViolations` (contraste exclu : jsdom ne calcule pas les couleurs rendues, vérifié à la main en T046). Jeu fictif déterministe : 100 idées (30 brutes, 30 en développement avec arbre + jauge, 40 écloses avec plan ou synthèse) et 50 liens (40 acceptés, 10 suggérés), inséré une seule fois.
+**Choix :** `npm run seed:demo` lance l'app sur un **profil démo séparé** (`%APPDATA%/gestionnaire-idees-demo`, développement uniquement) au lieu d'un script `tsx` : la clé de la base est protégée par `safeStorage`, accessible seulement depuis Electron. Les fixtures de vues UI sont reportées à la création de ces vues (T018/T024).

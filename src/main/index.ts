@@ -1,6 +1,11 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
+import { seedDemo } from './infrastructure/db/demo/seedDemo'
+
+// Profil de démonstration (développement uniquement) : données FICTIVES dans un dossier séparé, jamais le vrai profil.
+const demoProfile = !app.isPackaged && process.argv.includes('--demo')
+if (demoProfile) app.setPath('userData', join(app.getPath('appData'), 'gestionnaire-idees-demo'))
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -49,6 +54,7 @@ let context: AppContext | undefined
 
 void app.whenReady().then(() => {
   context = bootstrap()
+  if (demoProfile && seedDemo(context.database.db).seeded) context.logger.info('demo.seeded', {})
   createMainWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow()

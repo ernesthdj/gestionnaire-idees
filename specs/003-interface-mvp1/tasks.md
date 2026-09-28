@@ -16,8 +16,9 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 1: Setup
 
-- [ ] T001 Faire valider puis installer les dépendances (research.md) ; Vitest en `jsdom` pour `tests/unit/renderer` ; helper `expectNoAxeViolations` (axe-core) dans `tests/support/axe.ts`
-- [ ] T002 [P] Fixtures FICTIVES (neurones dans les 3 états, arbres, synthèses, liens) + `scripts/seed-demo.ts` (100 neurones / 50 liens) + `npm run seed:demo`
+- [x] T001 Faire valider puis installer les dépendances (research.md) ; Vitest en `jsdom` pour `tests/unit/renderer` ; helper `expectNoAxeViolations` (axe-core) dans `tests/support/axe.ts`
+- [x] T002 [P] Fixtures FICTIVES (neurones dans les 3 états, arbres, synthèses, liens) + `scripts/seed-demo.ts` (100 neurones / 50 liens) + `npm run seed:demo`
+  *(fait : `src/main/infrastructure/db/demo/seedDemo.ts` + profil démo `--demo` dans `%APPDATA%/gestionnaire-idees-demo` — la clé de base est protégée par safeStorage, donc pas de script `tsx` ; les fixtures de vues UI sont créées avec leurs vues, T018/T024)*
 
 ---
 
