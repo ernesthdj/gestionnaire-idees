@@ -45,6 +45,6 @@ devient **une sortie possible** d'un neurone, pas la finalité.
 - **v2** : pont vers le hub ProjectMaster ; compagnon vivant sur le bureau ; mobile.
 
 ## 6. Points ouverts
-- [ ] Verrouillage forcé avant `suffisant` : **proposé** « autorisé avec avertissement listant les manques » — à confirmer.
+- [x] Verrouillage forcé avant `suffisant` : **autorisé, avec avertissement « résultat possiblement non optimal »** + liste des manques (décidé 2026-09-28).
 - [ ] Nom de l'app : « Brainstormer » ? (le dépôt `gestionnaire-idees` peut garder son nom ou être renommé plus tard)
 - [ ] Budget API : le brainstorm sollicite davantage Claude → plafond 10 €/mois à réévaluer après mesure.

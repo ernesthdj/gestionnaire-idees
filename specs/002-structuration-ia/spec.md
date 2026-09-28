@@ -128,7 +128,7 @@ Quand un neurone éclôt, l'IA compare sa synthèse à celles des autres neurone
 - **FR-009**: L'évaluation du contexte MUST être obtenue avec la même demande que les nouvelles extensions (un seul appel IA par réponse).
 
 **Fusion**
-- **FR-010**: Le verrouillage MUST être disponible dès « suffisant » ; avant, il MUST exiger une confirmation explicite après affichage des manques.
+- **FR-010**: Le verrouillage MUST être disponible dès « suffisant » ; avant, il MUST afficher un avertissement indiquant que le résultat risque de ne pas être optimal, avec la liste des manques, et exiger une confirmation explicite.
 - **FR-011**: Au verrouillage, le système MUST obtenir une synthèse : plan d'action (Action) ou synthèse structurée (Réflexion), contrôlée (format, références, branches 2 à 4, absence de boucle, profondeur, provenance des montants/dates).
 - **FR-012**: Aucune synthèse ne MUST modifier les données tant que l'utilisateur ne l'a pas confirmée ; la confirmation MUST s'appliquer en une opération tout-ou-rien et rendre le neurone éclos.
 - **FR-013**: Les utilisateurs MUST pouvoir demander une correction de la synthèse avec une consigne ; la nouvelle version remplace l'ancienne.
@@ -174,5 +174,5 @@ Quand un neurone éclôt, l'IA compare sa synthèse à celles des autres neurone
 - Feature 001 disponible avec le cadre « Brainstormer » et les types de demande `categoriser`, `etendre`, `synthetiser`, `reviser`, `suggerer_liens`.
 - L'interface (incubateur, réseau, plongée, animations, suivi des tâches, export Markdown) relève de la spec 003 ; cette feature fournit le moteur et le modèle de données.
 - La conversion Réflexion → neurones Action (« Passer à l'action »), le planning et Outlook relèvent du MVP-2.
-- Verrouillage forcé avant « suffisant » autorisé avec avertissement (proposé, à confirmer par mentalyas).
+- Verrouillage forcé avant « suffisant » : **autorisé, avec un avertissement que le résultat risque de ne pas être optimal** et la liste des manques (décision de mentalyas, 2026-09-28).
 - Mono-utilisateur ; dates en fuseau Europe/Brussels.

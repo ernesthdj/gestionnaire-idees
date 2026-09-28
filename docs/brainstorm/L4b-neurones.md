@@ -29,7 +29,7 @@ L'écran **Idées** devient la mécanique centrale : une **carte mentale minimal
 - Calcul proposé : Claude évalue à chaque réponse les **dimensions couvertes / manquantes** de l'idée
   (ex. quoi, quand, combien, comment, source d'argent) → niveau `insuffisant` · `suffisant` · `complet`,
   affiché comme une barre + la liste des manques ; plancher déterministe : ≥ 3 questions répondues.
-- « Verrouiller » est actif dès `suffisant`. *(À valider : verrouillage forcé avant `suffisant` possible avec avertissement ?)*
+- « Verrouiller » est actif dès `suffisant` ; avant, **verrouillage forcé possible** avec avertissement « résultat possiblement non optimal » + manques (décidé).
 
 ### Fusion (décision : synthèse IA puis confirmation)
 1. « Verrouiller l'idée 🔒 » → Claude **organise l'arbre** (tâches, conditions, dépendances, déclencheurs, dates).

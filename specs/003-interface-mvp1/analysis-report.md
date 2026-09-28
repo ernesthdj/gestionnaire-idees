@@ -4,8 +4,8 @@
 > Remplace le rapport v1 (historique git).
 
 > **Remédiation appliquée le 2026-09-28** : M1 → `fusion:editProposed` ajouté au contrat IPC de 002 (implémenté
-> en 003 T031) ; C1 → badge « proposé par l'IA » + changement en un clic sur les nœuds (T020). D1 reste ouvert
-> (décision de mentalyas). Couverture 33/33.
+> en 003 T031) ; C1 → badge « proposé par l'IA » + changement en un clic sur les nœuds (T020). D1 tranché par
+> mentalyas : verrouillage forcé autorisé avec avertissement « résultat possiblement non optimal ». Couverture 33/33.
 
 ## Findings
 

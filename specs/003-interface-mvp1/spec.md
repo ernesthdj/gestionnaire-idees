@@ -156,7 +156,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 - **FR-016**: Les utilisateurs MUST pouvoir écarter une extension, modifier et supprimer un sous-neurone (confirmation si descendants), changer la nature et la catégorie du neurone.
 
 **Fusion**
-- **FR-017**: « Verrouiller » MUST être actif dès « suffisant » ; avant, il MUST afficher les manques et demander confirmation.
+- **FR-017**: « Verrouiller » MUST être actif dès « suffisant » ; avant, il MUST avertir que le résultat risque de ne pas être optimal, afficher les manques et demander confirmation.
 - **FR-018**: L'aperçu de synthèse MUST être compact et adapté à la nature (plan ou synthèse), éditable élément par élément, avec Réviser (consigne), Refuser et Confirmer ; un aperçu périmé MUST être signalé et non confirmable.
 - **FR-019**: La confirmation MUST déclencher l'animation de fusion, l'aspect éclos et la migration vers le réseau, puis une notification « Annuler » pendant 10 secondes.
 
