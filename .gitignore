@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+
+# Dependances
+node_modules/
+vendor/
+
+# Donnees locales
+*.sqlite
+*.db
+
+# IDE
+.vs/
+.vscode/
+.idea/
