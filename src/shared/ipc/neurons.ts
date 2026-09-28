@@ -49,6 +49,8 @@ export interface ExtensionView {
   readonly quickReplies: readonly string[]
   readonly dimension: string
   readonly origin: Source
+  /** La question ne relève d'aucune dimension de référence de la nature actuelle (signalée, pas retirée). */
+  readonly outsideNature: boolean
 }
 
 export interface WebSourceView {

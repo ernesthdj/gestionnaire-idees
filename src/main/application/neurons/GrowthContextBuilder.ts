@@ -1,12 +1,7 @@
 import type { Nature } from '@shared/ipc/neurons'
+import { REFERENCE_DIMENSIONS } from '../../domain/neurons/nature'
 import { aliasesOf, pathTo } from '../../domain/neurons/tree'
 import type { GrowthNode } from '../../infrastructure/db/repositories/GrowthRepository'
-
-/** Dimensions de référence par nature (analyse U1) : orientent les questions vers l'exécution ou l'exploration. */
-export const REFERENCE_DIMENSIONS: Readonly<Record<Nature, readonly string[]>> = {
-  action: ['quand', 'combien', 'comment', "source d'argent", 'lieu', 'dépendances'],
-  reflection: ['pourquoi', 'options', 'critères', 'contraintes', 'risques', 'décision attendue']
-}
 
 /** Borne du contexte envoyé (≈ 3 000 tokens) : au-delà, les autres branches ne sont plus listées. */
 const MAX_INPUT_CHARS = 12_000

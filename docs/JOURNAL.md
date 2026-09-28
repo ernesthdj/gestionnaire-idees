@@ -26,6 +26,7 @@
 | 20 | Recherche web Claude = citations toujours actives, incompatibles avec la sortie structurée : appel séparé en texte libre, jamais dans l'appel JSON | `ClaudeProvider.ts` | 2026-09-28 |
 | 21 | Scripts Python d'édition via heredoc bash : `\n` devient un vrai retour à la ligne dans le fichier ; écrire le script avec l'outil Write ou utiliser l'outil Edit | outillage | 2026-09-28 |
 | 22 | Réduire les tokens d'une comparaison IA : présélection locale déterministe (mots-clés partagés, catégorie), fiches courtes, et aucun appel quand rien n'est proche | `domain/neurons/links.ts` | 2026-09-28 |
+| 23 | Une balise de délimitation des données utilisateur se neutralise dans TOUTES ses variantes (casse, espaces), pas seulement sous sa forme exacte | `SystemFrame.ts` | 2026-09-28 |
 
 ## Historique
 
@@ -144,4 +145,9 @@
 **Fichiers :** `src/main/domain/neurons/links.ts`, `src/main/application/neurons/{LinkService,FusionService}.ts`, `src/main/infrastructure/db/repositories/{LinkRepository,changeLog,FusionRepository}.ts`, `src/main/infrastructure/ai/TaskInstructions.ts` (consignes `suggerer_liens`), `src/main/ipc/linkHandlers.ts`, `src/shared/ipc/{neurons,channels}.ts` (+ `links:*`, événement `links:suggested`), `bootstrap.ts`, `specs/002-structuration-ia/{research,tasks}.md`, tests (296 au total)
 **Résumé :** À chaque éclosion (en arrière-plan, sans bloquer la confirmation), un graphe local de mots-clés — idée de mentalyas inspirée de Graphify — choisit au plus 10 idées écloses proches ; Claude ne reçoit que leurs fiches courtes (alias N1…N10) et propose 0 à 3 liens libellés et justifiés ; aucun appel si rien n'est proche. Alias inconnu retiré ; empreinte (paire ordonnée + libellé normalisé) : un lien refusé, accepté ou déjà proposé n'est jamais reproposé. Décisions (accepter/refuser, exemple appris), création manuelle (origine utilisateur, doublon refusé), renommage, suppression ; historique `change_log` de type `link`. Écriture de l'historique mutualisée (`changeLog.ts`).
 **Choix :** Graphify n'est pas embarqué dans l'app (Python, extraction elle-même payante en tokens) ; son principe (graphe de proximité avant l'IA) est repris en TypeScript pur.
+
+### [2026-09-28 21:45] FEAT — nature des neurones, mode dégradé, injection (spec 002 US5 + Polish : T027, T029, T030, T032)
+**Fichiers :** `src/main/domain/neurons/nature.ts` (dimensions de référence, `isOutsideNature`), `src/main/application/neurons/{NeuronService,GrowthContextBuilder}.ts`, `src/main/infrastructure/db/repositories/NeuronRepository.ts`, `src/main/infrastructure/ai/{SystemFrame,TaskInstructions}.ts`, `src/shared/ipc/neurons.ts` (`ExtensionView.outsideNature`), tests `nature.test.ts`, `degraded.test.ts`, `system-frame.test.ts` (305 au total)
+**Résumé :** US5 : changer la nature en cours de développement réoriente les questions suivantes (dimensions de référence transmises) ; une question dont la dimension sort de la nature actuelle est signalée (`outsideNature`), jamais retirée ; l'IA est invitée à nommer ses dimensions avec les noms de référence. Mode dégradé vérifié : sans IA, réponses conservées, branches manuelles possibles, verrouillage refusé sans rien écrire ; synthèse produite par l'IA locale marquée `degraded`. Injection : toute variante de la balise fermante `</donnees_utilisateur>` (casse, espaces) est neutralisée. Cadre système v3 aligné sur la constitution 1.1.0 (suggestion explicite autorisée, recherche web quand la tâche le demande).
+**Reste (spec 002) :** T031 validations manuelles et T038 recherche web réelle, avec la clé Claude.
 

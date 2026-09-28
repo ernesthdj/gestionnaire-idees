@@ -86,7 +86,7 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ## Phase 7: User Story 5 — Nature (Priority: P2)
 
-- [ ] T027 [P] [US5] Tests : nature proposée/choisie, jamais écrasée ; changement en cours de développement → la liste de dimensions de référence transmise change ; les extensions dont la `dimension` sort de la liste de la nature sont signalées (FakeProvider) dans `tests/unit/neurons/nature.test.ts` *(analyse U1)*
+- [x] T027 [P] [US5] Tests : nature proposée/choisie, jamais écrasée ; changement en cours de développement → la liste de dimensions de référence transmise change ; les extensions dont la `dimension` sort de la liste de la nature sont signalées (FakeProvider) dans `tests/unit/neurons/nature.test.ts` *(analyse U1)*
 - [x] T028 [US5] Prise en compte de la nature dans `ContextBuilder` : **dimensions de référence** — Action : quand, combien, comment, source d'argent, lieu, dépendances ; Réflexion : pourquoi, options, critères, contraintes, risques, décision attendue — transmises à l'IA ; choix du schéma de synthèse selon la nature *(analyse U1)*
 
 ---
@@ -104,10 +104,10 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ## Phase 8: Polish
 
-- [ ] T029 [P] Mode dégradé : Claude indisponible/plafond → branches manuelles possibles, extensions et synthèse en attente, drapeau `degraded` si version locale acceptée
-- [ ] T030 [P] Test d'injection (texte « ignore tes règles ») et de demande d'œuvre finie → `out_of_scope`
+- [x] T029 [P] Mode dégradé : Claude indisponible/plafond → branches manuelles possibles, extensions et synthèse en attente, drapeau `degraded` si version locale acceptée
+- [x] T030 [P] Test d'injection (texte « ignore tes règles ») et de demande d'œuvre finie → `out_of_scope`
 - [ ] T031 Validations manuelles SC-002, SC-004, SC-007 (quickstart) consignées dans `quickstart.md` § Résultats
-- [ ] T032 [P] `docs/JOURNAL.md`
+- [x] T032 [P] `docs/JOURNAL.md`
 
 ---
 

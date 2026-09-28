@@ -171,7 +171,7 @@ export class NeuronRepository {
       .all()
   }
 
-  proposedExtensions(rootId: string): ExtensionView[] {
+  proposedExtensions(rootId: string): Omit<ExtensionView, 'outsideNature'>[] {
     return this.db
       .select()
       .from(extensions)

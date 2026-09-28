@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { CategoryOut } from '@shared/ai/schemas'
 import type { Nature, RootListView, RootView, TreeView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
+import { isOutsideNature } from '../../domain/neurons/nature'
 import type { NeuronRepository, RootFilter } from '../../infrastructure/db/repositories/NeuronRepository'
 import type { AIGateway } from '../ai/AIGateway'
 
@@ -52,10 +53,13 @@ export class NeuronService {
   }
 
   getTree(rootId: string): TreeView {
+    const root = this.rootOrThrow(rootId)
     return {
-      root: this.rootOrThrow(rootId),
+      root,
       neurons: this.deps.repository.neuronsOf(rootId),
-      extensions: this.deps.repository.proposedExtensions(rootId),
+      extensions: this.deps.repository
+        .proposedExtensions(rootId)
+        .map((extension) => ({ ...extension, outsideNature: isOutsideNature(extension.dimension, root.nature) })),
       suggestions: this.deps.repository.proposedSuggestions(rootId),
       gauge: this.deps.repository.latestGauge(rootId)
     }
