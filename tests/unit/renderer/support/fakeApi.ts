@@ -5,6 +5,13 @@ import type { IpcResult } from '../../../../src/shared/ipc/result'
 
 type Handler = (payload: unknown) => unknown
 
+/** À lever dans un gestionnaire simulé pour que le canal réponde par un échec `{ code, message }`. */
+export class FakeIpcError extends Error {
+  constructor(readonly code: string) {
+    super(code)
+  }
+}
+
 /** Double de `window.api` : réponses par canal, et émission d'événements du main vers l'interface. */
 export function installFakeApi(handlers: Partial<Record<MainWindowChannel, Handler>> = {}) {
   const listeners = new Map<string, Set<(payload: unknown) => void>>()
@@ -12,7 +19,12 @@ export function installFakeApi(handlers: Partial<Record<MainWindowChannel, Handl
     const handler = handlers[channel]
     if (handler === undefined)
       return { success: false, error: { code: 'UNKNOWN_CHANNEL', message: 'Canal non simulé' } }
-    return { success: true, data: handler(payload) }
+    try {
+      return { success: true, data: await handler(payload) }
+    } catch (error) {
+      if (error instanceof FakeIpcError) return { success: false, error: { code: error.code, message: error.message } }
+      throw error
+    }
   })
   const api = {
     platform: 'win32',

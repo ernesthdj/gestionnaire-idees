@@ -31,6 +31,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'growth:more',
   'growth:dismiss',
   'growth:addBranch',
+  'growth:editBranch',
   'growth:acceptSuggestion',
   'growth:dismissSuggestion',
   'fusion:lock',

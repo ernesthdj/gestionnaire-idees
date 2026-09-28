@@ -199,6 +199,26 @@ export class GrowthService {
     return { tree: this.tree(parent.rootId) }
   }
 
+  /** Modifie un sous-neurone (FR-016) ; la version de l'idée augmente, une synthèse proposée devient périmée. */
+  editBranch(input: {
+    readonly neuronId: string
+    readonly title: string
+    readonly content?: string | null
+  }): GrowthResult {
+    const { repository } = this.deps
+    const node = repository.node(input.neuronId)
+    if (node === undefined) throw new AppError('NOT_FOUND', 'Neurone introuvable')
+    if (node.kind === 'root') throw new AppError('IS_ROOT', 'Pour l’idée elle-même, modifie son titre depuis la carte')
+    repository.transaction(() => {
+      repository.updateSubNeuron(node.id, {
+        title: input.title.trim().slice(0, TITLE_MAX),
+        content: input.content === undefined ? node.content : input.content
+      })
+      repository.touchRoot(node.rootId)
+    })
+    return { tree: this.tree(node.rootId) }
+  }
+
   deleteBranch(neuronId: string): GrowthResult {
     const { repository } = this.deps
     const node = repository.node(neuronId)

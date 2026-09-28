@@ -132,6 +132,23 @@ describe('croissance d’un neurone (US1) et jauge (US2)', () => {
     expect(t.h.claude.requests).toHaveLength(calls)
   })
 
+  it('should_edit_a_sub_neuron_and_raise_the_idea_version', async () => {
+    const { root } = await developed()
+    const added = t.growth.addBranch({ parentId: root.id, title: 'Vérifier le bureau' })
+    const sub = added.tree.neurons.at(-1)
+    const version = added.tree.root.version
+    const edited = t.growth.editBranch({ neuronId: sub?.id ?? '', title: '  Mesurer le bureau ', content: '120 cm' })
+    expect(edited.tree.neurons.at(-1)).toMatchObject({ title: 'Mesurer le bureau', content: '120 cm' })
+    expect(edited.tree.root.version).toBe(version + 1)
+  })
+
+  it('should_refuse_to_edit_the_root_as_a_branch', async () => {
+    const { root } = await developed()
+    expect(() => t.growth.editBranch({ neuronId: root.id, title: 'x' })).toThrow(
+      expect.objectContaining({ code: 'IS_ROOT' })
+    )
+  })
+
   it('should_delete_a_branch_with_its_descendants_and_their_extensions', async () => {
     const { result } = await developed()
     t.h.claude.enqueue(etendreReply(['Sous-question ?']))

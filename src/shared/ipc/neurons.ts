@@ -129,3 +129,10 @@ export interface LinkView {
   readonly status: LinkStatus
   readonly createdAt: string
 }
+
+/** Réponse des canaux `growth:*` : l'arbre à jour et, éventuellement, un avertissement à montrer. */
+export interface GrowthResultView {
+  readonly tree: TreeView
+  /** Ex. `FEW_EXTENSIONS`, `OUT_OF_SCOPE`, `DEPTH_LIMIT`, `AI_UNAVAILABLE`, `BUDGET_EXCEEDED`. */
+  readonly notice?: { readonly code: string; readonly message: string }
+}

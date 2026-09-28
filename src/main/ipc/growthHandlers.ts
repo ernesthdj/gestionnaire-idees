@@ -42,6 +42,18 @@ export function createGrowthRoutes(growth: GrowthService): IpcRoute[] {
         growth.addBranch({ parentId, title, ...(content === undefined ? {} : { content }) })
     }),
     defineRoute({
+      channel: 'growth:editBranch',
+      input: z
+        .object({
+          neuronId: Id,
+          title: z.string().trim().min(1).max(120),
+          content: z.string().max(1000).nullable().optional()
+        })
+        .strict(),
+      handler: async ({ neuronId, title, content }) =>
+        growth.editBranch({ neuronId, title, ...(content === undefined ? {} : { content }) })
+    }),
+    defineRoute({
       channel: 'growth:acceptSuggestion',
       input: z.object({ suggestionId: Id }).strict(),
       handler: ({ suggestionId }) => growth.acceptSuggestion(suggestionId)

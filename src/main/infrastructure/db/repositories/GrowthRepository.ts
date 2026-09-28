@@ -272,6 +272,15 @@ export class GrowthRepository {
     for (const id of [...ids].reverse()) this.db.delete(neurons).where(eq(neurons.id, id)).run()
   }
 
+  /** Titre et texte d'un sous-neurone (jamais la racine : elle passe par `NeuronService.update`). */
+  updateSubNeuron(id: string, patch: { title: string; content: string | null }): void {
+    this.db
+      .update(neurons)
+      .set(patch)
+      .where(and(eq(neurons.id, id), sql`${neurons.kind} <> 'root'`))
+      .run()
+  }
+
   touchRoot(rootId: string, state?: RootState): void {
     this.db
       .update(neurons)

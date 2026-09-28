@@ -74,13 +74,17 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 5: User Story 3 — Plongée & croissance (Priority: P1) 🎯 MVP
 
-- [ ] T023 [P] [US3] Tests `radialLayout` (centre, arc des enfants, parent à gauche, emplacements « + ») `tests/unit/ui/radial.test.ts`
-- [ ] T024 [P] [US3] Tests composants `QuestionPanel` + `Gauge` + `Breadcrumb` (réponses rapides, texte, « Je ne sais pas », « Plus de questions », « Ajouter ma branche », écarter ; jauge + manques ; remonter ; clavier ; axe) `tests/unit/renderer/dive.test.tsx`
-- [ ] T025 [US3] `CanvasService.dive` (`DiveView` : fil d'Ariane, focus, parent, enfants, extensions, jauge, synthèse, résultat) + handler `dive:get`
-- [ ] T026 [US3] `DiveView` : transition de plongée/remontée (400 ms, réduite si besoin), disposition radiale, sous-neurones, emplacements « + », parent estompé cliquable, badge de profondeur
-- [ ] T027 [US3] `QuestionPanel`, `Gauge`, `Breadcrumb` branchés sur `growth:*` (002) ; sous-neurone affiché **immédiatement** (mise à jour optimiste confirmée par l'événement) + indicateur « réfléchit… » ; pousse animée 250 ms
-- [ ] T051 [US3] Neurones fantômes (FR-027) : rendu pointillé rattaché au neurone, accepter (Tab/clic → `growth:acceptSuggestion`, solidification animée) / ignorer (Échap/× → `growth:dismissSuggestion`), indicateur de vérification web + sources au survol/focus (liens externes via `shell.openExternal` en liste blanche http/https), mise à jour sur `suggestion:updated`, tests clavier + lecteur d'écran
-- [ ] T028 [US3] Édition/suppression de sous-neurone (confirmation si descendants), changement de nature/catégorie depuis la plongée
+- [x] T023 [P] [US3] Tests `radialLayout` (centre, arc des enfants, parent à gauche, emplacements « + ») `tests/unit/ui/radial.test.ts`
+- [x] T024 [P] [US3] Tests composants `QuestionPanel` + `Gauge` + `Breadcrumb` (réponses rapides, texte, « Je ne sais pas », « Plus de questions », « Ajouter ma branche », écarter ; jauge + manques ; remonter ; clavier ; axe) `tests/unit/renderer/dive.test.tsx`
+- [x] T025 [US3] `CanvasService.dive` (`DiveView` : fil d'Ariane, focus, parent, enfants, extensions, jauge, synthèse, résultat) + handler `dive:get`
+  *(fait côté interface : `diveModel(tree, focusId)` pur et testé, calculé depuis `neuron:getTree` (002) — pas de canal `dive:get` supplémentaire ; synthèse/résultat ajoutés avec US4/US5)*
+- [x] T026 [US3] `DiveView` : transition de plongée/remontée (400 ms, réduite si besoin), disposition radiale, sous-neurones, emplacements « + », parent estompé cliquable, badge de profondeur
+  *(clic ou Entrée sur un sous-neurone = plonger (pas de glisser dans la scène, donc pas besoin du double-clic) ; Échap écouté au niveau de la fenêtre et focus replacé sur le neurone ciblé après chaque déplacement)*
+- [x] T027 [US3] `QuestionPanel`, `Gauge`, `Breadcrumb` branchés sur `growth:*` (002) ; sous-neurone affiché **immédiatement** (mise à jour optimiste confirmée par l'événement) + indicateur « réfléchit… » ; pousse animée 250 ms
+- [x] T051 [US3] Neurones fantômes (FR-027) : rendu pointillé rattaché au neurone, accepter (Tab/clic → `growth:acceptSuggestion`, solidification animée) / ignorer (Échap/× → `growth:dismissSuggestion`), indicateur de vérification web + sources au survol/focus (liens externes via `shell.openExternal` en liste blanche http/https), mise à jour sur `suggestion:updated`, tests clavier + lecteur d'écran
+  *(liens des sources : https uniquement, ouverts par le navigateur système via le filtre existant du main)*
+- [x] T028 [US3] Édition/suppression de sous-neurone (confirmation si descendants), changement de nature/catégorie depuis la plongée
+  *(nouveau canal `growth:editBranch` : modifier un sous-neurone augmente la version de l'idée (synthèse proposée → périmée) ; nature/catégorie de l'idée modifiables depuis l'en-tête de la plongée)*
 
 ---
 
