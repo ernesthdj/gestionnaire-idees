@@ -79,8 +79,8 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ## Phase 6: User Story 4 — Liens (Priority: P2)
 
-- [ ] T025 [P] [US4] Tests : candidats (≤ 10, alias N1–N10), alias inconnu retiré, empreinte des refus, paire ordonnée, doublon, création manuelle dans `tests/unit/neurons/links.test.ts` et `tests/integration/neurons/links.test.ts`
-- [ ] T026 [US4] `CandidateFinder` + `LinkService` (appel `suggerer_liens` après confirmation, décisions, CRUD) + handlers `links:*` + événement `links:suggested`
+- [x] T025 [P] [US4] Tests : candidats (≤ 10, alias N1–N10), alias inconnu retiré, empreinte des refus, paire ordonnée, doublon, création manuelle dans `tests/unit/neurons/links.test.ts` et `tests/integration/neurons/links.test.ts`
+- [x] T026 [US4] `CandidateFinder` + `LinkService` (appel `suggerer_liens` après confirmation, décisions, CRUD) + handlers `links:*` + événement `links:suggested`
 
 ---
 

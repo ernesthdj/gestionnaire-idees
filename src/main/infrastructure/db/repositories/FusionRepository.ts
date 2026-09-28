@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
 import type { SynthesisStatus } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
+import { writeChanges, type ChangeEntry } from './changeLog'
 import { changeLog, neurons, planDependencies, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
 
 export type SynthesisType = 'action_plan' | 'reflection_summary'
@@ -50,13 +51,7 @@ export interface ReflectionInsert {
   readonly openQuestionsJson: string
 }
 
-export interface ChangeEntry {
-  readonly kind: 'confirm_synthesis' | 'manual_edit'
-  readonly entity: string
-  readonly entityId: string
-  readonly before: unknown
-  readonly after: unknown
-}
+export type { ChangeEntry } from './changeLog'
 
 const SYNTHESIS_COLUMNS = {
   id: syntheses.id,
@@ -177,21 +172,7 @@ export class FusionRepository {
   }
 
   log(batchId: string, entries: readonly ChangeEntry[]): void {
-    if (entries.length === 0) return
-    this.db
-      .insert(changeLog)
-      .values(
-        entries.map((entry) => ({
-          id: randomUUID(),
-          batchId,
-          kind: entry.kind,
-          entity: entry.entity,
-          entityId: entry.entityId,
-          beforeJson: entry.before === null ? null : JSON.stringify(entry.before),
-          afterJson: entry.after === null ? null : JSON.stringify(entry.after)
-        }))
-      )
-      .run()
+    writeChanges(this.db, batchId, entries)
   }
 
   planOf(rootId: string): { id: string; title: string; status: string; isCurrent: boolean; synthesisId: string }[] {

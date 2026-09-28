@@ -5,6 +5,7 @@ import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
+import { LinkService } from './application/neurons/LinkService'
 import { NeuronService } from './application/neurons/NeuronService'
 import { SynthesisApplier } from './application/neurons/SynthesisApplier'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
@@ -14,6 +15,7 @@ import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
 import { FusionRepository } from './infrastructure/db/repositories/FusionRepository'
 import { GrowthRepository } from './infrastructure/db/repositories/GrowthRepository'
+import { LinkRepository } from './infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
@@ -23,6 +25,7 @@ import { appRoutes } from './ipc/appHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
+import { createLinkRoutes } from './ipc/linkHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import type { MainWindowEvent } from '@shared/ipc/channels'
@@ -116,6 +119,12 @@ export function bootstrap(): AppContext {
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event)
   })
+  const links = new LinkService({
+    repository: new LinkRepository(database.db),
+    gateway: ai.gateway,
+    examples,
+    emit: (event) => broadcast(event.type, event)
+  })
   const fusionRepository = new FusionRepository(database.db)
   const fusion = new FusionService({
     repository: fusionRepository,
@@ -129,6 +138,7 @@ export function bootstrap(): AppContext {
       examples,
       onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id })
     }),
+    links,
     emit: (event) => broadcast(event.type, event)
   })
 
@@ -143,7 +153,8 @@ export function bootstrap(): AppContext {
       ...contextRoutes,
       ...createNeuronRoutes(neurons),
       ...createGrowthRoutes(growth),
-      ...createFusionRoutes(fusion)
+      ...createFusionRoutes(fusion),
+      ...createLinkRoutes(links)
     ],
     logger,
     rendererFileUrl

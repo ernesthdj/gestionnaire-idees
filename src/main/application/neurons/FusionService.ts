@@ -25,6 +25,8 @@ export interface FusionDependencies {
   readonly neurons: NeuronService
   readonly gateway: AIGateway
   readonly applier: SynthesisApplier
+  /** Suggestions de liens lancées après chaque éclosion (US4), sans bloquer la confirmation. */
+  readonly links: { suggestInBackground(rootId: string): void }
   readonly emit: (event: FusionEvent) => void
 }
 
@@ -103,7 +105,9 @@ export class FusionService {
   }
 
   confirm(synthesisId: string): ConfirmView {
-    return this.deps.applier.confirm(synthesisId)
+    const confirmed = this.deps.applier.confirm(synthesisId)
+    this.deps.links.suggestInBackground(confirmed.root.id)
+    return confirmed
   }
 
   reopen(rootId: string): TreeView {

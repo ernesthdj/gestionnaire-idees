@@ -61,6 +61,13 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     SYNTHESIS_RULES,
     '- Correction : repars de la proposition précédente, applique la consigne de l’utilisateur, garde le reste.'
   ].join('\n'),
+  suggerer_liens: [
+    'Tu relies des idées de l’utilisateur : l’une vient d’aboutir, les autres [N1…] sont des idées déjà abouties.',
+    '- Propose 0 à 3 liens, seulement s’ils sont réellement utiles (ressource commune, dépendance, même objectif,',
+    '  l’une finance ou débloque l’autre). Aucun lien vaut mieux qu’un lien forcé.',
+    '- targetAlias = alias de la candidate ; label = 1 à 3 mots (ex. « financement », « photo ») ;',
+    '  justification = une phrase qui explique le lien avec les éléments des fiches.'
+  ].join('\n'),
   rechercher: [
     'Tu vérifies sur le web une suggestion faite à l’utilisateur (2 recherches au plus).',
     '- Réponds en 2 à 3 phrases factuelles, en français, sans préambule : ordres de grandeur de prix en euros,',

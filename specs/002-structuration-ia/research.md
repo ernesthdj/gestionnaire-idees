@@ -29,6 +29,7 @@
 
 ## R7 — Suggestions de liens
 - **Décision** : à chaque éclosion, `suggerer_liens` (Claude, effort `medium`) avec la synthèse du neurone éclos + **candidats** = jusqu'à 10 neurones éclos (même catégorie, recherche plein texte FTS5 sur titres/synthèses, les plus récents), désignés par alias `N1…N10`. Sortie : 0..3 `{ targetAlias, label (≤ 40), justification (≤ 200) }` ; alias inconnu → suggestion retirée ; empreinte des refus conservée.
+- **Amendement (2026-09-28, idée de mentalyas inspirée de Graphify)** : les candidats sont choisis par un **graphe local de mots-clés** (fiche = titre + contenu + points clés du plan ou de la synthèse en cours ; score = mots-clés partagés normalisés + bonus même catégorie), sans IA. Seules des fiches courtes sont envoyées (≈ 300 caractères par candidate, 600 pour l'idée qui éclôt) et **aucun appel** n'est fait si aucune idée n'est proche. La recherche FTS5 n'est pas utilisée ici : elle n'indexe que les racines, pas les synthèses. Graphify lui-même n'est pas embarqué (outil Python de développement, extraction sémantique elle-même consommatrice de tokens).
 
 ## R8 — Nature et catégorie
 - **Décision** : `categoriser` (IA locale) renvoie `{ categorySlug, nature }` ; non bloquant, rejoué via la file locale (001) ; jamais appliqué si la source est `user`. Défaut sans IA : nature `reflection`, catégorie `null` (« À classer »).

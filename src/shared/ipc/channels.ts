@@ -34,7 +34,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'fusion:revise',
   'fusion:confirm',
   'fusion:reject',
-  'fusion:reopen'
+  'fusion:reopen',
+  'links:list',
+  'links:decide',
+  'links:create',
+  'links:update',
+  'links:delete'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -47,7 +52,8 @@ export const MAIN_WINDOW_EVENTS = [
   'neuron:thinking',
   'neuron:thought',
   'synthesis:stale',
-  'suggestion:updated'
+  'suggestion:updated',
+  'links:suggested'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

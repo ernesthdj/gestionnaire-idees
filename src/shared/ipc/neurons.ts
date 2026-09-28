@@ -113,3 +113,17 @@ export interface ConfirmView {
   readonly batchId: string
   readonly root: RootView
 }
+
+export type LinkStatus = 'suggested' | 'accepted' | 'rejected'
+
+/** Lien libellé entre deux idées (réseau des neurones éclos). */
+export interface LinkView {
+  readonly id: string
+  readonly a: { readonly id: string; readonly title: string }
+  readonly b: { readonly id: string; readonly title: string }
+  readonly label: string
+  readonly justification: string | null
+  readonly origin: Source
+  readonly status: LinkStatus
+  readonly createdAt: string
+}
