@@ -1,6 +1,7 @@
 import { MotionConfig } from 'motion/react'
 import type { Section } from '@shared/ipc/app'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
+import { IdeasPage } from '../pages/IdeasPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
 import { useUiStore, type View } from './uiStore'
@@ -26,7 +27,7 @@ function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
     case 'settings':
       return <SettingsPage />
     case 'ideas':
-      return <SectionPlaceholder text="La carte de tes neurones arrive ici (incubateur et réseau)." />
+      return <IdeasPage />
     case 'pending':
       return <SectionPlaceholder text="Les suggestions de liens et les synthèses en attente apparaîtront ici." />
     case 'history':
@@ -81,7 +82,7 @@ export function AppShell(): React.JSX.Element {
               <span aria-hidden="true">⚙</span>
             </button>
           </header>
-          <main className="min-h-0 flex-1 overflow-auto">
+          <main className="min-h-0 flex-1 overflow-hidden">
             <CurrentView view={view} />
           </main>
         </div>

@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url'
 import { app, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { CaptureService } from './application/capture/CaptureService'
+import { CanvasService } from './application/canvas/CanvasService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
@@ -19,12 +20,14 @@ import { GrowthRepository } from './infrastructure/db/repositories/GrowthReposit
 import { LinkRepository } from './infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { AppSettingsRepository } from './infrastructure/db/repositories/AppSettingsRepository'
+import { BlockRepository } from './infrastructure/db/repositories/BlockRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
 import { createCaptureRoutes } from './ipc/captureHandlers'
+import { createCanvasRoutes } from './ipc/canvasHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
@@ -121,7 +124,8 @@ export function bootstrap(shell: ShellPort): AppContext {
     spentMillicentsThisMonth: () => ai.spentMillicentsThisMonth(),
     now: () => new Date()
   })
-  const neurons = new NeuronService({ repository: new NeuronRepository(database.db), gateway: ai.gateway })
+  const neuronRepository = new NeuronRepository(database.db)
+  const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
   const growthRepository = new GrowthRepository(database.db)
   const growth = new GrowthService({
@@ -130,8 +134,9 @@ export function bootstrap(shell: ShellPort): AppContext {
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event)
   })
+  const linkRepository = new LinkRepository(database.db)
   const links = new LinkService({
-    repository: new LinkRepository(database.db),
+    repository: linkRepository,
     gateway: ai.gateway,
     examples,
     emit: (event) => broadcast(event.type, event)
@@ -175,7 +180,14 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createNeuronRoutes(neurons),
       ...createGrowthRoutes(growth),
       ...createFusionRoutes(fusion),
-      ...createLinkRoutes(links)
+      ...createLinkRoutes(links),
+      ...createCanvasRoutes(
+        new CanvasService({
+          neurons: neuronRepository,
+          links: linkRepository,
+          blocks: new BlockRepository(database.db)
+        })
+      )
     ],
     logger,
     rendererFileUrl

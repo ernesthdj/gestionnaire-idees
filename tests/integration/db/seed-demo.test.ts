@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
+import { z } from 'zod'
 import { seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
@@ -53,5 +54,17 @@ describe('jeu de démonstration', () => {
     seedDemo(handle.db)
     expect(seedDemo(handle.db)).toEqual({ seeded: false })
     expect(new NeuronRepository(handle.db).listRoots({ limit: 200 }).items).toHaveLength(100)
+  })
+
+  it('should_use_uuid_ids_when_seeded_so_that_ipc_channels_accept_them', () => {
+    seedDemo(handle.db)
+    const repository = new NeuronRepository(handle.db)
+    const roots = repository.listRoots({ limit: 200 }).items
+    const ids = [
+      ...roots.map((root) => root.id),
+      ...roots.flatMap((root) => repository.neuronsOf(root.id).map((neuron) => neuron.id)),
+      ...new LinkRepository(handle.db).list().map((link) => link.id)
+    ]
+    expect(ids.filter((id) => !z.uuid().safeParse(id).success)).toEqual([])
   })
 })

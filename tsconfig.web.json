@@ -13,6 +13,7 @@
     "src/shared/**/*",
     "tests/unit/renderer/**/*",
     "tests/unit/ui/**/*",
+    "tests/fixtures/ui/**/*",
     "tests/support/axe.ts",
     "tests/support/renderer-setup.ts"
   ]

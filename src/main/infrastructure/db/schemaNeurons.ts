@@ -228,6 +228,19 @@ export const changeLog = sqliteTable(
   (t) => [index('change_log_batch_idx').on(t.batchId)]
 )
 
+/**
+ * Blocs libres de l'écran Idées (spec 003 FR-026) : conteneurs vides placés par l'utilisateur, supports des
+ * mini-widgets de la v2. Aucun contenu ni code en MVP-1 : seulement position et taille.
+ */
+export const canvasBlocks = sqliteTable('canvas_blocks', {
+  id: text('id').primaryKey(),
+  x: real('x').notNull(),
+  y: real('y').notNull(),
+  width: real('width').notNull(),
+  height: real('height').notNull(),
+  createdAt: createdAt()
+})
+
 /** Réglages génériques clé/valeur (JSON validé à la lecture). */
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),

@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, ne, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lt, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CategoryView,
   ExtensionView,
@@ -25,6 +25,19 @@ export interface RootFilter {
 }
 
 const DEFAULT_LIMIT = 50
+/** Nombre de sous-neurones montrés autour d'une idée en développement sur la carte. */
+const PREVIEW_COUNT = 3
+
+export interface CanvasFilter {
+  readonly nature?: Nature
+  readonly categoryId?: string
+  readonly search?: string
+}
+
+export interface SubNeuronPreview {
+  readonly items: readonly { readonly id: string; readonly title: string }[]
+  readonly count: number
+}
 
 /**
  * Transforme une saisie libre en requête FTS5 sûre : mots conservés (lettres/chiffres), chacun entre guillemets
@@ -219,6 +232,72 @@ export class NeuronRepository {
       missing: JSON.parse(row.missingJson) as string[],
       answered: row.answeredCount
     }
+  }
+
+  /** Toutes les idées non archivées, pour la carte (aucune pagination : quelques centaines au plus). */
+  canvasRoots(): RootView[] {
+    return this.selectRoots()
+      .where(and(eq(neurons.kind, 'root'), ne(neurons.state, 'archived')))
+      .orderBy(asc(sql`${neurons}.rowid`))
+      .all()
+      .map((row) => toRootView(this.withCategory(row)))
+  }
+
+  /** Idées correspondant au filtre (mises en évidence sur la carte, les autres restent visibles). */
+  matchingRootIds(filter: CanvasFilter): string[] {
+    const conditions: SQL[] = [eq(neurons.kind, 'root'), ne(neurons.state, 'archived')]
+    if (filter.nature !== undefined) conditions.push(eq(neurons.nature, filter.nature))
+    if (filter.categoryId !== undefined) conditions.push(eq(neurons.categoryId, filter.categoryId))
+    if (filter.search !== undefined) {
+      const query = toFtsQuery(filter.search)
+      if (query === null) return []
+      conditions.push(sql`${neurons.id} IN (SELECT neuron_id FROM neurons_fts WHERE neurons_fts MATCH ${query})`)
+    }
+    return this.db
+      .select({ id: neurons.id })
+      .from(neurons)
+      .where(and(...conditions))
+      .all()
+      .map((row) => row.id)
+  }
+
+  /** Premiers sous-neurones directs de chaque idée (aperçu autour du neurone en développement). */
+  subNeuronPreviews(rootIds: readonly string[]): Map<string, SubNeuronPreview> {
+    const previews = new Map<string, { items: { id: string; title: string }[]; count: number }>()
+    if (rootIds.length === 0) return previews
+    const rows = this.db
+      .select({ id: neurons.id, rootId: neurons.rootId, title: neurons.title })
+      .from(neurons)
+      .where(and(inArray(neurons.rootId, [...rootIds]), eq(neurons.depth, 1)))
+      .orderBy(asc(sql`${neurons}.rowid`))
+      .all()
+    for (const row of rows) {
+      const preview = previews.get(row.rootId) ?? { items: [], count: 0 }
+      if (preview.items.length < PREVIEW_COUNT) preview.items.push({ id: row.id, title: row.title })
+      preview.count++
+      previews.set(row.rootId, preview)
+    }
+    return previews
+  }
+
+  categories(): CategoryView[] {
+    return this.db
+      .select({ id: categories.id, slug: categories.slug, label: categories.label, color: categories.color })
+      .from(categories)
+      .orderBy(asc(categories.sortOrder))
+      .all()
+  }
+
+  /** Positions sur la carte : sans changer la version (déplacer une idée ne périme pas sa synthèse). */
+  savePositions(positions: readonly { readonly rootId: string; readonly x: number; readonly y: number }[]): void {
+    this.db.transaction((tx) => {
+      for (const { rootId, x, y } of positions) {
+        tx.update(neurons)
+          .set({ posX: x, posY: y })
+          .where(and(eq(neurons.id, rootId), eq(neurons.kind, 'root')))
+          .run()
+      }
+    })
   }
 
   private selectRoots() {

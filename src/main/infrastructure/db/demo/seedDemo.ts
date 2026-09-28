@@ -17,7 +17,25 @@ import {
  * de l'écran Idées (SC-004). Déterministe (graine fixe) et inséré une seule fois, uniquement dans le profil démo.
  */
 
-export const DEMO_PREFIX = 'demo-'
+/** Identifiants au format UUID (exigé par les canaux IPC), reconnaissables à leur préfixe `dea00000-`. */
+export const DEMO_PREFIX = 'dea00000-'
+
+const KIND = {
+  root: 1,
+  sub: 2,
+  extension: 3,
+  gauge: 4,
+  synthesis: 5,
+  task: 6,
+  dependency: 7,
+  summary: 8,
+  link: 9,
+  batch: 0xa
+} as const
+
+export function demoId(kind: keyof typeof KIND, n: number): string {
+  return `${DEMO_PREFIX}000${KIND[kind].toString(16)}-4000-8000-${String(n).padStart(12, '0')}`
+}
 
 export interface DemoSize {
   readonly raw: number
@@ -58,7 +76,6 @@ function seededRandom(seed: number): () => number {
 }
 
 const pick = <T>(items: readonly T[], random: () => number): T => items[Math.floor(random() * items.length)] as T
-const pad = (n: number): string => String(n).padStart(3, '0')
 
 /** Remplit la base avec le jeu fictif ; ne fait rien si des données de démonstration existent déjà. */
 export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): { seeded: boolean } {
@@ -79,7 +96,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       state: 'raw' | 'developing' | 'hatched',
       nature: 'action' | 'reflection'
     ): string => {
-      const id = `${DEMO_PREFIX}root-${pad(index)}`
+      const id = demoId('root', index)
       tx.insert(neurons)
         .values({
           id,
@@ -107,7 +124,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       for (const [n, title] of ['Oui, dès que possible', 'Budget à définir'].entries()) {
         tx.insert(neurons)
           .values({
-            id: `${rootId}-sub-${n}`,
+            id: demoId('sub', index * 10 + n),
             rootId,
             parentId: rootId,
             depth: 1,
@@ -119,7 +136,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       }
       tx.insert(extensions)
         .values({
-          id: `${rootId}-ext-0`,
+          id: demoId('extension', index),
           rootId,
           neuronId: rootId,
           question: 'Quelle échéance vises-tu ?',
@@ -131,7 +148,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
         .run()
       tx.insert(contextAssessments)
         .values({
-          id: `${rootId}-gauge`,
+          id: demoId('gauge', index),
           rootId,
           level: 'insufficient',
           aiLevel: 'insufficient',
@@ -146,7 +163,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       const nature = i % 2 === 0 ? 'action' : 'reflection'
       const rootId = insertRoot(++index, 'hatched', nature)
       hatchedIds.push(rootId)
-      const synthesisId = `${rootId}-synthesis`
+      const synthesisId = demoId('synthesis', index)
       tx.insert(syntheses)
         .values({
           id: synthesisId,
@@ -155,7 +172,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           payloadJson: '{}',
           baseVersion: 1,
           status: 'confirmed',
-          batchId: `${rootId}-batch`
+          batchId: demoId('batch', index)
         })
         .run()
       if (nature === 'action') {
@@ -163,7 +180,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
         tasks.forEach((title, n) => {
           tx.insert(planNodes)
             .values({
-              id: `${rootId}-task-${n}`,
+              id: demoId('task', index * 10 + n),
               rootId,
               synthesisId,
               type: 'task',
@@ -175,9 +192,9 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
         for (let n = 1; n < tasks.length; n++) {
           tx.insert(planDependencies)
             .values({
-              id: `${rootId}-dep-${n}`,
-              fromNodeId: `${rootId}-task-${n - 1}`,
-              toNodeId: `${rootId}-task-${n}`,
+              id: demoId('dependency', index * 10 + n),
+              fromNodeId: demoId('task', index * 10 + n - 1),
+              toNodeId: demoId('task', index * 10 + n),
               kind: 'after_done'
             })
             .run()
@@ -185,7 +202,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       } else {
         tx.insert(reflectionSummaries)
           .values({
-            id: `${rootId}-summary`,
+            id: demoId('summary', index),
             rootId,
             synthesisId,
             keyPointsJson: JSON.stringify(['Idée fictive de démonstration']),
@@ -198,19 +215,25 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       }
     }
 
-    // Liens entre idées écloses : paires distinctes, les 20 % derniers restent suggérés (à valider).
-    const seen = new Set<string>()
-    const maxLinks = Math.min(size.links, (hatchedIds.length * (hatchedIds.length - 1)) / 2)
-    let linkIndex = 0
-    while (linkIndex < maxLinks) {
-      const [a, b] = orderedPair(pick(hatchedIds, random), pick(hatchedIds, random))
-      if (a === b || seen.has(`${a}|${b}`)) continue
-      seen.add(`${a}|${b}`)
+    // Liens réalistes : comme dans l'app (liens proposés entre idées proches), des groupes de 5 idées reliées
+    // (une chaîne + 2 raccourcis) et quelques ponts entre groupes. Les 20 % derniers restent suggérés.
+    const pairs: [string, string][] = []
+    const at = (k: number): string => hatchedIds[k] as string
+    for (let group = 0; group + 5 <= hatchedIds.length; group += 5) {
+      for (let k = 0; k < 4; k++) pairs.push([at(group + k), at(group + k + 1)])
+      pairs.push([at(group), at(group + 2)], [at(group + 2), at(group + 4)])
+    }
+    for (let group = 5; group + 5 <= hatchedIds.length && pairs.length < size.links; group += 15) {
+      pairs.push([at(group - 1), at(group)])
+    }
+    const kept = pairs.slice(0, size.links)
+    kept.forEach(([first, second], index) => {
+      const [a, b] = orderedPair(first, second)
       const label = pick(['même budget', 'même période', 'complémentaire', 'même lieu'], random)
-      const suggested = linkIndex >= Math.floor(size.links * 0.8)
+      const suggested = index >= Math.floor(kept.length * 0.8)
       tx.insert(neuronLinks)
         .values({
-          id: `${DEMO_PREFIX}link-${pad(++linkIndex)}`,
+          id: demoId('link', index + 1),
           aRootId: a,
           bRootId: b,
           label,
@@ -220,7 +243,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           fingerprint: linkFingerprint(a, b, label)
         })
         .run()
-    }
+    })
   })
   return { seeded: true }
 }

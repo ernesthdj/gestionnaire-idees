@@ -146,6 +146,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 **Écran Idées**
 - **FR-009**: L'écran Idées MUST présenter l'incubateur (bruts + en développement) et le réseau (éclos), avec trois aspects distincts : brut (contour pointillé), en développement (plein, sous-neurones visibles), éclos (double anneau + halo).
 - **FR-010**: Le réseau MUST afficher les liens libellés ; les liens suggérés MUST être distincts (pointillés) et acceptables/refusables sur place.
+  Les liens MUST NOT se croiser (ni passer sous une idée) dès que le réseau le permet géométriquement (réseau planaire) ; sinon le nombre de croisements MUST être réduit au minimum atteignable par la disposition *(exigence de mentalyas, 2026-09-28)*.
 - **FR-011**: L'écran MUST offrir : compteurs par état, « + Une idée ? », zoom, recentrer, filtres (nature, catégorie), recherche, état vide.
 - **FR-012**: Les neurones bruts MUST dériver lentement ; la dérive MUST se suspendre pendant l'interaction et être désactivée en mode animations réduites.
 

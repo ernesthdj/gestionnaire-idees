@@ -42,7 +42,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'links:decide',
   'links:create',
   'links:update',
-  'links:delete'
+  'links:delete',
+  'canvas:get',
+  'canvas:savePositions',
+  'canvas:createBlock',
+  'canvas:updateBlock',
+  'canvas:deleteBlock'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

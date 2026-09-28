@@ -1,0 +1,136 @@
+/* Aspects des neurones (FR-009) et animations d'ambiance (FR-012, FR-025). */
+
+.neuron {
+  --cat-ink: var(--cat);
+  position: relative;
+  transition: opacity 150ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .neuron {
+    --cat-ink: color-mix(in oklab, var(--cat) 60%, white);
+  }
+}
+
+:root[data-theme='dark'] .neuron {
+  --cat-ink: color-mix(in oklab, var(--cat) 60%, white);
+}
+
+.neuron-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+}
+
+/* Brute : contour pointillé. */
+.neuron-raw .neuron-body {
+  border: 2px dashed var(--cat-ink);
+  background: color-mix(in oklab, var(--cat-ink) 8%, var(--color-surface));
+}
+
+/* En développement : disque plein, sous-neurones en satellites. */
+.neuron-developing .neuron-body {
+  border: 2px solid var(--cat-ink);
+  background: color-mix(in oklab, var(--cat-ink) 28%, var(--color-surface));
+}
+
+/* Éclose : double anneau + halo. */
+.neuron-hatched .neuron-body {
+  border: 3px double var(--cat-ink);
+  outline: 2px solid color-mix(in oklab, var(--cat-ink) 45%, transparent);
+  outline-offset: 4px;
+  background: color-mix(in oklab, var(--cat-ink) 40%, var(--color-surface));
+  box-shadow: 0 0 16px 2px color-mix(in oklab, var(--cat-ink) 45%, transparent);
+}
+
+.neuron-satellite {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 9999px;
+  border: 2px solid var(--cat-ink);
+  background: var(--color-surface);
+}
+
+.neuron-title {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  width: 160px;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-content);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.neuron-dimmed {
+  opacity: 0.25;
+}
+
+/* Focus clavier visible sur le nœud React Flow (FR-005). */
+.react-flow__node-neuron:focus-visible {
+  outline: none;
+}
+.react-flow__node-neuron:focus-visible .neuron-body {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 6px;
+}
+.react-flow__node-neuron.selected .neuron-body {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 6px;
+}
+
+/* Dérive lente des idées brutes : suspendue pendant l'interaction, absente en mode réduit. */
+@keyframes neuron-drift {
+  from {
+    transform: translate(-3px, -2px);
+  }
+  to {
+    transform: translate(3px, 3px);
+  }
+}
+[data-drift='on'] .neuron-raw .neuron-body {
+  animation: neuron-drift 7s ease-in-out infinite alternate;
+  animation-delay: var(--drift-delay, 0s);
+}
+[data-drift='paused'] .neuron-raw .neuron-body {
+  animation: neuron-drift 7s ease-in-out infinite alternate paused;
+  animation-delay: var(--drift-delay, 0s);
+}
+
+/* Halo en pulsation lente (statique en mode réduit). */
+@keyframes neuron-halo {
+  50% {
+    box-shadow: 0 0 28px 6px color-mix(in oklab, var(--cat-ink) 30%, transparent);
+  }
+}
+[data-reduced-motion='false'] .neuron-hatched .neuron-body {
+  animation: neuron-halo 2.4s ease-in-out infinite;
+}
+
+.zone-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-content-muted);
+}
+
+.neuron-handle.react-flow__handle {
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}

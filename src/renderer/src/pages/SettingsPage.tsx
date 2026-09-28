@@ -12,7 +12,7 @@ type TabId = (typeof TABS)[number]['id']
 export function SettingsPage(): React.JSX.Element {
   const [tab, setTab] = useState<TabId>('ai')
   return (
-    <div>
+    <div className="h-full overflow-auto">
       <nav aria-label="Réglages" className="flex justify-center gap-2 border-b border-content-muted/20 p-2">
         {TABS.map((entry) => (
           <button

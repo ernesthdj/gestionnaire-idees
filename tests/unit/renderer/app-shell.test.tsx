@@ -1,19 +1,25 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../../../src/renderer/src/App'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { DEFAULT_APP_SETTINGS, type AppSettingsView } from '../../../src/shared/ipc/app'
 import { expectNoAxeViolations } from '../../support/axe'
+import { emptyCanvasView } from '../../fixtures/ui/canvas'
 import { installFakeApi } from './support/fakeApi'
+import { installReactFlowMocks } from './support/reactFlowMocks'
 
 function renderApp(settings: Partial<AppSettingsView> = {}) {
   // Canaux non simulés (réglages IA) : ils échouent, comme un canal indisponible.
-  const api = installFakeApi({ 'app:getSettings': () => ({ ...DEFAULT_APP_SETTINGS, ...settings }) })
+  const api = installFakeApi({
+    'app:getSettings': () => ({ ...DEFAULT_APP_SETTINGS, ...settings }),
+    'canvas:get': () => emptyCanvasView()
+  })
   return { api, ...render(<App />) }
 }
 
 describe('AppShell', () => {
+  beforeAll(() => installReactFlowMocks())
   beforeEach(() => {
     useUiStore.setState({ view: 'ideas', diveRootId: null })
   })
