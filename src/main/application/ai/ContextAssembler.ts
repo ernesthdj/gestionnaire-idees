@@ -1,5 +1,6 @@
 import type { TaskKind } from '../../domain/ai/types'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
+import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
 import type { SystemBlock } from './AIProvider'
 import type { AgentContext } from './ports'
 
@@ -11,7 +12,7 @@ export interface AssembledContext {
 }
 
 /**
- * Ordre imposé (FR-004) : cadre figé → profil → règles → exemples → données balisées.
+ * Ordre imposé (FR-004) : cadre figé → consignes de la tâche → profil → règles → exemples → données balisées.
  * Tous les blocs système sont stables d'un appel à l'autre, donc mis en cache.
  */
 export function assembleContext(request: {
@@ -20,6 +21,8 @@ export function assembleContext(request: {
   readonly context: AgentContext | undefined
 }): AssembledContext {
   const system: SystemBlock[] = [{ text: SYSTEM_FRAME, cacheable: true }]
+  const instructions = TASK_INSTRUCTIONS[request.kind]
+  if (instructions !== undefined) system.push({ text: instructions, cacheable: true })
   const context = request.context
 
   if (context !== undefined) {

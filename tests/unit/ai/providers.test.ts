@@ -58,8 +58,9 @@ describe('OllamaProvider', () => {
     }
     const result = await new OllamaProvider({ ...base, fetch }).complete(request)
     expect(result).toMatchObject({ parsed: { categorySlug: 'achat' }, usage: { inputTokens: 40, outputTokens: 12 } })
-    const body = JSON.parse(calls[0]?.body ?? '{}') as { format: { type: string }; stream: boolean }
+    const body = JSON.parse(calls[0]?.body ?? '{}') as { format: { type: string }; stream: boolean; think: boolean }
     expect(body.stream).toBe(false)
+    expect(body.think).toBe(false)
     expect(body.format.type).toBe('object')
   })
 

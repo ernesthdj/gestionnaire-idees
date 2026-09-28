@@ -36,6 +36,12 @@
 - **Décision** : **banc d'essai** en tâche dédiée (T-bench) sur 3 candidats instruct 7-8B quantifiés Q4 (~5 Go VRAM) avec un jeu fixe de 30 cas fictifs par tâche locale (catégoriser, résumer, anonymiser, briefing). Critères : taux de sorties valides, exactitude, latence < 3 s (SC-003). Le modèle retenu devient la valeur par défaut configurable.
 - **Rationale** : les performances varient selon la tâche et la langue (français) ; on mesure au lieu de deviner.
 - **Alternatives** : fixer un modèle a priori (risque de mauvais choix non détecté).
+- **Résultat (T027, 2026-09-28, 30 cas fictifs, RTX 3070 8 Go)** : `qwen3.5:9b` (Q4, 6,6 Go, `think: false`).
+  Sans consignes de tâche : sorties valides 100 %, catégorie 37 %, nature 73 %, p90 1 037 ms.
+  **Avec consignes par tâche** (`TaskInstructions.ts` : définitions + exemples) : valides 100 %, **catégorie 90 %,
+  nature 90 %, p90 889 ms** (SC-003 ✅). Premier appel ≈ 37 s (chargement du modèle en VRAM). `gemma4:26b` (18,6 Go)
+  écarté : ne tient pas en VRAM. **Décision : `qwen3.5:9b` par défaut.** Llama 3.1 8B / Gemma 3 4B non mesurés
+  (non installés) — relancer `npm run bench:local -- <modèle>` pour comparer.
 
 ## R6 — Anonymisation
 - **Décision** : **double couche**. (1) Règles déterministes toujours appliquées : e-mails, téléphones, IBAN, URLs personnelles → retirés ; montants → fourchettes (`<100`, `100-500`, `500-1000`, `1000-2500`, `>2500`) ou arrondis à la centaine. (2) IA locale pour les noms de personnes (remplacés par `[personne]`). Si (2) échoue → (1) seule + noms propres détectés par heuristique (mot capitalisé hors début de phrase, hors liste blanche) retirés. Jamais d'envoi brut.

@@ -77,6 +77,8 @@ export class OllamaProvider implements AIProvider {
         body: JSON.stringify({
           model,
           stream: false,
+          // Tâches locales courtes et structurées : la réflexion à voix haute ralentit sans améliorer le résultat.
+          think: false,
           format: z.toJSONSchema(request.schema),
           options: { num_predict: request.maxTokens },
           messages: [

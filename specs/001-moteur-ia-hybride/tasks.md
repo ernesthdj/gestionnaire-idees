@@ -76,7 +76,7 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 - [x] T026 [US1] Schémas de sortie partagés initiaux (`CategoryOut`, `OutOfScope`) dans `src/shared/ai/schemas.ts`
 - [x] T057 [P] [US1] Test de la file locale persistante (demande `QUEUED` conservée au redémarrage, rejouée au retour d'Ollama dans l'ordre d'arrivée, repli Claude **uniquement** si `allow_claude_fallback = true`, anonymisation appliquée au repli) dans `tests/unit/ai/local-queue.test.ts` *(analyse C1)*
 - [x] T058 [US1] `LocalQueue` : table `ai_pending_requests` (data-model.md), sonde de santé Ollama toutes les 30 s, rejeu séquentiel FIFO, résultat livré au demandeur via l'événement `ai:requestCompleted { requestId }` ; branchement dans `AIGateway` — `src/main/application/ai/LocalQueue.ts` + migration dans `src/main/infrastructure/db/migrations/` *(analyse C1, dépend de T025)*
-- [ ] T027 [US1] *(script + 30 cas fictifs prêts — exécution en attente de l'installation d'Ollama par mentalyas)* Banc d'essai du modèle local (research R5) : script `scripts/bench-local-model.ts` + jeux fictifs `tests/fixtures/bench/` ; consigner le résultat dans `specs/001-moteur-ia-hybride/research.md` (R5)
+- [x] T027 [US1] Banc d'essai du modèle local (research R5) : script `scripts/bench-local-model.ts` + jeux fictifs `tests/fixtures/bench/` ; consigner le résultat dans `specs/001-moteur-ia-hybride/research.md` (R5)
 
 **Checkpoint**: le moteur répond de façon fiable et vérifiée — base de F1 (catégorisation) et F2
 

@@ -13,6 +13,8 @@
 | 8 | Une tâche qui traite des données brutes (anonymisation) doit être « strictement locale » par construction, pas seulement par configuration | `routing.ts`, `AIGateway.ts` | 2026-09-28 |
 | 9 | L'outil d'écriture transforme les échappements Unicode d'espaces insécables en caractères invisibles (rejetés par ESLint) : utiliser la classe `\s`, qui les couvre déjà | `anonymizationRules.ts` | 2026-09-28 |
 | 10 | Coût Claude : compter aussi les tokens d'ÉCRITURE en cache (~1,25× l'entrée) et tarifer le modèle réellement servi (bascule serveur), sinon le budget sous-estime | `cost.ts`, `aiEngine.ts` | 2026-09-28 |
+| 11 | Un petit modèle local classe mal sans définitions : toujours fournir des consignes de tâche (définitions + exemples) — 37 % → 90 % | `TaskInstructions.ts` | 2026-09-28 |
+| 12 | Désactiver la réflexion (`think: false`) d'Ollama pour les tâches courtes et structurées | `OllamaProvider.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -95,4 +97,8 @@
 ### [2026-09-28 16:35] DOCS — idée « blocs et mini-widgets » (v2)
 **Fichiers :** `docs/brainstorm/L4c-widgets.md`, `docs/FOUNDATION.md` (§0.3), `specs/003-interface-mvp1/{spec,tasks}.md` (FR-026, T050)
 **Résumé :** Idée de mentalyas : blocs libres sur la toile où Claude génère des mini-widgets (HTML/CSS/TS) qui interagissent avec les idées. Décisions : livraison v2, toile préparée dès le MVP-1 (nœud « bloc » vide) ; sécurité : iframe sandbox sans same-origin ni réseau, capacités par widget via postMessage validé, écritures = propositions, code visible et figé avant exécution ; portée limitée aux données de l'app (pas d'Internet). Amendement du cadre IA et de la constitution à prévoir en v2.
+
+### [2026-09-28 16:55] PERF — banc d'essai du modèle local et consignes de tâche (spec 001 T027)
+**Fichiers :** `src/main/infrastructure/ai/TaskInstructions.ts`, `src/main/application/ai/ContextAssembler.ts`, `src/main/infrastructure/ai/OllamaProvider.ts` (`think: false`), `package.json` (`tsx`, script `bench:local`), `specs/001-moteur-ia-hybride/research.md` (R5)
+**Résumé :** Banc d'essai qwen3.5:9b sur 30 cas fictifs : catégorie 37 % → 90 %, nature 73 % → 90 % après ajout de consignes par tâche (catégoriser, anonymiser) ; p90 889 ms. Réflexion Ollama désactivée pour les tâches locales. Nouvelle dépendance de dev : `tsx` (validée).
 
