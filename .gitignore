@@ -17,3 +17,6 @@ vendor/
 .vs/
 .vscode/
 .idea/
+
+# Claude Code (reglages locaux / credentials eventuels)
+.claude/settings.local.json
