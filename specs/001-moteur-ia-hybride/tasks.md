@@ -174,7 +174,7 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T053 [P] Revue sécurité Electron + IPC (checklist constitution I) et correction des écarts
+- [x] T053 [P] Revue sécurité Electron + IPC (checklist constitution I) et correction des écarts
 - [ ] T054 [P] Vérifier `usage.cache_read_input_tokens` > 0 sur des appels Claude répétés (test manuel, clé de test) et documenter dans research.md (R3)
 - [ ] T059 Vérifier l'écart de coût ≤ 5 % (SC-004) : série de 20 appels Claude de test (clé de test, données fictives), comparer le cumul `ai_calls` au coût affiché par la console Anthropic sur la même période ; ajuster la grille/le taux si besoin et consigner le résultat dans research.md (R9) *(analyse C2)*
 - [ ] T055 [P] Mettre à jour `docs/JOURNAL.md` et `CLAUDE.md` (stack réelle, commandes `npm run dev/test/build`)

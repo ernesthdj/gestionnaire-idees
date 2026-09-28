@@ -52,19 +52,31 @@ export function createDispatcher(routes: readonly IpcRoute[], logger?: Logger): 
   }
 }
 
-/** N'accepte que les messages venant de l'interface de l'app (fichier local ou serveur de dev). */
-export function isTrustedSender(frameUrl: string | undefined, devServerUrl: string | undefined): boolean {
+/**
+ * N'accepte que les messages venant de l'interface de l'app : ses propres fichiers (dossier `renderer`)
+ * une fois empaquetée, ou le serveur de développement.
+ */
+export function isTrustedSender(
+  frameUrl: string | undefined,
+  devServerUrl: string | undefined,
+  rendererFileUrl: string
+): boolean {
   if (frameUrl === undefined) return false
-  if (frameUrl.startsWith('file://')) return true
+  if (frameUrl.startsWith('file://')) return frameUrl.startsWith(rendererFileUrl)
   return devServerUrl !== undefined && frameUrl.startsWith(devServerUrl)
 }
 
-export function registerRoutes(ipcMain: IpcMain, routes: readonly IpcRoute[], logger: Logger): void {
+export function registerRoutes(
+  ipcMain: IpcMain,
+  routes: readonly IpcRoute[],
+  logger: Logger,
+  rendererFileUrl: string
+): void {
   const dispatch = createDispatcher(routes, logger)
   const devServerUrl = process.env['ELECTRON_RENDERER_URL']
   for (const route of routes) {
     ipcMain.handle(route.channel, (event, payload: unknown) => {
-      if (!isTrustedSender(event.senderFrame?.url, devServerUrl)) {
+      if (!isTrustedSender(event.senderFrame?.url, devServerUrl, rendererFileUrl)) {
         logger.warn('ipc.untrusted_sender', { channel: route.channel })
         return { success: false, error: { code: 'FORBIDDEN', message: 'Expéditeur non autorisé' } }
       }

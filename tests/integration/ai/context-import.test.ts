@@ -103,6 +103,18 @@ describe('import de contexte', () => {
     })
   })
 
+  it('should_reject_examples_containing_personal_data', () => {
+    const examples = JSON.stringify([
+      { taskKind: 'etendre', polarity: 'positive', input: 'Écrire à jean@exemple.test', output: {} }
+    ])
+    writeInbox(inbox, { 'examples.json': examples })
+    service.scan()
+    expect(service.history().imports[0]).toMatchObject({
+      status: 'invalid',
+      error: expect.stringMatching(/données personnelles/i)
+    })
+  })
+
   it('should_reject_malformed_examples_file', () => {
     writeInbox(inbox, { 'examples.json': JSON.stringify([{ taskKind: 'inconnu' }]) })
     service.scan()

@@ -39,6 +39,21 @@ function parseJson(text: string): unknown {
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]'])
 
+export const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
+
+/** Adresse d'Ollama issue de l'environnement : toute adresse non locale ou invalide est ignorée (sans planter). */
+export function resolveOllamaUrl(value: string | undefined): { url: string; rejected: boolean } {
+  if (value === undefined || value.trim() === '') return { url: DEFAULT_OLLAMA_URL, rejected: false }
+  try {
+    const url = new URL(value)
+    return LOOPBACK_HOSTS.has(url.hostname)
+      ? { url: value, rejected: false }
+      : { url: DEFAULT_OLLAMA_URL, rejected: true }
+  } catch {
+    return { url: DEFAULT_OLLAMA_URL, rejected: true }
+  }
+}
+
 /** IA locale via l'API HTTP d'Ollama — uniquement sur la machine (127.0.0.1). */
 export class OllamaProvider implements AIProvider {
   readonly id = 'ollama' as const

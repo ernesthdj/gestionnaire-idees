@@ -90,6 +90,12 @@ export function validateContextBundle(
     }
     const parsed = ExamplesFile.safeParse(parsedJson)
     if (!parsed.success) return { ok: false, error: "Fichier d'exemples invalide (format)" }
+    const leaking = parsed.data.some((example) =>
+      containsPersonalData([example.input, example.reason ?? '', JSON.stringify(example.output)].join(' '))
+    )
+    if (leaking) {
+      return { ok: false, error: 'Données personnelles détectées dans examples.json : import refusé' }
+    }
     examples = parsed.data
   }
 

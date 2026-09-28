@@ -1,8 +1,10 @@
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
+import { resolveOllamaUrl } from './infrastructure/ai/OllamaProvider'
 import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
 import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
@@ -23,8 +25,6 @@ export interface AppContext {
   readonly examples: ExampleStore
   stop(): void
 }
-
-const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
 
 /** Envoie un événement de la liste blanche à toutes les fenêtres ouvertes. */
 function broadcast(event: MainWindowEvent, payload: unknown): void {
@@ -72,11 +72,14 @@ export function bootstrap(): AppContext {
   const stopWatching = watchInbox(inboxPath, scanInbox)
   scanInbox()
 
+  const ollama = resolveOllamaUrl(process.env['OLLAMA_URL'])
+  if (ollama.rejected) logger.warn('ai.ollama_url_rejected', {})
+
   const ai = createAiEngine({
     db: database.db,
     secrets,
     logger,
-    ollamaUrl: process.env['OLLAMA_URL'] ?? DEFAULT_OLLAMA_URL,
+    ollamaUrl: ollama.url,
     contextSource: (kind) => contextService.activeContext(kind),
     onBudgetAlert: (spentCents, capCents) => broadcast('ai:budgetAlert', { spentCents, capCents }),
     // Rejeu de la file locale : consommé par la capture (spec 003).
@@ -92,7 +95,9 @@ export function bootstrap(): AppContext {
     now: () => new Date()
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
-  registerRoutes(ipcMain, [...appRoutes, ...aiRoutes, ...contextRoutes], logger)
+  // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
+  const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
+  registerRoutes(ipcMain, [...appRoutes, ...aiRoutes, ...contextRoutes], logger, rendererFileUrl)
   logger.info('app.ready', { version: app.getVersion() })
   return {
     logger,

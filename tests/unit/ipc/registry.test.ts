@@ -67,19 +67,25 @@ describe('createDispatcher', () => {
 })
 
 describe('isTrustedSender', () => {
-  it('should_accept_app_file_url_when_packaged', () => {
-    expect(isTrustedSender('file:///C:/app/out/renderer/index.html', undefined)).toBe(true)
+  const app = 'file:///C:/app/out/renderer/'
+
+  it('should_accept_app_renderer_file_when_packaged', () => {
+    expect(isTrustedSender('file:///C:/app/out/renderer/index.html', undefined, app)).toBe(true)
+  })
+
+  it('should_reject_other_local_file_when_packaged', () => {
+    expect(isTrustedSender('file:///C:/Users/x/Downloads/piege.html', undefined, app)).toBe(false)
   })
 
   it('should_accept_dev_server_url_when_in_development', () => {
-    expect(isTrustedSender('http://localhost:5173/', 'http://localhost:5173')).toBe(true)
+    expect(isTrustedSender('http://localhost:5173/', 'http://localhost:5173', app)).toBe(true)
   })
 
   it('should_reject_external_url_when_sender_is_remote', () => {
-    expect(isTrustedSender('https://example.com/', 'http://localhost:5173')).toBe(false)
+    expect(isTrustedSender('https://example.com/', 'http://localhost:5173', app)).toBe(false)
   })
 
   it('should_reject_missing_frame_url', () => {
-    expect(isTrustedSender(undefined, undefined)).toBe(false)
+    expect(isTrustedSender(undefined, undefined, app)).toBe(false)
   })
 })

@@ -133,8 +133,22 @@ export class AIGateway {
     }
 
     const assembled = assembleContext({ kind: request.kind, input, context: await this.deps.context(request.kind) })
+    let system = assembled.system
+    if (engine === 'claude') {
+      // Les exemples proviennent d'idées réelles (propositions acceptées/refusées) : ils sont anonymisés
+      // comme l'entrée. Le profil et les règles sont vérifiés à l'import (aucune donnée personnelle).
+      try {
+        system = await Promise.all(
+          system.map(async (block) =>
+            block.role === 'examples' ? { ...block, text: await this.deps.anonymizer.anonymize(block.text) } : block
+          )
+        )
+      } catch {
+        return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
+      }
+    }
     const result = await this.semaphores[engine].use(() =>
-      this.callWithRetry(request, requestId, engine, assembled.system, assembled.user, degraded)
+      this.callWithRetry(request, requestId, engine, system, assembled.user, degraded)
     )
     if (result.ok) this.remember(requestId, result.value)
     return result

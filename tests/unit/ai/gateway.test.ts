@@ -135,4 +135,29 @@ describe('AIGateway — routage, file, journal', () => {
     await h.gateway.run({ kind: 'synthetiser', input: 'x', schema: Echo })
     expect(order).toEqual(['log', 'budget'])
   })
+
+  it('should_anonymize_learned_examples_before_sending_them_to_claude', async () => {
+    const h = createGatewayHarness({
+      context: async () => ({
+        profile: '',
+        rules: '',
+        examples: [{ polarity: 'positive', input: 'Rembourser Sophie Lambert', output: { ok: true } }]
+      })
+    })
+    h.claude.enqueue({ raw: { answer: 'ok' } })
+    await h.gateway.run({ kind: 'etendre', input: 'x', schema: Echo })
+    const sent = h.claude.requests[0]?.system.map((block) => block.text).join(' ') ?? ''
+    expect(sent).not.toContain('Sophie Lambert')
+    expect(h.anonymized.some((text) => text.includes('Sophie Lambert'))).toBe(true)
+  })
+
+  it('should_keep_examples_untouched_when_task_runs_locally', async () => {
+    const h = createGatewayHarness({
+      context: async () => ({ profile: '', rules: '', examples: [{ polarity: 'positive', input: 'Marc', output: {} }] })
+    })
+    h.ollama.enqueue({ raw: { categorySlug: 'achat', nature: 'action' } })
+    await h.gateway.run({ kind: 'categoriser', input: 'x', schema: CategoryOut })
+    expect(h.anonymized).toEqual([])
+    expect(h.ollama.requests[0]?.system.map((block) => block.text).join(' ')).toContain('Marc')
+  })
 })

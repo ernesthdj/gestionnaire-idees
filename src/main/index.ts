@@ -42,6 +42,7 @@ function createMainWindow(): BrowserWindow {
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-attach-webview', (event) => event.preventDefault())
   contents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
+  contents.session.setPermissionCheckHandler(() => false)
 })
 
 let context: AppContext | undefined

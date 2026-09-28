@@ -16,6 +16,7 @@
 | 11 | Un petit modèle local classe mal sans définitions : toujours fournir des consignes de tâche (définitions + exemples) — 37 % → 90 % | `TaskInstructions.ts` | 2026-09-28 |
 | 12 | Désactiver la réflexion (`think: false`) d'Ollama pour les tâches courtes et structurées | `OllamaProvider.ts` | 2026-09-28 |
 | 13 | Le profil injecté dans le cadre système n'est PAS anonymisé : refuser à l'import tout profil contenant une donnée personnelle (mêmes règles que l'anonymisation) | `domain/context/bundle.ts` | 2026-09-28 |
+| 14 | Tout contenu issu des idées réelles envoyé à Claude doit être anonymisé, pas seulement l'entrée : exemples compris (blocs système typés par rôle) | `AIGateway.ts`, `ContextAssembler.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -108,4 +109,8 @@
 **Résumé :** Dossier d'import surveillé (manifeste écrit en dernier, anti-rebond 1 s) ; validation : manifeste, fichiers annoncés présents, ≤ 50 Ko, SHA-256, format des exemples, **refus de toute donnée personnelle dans profil/règles** (envoyés non anonymisés à Claude) ; import en attente avec aperçu avant/après, appliquer / refuser, versions et retour arrière (les exemples importés suivent leur version) ; version 1 « vide » créée au premier lancement. Exemples : 20 appris max par type, 3 plus récents du bon type injectés ; `ExampleStore.record` = point d'intégration pour la spec 002. Écran Contexte IA.
 **Premier profil réel :** distillé du CLAUDE.md global (casquettes, façon de réfléchir, organisation ; aucune donnée d'identité), déposé dans `%APPDATA%` (hors dépôt), détecté et mis en attente par l'app — à valider par mentalyas dans Réglages › Contexte IA.
 **Incident :** classifieur du mode auto indisponible → passage en mode manuel par mentalyas.
+
+### [2026-09-28 17:40] SECURITY — revue sécurité de la spec 001 (T053)
+**Fichiers :** `docs/SECURITY-REVIEW-001.md`, `src/main/application/ai/{AIGateway,AIProvider,ContextAssembler}.ts`, `src/main/domain/context/bundle.ts`, `src/main/infrastructure/ai/OllamaProvider.ts`, `src/main/ipc/registry.ts`, `src/main/{bootstrap,index}.ts`, tests (188 au total)
+**Résumé :** 5 constats corrigés : F1 (élevée) exemples envoyés à Claude sans anonymisation → blocs typés par rôle, exemples anonymisés ; F2 exemples importés contrôlés (données personnelles) ; F3 `OLLAMA_URL` non locale → repli au lieu de plantage ; F4 expéditeur IPC limité aux fichiers de l'interface ; F5 vérifications de permission refusées. Points conformes et risques résiduels documentés.
 

@@ -5,6 +5,8 @@ import type { Effort, Engine, Usage } from '../../domain/ai/types'
 export interface SystemBlock {
   readonly text: string
   readonly cacheable: boolean
+  /** Nature du bloc : les exemples (issus d'idées réelles) sont anonymisés avant tout envoi externe. */
+  readonly role?: 'frame' | 'instructions' | 'profile' | 'rules' | 'examples'
 }
 
 export interface CompletionRequest<T> {
