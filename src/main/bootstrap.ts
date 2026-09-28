@@ -23,6 +23,7 @@ import { NeuronRepository } from './infrastructure/db/repositories/NeuronReposit
 import { AppSettingsRepository } from './infrastructure/db/repositories/AppSettingsRepository'
 import { BlockRepository } from './infrastructure/db/repositories/BlockRepository'
 import { HistoryRepository } from './infrastructure/db/repositories/HistoryRepository'
+import { HatchedRepository } from './infrastructure/db/repositories/HatchedRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
@@ -31,6 +32,7 @@ import { createAppRoutes } from './ipc/appHandlers'
 import { createCaptureRoutes } from './ipc/captureHandlers'
 import { createCanvasRoutes } from './ipc/canvasHandlers'
 import { createHistoryRoutes } from './ipc/historyHandlers'
+import { createHatchedRoutes } from './ipc/hatchedHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
@@ -191,7 +193,8 @@ export function bootstrap(shell: ShellPort): AppContext {
           blocks: new BlockRepository(database.db)
         })
       ),
-      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db)))
+      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
+      ...createHatchedRoutes(new HatchedRepository(database.db))
     ],
     logger,
     rendererFileUrl

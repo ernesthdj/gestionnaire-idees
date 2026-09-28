@@ -175,41 +175,75 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           batchId: demoId('batch', index)
         })
         .run()
-      if (nature === 'action') {
-        const tasks = ['Comparer trois options', 'Réserver ou commander', 'Faire le point'] as const
-        tasks.forEach((title, n) => {
-          tx.insert(planNodes)
-            .values({
-              id: demoId('task', index * 10 + n),
-              rootId,
-              synthesisId,
-              type: 'task',
-              title,
-              status: n === 0 ? 'ready' : 'blocked'
-            })
-            .run()
+      // Sous-neurones de l'idée (sources des points de synthèse, visibles en plongée).
+      const subs = ['budget : 250 €', 'échéance : ce mois-ci'].map((title, n) => {
+        const id = demoId('sub', index * 10 + n)
+        tx.insert(neurons)
+          .values({ id, rootId, parentId: rootId, depth: 1, kind: 'answer', title, origin: 'user' })
+          .run()
+        return id
+      })
+      const task = (n: number): string => demoId('task', index * 10 + n)
+      const node = (n: number, values: Omit<typeof planNodes.$inferInsert, 'id' | 'rootId' | 'synthesisId'>): void => {
+        tx.insert(planNodes)
+          .values({ id: task(n), rootId, synthesisId, ...values })
+          .run()
+      }
+      const dependency = (
+        n: number,
+        from: number,
+        to: number,
+        kind: 'after_done' | 'on_trigger',
+        triggerLabel: string | null = null
+      ): void => {
+        tx.insert(planDependencies)
+          .values({
+            id: demoId('dependency', index * 10 + n),
+            fromNodeId: task(from),
+            toNodeId: task(to),
+            kind,
+            triggerLabel
+          })
+          .run()
+      }
+      if (nature === 'action' && i % 4 === 0) {
+        // Plan complet : condition à deux branches, dépendance, déclencheur et opportunité.
+        node(0, { type: 'condition', title: 'J’ai le budget ?', question: 'Budget disponible ?', status: 'ready' })
+        node(1, {
+          type: 'task',
+          title: 'Commander maintenant',
+          parentId: task(0),
+          branchLabel: 'Oui',
+          amountCents: 25000,
+          status: 'blocked'
         })
-        for (let n = 1; n < tasks.length; n++) {
-          tx.insert(planDependencies)
-            .values({
-              id: demoId('dependency', index * 10 + n),
-              fromNodeId: demoId('task', index * 10 + n - 1),
-              toNodeId: demoId('task', index * 10 + n),
-              kind: 'after_done'
-            })
-            .run()
-        }
+        node(2, {
+          type: 'task',
+          title: 'Attendre la mission payée',
+          parentId: task(0),
+          branchLabel: 'Non',
+          status: 'blocked'
+        })
+        node(3, { type: 'task', title: 'Installer et tester', dueDate: '2026-10-31', status: 'blocked' })
+        node(4, { type: 'task', title: 'Commander après la mission', status: 'blocked' })
+        node(5, { type: 'opportunity', title: 'Revendre l’ancien matériel', amountCents: 8000, status: 'ready' })
+        dependency(1, 1, 3, 'after_done')
+        dependency(2, 2, 4, 'on_trigger', 'mission payée')
+      } else if (nature === 'action') {
+        const tasks = ['Comparer trois options', 'Réserver ou commander', 'Faire le point'] as const
+        tasks.forEach((title, n) => node(n, { type: 'task', title, status: n === 0 ? 'ready' : 'blocked' }))
+        for (let n = 1; n < tasks.length; n++) dependency(n, n - 1, n, 'after_done')
       } else {
         tx.insert(reflectionSummaries)
           .values({
             id: demoId('summary', index),
             rootId,
             synthesisId,
-            keyPointsJson: JSON.stringify(['Idée fictive de démonstration']),
-            decisionsJson: '[]',
-            prosJson: JSON.stringify(['Simple à essayer']),
-            consJson: '[]',
-            openQuestionsJson: JSON.stringify(['Quel budget ?'])
+            keyPointsJson: JSON.stringify([{ text: 'Idée fictive de démonstration', sourceIds: [subs[0]] }]),
+            decisionsJson: JSON.stringify([{ text: 'Essayer d’abord en petit', sourceIds: [subs[1]] }]),
+            prosJson: JSON.stringify([{ text: 'Simple à essayer', sourceIds: subs }]),
+            consJson: JSON.stringify([{ text: 'Demande un peu de temps', sourceIds: [] }]),
+            openQuestionsJson: JSON.stringify([{ text: 'Quel budget ?' }])
           })
           .run()
       }

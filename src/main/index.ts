@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, globalShortcut, Notification } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
@@ -9,7 +10,16 @@ import { WindowManager } from './shell/WindowManager'
 
 // Profil de démonstration (développement uniquement) : données FICTIVES dans un dossier séparé, jamais le vrai profil.
 const demoProfile = !app.isPackaged && process.argv.includes('--demo')
-if (demoProfile) app.setPath('userData', join(app.getPath('appData'), 'gestionnaire-idees-demo'))
+const demoData = join(app.getPath('appData'), 'gestionnaire-idees-demo')
+if (demoProfile) app.setPath('userData', demoData)
+
+/** `--reset` : repartir d'un jeu de démonstration neuf (uniquement ce dossier fictif, jamais le vrai profil). */
+function resetDemoProfile(): void {
+  if (!demoProfile || !process.argv.includes('--reset')) return
+  for (const entry of ['gestionnaire-idees.db', 'gestionnaire-idees.db-wal', 'gestionnaire-idees.db-shm']) {
+    rmSync(join(demoData, entry), { force: true })
+  }
+}
 
 // Refuse toute création de webview et toute demande de permission (caméra, micro, notifications web…).
 app.on('web-contents-created', (_event, contents) => {
@@ -24,6 +34,8 @@ function applyLaunchAtLogin(enabled: boolean): void {
 }
 
 function start(): void {
+  // Après l'obtention de l'instance unique : aucune autre app démo n'a la base ouverte.
+  resetDemoProfile()
   const windows = new WindowManager()
   let context: AppContext | undefined
   let tray: TrayController | undefined

@@ -254,7 +254,11 @@ export class GrowthService {
 
     let result = await attempt()
     if (!result.ok) return this.finish(rootId, { code: result.error.code, message: result.error.message })
-    if (result.value.data.kind === 'out_of_scope') {
+    // « Hors sujet » n'est retenu que sans aucune question, et jamais du modèle local de repli : il le déclare à tort
+    // pour des idées ordinaires (3 fois sur 5 au banc d'essai du 2026-09-29).
+    const outOfScope =
+      result.value.data.kind === 'out_of_scope' && result.value.data.extensions.length === 0 && !result.value.degraded
+    if (outOfScope) {
       return this.finish(rootId, {
         code: 'OUT_OF_SCOPE',
         message: result.value.data.outOfScopeMessage ?? 'Je reste un partenaire de réflexion : reformulons.'

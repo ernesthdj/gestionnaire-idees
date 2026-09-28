@@ -7,6 +7,7 @@ import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
 import { SynthesisPreview } from '../fusion/SynthesisPreview'
+import { HatchedPanel } from '../hatched/HatchedPanel'
 import { useFusion } from '../fusion/useFusion'
 import { call } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
@@ -158,6 +159,7 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
             pending={dive.pending}
             reduced={reduced}
             fusing={fusing}
+            hatched={model.root.state === 'hatched'}
             categoryColor={model.root.category?.color ?? '#71717a'}
             selectedExtensionId={selectedExtensionId}
             onOpen={(id) => goTo(id)}
@@ -172,6 +174,8 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
             <p role="status" className="p-4 text-sm text-content-muted">
               L’idée éclôt…
             </p>
+          ) : model.root.state === 'hatched' ? (
+            <HatchedPanel rootId={rootId} onOpenSource={(id) => goTo(id)} />
           ) : fusion.synthesis !== null ? (
             <SynthesisPreview fusion={fusion} onConfirmed={onConfirmed} />
           ) : (

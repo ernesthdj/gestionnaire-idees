@@ -92,6 +92,23 @@ describe('croissance d’un neurone (US1) et jauge (US2)', () => {
     expect(result.tree.extensions).toEqual([])
   })
 
+  it('should_keep_the_questions_when_the_ai_says_out_of_scope_but_still_asks_some', async () => {
+    const root = await t.neurons.create({ text: 'Préparer un deuxième écran', nature: 'action' })
+    t.h.claude.enqueue(
+      etendreReply(['Pour quel usage ?', 'Où l’installer ?', 'Quel budget ?'], 'insufficient', {
+        kind: 'out_of_scope',
+        outOfScopeMessage: 'Je ne produis pas de liste de produits.'
+      })
+    )
+    const result = await t.growth.develop(root.id)
+    expect(result.notice?.code).not.toBe('OUT_OF_SCOPE')
+    expect(result.tree.extensions.map((extension) => extension.question)).toEqual([
+      'Pour quel usage ?',
+      'Où l’installer ?',
+      'Quel budget ?'
+    ])
+  })
+
   it('should_keep_gauge_insufficient_before_three_answers_then_follow_the_ai', async () => {
     const { result } = await developed()
     const [a, b, c] = result.tree.extensions

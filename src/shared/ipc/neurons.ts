@@ -148,3 +148,51 @@ export interface SynthesisPatch {
   readonly dueDate?: string | null
   readonly text?: string
 }
+
+/** Tâche, condition ou opportunité du plan en cours d'une idée éclose Action. */
+export interface PlanNodeView {
+  readonly id: string
+  readonly parentId: string | null
+  readonly type: 'task' | 'condition' | 'opportunity'
+  readonly title: string
+  readonly question: string | null
+  readonly branchLabel: string | null
+  /** Branche retenue d'une condition (les autres sont grisées, réactivables). */
+  readonly activeBranch: boolean
+  readonly amountCents: number | null
+  readonly dueDate: string | null
+  readonly status: 'blocked' | 'ready' | 'in_progress' | 'done' | 'abandoned'
+  readonly investigation: boolean
+  readonly toSchedule: boolean
+}
+
+export interface PlanDependencyView {
+  readonly id: string
+  readonly fromNodeId: string
+  readonly toNodeId: string
+  readonly kind: 'after_done' | 'on_trigger'
+  readonly triggerLabel: string | null
+  readonly triggerReachedAt: string | null
+}
+
+export interface SourcedPointView {
+  readonly text: string
+  /** Sous-neurones d'où vient le point (peuvent avoir été supprimés depuis). */
+  readonly sources: readonly { readonly id: string; readonly title: string }[]
+}
+
+/** Résultat en cours d'une idée éclose : plan d'action ou synthèse de réflexion (spec 003 US5). */
+export type HatchedResultView =
+  | {
+      readonly type: 'action_plan'
+      readonly nodes: readonly PlanNodeView[]
+      readonly dependencies: readonly PlanDependencyView[]
+    }
+  | {
+      readonly type: 'reflection_summary'
+      readonly keyPoints: readonly SourcedPointView[]
+      readonly decisions: readonly SourcedPointView[]
+      readonly pros: readonly SourcedPointView[]
+      readonly cons: readonly SourcedPointView[]
+      readonly openQuestions: readonly { readonly text: string }[]
+    }

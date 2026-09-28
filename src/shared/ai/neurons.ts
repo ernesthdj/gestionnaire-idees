@@ -8,9 +8,25 @@ import { z } from 'zod'
 const Level = z.enum(['insufficient', 'sufficient', 'complete'])
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
+/**
+ * Tolérance aux sorties imparfaites (surtout du modèle local, dont Ollama n'impose pas les motifs) : on répare ce
+ * qui est réparable et on écarte seulement l'élément fautif au lieu de rejeter toute la réponse. Ces `preprocess`
+ * ne changent pas le schéma JSON transmis au modèle.
+ */
+function lenientList<T extends z.ZodType>(item: T, max: number) {
+  return z.preprocess(
+    (value) => (Array.isArray(value) ? value.filter((entry) => item.safeParse(entry).success).slice(0, max) : value),
+    z.array(item).max(max)
+  )
+}
+
+/** « [s2] » ou « s2 » → « s2 » : le modèle recopie parfois les crochets de la liste des neurones. */
+const unbracket = (value: unknown): unknown =>
+  typeof value === 'string' ? value.replace(/^\s*\[|\]\s*$/g, '').trim() : value
+
 export const Extension = z.object({
   question: z.string().min(1).max(300),
-  quickReplies: z.array(z.string().min(1).max(40)).max(4),
+  quickReplies: lenientList(z.string().min(1).max(40), 4),
   dimension: z.string().min(1).max(40),
   answerKind: z.enum(['answer', 'condition', 'opportunity']).optional()
 })
@@ -21,7 +37,7 @@ export type Extension = z.infer<typeof Extension>
  * `webQuery` demande une vérification sur le web (prix, disponibilité…) avant de la montrer comme sourcée.
  */
 export const SuggestionOut = z.object({
-  neuronRef: z.string().regex(/^s\d{1,3}$/),
+  neuronRef: z.preprocess(unbracket, z.string().regex(/^s\d{1,3}$/)),
   title: z.string().min(1).max(120),
   content: z.string().min(1).max(500),
   webQuery: z.string().min(3).max(200).optional()
@@ -32,25 +48,27 @@ export type SuggestionOut = z.infer<typeof SuggestionOut>
 export const EtendreOut = z.object({
   kind: z.enum(['extensions', 'out_of_scope']),
   outOfScopeMessage: z.string().min(1).max(300).optional(),
-  extensions: z.array(Extension).max(8),
-  suggestions: z.array(SuggestionOut).max(2),
+  extensions: lenientList(Extension, 8),
+  suggestions: lenientList(SuggestionOut, 2),
   assessment: z.object({
     level: Level,
-    covered: z.array(z.string().min(1).max(40)).max(12),
-    missing: z.array(z.string().min(1).max(40)).max(12)
+    covered: lenientList(z.string().min(1).max(40), 12),
+    missing: lenientList(z.string().min(1).max(40), 12)
   }),
+  // Facultative : une opportunité mal formée est ignorée plutôt que de faire rejeter les questions.
   detectedOpportunity: z
     .object({
       title: z.string().min(1).max(120),
-      amountCents: z.number().int().min(0).optional(),
-      expectedDate: IsoDate.optional()
+      amountCents: z.number().int().min(0).optional().catch(undefined),
+      expectedDate: IsoDate.optional().catch(undefined)
     })
     .optional()
+    .catch(undefined)
 })
 export type EtendreOut = z.infer<typeof EtendreOut>
 
 const Ref = z.string().regex(/^[a-z][a-z0-9]{0,15}$/)
-const SourceRefs = z.array(z.string().min(1).max(16)).max(20)
+const SourceRefs = z.array(z.preprocess(unbracket, z.string().min(1).max(16))).max(20)
 
 export const ActionPlanOut = z.object({
   nodes: z

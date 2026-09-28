@@ -50,4 +50,18 @@ describe('mode dégradé du moteur de neurones', () => {
     const proposal = await t.fusion.lock({ rootId: tree.root.id, force: true })
     expect(proposal).toMatchObject({ status: 'proposed', degraded: true, forced: true })
   })
+
+  it('should_ignore_an_out_of_scope_verdict_from_the_local_fallback_and_retry_for_questions', async () => {
+    t.h.claude.setAvailable(false)
+    t.h.ollama.setAvailable(true)
+    // La création lance d'abord la catégorisation locale.
+    t.h.ollama.enqueue({ raw: { categorySlug: 'it', nature: 'action' } })
+    const root = await t.neurons.create({ text: 'Préparer un deuxième écran', nature: 'action' })
+    await t.neurons.settled()
+    t.h.ollama.enqueue(etendreReply([], 'insufficient', { kind: 'out_of_scope', outOfScopeMessage: 'Hors sujet.' }))
+    t.h.ollama.enqueue(etendreReply(['Pour quel usage ?', 'Où l’installer ?', 'Quel budget ?']))
+    const result = await t.growth.develop(root.id)
+    expect(result.notice?.code).not.toBe('OUT_OF_SCOPE')
+    expect(result.tree.extensions).toHaveLength(3)
+  })
 })

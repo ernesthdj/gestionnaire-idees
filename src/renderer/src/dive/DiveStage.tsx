@@ -36,6 +36,8 @@ interface DiveStageProps {
   readonly reduced: boolean
   /** Confirmation en cours : tout se résorbe vers le neurone central, qui prend l'aspect éclos. */
   readonly fusing: boolean
+  /** Idée éclose : le neurone central garde l'aspect éclos (double anneau + halo). */
+  readonly hatched: boolean
   readonly categoryColor: string
   readonly selectedExtensionId: string | null
   readonly onOpen: (neuronId: string) => void
@@ -171,7 +173,7 @@ export function DiveStage(props: DiveStageProps): React.JSX.Element {
           ref={focusNode}
           tabIndex={-1}
           aria-label={props.fusing ? `${model.focus.title} éclôt` : `Neurone ciblé : ${model.focus.title}`}
-          className={`dive-node dive-node-focus absolute ${props.fusing ? 'dive-node-hatched' : ''}`}
+          className={`dive-node dive-node-focus absolute ${props.fusing || (props.hatched && model.parent === null) ? 'dive-node-hatched' : ''}`}
           style={at({ x: 0, y: 0 }, 112)}
           animate={props.fusing && hatchTiming.movement ? { scale: [1, 1.15, 1] } : { scale: 1 }}
           transition={{ delay: fusion.duration / 1000, duration: hatchTiming.duration / 1000 }}

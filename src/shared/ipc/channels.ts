@@ -52,7 +52,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'canvas:updateBlock',
   'canvas:deleteBlock',
   'history:list',
-  'history:undo'
+  'history:undo',
+  'hatched:get'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

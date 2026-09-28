@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "bench:local": "tsx scripts/bench-local-model.ts",
-    "seed:demo": "electron-vite dev -- --demo"
+    "seed:demo": "electron-vite dev -- --demo",
+    "seed:demo:reset": "electron-vite dev -- --demo --reset"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",
