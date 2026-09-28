@@ -72,19 +72,26 @@ export function amountBand(value: number): string {
   return '>2500 €'
 }
 
+export interface RuleOptions {
+  /** Montants → fourchettes. Réglage utilisateur (constitution v1.1.0) ; activé si non précisé. */
+  readonly maskAmounts?: boolean
+}
+
 /** Liens, e-mails, IBAN, téléphones, montants, adresses puis codes postaux — ordre choisi contre les chevauchements. */
-export function applyDeterministicRules(text: string): string {
-  return text
+export function applyDeterministicRules(text: string, options: RuleOptions = {}): string {
+  const identifiers = text
     .replace(URL_PATTERN, '[lien]')
     .replace(EMAIL_PATTERN, '[e-mail]')
     .replace(IBAN_PATTERN, '[IBAN]')
     .replace(PHONE_PATTERN, '[téléphone]')
-    .replace(AMOUNT_PATTERN, (_match, prefixed: string | undefined, suffixed: string | undefined) => {
-      const value = parseAmount(prefixed ?? suffixed ?? '0')
-      return Number.isFinite(value) ? `[montant ${amountBand(value)}]` : '[montant]'
-    })
-    .replace(ADDRESS_PATTERN, '[adresse]')
-    .replace(POSTCODE_PATTERN, '[lieu]')
+  const amounts =
+    options.maskAmounts === false
+      ? identifiers
+      : identifiers.replace(AMOUNT_PATTERN, (_match, prefixed: string | undefined, suffixed: string | undefined) => {
+          const value = parseAmount(prefixed ?? suffixed ?? '0')
+          return Number.isFinite(value) ? `[montant ${amountBand(value)}]` : '[montant]'
+        })
+  return amounts.replace(ADDRESS_PATTERN, '[adresse]').replace(POSTCODE_PATTERN, '[lieu]')
 }
 
 /** Montants en euros écrits dans le texte (même reconnaissance que l'anonymisation), en valeur numérique. */

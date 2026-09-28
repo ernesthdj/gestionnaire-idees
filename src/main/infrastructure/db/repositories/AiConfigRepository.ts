@@ -20,6 +20,8 @@ export const AiConfigSchema = z.object({
   claudeModel: z.string().min(1).max(60).default('claude-opus-5'),
   localModel: z.string().min(1).max(80).default('qwen3.5:9b'),
   allowClaudeFallback: z.boolean().default(false),
+  /** Montants exacts envoyés à Claude par défaut (choix de mentalyas, constitution v1.1.0). */
+  maskAmounts: z.boolean().default(false),
   routing: z.record(TaskKind, Engine).default({ ...DEFAULT_ROUTING })
 })
 export type AiConfig = z.infer<typeof AiConfigSchema>

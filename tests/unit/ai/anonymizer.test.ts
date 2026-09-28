@@ -35,6 +35,15 @@ describe('Anonymizer', () => {
     await expect(anonymizer.anonymize('Karim paiera 250 €')).resolves.toBe('[nom] paiera [montant 100-500 €]')
   })
 
+  it('should_keep_exact_amounts_when_masking_is_off_but_still_hide_contacts', async () => {
+    let masking = false
+    const anonymizer = new Anonymizer({ detectSensitive: async () => null, maskAmounts: () => masking })
+    const text = 'budget 1 249,50 € — écrire à a.b@example.com'
+    await expect(anonymizer.anonymize(text)).resolves.toBe('budget 1 249,50 € — écrire à [e-mail]')
+    masking = true // le réglage est relu à chaque appel
+    await expect(anonymizer.anonymize(text)).resolves.toBe('budget [montant 1000-2500 €] — écrire à [e-mail]')
+  })
+
   it('should_apply_rules_before_asking_local_ai_so_it_never_sees_contacts', async () => {
     const seen: string[] = []
     const anonymizer = new Anonymizer({

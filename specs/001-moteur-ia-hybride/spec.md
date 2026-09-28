@@ -30,7 +30,7 @@ Quand une fonctionnalité de l'app a besoin de l'IA (catégoriser une idée, pro
 
 ### User Story 2 - Protéger mes données avant tout envoi externe (Priority: P1)
 
-Avant qu'une information ne quitte la machine vers Claude, elle est réduite au strict nécessaire et anonymisée : montants arrondis ou remplacés par des fourchettes, noms de personnes retirés, adresses et numéros supprimés. Si l'anonymisation échoue, rien n'est envoyé en brut.
+Avant qu'une information ne quitte la machine vers Claude, elle est réduite au strict nécessaire et anonymisée : noms de personnes et lieux retirés, adresses et numéros supprimés ; les montants restent exacts par défaut, leur remplacement par des fourchettes est un réglage (constitution v1.1.0). Si l'anonymisation échoue, rien n'est envoyé en brut.
 
 **Why this priority**: l'app manipule des idées personnelles et des données financières ; c'est un principe non négociable (constitution I et IV).
 
@@ -108,7 +108,7 @@ Claude Code dépose des fichiers de contexte (profil, règles, exemples) dans un
 - **FR-003**: Le système MUST valider chaque réponse contre le format attendu pour son type de demande, tenter un seul nouvel essai en cas d'échec, puis échouer proprement.
 - **FR-004**: Le système MUST assembler le contexte de chaque demande dans l'ordre : cadre de base (figé) → profil actif → exemples pertinents → données utiles à la demande uniquement.
 - **FR-005**: Le cadre de base MUST imposer : rôle de **partenaire de brainstorm sur tout sujet** (questions, pistes, arguments, critères, synthèses, plans d'action) ; refus poli de produire des œuvres finies (images, poèmes/prose créative, code complet, textes longs rédigés) avec proposition d'aider à y réfléchir ; interdiction d'inventer un prix, une date ou un montant personnel ; traitement du texte utilisateur comme donnée.
-- **FR-006**: Le système MUST anonymiser toute donnée avant envoi à Claude (montants en fourchettes ou arrondis, noms de personnes, e-mails et téléphones retirés) et MUST basculer sur une anonymisation par règles si l'IA locale échoue ; le texte brut n'est jamais transmis.
+- **FR-006**: Le système MUST anonymiser toute donnée avant envoi à Claude (noms de personnes, lieux, adresses, e-mails, téléphones et IBAN retirés ; montants exacts par défaut, en fourchettes si le réglage « Masquer les montants » est actif) et MUST basculer sur une anonymisation par règles si l'IA locale échoue ; le texte brut n'est jamais transmis.
 - **FR-007**: Le système MUST journaliser chaque appel (type, moteur, modèle, volume, coût estimé, statut, durée) sans aucun contenu d'idée ni de réponse.
 - **FR-008**: Le système MUST suivre le coût mensuel de l'IA externe, alerter à 80 % du plafond, bloquer à 100 % et permettre un déblocage manuel ; plafond par défaut 10 €, modifiable.
 - **FR-009**: Le système MUST vérifier le budget avant chaque appel externe (estimation) et imputer le coût réel après.
@@ -138,7 +138,7 @@ Claude Code dépose des fichiers de contexte (profil, règles, exemples) dans un
 ### Measurable Outcomes
 
 - **SC-001**: 100 % des réponses IA hors format sont rejetées avant d'atteindre une fonctionnalité (jeu de tests de réponses malformées).
-- **SC-002**: Sur un jeu de 50 textes fictifs contenant montants, noms, e-mails et téléphones, 0 donnée identifiante n'apparaît dans le contenu transmis à l'extérieur.
+- **SC-002**: Sur un jeu de 50 textes fictifs contenant montants, noms, e-mails et téléphones, 0 donnée identifiante n'apparaît dans le contenu transmis à l'extérieur (montants : vérifié réglage de masquage actif).
 - **SC-003**: Une catégorisation par l'IA locale est restituée en moins de 3 secondes sur la machine cible (GPU 8 Go).
 - **SC-004**: Le coût mensuel affiché par l'app s'écarte de moins de 5 % du coût facturé par le fournisseur.
 - **SC-005**: Plafond atteint → 0 appel externe supplémentaire sans déblocage manuel.

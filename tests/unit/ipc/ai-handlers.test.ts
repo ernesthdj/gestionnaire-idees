@@ -65,6 +65,10 @@ describe('canaux ai:*', () => {
         data: { capCents: 2000, claudeModel: 'claude-sonnet-5' }
       }
     )
+    await expect(h.dispatch('ai:getConfig', undefined)).resolves.toMatchObject({ data: { maskAmounts: false } })
+    await expect(h.dispatch('ai:setConfig', { maskAmounts: true })).resolves.toMatchObject({
+      data: { maskAmounts: true }
+    })
     await expect(h.dispatch('ai:setConfig', { routing: {} })).resolves.toMatchObject({ error: { code: 'VALIDATION' } })
     await expect(h.dispatch('ai:setConfig', { claudeModel: 'gpt-5' })).resolves.toMatchObject({
       error: { code: 'VALIDATION' }

@@ -1,6 +1,11 @@
 <!--
 Sync Impact Report
-- Version change: (template) → 1.0.0
+- Version change: 1.0.0 → 1.1.0 (2026-09-28, validé par mentalyas)
+- Modified principles: III (suggestions de valeurs par l'IA, sourcées et soumises à acceptation),
+  IV (montants exacts par défaut, masquage en fourchettes devenu un réglage)
+- Motif : calculs sur montants exacts ; suggestions d'approfondissement (neurones fantômes, recherche web)
+- Impact : spec 001 FR-006/SC-002, spec 002 (user story Suggestions), spec 003 (neurones fantômes)
+- Historique : (template) → 1.0.0
 - Modified principles: n/a (première ratification)
 - Added sections: Core Principles I–VI, Contraintes techniques, Workflow de développement, Governance
 - Removed sections: aucune
@@ -37,8 +42,10 @@ Rationale : une IA peut se tromper ; l'utilisateur reste maître de son agenda (
 - Tout appel IA MUST passer par l'unique `AIGateway` (routage, contexte, budget, validation, journal) ;
   aucun appel direct à Ollama ou à l'API Anthropic ailleurs.
 - Toute réponse IA MUST être validée par un schéma avant usage ; une réponse invalide est rejetée.
-- L'agent MUST NOT inventer un prix, une date ou un montant : il demande, ou crée une tâche
-  d'investigation. Les demandes hors périmètre sont refusées et recentrées.
+- L'agent MUST NOT écrire de lui-même un prix, une date ou un montant dans les données : il demande,
+  crée une tâche d'investigation, ou le PROPOSE comme suggestion clairement signalée (neurone fantôme),
+  sourcée quand elle vient du web ; la valeur n'entre dans les données qu'après acceptation de
+  l'utilisateur. Les demandes hors périmètre sont refusées et recentrées.
 - Le texte utilisateur MUST être transmis comme donnée délimitée, jamais comme instruction ; le cadre
   système est figé dans le code et ne peut pas être remplacé par un import de contexte.
 - Le contexte importé (profil, règles, exemples) MUST passer par un aperçu validé par l'utilisateur,
@@ -49,8 +56,10 @@ Rationale : limiter hallucinations et injections de prompt, garder l'agent dans 
 - Les données MUST rester sur la machine (SQLite chiffré dans `%APPDATA%/gestionnaire-idees/`).
 - L'IA locale MUST traiter par défaut les tâches simples ; Claude n'est appelé que pour le raisonnement
   profond.
-- Avant tout envoi à Claude, les données MUST être minimisées et anonymisées (alias, bandes de montants,
-  noms de personnes retirés) ; en cas d'échec de l'anonymisation, rien n'est envoyé en brut.
+- Avant tout envoi à Claude, les données MUST être minimisées et anonymisées (alias ; noms de personnes,
+  lieux, adresses, e-mails, téléphones et IBAN retirés) ; en cas d'échec de l'anonymisation, rien n'est
+  envoyé en brut. Les montants sont transmis exacts par défaut (calculs) ; leur remplacement par des
+  fourchettes est un réglage utilisateur.
 - La capture d'une idée MUST fonctionner sans aucune IA disponible (aucune idée perdue).
 - Le coût API MUST être journalisé et plafonné (plafond mensuel configurable, 10 € par défaut).
 Rationale : confidentialité, fonctionnement hors ligne, maîtrise du coût.
@@ -115,4 +124,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-28
+**Version**: 1.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-28

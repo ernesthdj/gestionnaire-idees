@@ -32,6 +32,7 @@ export interface AiConfigView {
   readonly claudeModel: string
   readonly localModel: string
   readonly allowClaudeFallback: boolean
+  readonly maskAmounts: boolean
 }
 
 export interface AiTestView {

@@ -27,7 +27,15 @@ export function AiSettingsPage(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [tests, setTests] = useState<Partial<Record<'ollama' | 'claude', AiTestView>>>({})
   const [confirmUnlock, setConfirmUnlock] = useState(false)
-  const ids = { key: useId(), cap: useId(), model: useId(), local: useId(), fallback: useId(), unlock: useId() }
+  const ids = {
+    key: useId(),
+    cap: useId(),
+    model: useId(),
+    local: useId(),
+    fallback: useId(),
+    masking: useId(),
+    unlock: useId()
+  }
 
   const refresh = useCallback(async (): Promise<void> => {
     const [statusResult, configResult] = await Promise.all([
@@ -241,6 +249,26 @@ export function AiSettingsPage(): React.JSX.Element {
           />
           <label htmlFor={ids.fallback} className="text-sm">
             Si l&apos;IA locale est arrêtée, utiliser Claude à sa place (données anonymisées, coût facturé)
+          </label>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            id={ids.masking}
+            type="checkbox"
+            checked={config.maskAmounts}
+            disabled={busy}
+            onChange={(event) =>
+              void saveConfig(
+                { maskAmounts: event.target.checked },
+                event.target.checked
+                  ? 'Montants masqués : Claude ne verra que des fourchettes.'
+                  : 'Montants exacts transmis à Claude.'
+              )
+            }
+            className="size-4"
+          />
+          <label htmlFor={ids.masking} className="text-sm">
+            Masquer les montants envoyés à Claude (fourchettes au lieu des valeurs exactes, calculs impossibles)
           </label>
         </div>
       </Section>

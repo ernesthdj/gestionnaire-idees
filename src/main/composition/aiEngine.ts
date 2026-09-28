@@ -105,7 +105,10 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     }
   })
 
-  anonymizerRef.current = new Anonymizer({ detectSensitive: sensitiveDetectorFrom(gateway) })
+  anonymizerRef.current = new Anonymizer({
+    detectSensitive: sensitiveDetectorFrom(gateway),
+    maskAmounts: () => config.get().maskAmounts
+  })
 
   const localQueue = new LocalQueue({
     repository: new PendingRequestRepository(options.db),

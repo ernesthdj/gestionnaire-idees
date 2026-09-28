@@ -43,7 +43,8 @@ function configView(config: AiConfig): AiConfigView {
     usdEurRate: config.usdEurRate,
     claudeModel: config.claudeModel,
     localModel: config.localModel,
-    allowClaudeFallback: config.allowClaudeFallback
+    allowClaudeFallback: config.allowClaudeFallback,
+    maskAmounts: config.maskAmounts
   }
 }
 
@@ -58,7 +59,8 @@ const ConfigPatch = z
       .min(1)
       .max(80)
       .regex(/^[\w.:/-]+$/),
-    allowClaudeFallback: z.boolean()
+    allowClaudeFallback: z.boolean(),
+    maskAmounts: z.boolean()
   })
   .partial()
   .strict()
