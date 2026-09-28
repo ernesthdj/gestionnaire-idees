@@ -113,4 +113,26 @@ describe('AIGateway — routage, file, journal', () => {
     )
     expect(maxActive).toBe(1)
   })
+
+  it('should_run_degraded_locally_when_budget_is_exhausted_and_degraded_allowed', async () => {
+    const h = createGatewayHarness({
+      budget: { check: async () => ({ allowed: false }), record: async () => undefined }
+    })
+    h.ollama.enqueue({ raw: { answer: 'local' } })
+    const result = await h.gateway.run({ kind: 'etendre', input: 'x', schema: Echo, allowDegraded: true })
+    expect(result).toMatchObject({ ok: true, value: { engine: 'ollama', degraded: true } })
+    expect(h.claude.requests).toHaveLength(0)
+  })
+
+  it('should_record_spend_after_the_call_is_logged_so_totals_include_it', async () => {
+    const order: string[] = []
+    const h = createGatewayHarness({
+      costOf: () => 1234,
+      callLog: { record: async () => void order.push('log') },
+      budget: { check: async () => ({ allowed: true }), record: async () => void order.push('budget') }
+    })
+    h.claude.enqueue({ raw: { answer: 'ok' } })
+    await h.gateway.run({ kind: 'synthetiser', input: 'x', schema: Echo })
+    expect(order).toEqual(['log', 'budget'])
+  })
 })

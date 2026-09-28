@@ -28,7 +28,8 @@ export interface Anonymizer {
 /** Plafond de dépense de l'IA externe (US3). */
 export interface BudgetGuard {
   check(kind: TaskKind): Promise<{ readonly allowed: boolean }>
-  record(costMillicents: number): Promise<void>
+  /** Appelé après journalisation d'un appel Claude : réévalue le total du mois (alerte). */
+  record(): Promise<void>
 }
 
 export type CallStatus = 'ok' | 'invalid' | 'error' | 'refusal' | 'blocked_budget'

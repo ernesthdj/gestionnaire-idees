@@ -48,7 +48,7 @@ export class FakeProvider implements AIProvider {
       parsed: parsed.success ? parsed.data : null,
       stopReason: reply.stopReason ?? 'end_turn',
       model: 'fake-model',
-      usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, ...reply.usage }
+      usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0, ...reply.usage }
     }
   }
 }

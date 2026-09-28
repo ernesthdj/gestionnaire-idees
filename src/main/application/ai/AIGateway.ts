@@ -168,41 +168,30 @@ export class AIGateway {
       }
 
       const cost = this.deps.costOf(engine, response.model, response.usage)
-      if (engine === 'claude') await this.deps.budget.record(cost)
-      const duration = Date.now() - started
-
-      if (response.stopReason === 'refusal') {
-        await this.log(
-          requestId,
-          request.kind,
-          engine,
-          response.model,
-          response.usage,
-          'refusal',
-          duration,
-          'AI_REFUSAL',
-          cost
-        )
-        return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
-      }
-      if (response.parsed !== null) {
-        await this.log(requestId, request.kind, engine, response.model, response.usage, 'ok', duration, undefined, cost)
-        return {
-          ok: true,
-          value: { data: response.parsed, engine, model: response.model, degraded, costMillicents: cost }
-        }
-      }
+      const refused = response.stopReason === 'refusal'
+      const status: CallStatus = refused ? 'refusal' : response.parsed === null ? 'invalid' : 'ok'
+      const errorCode = refused ? 'AI_REFUSAL' : status === 'invalid' ? 'AI_INVALID_OUTPUT' : undefined
+      // Journaliser d'abord : le total du mois utilisé par le budget inclut alors cet appel.
       await this.log(
         requestId,
         request.kind,
         engine,
         response.model,
         response.usage,
-        'invalid',
-        duration,
-        'AI_INVALID_OUTPUT',
+        status,
+        Date.now() - started,
+        errorCode,
         cost
       )
+      if (engine === 'claude') await this.deps.budget.record()
+
+      if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
+      if (response.parsed !== null) {
+        return {
+          ok: true,
+          value: { data: response.parsed, engine, model: response.model, degraded, costMillicents: cost }
+        }
+      }
     }
     return failure('AI_INVALID_OUTPUT', "La réponse de l'IA ne respectait pas le format attendu")
   }
@@ -229,7 +218,7 @@ export class AIGateway {
       kind,
       engine,
       model,
-      usage: usage ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 },
+      usage: usage ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
       costMillicents,
       status,
       durationMs,

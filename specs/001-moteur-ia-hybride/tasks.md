@@ -112,14 +112,14 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T034 [P] [US3] Tests de calcul de coût (grille par modèle, lecture de cache, taux USD→EUR, millicentimes) dans `tests/unit/ai/cost.test.ts`
-- [ ] T035 [P] [US3] Tests `BudgetGuard` (états normal/alerte/bloqué/débloqué, nouveau mois, coût réel > estimation) dans `tests/unit/ai/budget.test.ts`
+- [x] T034 [P] [US3] Tests de calcul de coût (grille par modèle, lecture de cache, taux USD→EUR, millicentimes) dans `tests/unit/ai/cost.test.ts`
+- [x] T035 [P] [US3] Tests `BudgetGuard` (états normal/alerte/bloqué/débloqué, nouveau mois, coût réel > estimation) dans `tests/unit/ai/budget.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T036 [P] [US3] Calcul de coût pur dans `src/main/domain/ai/cost.ts`
-- [ ] T037 [US3] `BudgetGuard` (estimation pré-appel, imputation post-appel, événement `ai:budgetAlert`) dans `src/main/application/ai/BudgetGuard.ts`
-- [ ] T038 [US3] Intégrer `BudgetGuard` et la version locale dégradée (`allowDegraded`, drapeau `degraded`) dans `src/main/application/ai/AIGateway.ts`
+- [x] T036 [P] [US3] Calcul de coût pur dans `src/main/domain/ai/cost.ts`
+- [x] T037 [US3] `BudgetGuard` (estimation pré-appel, imputation post-appel, événement `ai:budgetAlert`) dans `src/main/application/ai/BudgetGuard.ts`
+- [x] T038 [US3] Intégrer `BudgetGuard` et la version locale dégradée (`allowDegraded`, drapeau `degraded`) dans `src/main/application/ai/AIGateway.ts`
 
 **Checkpoint**: SC-004/SC-005 vérifiables
 

@@ -54,7 +54,10 @@ void app.whenReady().then(() => {
   })
 })
 
-app.on('will-quit', () => context?.database.close())
+app.on('will-quit', () => {
+  context?.ai.stop()
+  context?.database.close()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

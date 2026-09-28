@@ -29,4 +29,6 @@ export interface Usage {
   readonly inputTokens: number
   readonly outputTokens: number
   readonly cacheReadTokens: number
+  /** Tokens écrits en cache (facturés ~1,25× le prix d'entrée). */
+  readonly cacheWriteTokens: number
 }

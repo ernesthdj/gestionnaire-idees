@@ -12,6 +12,7 @@
 | 7 | Ne jamais trier une file par horodatage + identifiant aléatoire : deux insertions dans la même milliseconde donnent un ordre non déterministe → trier par `rowid` | `PendingRequestRepository.ts` | 2026-09-28 |
 | 8 | Une tâche qui traite des données brutes (anonymisation) doit être « strictement locale » par construction, pas seulement par configuration | `routing.ts`, `AIGateway.ts` | 2026-09-28 |
 | 9 | L'outil d'écriture transforme les échappements Unicode d'espaces insécables en caractères invisibles (rejetés par ESLint) : utiliser la classe `\s`, qui les couvre déjà | `anonymizationRules.ts` | 2026-09-28 |
+| 10 | Coût Claude : compter aussi les tokens d'ÉCRITURE en cache (~1,25× l'entrée) et tarifer le modèle réellement servi (bascule serveur), sinon le budget sous-estime | `cost.ts`, `aiEngine.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -79,4 +80,8 @@
 ### [2026-09-28 14:55] SECURITY — anonymisation des lieux et adresses (demande de mentalyas)
 **Fichiers :** `src/main/domain/ai/anonymizationRules.ts`, `src/main/application/ai/Anonymizer.ts`, `src/shared/ai/schemas.ts` (`SensitiveOut`), tests (112 au total)
 **Résumé :** Couche 1 : adresses postales (numéro optionnel + type de voie : rue, avenue, chaussée, boulevard… + nom propre + numéro optionnel) → `[adresse]` ; codes postaux BE (4 chiffres) / FR (5 chiffres) + localité → `[lieu]`. Couche 2 : l'IA locale liste aussi les lieux (villes, quartiers, établissements) → `[lieu]` ; remplacement générique du plus long au plus court (« Citadelle de Namur » avant « Namur »).
+
+### [2026-09-28 15:15] FEAT — budget IA et assemblage du moteur (spec 001 US3 : T034-T038)
+**Fichiers :** `src/main/domain/ai/cost.ts`, `src/main/application/ai/BudgetGuard.ts`, `src/main/infrastructure/db/repositories/{AiConfigRepository,AiCallRepository}.ts`, migration `0001_cache_write_tokens` (+ down), `src/main/composition/aiEngine.ts`, `src/main/bootstrap.ts`, `src/main/index.ts`, tests (138 au total)
+**Résumé :** Coût réel en millicentimes d'euro (entrée, sortie, lecture ET écriture de cache ; taux USD→EUR configurable ; modèle de bascule tarifé). BudgetGuard : blocage si dépense du mois + majorant de l'appel > plafond (10 € par défaut), déblocage manuel valable pour le mois en cours seulement, alerte unique par mois dès 80 %. Passerelle réordonnée : journal puis budget (le total inclut l'appel). Configuration IA = document JSON validé Zod avec valeurs par défaut (plafond, seuil, modèles, routage, repli). Moteur IA complet assemblé au démarrage (Ollama, Claude, anonymiseur, budget, file locale sondée toutes les 30 s).
 

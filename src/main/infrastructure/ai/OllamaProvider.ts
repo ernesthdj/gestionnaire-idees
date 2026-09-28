@@ -100,7 +100,8 @@ export class OllamaProvider implements AIProvider {
       usage: {
         inputTokens: chat.data.prompt_eval_count ?? 0,
         outputTokens: chat.data.eval_count ?? 0,
-        cacheReadTokens: 0
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0
       }
     }
   }
