@@ -1,0 +1,48 @@
+/**
+ * Garde-fous déterministes de la croissance (spec 002 contracts/ai-outputs.md E1–E4) :
+ * l'IA propose, l'application garantit les règles.
+ */
+
+/** Minimum d'extensions exigé au premier développement d'un neurone (E1). */
+export const MIN_EXTENSIONS = 3
+/** Au-delà de cette profondeur, l'IA ne propose plus d'extension sur le chemin (E3). */
+export const MAX_AI_DEPTH = 6
+/** Nombre de réponses sous lequel la jauge reste « insuffisant » (E4). */
+export const GAUGE_FLOOR_ANSWERS = 3
+
+export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
+
+interface ProposedExtension {
+  readonly question: string
+}
+
+/** Forme comparable d'une question : minuscules, sans accents, ponctuation ni espaces superflus. */
+export function normalizeQuestion(question: string): string {
+  return question
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+}
+
+/** Retire les questions déjà posées, répondues ou écartées, et les doublons internes (E2). */
+export function filterNewExtensions<T extends ProposedExtension>(
+  proposed: readonly T[],
+  known: readonly string[]
+): T[] {
+  const seen = new Set(known.map(normalizeQuestion))
+  const kept: T[] = []
+  for (const extension of proposed) {
+    const key = normalizeQuestion(extension.question)
+    if (key === '' || seen.has(key)) continue
+    seen.add(key)
+    kept.push(extension)
+  }
+  return kept
+}
+
+/** Plancher de la jauge : jamais « suffisant » avant 3 réponses, quoi qu'en dise l'IA (E4). */
+export function applyGaugeFloor(aiLevel: GaugeLevel, answered: number): GaugeLevel {
+  return answered < GAUGE_FLOOR_ANSWERS ? 'insufficient' : aiLevel
+}

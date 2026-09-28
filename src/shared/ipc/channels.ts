@@ -21,13 +21,25 @@ export const MAIN_WINDOW_CHANNELS = [
   'neuron:list',
   'neuron:getTree',
   'neuron:update',
-  'neuron:archive'
+  'neuron:archive',
+  'neuron:delete',
+  'growth:develop',
+  'growth:answer',
+  'growth:more',
+  'growth:dismiss',
+  'growth:addBranch'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
 
 /** Événements poussés du processus principal vers la fenêtre principale. */
-export const MAIN_WINDOW_EVENTS = ['ai:budgetAlert', 'context:newImport'] as const
+export const MAIN_WINDOW_EVENTS = [
+  'ai:budgetAlert',
+  'context:newImport',
+  'neuron:created',
+  'neuron:thinking',
+  'neuron:thought'
+] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]
 

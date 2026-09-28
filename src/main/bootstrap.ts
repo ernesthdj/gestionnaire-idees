@@ -3,12 +3,14 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
+import { GrowthService } from './application/neurons/GrowthService'
 import { NeuronService } from './application/neurons/NeuronService'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
 import { resolveOllamaUrl } from './infrastructure/ai/OllamaProvider'
 import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
 import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
+import { GrowthRepository } from './infrastructure/db/repositories/GrowthRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
@@ -16,6 +18,7 @@ import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { appRoutes } from './ipc/appHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
+import { createGrowthRoutes } from './ipc/growthHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import type { MainWindowEvent } from '@shared/ipc/channels'
@@ -102,13 +105,19 @@ export function bootstrap(): AppContext {
   })
   const neurons = new NeuronService({ repository: new NeuronRepository(database.db), gateway: ai.gateway })
   neuronsRef.current = neurons
+  const growth = new GrowthService({
+    repository: new GrowthRepository(database.db),
+    neurons,
+    gateway: ai.gateway,
+    emit: (event) => broadcast(event.type, event)
+  })
 
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
   registerRoutes(
     ipcMain,
-    [...appRoutes, ...aiRoutes, ...contextRoutes, ...createNeuronRoutes(neurons)],
+    [...appRoutes, ...aiRoutes, ...contextRoutes, ...createNeuronRoutes(neurons), ...createGrowthRoutes(growth)],
     logger,
     rendererFileUrl
   )

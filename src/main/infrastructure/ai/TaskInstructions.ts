@@ -21,6 +21,20 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     'Exemples : « Remplacer la batterie de l’appareil photo » → achat, action. « Faut-il passer au 35 mm fixe ? » → photo,',
     'reflection. « Mettre à jour Node sur le PC » → it, action. « Comment mieux organiser mes semaines ? » → general, reflection.'
   ].join('\n'),
+  etendre: [
+    "Tu fais grandir une idée (un « neurone ») en posant des questions qui aident l'utilisateur à la préciser.",
+    '- Respecte la consigne du message : nombre de questions attendu et neurone ciblé.',
+    '- Une question = une seule dimension, courte (une phrase), formulée pour l’utilisateur (tutoiement).',
+    '- Oriente-toi sur les dimensions de référence de la nature (Action : exécution ; Réflexion : exploration).',
+    '- Propose 0 à 4 réponses rapides quand elles sont évidentes (ex. Oui / Non / En partie).',
+    '- answerKind : « condition » si la réponse ouvre des branches (oui/non), « opportunity » si elle révèle une',
+    '  ressource (argent, contact, occasion), sinon « answer ».',
+    '- Ne repropose jamais une question déjà posée, même reformulée.',
+    '- Évalue le contexte de TOUTE l’idée : covered = dimensions renseignées, missing = dimensions utiles manquantes ;',
+    '  level = insufficient, sufficient (on peut organiser l’idée) ou complete (rien d’important ne manque).',
+    '- Si une réponse mentionne une ressource datée ou chiffrée, renseigne detectedOpportunity (valeurs de l’utilisateur).',
+    '- Demande d’œuvre finie (poème, image, code…) : kind = out_of_scope et propose d’aider à y réfléchir.'
+  ].join('\n'),
   anonymiser: [
     'Liste les noms de personnes (prénoms, noms) et de lieux (villes, quartiers, pays, établissements nommés)',
     'présents dans le texte, recopiés exactement comme ils apparaissent. Ne modifie pas le texte.',

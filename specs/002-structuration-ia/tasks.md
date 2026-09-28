@@ -40,14 +40,14 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 ## Phase 3: User Story 1 — Croissance (Priority: P1) 🎯 MVP
 
 ### Tests ⚠️
-- [ ] T010 [P] [US1] Garde-fous E1–E3 (≥ 3 au démarrage + retry + repli, doublons, profondeur 6), cascade, idempotence `from_extension_id` dans `tests/unit/neurons/growth.test.ts`
-- [ ] T011 [P] [US1] Intégration : develop → answer ×2 → addBranch → dismiss → more ; persistance après redémarrage simulé ; `out_of_scope` → message et aucune extension ; `ALREADY_ANSWERED` ; **le sous-neurone est persisté et renvoyé (événement) avant l'appel IA** *(analyse C1)* dans `tests/integration/neurons/growth.test.ts`
+- [x] T010 [P] [US1] Garde-fous E1–E3 (≥ 3 au démarrage + retry + repli, doublons, profondeur 6), cascade, idempotence `from_extension_id` dans `tests/unit/neurons/growth.test.ts`
+- [x] T011 [P] [US1] Intégration : develop → answer ×2 → addBranch → dismiss → more ; persistance après redémarrage simulé ; `out_of_scope` → message et aucune extension ; `ALREADY_ANSWERED` ; **le sous-neurone est persisté et renvoyé (événement) avant l'appel IA** *(analyse C1)* dans `tests/integration/neurons/growth.test.ts`
 
 ### Implementation
-- [ ] T012 [P] [US1] `domain/neurons/tree.ts` (`growthDepth` ≤ 6, distincte de `planDepth` ≤ 5 du plan ; chemin racine→cible, descendants) et `guards.ts` (E1–E3)
-- [ ] T013 [P] [US1] `ContextBuilder` (nature, chemin complet, autres branches résumées, extensions écartées, borne ~3 000 tokens, alias `s1…sN`) dans `src/main/application/neurons/ContextBuilder.ts`
-- [ ] T014 [US1] `GrowthService.develop/answer/more/dismiss/addBranch` : sous-neurone écrit **avant** l'appel IA (retour immédiat), appel `etendre`, création des extensions, événement `neuron:thinking` — `src/main/application/neurons/GrowthService.ts`
-- [ ] T015 [US1] Handlers `growth:*` dans `src/main/ipc/growthHandlers.ts`
+- [x] T012 [P] [US1] `domain/neurons/tree.ts` (`growthDepth` ≤ 6, distincte de `planDepth` ≤ 5 du plan ; chemin racine→cible, descendants) et `guards.ts` (E1–E3)
+- [x] T013 [P] [US1] `ContextBuilder` (nature, chemin complet, autres branches résumées, extensions écartées, borne ~3 000 tokens, alias `s1…sN`) dans `src/main/application/neurons/ContextBuilder.ts`
+- [x] T014 [US1] `GrowthService.develop/answer/more/dismiss/addBranch` : sous-neurone écrit **avant** l'appel IA (retour immédiat), appel `etendre`, création des extensions, événement `neuron:thinking` — `src/main/application/neurons/GrowthService.ts`
+- [x] T015 [US1] Handlers `growth:*` dans `src/main/ipc/growthHandlers.ts`
 
 **Checkpoint**: un neurone pousse de bout en bout (sans interface : via tests d'intégration)
 
@@ -55,8 +55,8 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ## Phase 4: User Story 2 — Jauge (Priority: P1) 🎯 MVP
 
-- [ ] T016 [P] [US2] Tests jauge : plancher < 3 réponses, niveaux, manques, `ai_level` conservé dans `tests/unit/neurons/gauge.test.ts`
-- [ ] T017 [US2] `domain/neurons/gauge.ts` + enregistrement `context_assessments` dans `GrowthService` (même appel `etendre`, FR-009)
+- [x] T016 [P] [US2] Tests jauge : plancher < 3 réponses, niveaux, manques, `ai_level` conservé dans `tests/unit/neurons/gauge.test.ts`
+- [x] T017 [US2] `domain/neurons/gauge.ts` + enregistrement `context_assessments` dans `GrowthService` (même appel `etendre`, FR-009)
 
 ---
 
@@ -87,7 +87,7 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 ## Phase 7: User Story 5 — Nature (Priority: P2)
 
 - [ ] T027 [P] [US5] Tests : nature proposée/choisie, jamais écrasée ; changement en cours de développement → la liste de dimensions de référence transmise change ; les extensions dont la `dimension` sort de la liste de la nature sont signalées (FakeProvider) dans `tests/unit/neurons/nature.test.ts` *(analyse U1)*
-- [ ] T028 [US5] Prise en compte de la nature dans `ContextBuilder` : **dimensions de référence** — Action : quand, combien, comment, source d'argent, lieu, dépendances ; Réflexion : pourquoi, options, critères, contraintes, risques, décision attendue — transmises à l'IA ; choix du schéma de synthèse selon la nature *(analyse U1)*
+- [x] T028 [US5] Prise en compte de la nature dans `ContextBuilder` : **dimensions de référence** — Action : quand, combien, comment, source d'argent, lieu, dépendances ; Réflexion : pourquoi, options, critères, contraintes, risques, décision attendue — transmises à l'IA ; choix du schéma de synthèse selon la nature *(analyse U1)*
 
 ---
 
