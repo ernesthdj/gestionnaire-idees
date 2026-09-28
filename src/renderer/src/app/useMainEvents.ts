@@ -9,11 +9,11 @@ import { useUiStore } from './uiStore'
  * requêtes des écrans (Idées, plongée, À valider) ; une clé sans requête active est simplement ignorée.
  */
 const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly string[])[]]> = [
-  ['neuron:created', [['canvas'], ['dive']]],
+  ['neuron:created', [['canvas'], ['dive'], ['history']]],
   ['neuron:thought', [['canvas'], ['dive']]],
   ['synthesis:stale', [['dive'], ['pending']]],
   ['suggestion:updated', [['dive']]],
-  ['links:suggested', [['canvas'], ['pending']]]
+  ['links:suggested', [['canvas'], ['pending'], ['history']]]
 ]
 
 function isNavigateEvent(payload: unknown): payload is NavigateEvent {

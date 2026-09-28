@@ -132,11 +132,13 @@ export class ContextRepository {
     contentJson: string
     source: 'accepted_proposal' | 'rejected_proposal' | 'import'
     contextVersionId: string | null
-  }): void {
+  }): string {
+    const id = randomUUID()
     this.db
       .insert(examples)
-      .values({ id: randomUUID(), ...input })
+      .values({ id, ...input })
       .run()
+    return id
   }
 
   /** Exemples importés rattachés à une version (pour les reporter sur la version suivante). */

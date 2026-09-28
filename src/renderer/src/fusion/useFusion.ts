@@ -135,7 +135,8 @@ export function useFusion(rootId: string): FusionActions {
         set(null)
         await Promise.all([
           client.invalidateQueries({ queryKey: ['canvas'] }),
-          client.invalidateQueries({ queryKey: ['dive', rootId] })
+          client.invalidateQueries({ queryKey: ['dive', rootId] }),
+          client.invalidateQueries({ queryKey: ['history'] })
         ])
       }
       return confirmed

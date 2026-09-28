@@ -23,8 +23,9 @@ export interface LearnedExample {
 export class ExampleStore {
   constructor(private readonly repository: ContextRepository) {}
 
-  record(example: LearnedExample): void {
-    this.repository.insertExample({
+  /** Enregistre l'exemple et renvoie son identifiant (l'historique peut ainsi le retirer à l'annulation). */
+  record(example: LearnedExample): string {
+    const id = this.repository.insertExample({
       polarity: example.polarity,
       taskKind: example.taskKind,
       contentJson: JSON.stringify({
@@ -36,6 +37,7 @@ export class ExampleStore {
       contextVersionId: null
     })
     this.repository.trimLearned(example.taskKind, MAX_LEARNED_PER_KIND)
+    return id
   }
 
   count(taskKind: TaskKind): number {

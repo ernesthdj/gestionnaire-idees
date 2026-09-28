@@ -2,6 +2,7 @@ import './dive.css'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
+import type { ConfirmView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
@@ -88,11 +89,11 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
   upRef.current = fusing ? () => undefined : up
 
   // Confirmation : résorption des sous-neurones, aspect éclos, puis retour à la carte où l'idée migre (FR-019).
-  const onConfirmed = (): void => {
+  const onConfirmed = (confirmed: ConfirmView): void => {
     setFocusId(null)
     setFusing(true)
     const total = timingFor('fusion', reduced).duration + timingFor('migrate', reduced).duration
-    fusionTimer.current = setTimeout(() => hatch(rootId, `« ${model.root.title} » a éclos.`), total)
+    fusionTimer.current = setTimeout(() => hatch(rootId, `« ${model.root.title} » a éclos.`, confirmed.batchId), total)
   }
   // Supprimer le neurone ciblé ramène à son parent.
   const actions: DiveActions = {

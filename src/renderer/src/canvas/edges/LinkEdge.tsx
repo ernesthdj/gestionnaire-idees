@@ -31,7 +31,8 @@ export function LinkEdge({ id, source, target, data }: EdgeProps<LinkEdgeType>):
       await call('links:decide', { linkId: link.id, accept })
       await Promise.all([
         client.invalidateQueries({ queryKey: ['canvas'] }),
-        client.invalidateQueries({ queryKey: ['pending'] })
+        client.invalidateQueries({ queryKey: ['pending'] }),
+        client.invalidateQueries({ queryKey: ['history'] })
       ])
     } finally {
       setBusy(false)

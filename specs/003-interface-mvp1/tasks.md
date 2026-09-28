@@ -97,7 +97,7 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
   *(+ `fusion:getProposed` : retrouve un aperçu ouvert sans appel à l'IA ; correction via `domain/neurons/synthesisPatch.ts`, P1–P5/S1 revérifiés, P6 non appliquée à une valeur écrite par l'utilisateur)*
 - [x] T032 [US4] `SynthesisPreview` branché sur `fusion:lock|revise|reject|confirm|editProposed` (002/003)
 - [x] T033 [US4] `FusionAnimation` (résorption → aspect éclos → migration vers le réseau ~600 ms ; fondu court en mode réduit) + notification « Annuler » 10 s
-  *(notification « … a éclos » 10 s livrée ; le bouton « Annuler » arrive avec l'historique T040/T041)*
+  *(notification « … a éclos » 10 s avec « Annuler » (historique T040/T041))*
 
 **Checkpoint**: MVP-1 démontrable — capturer, voir, plonger, faire pousser, verrouiller, voir éclore
 
@@ -116,8 +116,10 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 8: User Story 6 — À valider, historique, réglages, premier lancement (Priority: P2)
 
-- [ ] T040 [P] [US6] Intégration `HistoryService` : annulation exacte d'une fusion (racine → développement, plan/synthèse non courants, synthèse `proposed`/`stale`, exemple retiré), conflit après réouverture + réponses, annulation annulable `tests/integration/history/undo.test.ts`
-- [ ] T041 [US6] `HistoryService` + handlers `history:*` + `HistoryPage`
+- [x] T040 [P] [US6] Intégration `HistoryService` : annulation exacte d'une fusion (racine → développement, plan/synthèse non courants, synthèse `proposed`/`stale`, exemple retiré), conflit après réouverture + réponses, annulation annulable `tests/integration/history/undo.test.ts`
+  *(le lot inverse enregistre l'état réel avant restauration → annuler une annulation rétablit exactement ; l'exemple appris est désormais consigné dans le lot d'éclosion ; les suggestions de liens nées de l'éclosion sont retirées)*
+- [x] T041 [US6] `HistoryService` + handlers `history:*` + `HistoryPage`
+  *(annulables : éclosions, liens, annulations ; la réouverture (`manual_edit`) est listée mais pas encore annulable)*
 - [ ] T042 [US6] `PendingPage` (liens suggérés avec justification, aperçus en attente) + handler `pending:list` + compteur `pending:countChanged` (navigation + tray)
 - [ ] T043 [P] [US6] `SettingsPage` (raccourci, démarrage, thème, animations, liens vers réglages IA/Contexte 001) + test composant
 - [ ] T044 [US6] `OnboardingFlow` (IA locale + raccourci obligatoires ; Claude, profil facultatifs) + test composant

@@ -1,6 +1,7 @@
 import { MotionConfig } from 'motion/react'
 import type { Section } from '@shared/ipc/app'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
+import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -32,7 +33,7 @@ function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
     case 'pending':
       return <SectionPlaceholder text="Les suggestions de liens et les synthèses en attente apparaîtront ici." />
     case 'history':
-      return <SectionPlaceholder text="L'historique des changements, avec annulation, apparaîtra ici." />
+      return <HistoryPage />
   }
 }
 

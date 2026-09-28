@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import type { ActionPlanOut, ReflectionSummaryOut } from '@shared/ai/neurons'
-import type { SynthesisPatch } from '@shared/ipc/neurons'
+import type { ConfirmView, SynthesisPatch } from '@shared/ipc/neurons'
 import { Button } from '../components/atoms/Button'
 import { formatEuros } from '../pages/settings/ai/format'
 import type { FusionActions } from './useFusion'
@@ -233,7 +233,7 @@ export function SynthesisPreview({
   onConfirmed
 }: {
   readonly fusion: FusionActions
-  readonly onConfirmed: () => void
+  readonly onConfirmed: (confirmed: ConfirmView) => void
 }): React.JSX.Element | null {
   const ids = { title: useId(), instruction: useId() }
   const [instruction, setInstruction] = useState<string | null>(null)
@@ -345,7 +345,7 @@ export function SynthesisPreview({
           disabled={busy || fusion.stale}
           onClick={() => {
             void fusion.confirm().then((confirmed) => {
-              if (confirmed !== null) onConfirmed()
+              if (confirmed !== null) onConfirmed(confirmed)
             })
           }}
         >

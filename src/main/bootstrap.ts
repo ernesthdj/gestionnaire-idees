@@ -4,6 +4,7 @@ import { app, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { CaptureService } from './application/capture/CaptureService'
 import { CanvasService } from './application/canvas/CanvasService'
+import { HistoryService } from './application/history/HistoryService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
@@ -21,6 +22,7 @@ import { LinkRepository } from './infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { AppSettingsRepository } from './infrastructure/db/repositories/AppSettingsRepository'
 import { BlockRepository } from './infrastructure/db/repositories/BlockRepository'
+import { HistoryRepository } from './infrastructure/db/repositories/HistoryRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
@@ -28,6 +30,7 @@ import { createAiRoutes } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
 import { createCaptureRoutes } from './ipc/captureHandlers'
 import { createCanvasRoutes } from './ipc/canvasHandlers'
+import { createHistoryRoutes } from './ipc/historyHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
@@ -187,7 +190,8 @@ export function bootstrap(shell: ShellPort): AppContext {
           links: linkRepository,
           blocks: new BlockRepository(database.db)
         })
-      )
+      ),
+      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db)))
     ],
     logger,
     rendererFileUrl

@@ -64,8 +64,22 @@ export class SynthesisApplier {
             : this.writeReflection(row, ReflectionSummaryOut.parse(payload), idOf)
         repository.setRootState(row.rootId, 'hatched')
         repository.decide(row.id, 'confirmed', batchId)
+        // Exemple appris consigné dans le lot : l'annulation de l'éclosion le retire.
+        const exampleId = this.deps.examples.record({
+          polarity: 'positive',
+          taskKind: 'synthetiser',
+          input: outline(nodes),
+          output: payload
+        })
         repository.log(batchId, [
           ...changes,
+          {
+            kind: 'confirm_synthesis',
+            entity: 'example',
+            entityId: exampleId,
+            before: null,
+            after: { taskKind: 'synthetiser' }
+          },
           {
             kind: 'confirm_synthesis',
             entity: 'neuron',
@@ -81,12 +95,6 @@ export class SynthesisApplier {
             after: { status: 'confirmed' }
           }
         ])
-        this.deps.examples.record({
-          polarity: 'positive',
-          taskKind: 'synthetiser',
-          input: outline(nodes),
-          output: payload
-        })
       })
     } catch (error) {
       if (error instanceof AppError) throw error
