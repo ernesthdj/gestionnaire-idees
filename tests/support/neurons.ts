@@ -29,6 +29,7 @@ export function etendreReply(
         quickReplies: ['Oui', 'Non'],
         dimension: question.slice(0, 20)
       })),
+      suggestions: [],
       assessment: { level, covered: ['quoi'], missing: level === 'insufficient' ? ['budget'] : [] },
       ...extra
     }

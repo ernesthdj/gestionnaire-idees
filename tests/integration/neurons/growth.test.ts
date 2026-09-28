@@ -83,6 +83,7 @@ describe('croissance d’un neurone (US1) et jauge (US2)', () => {
         kind: 'out_of_scope',
         outOfScopeMessage: 'Je peux t’aider à réfléchir au thème et à la structure du poème.',
         extensions: [],
+        suggestions: [],
         assessment: { level: 'insufficient', covered: [], missing: [] }
       }
     })

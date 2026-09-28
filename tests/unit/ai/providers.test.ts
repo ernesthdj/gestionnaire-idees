@@ -137,3 +137,78 @@ describe('ClaudeProvider', () => {
     await expect(provider.complete(request)).rejects.toMatchObject({ code: 'AUTH_FAILED' })
   })
 })
+
+describe('ClaudeProvider.research', () => {
+  const researchRequest = {
+    system: [{ text: 'cadre', cacheable: true }],
+    user: 'Prix d’un écran 27 pouces IPS ?',
+    maxTokens: 2000,
+    maxSearches: 2
+  }
+  const usage = (searches: number) => ({
+    input_tokens: 5000,
+    output_tokens: 200,
+    server_tool_use: { web_search_requests: searches }
+  })
+  const search = {
+    type: 'server_tool_use',
+    id: 'srvtoolu_1',
+    name: 'web_search',
+    input: { query: 'écran 27 IPS prix' }
+  }
+  const results = { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [] }
+  const cite = (url: string) => ({
+    type: 'web_search_result_location',
+    url,
+    title: `Titre ${url}`,
+    cited_text: '…',
+    encrypted_index: 'x'
+  })
+
+  function clientCreating(...messages: object[]) {
+    const create = vi.fn()
+    for (const message of messages) create.mockResolvedValueOnce(message)
+    return { client: { beta: { messages: { create } } } as unknown as ClaudeClient, create }
+  }
+
+  it('should_search_localized_in_belgium_and_return_final_text_with_deduplicated_sources', async () => {
+    const { client, create } = clientCreating({
+      model: 'claude-opus-5',
+      stop_reason: 'end_turn',
+      usage: usage(1),
+      content: [
+        { type: 'text', text: 'Je cherche.', citations: null },
+        search,
+        results,
+        { type: 'text', text: 'Compte 220 à 300 €', citations: [cite('https://a.be')] },
+        { type: 'text', text: ' selon le modèle.', citations: [cite('https://a.be'), cite('https://b.be')] }
+      ]
+    })
+    const provider = new ClaudeProvider({ apiKey: () => 'k', model: () => 'claude-opus-5', createClient: () => client })
+    const result = await provider.research(researchRequest)
+    expect(result.text).toBe('Compte 220 à 300 € selon le modèle.')
+    expect(result.sources.map((source) => source.url)).toEqual(['https://a.be', 'https://b.be'])
+    expect(result.usage.webSearches).toBe(1)
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      tools: [{ type: 'web_search_20260209', max_uses: 2, user_location: { country: 'BE' } }]
+    })
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty('output_config.format')
+  })
+
+  it('should_resume_after_pause_turn_by_sending_back_the_assistant_content', async () => {
+    const paused = { model: 'claude-opus-5', stop_reason: 'pause_turn', usage: usage(1), content: [search] }
+    const done = {
+      model: 'claude-opus-5',
+      stop_reason: 'end_turn',
+      usage: usage(1),
+      content: [results, { type: 'text', text: 'Environ 250 €', citations: [cite('https://c.be')] }]
+    }
+    const { client, create } = clientCreating(paused, done)
+    const provider = new ClaudeProvider({ apiKey: () => 'k', model: () => 'claude-opus-5', createClient: () => client })
+    const result = await provider.research(researchRequest)
+    expect(create).toHaveBeenCalledTimes(2)
+    const second = create.mock.calls[1]?.[0] as { messages: { role: string }[] }
+    expect(second.messages.map((message) => message.role)).toEqual(['user', 'assistant'])
+    expect(result).toMatchObject({ text: 'Environ 250 €', usage: { webSearches: 2, inputTokens: 10_000 } })
+  })
+})

@@ -12,7 +12,9 @@ export const DEFAULT_ROUTING: RoutingTable = {
   synthetiser: 'claude',
   reviser: 'claude',
   suggerer_liens: 'claude',
-  suggerer: 'claude'
+  suggerer: 'claude',
+  // Recherche web : uniquement possible avec Claude (outil serveur).
+  rechercher: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
@@ -24,7 +26,8 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   suggerer_liens: 'medium',
   synthetiser: 'high',
   reviser: 'high',
-  suggerer: 'high'
+  suggerer: 'high',
+  rechercher: 'low'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
@@ -36,7 +39,8 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   suggerer_liens: 2000,
   synthetiser: 16000,
   reviser: 16000,
-  suggerer: 8000
+  suggerer: 8000,
+  rechercher: 2000
 }
 
 /**
@@ -44,6 +48,9 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
  * anonymiser consiste à traiter le texte brut — l'envoyer à Claude annulerait sa raison d'être.
  */
 const LOCAL_ONLY_KINDS: ReadonlySet<TaskKind> = new Set<TaskKind>(['anonymiser'])
+
+/** Recherches web au plus par demande `rechercher` (coût borné : 1 centime $ chacune + lecture). */
+export const MAX_WEB_SEARCHES = 2
 
 export function isLocalOnly(kind: TaskKind): boolean {
   return LOCAL_ONLY_KINDS.has(kind)

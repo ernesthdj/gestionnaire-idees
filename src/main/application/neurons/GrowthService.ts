@@ -1,9 +1,16 @@
 import { EtendreOut, type Extension } from '@shared/ai/neurons'
 import type { TreeView } from '@shared/ipc/neurons'
+import { MAX_WEB_SEARCHES } from '../../domain/ai/routing'
 import type { AIErrorCode } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
-import { applyGaugeFloor, filterNewExtensions, MAX_AI_DEPTH, MIN_EXTENSIONS } from '../../domain/neurons/guards'
-import { descendantsOf } from '../../domain/neurons/tree'
+import {
+  applyGaugeFloor,
+  filterNewExtensions,
+  filterNewSuggestions,
+  MAX_AI_DEPTH,
+  MIN_EXTENSIONS
+} from '../../domain/neurons/guards'
+import { aliasesOf, descendantsOf } from '../../domain/neurons/tree'
 import type { GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
 import type { AIGateway } from '../ai/AIGateway'
 import { buildGrowthInput, type ExtensionMode } from './GrowthContextBuilder'
@@ -13,6 +20,7 @@ export type GrowthEvent =
   | { readonly type: 'neuron:created'; readonly rootId: string; readonly neuronId: string }
   | { readonly type: 'neuron:thinking'; readonly rootId: string; readonly neuronId: string }
   | { readonly type: 'neuron:thought'; readonly rootId: string }
+  | { readonly type: 'suggestion:updated'; readonly rootId: string; readonly suggestionId: string }
 
 export type GrowthNoticeCode = 'FEW_EXTENSIONS' | 'OUT_OF_SCOPE' | 'DEPTH_LIMIT' | AIErrorCode
 
@@ -29,6 +37,8 @@ export interface GrowthResult {
 export type Answer = { readonly choice: string } | { readonly text: string } | { readonly unknown: true }
 
 const TITLE_MAX = 120
+/** Réponse de la recherche web conservée sur le fantôme (2 à 3 phrases attendues). */
+const RESEARCH_MAX = 800
 
 export interface GrowthDependencies {
   readonly repository: GrowthRepository
@@ -42,7 +52,14 @@ export interface GrowthDependencies {
  * un seul appel `etendre` par réponse renvoie les nouvelles extensions ET l'évaluation du contexte (R1).
  */
 export class GrowthService {
+  private readonly inFlight = new Set<Promise<void>>()
+
   constructor(private readonly deps: GrowthDependencies) {}
+
+  /** Attend la fin des vérifications web en cours (tests, arrêt propre). */
+  async settled(): Promise<void> {
+    await Promise.all([...this.inFlight])
+  }
 
   tree(rootId: string): TreeView {
     return this.deps.neurons.getTree(rootId)
@@ -121,6 +138,46 @@ export class GrowthService {
     return { tree: this.tree(extension.rootId) }
   }
 
+  /**
+   * Suggestion acceptée : elle devient un sous-neurone « proposé par l'IA, validé par l'utilisateur »,
+   * puis l'idée continue de grandir comme après une réponse.
+   */
+  async acceptSuggestion(suggestionId: string): Promise<GrowthResult> {
+    const { repository } = this.deps
+    const suggestion = repository.suggestion(suggestionId)
+    if (suggestion === undefined) throw new AppError('NOT_FOUND', 'Suggestion introuvable')
+    if (suggestion.status !== 'proposed') throw new AppError('INVALID_STATE', 'Cette suggestion n’est plus proposée')
+    const parent = repository.node(suggestion.neuronId)
+    if (parent === undefined) throw new AppError('NOT_FOUND', 'Neurone introuvable')
+
+    const neuronId = repository.transaction(() => {
+      const id = repository.insertSubNeuron({
+        rootId: suggestion.rootId,
+        parentId: parent.id,
+        depth: parent.depth + 1,
+        kind: 'answer',
+        title: suggestion.title.slice(0, TITLE_MAX),
+        content: suggestion.content,
+        origin: 'ai',
+        fromExtensionId: null
+      })
+      repository.resolveSuggestion(suggestion.id, 'accepted', id)
+      repository.touchRoot(suggestion.rootId)
+      return id
+    })
+    this.deps.emit({ type: 'neuron:created', rootId: suggestion.rootId, neuronId })
+    const mode: ExtensionMode = parent.depth + 1 >= MAX_AI_DEPTH ? 'assess_only' : 'follow_up'
+    return this.extend(suggestion.rootId, neuronId, mode)
+  }
+
+  dismissSuggestion(suggestionId: string): GrowthResult {
+    const suggestion = this.deps.repository.suggestion(suggestionId)
+    if (suggestion === undefined) throw new AppError('NOT_FOUND', 'Suggestion introuvable')
+    if (suggestion.status !== 'proposed') throw new AppError('INVALID_STATE', 'Cette suggestion n’est plus proposée')
+    this.deps.repository.resolveSuggestion(suggestionId, 'dismissed')
+    return { tree: this.tree(suggestion.rootId) }
+  }
+
   addBranch(input: { readonly parentId: string; readonly title: string; readonly content?: string }): GrowthResult {
     const { repository } = this.deps
     const parent = repository.node(input.parentId)
@@ -169,6 +226,7 @@ export class GrowthService {
           nodes: repository.nodes(rootId),
           targetId,
           knownQuestions: repository.knownQuestions(rootId),
+          knownSuggestions: repository.knownSuggestions(rootId),
           answered: repository.answeredCount(rootId),
           mode
         })
@@ -198,7 +256,13 @@ export class GrowthService {
     }
 
     const data = result.value.data
-    repository.transaction(() => {
+    const nodes = repository.nodes(rootId)
+    const idOf = new Map([...aliasesOf(nodes)].map(([id, alias]) => [alias, id]))
+    const suggested = filterNewSuggestions(data.suggestions, new Set(idOf.keys()), [
+      ...repository.knownSuggestions(rootId),
+      ...nodes.map((node) => node.title)
+    ])
+    const suggestionIds = repository.transaction(() => {
       repository.insertExtensions(rootId, targetId, kept)
       const answered = repository.answeredCount(rootId)
       repository.insertAssessment({
@@ -209,6 +273,18 @@ export class GrowthService {
         missing: data.assessment.missing,
         answered
       })
+      return repository.insertSuggestions(
+        rootId,
+        suggested.map((suggestion) => ({
+          neuronId: idOf.get(suggestion.neuronRef) ?? rootId,
+          title: suggestion.title,
+          content: suggestion.content,
+          webQuery: suggestion.research ? (suggestion.webQuery ?? null) : null
+        }))
+      )
+    })
+    suggestionIds.forEach((id, index) => {
+      if (suggested[index]?.research === true) this.researchInBackground(rootId, id)
     })
 
     const notice =
@@ -219,6 +295,31 @@ export class GrowthService {
           }
         : undefined
     return this.finish(rootId, notice)
+  }
+
+  /** Vérification web d'une suggestion, sans bloquer la croissance : le fantôme est mis à jour à la fin. */
+  private researchInBackground(rootId: string, suggestionId: string): void {
+    const { repository, gateway } = this.deps
+    const suggestion = repository.suggestion(suggestionId)
+    if (suggestion === undefined || suggestion.webQuery === null) return
+    const input = [
+      `Idée : ${this.tree(rootId).root.title}`,
+      `Suggestion : ${suggestion.title} — ${suggestion.content}`,
+      `Recherche proposée : ${suggestion.webQuery}`
+    ].join('\n')
+    const task = gateway
+      .research({ input, maxSearches: MAX_WEB_SEARCHES, requestId: `research:${suggestionId}` })
+      .then((result) => {
+        repository.completeResearch(
+          suggestionId,
+          result.ok ? { content: result.value.text.slice(0, RESEARCH_MAX), sources: result.value.sources } : null
+        )
+      })
+      .catch(() => repository.completeResearch(suggestionId, null))
+      .then(() => this.deps.emit({ type: 'suggestion:updated', rootId, suggestionId }))
+      .catch(() => undefined)
+      .finally(() => this.inFlight.delete(task))
+    this.inFlight.add(task)
   }
 
   private finish(rootId: string, notice?: GrowthNotice): GrowthResult {

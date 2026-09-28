@@ -4,7 +4,7 @@ import { BudgetGuard } from '../application/ai/BudgetGuard'
 import { LocalQueue } from '../application/ai/LocalQueue'
 import type { AgentContext, Anonymizer as AnonymizerPort } from '../application/ai/ports'
 import { costMillicents, estimateMaxMillicents, pricingFor, startOfMonth } from '../domain/ai/cost'
-import { maxTokensFor, type RoutingTable } from '../domain/ai/routing'
+import { MAX_WEB_SEARCHES, maxTokensFor, type RoutingTable } from '../domain/ai/routing'
 import type { TaskKind } from '../domain/ai/types'
 import { ClaudeProvider } from '../infrastructure/ai/ClaudeProvider'
 import { OllamaProvider } from '../infrastructure/ai/OllamaProvider'
@@ -62,7 +62,11 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     estimateMillicents: (kind, rate) => {
       const model = config.get().claudeModel
       return estimateMaxMillicents(
-        { inputTokens: ESTIMATED_INPUT_TOKENS, maxOutputTokens: maxTokensFor(kind) },
+        {
+          inputTokens: ESTIMATED_INPUT_TOKENS,
+          maxOutputTokens: maxTokensFor(kind),
+          webSearches: kind === 'rechercher' ? MAX_WEB_SEARCHES : 0
+        },
         pricingFor(model, model),
         rate
       )

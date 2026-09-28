@@ -8,7 +8,7 @@ Remplace `ipc-structuring.md` (v1).
 |-------|--------|---------------|---------|
 | `neuron:create` | `{ text: string(1..2000), nature?: "action"\|"reflection" }` | `RootView` | `VALIDATION` |
 | `neuron:list` | `{ state?, nature?, categoryId?, search?: string(≤100), cursor?, limit?: 1..200 }` | `{ items: RootView[], nextCursor }` | `VALIDATION` |
-| `neuron:getTree` | `{ rootId }` | `TreeView` (sous-neurones, extensions, dernière jauge, synthèse proposée, plan/synthèse courants) | `NOT_FOUND` |
+| `neuron:getTree` | `{ rootId }` | `TreeView` (sous-neurones, extensions, suggestions en attente, dernière jauge, synthèse proposée, plan/synthèse courants) | `NOT_FOUND` |
 | `neuron:update` | `{ id, title?, content?, nature?, categoryId?, amountCents?, dueDate? }` | `TreeView` | `NOT_FOUND`, `VALIDATION` |
 | `neuron:delete` | `{ id, confirm: true }` (sous-neurone : cascade) | `TreeView` | `NOT_FOUND`, `IS_ROOT` |
 | `neuron:archive` | `{ rootId }` | `RootView` | `NOT_FOUND` |
@@ -20,6 +20,8 @@ Remplace `ipc-structuring.md` (v1).
 | `growth:answer` | `{ extensionId, answer: { choice: string } \| { text: string(1..1000) } \| { unknown: true } }` | `TreeView` (nouveau sous-neurone + nouvelles extensions + jauge) | `NOT_FOUND`, `ALREADY_ANSWERED`, `AI_*` |
 | `growth:more` | `{ neuronId }` | `TreeView` | `NOT_FOUND`, `DEPTH_LIMIT`, `AI_*` |
 | `growth:dismiss` | `{ extensionId }` | `TreeView` | `NOT_FOUND` |
+| `growth:acceptSuggestion` | `{ suggestionId }` | `TreeView` (sous-neurone d'origine IA + croissance relancée) | `NOT_FOUND`, `INVALID_STATE`, `AI_*` |
+| `growth:dismissSuggestion` | `{ suggestionId }` | `TreeView` | `NOT_FOUND`, `INVALID_STATE` |
 | `growth:addBranch` | `{ parentId, title: string(1..120), content?: string(≤1000) }` | `TreeView` | `NOT_FOUND`, `VALIDATION` |
 
 ## Fusion
@@ -41,5 +43,6 @@ Remplace `ipc-structuring.md` (v1).
 | `links:update` / `links:delete` | `{ linkId, label? }` / `{ linkId }` | `LinkView` / `{ ok }` | `NOT_FOUND` |
 
 ## Événements main → renderer
+`suggestion:updated { rootId, suggestionId }` (vérification web terminée) ·
 `neuron:thinking { rootId, neuronId, phase: "develop"|"answer"|"synthesis"|"links" }` ·
 `neuron:categorized { rootId }` · `synthesis:stale { synthesisId }` · `links:suggested { rootId, count }`.

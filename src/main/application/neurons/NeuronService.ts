@@ -56,6 +56,7 @@ export class NeuronService {
       root: this.rootOrThrow(rootId),
       neurons: this.deps.repository.neuronsOf(rootId),
       extensions: this.deps.repository.proposedExtensions(rootId),
+      suggestions: this.deps.repository.proposedSuggestions(rootId),
       gauge: this.deps.repository.latestGauge(rootId)
     }
   }

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
 import { AiCallRepository } from '../../../src/main/infrastructure/db/repositories/AiCallRepository'
 import { AiConfigRepository } from '../../../src/main/infrastructure/db/repositories/AiConfigRepository'
+import { aiConfig } from '../../../src/main/infrastructure/db/schema'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 const usage = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 }
@@ -53,6 +54,18 @@ describe('stockage du budget', () => {
     })
     config.update({ capCents: 2500, unlockedMonth: '2026-09' })
     expect(config.get()).toMatchObject({ capCents: 2500, unlockedMonth: '2026-09' })
+  })
+
+  it('should_keep_saved_settings_when_a_new_task_kind_appears_in_a_later_version', () => {
+    const oldRouting: Record<string, string> = { ...new AiConfigRepository(handle.db).get().routing }
+    delete oldRouting['rechercher']
+    handle.db
+      .insert(aiConfig)
+      .values({ key: 'ai', valueJson: JSON.stringify({ capCents: 4200, routing: oldRouting }) })
+      .run()
+    const config = new AiConfigRepository(handle.db).get()
+    expect(config.capCents).toBe(4200)
+    expect(config.routing.rechercher).toBe('claude')
   })
 
   it('should_reject_invalid_values_when_updating_config', () => {

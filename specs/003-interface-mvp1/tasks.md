@@ -66,6 +66,7 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 - [ ] T025 [US3] `CanvasService.dive` (`DiveView` : fil d'Ariane, focus, parent, enfants, extensions, jauge, synthèse, résultat) + handler `dive:get`
 - [ ] T026 [US3] `DiveView` : transition de plongée/remontée (400 ms, réduite si besoin), disposition radiale, sous-neurones, emplacements « + », parent estompé cliquable, badge de profondeur
 - [ ] T027 [US3] `QuestionPanel`, `Gauge`, `Breadcrumb` branchés sur `growth:*` (002) ; sous-neurone affiché **immédiatement** (mise à jour optimiste confirmée par l'événement) + indicateur « réfléchit… » ; pousse animée 250 ms
+- [ ] T051 [US3] Neurones fantômes (FR-027) : rendu pointillé rattaché au neurone, accepter (Tab/clic → `growth:acceptSuggestion`, solidification animée) / ignorer (Échap/× → `growth:dismissSuggestion`), indicateur de vérification web + sources au survol/focus (liens externes via `shell.openExternal` en liste blanche http/https), mise à jour sur `suggestion:updated`, tests clavier + lecteur d'écran
 - [ ] T028 [US3] Édition/suppression de sous-neurone (confirmation si descendants), changement de nature/catégorie depuis la plongée
 
 ---

@@ -28,6 +28,17 @@ export type AiConfig = z.infer<typeof AiConfigSchema>
 
 const CONFIG_KEY = 'ai'
 
+/**
+ * Un type de tâche ajouté par une nouvelle version n'existe pas dans la table de routage enregistrée :
+ * on complète avec la valeur par défaut au lieu de rejeter tout le document (et perdre les réglages).
+ */
+function withNewTaskKinds(stored: unknown): unknown {
+  if (typeof stored !== 'object' || stored === null || !('routing' in stored)) return stored
+  const { routing } = stored
+  if (typeof routing !== 'object' || routing === null) return stored
+  return { ...stored, routing: { ...DEFAULT_ROUTING, ...routing } }
+}
+
 /** Configuration stockée comme un seul document JSON validé à la lecture et à l'écriture. */
 export class AiConfigRepository {
   constructor(private readonly db: AppDatabase) {}
@@ -39,7 +50,7 @@ export class AiConfigRepository {
       .all()
       .find((entry) => entry.key === CONFIG_KEY)
     const stored: unknown = row === undefined ? {} : JSON.parse(row.valueJson)
-    const parsed = AiConfigSchema.safeParse(stored)
+    const parsed = AiConfigSchema.safeParse(withNewTaskKinds(stored))
     // Document corrompu ou d'une ancienne version : on repart des valeurs par défaut plutôt que de planter.
     return parsed.success ? parsed.data : AiConfigSchema.parse({})
   }

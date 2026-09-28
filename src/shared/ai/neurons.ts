@@ -16,11 +16,24 @@ export const Extension = z.object({
 })
 export type Extension = z.infer<typeof Extension>
 
+/**
+ * Suggestion d'approfondissement (neurone fantôme) : une piste ou une réponse possible, rattachée à un neurone.
+ * `webQuery` demande une vérification sur le web (prix, disponibilité…) avant de la montrer comme sourcée.
+ */
+export const SuggestionOut = z.object({
+  neuronRef: z.string().regex(/^s\d{1,3}$/),
+  title: z.string().min(1).max(120),
+  content: z.string().min(1).max(500),
+  webQuery: z.string().min(3).max(200).optional()
+})
+export type SuggestionOut = z.infer<typeof SuggestionOut>
+
 /** `etendre` : nouvelles extensions pour le neurone ciblé + évaluation du contexte de tout l'arbre (R1). */
 export const EtendreOut = z.object({
   kind: z.enum(['extensions', 'out_of_scope']),
   outOfScopeMessage: z.string().min(1).max(300).optional(),
   extensions: z.array(Extension).max(8),
+  suggestions: z.array(SuggestionOut).max(2),
   assessment: z.object({
     level: Level,
     covered: z.array(z.string().min(1).max(40)).max(12),

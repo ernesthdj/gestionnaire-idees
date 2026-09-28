@@ -91,6 +91,17 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ---
 
+## Phase 7b: User Story 6 — Suggestions (neurones fantômes) *(ajoutée le 2026-09-28)*
+
+- [x] T033 [US6] Montants exacts par défaut : réglage `maskAmounts` (Réglages IA), anonymiseur conditionné, constitution v1.1.0, spec 001 FR-006
+- [x] T034 [US6] `SuggestionOut` dans `EtendreOut`, table `suggestions` (migration 0005 + down), contrôle S2 (`filterNewSuggestions`), consignes `etendre` / `rechercher`
+- [x] T035 [US6] Recherche web : `ClaudeProvider.research` (`web_search_20260209`, `pause_turn`, sources), `AIGateway.research` (budget, anonymisation, journal, coût des recherches), tâche `rechercher`
+- [x] T036 [US6] `GrowthService.acceptSuggestion/dismissSuggestion`, vérification en arrière-plan + événement `suggestion:updated`, canaux `growth:acceptSuggestion|dismissSuggestion`
+- [x] T037 [P] [US6] Tests : `suggestions.test.ts`, recherche (fournisseur + passerelle), coût, masquage, routage complété
+- [ ] T038 [US6] Validation réelle avec la clé Claude : combinaison recherche web + sources, coût moyen (SC-008)
+
+---
+
 ## Phase 8: Polish
 
 - [ ] T029 [P] Mode dégradé : Claude indisponible/plafond → branches manuelles possibles, extensions et synthèse en attente, drapeau `degraded` si version locale acceptée

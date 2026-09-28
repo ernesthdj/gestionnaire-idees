@@ -1,6 +1,13 @@
 /** Types de demande IA (spec 001 data-model, révision « Brainstormer »). */
 export const LOCAL_TASK_KINDS = ['categoriser', 'resumer', 'anonymiser', 'briefing_texte'] as const
-export const REMOTE_TASK_KINDS = ['etendre', 'synthetiser', 'reviser', 'suggerer_liens', 'suggerer'] as const
+export const REMOTE_TASK_KINDS = [
+  'etendre',
+  'synthetiser',
+  'reviser',
+  'suggerer_liens',
+  'suggerer',
+  'rechercher'
+] as const
 
 export type TaskKind = (typeof LOCAL_TASK_KINDS)[number] | (typeof REMOTE_TASK_KINDS)[number]
 
@@ -31,4 +38,6 @@ export interface Usage {
   readonly cacheReadTokens: number
   /** Tokens écrits en cache (facturés ~1,25× le prix d'entrée). */
   readonly cacheWriteTokens: number
+  /** Recherches web exécutées côté serveur (facturées à l'unité). */
+  readonly webSearches?: number
 }

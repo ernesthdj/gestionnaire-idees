@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Extension } from '@shared/ai/neurons'
+import type { WebSourceView } from '@shared/ipc/neurons'
 import type { GaugeLevel, NeuronKind, RootState, Source } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
-import { contextAssessments, extensions, neurons } from '../schemaNeurons'
+import { contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
 
 export interface GrowthNode {
   readonly id: string
@@ -23,6 +24,23 @@ export interface ExtensionRow {
   readonly dimension: string
   readonly answerKind: 'answer' | 'condition' | 'opportunity' | null
   readonly status: 'proposed' | 'answered' | 'dismissed'
+}
+
+export interface SuggestionRow {
+  readonly id: string
+  readonly rootId: string
+  readonly neuronId: string
+  readonly title: string
+  readonly content: string
+  readonly webQuery: string | null
+  readonly status: 'proposed' | 'accepted' | 'dismissed'
+}
+
+export interface NewSuggestion {
+  readonly neuronId: string
+  readonly title: string
+  readonly content: string
+  readonly webQuery: string | null
 }
 
 /** Écritures de la croissance : sous-neurones, extensions, jauges (spec 002 US1/US2). */
@@ -178,12 +196,77 @@ export class GrowthRepository {
       .run()
   }
 
-  /** Supprime des sous-neurones et les extensions qui les ciblent (appelé dans une transaction). */
+  /** Enregistre des suggestions ; celles à vérifier sur le web partent en `pending`. Renvoie leurs identifiants. */
+  insertSuggestions(rootId: string, proposed: readonly NewSuggestion[]): string[] {
+    if (proposed.length === 0) return []
+    const rows = proposed.map((suggestion) => ({
+      id: randomUUID(),
+      rootId,
+      ...suggestion,
+      research: suggestion.webQuery === null ? ('none' as const) : ('pending' as const),
+      status: 'proposed' as const
+    }))
+    this.db.insert(suggestions).values(rows).run()
+    return rows.map((row) => row.id)
+  }
+
+  suggestion(id: string): SuggestionRow | undefined {
+    return this.db
+      .select({
+        id: suggestions.id,
+        rootId: suggestions.rootId,
+        neuronId: suggestions.neuronId,
+        title: suggestions.title,
+        content: suggestions.content,
+        webQuery: suggestions.webQuery,
+        status: suggestions.status
+      })
+      .from(suggestions)
+      .where(eq(suggestions.id, id))
+      .get()
+  }
+
+  /** Titres de toutes les suggestions déjà faites pour cette idée, quel que soit leur statut (anti-doublon). */
+  knownSuggestions(rootId: string): string[] {
+    return this.db
+      .select({ title: suggestions.title })
+      .from(suggestions)
+      .where(eq(suggestions.rootId, rootId))
+      .all()
+      .map((row) => row.title)
+  }
+
+  resolveSuggestion(id: string, status: 'accepted' | 'dismissed', acceptedNeuronId: string | null = null): void {
+    this.db
+      .update(suggestions)
+      .set({ status, acceptedNeuronId, resolvedAt: new Date().toISOString() })
+      .where(and(eq(suggestions.id, id), eq(suggestions.status, 'proposed')))
+      .run()
+  }
+
+  /** Résultat de la vérification web : contenu remplacé par la réponse sourcée, ou échec signalé. */
+  completeResearch(id: string, result: { content: string; sources: readonly WebSourceView[] } | null): void {
+    this.db
+      .update(suggestions)
+      .set(
+        result === null
+          ? { research: 'failed' }
+          : { research: 'done', content: result.content, sourcesJson: JSON.stringify(result.sources) }
+      )
+      .where(and(eq(suggestions.id, id), eq(suggestions.research, 'pending')))
+      .run()
+  }
+
+  /** Supprime des sous-neurones et les extensions ou suggestions qui les ciblent (appelé dans une transaction). */
   deleteNeurons(ids: readonly string[]): void {
     if (ids.length === 0) return
     this.db
       .delete(extensions)
       .where(inArray(extensions.neuronId, [...ids]))
+      .run()
+    this.db
+      .delete(suggestions)
+      .where(inArray(suggestions.neuronId, [...ids]))
       .run()
     // Enfants d'abord : la clé étrangère parent_id interdit de supprimer un parent encore référencé.
     for (const id of [...ids].reverse()) this.db.delete(neurons).where(eq(neurons.id, id)).run()

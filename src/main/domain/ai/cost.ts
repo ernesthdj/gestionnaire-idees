@@ -27,6 +27,8 @@ export const DEFAULT_PRICING: Readonly<Record<string, ModelPricing>> = {
 }
 
 const MILLICENTS_PER_EURO = 100_000
+/** Recherche web : 10 $ les 1 000 recherches, en plus des tokens. */
+const WEB_SEARCH_USD = 0.01
 
 /** Coût réel d'un appel en millicentimes d'euro (entier). Modèle sans tarif (IA locale) : gratuit. */
 export function costMillicents(usage: Usage, price: ModelPricing | undefined, usdEurRate: number): number {
@@ -36,13 +38,14 @@ export function costMillicents(usage: Usage, price: ModelPricing | undefined, us
       usage.outputTokens * price.outputUsdPerMTok +
       usage.cacheReadTokens * price.cacheReadUsdPerMTok +
       usage.cacheWriteTokens * price.cacheWriteUsdPerMTok) /
-    1_000_000
+      1_000_000 +
+    (usage.webSearches ?? 0) * WEB_SEARCH_USD
   return Math.round(usd * usdEurRate * MILLICENTS_PER_EURO)
 }
 
 /** Majorant du coût d'un appel avant de l'envoyer : entrée estimée + sortie maximale autorisée. */
 export function estimateMaxMillicents(
-  estimate: { readonly inputTokens: number; readonly maxOutputTokens: number },
+  estimate: { readonly inputTokens: number; readonly maxOutputTokens: number; readonly webSearches?: number },
   price: ModelPricing | undefined,
   usdEurRate: number
 ): number {
@@ -51,7 +54,8 @@ export function estimateMaxMillicents(
       inputTokens: estimate.inputTokens,
       outputTokens: estimate.maxOutputTokens,
       cacheReadTokens: 0,
-      cacheWriteTokens: 0
+      cacheWriteTokens: 0,
+      webSearches: estimate.webSearches ?? 0
     },
     price,
     usdEurRate

@@ -2,7 +2,14 @@ import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 import { effortFor, isLocalOnly, maxTokensFor, resolveEngine } from '../../domain/ai/routing'
 import type { AIError, AIErrorCode, Engine, Result, TaskKind, Usage } from '../../domain/ai/types'
-import { ProviderError, type AIProvider, type CompletionResponse } from './AIProvider'
+import {
+  ProviderError,
+  type AIProvider,
+  type CompletionResponse,
+  type ResearchResponse,
+  type SystemBlock,
+  type WebSource
+} from './AIProvider'
 import { assembleContext } from './ContextAssembler'
 import type { AgentContext, Anonymizer, BudgetGuard, CallLog, CallStatus, GatewayConfig, LocalQueuePort } from './ports'
 
@@ -24,6 +31,13 @@ export interface AIResult<T> {
   readonly engine: Engine
   readonly model: string
   readonly degraded: boolean
+  readonly costMillicents: number
+}
+
+export interface ResearchResult {
+  readonly text: string
+  readonly sources: readonly WebSource[]
+  readonly model: string
   readonly costMillicents: number
 }
 
@@ -123,16 +137,98 @@ export class AIGateway {
       }
     }
 
-    let input = request.input
+    const prepared = await this.prepare(request.kind, request.input, engine)
+    if (!prepared.ok) return prepared
+    const { system, user } = prepared.value
+    const result = await this.semaphores[engine].use(() =>
+      this.callWithRetry(request, requestId, engine, system, user, degraded)
+    )
+    if (result.ok) this.remember(requestId, result.value)
+    return result
+  }
+
+  /**
+   * Recherche web (tâche `rechercher`) : uniquement avec Claude, jamais de repli local ni de file d'attente.
+   * Mêmes garanties que `run` : budget vérifié avant, entrée et exemples anonymisés, appel journalisé.
+   */
+  async research(request: {
+    readonly input: string
+    readonly maxSearches: number
+    readonly requestId?: string
+  }): Promise<Result<ResearchResult, AIError>> {
+    const kind = 'rechercher'
+    const requestId = request.requestId ?? randomUUID()
+    const provider = this.deps.providers.claude
+    const research = provider.research?.bind(provider)
+    if (research === undefined || !(await provider.isAvailable()).up) {
+      return failure('AI_UNAVAILABLE', 'La recherche web nécessite Claude', true)
+    }
+    if (!(await this.deps.budget.check(kind)).allowed) {
+      await this.log(requestId, kind, 'claude', '', undefined, 'blocked_budget', 0, 'BUDGET_EXCEEDED')
+      return failure('BUDGET_EXCEEDED', 'Le plafond mensuel de dépense IA est atteint')
+    }
+    const prepared = await this.prepare(kind, request.input, 'claude')
+    if (!prepared.ok) return prepared
+
+    return this.semaphores.claude.use(async () => {
+      const started = Date.now()
+      let response: ResearchResponse
+      try {
+        response = await research({
+          ...prepared.value,
+          effort: effortFor(kind),
+          maxTokens: maxTokensFor(kind),
+          maxSearches: request.maxSearches
+        })
+      } catch (error) {
+        const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'
+        await this.log(requestId, kind, 'claude', '', undefined, 'error', Date.now() - started, code)
+        return code === 'AUTH_FAILED'
+          ? failure('AUTH_FAILED', 'La clé API a été refusée')
+          : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
+      }
+      const cost = this.deps.costOf('claude', response.model, response.usage)
+      const refused = response.stopReason === 'refusal'
+      const empty = !refused && response.text === ''
+      const status: CallStatus = refused ? 'refusal' : empty ? 'invalid' : 'ok'
+      const code = refused ? 'AI_REFUSAL' : empty ? 'AI_INVALID_OUTPUT' : undefined
+      await this.log(
+        requestId,
+        kind,
+        'claude',
+        response.model,
+        response.usage,
+        status,
+        Date.now() - started,
+        code,
+        cost
+      )
+      await this.deps.budget.record()
+      if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
+      if (empty) return failure('AI_INVALID_OUTPUT', "La recherche n'a rien donné d'exploitable")
+      return {
+        ok: true,
+        value: { text: response.text, sources: response.sources, model: response.model, costMillicents: cost }
+      }
+    })
+  }
+
+  /** Entrée et exemples anonymisés si la demande part vers Claude, puis assemblage du contexte. */
+  private async prepare(
+    kind: TaskKind,
+    rawInput: string,
+    engine: Engine
+  ): Promise<Result<{ system: readonly SystemBlock[]; user: string }, AIError>> {
+    let input = rawInput
     if (engine === 'claude') {
       try {
-        input = await this.deps.anonymizer.anonymize(request.input)
+        input = await this.deps.anonymizer.anonymize(rawInput)
       } catch {
         return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
       }
     }
 
-    const assembled = assembleContext({ kind: request.kind, input, context: await this.deps.context(request.kind) })
+    const assembled = assembleContext({ kind, input, context: await this.deps.context(kind) })
     let system = assembled.system
     if (engine === 'claude') {
       // Les exemples proviennent d'idées réelles (propositions acceptées/refusées) : ils sont anonymisés
@@ -147,11 +243,7 @@ export class AIGateway {
         return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
       }
     }
-    const result = await this.semaphores[engine].use(() =>
-      this.callWithRetry(request, requestId, engine, system, assembled.user, degraded)
-    )
-    if (result.ok) this.remember(requestId, result.value)
-    return result
+    return { ok: true, value: { system, user: assembled.user } }
   }
 
   private async callWithRetry<T>(

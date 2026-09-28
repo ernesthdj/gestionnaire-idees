@@ -97,6 +97,21 @@ Quand un neurone éclôt, l'IA compare sa synthèse à celles des autres neurone
 
 ---
 
+### User Story 6 - Suggestions d'approfondissement : neurones fantômes (Priority: P2)
+
+*Ajoutée le 2026-09-28 (demande de mentalyas, constitution v1.1.0).* Comme l'autocomplétion d'un éditeur ou les approfondissements proposés après une recherche, l'IA propose en plus de ses questions des **pistes** ou des **réponses possibles** (par exemple pour un « À trouver »), affichées en fantôme sur le neurone concerné. Quand une piste dépend d'informations actuelles (prix, disponibilité), elle est vérifiée sur le web et affiche ses sources. L'utilisateur l'accepte d'un geste (elle devient un sous-neurone « proposé par l'IA, validé par toi ») ou l'ignore.
+
+**Why this priority**: la valeur de l'app est la structuration visuelle et le contexte relié au neurone de départ ; les suggestions l'enrichissent sans jamais écrire à la place de l'utilisateur.
+
+**Independent Test**: avec une IA simulée, développer « 2e écran » ; vérifier le fantôme « Écran 27 pouces IPS » sur la racine, sa vérification web sourcée, puis son acceptation (sous-neurone d'origine IA, croissance relancée) et le refus d'une autre suggestion.
+
+**Acceptance Scenarios**:
+
+1. **Given** une réponse à une extension, **When** l'IA répond, **Then** 0 à 2 suggestions peuvent apparaître en fantôme, chacune rattachée à un neurone existant ; une suggestion déjà faite ou identique à un neurone n'apparaît pas.
+2. **Given** une suggestion qui dépend d'informations actuelles, **When** elle est créée, **Then** elle est marquée « vérification en cours », puis affiche la réponse trouvée et ses sources (ou « non vérifiée » en cas d'échec) sans bloquer la croissance.
+3. **Given** une suggestion, **When** l'utilisateur l'accepte, **Then** elle devient un sous-neurone d'origine IA et l'idée continue de grandir comme après une réponse ; ses valeurs comptent comme validées pour le contrôle de provenance.
+4. **Given** une suggestion, **When** l'utilisateur l'ignore, **Then** elle disparaît et n'est plus reproposée ; l'arbre n'est pas modifié.
+
 ### Edge Cases
 
 - L'IA propose moins de 3 extensions : la réponse est rejetée et redemandée une fois ; en cas de nouvel échec, les extensions reçues sont affichées avec un message « l'IA a peu de pistes, ajoute les tiennes ».
@@ -145,6 +160,11 @@ Quand un neurone éclôt, l'IA compare sa synthèse à celles des autres neurone
 - **FR-020**: Les montants MUST être stockés en centimes d'euro (entiers ≥ 0).
 - **FR-021**: Chaque action de l'utilisateur MUST produire un retour visible immédiat, y compris pendant qu'une demande IA est en cours.
 
+**Suggestions (US6)**
+- **FR-022**: La demande d'extensions MAY renvoyer 0 à 2 suggestions (titre, contenu, neurone de rattachement, requête web facultative) ; une suggestion rattachée à un neurone inconnu, déjà faite ou identique à un neurone existant MUST être retirée (contrôle S2).
+- **FR-023**: Au plus une suggestion par demande MUST être vérifiée sur le web (2 recherches maximum, localisées en Belgique) ; la vérification MUST passer par le moteur 001 (anonymisation, budget, journal) et ne jamais bloquer la croissance ; ses sources (URL, titre) MUST être conservées et affichées.
+- **FR-024**: Accepter une suggestion MUST créer exactement un sous-neurone d'origine IA et relancer la croissance ; l'ignorer MUST la retirer sans modifier l'arbre. Aucune valeur d'une suggestion n'entre dans les données sans acceptation.
+
 ### Key Entities
 
 - **Neurone racine**: texte, nature (Action/Réflexion), catégorie, état (brut, en développement, éclos, archivé), version, position dans l'incubateur ou le réseau.
@@ -168,6 +188,7 @@ Quand un neurone éclôt, l'IA compare sa synthèse à celles des autres neurone
 - **SC-005**: Aucune synthèse ne modifie les données avant confirmation ; une erreur pendant la confirmation laisse les données inchangées (100 % des cas testés).
 - **SC-006**: Un arbre en cours est restauré sans perte après fermeture de l'app dans 100 % des cas.
 - **SC-007**: Pour 2 neurones de test sémantiquement liés, la suggestion de lien attendue apparaît dans 8 exécutions réelles sur 10.
+- **SC-008**: Une suggestion vérifiée sur le web affiche au moins une source dans 8 exécutions réelles sur 10, pour un coût moyen inférieur à 0,10 € par vérification.
 
 ## Assumptions
 

@@ -46,3 +46,30 @@ export function filterNewExtensions<T extends ProposedExtension>(
 export function applyGaugeFloor(aiLevel: GaugeLevel, answered: number): GaugeLevel {
   return answered < GAUGE_FLOOR_ANSWERS ? 'insufficient' : aiLevel
 }
+
+interface ProposedSuggestion {
+  readonly neuronRef: string
+  readonly title: string
+  readonly webQuery?: string | undefined
+}
+
+/**
+ * Suggestions retenues (S2) : rattachées à un neurone existant, jamais déjà faites ni identiques à un neurone,
+ * et une seule vérification web par appel (coût borné) — les autres restent de simples suggestions.
+ */
+export function filterNewSuggestions<T extends ProposedSuggestion>(
+  proposed: readonly T[],
+  knownRefs: ReadonlySet<string>,
+  knownTitles: readonly string[]
+): (T & { readonly research: boolean })[] {
+  const seen = new Set(knownTitles.map(normalizeQuestion))
+  const kept: (T & { readonly research: boolean })[] = []
+  for (const suggestion of proposed) {
+    const key = normalizeQuestion(suggestion.title)
+    if (!knownRefs.has(suggestion.neuronRef) || key === '' || seen.has(key)) continue
+    seen.add(key)
+    const research = suggestion.webQuery !== undefined && !kept.some((entry) => entry.research)
+    kept.push({ ...suggestion, research })
+  }
+  return kept
+}

@@ -28,6 +28,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'growth:more',
   'growth:dismiss',
   'growth:addBranch',
+  'growth:acceptSuggestion',
+  'growth:dismissSuggestion',
   'fusion:lock',
   'fusion:revise',
   'fusion:confirm',
@@ -44,7 +46,8 @@ export const MAIN_WINDOW_EVENTS = [
   'neuron:created',
   'neuron:thinking',
   'neuron:thought',
-  'synthesis:stale'
+  'synthesis:stale',
+  'suggestion:updated'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

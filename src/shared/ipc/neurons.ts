@@ -51,6 +51,22 @@ export interface ExtensionView {
   readonly origin: Source
 }
 
+export interface WebSourceView {
+  readonly url: string
+  readonly title: string
+}
+
+/** Neurone fantôme : suggestion de l'IA rattachée à un neurone, à accepter ou ignorer. */
+export interface SuggestionView {
+  readonly id: string
+  readonly neuronId: string
+  readonly title: string
+  readonly content: string
+  /** `pending` : vérification web en cours ; `done` : `sources` renseignées ; `failed` : non vérifiée. */
+  readonly research: 'none' | 'pending' | 'done' | 'failed'
+  readonly sources: readonly WebSourceView[]
+}
+
 export interface GaugeView {
   readonly level: GaugeLevel
   readonly covered: readonly string[]
@@ -62,6 +78,7 @@ export interface TreeView {
   readonly root: RootView
   readonly neurons: readonly NeuronView[]
   readonly extensions: readonly ExtensionView[]
+  readonly suggestions: readonly SuggestionView[]
   readonly gauge: GaugeView | null
 }
 

@@ -147,11 +147,7 @@ export class FusionService {
       let failure: CheckFailure | null = null
       for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
         const request: string =
-          failure === null
-            ? input
-            : `${input}
-
-Ta proposition précédente a été refusée : ${failure.message}.`
+          failure === null ? input : `${input}\n\nTa proposition précédente a été refusée : ${failure.message}.`
         const outcome: Synthesized | { readonly failure: CheckFailure } =
           nature === 'action'
             ? await this.attempt(

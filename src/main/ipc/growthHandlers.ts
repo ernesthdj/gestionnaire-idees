@@ -10,7 +10,7 @@ const AnswerInput = z.union([
   z.object({ unknown: z.literal(true) }).strict()
 ])
 
-/** Canaux `growth:*` et `neuron:delete` (spec 002 contracts/ipc-neurons.md). */
+/** Canaux `growth:*` (dont suggestions) et `neuron:delete` (spec 002 contracts/ipc-neurons.md). */
 export function createGrowthRoutes(growth: GrowthService): IpcRoute[] {
   return [
     defineRoute({
@@ -40,6 +40,16 @@ export function createGrowthRoutes(growth: GrowthService): IpcRoute[] {
         .strict(),
       handler: async ({ parentId, title, content }) =>
         growth.addBranch({ parentId, title, ...(content === undefined ? {} : { content }) })
+    }),
+    defineRoute({
+      channel: 'growth:acceptSuggestion',
+      input: z.object({ suggestionId: Id }).strict(),
+      handler: ({ suggestionId }) => growth.acceptSuggestion(suggestionId)
+    }),
+    defineRoute({
+      channel: 'growth:dismissSuggestion',
+      input: z.object({ suggestionId: Id }).strict(),
+      handler: async ({ suggestionId }) => growth.dismissSuggestion(suggestionId)
     }),
     defineRoute({
       channel: 'neuron:delete',

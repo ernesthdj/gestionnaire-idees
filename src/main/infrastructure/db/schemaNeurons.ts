@@ -77,6 +77,31 @@ export const extensions = sqliteTable(
   (t) => [index('extensions_root_status_idx').on(t.rootId, t.status)]
 )
 
+/**
+ * Suggestions d'approfondissement (neurones fantômes) : proposées par l'IA, acceptées ou ignorées par l'utilisateur.
+ * `research` suit la vérification web éventuelle ; `sources_json` garde les pages citées (URL + titre).
+ */
+export const suggestions = sqliteTable(
+  'suggestions',
+  {
+    id: text('id').primaryKey(),
+    rootId: text('root_id').notNull(),
+    neuronId: text('neuron_id')
+      .notNull()
+      .references(() => neurons.id),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    webQuery: text('web_query'),
+    research: text('research', { enum: ['none', 'pending', 'done', 'failed'] }).notNull(),
+    sourcesJson: text('sources_json').notNull().default('[]'),
+    status: text('status', { enum: ['proposed', 'accepted', 'dismissed'] }).notNull(),
+    acceptedNeuronId: text('accepted_neuron_id'),
+    createdAt: createdAt(),
+    resolvedAt: text('resolved_at')
+  },
+  (t) => [index('suggestions_root_status_idx').on(t.rootId, t.status)]
+)
+
 export const contextAssessments = sqliteTable(
   'context_assessments',
   {

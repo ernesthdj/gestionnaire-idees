@@ -161,3 +161,46 @@ describe('AIGateway — routage, file, journal', () => {
     expect(h.ollama.requests[0]?.system.map((block) => block.text).join(' ')).toContain('Marc')
   })
 })
+
+describe('AIGateway — recherche web', () => {
+  it('should_research_with_anonymized_input_and_log_the_call_with_its_cost', async () => {
+    const h = createGatewayHarness({ costOf: (_engine, _model, usage) => (usage.webSearches ?? 0) * 1000 })
+    h.claude.enqueueResearch({
+      text: 'Compte 220 à 300 €',
+      sources: [{ url: 'https://a.be', title: 'A' }],
+      webSearches: 2
+    })
+    const result = await h.gateway.research({ input: 'Écran pour Marc', maxSearches: 2 })
+    expect(result).toMatchObject({ ok: true, value: { text: 'Compte 220 à 300 €', costMillicents: 2000 } })
+    expect(h.anonymized).toEqual(['Écran pour Marc'])
+    expect(h.claude.researchRequests[0]).toMatchObject({ maxSearches: 2 })
+    expect(h.claude.researchRequests[0]?.user).not.toContain('Marc')
+    expect(h.calls.at(-1)).toMatchObject({ kind: 'rechercher', engine: 'claude', status: 'ok', costMillicents: 2000 })
+  })
+
+  it('should_refuse_research_without_claude_even_if_local_ai_is_up', async () => {
+    const h = createGatewayHarness()
+    h.claude.setAvailable(false)
+    const result = await h.gateway.research({ input: 'x', maxSearches: 1 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'AI_UNAVAILABLE' } })
+    expect(h.ollama.requests).toHaveLength(0)
+  })
+
+  it('should_block_research_when_budget_is_exhausted', async () => {
+    const h = createGatewayHarness({
+      budget: { check: async () => ({ allowed: false }), record: async () => undefined }
+    })
+    const result = await h.gateway.research({ input: 'x', maxSearches: 1 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'BUDGET_EXCEEDED' } })
+    expect(h.claude.researchRequests).toHaveLength(0)
+  })
+
+  it('should_fail_when_research_returns_no_text', async () => {
+    const h = createGatewayHarness()
+    h.claude.enqueueResearch({ text: '' })
+    await expect(h.gateway.research({ input: 'x', maxSearches: 1 })).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'AI_INVALID_OUTPUT' }
+    })
+  })
+})

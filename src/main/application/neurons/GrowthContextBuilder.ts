@@ -22,6 +22,7 @@ export function buildGrowthInput(input: {
   readonly nodes: readonly GrowthNode[]
   readonly targetId: string
   readonly knownQuestions: readonly string[]
+  readonly knownSuggestions: readonly string[]
   readonly answered: number
   readonly mode: ExtensionMode
 }): string {
@@ -45,6 +46,7 @@ export function buildGrowthInput(input: {
     `Chemin jusqu'au neurone ciblé [${alias.get(input.targetId) ?? '?'}] :\n${path.map(describe).join('\n')}`,
     `Réponses déjà données : ${input.answered}`,
     `Questions déjà posées (ne pas reproposer) :\n${input.knownQuestions.map((question) => `- ${question}`).join('\n') || '- aucune'}`,
+    `Suggestions déjà faites (ne pas reproposer) :\n${input.knownSuggestions.map((title) => `- ${title}`).join('\n') || '- aucune'}`,
     `Consigne : ${request}`
   ]
   const othersSection = `Autres branches (titres) :\n${others.map(describe).join('\n')}`

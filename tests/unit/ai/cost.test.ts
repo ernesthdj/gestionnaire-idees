@@ -23,6 +23,14 @@ describe('costMillicents', () => {
     expect(write).toBe(Math.round(input * 1.25))
   })
 
+  it('should_bill_each_web_search_one_dollar_cent_on_top_of_tokens', () => {
+    // 2 recherches = 0,02 $ ; × 0,92 = 1,84 centime d'euro = 1 840 millicentimes.
+    expect(costMillicents({ ...usage, webSearches: 2 }, DEFAULT_PRICING['claude-opus-5'], 0.92)).toBe(1_840)
+    expect(
+      estimateMaxMillicents({ inputTokens: 0, maxOutputTokens: 0, webSearches: 2 }, DEFAULT_PRICING['claude-opus-5'], 1)
+    ).toBe(2_000)
+  })
+
   it('should_cost_nothing_when_model_is_local', () => {
     expect(costMillicents({ ...usage, inputTokens: 5000, outputTokens: 5000 }, undefined, 0.92)).toBe(0)
   })

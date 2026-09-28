@@ -8,6 +8,12 @@ CategoriserOut = { categorySlug: "general"|"achat"|"projet"|"sortie"|"photo"|"it
 EtendreOut = {
   kind: "extensions" | "out_of_scope",
   outOfScopeMessage?: string,                    // 1..300, requis si out_of_scope
+  suggestions: Array<{                            // 0..2 — neurones fantômes (US6)
+    neuronRef: string,                           // alias sN du neurone de rattachement
+    title: string,                               // 1..120
+    content: string,                             // 1..500
+    webQuery?: string                            // 3..200 — vérification web demandée
+  }>,
   extensions: Array<{
     question: string,                            // 1..300
     quickReplies: string[],                      // 0..4, chacune 1..40
@@ -51,4 +57,5 @@ SuggererLiensOut = { links: Array<{ targetAlias: "N1"|…|"N10", label: string /
 | P1–P5 | Plan : refs existantes, branches 2..4, profondeur plan ≤ 5, sans boucle (Kahn), `sourceRefs` existants | `AI_INVALID_OUTPUT` (1 retry) / `CYCLE_DETECTED` / `DEPTH_EXCEEDED` |
 | P6 | Provenance montants/dates (réponses de l'utilisateur uniquement) | valeur retirée + nœud « à trouver » |
 | S1 | Réflexion : `sourceRefs` existants, au moins 1 point clé | `AI_INVALID_OUTPUT` (1 retry) |
+| S2 | Suggestions : neurone de rattachement existant, pas déjà faite ni identique à un neurone ; une seule vérification web par appel | suggestion retirée / `webQuery` ignorée |
 | L1 | Liens : `targetAlias` ∈ candidats, pas d'empreinte refusée | suggestion retirée |

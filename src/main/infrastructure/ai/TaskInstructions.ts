@@ -8,8 +8,8 @@ const SYNTHESIS_RULES = [
   '- ref : identifiant court en minuscules (t1, c1…). Une condition (« J’ai l’argent ? ») a 2 à 4 enfants,',
   '  chacun avec branchLabel (Oui / Non…) ; au plus 5 niveaux de parentRef.',
   '- dependencies : fromRef doit être fait avant toRef (after_done) ou toRef attend un déclencheur (on_trigger).',
-  '- Montants : ils te sont masqués en fourchettes ; si une étape a un coût cité, mets amountCents au milieu de la',
-  '  fourchette et cite la réponse dans sourceRefs, l’application remettra la valeur exacte.',
+  '- Montants : reprends exactement ceux de l’utilisateur. S’ils apparaissent en fourchette ([montant …]), mets',
+  '  amountCents au milieu de la fourchette et cite la réponse dans sourceRefs : l’application remettra la valeur.',
   '- Date non donnée par l’utilisateur : pas de dueDate, mets toSchedule. Info manquante : investigation + gaps.',
   'Synthèse de réflexion :',
   '- keyPoints (au moins 1) = pistes retenues ; decisions ; pros / cons ; openQuestions = ce qui reste à trancher.',
@@ -49,12 +49,23 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     '- Évalue le contexte de TOUTE l’idée : covered = dimensions renseignées, missing = dimensions utiles manquantes ;',
     '  level = insufficient, sufficient (on peut organiser l’idée) ou complete (rien d’important ne manque).',
     '- Si une réponse mentionne une ressource datée ou chiffrée, renseigne detectedOpportunity (valeurs de l’utilisateur).',
-    '- Demande d’œuvre finie (poème, image, code…) : kind = out_of_scope et propose d’aider à y réfléchir.'
+    '- Demande d’œuvre finie (poème, image, code…) : kind = out_of_scope et propose d’aider à y réfléchir.',
+    '- suggestions (0 à 2, seulement si elles apportent vraiment) : une piste concrète que l’utilisateur n’a pas',
+    '  envisagée, ou une réponse possible à un « À trouver ». neuronRef = alias [sN] du neurone concerné. C’est une',
+    '  PROPOSITION : l’utilisateur l’accepte ou l’ignore. Ne répète aucune suggestion déjà faite.',
+    '- Si la suggestion dépend d’informations actuelles (prix, disponibilité, horaires, adresses de commerces),',
+    '  renseigne webQuery : requête de recherche courte, sans aucune donnée personnelle ; l’application vérifiera.'
   ].join('\n'),
   synthetiser: SYNTHESIS_RULES,
   reviser: [
     SYNTHESIS_RULES,
     '- Correction : repars de la proposition précédente, applique la consigne de l’utilisateur, garde le reste.'
+  ].join('\n'),
+  rechercher: [
+    'Tu vérifies sur le web une suggestion faite à l’utilisateur (2 recherches au plus).',
+    '- Réponds en 2 à 3 phrases factuelles, en français, sans préambule : ordres de grandeur de prix en euros,',
+    '  options concrètes, conditions utiles. Appuie-toi uniquement sur ce que tu as trouvé.',
+    '- Rien de fiable trouvé : dis-le en une phrase.'
   ].join('\n'),
   anonymiser: [
     'Liste les noms de personnes (prénoms, noms) et de lieux (villes, quartiers, pays, établissements nommés)',

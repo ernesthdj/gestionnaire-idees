@@ -150,6 +150,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 - **FR-012**: Les neurones bruts MUST dériver lentement ; la dérive MUST se suspendre pendant l'interaction et être désactivée en mode animations réduites.
 
 - **FR-026**: La toile MUST accepter un type de nœud générique « bloc » (conteneur vide que l'utilisateur place, déplace, redimensionne et supprime, avec position et taille persistées), sans exécution de code en MVP-1 ; il servira de support aux mini-widgets de la v2 (docs/brainstorm/L4c-widgets.md).
+- **FR-027**: Les suggestions de l'IA (spec 002 US6) MUST apparaître comme **neurones fantômes** rattachés à leur neurone (contour en pointillés, opacité réduite, apparition 150 ms) : Tab ou clic = accepter (le fantôme se solidifie en sous-neurone marqué ✦ IA), Échap ou « × » = ignorer ; un fantôme en vérification web affiche un indicateur discret, puis ses sources (titre + domaine, lien externe ouvert dans le navigateur système) au survol ou au focus ; tout reste utilisable au clavier et lisible par lecteur d'écran (« suggestion de l'IA »).
 
 **Plongée & croissance**
 - **FR-013**: Double-clic ou `Entrée` sur un neurone MUST ouvrir la plongée : neurone centré, sous-neurones autour, fil d'Ariane, badge de profondeur, parent estompé cliquable, panneau latéral.

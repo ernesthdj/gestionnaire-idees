@@ -8,10 +8,12 @@ import type {
   RootListView,
   RootState,
   RootView,
-  Source
+  Source,
+  SuggestionView,
+  WebSourceView
 } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
-import { categories, contextAssessments, extensions, neurons } from '../schemaNeurons'
+import { categories, contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
 
 export interface RootFilter {
   readonly state?: RootState
@@ -183,6 +185,23 @@ export class NeuronRepository {
         quickReplies: JSON.parse(row.quickRepliesJson) as string[],
         dimension: row.dimension,
         origin: row.origin
+      }))
+  }
+
+  proposedSuggestions(rootId: string): SuggestionView[] {
+    return this.db
+      .select()
+      .from(suggestions)
+      .where(and(eq(suggestions.rootId, rootId), eq(suggestions.status, 'proposed')))
+      .orderBy(sql`${suggestions}.rowid`)
+      .all()
+      .map((row) => ({
+        id: row.id,
+        neuronId: row.neuronId,
+        title: row.title,
+        content: row.content,
+        research: row.research,
+        sources: JSON.parse(row.sourcesJson) as WebSourceView[]
       }))
   }
 
