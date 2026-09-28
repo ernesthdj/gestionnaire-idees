@@ -1,0 +1,12 @@
+out/
+dist/
+release/
+node_modules/
+graphify-out/
+.specify/
+.claude/
+docs/
+specs/
+package-lock.json
+CLAUDE.md
+*.md

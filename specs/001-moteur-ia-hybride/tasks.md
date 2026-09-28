@@ -23,12 +23,12 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 **Purpose**: Squelette Electron + outillage (première feature du projet)
 
-- [ ] T001 Annoncer et faire valider la liste des dépendances (research.md § Dépendances annoncées) avant toute installation
-- [ ] T002 Initialiser le projet electron-vite (TypeScript, React) : `package.json`, `electron.vite.config.ts`, `tsconfig.json` (`strict: true`), arborescence `src/main`, `src/preload`, `src/renderer`, `src/shared` selon plan.md
-- [ ] T003 [P] Configurer ESLint + Prettier (règle `no-explicit-any` en erreur, interdiction de `console.log`) dans `eslint.config.js`, `.prettierrc`
-- [ ] T004 [P] Configurer Tailwind + tokens de design de base dans `src/renderer/src/styles/tokens.css` et `tailwind.config.ts` (dark/light via `[data-theme]`)
-- [ ] T005 [P] Configurer Vitest (`vitest.config.ts`, dossiers `tests/unit`, `tests/integration`, `tests/fixtures`)
-- [ ] T006 [P] Ajouter `.env.example` (valeurs fictives) et compléter `.gitignore` (`out/`, `dist/`, `release/`)
+- [x] T001 Annoncer et faire valider la liste des dépendances (research.md § Dépendances annoncées) avant toute installation
+- [x] T002 Initialiser le projet electron-vite (TypeScript, React) : `package.json`, `electron.vite.config.ts`, `tsconfig.json` (`strict: true`), arborescence `src/main`, `src/preload`, `src/renderer`, `src/shared` selon plan.md
+- [x] T003 [P] Configurer ESLint + Prettier (règle `no-explicit-any` en erreur, interdiction de `console.log`) dans `eslint.config.js`, `.prettierrc`
+- [x] T004 [P] Configurer Tailwind + tokens de design de base dans `src/renderer/src/styles/tokens.css` (dark/light via `[data-theme]`) — Tailwind v4 : configuration en CSS (`@theme`), pas de `tailwind.config.ts`
+- [x] T005 [P] Configurer Vitest (`vitest.config.ts`, dossiers `tests/unit`, `tests/integration`, `tests/fixtures`)
+- [x] T006 [P] Ajouter `.env.example` (valeurs fictives) et compléter `.gitignore` (`out/`, `dist/`, `release/`)
 
 ---
 

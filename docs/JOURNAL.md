@@ -4,7 +4,9 @@
 
 | # | Regle | Fichier(s) | Date |
 |---|-------|-----------|------|
-| _Aucune regle pour l'instant_ | | | |
+| 1 | Electron : si `node_modules/electron/path.txt` est absent après `npm install` (« Electron uninstall »), lancer `node node_modules/electron/install.js` | `package.json` | 2026-09-28 |
+| 2 | Vérifier les dépendances croisées avant d'épingler des versions : typescript-eslint impose TS < 6.1, electron-vite 5 impose Vite ≤ 7 | `package.json` | 2026-09-28 |
+| 3 | Preload Electron en sandbox = CommonJS (`.cjs`) quand le paquet est `"type": "module"` | `electron.vite.config.ts` | 2026-09-28 |
 
 ## Historique
 
@@ -41,3 +43,8 @@
 ### [2026-09-28 11:53] DOCS — Spec Kit : remédiation 002 + feature 003
 **Fichiers :** `specs/002-structuration-ia/{spec,data-model,tasks,analysis-report}.md`, `specs/003-interface-mvp1/` (complet)
 **Résumé :** 002 : 5 correctifs (statut restauré après abandon, table settings + limite configurable, test out_of_scope, dépendance coquille → 003, FR-007 reformulé) → 24/24. 003 Interface MVP-1 (coquille + F1 + F3 + F4) : 5 user stories, 28 FR, 8 SC, 50 tâches ; 6 nouvelles dépendances annoncées (React Flow, dagre, Zustand, TanStack Query, RHF) + 3 de test. Analyse : 0 critique, 2 moyens (correction d'une 1re décomposition impossible via restructure ; effet d'une annulation d'acceptation non défini), 3 mineurs. MVP-1 entièrement spécifié.
+
+### [2026-09-28 12:07] FEAT — squelette Electron (spec 001, T001-T006)
+**Fichiers :** `package.json`, `electron.vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `.prettierrc`, `vitest.config.ts`, `.env.example`, `src/main/index.ts`, `src/preload/`, `src/renderer/`, `src/shared/app-api.ts`, `tests/unit/smoke.test.ts`
+**Résumé :** Dépendances validées puis installées en versions exactes (Electron 44, electron-vite 5 + Vite 7, React 19, Tailwind 4, SDK Anthropic 0.128, Zod 4, Drizzle 0.45, SQLite chiffré 13, TypeScript 6.0, Vitest 5, ESLint 10). Fenêtre durcie (contextIsolation, sandbox, CSP, navigation/permissions/webviews bloquées), preload CJS. Typecheck, lint, prettier, tests et build OK ; app lancée en dev. Base chiffrée vérifiée dans Electron (fichier illisible en clair, mauvaise clé refusée).
+**Décisions :** TS 6.0 (typescript-eslint < 6.1), Vite 7 (electron-vite 5), plugin-react 5.2 ; audit esbuild/drizzle-kit accepté (dev only).

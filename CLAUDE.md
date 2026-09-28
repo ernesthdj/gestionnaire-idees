@@ -48,6 +48,21 @@ Derniere mise a jour : jamais
 Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiffre (Drizzle + better-sqlite3-multiple-ciphers)
 · Ollama (IA locale) + Claude API (`@anthropic-ai/sdk`) · Microsoft Graph + MSAL Node · Zod. Detail : `docs/FOUNDATION.md` §5.
 
+## Commandes
+
+| Commande | Effet |
+|----------|-------|
+| `npm run dev` | Lance l'app en developpement (rechargement a chaud) |
+| `npm test` | Tests Vitest |
+| `npm run typecheck` | Verification TypeScript (main/preload + renderer) |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npm run build` | Typecheck + build de production dans `out/` |
+
+> Si `npm run dev` affiche « Electron uninstall » : `node node_modules/electron/install.js` (telechargement
+> du binaire Electron non effectue a l'installation).
+> `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
+> serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.
+
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`

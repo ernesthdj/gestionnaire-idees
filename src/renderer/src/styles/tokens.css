@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — source de vérité des couleurs (standard frontend mentalyas).
+ * Palette NEUTRE provisoire : sera remplacée par la direction visuelle en cours de conception.
+ * Thème : attribut [data-theme="dark"|"light"] sur <html>, sinon préférence système.
+ */
+
+:root {
+  --color-surface: #ffffff;
+  --color-surface-raised: #f4f4f5;
+  --color-content: #18181b;
+  --color-content-muted: #52525b;
+  --color-accent: #2563eb;
+  --color-focus: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-surface: #18181b;
+    --color-surface-raised: #27272a;
+    --color-content: #fafafa;
+    --color-content-muted: #a1a1aa;
+    --color-accent: #60a5fa;
+    --color-focus: #93c5fd;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-surface: #18181b;
+  --color-surface-raised: #27272a;
+  --color-content: #fafafa;
+  --color-content-muted: #a1a1aa;
+  --color-accent: #60a5fa;
+  --color-focus: #93c5fd;
+}
+
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-content: var(--color-content);
+  --color-content-muted: var(--color-content-muted);
+  --color-accent: var(--color-accent);
+  --color-focus: var(--color-focus);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
