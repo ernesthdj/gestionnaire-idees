@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    {"id": "moc", "type": "file", "file": "academique/MOC — Gestionnaire idées.md", "x": 0, "y": -500, "width": 380, "height": 260, "color": "1"},
+    {"id": "label_ordre", "type": "text", "text": "Sens de lecture : haut -> bas\nColonne centrale = charpente (spec 001)\nColonne droite = moteur IA\nColonne basse = moteur de neurones (spec 002)\nNuméros sur les flèches = ordre d'apprentissage (0 à 13)", "x": -560, "y": -500, "width": 320, "height": 200},
+    {"id": "glossaire", "type": "text", "text": "Glossaire : 10 notes (IPC, CSP, LLM, Token, Transaction ACID, Idempotence, SHA-256, Kahn, Regex, FTS5) — voir MOC", "x": -560, "y": -200, "width": 320, "height": 160},
+
+    {"id": "c_spec", "type": "file", "file": "academique/Du brainstorm au code — spécifications et constitution.md", "x": 0, "y": -100, "width": 380, "height": 300, "color": "4"},
+    {"id": "c_electron", "type": "file", "file": "academique/Architecture Electron — trois processus cloisonnés.md", "x": 0, "y": 300, "width": 380, "height": 300, "color": "4"},
+    {"id": "c_ipc", "type": "file", "file": "academique/IPC typé — le guichet unique entre interface et moteur.md", "x": 0, "y": 700, "width": 380, "height": 300, "color": "4"},
+    {"id": "c_clean", "type": "file", "file": "academique/Clean Architecture — domaine, application, infrastructure.md", "x": 0, "y": 1100, "width": 380, "height": 300, "color": "4"},
+
+    {"id": "c_stockage", "type": "file", "file": "academique/Stockage local chiffré — SQLite, SQLCipher et DPAPI.md", "x": -450, "y": 1500, "width": 380, "height": 300, "color": "3"},
+    {"id": "p_drizzle", "type": "file", "file": "academique/Drizzle ORM ↔ SQL paramétré et migrations.md", "x": -450, "y": 1900, "width": 380, "height": 300, "color": "5"},
+
+    {"id": "c_gateway", "type": "file", "file": "academique/Passerelle IA hybride — un seul point d'accès à l'IA.md", "x": 450, "y": 1500, "width": 380, "height": 300, "color": "3"},
+    {"id": "p_zod", "type": "file", "file": "academique/Zod ↔ type guards et sortie structurée.md", "x": 900, "y": 1500, "width": 380, "height": 300, "color": "5"},
+    {"id": "c_anonym", "type": "file", "file": "academique/Anonymisation en deux couches.md", "x": 450, "y": 1900, "width": 380, "height": 300, "color": "3"},
+    {"id": "c_injection", "type": "file", "file": "academique/Injection de prompt — cadre figé et données balisées.md", "x": 450, "y": 2300, "width": 380, "height": 300, "color": "3"},
+    {"id": "c_import", "type": "file", "file": "academique/Import de contexte — paquet vérifié, versionné, réversible.md", "x": 900, "y": 2300, "width": 380, "height": 300, "color": "6"},
+    {"id": "c_budget", "type": "file", "file": "academique/Budget IA — convertir des tokens en euros.md", "x": 450, "y": 2700, "width": 380, "height": 300, "color": "3"},
+
+    {"id": "c_croissance", "type": "file", "file": "academique/Croissance d'un neurone — arbre, garde-fous et jauge.md", "x": 0, "y": 3100, "width": 380, "height": 320, "color": "6"},
+    {"id": "c_synthese", "type": "file", "file": "academique/Synthèse vérifiée — contrôles déterministes et provenance.md", "x": 0, "y": 3500, "width": 380, "height": 320, "color": "6"},
+    {"id": "c_eclosion", "type": "file", "file": "academique/Éclosion atomique — transaction, version et historique.md", "x": 0, "y": 3900, "width": 380, "height": 320, "color": "6"},
+    {"id": "c_liens", "type": "file", "file": "academique/Liens entre idées — graphe local de mots-clés.md", "x": 0, "y": 4300, "width": 380, "height": 320, "color": "6"}
+  ],
+  "edges": [
+    {"id": "e_moc_spec", "fromNode": "moc", "toNode": "c_spec", "fromSide": "bottom", "toSide": "top", "label": "0"},
+    {"id": "e_spec_electron", "fromNode": "c_spec", "toNode": "c_electron", "fromSide": "bottom", "toSide": "top", "label": "1 la constitution exige un Electron durci"},
+    {"id": "e_electron_ipc", "fromNode": "c_electron", "toNode": "c_ipc", "fromSide": "bottom", "toSide": "top", "label": "2 le guichet entre processus"},
+    {"id": "e_ipc_clean", "fromNode": "c_ipc", "toNode": "c_clean", "fromSide": "bottom", "toSide": "top", "label": "3 où va la logique"},
+    {"id": "e_clean_stockage", "fromNode": "c_clean", "toNode": "c_stockage", "fromSide": "bottom", "toSide": "top", "label": "4 adaptateur disque"},
+    {"id": "e_stockage_drizzle", "fromNode": "c_stockage", "toNode": "p_drizzle", "fromSide": "bottom", "toSide": "top", "label": "pont ORM ↔ SQL"},
+    {"id": "e_clean_gateway", "fromNode": "c_clean", "toNode": "c_gateway", "fromSide": "bottom", "toSide": "top", "label": "5 adaptateur IA"},
+    {"id": "e_gateway_zod", "fromNode": "c_gateway", "toNode": "p_zod", "fromSide": "right", "toSide": "left", "label": "pont schémas"},
+    {"id": "e_gateway_anonym", "fromNode": "c_gateway", "toNode": "c_anonym", "fromSide": "bottom", "toSide": "top", "label": "6 avant tout envoi à Claude"},
+    {"id": "e_anonym_injection", "fromNode": "c_anonym", "toNode": "c_injection", "fromSide": "bottom", "toSide": "top", "label": "7 données ≠ consignes"},
+    {"id": "e_injection_import", "fromNode": "c_injection", "toNode": "c_import", "fromSide": "right", "toSide": "left", "label": "13 d'où vient le profil"},
+    {"id": "e_injection_budget", "fromNode": "c_injection", "toNode": "c_budget", "fromSide": "bottom", "toSide": "top", "label": "8 chaque token se paie"},
+    {"id": "e_budget_croissance", "fromNode": "c_budget", "toNode": "c_croissance", "fromSide": "bottom", "toSide": "top", "label": "9 le moteur de neurones"},
+    {"id": "e_croissance_synthese", "fromNode": "c_croissance", "toNode": "c_synthese", "fromSide": "bottom", "toSide": "top", "label": "10 verrouiller"},
+    {"id": "e_synthese_eclosion", "fromNode": "c_synthese", "toNode": "c_eclosion", "fromSide": "bottom", "toSide": "top", "label": "11 confirmer"},
+    {"id": "e_eclosion_liens", "fromNode": "c_eclosion", "toNode": "c_liens", "fromSide": "bottom", "toSide": "top", "label": "12 relier après éclosion"}
+  ]
+}

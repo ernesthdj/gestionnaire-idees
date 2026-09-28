@@ -1,0 +1,14 @@
+# Fichiers générés ou d'outillage : sans valeur pour le graphe du projet
+docs/.obsidian/
+.claude/
+.specify/templates/
+.specify/scripts/
+.specify/workflows/
+.specify/integrations/
+.specify/*.json
+.specify/memory/.constitution-template.json
+src/main/infrastructure/db/migrations/meta/
+tests/fixtures/
+graphify-out/
+out/
+node_modules/

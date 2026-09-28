@@ -151,3 +151,8 @@
 **Résumé :** US5 : changer la nature en cours de développement réoriente les questions suivantes (dimensions de référence transmises) ; une question dont la dimension sort de la nature actuelle est signalée (`outsideNature`), jamais retirée ; l'IA est invitée à nommer ses dimensions avec les noms de référence. Mode dégradé vérifié : sans IA, réponses conservées, branches manuelles possibles, verrouillage refusé sans rien écrire ; synthèse produite par l'IA locale marquée `degraded`. Injection : toute variante de la balise fermante `</donnees_utilisateur>` (casse, espaces) est neutralisée. Cadre système v3 aligné sur la constitution 1.1.0 (suggestion explicite autorisée, recherche web quand la tâche le demande).
 **Reste (spec 002) :** T031 validations manuelles et T038 recherche web réelle, avec la clé Claude.
 
+### [2026-09-28 16:05] SESSION — End
+**Resume :** Session inaugurale. /hub new (repo public), brainstorm niveaux 1 à 4 + export FOUNDATION.md, pivot « Brainstormer » (neurones Action/Réflexion), Spec Kit (constitution + specs 001/002/003). Spec 001 livrée : Electron durci, SQLite chiffré, passerelle IA hybride (Ollama qwen3.5:9b + Claude Opus 5), anonymisation, budget, réglages, import de contexte, revue sécurité. Spec 002 livrée (sauf validations réelles T031/T038) : croissance + jauge, verrouillage/synthèse/éclosion, montants exacts (constitution 1.1.0), neurones fantômes + recherche web, liens par présélection locale, nature, mode dégradé, anti-injection. 305 tests. Prochaine étape : validations réelles avec la clé Claude, puis spec 003 (interface).
+**Branche :** main
+**Commits pushes :** 21 (27 commits sur la journée)
+
