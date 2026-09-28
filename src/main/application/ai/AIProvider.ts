@@ -34,3 +34,15 @@ export interface AIProvider {
   isAvailable(): Promise<ProviderStatus>
   complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>>
 }
+
+/** Erreur typée d'un moteur : permet à la passerelle de distinguer une clé refusée d'une panne. */
+export class ProviderError extends Error {
+  constructor(
+    readonly code: 'AUTH_FAILED' | 'AI_UNAVAILABLE',
+    message: string,
+    readonly retryable: boolean
+  ) {
+    super(message)
+    this.name = 'ProviderError'
+  }
+}

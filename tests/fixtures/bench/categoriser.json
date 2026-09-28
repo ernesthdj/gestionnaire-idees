@@ -1,0 +1,83 @@
+[
+  {
+    "input": "Acheter un deuxième écran 27 pouces pour le PC",
+    "expected": { "categorySlug": "achat", "nature": "action" }
+  },
+  {
+    "input": "Trouver un cadeau d'anniversaire pour un ami",
+    "expected": { "categorySlug": "achat", "nature": "action" }
+  },
+  { "input": "Remplacer la batterie de l'appareil photo", "expected": { "categorySlug": "achat", "nature": "action" } },
+  { "input": "Commander des cartes de visite", "expected": { "categorySlug": "achat", "nature": "action" } },
+  { "input": "Réserver un restaurant pour samedi soir", "expected": { "categorySlug": "sortie", "nature": "action" } },
+  {
+    "input": "Aller voir l'exposition au musée ce mois-ci",
+    "expected": { "categorySlug": "sortie", "nature": "action" }
+  },
+  { "input": "Organiser un week-end à la mer", "expected": { "categorySlug": "sortie", "nature": "action" } },
+  {
+    "input": "Tester le nouveau bar à jeux du centre-ville",
+    "expected": { "categorySlug": "sortie", "nature": "action" }
+  },
+  {
+    "input": "Concept de mon portfolio photo : quel style, quel public ?",
+    "expected": { "categorySlug": "photo", "nature": "reflection" }
+  },
+  {
+    "input": "Préparer le repérage pour un mariage en extérieur",
+    "expected": { "categorySlug": "photo", "nature": "action" }
+  },
+  {
+    "input": "Faut-il passer à un objectif 35 mm fixe ?",
+    "expected": { "categorySlug": "photo", "nature": "reflection" }
+  },
+  {
+    "input": "Créer un preset Lightroom pour les soirées",
+    "expected": { "categorySlug": "photo", "nature": "action" }
+  },
+  {
+    "input": "Quelle architecture pour une app de gestion de stock ?",
+    "expected": { "categorySlug": "it", "nature": "reflection" }
+  },
+  { "input": "Mettre à jour Node sur le PC", "expected": { "categorySlug": "it", "nature": "action" } },
+  {
+    "input": "Choisir entre React et Svelte pour un side project",
+    "expected": { "categorySlug": "it", "nature": "reflection" }
+  },
+  {
+    "input": "Configurer une sauvegarde automatique des disques",
+    "expected": { "categorySlug": "it", "nature": "action" }
+  },
+  {
+    "input": "Lancer un petit site pour vendre mes tirages",
+    "expected": { "categorySlug": "projet", "nature": "action" }
+  },
+  {
+    "input": "Idée de projet : une chaîne vidéo sur la photo de rue",
+    "expected": { "categorySlug": "projet", "nature": "reflection" }
+  },
+  { "input": "Monter une expo photo collective", "expected": { "categorySlug": "projet", "nature": "action" } },
+  { "input": "Écrire un guide sur l'éclairage naturel", "expected": { "categorySlug": "projet", "nature": "action" } },
+  {
+    "input": "Pourquoi je procrastine autant le dimanche ?",
+    "expected": { "categorySlug": "general", "nature": "reflection" }
+  },
+  { "input": "Penser à appeler le propriétaire", "expected": { "categorySlug": "general", "nature": "action" } },
+  {
+    "input": "Comment mieux organiser mes semaines ?",
+    "expected": { "categorySlug": "general", "nature": "reflection" }
+  },
+  { "input": "Prendre rendez-vous chez le dentiste", "expected": { "categorySlug": "general", "nature": "action" } },
+  {
+    "input": "Est-ce que je devrais me lancer en freelance ?",
+    "expected": { "categorySlug": "general", "nature": "reflection" }
+  },
+  { "input": "Acheter une plante pour le bureau", "expected": { "categorySlug": "achat", "nature": "action" } },
+  { "input": "Balade photo au lever du soleil dimanche", "expected": { "categorySlug": "photo", "nature": "action" } },
+  {
+    "input": "Idées de thème pour une série photo culinaire",
+    "expected": { "categorySlug": "photo", "nature": "reflection" }
+  },
+  { "input": "Migrer mes projets vers un NAS", "expected": { "categorySlug": "it", "nature": "action" } },
+  { "input": "Soirée cinéma en plein air cet été", "expected": { "categorySlug": "sortie", "nature": "action" } }
+]

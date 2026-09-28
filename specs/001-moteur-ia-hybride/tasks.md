@@ -61,22 +61,22 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T017 [P] [US1] Tests de routage (chaque TaskKind → moteur de la table ; changement de table sans toucher au code appelant) dans `tests/unit/ai/routing.test.ts`
-- [ ] T018 [P] [US1] Tests de validation (sortie invalide → 1 retry → `AI_INVALID_OUTPUT` ; refus → `AI_REFUSAL`) dans `tests/unit/ai/validation.test.ts`
-- [ ] T019 [P] [US1] Tests d'assemblage du contexte (ordre cadre → profil → exemples → données balisées ; cadre non remplaçable) dans `tests/unit/ai/context-assembler.test.ts`
-- [ ] T020 [P] [US1] Test d'intégration gateway + DB temporaire (journal `ai_calls` sans contenu, file Ollama concurrence 1 / Claude 2, `QUEUED` si Ollama indisponible) dans `tests/integration/ai/gateway.test.ts`
+- [x] T017 [P] [US1] Tests de routage (chaque TaskKind → moteur de la table ; changement de table sans toucher au code appelant) dans `tests/unit/ai/routing.test.ts`
+- [x] T018 [P] [US1] Tests de validation (sortie invalide → 1 retry → `AI_INVALID_OUTPUT` ; refus → `AI_REFUSAL`) dans `tests/unit/ai/validation.test.ts`
+- [x] T019 [P] [US1] Tests d'assemblage du contexte (ordre cadre → profil → exemples → données balisées ; cadre non remplaçable) dans `tests/unit/ai/context-assembler.test.ts`
+- [x] T020 [P] [US1] Test d'intégration gateway + DB temporaire (journal `ai_calls` sans contenu, file Ollama concurrence 1 / Claude 2, `QUEUED` si Ollama indisponible) dans `tests/integration/ai/gateway.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T021 [P] [US1] Table de routage par défaut + lecture depuis `ai_config` dans `src/main/domain/ai/routing.ts`
-- [ ] T022 [P] [US1] `ContextAssembler` (blocs système stables cachables puis variables, balises `<donnees_utilisateur>`) dans `src/main/application/ai/ContextAssembler.ts`
-- [ ] T023 [P] [US1] `OllamaProvider` (`/api/chat`, `format` JSON Schema, `/api/tags` pour la santé, 127.0.0.1 uniquement) dans `src/main/infrastructure/ai/OllamaProvider.ts`
-- [ ] T024 [P] [US1] `ClaudeProvider` (`messages.parse` + `zodOutputFormat`, `thinking: adaptive`, effort par kind, `cache_control`, gestion `stop_reason: refusal`, classes d'erreur typées du SDK) dans `src/main/infrastructure/ai/ClaudeProvider.ts` — **vérifier d'abord dans la doc du SDK** la compatibilité `parse` + fallbacks serveur (beta) ; si non supportée : pas de fallback serveur, refus → `AI_REFUSAL` propre, et consigner la décision dans research.md (R3) *(analyse B1)*
-- [ ] T025 [US1] `AIGateway` (routage, file par moteur, validation + 1 retry, idempotence `requestId` 5 min, journal) dans `src/main/application/ai/AIGateway.ts` (dépend de T021-T024)
-- [ ] T026 [US1] Schémas de sortie partagés initiaux (`CategoryOut`, `OutOfScope`) dans `src/shared/ai/schemas.ts`
-- [ ] T057 [P] [US1] Test de la file locale persistante (demande `QUEUED` conservée au redémarrage, rejouée au retour d'Ollama dans l'ordre d'arrivée, repli Claude **uniquement** si `allow_claude_fallback = true`, anonymisation appliquée au repli) dans `tests/unit/ai/local-queue.test.ts` *(analyse C1)*
-- [ ] T058 [US1] `LocalQueue` : table `ai_pending_requests` (data-model.md), sonde de santé Ollama toutes les 30 s, rejeu séquentiel FIFO, résultat livré au demandeur via l'événement `ai:requestCompleted { requestId }` ; branchement dans `AIGateway` — `src/main/application/ai/LocalQueue.ts` + migration dans `src/main/infrastructure/db/migrations/` *(analyse C1, dépend de T025)*
-- [ ] T027 [US1] Banc d'essai du modèle local (research R5) : script `scripts/bench-local-model.ts` + jeux fictifs `tests/fixtures/bench/` ; consigner le résultat dans `specs/001-moteur-ia-hybride/research.md` (R5)
+- [x] T021 [P] [US1] Table de routage par défaut + lecture depuis `ai_config` dans `src/main/domain/ai/routing.ts`
+- [x] T022 [P] [US1] `ContextAssembler` (blocs système stables cachables puis variables, balises `<donnees_utilisateur>`) dans `src/main/application/ai/ContextAssembler.ts`
+- [x] T023 [P] [US1] `OllamaProvider` (`/api/chat`, `format` JSON Schema, `/api/tags` pour la santé, 127.0.0.1 uniquement) dans `src/main/infrastructure/ai/OllamaProvider.ts`
+- [x] T024 [P] [US1] `ClaudeProvider` (`messages.parse` + `zodOutputFormat`, `thinking: adaptive`, effort par kind, `cache_control`, gestion `stop_reason: refusal`, classes d'erreur typées du SDK) dans `src/main/infrastructure/ai/ClaudeProvider.ts` — **vérifier d'abord dans la doc du SDK** la compatibilité `parse` + fallbacks serveur (beta) ; si non supportée : pas de fallback serveur, refus → `AI_REFUSAL` propre, et consigner la décision dans research.md (R3) *(analyse B1)*
+- [x] T025 [US1] `AIGateway` (routage, file par moteur, validation + 1 retry, idempotence `requestId` 5 min, journal) dans `src/main/application/ai/AIGateway.ts` (dépend de T021-T024)
+- [x] T026 [US1] Schémas de sortie partagés initiaux (`CategoryOut`, `OutOfScope`) dans `src/shared/ai/schemas.ts`
+- [x] T057 [P] [US1] Test de la file locale persistante (demande `QUEUED` conservée au redémarrage, rejouée au retour d'Ollama dans l'ordre d'arrivée, repli Claude **uniquement** si `allow_claude_fallback = true`, anonymisation appliquée au repli) dans `tests/unit/ai/local-queue.test.ts` *(analyse C1)*
+- [x] T058 [US1] `LocalQueue` : table `ai_pending_requests` (data-model.md), sonde de santé Ollama toutes les 30 s, rejeu séquentiel FIFO, résultat livré au demandeur via l'événement `ai:requestCompleted { requestId }` ; branchement dans `AIGateway` — `src/main/application/ai/LocalQueue.ts` + migration dans `src/main/infrastructure/db/migrations/` *(analyse C1, dépend de T025)*
+- [ ] T027 [US1] *(script + 30 cas fictifs prêts — exécution en attente de l'installation d'Ollama par mentalyas)* Banc d'essai du modèle local (research R5) : script `scripts/bench-local-model.ts` + jeux fictifs `tests/fixtures/bench/` ; consigner le résultat dans `specs/001-moteur-ia-hybride/research.md` (R5)
 
 **Checkpoint**: le moteur répond de façon fiable et vérifiée — base de F1 (catégorisation) et F2
 

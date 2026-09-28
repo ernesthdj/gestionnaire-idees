@@ -21,6 +21,11 @@
 - **Cache** : `cache_control: { type: "ephemeral" }` sur le bloc système stable (cadre + profil) ; vérifier `usage.cache_read_input_tokens` > 0 sur les tours suivants.
 - **Erreurs** : classes typées du SDK (`AuthenticationError`, `RateLimitError`, `APIConnectionError`, `APIError`), chaîne du plus spécifique au plus général ; retries par défaut du SDK (2).
 - **Alternatives** : appels HTTP bruts (refusé : le SDK est la voie officielle) ; outils (tool use) pour forcer le format (inutile : sorties structurées natives).
+- **Vérification T024 (2026-09-28, SDK 0.128.0 installé)** : `client.beta.messages.parse` existe et accepte
+  `fallbacks: 'default'` (type `BetaFallbacksParam = Array<…> | 'default'`) avec `betas: ['server-side-fallback-2026-07-01']`
+  et `output_config: { format: betaZodOutputFormat(schema), effort }` ; la réponse expose `parsed_output` (null si invalide)
+  et `stop_reason`. **Décision** : ClaudeProvider utilise `client.beta.messages.parse` + fallbacks serveur `"default"`
+  pour `claude-opus-5` ; un `stop_reason === "refusal"` final (toute la chaîne a refusé) → `AI_REFUSAL`.
 
 ## R4 — Appels Ollama
 - **Décision** : HTTP local `POST http://127.0.0.1:11434/api/chat`, `stream: false`, champ `format` = JSON Schema dérivé du schéma Zod (`zod-to-json-schema` ou `z.toJSONSchema` selon la version de Zod), puis revalidation Zod ; santé via `GET /api/tags` (modèle présent ?).

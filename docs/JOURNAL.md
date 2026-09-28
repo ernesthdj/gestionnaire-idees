@@ -9,6 +9,7 @@
 | 3 | Preload Electron en sandbox = CommonJS (`.cjs`) quand le paquet est `"type": "module"` | `electron.vite.config.ts` | 2026-09-28 |
 | 4 | Le preload en sandbox ne peut pas charger de dépendance npm (zod…) : n'y importer que du code local sans dépendance | `src/preload/`, `src/shared/ipc/channels.ts` | 2026-09-28 |
 | 5 | Drizzle importe `better-sqlite3` : utiliser un alias npm vers la variante chiffrée plutôt que dupliquer le paquet | `package.json` | 2026-09-28 |
+| 7 | Ne jamais trier une file par horodatage + identifiant aléatoire : deux insertions dans la même milliseconde donnent un ordre non déterministe → trier par `rowid` | `PendingRequestRepository.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -61,4 +62,10 @@
 **Fichiers :** `src/main/{bootstrap,index}.ts`, `src/main/ipc/{registry,appHandlers}.ts`, `src/main/domain/{errors,ai/types}.ts`, `src/main/application/ai/AIProvider.ts`, `src/main/infrastructure/{secrets/SecretStore,db/client,db/schema,ai/SystemFrame,logging/logger}.ts`, migration `0000_init_ai` (+ down), `src/preload/index.ts`, `src/shared/{app-api,ipc/*}.ts`, `tests/**` (35 tests), `drizzle.config.ts`
 **Résumé :** IPC : liste blanche côté preload, validation Zod + contrôle de l'expéditeur côté main, format `IpcResult`, erreurs internes masquées. Secrets chiffrés DPAPI (clé de base aléatoire 32 octets). SQLite chiffré ouvert au démarrage dans %APPDATA% avec migrations (vérifié : fichier illisible, mauvaise clé refusée). Journal à liste blanche. Contrat `AIProvider` + `FakeProvider`. Cadre système v2 « Brainstormer » + balisage anti-injection. Canal `app:ping` de bout en bout.
 **Décisions :** alias npm `better-sqlite3` → variante chiffrée ; types via `paths` (pas de `@types` supplémentaire) ; clé de base au format hex strict (PRAGMA non paramétrable).
+
+### [2026-09-28 13:40] FEAT — passerelle IA et moteurs (spec 001 US1 : T017-T026, T057, T058)
+**Fichiers :** `src/main/domain/ai/routing.ts`, `src/main/application/ai/{AIGateway,ContextAssembler,LocalQueue,ports}.ts`, `src/main/infrastructure/ai/{OllamaProvider,ClaudeProvider}.ts`, `src/main/infrastructure/db/repositories/{AiCallRepository,PendingRequestRepository}.ts`, `src/shared/ai/schemas.ts`, `scripts/bench-local-model.ts`, `tests/**` (78 tests)
+**Résumé :** AIGateway = seul point d'accès IA : routage configurable (local/Claude), anonymisation obligatoire avant Claude (échec → rien n'est envoyé), budget vérifié avant l'appel, validation Zod + 1 nouvel essai, refus distingué, idempotence 5 min, concurrence Ollama 1 / Claude 2, mode dégradé local, journal sans contenu. File locale persistante (rejeu FIFO, abandon après 5 échecs). OllamaProvider (127.0.0.1 imposé, format JSON Schema). ClaudeProvider : `beta.messages.parse` + `betaZodOutputFormat`, réflexion adaptative, cache de prompt sur le dernier bloc stable, fallbacks serveur `default` pour Opus 5 (vérifié T024), erreurs typées du SDK.
+**Bug corrigé :** ordre FIFO non déterministe (tri par identifiant aléatoire) → tri par `rowid`.
+**Reste :** T027 (banc d'essai) attend Ollama ; câblage de la passerelle au démarrage après US2 (anonymisation) et US3 (budget).
 
