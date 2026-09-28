@@ -209,3 +209,8 @@
 **Fichiers :** `src/renderer/src/canvas/{hoverStore.ts,edges/LinkEdge.tsx,IdeasCanvas.tsx}`, `tests/unit/renderer/canvas-keyboard.test.tsx` (500 tests)
 **Résumé :** Lien accepté = trait fin et pâle ; son libellé n'apparaît qu'au survol du lien ou de l'une de ses idées, ou quand l'une d'elles a le focus clavier. Liens suggérés toujours visibles avec ✓ / ✗. Validé par mentalyas en test manuel.
 **Décision de mentalyas (à implémenter, étapes G2/G3) :** un lien intéressant doit faire **germer une nouvelle idée** entre les deux idées reliées. L'IA propose une graine (titre + pourquoi) sur le lien, à chaque éclosion et quand l'utilisateur relie lui-même deux idées ; acceptée, la graine devient une idée « née de A × B » placée entre ses parents dans le réseau, développable comme les autres. Rien ne se crée sans acceptation.
+
+### [2026-09-29 00:30] SESSION — End
+**Resume :** Spec 003 (interface MVP-1) : dépendances + jeu de démo (profil `--demo`, `seed:demo:reset`), coquille (zone de notification, instance unique, fenêtres, raccourci, navigation), capture rapide, écran Idées (React Flow, disposition d3-force, liens sans croisement quand c'est possible, blocs, liens discrets), plongée (couronne, questions, jauge, fantômes, édition de branche), verrouillage + aperçu éditable + fusion/éclosion animée, historique avec annulation par lot (« Annuler » 10 s), lecture et réouverture d'une idée éclose. IA locale rendue tolérante (5/5 réponses acceptées). Tests manuels de mentalyas à chaque étape depuis la phase 7. 500 tests. Décidé pour la suite : graines d'idées sur les liens (G2/G3), puis suivi de plan (7.2) et export Markdown (7.3).
+**Branche :** main
+**Commits pushes :** 10
