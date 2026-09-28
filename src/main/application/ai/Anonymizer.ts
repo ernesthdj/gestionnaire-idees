@@ -1,41 +1,47 @@
-import { PersonsOut } from '@shared/ai/schemas'
-import { applyDeterministicRules, maskCapitalizedWords, replacePersons } from '../../domain/ai/anonymizationRules'
+import { SensitiveOut } from '@shared/ai/schemas'
+import { applyDeterministicRules, maskCapitalizedWords, replaceTerms } from '../../domain/ai/anonymizationRules'
 import type { AIGateway } from './AIGateway'
 import type { Anonymizer as AnonymizerPort } from './ports'
 
-/** Renvoie les noms de personnes présents dans le texte, ou `null` si la détection est indisponible. */
-export type PersonDetector = (text: string) => Promise<readonly string[] | null>
+export interface SensitiveNames {
+  readonly persons: readonly string[]
+  readonly places: readonly string[]
+}
+
+/** Renvoie les personnes et lieux présents dans le texte, ou `null` si la détection est indisponible. */
+export type SensitiveDetector = (text: string) => Promise<SensitiveNames | null>
 
 /**
  * Anonymisation en deux couches (research R6) :
- * 1. règles déterministes (liens, e-mails, IBAN, téléphones, montants → fourchettes), toujours ;
- * 2. noms de personnes détectés par l'IA locale, sinon repli heuristique sur les mots capitalisés.
- * Le texte brut n'est jamais transmis : l'IA locale ne voit que le texte déjà passé par la couche 1.
+ * 1. règles déterministes (liens, e-mails, IBAN, téléphones, montants → fourchettes, adresses, codes postaux) ;
+ * 2. personnes et lieux listés par l'IA locale, sinon repli heuristique sur les mots capitalisés.
+ * L'IA locale ne voit que le texte déjà passé par la couche 1 et ne fait que lister : c'est le code qui remplace.
  */
 export class Anonymizer implements AnonymizerPort {
-  constructor(private readonly deps: { readonly detectPersons: PersonDetector }) {}
+  constructor(private readonly deps: { readonly detectSensitive: SensitiveDetector }) {}
 
   async anonymize(text: string): Promise<string> {
     const ruled = applyDeterministicRules(text)
-    let persons: readonly string[] | null
+    let detected: SensitiveNames | null
     try {
-      persons = await this.deps.detectPersons(ruled)
+      detected = await this.deps.detectSensitive(ruled)
     } catch {
-      persons = null
+      detected = null
     }
-    if (persons === null) return maskCapitalizedWords(ruled)
-    // Seuls des noms réellement présents sont remplacés : l'IA ne peut rien ajouter au texte.
-    return replacePersons(
-      ruled,
-      persons.filter((name) => ruled.includes(name))
-    )
+    if (detected === null) return maskCapitalizedWords(ruled)
+    // Seuls des termes réellement présents sont remplacés : l'IA ne peut rien ajouter au texte.
+    const present = (term: string): boolean => ruled.includes(term)
+    return replaceTerms(ruled, [
+      ...detected.persons.filter(present).map((term) => ({ term, placeholder: '[personne]' })),
+      ...detected.places.filter(present).map((term) => ({ term, placeholder: '[lieu]' }))
+    ])
   }
 }
 
-/** Détecteur de noms via la passerelle, forcé en local (`anonymiser` est une tâche strictement locale). */
-export function personDetectorFrom(gateway: AIGateway): PersonDetector {
+/** Détecteur via la passerelle, forcé en local (`anonymiser` est une tâche strictement locale). */
+export function sensitiveDetectorFrom(gateway: AIGateway): SensitiveDetector {
   return async (text) => {
-    const result = await gateway.run({ kind: 'anonymiser', input: text, schema: PersonsOut, noQueue: true })
-    return result.ok ? result.value.data.persons : null
+    const result = await gateway.run({ kind: 'anonymiser', input: text, schema: SensitiveOut, noQueue: true })
+    return result.ok ? result.value.data : null
   }
 }

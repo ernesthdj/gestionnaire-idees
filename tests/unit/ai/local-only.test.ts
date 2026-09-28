@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { DEFAULT_ROUTING, resolveEngine } from '../../../src/main/domain/ai/routing'
 import { createGatewayHarness } from '../../support/gateway'
 
-const Persons = z.object({ persons: z.array(z.string()) })
+const Persons = z.object({ persons: z.array(z.string()), places: z.array(z.string()) })
 
 describe('anonymisation strictement locale', () => {
   it('should_route_anonymization_locally_even_when_configuration_says_claude', () => {

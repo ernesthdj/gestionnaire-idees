@@ -14,8 +14,9 @@ export const OutOfScope = z.object({
 })
 export type OutOfScope = z.infer<typeof OutOfScope>
 
-/** Sortie de `anonymiser` (IA locale uniquement) : noms de personnes présents dans le texte. */
-export const PersonsOut = z.object({
-  persons: z.array(z.string().min(1).max(60)).max(20)
+/** Sortie de `anonymiser` (IA locale uniquement) : noms de personnes et de lieux présents dans le texte. */
+export const SensitiveOut = z.object({
+  persons: z.array(z.string().min(1).max(60)).max(20),
+  places: z.array(z.string().min(1).max(80)).max(20)
 })
-export type PersonsOut = z.infer<typeof PersonsOut>
+export type SensitiveOut = z.infer<typeof SensitiveOut>

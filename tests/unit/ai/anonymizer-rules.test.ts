@@ -4,7 +4,8 @@ import {
   applyDeterministicRules,
   maskCapitalizedWords,
   parseAmount,
-  replacePersons
+  replacePersons,
+  replacePlaces
 } from '../../../src/main/domain/ai/anonymizationRules'
 
 describe('parseAmount', () => {
@@ -78,6 +79,29 @@ describe('maskCapitalizedWords (repli sans IA)', () => {
   it('should_keep_short_acronyms_and_common_starters_when_masking', () => {
     expect(maskCapitalizedWords('Acheter un PC et un NAS pour le projet IT')).toBe(
       'Acheter un PC et un NAS pour le projet IT'
+    )
+  })
+})
+
+describe('adresses postales (règle déterministe)', () => {
+  it.each([
+    ['Livrer au 12 rue de la Loi à 1000 Bruxelles', 'Livrer au [adresse] à [lieu]'],
+    ['RDV 5bis avenue Louise, 1050 Ixelles', 'RDV [adresse], [lieu]'],
+    ['Studio au 48 boulevard Voltaire 75011 Paris', 'Studio au [adresse] [lieu]'],
+    ['Passer chaussée de Waterloo 250', 'Passer [adresse]']
+  ])('should_mask_street_address_and_postcode_when_present: %s', (input, expected) => {
+    expect(applyDeterministicRules(input)).toBe(expected)
+  })
+
+  it('should_keep_numbers_that_are_not_addresses', () => {
+    expect(applyDeterministicRules('Écran 27 pouces, 2 exemplaires')).toBe('Écran 27 pouces, 2 exemplaires')
+  })
+})
+
+describe('replacePlaces', () => {
+  it('should_replace_detected_places_by_placeholder', () => {
+    expect(replacePlaces('Shooting à Namur puis resto au Cercle de Wallonie', ['Namur', 'Cercle de Wallonie'])).toBe(
+      'Shooting à [lieu] puis resto au [lieu]'
     )
   })
 })

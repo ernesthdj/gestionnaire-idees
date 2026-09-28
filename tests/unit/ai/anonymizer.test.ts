@@ -12,14 +12,14 @@ const cases = Cases.parse(
 describe('Anonymizer', () => {
   it('should_leak_nothing_on_50_fictive_texts_when_local_ai_detects_names', async () => {
     for (const testCase of cases) {
-      const anonymizer = new Anonymizer({ detectPersons: async () => testCase.persons })
+      const anonymizer = new Anonymizer({ detectSensitive: async () => ({ persons: testCase.persons, places: [] }) })
       const out = await anonymizer.anonymize(testCase.text)
       for (const secret of testCase.mustNotContain) expect(out, testCase.text).not.toContain(secret)
     }
   })
 
   it('should_leak_nothing_on_50_fictive_texts_when_local_ai_is_down', async () => {
-    const anonymizer = new Anonymizer({ detectPersons: async () => null })
+    const anonymizer = new Anonymizer({ detectSensitive: async () => null })
     for (const testCase of cases) {
       const out = await anonymizer.anonymize(testCase.text)
       for (const secret of testCase.mustNotContain) expect(out, testCase.text).not.toContain(secret)
@@ -28,7 +28,7 @@ describe('Anonymizer', () => {
 
   it('should_fall_back_to_heuristic_when_detection_throws', async () => {
     const anonymizer = new Anonymizer({
-      detectPersons: async () => {
+      detectSensitive: async () => {
         throw new Error('ollama en panne')
       }
     })
@@ -38,9 +38,9 @@ describe('Anonymizer', () => {
   it('should_apply_rules_before_asking_local_ai_so_it_never_sees_contacts', async () => {
     const seen: string[] = []
     const anonymizer = new Anonymizer({
-      detectPersons: async (text) => {
+      detectSensitive: async (text) => {
         seen.push(text)
-        return []
+        return { persons: [], places: [] }
       }
     })
     await anonymizer.anonymize('Écrire à marc@exemple.test pour 1 200 €')
@@ -48,7 +48,25 @@ describe('Anonymizer', () => {
   })
 
   it('should_ignore_detected_names_that_are_not_in_the_text', async () => {
-    const anonymizer = new Anonymizer({ detectPersons: async () => ['Inventé'] })
+    const anonymizer = new Anonymizer({
+      detectSensitive: async () => ({ persons: ['Inventé'], places: ['Nullepart'] })
+    })
     await expect(anonymizer.anonymize('acheter une télé')).resolves.toBe('acheter une télé')
+  })
+
+  it('should_mask_places_detected_by_local_ai', async () => {
+    const anonymizer = new Anonymizer({
+      detectSensitive: async () => ({ persons: ['Léa'], places: ['Namur', 'Citadelle'] })
+    })
+    await expect(anonymizer.anonymize('Shooting avec Léa à la Citadelle de Namur')).resolves.toBe(
+      'Shooting avec [personne] à la [lieu] de [lieu]'
+    )
+  })
+
+  it('should_mask_postal_address_even_when_local_ai_misses_it', async () => {
+    const anonymizer = new Anonymizer({ detectSensitive: async () => ({ persons: [], places: [] }) })
+    await expect(anonymizer.anonymize('Livrer au 12 rue de la Loi, 1000 Bruxelles')).resolves.toBe(
+      'Livrer au [adresse], [lieu]'
+    )
   })
 })

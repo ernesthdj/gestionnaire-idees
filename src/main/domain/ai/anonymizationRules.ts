@@ -12,6 +12,41 @@ const PHONE_PATTERN = /(?:(?:\+|\b00)\d{1,3}(?:[\s./-]?\d){6,12}|\b0\d(?:[\s./-]
 const NUMBER = String.raw`(?:\d{1,3}(?:[\s.]\d{3})+|\d+)(?:[.,]\d{1,2})?(?: ?k)?`
 const AMOUNT_PATTERN = new RegExp(String.raw`(?:€|\bEUR)\s?(${NUMBER})|(${NUMBER})\s?(?:€|\beuros?\b|\bEUR\b)`, 'giu')
 
+const STREET_TYPES = [
+  'rue',
+  'avenue',
+  'av.',
+  'boulevard',
+  'bd',
+  'chaussée',
+  'place',
+  'chemin',
+  'allée',
+  'impasse',
+  'quai',
+  'route',
+  'square',
+  'drève',
+  'clos',
+  'venelle',
+  'sentier',
+  'passage'
+]
+// Seule la première lettre accepte les deux casses (« Rue » / « rue ») : le drapeau `i` rendrait `\p{Lu}`
+// inopérant pour reconnaître le nom propre de la voie qui suit.
+const STREET_TYPE = STREET_TYPES.map((type) => {
+  const first = type.charAt(0)
+  return `[${first.toUpperCase()}${first}]${type.slice(1).replace('.', String.raw`\.`)}`
+}).join('|')
+const PROPER_WORDS = String.raw`\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*)*`
+const ADDRESS_PATTERN = new RegExp(
+  String.raw`(?:\b\d{1,4}\s?(?:bis|ter)?\s+)?(?<!\p{L})(?:${STREET_TYPE})(?!\p{L})` +
+    String.raw`(?:\s+(?:de\s+la|de\s+l['’]|du|des|de|d['’]))?\s*${PROPER_WORDS}(?:\s+\d{1,4}(?:bis|ter)?\b)?`,
+  'gu'
+)
+/** Code postal belge (4 chiffres) ou français (5 chiffres) suivi d'un nom de localité. */
+const POSTCODE_PATTERN = new RegExp(String.raw`\b(?:[1-9]\d{3}|\d{5})\s+${PROPER_WORDS}`, 'gu')
+
 /** Convertit un montant écrit à la française (« 1 247,50 », « 1.250 », « 2k ») en nombre. */
 export function parseAmount(raw: string): number {
   let text = raw.replace(/\s/g, '').toLowerCase()
@@ -37,7 +72,7 @@ export function amountBand(value: number): string {
   return '>2500 €'
 }
 
-/** Liens, e-mails, IBAN, téléphones puis montants — dans cet ordre, pour éviter les chevauchements. */
+/** Liens, e-mails, IBAN, téléphones, montants, adresses puis codes postaux — ordre choisi contre les chevauchements. */
 export function applyDeterministicRules(text: string): string {
   return text
     .replace(URL_PATTERN, '[lien]')
@@ -48,22 +83,48 @@ export function applyDeterministicRules(text: string): string {
       const value = parseAmount(prefixed ?? suffixed ?? '0')
       return Number.isFinite(value) ? `[montant ${amountBand(value)}]` : '[montant]'
     })
+    .replace(ADDRESS_PATTERN, '[adresse]')
+    .replace(POSTCODE_PATTERN, '[lieu]')
 }
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Remplace chaque nom détecté (IA locale) par « [personne] », du plus long au plus court. */
-export function replacePersons(text: string, persons: readonly string[]): string {
-  const names = [...new Set(persons.map((name) => name.trim()).filter((name) => name.length >= 2))].sort(
-    (a, b) => b.length - a.length
-  )
+/** Terme détecté par l'IA locale, associé à son remplaçant. */
+export interface SensitiveTerm {
+  readonly term: string
+  readonly placeholder: string
+}
+
+/** Remplace des mots entiers, du plus long au plus court (« Citadelle de Namur » avant « Namur »). */
+export function replaceTerms(text: string, terms: readonly SensitiveTerm[]): string {
+  const unique = new Map<string, string>()
+  for (const { term, placeholder } of terms) {
+    const trimmed = term.trim()
+    if (trimmed.length >= 2 && !unique.has(trimmed)) unique.set(trimmed, placeholder)
+  }
   let result = text
-  for (const name of names) {
-    result = result.replace(new RegExp(`(?<![\\p{L}\\d])${escapeRegExp(name)}(?![\\p{L}\\d])`, 'gu'), '[personne]')
+  for (const [term, placeholder] of [...unique].sort(([a], [b]) => b.length - a.length)) {
+    result = result.replace(new RegExp(`(?<![\\p{L}\\d])${escapeRegExp(term)}(?![\\p{L}\\d])`, 'gu'), placeholder)
   }
   return result
+}
+
+/** Remplace chaque nom de personne détecté par « [personne] ». */
+export function replacePersons(text: string, persons: readonly string[]): string {
+  return replaceTerms(
+    text,
+    persons.map((term) => ({ term, placeholder: '[personne]' }))
+  )
+}
+
+/** Remplace chaque lieu détecté (ville, quartier, établissement) par « [lieu] ». */
+export function replacePlaces(text: string, places: readonly string[]): string {
+  return replaceTerms(
+    text,
+    places.map((term) => ({ term, placeholder: '[lieu]' }))
+  )
 }
 
 /** Mots capitalisés fréquents qui ne sont pas des noms de personnes (début de phrase, noms communs). */

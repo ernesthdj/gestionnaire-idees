@@ -74,5 +74,9 @@
 ### [2026-09-28 14:30] SECURITY — anonymisation avant envoi à Claude (spec 001 US2 : T028-T033)
 **Fichiers :** `src/main/domain/ai/anonymizationRules.ts`, `src/main/application/ai/Anonymizer.ts`, `src/main/domain/ai/routing.ts` (tâches strictement locales), `src/main/application/ai/AIGateway.ts`, `src/shared/ai/schemas.ts` (`PersonsOut`), `tests/fixtures/anonymizer/cases.json` (50 textes fictifs), 3 fichiers de tests (104 tests au total)
 **Résumé :** Couche 1 déterministe (liens, e-mails, IBAN, téléphones BE/FR, montants → fourchettes <100 / 100-500 / 500-1000 / 1000-2500 / >2500 €), toujours appliquée. Couche 2 : l'IA locale LISTE les noms (elle ne réécrit pas le texte) et le code les remplace ; noms absents du texte ignorés. Repli sans IA : masquage des mots capitalisés hors liste de mots courants et sigles courts. La tâche `anonymiser` est strictement locale (routage forcé, aucun repli vers Claude). SC-002 vérifié : 0 fuite sur 50 textes, avec et sans IA locale.
-**Limites connues :** adresses postales et noms de lieux non couverts par la couche 1 (masqués seulement par le repli heuristique) ; dates conservées (utiles au raisonnement).
+**Limites connues :** dates conservées (utiles au raisonnement). *(Adresses et lieux : ajoutés juste après, voir entrée suivante.)*
+
+### [2026-09-28 14:55] SECURITY — anonymisation des lieux et adresses (demande de mentalyas)
+**Fichiers :** `src/main/domain/ai/anonymizationRules.ts`, `src/main/application/ai/Anonymizer.ts`, `src/shared/ai/schemas.ts` (`SensitiveOut`), tests (112 au total)
+**Résumé :** Couche 1 : adresses postales (numéro optionnel + type de voie : rue, avenue, chaussée, boulevard… + nom propre + numéro optionnel) → `[adresse]` ; codes postaux BE (4 chiffres) / FR (5 chiffres) + localité → `[lieu]`. Couche 2 : l'IA locale liste aussi les lieux (villes, quartiers, établissements) → `[lieu]` ; remplacement générique du plus long au plus court (« Citadelle de Namur » avant « Namur »).
 
