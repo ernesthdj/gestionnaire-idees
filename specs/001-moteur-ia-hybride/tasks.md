@@ -38,16 +38,16 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 **⚠️ CRITICAL**: aucune story ne commence avant la fin de cette phase
 
-- [ ] T007 Créer la fenêtre principale durcie dans `src/main/index.ts` (`contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, CSP stricte, blocage de `window.open`/navigation externe)
-- [ ] T008 [P] Implémenter `SecretStore` (safeStorage, vérif. `isEncryptionAvailable`) dans `src/main/infrastructure/secrets/SecretStore.ts` + test `tests/unit/secrets/secret-store.test.ts` (safeStorage simulé)
-- [ ] T009 Implémenter le client Drizzle chiffré (clé 32 octets via SecretStore) dans `src/main/infrastructure/db/client.ts`
-- [ ] T010 Définir le schéma Drizzle des tables `ai_calls`, `ai_config`, `context_versions`, `context_imports`, `examples` dans `src/main/infrastructure/db/schema.ts` (data-model.md) + migration initiale avec `down` dans `src/main/infrastructure/db/migrations/`
-- [ ] T011 [P] Créer le socle IPC : format `{ success, data } | { success: false, error }`, registre de handlers avec validation Zod obligatoire dans `src/main/ipc/registry.ts` et types dans `src/shared/ipc/result.ts`
-- [ ] T012 [P] Exposer l'API `contextBridge` minimale typée dans `src/preload/index.ts`
-- [ ] T013 [P] Définir les types de domaine purs (`TaskKind`, `Engine`, `AIErrorCode`, `Result`) dans `src/main/domain/ai/types.ts`
-- [ ] T014 [P] Définir l'interface `AIProvider` et `FakeProvider` (réponses scriptées) dans `src/main/application/ai/AIProvider.ts` et `tests/support/FakeProvider.ts`
-- [ ] T015 [P] Écrire le cadre système **v2 « Brainstormer »** (texte figé, versionné) dans `src/main/infrastructure/ai/SystemFrame.ts` (contracts/ai-gateway.md § Cadre)
-- [ ] T016 [P] Créer le logger à liste blanche de champs (jamais de contenu, jeton, montant) dans `src/main/infrastructure/logging/logger.ts` + test `tests/unit/logging/logger.test.ts`
+- [x] T007 Créer la fenêtre principale durcie dans `src/main/index.ts` (`contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, CSP stricte, blocage de `window.open`/navigation externe)
+- [x] T008 [P] Implémenter `SecretStore` (safeStorage, vérif. `isEncryptionAvailable`) dans `src/main/infrastructure/secrets/SecretStore.ts` + test `tests/unit/secrets/secret-store.test.ts` (safeStorage simulé)
+- [x] T009 Implémenter le client Drizzle chiffré (clé 32 octets via SecretStore) dans `src/main/infrastructure/db/client.ts`
+- [x] T010 Définir le schéma Drizzle des tables `ai_calls`, `ai_config`, `context_versions`, `context_imports`, `examples` dans `src/main/infrastructure/db/schema.ts` (data-model.md) + migration initiale avec `down` dans `src/main/infrastructure/db/migrations/`
+- [x] T011 [P] Créer le socle IPC : format `{ success, data } | { success: false, error }`, registre de handlers avec validation Zod obligatoire dans `src/main/ipc/registry.ts` et types dans `src/shared/ipc/result.ts`
+- [x] T012 [P] Exposer l'API `contextBridge` minimale typée dans `src/preload/index.ts`
+- [x] T013 [P] Définir les types de domaine purs (`TaskKind`, `Engine`, `AIErrorCode`, `Result`) dans `src/main/domain/ai/types.ts`
+- [x] T014 [P] Définir l'interface `AIProvider` et `FakeProvider` (réponses scriptées) dans `src/main/application/ai/AIProvider.ts` et `tests/support/FakeProvider.ts`
+- [x] T015 [P] Écrire le cadre système **v2 « Brainstormer »** (texte figé, versionné) dans `src/main/infrastructure/ai/SystemFrame.ts` (contracts/ai-gateway.md § Cadre)
+- [x] T016 [P] Créer le logger à liste blanche de champs (jamais de contenu, jeton, montant) dans `src/main/infrastructure/logging/logger.ts` + test `tests/unit/logging/logger.test.ts`
 
 **Checkpoint**: squelette lancé (`npm run dev`), base chiffrée créée, IPC validé — stories démarrables
 

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { AppApi } from '@shared/app-api'
+import { isMainWindowChannel } from '@shared/ipc/channels'
 
 describe('squelette', () => {
   it('should_resolve_shared_alias_when_running_tests', () => {
-    const api: AppApi = { platform: 'win32' }
-    expect(api.platform).toBe('win32')
+    expect(isMainWindowChannel('app:ping')).toBe(true)
+  })
+
+  it('should_reject_channel_when_not_whitelisted', () => {
+    expect(isMainWindowChannel('fs:readFile')).toBe(false)
   })
 })

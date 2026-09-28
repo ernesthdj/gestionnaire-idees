@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
+import { bootstrap, type AppContext } from './bootstrap'
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -43,12 +44,17 @@ app.on('web-contents-created', (_event, contents) => {
   contents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
 })
 
+let context: AppContext | undefined
+
 void app.whenReady().then(() => {
+  context = bootstrap()
   createMainWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
   })
 })
+
+app.on('will-quit', () => context?.database.close())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

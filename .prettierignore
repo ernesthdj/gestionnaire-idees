@@ -10,3 +10,5 @@ specs/
 package-lock.json
 CLAUDE.md
 *.md
+src/main/infrastructure/db/migrations/meta/
+package.json

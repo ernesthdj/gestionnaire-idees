@@ -7,6 +7,9 @@
 | 1 | Electron : si `node_modules/electron/path.txt` est absent après `npm install` (« Electron uninstall »), lancer `node node_modules/electron/install.js` | `package.json` | 2026-09-28 |
 | 2 | Vérifier les dépendances croisées avant d'épingler des versions : typescript-eslint impose TS < 6.1, electron-vite 5 impose Vite ≤ 7 | `package.json` | 2026-09-28 |
 | 3 | Preload Electron en sandbox = CommonJS (`.cjs`) quand le paquet est `"type": "module"` | `electron.vite.config.ts` | 2026-09-28 |
+| 4 | Le preload en sandbox ne peut pas charger de dépendance npm (zod…) : n'y importer que du code local sans dépendance | `src/preload/`, `src/shared/ipc/channels.ts` | 2026-09-28 |
+| 5 | Drizzle importe `better-sqlite3` : utiliser un alias npm vers la variante chiffrée plutôt que dupliquer le paquet | `package.json` | 2026-09-28 |
+| 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
 
@@ -53,3 +56,9 @@
 **Fichiers :** `docs/brainstorm/L1b-brainstormer.md`, `docs/brainstorm/L4b-neurones.md`, `docs/design/neurones-dispositions-2a-2b-2c.png`, `docs/FOUNDATION.md` (§0), `CLAUDE.md`, `specs/001-*` (révisée), `specs/002-*` (réécrite), `specs/003-*` (réécrite)
 **Résumé :** Idée de mentalyas : l'écran de création devient une carte de neurones (brut → en développement → éclos), croissance par questions IA (≥ 3, sans maximum, branches utilisateur), jauge de contexte, fusion = synthèse IA + confirmation + animation, réseau de neurones reliés. Élargi en « Brainstormer » : un réseau, deux natures (Action / Réflexion), IA partenaire de réflexion sur tout sujet (pas d'œuvres finies), sorties synthèse + export Markdown (MVP-1), plan d'action (MVP-2), pont hub (v2). Disposition 2c + plongée 2b ; navigation Idées · À valider · Historique (+ Planning en MVP-2) ; organigramme fusionné dans le réseau.
 **Specs :** 001 cadre v2 + TaskKind (etendre, synthetiser, reviser, suggerer_liens) ; 002 moteur de neurones (21 FR, 32 tâches) ; 003 interface (25 FR, 49 tâches ; React Flow + d3-force + Motion, mode animations réduites). Analyses : 0 critique ; correctifs appliqués. Ouvert : verrouillage forcé avant « suffisant » (hypothèse : autorisé avec avertissement).
+
+### [2026-09-28 12:50] FEAT — fondations du processus principal (spec 001, T007-T016)
+**Fichiers :** `src/main/{bootstrap,index}.ts`, `src/main/ipc/{registry,appHandlers}.ts`, `src/main/domain/{errors,ai/types}.ts`, `src/main/application/ai/AIProvider.ts`, `src/main/infrastructure/{secrets/SecretStore,db/client,db/schema,ai/SystemFrame,logging/logger}.ts`, migration `0000_init_ai` (+ down), `src/preload/index.ts`, `src/shared/{app-api,ipc/*}.ts`, `tests/**` (35 tests), `drizzle.config.ts`
+**Résumé :** IPC : liste blanche côté preload, validation Zod + contrôle de l'expéditeur côté main, format `IpcResult`, erreurs internes masquées. Secrets chiffrés DPAPI (clé de base aléatoire 32 octets). SQLite chiffré ouvert au démarrage dans %APPDATA% avec migrations (vérifié : fichier illisible, mauvaise clé refusée). Journal à liste blanche. Contrat `AIProvider` + `FakeProvider`. Cadre système v2 « Brainstormer » + balisage anti-injection. Canal `app:ping` de bout en bout.
+**Décisions :** alias npm `better-sqlite3` → variante chiffrée ; types via `paths` (pas de `@types` supplémentaire) ; clé de base au format hex strict (PRAGMA non paramétrable).
+

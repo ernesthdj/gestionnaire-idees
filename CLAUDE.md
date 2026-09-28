@@ -61,6 +61,9 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 
 > Si `npm run dev` affiche « Electron uninstall » : `node node_modules/electron/install.js` (telechargement
 > du binaire Electron non effectue a l'installation).
+> `better-sqlite3` est un **alias npm** de `better-sqlite3-multiple-ciphers` (Drizzle importe `better-sqlite3`) ;
+> ses types sont pointes dans `tsconfig.base.json` (`paths`).
+> Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
 > `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
 > serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.
 
