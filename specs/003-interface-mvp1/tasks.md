@@ -44,12 +44,15 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ## Phase 3: User Story 1 — Capture (Priority: P1) 🎯 MVP
 
-- [ ] T011 [P] [US1] Intégration `CaptureService` : neurone créé sans IA, nature/catégorie appliquées ensuite, choix `user` jamais écrasé, brouillon, texte vide `tests/integration/capture/capture.test.ts`
-- [ ] T012 [P] [US1] Composant `CaptureApp` (touches, compteur, confirmation, brouillon, axe) `tests/unit/renderer/capture-app.test.tsx`
-- [ ] T013 [US1] `CaptureService` (→ `NeuronService.create` 002) + `GlobalShortcut` (échec → notification + réglage) + affichage écran du curseur + fermeture `blur()`/`hide()`
-- [ ] T014 [US1] Handlers `capture:*` (preload de capture uniquement) ; `diveNow` → `app:openMain { diveRootId }`
-- [ ] T015 [US1] `CaptureApp.tsx` (E1)
-- [ ] T016 [US1] Vérification manuelle focus/délai + vidéo plein écran (quickstart #1) consignée
+- [x] T011 [P] [US1] Intégration `CaptureService` : neurone créé sans IA, nature/catégorie appliquées ensuite, choix `user` jamais écrasé, brouillon, texte vide `tests/integration/capture/capture.test.ts`
+- [x] T012 [P] [US1] Composant `CaptureApp` (touches, compteur, confirmation, brouillon, axe) `tests/unit/renderer/capture-app.test.tsx`
+- [x] T013 [US1] `CaptureService` (→ `NeuronService.create` 002) + `GlobalShortcut` (échec → notification + réglage) + affichage écran du curseur + fermeture `blur()`/`hide()`
+  *(raccourci, notification d'échec, écran du curseur et fermeture `blur()`/`hide()` livrés en phase 2 ; `CaptureService` ici)*
+- [x] T014 [US1] Handlers `capture:*` (preload de capture uniquement) ; `diveNow` → `app:openMain { diveRootId }`
+  *(`diveNow` : le main ferme la capture et envoie `app:navigate { section: 'ideas', diveRootId }` ; le lancement du développement se fera à l'ouverture de la plongée, US3)*
+- [x] T015 [US1] `CaptureApp.tsx` (E1)
+- [x] T016 [US1] Vérification manuelle focus/délai + vidéo plein écran (quickstart #1) consignée
+  *(vérifié le 2026-09-28 sur le profil démo, par touches simulées + captures d'écran : raccourci → fenêtre au premier plan ; Entrée → « ✓ Idée notée » ~600 ms puis fermeture ; Échap → brouillon restauré ; Ctrl+Entrée → fenêtre principale. Reste : essai par-dessus une vidéo plein écran)*
 
 ---
 

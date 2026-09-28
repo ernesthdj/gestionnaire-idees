@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
+import { CaptureService } from './application/capture/CaptureService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
@@ -23,6 +24,7 @@ import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
+import { createCaptureRoutes } from './ipc/captureHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
@@ -48,6 +50,9 @@ export interface ShellPort {
   sendToMain(event: MainWindowEvent, payload: unknown): void
   replaceShortcut(accelerator: string): boolean
   applyLaunchAtLogin(enabled: boolean): void
+  hideCapture(): void
+  /** Ferme la capture et ouvre la fenêtre principale en plongée dans ce neurone. */
+  openDive(rootId: string): void
 }
 
 /** Dossier des migrations : sources en développement, ressources de l'installeur une fois empaqueté. */
@@ -161,6 +166,10 @@ export function bootstrap(shell: ShellPort): AppContext {
         replaceShortcut: (accelerator) => shell.replaceShortcut(accelerator),
         applyLaunchAtLogin: (enabled) => shell.applyLaunchAtLogin(enabled)
       }),
+      ...createCaptureRoutes(
+        new CaptureService({ neurons, drafts: appSettings, openDive: (rootId) => shell.openDive(rootId) }),
+        () => shell.hideCapture()
+      ),
       ...aiRoutes,
       ...contextRoutes,
       ...createNeuronRoutes(neurons),

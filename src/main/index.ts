@@ -46,7 +46,12 @@ function start(): void {
     context = bootstrap({
       sendToMain: (event, payload) => windows.sendToMain(event, payload),
       replaceShortcut: (accelerator) => shortcut.replace(accelerator),
-      applyLaunchAtLogin
+      applyLaunchAtLogin,
+      hideCapture: () => windows.hideCapture(),
+      openDive: (rootId) => {
+        windows.hideCapture()
+        windows.showMain({ section: 'ideas', diveRootId: rootId })
+      }
     })
     if (demoProfile && seedDemo(context.database.db).seeded) context.logger.info('demo.seeded', {})
 
