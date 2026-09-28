@@ -1,8 +1,142 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4
+> Statut : Niveaux 1+2+3+4 + amendements L1b (Brainstormer) et L4b (neurones) du 2026-09-28
 > Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md
+
+---
+
+## 0. Amendements du 2026-09-28 — PRIORITAIRES
+
+> Ces décisions, prises après l'export initial, **priment** sur toute section ultérieure qui les contredit
+> (notamment §1 vision, §2 fonctionnalités et découpage, §2ter cadre de l'IA, §9.2 structuration linéaire,
+> §9.4 organigramme, §11 écrans E3–E6). Les specs `specs/00x-*` font foi pour l'implémentation.
+
+### 0.1 Vision « Brainstormer » (docs/brainstorm/L1b-brainstormer.md)
+
+#### 1. Nouvelle vision
+L'app n'est plus seulement un agenda organique : c'est **le Brainstormer de mentalyas** — un espace pour
+**réfléchir à n'importe quoi avec Claude**, en gardant une **vision neuronale** de tout ce qui est en cours
+(achats, projets IT, concepts photo, décisions, sorties…). L'agenda (tâches, planning, Outlook, rappels)
+devient **une sortie possible** d'un neurone, pas la finalité.
+
+#### 2. Un seul réseau, deux natures de neurones (décidé)
+| Nature | But | Croissance | Sortie à la fusion |
+|--------|-----|------------|--------------------|
+| **Action** | Quelque chose à réaliser | Questions orientées exécution (quand, combien, comment, source d'argent) | Plan organisé : tâches, conditions, dépendances, dates (→ Planning / Outlook en MVP-2) |
+| **Réflexion** | Quelque chose à explorer | Questions orientées exploration (pourquoi, options, pour/contre, contraintes, critères) | Synthèse structurée : pistes retenues, décisions, arguments, questions ouvertes |
+
+- L'IA **propose la nature** à la capture ; modifiable à tout moment.
+- Une Réflexion peut **engendrer des neurones Action** (bouton « Passer à l'action »).
+- Tous les neurones partagent le **même moteur** : croissance (≥ 3 questions, sans maximum), jauge de contexte,
+  fusion par synthèse IA + confirmation, réseau et liens suggérés (L4b).
+
+#### 3. Cadre de l'IA élargi (décidé : tout sujet, en mode réflexion)
+- **Périmètre** : n'importe quel sujet, avec un rôle fixe de **partenaire de brainstorm** : poser des questions,
+  proposer des pistes, arguments pour/contre, critères de décision, synthèses, plans d'action.
+- **Hors périmètre** (refus poli + recentrage) : produire des **œuvres finies** — images, poèmes/prose créative,
+  code complet, textes longs rédigés. L'IA aide à **y réfléchir** (structure, idées, critères), pas à les produire.
+- Règles inchangées : ne jamais inventer un fait chiffré ou daté personnel (demander / investigation), texte
+  utilisateur = donnée, sorties structurées validées, anonymisation avant envoi, validation humaine.
+- *Remplace* le cadre « organisation d'idées et de tâches uniquement » (L1 §2ter, L3-moteur-ia, spec 001).
+
+#### 4. Sorties d'un neurone Réflexion (décidé : les 4)
+| Sortie | Livraison |
+|--------|-----------|
+| Synthèse structurée (dans le neurone éclos) | **MVP-1** |
+| Export Markdown (arbre + synthèse ; lisible par Claude Code, `/brainstorm`, Obsidian, NotebookLM) | **MVP-1** |
+| Conversion en plan d'action (« Passer à l'action » → neurones Action) | **MVP-2** |
+| Pont vers le hub (neurone « projet » éclos → `/hub new` + FOUNDATION pré-remplie) | **v2** |
+
+#### 5. Plan de livraison révisé (décidé : moteur générique dès le MVP-1)
+- **MVP-1 — Le Brainstormer** : capture (F1) · moteur IA (F9) · **neurones Action + Réflexion** : croissance,
+  jauge, fusion/synthèse, plongée (F2 révisée) · écran Idées incubateur + réseau, liens suggérés, suivi des
+  neurones Action (F3/F4 révisées) · **export Markdown**.
+- **MVP-2 — Le secrétaire** : Planning (F5) · Outlook (F6) · Conseiller proactif (F7) · Compagnon (F8) ·
+  « Passer à l'action ».
+- **v2** : pont vers le hub ProjectMaster ; compagnon vivant sur le bureau ; mobile.
+
+#### 6. Points ouverts
+- [ ] Verrouillage forcé avant `suffisant` : **proposé** « autorisé avec avertissement listant les manques » — à confirmer.
+- [ ] Nom de l'app : « Brainstormer » ? (le dépôt `gestionnaire-idees` peut garder son nom ou être renommé plus tard)
+- [ ] Budget API : le brainstorm sollicite davantage Claude → plafond 10 €/mois à réévaluer après mesure.
+
+### 0.2 Mécanique des neurones (docs/brainstorm/L4b-neurones.md)
+
+#### 1. Principe
+L'écran **Idées** devient la mécanique centrale : une **carte mentale minimaliste** où chaque idée est un
+**neurone** qui **pousse** au fil des questions de l'IA, puis **fusionne** en une idée organisée et
+**s'interconnecte** aux autres. Le questionnaire linéaire (L2 F2) est remplacé par cette croissance.
+
+#### 2. Cycle de vie d'un neurone
+| État | Aspect | Comportement |
+|------|--------|--------------|
+| **Brut** | Cercle en pointillés, texte seul | Dérive lentement dans l'incubateur, sans lien |
+| **En développement** | Cercle plein, sous-neurones reliés, extensions « + » | Propose des extensions (questions IA) ; chaque réponse fait pousser un sous-neurone |
+| **Éclos** | Double anneau + halo | Idée complète et organisée ; migre de l'incubateur vers le réseau ; reliable aux autres |
+
+##### Croissance (décision : 3 questions **minimum**)
+- À l'ouverture, Claude propose **au moins 3 extensions** (questions) pertinentes pour le neurone.
+- Il n'y a **pas de maximum** : si l'idée est complexe, Claude **creuse plus loin** (nouvelles extensions sur
+  les sous-neurones, profondeur 2, 3…), et **l'utilisateur peut ajouter ses propres branches** à tout moment.
+- Clic sur une extension → un **sous-neurone** pousse ; l'utilisateur y répond (réponses rapides ou texte,
+  « je ne sais pas » → sous-neurone d'investigation, règle « ne jamais inventer » inchangée).
+- Types de sous-neurones : réponse simple (ex. « Modèle 27" »), **condition** (◇ Budget ?) avec branches,
+  **opportunité** (€ Mission mariage 1 250 €), **investigation**.
+
+##### Jauge de contexte (décision)
+- Une **jauge de progression** indique si le neurone a **assez de contexte pour être verrouillé**.
+- Calcul proposé : Claude évalue à chaque réponse les **dimensions couvertes / manquantes** de l'idée
+  (ex. quoi, quand, combien, comment, source d'argent) → niveau `insuffisant` · `suffisant` · `complet`,
+  affiché comme une barre + la liste des manques ; plancher déterministe : ≥ 3 questions répondues.
+- « Verrouiller » est actif dès `suffisant`. *(À valider : verrouillage forcé avant `suffisant` possible avec avertissement ?)*
+
+##### Fusion (décision : synthèse IA puis confirmation)
+1. « Verrouiller l'idée 🔒 » → Claude **organise l'arbre** (tâches, conditions, dépendances, déclencheurs, dates).
+2. **Aperçu compact** de la synthèse (ajouts / changements) → l'utilisateur confirme ou corrige.
+3. Confirmation → **animation de fusion** (les sous-neurones se résorbent dans le neurone principal) → le neurone
+   devient **éclos** et migre vers le réseau.
+Principe constitutionnel II respecté : rien n'est écrit sans confirmation. La synthèse garde les contrôles
+K1–K7 et la provenance (spec 002).
+
+##### Interconnexion
+- Les neurones éclos du réseau sont reliés par des liens libellés (financement, photo, mobilité…).
+- L'IA **suggère** des liens (« lien budget ? » ✓ / ✗) — acceptés ou refusés comme toute proposition.
+
+#### 3. Disposition (décision : 2c + plongée 2b)
+- **Accueil « Idées » = deux zones** : **Incubateur** (gauche : bruts + en développement) · **Réseau** (droite : éclos reliés).
+  En-tête : compteurs (« 3 brutes · 1 en dév. · 2 écloses »), action principale « Développer « … » ».
+- **Double-clic sur un neurone → plongée (2b)** : zoom dans le neurone, **fil d'Ariane** (Idées › 2e écran › Budget ?),
+  badge de profondeur, parent estompé (clic = remonter), **panneau latéral** : question de l'IA, réponses rapides,
+  champ libre, jauge de contexte, « Verrouiller l'idée 🔒 ».
+- Un neurone éclos s'ouvre aussi en plongée pour le **suivi** : statuts des tâches, choix de branche, déclencheurs, cocher.
+- « + Une idée ? » en bas de l'incubateur ; zoom −/+ et « Recentrer ».
+
+#### 4. Navigation (décision : fusion avec l'Organigramme)
+Navigation latérale : **Idées · À valider · Planning · Historique** (l'onglet Organigramme disparaît : le réseau
++ la plongée le remplacent). « À valider » garde les suggestions de liens et du conseiller (F7) et les synthèses
+en attente.
+
+#### 5. Animations
+| Animation | Durée indicative | Remarque |
+|-----------|------------------|----------|
+| Dérive des bruts | continue, très lente | Ambiante ; suspendue si l'utilisateur interagit |
+| Pousse d'un sous-neurone | 250 ms | Standard « normal » |
+| Plongée / remontée (zoom) | 400 ms | Standard « lent » |
+| Fusion (résorption des sous-neurones) | ~600–800 ms | **Dérogation** au 400 ms max — moment « récompense », unique par idée |
+| Éclosion + migration vers le réseau | ~600 ms | Enchaînée après la fusion |
+| Halo des éclos | pulsation lente | Discrète |
+| Suggestion de lien | 150 ms (apparition) | Pointillés jusqu'à acceptation |
+**Accessibilité** : si « réduire les animations » est activé (Windows / `prefers-reduced-motion`), toutes les
+animations deviennent des transitions instantanées ou des fondus courts ; la dérive est désactivée.
+
+#### 6. Impacts
+| Élément | Impact |
+|---------|--------|
+| Spec 001 (moteur IA) | Aucun (nouveaux types de demande : `etendre_neurone`, `evaluer_contexte`, `synthetiser` via AIGateway) |
+| Spec 002 (structuration) | Refonte du cœur : session linéaire → **arbre de questions** ; jauge ; synthèse à la fusion |
+| Spec 003 (interface MVP-1) | Refonte : écran Idées neurones (2c + 2b), fusion, réseau = ancien organigramme, navigation à 4 entrées, animations |
+| Coût IA | 1 appel court (effort bas) par extension + évaluation de contexte ; synthèse à la fusion (effort haut) — plafond mensuel inchangé |
 
 ---
 
