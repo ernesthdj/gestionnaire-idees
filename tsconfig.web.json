@@ -6,5 +6,11 @@
     "types": [],
     "outDir": "out/.tsc/web"
   },
-  "include": ["src/renderer/src/**/*", "src/renderer/src/env.d.ts", "src/preload/*.d.ts", "src/shared/**/*"]
+  "include": [
+    "src/renderer/src/**/*",
+    "src/renderer/src/env.d.ts",
+    "src/preload/*.d.ts",
+    "src/shared/**/*",
+    "tests/unit/renderer/**/*"
+  ]
 }

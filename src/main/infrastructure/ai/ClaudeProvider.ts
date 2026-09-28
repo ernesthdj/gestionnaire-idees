@@ -10,7 +10,7 @@ import {
 } from '../../application/ai/AIProvider'
 
 /** Sous-ensemble du client Anthropic utilisé, injectable pour les tests. */
-export type ClaudeClient = Pick<Anthropic, 'beta'>
+export type ClaudeClient = Pick<Anthropic, 'beta' | 'models'>
 
 export interface ClaudeOptions {
   /** Lecture de la clé au moment de l'appel (SecretStore) : jamais conservée en mémoire au-delà. */
@@ -42,6 +42,18 @@ export class ClaudeProvider implements AIProvider {
     return this.options.apiKey() === null
       ? { up: false, reason: 'Clé API Claude non configurée' }
       : { up: true, model: this.options.model() }
+  }
+
+  /** Vérifie la clé et l'accès au modèle sans consommer de tokens (lecture de la fiche du modèle). */
+  async ping(): Promise<void> {
+    const apiKey = this.options.apiKey()
+    if (apiKey === null) throw new ProviderError('AUTH_FAILED', 'Clé API Claude non configurée', false)
+    const client = this.options.createClient?.(apiKey) ?? new Anthropic({ apiKey })
+    try {
+      await client.models.retrieve(this.options.model())
+    } catch (error) {
+      throw toProviderError(error)
+    }
   }
 
   async complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>> {
@@ -76,17 +88,22 @@ export class ClaudeProvider implements AIProvider {
         }
       }
     } catch (error) {
-      // Chaîne du plus spécifique au plus général (classes typées du SDK).
-      if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
-        throw new ProviderError('AUTH_FAILED', 'Clé API refusée', false)
-      }
-      if (error instanceof Anthropic.RateLimitError)
-        throw new ProviderError('AI_UNAVAILABLE', 'Limite de débit atteinte', true)
-      if (error instanceof Anthropic.APIConnectionError)
-        throw new ProviderError('AI_UNAVAILABLE', 'Connexion impossible', true)
-      if (error instanceof Anthropic.APIError)
-        throw new ProviderError('AI_UNAVAILABLE', `Erreur API ${error.status ?? ''}`, true)
-      throw error
+      throw toProviderError(error)
     }
   }
+}
+
+/** Traduit les erreurs typées du SDK, de la plus spécifique à la plus générale. */
+function toProviderError(error: unknown): unknown {
+  if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
+    return new ProviderError('AUTH_FAILED', 'Clé API refusée', false)
+  }
+  if (error instanceof Anthropic.NotFoundError) return new ProviderError('AI_UNAVAILABLE', 'Modèle introuvable', false)
+  if (error instanceof Anthropic.RateLimitError)
+    return new ProviderError('AI_UNAVAILABLE', 'Limite de débit atteinte', true)
+  if (error instanceof Anthropic.APIConnectionError)
+    return new ProviderError('AI_UNAVAILABLE', 'Connexion impossible', true)
+  if (error instanceof Anthropic.APIError)
+    return new ProviderError('AI_UNAVAILABLE', `Erreur API ${error.status ?? ''}`, true)
+  return error
 }

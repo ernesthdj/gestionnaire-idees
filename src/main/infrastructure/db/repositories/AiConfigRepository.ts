@@ -18,7 +18,7 @@ export const AiConfigSchema = z.object({
     .default(null),
   usdEurRate: z.number().min(0.5).max(2).default(0.92),
   claudeModel: z.string().min(1).max(60).default('claude-opus-5'),
-  localModel: z.string().min(1).max(80).default('qwen3:8b'),
+  localModel: z.string().min(1).max(80).default('qwen3.5:9b'),
   allowClaudeFallback: z.boolean().default(false),
   routing: z.record(TaskKind, Engine).default({ ...DEFAULT_ROUTING })
 })

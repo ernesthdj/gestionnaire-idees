@@ -54,13 +54,15 @@ export class OllamaProvider implements AIProvider {
     const model = this.options.model()
     try {
       const response = await this.fetchFn(`${this.options.baseUrl}/api/tags`, { signal: AbortSignal.timeout(3000) })
-      if (!response.ok) return { up: false, reason: 'Service Ollama injoignable' }
+      if (!response.ok) return { up: false, reason: 'Service Ollama injoignable', problem: 'not_running' }
       const tags = TagsResponse.safeParse(await response.json())
-      if (!tags.success) return { up: false, reason: 'Réponse Ollama inattendue' }
+      if (!tags.success) return { up: false, reason: 'Réponse Ollama inattendue', problem: 'unexpected' }
       const installed = tags.data.models.some((entry) => entry.name === model || entry.name.startsWith(`${model}:`))
-      return installed ? { up: true, model } : { up: false, reason: `Modèle « ${model} » non téléchargé` }
+      return installed
+        ? { up: true, model }
+        : { up: false, reason: `Modèle « ${model} » non téléchargé`, problem: 'model_missing' }
     } catch {
-      return { up: false, reason: 'Ollama non démarré' }
+      return { up: false, reason: 'Ollama non démarré', problem: 'not_running' }
     }
   }
 

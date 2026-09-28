@@ -13,5 +13,6 @@
     "src/shared/**/*",
     "tests/**/*",
     "scripts/**/*"
-  ]
+  ],
+  "exclude": ["tests/unit/renderer/**/*"]
 }

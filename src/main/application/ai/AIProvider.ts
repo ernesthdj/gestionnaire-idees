@@ -22,10 +22,14 @@ export interface CompletionResponse<T> {
   readonly model: string
 }
 
+export type ProviderProblem = 'not_running' | 'model_missing' | 'unexpected' | 'not_configured'
+
 export interface ProviderStatus {
   readonly up: boolean
   readonly model?: string
   readonly reason?: string
+  /** Cause de l'indisponibilité, pour guider l'utilisateur (installation, téléchargement, clé…). */
+  readonly problem?: ProviderProblem
 }
 
 /** Stratégie par moteur (contracts/ai-gateway.md). Seul `AIGateway` l'utilise. */

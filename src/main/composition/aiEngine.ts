@@ -13,17 +13,21 @@ import { AiConfigRepository } from '../infrastructure/db/repositories/AiConfigRe
 import { PendingRequestRepository } from '../infrastructure/db/repositories/PendingRequestRepository'
 import type { Logger } from '../infrastructure/logging/logger'
 import type { SecretStore } from '../infrastructure/secrets/SecretStore'
+import { CLAUDE_SECRET } from '../ipc/aiHandlers'
 import { CategoryOut, SensitiveOut } from '@shared/ai/schemas'
 
 /** Estimation prudente de la taille d'entrée d'un appel (cadre + profil + données), avant envoi. */
 const ESTIMATED_INPUT_TOKENS = 8000
 const LOCAL_QUEUE_PROBE_MS = 30_000
-export const CLAUDE_SECRET = 'claude'
 
 export interface AiEngine {
   readonly gateway: AIGateway
   readonly config: AiConfigRepository
   readonly localQueue: LocalQueue
+  readonly ollama: OllamaProvider
+  readonly claude: ClaudeProvider
+  /** Dépense Claude du mois local en cours (millicentimes). */
+  spentMillicentsThisMonth(): number
   stop(): void
 }
 
@@ -40,6 +44,7 @@ export interface AiEngineOptions {
 export function createAiEngine(options: AiEngineOptions): AiEngine {
   const config = new AiConfigRepository(options.db)
   const calls = new AiCallRepository(options.db)
+  const spentThisMonth = (): number => calls.claudeSpentSince(startOfMonth(new Date()))
 
   const ollama = new OllamaProvider({ baseUrl: options.ollamaUrl, model: () => config.get().localModel })
   const claude = new ClaudeProvider({
@@ -48,7 +53,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   })
 
   const budget = new BudgetGuard({
-    spentMillicentsThisMonth: async () => calls.claudeSpentSince(startOfMonth(new Date())),
+    spentMillicentsThisMonth: async () => spentThisMonth(),
     settings: async () => config.get(),
     estimateMillicents: (kind, rate) => {
       const model = config.get().claudeModel
@@ -111,5 +116,13 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   const timer = setInterval(() => void localQueue.tick(), LOCAL_QUEUE_PROBE_MS)
   void localQueue.tick()
 
-  return { gateway, config, localQueue, stop: () => clearInterval(timer) }
+  return {
+    gateway,
+    config,
+    localQueue,
+    ollama,
+    claude,
+    spentMillicentsThisMonth: spentThisMonth,
+    stop: () => clearInterval(timer)
+  }
 }

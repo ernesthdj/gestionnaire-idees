@@ -133,14 +133,14 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T039 [P] [US4] Tests des handlers IPC `ai:*` (validation Zod, clé jamais renvoyée en clair, `ENCRYPTION_UNAVAILABLE`) dans `tests/unit/ipc/ai-handlers.test.ts`
-- [ ] T040 [P] [US4] Test d'intégration « clé jamais en clair » (recherche de la clé fictive dans le dossier de données de test, logs, base) dans `tests/integration/ai/secret-leak.test.ts`
+- [x] T039 [P] [US4] Tests des handlers IPC `ai:*` (validation Zod, clé jamais renvoyée en clair, `ENCRYPTION_UNAVAILABLE`) dans `tests/unit/ipc/ai-handlers.test.ts`
+- [x] T040 [P] [US4] Test d'intégration « clé jamais en clair » (recherche de la clé fictive dans le dossier de données de test, logs, base) dans `tests/integration/ai/secret-leak.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T060 [P] [US4] Test du guidage Ollama : service absent → message avec les 3 étapes (installer Ollama, télécharger le modèle retenu, revérifier) ; modèle absent → étapes 2-3 ; « Revérifier » relance la sonde et met le statut à jour — `tests/unit/ipc/ollama-guidance.test.ts` *(analyse U1)*
-- [ ] T041 [US4] Handlers `ai:status`, `ai:setClaudeKey`, `ai:clearClaudeKey`, `ai:getConfig`, `ai:setConfig`, `ai:test`, `ai:unlockBudget` dans `src/main/ipc/aiHandlers.ts` (contracts/ipc-ai.md)
-- [ ] T042 [P] [US4] Écran Réglages › IA (statut moteurs, saisie masquée, modèles, plafond, jauge, tests, guide Ollama) dans `src/renderer/src/pages/settings/ai/AiSettingsPage.tsx` + composants atoms/molecules
+- [x] T060 [P] [US4] Test du guidage Ollama : service absent → message avec les 3 étapes (installer Ollama, télécharger le modèle retenu, revérifier) ; modèle absent → étapes 2-3 ; « Revérifier » relance la sonde et met le statut à jour — `tests/unit/ipc/ollama-guidance.test.ts` *(analyse U1)*
+- [x] T041 [US4] Handlers `ai:status`, `ai:setClaudeKey`, `ai:clearClaudeKey`, `ai:getConfig`, `ai:setConfig`, `ai:test`, `ai:unlockBudget` dans `src/main/ipc/aiHandlers.ts` (contracts/ipc-ai.md)
+- [x] T042 [P] [US4] Écran Réglages › IA (statut moteurs, saisie masquée, modèles, plafond, jauge, tests, guide Ollama) dans `src/renderer/src/pages/settings/ai/AiSettingsPage.tsx` + composants atoms/molecules
 - [ ] T043 [US4] Accessibilité de l'écran (clavier complet, focus visible, contraste AA, libellés) — vérification et correctifs dans les composants de T042
 
 **Checkpoint**: Claude activable par l'utilisateur ; SC-006 vérifié
