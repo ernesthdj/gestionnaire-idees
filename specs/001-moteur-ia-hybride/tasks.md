@@ -155,18 +155,18 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T044 [P] [US5] Fixtures fictives `tests/fixtures/context-inbox-valid/` et `tests/fixtures/context-inbox-tampered/`
-- [ ] T045 [P] [US5] Tests `ContextImportService` (manifeste invalide, empreinte fausse, taille > 50 Ko, fichiers hors liste ignorés, diff, apply, reject, rollback, une seule version active) dans `tests/unit/ai/context-import.test.ts`
-- [ ] T046 [P] [US5] Tests `ExampleStore` (plafond 20 par kind, positifs/négatifs, sélection des ≤ 3 pertinents) dans `tests/unit/ai/example-store.test.ts`
+- [x] T044 [P] [US5] Fixtures fictives `tests/fixtures/context-inbox-valid/` et `tests/fixtures/context-inbox-tampered/`
+- [x] T045 [P] [US5] Tests `ContextImportService` (manifeste invalide, empreinte fausse, taille > 50 Ko, fichiers hors liste ignorés, diff, apply, reject, rollback, une seule version active) dans `tests/unit/ai/context-import.test.ts`
+- [x] T046 [P] [US5] Tests `ExampleStore` (plafond 20 par kind, positifs/négatifs, sélection des ≤ 3 pertinents) dans `tests/unit/ai/example-store.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T047 [P] [US5] Watcher `fs.watch` + anti-rebond + archivage dans `src/main/infrastructure/context-inbox/InboxWatcher.ts`
-- [ ] T048 [US5] `ContextImportService` (validation, diff, versions, rollback) dans `src/main/application/ai/ContextImportService.ts`
-- [ ] T049 [P] [US5] `ExampleStore` dans `src/main/application/ai/ExampleStore.ts` et branchement dans `ContextAssembler` ; exposer `ExampleStore.record({ polarity, taskKind, input, output, reason? })` comme **point d'intégration pour F3** (propositions acceptées/refusées). Tant que F3 n'existe pas, les exemples proviennent uniquement de l'import de contexte *(analyse C3)*
-- [ ] T050 [US5] Handlers `context:*` + événement `context:newImport` dans `src/main/ipc/contextHandlers.ts`
-- [ ] T051 [US5] Écran Réglages › Contexte IA (aperçu avant/après, appliquer/refuser, historique, restaurer) dans `src/renderer/src/pages/settings/ai/ContextPage.tsx`
-- [ ] T052 [US5] Profil initial : `docs/context/profile.example.md` (fictif, versionné) + procédure documentée pour que Claude Code produise le vrai profil dans l'inbox (jamais dans le repo)
+- [x] T047 [P] [US5] Watcher `fs.watch` + anti-rebond + archivage dans `src/main/infrastructure/context-inbox/InboxWatcher.ts`
+- [x] T048 [US5] `ContextImportService` (validation, diff, versions, rollback) dans `src/main/application/ai/ContextImportService.ts`
+- [x] T049 [P] [US5] `ExampleStore` dans `src/main/application/ai/ExampleStore.ts` et branchement dans `ContextAssembler` ; exposer `ExampleStore.record({ polarity, taskKind, input, output, reason? })` comme **point d'intégration pour F3** (propositions acceptées/refusées). Tant que F3 n'existe pas, les exemples proviennent uniquement de l'import de contexte *(analyse C3)*
+- [x] T050 [US5] Handlers `context:*` + événement `context:newImport` dans `src/main/ipc/contextHandlers.ts`
+- [x] T051 [US5] Écran Réglages › Contexte IA (aperçu avant/après, appliquer/refuser, historique, restaurer) dans `src/renderer/src/pages/settings/ai/ContextPage.tsx`
+- [x] T052 [US5] Profil initial : `docs/context/profile.example.md` (fictif, versionné) + procédure documentée pour que Claude Code produise le vrai profil dans l'inbox (jamais dans le repo)
 
 **Checkpoint**: SC-008 vérifié
 

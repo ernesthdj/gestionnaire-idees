@@ -15,6 +15,7 @@
 | 10 | Coût Claude : compter aussi les tokens d'ÉCRITURE en cache (~1,25× l'entrée) et tarifer le modèle réellement servi (bascule serveur), sinon le budget sous-estime | `cost.ts`, `aiEngine.ts` | 2026-09-28 |
 | 11 | Un petit modèle local classe mal sans définitions : toujours fournir des consignes de tâche (définitions + exemples) — 37 % → 90 % | `TaskInstructions.ts` | 2026-09-28 |
 | 12 | Désactiver la réflexion (`think: false`) d'Ollama pour les tâches courtes et structurées | `OllamaProvider.ts` | 2026-09-28 |
+| 13 | Le profil injecté dans le cadre système n'est PAS anonymisé : refuser à l'import tout profil contenant une donnée personnelle (mêmes règles que l'anonymisation) | `domain/context/bundle.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -101,4 +102,10 @@
 ### [2026-09-28 16:55] PERF — banc d'essai du modèle local et consignes de tâche (spec 001 T027)
 **Fichiers :** `src/main/infrastructure/ai/TaskInstructions.ts`, `src/main/application/ai/ContextAssembler.ts`, `src/main/infrastructure/ai/OllamaProvider.ts` (`think: false`), `package.json` (`tsx`, script `bench:local`), `specs/001-moteur-ia-hybride/research.md` (R5)
 **Résumé :** Banc d'essai qwen3.5:9b sur 30 cas fictifs : catégorie 37 % → 90 %, nature 73 % → 90 % après ajout de consignes par tâche (catégoriser, anonymiser) ; p90 889 ms. Réflexion Ollama désactivée pour les tâches locales. Nouvelle dépendance de dev : `tsx` (validée).
+
+### [2026-09-28 17:15] FEAT — import de contexte depuis Claude Code (spec 001 US5 : T044-T052)
+**Fichiers :** `src/main/domain/context/bundle.ts`, `src/main/application/ai/{ContextImportService,ExampleStore}.ts`, `src/main/infrastructure/context-inbox/{InboxFolder,InboxWatcher}.ts`, `src/main/infrastructure/db/repositories/ContextRepository.ts`, migration `0002_examples_context_version` (+ down), `src/main/ipc/contextHandlers.ts`, `src/shared/ipc/{context,channels}.ts`, `src/main/{bootstrap,composition/aiEngine,index}.ts`, `AIGateway.ts` (contexte par type de tâche), `src/renderer/src/pages/settings/ai/ContextPage.tsx`, `src/renderer/src/App.tsx` (onglets provisoires), `docs/context/{README,profile.example}.md`, tests (180 au total)
+**Résumé :** Dossier d'import surveillé (manifeste écrit en dernier, anti-rebond 1 s) ; validation : manifeste, fichiers annoncés présents, ≤ 50 Ko, SHA-256, format des exemples, **refus de toute donnée personnelle dans profil/règles** (envoyés non anonymisés à Claude) ; import en attente avec aperçu avant/après, appliquer / refuser, versions et retour arrière (les exemples importés suivent leur version) ; version 1 « vide » créée au premier lancement. Exemples : 20 appris max par type, 3 plus récents du bon type injectés ; `ExampleStore.record` = point d'intégration pour la spec 002. Écran Contexte IA.
+**Premier profil réel :** distillé du CLAUDE.md global (casquettes, façon de réfléchir, organisation ; aucune donnée d'identité), déposé dans `%APPDATA%` (hors dépôt), détecté et mis en attente par l'app — à valider par mentalyas dans Réglages › Contexte IA.
+**Incident :** classifieur du mode auto indisponible → passage en mode manuel par mentalyas.
 

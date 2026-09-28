@@ -2,9 +2,10 @@ import { AIGateway } from '../application/ai/AIGateway'
 import { Anonymizer, sensitiveDetectorFrom } from '../application/ai/Anonymizer'
 import { BudgetGuard } from '../application/ai/BudgetGuard'
 import { LocalQueue } from '../application/ai/LocalQueue'
-import type { Anonymizer as AnonymizerPort } from '../application/ai/ports'
+import type { AgentContext, Anonymizer as AnonymizerPort } from '../application/ai/ports'
 import { costMillicents, estimateMaxMillicents, pricingFor, startOfMonth } from '../domain/ai/cost'
 import { maxTokensFor, type RoutingTable } from '../domain/ai/routing'
+import type { TaskKind } from '../domain/ai/types'
 import { ClaudeProvider } from '../infrastructure/ai/ClaudeProvider'
 import { OllamaProvider } from '../infrastructure/ai/OllamaProvider'
 import type { AppDatabase } from '../infrastructure/db/client'
@@ -36,6 +37,8 @@ export interface AiEngineOptions {
   readonly secrets: SecretStore
   readonly logger: Logger
   readonly ollamaUrl: string
+  /** Profil, règles et exemples actifs (import de contexte, US5). */
+  readonly contextSource: (kind: TaskKind) => AgentContext | undefined
   readonly onBudgetAlert: (spentCents: number, capCents: number) => void
   readonly onQueuedCompleted: (requestId: string) => void
 }
@@ -80,7 +83,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       const current = config.get()
       return { routing: current.routing as RoutingTable, allowClaudeFallback: current.allowClaudeFallback }
     },
-    context: async () => undefined, // Profil, règles et exemples : US5 (import de contexte).
+    context: async (kind) => options.contextSource(kind),
     anonymizer: {
       anonymize: (text) => {
         if (anonymizerRef.current === undefined) throw new Error('Anonymiseur non initialisé')

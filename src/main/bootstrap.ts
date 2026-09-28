@@ -1,11 +1,17 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
+import { ContextImportService } from './application/ai/ContextImportService'
+import { ExampleStore } from './application/ai/ExampleStore'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
+import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
+import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
+import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { appRoutes } from './ipc/appHandlers'
+import { createContextRoutes } from './ipc/contextHandlers'
 import { registerRoutes } from './ipc/registry'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 
@@ -14,6 +20,8 @@ export interface AppContext {
   readonly secrets: SecretStore
   readonly database: DatabaseHandle
   readonly ai: AiEngine
+  readonly examples: ExampleStore
+  stop(): void
 }
 
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
@@ -42,11 +50,34 @@ export function bootstrap(): AppContext {
     migrationsFolder: migrationsFolder()
   })
 
+  // Import de contexte (US5) : Claude Code dépose profil, règles et exemples dans ce dossier.
+  const contextRepository = new ContextRepository(database.db)
+  const examples = new ExampleStore(contextRepository)
+  const inboxPath = join(dataDir, 'context-inbox')
+  const contextService = new ContextImportService({
+    repository: contextRepository,
+    inbox: new InboxFolder(inboxPath, join(dataDir, 'context-archive')),
+    examples,
+    now: () => new Date(),
+    onNewImport: (importId) => broadcast('context:newImport', { importId })
+  })
+  contextService.ensureSeed()
+  const scanInbox = (): void => {
+    try {
+      contextService.scan()
+    } catch {
+      logger.error('context.scan_failed', {})
+    }
+  }
+  const stopWatching = watchInbox(inboxPath, scanInbox)
+  scanInbox()
+
   const ai = createAiEngine({
     db: database.db,
     secrets,
     logger,
     ollamaUrl: process.env['OLLAMA_URL'] ?? DEFAULT_OLLAMA_URL,
+    contextSource: (kind) => contextService.activeContext(kind),
     onBudgetAlert: (spentCents, capCents) => broadcast('ai:budgetAlert', { spentCents, capCents }),
     // Rejeu de la file locale : consommé par la capture (spec 003).
     onQueuedCompleted: () => undefined
@@ -60,7 +91,18 @@ export function bootstrap(): AppContext {
     spentMillicentsThisMonth: () => ai.spentMillicentsThisMonth(),
     now: () => new Date()
   })
-  registerRoutes(ipcMain, [...appRoutes, ...aiRoutes], logger)
+  const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
+  registerRoutes(ipcMain, [...appRoutes, ...aiRoutes, ...contextRoutes], logger)
   logger.info('app.ready', { version: app.getVersion() })
-  return { logger, secrets, database, ai }
+  return {
+    logger,
+    secrets,
+    database,
+    ai,
+    examples,
+    stop: () => {
+      stopWatching()
+      ai.stop()
+    }
+  }
 }

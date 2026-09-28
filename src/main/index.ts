@@ -55,7 +55,7 @@ void app.whenReady().then(() => {
 })
 
 app.on('will-quit', () => {
-  context?.ai.stop()
+  context?.stop()
   context?.database.close()
 })
 

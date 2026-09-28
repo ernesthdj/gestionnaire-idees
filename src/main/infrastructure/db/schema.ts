@@ -78,6 +78,8 @@ export const examples = sqliteTable(
     taskKind: text('task_kind').notNull(),
     contentJson: text('content_json').notNull(),
     source: text('source', { enum: ['accepted_proposal', 'rejected_proposal', 'import'] }).notNull(),
+    /** Pour un exemple importé : version de contexte qui l'a apporté (suit les retours arrière). */
+    contextVersionId: text('context_version_id').references(() => contextVersions.id),
     createdAt: createdAt()
   },
   (t) => [index('examples_task_kind_idx').on(t.taskKind)]

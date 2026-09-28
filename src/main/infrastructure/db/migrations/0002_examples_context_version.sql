@@ -1,0 +1,1 @@
+ALTER TABLE `examples` ADD `context_version_id` text REFERENCES context_versions(id);

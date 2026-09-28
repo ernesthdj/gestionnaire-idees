@@ -11,13 +11,18 @@ export const MAIN_WINDOW_CHANNELS = [
   'ai:getConfig',
   'ai:setConfig',
   'ai:test',
-  'ai:unlockBudget'
+  'ai:unlockBudget',
+  'context:list',
+  'context:pending',
+  'context:apply',
+  'context:reject',
+  'context:rollback'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
 
 /** Événements poussés du processus principal vers la fenêtre principale. */
-export const MAIN_WINDOW_EVENTS = ['ai:budgetAlert'] as const
+export const MAIN_WINDOW_EVENTS = ['ai:budgetAlert', 'context:newImport'] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]
 

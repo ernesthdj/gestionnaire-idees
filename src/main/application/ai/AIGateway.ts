@@ -30,7 +30,8 @@ export interface AIResult<T> {
 export interface GatewayDependencies {
   readonly providers: Readonly<Record<Engine, AIProvider>>
   readonly config: () => GatewayConfig
-  readonly context: () => Promise<AgentContext | undefined>
+  /** Profil, règles et exemples actifs pour ce type de tâche (US5). */
+  readonly context: (kind: TaskKind) => Promise<AgentContext | undefined>
   readonly anonymizer: Anonymizer
   readonly budget: BudgetGuard
   readonly costOf: (engine: Engine, model: string, usage: Usage) => number
@@ -131,7 +132,7 @@ export class AIGateway {
       }
     }
 
-    const assembled = assembleContext({ kind: request.kind, input, context: await this.deps.context() })
+    const assembled = assembleContext({ kind: request.kind, input, context: await this.deps.context(request.kind) })
     const result = await this.semaphores[engine].use(() =>
       this.callWithRetry(request, requestId, engine, assembled.system, assembled.user, degraded)
     )

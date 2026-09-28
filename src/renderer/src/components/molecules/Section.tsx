@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 interface SectionProps {
   readonly title: string
-  readonly description?: string
+  readonly description?: string | undefined
   readonly children: ReactNode
 }
 
