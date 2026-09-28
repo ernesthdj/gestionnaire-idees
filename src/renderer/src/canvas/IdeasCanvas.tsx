@@ -20,6 +20,7 @@ import { call } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { buildGraph, computeLayout, movedPositions, type CanvasNode } from './buildGraph'
+import { useCanvasHover } from './hoverStore'
 import { CanvasToolbar } from './CanvasToolbar'
 import { LinkEdge } from './edges/LinkEdge'
 import { driftActive, type Point } from './forceLayout'
@@ -80,6 +81,8 @@ function CanvasInner(): React.JSX.Element {
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
   const dragged = useRef(new Map<string, Point>())
   const surface = useRef<HTMLDivElement>(null)
+  const setHoveredEdge = useCanvasHover((state) => state.setEdge)
+  const setHoveredNode = useCanvasHover((state) => state.setNode)
 
   const query = useQuery({
     queryKey: ['canvas', filter],
@@ -207,6 +210,9 @@ function CanvasInner(): React.JSX.Element {
         data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
         onKeyDownCapture={onKeyDownCapture}
         onKeyDown={onKeyDown}
+        // Au clavier aussi, l'idée qui a le focus montre les libellés de ses liens.
+        onFocusCapture={(event) => setHoveredNode(neuronIdOf(event.target))}
+        onBlurCapture={() => setHoveredNode(null)}
         onPointerDown={() => setInteracting(true)}
         onPointerUp={() => setInteracting(false)}
         onPointerLeave={() => setInteracting(false)}
@@ -240,6 +246,10 @@ function CanvasInner(): React.JSX.Element {
             ariaLabelConfig={ARIA_LABELS}
             colorMode={settings.theme}
             proOptions={{ hideAttribution: true }}
+            onEdgeMouseEnter={(_event, edge) => setHoveredEdge(edge.id)}
+            onEdgeMouseLeave={() => setHoveredEdge(null)}
+            onNodeMouseEnter={(_event, node) => setHoveredNode(node.type === 'neuron' ? node.id : null)}
+            onNodeMouseLeave={() => setHoveredNode(null)}
             onMoveStart={() => setInteracting(true)}
             onMoveEnd={() => setInteracting(false)}
             onNodeDoubleClick={(_event, node) => {

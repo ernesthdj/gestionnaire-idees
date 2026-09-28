@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
@@ -7,7 +7,16 @@ import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import { expectNoAxeViolations } from '../../support/axe'
-import { canvasView, DEVELOPING_ID, emptyCanvasView, LINK_ID, RAW_ID } from '../../fixtures/ui/canvas'
+import {
+  canvasView,
+  DEVELOPING_ID,
+  emptyCanvasView,
+  HATCHED_A_ID,
+  HATCHED_B_ID,
+  LINK_ID,
+  RAW_ID
+} from '../../fixtures/ui/canvas'
+import { useCanvasHover } from '../../../src/renderer/src/canvas/hoverStore'
 import { installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
@@ -125,5 +134,28 @@ describe('écran Idées', () => {
     expect(api.invoke).toHaveBeenCalledWith('canvas:createBlock', expect.objectContaining({ x: expect.any(Number) }))
     await user.click(await screen.findByRole('button', { name: 'Supprimer le bloc' }))
     expect(api.invoke).toHaveBeenCalledWith('canvas:deleteBlock', { id: block.id })
+  })
+
+  it('should_keep_an_accepted_link_discreet_and_show_its_label_on_hover_or_focus_of_one_of_its_ideas', async () => {
+    useCanvasHover.setState({ edgeId: null, nodeId: null })
+    const view = canvasView()
+    const accepted = { ...view.links[0], status: 'accepted' as const, label: 'même budget' }
+    renderCanvas({ ...view, links: [accepted as (typeof view.links)[number]] })
+    const idea = await waitFor(() => screen.getByRole('group', { name: /^Idée éclose : Mission mariage/ }))
+    expect(screen.queryByText('même budget')).toBeNull()
+    fireEvent.mouseEnter(idea)
+    expect(await screen.findByText('même budget')).toBeDefined()
+    fireEvent.mouseLeave(idea)
+    await waitFor(() => expect(screen.queryByText('même budget')).toBeNull())
+    act(() => screen.getByRole('group', { name: /^Idée éclose : Portfolio photo/ }).focus())
+    expect(await screen.findByText('même budget')).toBeDefined()
+    expect([HATCHED_A_ID, HATCHED_B_ID]).toContain(useCanvasHover.getState().nodeId)
+  })
+
+  it('should_always_show_a_suggested_link_with_its_decision_buttons', async () => {
+    useCanvasHover.setState({ edgeId: null, nodeId: null })
+    renderCanvas()
+    expect(await screen.findByText('financement')).toBeDefined()
+    expect(screen.getByRole('button', { name: /^Refuser le lien « financement »/ })).toBeDefined()
   })
 })
