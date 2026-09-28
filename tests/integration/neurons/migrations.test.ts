@@ -1,0 +1,79 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { sql } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
+import { categories, neurons, settings } from '../../../src/main/infrastructure/db/schemaNeurons'
+
+const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
+
+describe('migrations du modèle de neurones', () => {
+  let root: string
+  let handle: DatabaseHandle
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'gi-neurons-db-'))
+    handle = openDatabase({ file: join(root, 'n.db'), key: '3'.repeat(64), migrationsFolder: MIGRATIONS })
+  })
+  afterEach(() => {
+    handle.close()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('should_seed_six_categories_and_engine_settings', () => {
+    expect(
+      handle.db
+        .select()
+        .from(categories)
+        .all()
+        .map((row) => row.slug)
+    ).toEqual(['general', 'achat', 'projet', 'sortie', 'photo', 'it'])
+    expect(handle.db.select().from(settings).all()).toEqual(
+      expect.arrayContaining([
+        { key: 'neurons.max_ai_depth', valueJson: '6' },
+        { key: 'neurons.min_extensions', valueJson: '3' }
+      ])
+    )
+  })
+
+  it('should_index_root_neurons_for_accent_insensitive_full_text_search', () => {
+    handle.db
+      .insert(neurons)
+      .values([
+        { id: 'r1', rootId: 'r1', kind: 'root', title: 'Acheter un écran', origin: 'user', state: 'raw' },
+        { id: 's1', rootId: 'r1', parentId: 'r1', depth: 1, kind: 'answer', title: 'écran 27 pouces', origin: 'user' }
+      ])
+      .run()
+    const hits = handle.db.all<{ neuron_id: string }>(
+      sql`SELECT neuron_id FROM neurons_fts WHERE neurons_fts MATCH ${'ecran'}`
+    )
+    expect(hits.map((hit) => hit.neuron_id)).toEqual(['r1'])
+  })
+
+  it('should_keep_search_index_in_sync_when_a_root_is_renamed_or_deleted', () => {
+    handle.db.insert(neurons).values({ id: 'r1', rootId: 'r1', kind: 'root', title: 'Poterie', origin: 'user' }).run()
+    handle.db.run(sql`UPDATE neurons SET title = 'Céramique' WHERE id = 'r1'`)
+    const match = (term: string) =>
+      handle.db.all<{ neuron_id: string }>(sql`SELECT neuron_id FROM neurons_fts WHERE neurons_fts MATCH ${term}`)
+    expect(match('poterie')).toEqual([])
+    expect(match('ceramique')).toHaveLength(1)
+    handle.db.run(sql`DELETE FROM neurons WHERE id = 'r1'`)
+    expect(match('ceramique')).toEqual([])
+  })
+
+  it('should_refuse_two_sub_neurons_answering_the_same_extension', () => {
+    handle.db.insert(neurons).values({ id: 'r1', rootId: 'r1', kind: 'root', title: 'x', origin: 'user' }).run()
+    const answer = (id: string) => ({
+      id,
+      rootId: 'r1',
+      parentId: 'r1',
+      depth: 1,
+      kind: 'answer' as const,
+      title: 'réponse',
+      origin: 'user' as const,
+      fromExtensionId: 'ext-1'
+    })
+    handle.db.insert(neurons).values(answer('s1')).run()
+    expect(() => handle.db.insert(neurons).values(answer('s2')).run()).toThrow()
+  })
+})

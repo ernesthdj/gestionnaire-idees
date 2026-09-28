@@ -22,6 +22,20 @@
       "when": 1790596713539,
       "tag": "0002_examples_context_version",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790597771710,
+      "tag": "0003_neurons_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790597780752,
+      "tag": "0004_neurons_seed_fts",
+      "breakpoints": true
     }
   ]
 }

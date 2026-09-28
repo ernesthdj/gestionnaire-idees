@@ -16,7 +16,7 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 ## Phase 1: Setup
 
-- [ ] T001 Créer `src/main/domain/neurons`, `src/main/application/neurons`, `tests/{unit,integration,fixtures}/neurons`
+- [x] T001 Créer `src/main/domain/neurons`, `src/main/application/neurons`, `tests/{unit,integration,fixtures}/neurons`
 - [ ] T002 [P] Fixtures FICTIVES : arbres « 2e écran » (Action), « concept portfolio » (Réflexion), « mission mariage » ; 20 arbres pour la provenance ; sorties IA scriptées dans `tests/fixtures/neurons/`
 
 ---
@@ -25,13 +25,13 @@ description: "Task list — 002 Moteur de neurones (F2 v2)"
 
 **⚠️ CRITICAL**: requis par toutes les stories et par la spec 003
 
-- [ ] T003 Schéma Drizzle : `categories`, `neurons`, `extensions`, `context_assessments`, `syntheses`, `plan_nodes`, `plan_dependencies`, `reflection_summaries`, `neuron_links`, `change_log`, `settings` dans `src/main/infrastructure/db/schema.ts` (data-model.md)
-- [ ] T004 Migration avec `down` + seed catégories et `settings` (`neurons.max_ai_depth = 6`, `neurons.min_extensions = 3`) + FTS5 `neurons_fts` et triggers
-- [ ] T005 [P] Schémas Zod de sortie IA (`CategoriserOut`, `EtendreOut`, `ActionPlanOut`, `ReflectionSummaryOut`, `SuggererLiensOut`) dans `src/shared/ai/neurons.ts`
-- [ ] T006 [P] Schémas Zod IPC + vues (`RootView`, `TreeView`, `SynthesisView`, `LinkView`) dans `src/shared/ipc/neurons.ts`
-- [ ] T007 [P] Repositories + test d'intégration CRUD (cascade de suppression incluse) dans `src/main/infrastructure/db/repositories/` et `tests/integration/neurons/repositories.test.ts`
-- [ ] T008 [P] Tests puis `NeuronService` (création, liste filtrée/paginée, recherche FTS5, mise à jour qui incrémente `version`, archivage, catégorisation locale non bloquante qui n'écrase jamais un choix `user`) — `tests/unit/neurons/neuron-service.test.ts`, `src/main/application/neurons/NeuronService.ts` (FR-001/002)
-- [ ] T009 Handlers `neuron:*` dans `src/main/ipc/neuronHandlers.ts`
+- [x] T003 Schéma Drizzle : `categories`, `neurons`, `extensions`, `context_assessments`, `syntheses`, `plan_nodes`, `plan_dependencies`, `reflection_summaries`, `neuron_links`, `change_log`, `settings` dans `src/main/infrastructure/db/schema.ts` (data-model.md)
+- [x] T004 Migration avec `down` + seed catégories et `settings` (`neurons.max_ai_depth = 6`, `neurons.min_extensions = 3`) + FTS5 `neurons_fts` et triggers
+- [x] T005 [P] Schémas Zod de sortie IA (`CategoriserOut`, `EtendreOut`, `ActionPlanOut`, `ReflectionSummaryOut`, `SuggererLiensOut`) dans `src/shared/ai/neurons.ts`
+- [x] T006 [P] Schémas Zod IPC + vues (`RootView`, `TreeView`, `SynthesisView`, `LinkView`) dans `src/shared/ipc/neurons.ts`
+- [x] T007 [P] Repositories + test d'intégration CRUD (cascade de suppression incluse) dans `src/main/infrastructure/db/repositories/` et `tests/integration/neurons/repositories.test.ts`
+- [x] T008 [P] Tests puis `NeuronService` (création, liste filtrée/paginée, recherche FTS5, mise à jour qui incrémente `version`, archivage, catégorisation locale non bloquante qui n'écrase jamais un choix `user`) — `tests/unit/neurons/neuron-service.test.ts`, `src/main/application/neurons/NeuronService.ts` (FR-001/002)
+- [x] T009 Handlers `neuron:*` dans `src/main/ipc/neuronHandlers.ts`
 
 **Checkpoint**: neurones créables, listables, catégorisés en arrière-plan
 

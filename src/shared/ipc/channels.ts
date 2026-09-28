@@ -16,7 +16,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'context:pending',
   'context:apply',
   'context:reject',
-  'context:rollback'
+  'context:rollback',
+  'neuron:create',
+  'neuron:list',
+  'neuron:getTree',
+  'neuron:update',
+  'neuron:archive'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

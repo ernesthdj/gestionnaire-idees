@@ -2,7 +2,10 @@
 import Database from 'better-sqlite3'
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import * as schema from './schema'
+import * as aiSchema from './schema'
+import * as neuronSchema from './schemaNeurons'
+
+const schema = { ...aiSchema, ...neuronSchema }
 
 export type AppDatabase = BetterSQLite3Database<typeof schema>
 

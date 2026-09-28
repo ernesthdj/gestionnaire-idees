@@ -40,7 +40,8 @@ export interface AiEngineOptions {
   /** Profil, règles et exemples actifs (import de contexte, US5). */
   readonly contextSource: (kind: TaskKind) => AgentContext | undefined
   readonly onBudgetAlert: (spentCents: number, capCents: number) => void
-  readonly onQueuedCompleted: (requestId: string) => void
+  /** Demande locale rejouée avec succès : identifiant et données validées. */
+  readonly onQueuedCompleted: (requestId: string, data: unknown) => void
 }
 
 /** Racine de composition du moteur IA : relie passerelle, moteurs, anonymisation, budget et file locale. */
@@ -111,7 +112,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     gateway,
     isLocalAvailable: async () => (await ollama.isAvailable()).up,
     schemas: { CategoryOut, SensitiveOut },
-    onCompleted: (requestId) => options.onQueuedCompleted(requestId),
+    onCompleted: (requestId, result) => options.onQueuedCompleted(requestId, result.data),
     onFailed: () => options.logger.warn('ai.queue_abandoned', {})
   })
   localQueueRef.current = localQueue

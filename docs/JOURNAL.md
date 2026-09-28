@@ -17,6 +17,7 @@
 | 12 | Désactiver la réflexion (`think: false`) d'Ollama pour les tâches courtes et structurées | `OllamaProvider.ts` | 2026-09-28 |
 | 13 | Le profil injecté dans le cadre système n'est PAS anonymisé : refuser à l'import tout profil contenant une donnée personnelle (mêmes règles que l'anonymisation) | `domain/context/bundle.ts` | 2026-09-28 |
 | 14 | Tout contenu issu des idées réelles envoyé à Claude doit être anonymisé, pas seulement l'entrée : exemples compris (blocs système typés par rôle) | `AIGateway.ts`, `ContextAssembler.ts` | 2026-09-28 |
+| 15 | Recherche FTS5 : ne jamais passer la saisie brute à MATCH ; extraire les mots et les citer (`"mot"*`) pour neutraliser les opérateurs | `NeuronRepository.ts` | 2026-09-28 |
 | 6 | Zod 4 : un tableau de routes typées hétérogènes ne se typise pas proprement → encapsuler validation + handler (`run(payload: unknown)`) | `src/main/ipc/registry.ts` | 2026-09-28 |
 
 ## Historique
@@ -113,4 +114,8 @@
 ### [2026-09-28 17:40] SECURITY — revue sécurité de la spec 001 (T053)
 **Fichiers :** `docs/SECURITY-REVIEW-001.md`, `src/main/application/ai/{AIGateway,AIProvider,ContextAssembler}.ts`, `src/main/domain/context/bundle.ts`, `src/main/infrastructure/ai/OllamaProvider.ts`, `src/main/ipc/registry.ts`, `src/main/{bootstrap,index}.ts`, tests (188 au total)
 **Résumé :** 5 constats corrigés : F1 (élevée) exemples envoyés à Claude sans anonymisation → blocs typés par rôle, exemples anonymisés ; F2 exemples importés contrôlés (données personnelles) ; F3 `OLLAMA_URL` non locale → repli au lieu de plantage ; F4 expéditeur IPC limité aux fichiers de l'interface ; F5 vérifications de permission refusées. Points conformes et risques résiduels documentés.
+
+### [2026-09-28 18:05] FEAT — fondations du moteur de neurones (spec 002 Phase 2 : T001, T003-T009)
+**Fichiers :** `src/main/infrastructure/db/schemaNeurons.ts` (11 tables), migrations `0003_neurons_model` + `0004_neurons_seed_fts` (+ down), `db/client.ts`, `drizzle.config.ts`, `src/shared/ai/neurons.ts` (EtendreOut, ActionPlanOut, ReflectionSummaryOut, SuggererLiensOut), `src/shared/ipc/neurons.ts`, `NeuronRepository.ts`, `application/neurons/NeuronService.ts`, `ipc/neuronHandlers.ts`, `bootstrap.ts`, `composition/aiEngine.ts`, tests (206 au total)
+**Résumé :** Modèle central : neurones (racines + sous-neurones), extensions, jauges, synthèses, plan d'action, synthèse de réflexion, liens, historique, réglages ; 6 catégories et réglages du moteur en base ; recherche plein texte insensible aux accents, synchronisée par déclencheurs. NeuronService : création (titre = 1re ligne, nature Réflexion par défaut), catégorisation locale non bloquante et rejouée depuis la file, choix de l'utilisateur jamais écrasé, liste filtrée et paginée, modification (version +1), archivage. Canaux `neuron:*` validés.
 

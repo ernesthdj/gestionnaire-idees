@@ -3,17 +3,20 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { ExampleStore } from './application/ai/ExampleStore'
+import { NeuronService } from './application/neurons/NeuronService'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
 import { resolveOllamaUrl } from './infrastructure/ai/OllamaProvider'
 import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
 import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
+import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes } from './ipc/aiHandlers'
 import { appRoutes } from './ipc/appHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
+import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 
@@ -23,6 +26,7 @@ export interface AppContext {
   readonly database: DatabaseHandle
   readonly ai: AiEngine
   readonly examples: ExampleStore
+  readonly neurons: NeuronService
   stop(): void
 }
 
@@ -72,6 +76,8 @@ export function bootstrap(): AppContext {
   const stopWatching = watchInbox(inboxPath, scanInbox)
   scanInbox()
 
+  // Le service des neurones dépend de la passerelle IA, créée juste après : référence résolue ensuite.
+  const neuronsRef: { current?: NeuronService } = {}
   const ollama = resolveOllamaUrl(process.env['OLLAMA_URL'])
   if (ollama.rejected) logger.warn('ai.ollama_url_rejected', {})
 
@@ -82,8 +88,8 @@ export function bootstrap(): AppContext {
     ollamaUrl: ollama.url,
     contextSource: (kind) => contextService.activeContext(kind),
     onBudgetAlert: (spentCents, capCents) => broadcast('ai:budgetAlert', { spentCents, capCents }),
-    // Rejeu de la file locale : consommé par la capture (spec 003).
-    onQueuedCompleted: () => undefined
+    // Rejeu de la file locale (ex. catégorisation d'une idée capturée pendant qu'Ollama était arrêté).
+    onQueuedCompleted: (requestId, data) => neuronsRef.current?.applyQueuedResult(requestId, data)
   })
 
   const aiRoutes = createAiRoutes({
@@ -94,10 +100,18 @@ export function bootstrap(): AppContext {
     spentMillicentsThisMonth: () => ai.spentMillicentsThisMonth(),
     now: () => new Date()
   })
+  const neurons = new NeuronService({ repository: new NeuronRepository(database.db), gateway: ai.gateway })
+  neuronsRef.current = neurons
+
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
-  registerRoutes(ipcMain, [...appRoutes, ...aiRoutes, ...contextRoutes], logger, rendererFileUrl)
+  registerRoutes(
+    ipcMain,
+    [...appRoutes, ...aiRoutes, ...contextRoutes, ...createNeuronRoutes(neurons)],
+    logger,
+    rendererFileUrl
+  )
   logger.info('app.ready', { version: app.getVersion() })
   return {
     logger,
@@ -105,6 +119,7 @@ export function bootstrap(): AppContext {
     database,
     ai,
     examples,
+    neurons,
     stop: () => {
       stopWatching()
       ai.stop()
