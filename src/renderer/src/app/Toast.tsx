@@ -35,7 +35,7 @@ export function Toast(): React.JSX.Element | null {
             setBusy(true)
             void undo(undoBatchId).then((outcome) => {
               setBusy(false)
-              showToast(outcome.ok ? 'Éclosion annulée : l’idée est revenue en développement.' : outcome.message)
+              showToast(outcome.ok ? (toast.undoneText ?? 'Changement annulé.') : outcome.message)
             })
           }}
           className="h-8 rounded-md px-3 font-semibold text-accent hover:bg-surface"

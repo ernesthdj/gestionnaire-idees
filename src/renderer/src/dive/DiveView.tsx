@@ -34,6 +34,7 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
   const dive = useDive(rootId)
   const fusion = useFusion(rootId)
   const hatch = useUiStore((state) => state.hatch)
+  const openDive = useUiStore((state) => state.openDive)
   const [fusing, setFusing] = useState(false)
   const fusionTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(fusionTimer.current), [])
@@ -42,6 +43,8 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
   const ids = { nature: useId(), category: useId() }
   // Même clé que l'écran Idées : les catégories viennent du cache s'il est déjà chargé.
   const canvas = useQuery({ queryKey: ['canvas', {}], queryFn: () => call<IdeasCanvasView>('canvas:get', {}) })
+  // Idée née d'une graine : ses deux parents (FR-028).
+  const bornFrom = canvas.data?.seeds.find((seed) => seed.bornRootId === rootId)
 
   const upRef = useRef<() => void>(() => undefined)
   // Échap remonte, où que soit le focus (il se perd quand l'élément cliqué disparaît) ; jamais depuis un champ.
@@ -118,7 +121,26 @@ export function DiveView({ rootId, onClose }: DiveViewProps): React.JSX.Element 
   return (
     <div className="flex h-full flex-col">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-content-muted/20 px-4 py-2">
-        <Breadcrumb steps={model.breadcrumb} onIdeas={onClose} onStep={(id) => goTo(id)} />
+        <div className="flex flex-col gap-1">
+          <Breadcrumb steps={model.breadcrumb} onIdeas={onClose} onStep={(id) => goTo(id)} />
+          {bornFrom === undefined ? null : (
+            <p className="text-xs text-content-muted">
+              <span aria-hidden="true">🌱 </span>Née de{' '}
+              {bornFrom.parents.map((parent, index) => (
+                <span key={parent.id}>
+                  {index > 0 ? ' × ' : null}
+                  <button
+                    type="button"
+                    onClick={() => openDive(parent.id)}
+                    className="underline decoration-dotted underline-offset-2 hover:text-content"
+                  >
+                    {parent.title}
+                  </button>
+                </span>
+              ))}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-sm">
           <label htmlFor={ids.nature} className="text-content-muted">
             Nature{model.root.natureSource === 'ai' ? ' ✦' : ''}

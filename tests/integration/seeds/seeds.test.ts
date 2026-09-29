@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { CanvasService } from '../../../src/main/application/canvas/CanvasService'
 import { HistoryService } from '../../../src/main/application/history/HistoryService'
+import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
@@ -94,6 +96,24 @@ describe('graines d’idées sur les liens (FR-028)', () => {
     history.undo(undoBatchId)
     expect(t.neurons.getTree(rootId).root.state).toBe('raw')
     expect(t.seeds.list()).toEqual([expect.objectContaining({ status: 'accepted', bornRootId: rootId })])
+  })
+
+  it('should_show_the_born_idea_in_the_network_with_its_parents_on_the_map', async () => {
+    const { link } = await suggestedLink(seed)
+    t.links.decide({ linkId: link.id, accept: true })
+    const canvas = new CanvasService({
+      neurons: new NeuronRepository(t.handle.db),
+      links: t.linkRepository,
+      blocks: new BlockRepository(t.handle.db)
+    })
+    expect(canvas.get().seeds).toEqual([expect.objectContaining({ linkId: link.id, status: 'suggested' })])
+
+    const { rootId } = t.seeds.accept(canvas.get().seeds[0]?.id ?? '')
+    const view = canvas.get()
+    expect(view.network.map((root) => root.id)).toContain(rootId)
+    expect(view.incubator.map((root) => root.id)).not.toContain(rootId)
+    expect(view.counts.raw).toBe(1)
+    expect(view.seeds).toEqual([expect.objectContaining({ status: 'accepted', bornRootId: rootId })])
   })
 
   it('should_refuse_to_undo_when_the_born_idea_has_grown_since', async () => {

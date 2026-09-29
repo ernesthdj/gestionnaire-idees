@@ -6,6 +6,8 @@ export interface Toast {
   readonly text: string
   /** Lot d'historique que le bouton « Annuler » de la notification défait. */
   readonly undoBatchId?: string
+  /** Message affiché une fois l'annulation faite. */
+  readonly undoneText?: string
 }
 
 /** Vue affichée : une section de la navigation, ou les réglages (⚙). */
@@ -21,11 +23,15 @@ interface UiState {
   readonly hatchedId: string | null
   /** Notification brève (FR-019). */
   readonly toast: Toast | null
+  /** Idée qui vient de naître d'une graine : elle pousse sur la carte (FR-028). */
+  readonly bornId: string | null
   openDive(rootId: string): void
   closeDive(): void
   /** Éclosion confirmée : migration sur la carte et notification avec « Annuler » (lot d'historique). */
   hatch(rootId: string, text: string, undoBatchId: string): void
-  showToast(text: string): void
+  showToast(text: string, undo?: { readonly batchId: string; readonly undoneText: string }): void
+  /** Graine acceptée : l'idée née pousse sur la carte, notification avec « Annuler ». */
+  bear(rootId: string, text: string, undoBatchId: string): void
   clearHatched(): void
   hideToast(): void
 }
@@ -36,6 +42,7 @@ export const useUiStore = create<UiState>()((set) => ({
   diveRootId: null,
   hatchedId: null,
   toast: null,
+  bornId: null,
   show: (view) => set({ view, diveRootId: null }),
   navigate: ({ section, diveRootId }) => set({ view: section, diveRootId: diveRootId ?? null }),
   openDive: (rootId) => set({ view: 'ideas', diveRootId: rootId }),
@@ -44,9 +51,31 @@ export const useUiStore = create<UiState>()((set) => ({
     set((state) => ({
       diveRootId: null,
       hatchedId: rootId,
-      toast: { id: (state.toast?.id ?? 0) + 1, text, undoBatchId }
+      toast: {
+        id: (state.toast?.id ?? 0) + 1,
+        text,
+        undoBatchId,
+        undoneText: 'Éclosion annulée : l’idée est revenue en développement.'
+      }
     })),
-  showToast: (text) => set((state) => ({ toast: { id: (state.toast?.id ?? 0) + 1, text } })),
+  showToast: (text, undo) =>
+    set((state) => ({
+      toast: {
+        id: (state.toast?.id ?? 0) + 1,
+        text,
+        ...(undo === undefined ? {} : { undoBatchId: undo.batchId, undoneText: undo.undoneText })
+      }
+    })),
+  bear: (rootId, text, undoBatchId) =>
+    set((state) => ({
+      bornId: rootId,
+      toast: {
+        id: (state.toast?.id ?? 0) + 1,
+        text,
+        undoBatchId,
+        undoneText: 'Naissance annulée : la graine attend de nouveau sur son lien.'
+      }
+    })),
   clearHatched: () => set({ hatchedId: null }),
   hideToast: () => set({ toast: null })
 }))

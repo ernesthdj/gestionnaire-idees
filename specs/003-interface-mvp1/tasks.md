@@ -111,7 +111,7 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 - [x] T054 `SeedService` : enregistrement à l'éclosion, `germer` en arrière-plan après `link:create`, `seed:list`, `seed:accept` (idée brute entre ses parents, transaction + `change_log`), `seed:reject` ; annulation par `HistoryService` `tests/integration/seeds/seeds.test.ts`
 
 **G3 — interface**
-- [ ] T055 Pastille 🌱 sur les liens acceptés (`LinkEdge`) : titre/pourquoi au survol ou au focus, ✓ / ✗, clavier ; idée née placée au milieu du lien dans le réseau, pousse 250 ms ; « née de A × B » dans la plongée `tests/unit/renderer/seeds.test.tsx`
+- [x] T055 Pastille 🌱 sur les liens acceptés (`LinkEdge`) : titre/pourquoi au survol ou au focus, ✓ / ✗, clavier ; idée née placée au milieu du lien dans le réseau, pousse 250 ms ; « née de A × B » dans la plongée `tests/unit/renderer/seeds.test.tsx`
 
 ---
 

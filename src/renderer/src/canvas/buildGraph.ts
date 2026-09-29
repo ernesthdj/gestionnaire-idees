@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { CanvasNeuronView, IdeasCanvasView } from '@shared/ipc/canvas'
-import type { LinkView } from '@shared/ipc/neurons'
+import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import { forceLayout, zonesFor, type LayoutNode, type Point, type Zones } from './forceLayout'
 
 /** Diamètre du cercle principal selon l'état ; rayon occupé (satellites compris) pour la disposition. */
@@ -19,7 +19,12 @@ export type NeuronNodeType = Node<NeuronNodeData, 'neuron'>
 export type ZoneNodeData = { readonly label: string; readonly width: number; readonly height: number }
 export type ZoneNodeType = Node<ZoneNodeData, 'zone'>
 
-export type LinkEdgeData = { readonly link: LinkView; readonly dimmed: boolean }
+export type LinkEdgeData = {
+  readonly link: LinkView
+  readonly dimmed: boolean
+  /** Graine en attente sur ce lien accepté (FR-028). */
+  readonly seed: SeedView | null
+}
 export type LinkEdgeType = Edge<LinkEdgeData, 'link'>
 
 export type BlockNodeType = Node<Record<string, never>, 'block'>
@@ -37,9 +42,17 @@ export function canvasState(neuron: CanvasNeuronView): CanvasState {
   return neuron.state === 'hatched' ? 'hatched' : neuron.state === 'developing' ? 'developing' : 'raw'
 }
 
-/** Texte lu par les lecteurs d'écran pour une idée (état, titre, nature, catégorie, origine IA). */
-export function neuronAriaLabel(neuron: CanvasNeuronView): string {
+/** Parents d'une idée née d'une graine, par identifiant de l'idée née. */
+export function bornFrom(view: IdeasCanvasView): Map<string, SeedView['parents']> {
+  return new Map(
+    view.seeds.flatMap((seed) => (seed.bornRootId === null ? [] : [[seed.bornRootId, seed.parents] as const]))
+  )
+}
+
+/** Texte lu par les lecteurs d'écran pour une idée (état, titre, nature, catégorie, origine IA, parents). */
+export function neuronAriaLabel(neuron: CanvasNeuronView, parents?: SeedView['parents']): string {
   const parts = [`${STATE_LABELS[canvasState(neuron)]} : ${neuron.title}`]
+  if (parents !== undefined) parts.push(`née de ${parents[0].title} × ${parents[1].title}`)
   parts.push(`${NATURE_LABELS[neuron.nature]}${neuron.natureSource === 'ai' ? ' (proposée par l’IA)' : ''}`)
   parts.push(
     neuron.category === null
@@ -51,9 +64,10 @@ export function neuronAriaLabel(neuron: CanvasNeuronView): string {
 }
 
 export function layoutInput(view: IdeasCanvasView): LayoutNode[] {
+  const network = new Set(view.network.map((neuron) => neuron.id))
   return [...view.incubator, ...view.network].map((neuron) => ({
     id: neuron.id,
-    zone: neuron.state === 'hatched' ? 'network' : 'incubator',
+    zone: network.has(neuron.id) ? 'network' : 'incubator',
     radius: LAYOUT_RADIUS[canvasState(neuron)],
     initial: neuron.position
   }))
@@ -67,6 +81,10 @@ export interface CanvasLayout {
 export function computeLayout(view: IdeasCanvasView): CanvasLayout {
   const zones = zonesFor(view.incubator.length, view.network.length)
   const links = view.links.map((link) => ({ source: link.a.id, target: link.b.id }))
+  // Fils invisibles : une idée née d'une graine est attirée entre ses deux parents.
+  for (const [id, parents] of bornFrom(view)) {
+    for (const parent of parents) links.push({ source: id, target: parent.id })
+  }
   return { zones, positions: forceLayout(layoutInput(view), links, zones) }
 }
 
@@ -89,10 +107,16 @@ export function buildGraph(
   view: IdeasCanvasView,
   layout: CanvasLayout,
   /** Idée en train de migrer vers le réseau : sa position change avec une transition. */
-  migratingId: string | null = null
+  migratingId: string | null = null,
+  /** Idée qui vient de naître d'une graine : elle pousse (250 ms). */
+  bornId: string | null = null
 ): { nodes: CanvasNode[]; edges: LinkEdgeType[] } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean => highlighted !== null && !highlighted.has(id)
+  const parentsOf = bornFrom(view)
+  const pendingSeeds = new Map(
+    view.seeds.filter((seed) => seed.status === 'suggested').map((seed) => [seed.linkId, seed] as const)
+  )
   const zoneNode = (id: 'incubator' | 'network', label: string): ZoneNodeType => {
     const rect = layout.zones[id]
     return {
@@ -113,7 +137,8 @@ export function buildGraph(
     position: layout.positions.get(neuron.id) ?? { x: 0, y: 0 },
     data: { neuron, dimmed: isDimmed(neuron.id) },
     ...(neuron.id === migratingId ? { className: 'neuron-migrating' } : {}),
-    ariaLabel: neuronAriaLabel(neuron),
+    ...(neuron.id === bornId ? { className: 'neuron-born' } : {}),
+    ariaLabel: neuronAriaLabel(neuron, parentsOf.get(neuron.id)),
     deletable: false
   }))
   const edges = view.links.map((link): LinkEdgeType => ({
@@ -121,7 +146,11 @@ export function buildGraph(
     type: 'link',
     source: link.a.id,
     target: link.b.id,
-    data: { link, dimmed: isDimmed(link.a.id) && isDimmed(link.b.id) },
+    data: {
+      link,
+      dimmed: isDimmed(link.a.id) && isDimmed(link.b.id),
+      seed: link.status === 'accepted' ? (pendingSeeds.get(link.id) ?? null) : null
+    },
     ariaLabel: `Lien « ${link.label} » entre ${link.a.title} et ${link.b.title}${link.status === 'suggested' ? ', suggéré par l’IA' : ''}`,
     deletable: false,
     selectable: false

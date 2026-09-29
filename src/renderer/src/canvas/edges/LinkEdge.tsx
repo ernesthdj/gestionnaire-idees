@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { call } from '../../lib/ipc'
 import type { LinkEdgeType } from '../buildGraph'
 import { useCanvasHover } from '../hoverStore'
+import { SeedBadge } from './SeedBadge'
 
 /** Centre d'un nœud mesuré (les neurones n'ont pas de poignées : les liens relient les centres). */
 function useCenter(id: string): { x: number; y: number } | null {
@@ -28,7 +29,9 @@ export function LinkEdge({ id, source, target, data }: EdgeProps<LinkEdgeType>):
   const from = useCenter(source)
   const to = useCenter(target)
   if (from === null || to === null || data === undefined) return null
-  const { link, dimmed } = data
+  const { link, dimmed, seed } = data
+  // Une graine occupe le milieu du trait : le libellé passe au-dessus.
+  const labelShift = seed === null ? 0 : -36
   const suggested = link.status === 'suggested'
   const emphasized = hovered || endpointSelected
   const showLabel = suggested || emphasized
@@ -67,7 +70,7 @@ export function LinkEdge({ id, source, target, data }: EdgeProps<LinkEdgeType>):
             onMouseLeave={() => setEdge(null)}
             className="nodrag nopan absolute flex items-center gap-1 rounded-full border border-content-muted/30 bg-surface px-2 py-0.5 text-xs text-content"
             style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + labelShift}px)`,
               pointerEvents: 'all',
               opacity: dimmed ? 0.3 : 1
             }}
@@ -99,6 +102,18 @@ export function LinkEdge({ id, source, target, data }: EdgeProps<LinkEdgeType>):
           </div>
         </EdgeLabelRenderer>
       ) : null}
+      {seed === null ? null : (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan absolute"
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, pointerEvents: 'all' }}
+            onMouseEnter={() => setEdge(id)}
+            onMouseLeave={() => setEdge(null)}
+          >
+            <SeedBadge seed={seed} dimmed={dimmed} />
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   )
 }

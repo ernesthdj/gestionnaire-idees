@@ -37,6 +37,10 @@ describe('jeu de démonstration', () => {
     expect(links.list('suggested')).toHaveLength(10)
     const pairs = links.list().map((link) => [link.a.id, link.b.id].sort().join('|'))
     expect(new Set(pairs).size).toBe(50)
+    // Graines fictives en attente sur des liens acceptés (FR-028).
+    expect(links.seeds()).toEqual(
+      Array.from({ length: 3 }, () => expect.objectContaining({ status: 'suggested', bornRootId: null }))
+    )
   })
 
   it('should_give_developing_roots_a_tree_and_a_gauge_when_seeded', () => {

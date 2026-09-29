@@ -6,7 +6,7 @@ import {
   type CanvasPosition,
   type IdeasCanvasView
 } from '@shared/ipc/canvas'
-import type { LinkView } from '@shared/ipc/neurons'
+import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
@@ -16,7 +16,7 @@ export interface CanvasDeps {
     NeuronRepository,
     'canvasRoots' | 'matchingRootIds' | 'subNeuronPreviews' | 'categories' | 'savePositions'
   >
-  readonly links: { list(): LinkView[] }
+  readonly links: { list(): LinkView[]; seeds(): SeedView[] }
   readonly blocks: Pick<BlockRepository, 'list' | 'insert' | 'update' | 'delete'>
 }
 
@@ -35,6 +35,17 @@ export class CanvasService {
       subCount: previews.get(root.id)?.count ?? 0
     }))
     const visible = new Set(roots.map((root) => root.id))
+    // Un lien vers une idée archivée n'a plus de sens sur la carte.
+    const links = this.deps.links.list().filter((link) => visible.has(link.a.id) && visible.has(link.b.id))
+    const linkIds = new Set(links.map((link) => link.id))
+    const seeds = this.deps.links
+      .seeds()
+      .filter((seed) =>
+        seed.status === 'accepted' ? seed.bornRootId !== null && visible.has(seed.bornRootId) : linkIds.has(seed.linkId)
+      )
+    // Une idée née d'une graine vit dans le réseau, entre ses parents, quel que soit son état (FR-028).
+    const born = new Set(seeds.flatMap((seed) => (seed.bornRootId === null ? [] : [seed.bornRootId])))
+    const inNetwork = (root: CanvasNeuronView): boolean => root.state === 'hatched' || born.has(root.id)
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -42,10 +53,10 @@ export class CanvasService {
         developing: roots.filter((root) => root.state === 'developing').length,
         hatched: roots.filter((root) => root.state === 'hatched').length
       },
-      incubator: withPreview.filter((root) => root.state !== 'hatched'),
-      network: withPreview.filter((root) => root.state === 'hatched'),
-      // Un lien vers une idée archivée n'a plus de sens sur la carte.
-      links: this.deps.links.list().filter((link) => visible.has(link.a.id) && visible.has(link.b.id)),
+      incubator: withPreview.filter((root) => !inNetwork(root)),
+      network: withPreview.filter(inNetwork),
+      links,
+      seeds,
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
       blocks: this.deps.blocks.list()

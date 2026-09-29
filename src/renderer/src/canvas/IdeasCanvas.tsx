@@ -75,6 +75,7 @@ function CanvasInner(): React.JSX.Element {
   const openDive = useUiStore((state) => state.openDive)
   const hatchedId = useUiStore((state) => state.hatchedId)
   const clearHatched = useUiStore((state) => state.clearHatched)
+  const bornId = useUiStore((state) => state.bornId)
   const [migratingId, setMigratingId] = useState<string | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
@@ -116,8 +117,8 @@ function CanvasInner(): React.JSX.Element {
     // Idée qui vient d'éclore : elle apparaît d'abord à son ancienne place dans l'incubateur.
     const hatched = hatchedId === null ? undefined : view.network.find((neuron) => neuron.id === hatchedId)
     if (hatched?.position != null) positions.set(hatched.id, hatched.position)
-    return buildGraph(view, { zones: layout.zones, positions }, migratingId)
-  }, [view, layout, hatchedId, migratingId])
+    return buildGraph(view, { zones: layout.zones, positions }, migratingId, bornId)
+  }, [view, layout, hatchedId, migratingId, bornId])
 
   // …puis glisse vers sa place dans le réseau.
   useEffect(() => {

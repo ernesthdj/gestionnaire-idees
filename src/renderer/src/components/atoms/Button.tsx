@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'danger'
 
@@ -10,6 +10,7 @@ const VARIANTS: Record<Variant, string> = {
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: Variant
+  readonly ref?: Ref<HTMLButtonElement>
 }
 
 /** Bouton de base : hauteur 32 px (Fitts), focus visible via le style global, désactivé pendant un traitement. */

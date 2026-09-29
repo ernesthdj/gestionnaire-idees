@@ -65,7 +65,8 @@ export function canvasView(): IdeasCanvasView {
     ],
     categories: CATEGORIES,
     highlighted: null,
-    blocks: []
+    blocks: [],
+    seeds: []
   }
 }
 
@@ -77,6 +78,7 @@ export function emptyCanvasView(): IdeasCanvasView {
     links: [],
     categories: CATEGORIES,
     highlighted: null,
-    blocks: []
+    blocks: [],
+    seeds: []
   }
 }

@@ -83,20 +83,21 @@ export class SeedService {
   }
 
   /** L'idée née est brute, placée entre ses parents ; l'acceptation est un lot annulable de l'historique. */
-  accept(seedId: string): { readonly seed: SeedView; readonly rootId: string } {
+  accept(seedId: string): { readonly seed: SeedView; readonly rootId: string; readonly batchId: string } {
     const { repository } = this.deps
     const seed = this.pendingOrThrow(seedId)
     const link = repository.link(seed.linkId)
     if (link === undefined || link.status !== 'accepted') {
       throw new AppError('INVALID_STATE', 'Le lien de cette graine n’est plus accepté')
     }
+    const batchId = randomUUID()
     const rootId = repository.transaction(() => {
       const id = this.deps.neurons.insert({
         text: `${seed.title}\n${seed.why}`,
         ...this.midpoint(link.aRootId, link.bRootId)
       })
       repository.updateSeed(seed.id, { status: 'accepted', bornRootId: id })
-      repository.log(randomUUID(), [
+      repository.log(batchId, [
         {
           kind: 'seed',
           entity: 'link_seed',
@@ -110,7 +111,7 @@ export class SeedService {
       return id
     })
     this.deps.neurons.categorizeInBackground(rootId)
-    return { seed: this.viewOrThrow(seed.id), rootId }
+    return { seed: this.viewOrThrow(seed.id), rootId, batchId }
   }
 
   reject(seedId: string): { readonly ok: true } {

@@ -4,6 +4,7 @@ import type { AppDatabase } from '../client'
 import {
   contextAssessments,
   extensions,
+  linkSeeds,
   neuronLinks,
   neurons,
   planDependencies,
@@ -30,12 +31,19 @@ const KIND = {
   dependency: 7,
   summary: 8,
   link: 9,
-  batch: 0xa
+  batch: 0xa,
+  seed: 0xb
 } as const
 
 export function demoId(kind: keyof typeof KIND, n: number): string {
   return `${DEMO_PREFIX}000${KIND[kind].toString(16)}-4000-8000-${String(n).padStart(12, '0')}`
 }
+
+const DEMO_SEEDS = [
+  { title: 'Graine fictive : regrouper les deux achats', why: 'Les deux idées visent le même budget (démo).' },
+  { title: 'Graine fictive : un seul déplacement pour les deux', why: 'Même période, même lieu (démo).' },
+  { title: 'Graine fictive : en faire un petit projet commun', why: 'Idées complémentaires (démo).' }
+] as const
 
 export interface DemoSize {
   readonly raw: number
@@ -276,6 +284,12 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           status: suggested ? 'suggested' : 'accepted',
           fingerprint: linkFingerprint(a, b, label)
         })
+        .run()
+    })
+    // Graines en attente sur les 3 premiers liens acceptés (FR-028) : pour essayer « Faire naître » sans IA.
+    DEMO_SEEDS.slice(0, Math.min(DEMO_SEEDS.length, Math.floor(kept.length * 0.8))).forEach((seed, index) => {
+      tx.insert(linkSeeds)
+        .values({ id: demoId('seed', index + 1), linkId: demoId('link', index + 1), ...seed, status: 'suggested' })
         .run()
     })
   })
