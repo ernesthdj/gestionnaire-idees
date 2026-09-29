@@ -130,9 +130,7 @@ export class LinkService {
   create(input: { readonly aRootId: string; readonly bRootId: string; readonly label: string }): LinkView {
     const { repository } = this.deps
     const label = input.label.trim().slice(0, LABEL_MAX)
-    if (input.aRootId === input.bRootId || label === '') {
-      throw new AppError('VALIDATION', 'Un lien relie deux idées différentes avec un libellé')
-    }
+    if (input.aRootId === input.bRootId) throw new AppError('VALIDATION', 'Un lien relie deux idées différentes')
     if (repository.rootTitle(input.aRootId) === undefined || repository.rootTitle(input.bRootId) === undefined) {
       throw new AppError('NOT_FOUND', 'Idée introuvable')
     }

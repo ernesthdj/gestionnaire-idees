@@ -156,6 +156,37 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     expect(useUiStore.getState().openRootId).toBeNull()
   })
 
+  it('should_draw_an_accepted_idea_as_a_gem_with_its_text_on_the_link_and_its_sheet_on_double_click', async () => {
+    const user = userEvent.setup()
+    const base = developingTree()
+    const idea = {
+      id: 'idea-1',
+      parentId: ROOT_ID,
+      depth: 1,
+      kind: 'idea' as const,
+      title: 'Choisir un écran mat',
+      content: 'Un écran mat évite les reflets pendant la retouche.',
+      amountCents: null,
+      dueDate: null,
+      origin: 'ai' as const,
+      sources: [{ title: 'Guide des écrans mats', url: 'https://example.org/mat' }]
+    }
+    renderOpenIdea(() => ({ ...base, neurons: [...base.neurons, idea] }), { 'fusion:getProposed': () => null })
+    const gem = await screen.findByRole('button', { name: /^Idée suggérée : Choisir un écran mat/ })
+    expect(gem.className).toContain('idea-gem')
+    // Le texte de l'idée est posé sur son lien ; un clic le déplie en entier.
+    const note = screen.getByRole('button', { name: /^Texte de l’idée : Un écran mat/ })
+    await user.click(note)
+    expect(note.getAttribute('aria-expanded')).toBe('true')
+    // Double-clic : sa fiche s'ouvre sur la carte, avec ses sources ; Échap la referme sans fermer l'idée.
+    await user.dblClick(gem)
+    const sheet = await screen.findByRole('dialog', { name: 'Fiche de l’idée : Choisir un écran mat' })
+    expect(within(sheet).getByRole('link', { name: /Guide des écrans mats/ })).toBeDefined()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: /Fiche de l’idée/ })).toBeNull()
+    expect(useUiStore.getState().openRootId).toBe(ROOT_ID)
+  })
+
   it('should_show_the_gauge_level_and_what_is_missing', async () => {
     renderDive()
     const bar = await screen.findByRole('progressbar', { name: 'Niveau de contexte' })
@@ -167,7 +198,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     const user = userEvent.setup()
     const { api } = renderDive()
     const ghost = await screen.findByRole('button', {
-      name: /^Suggestion de l’IA : Comparer les dalles IPS, vérifiée sur le web/
+      name: /^Idée suggérée par l’IA : Comparer les dalles IPS, vérifiée sur le web/
     })
     expect(screen.getByRole('link', { name: /Guide des dalles/ }).getAttribute('href')).toBe('https://example.org/ips')
     ghost.focus()

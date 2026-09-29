@@ -25,7 +25,7 @@ export const neurons = sqliteTable(
     parentId: text('parent_id').references((): AnySQLiteColumn => neurons.id),
     depth: integer('depth').notNull().default(0),
     kind: text('kind', {
-      enum: ['root', 'answer', 'condition', 'branch', 'opportunity', 'investigation', 'user_branch']
+      enum: ['root', 'answer', 'condition', 'branch', 'opportunity', 'investigation', 'user_branch', 'idea']
     }).notNull(),
     title: text('title').notNull(),
     content: text('content'),
@@ -203,7 +203,7 @@ export const neuronLinks = sqliteTable(
     label: text('label').notNull(),
     justification: text('justification'),
     origin: text('origin', { enum: ['ai', 'user'] }).notNull(),
-    status: text('status', { enum: ['suggested', 'accepted', 'rejected'] }).notNull(),
+    status: text('status', { enum: ['suggested', 'accepted', 'rejected', 'superseded'] }).notNull(),
     fingerprint: text('fingerprint').notNull(),
     createdAt: createdAt(),
     decidedAt: text('decided_at')

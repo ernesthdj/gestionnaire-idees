@@ -5,7 +5,9 @@ import type { ActionPlanOut, ReflectionSummaryOut } from '../ai/neurons'
 export type Nature = 'action' | 'reflection'
 export type RootState = 'raw' | 'developing' | 'hatched' | 'archived'
 export type Source = 'ai' | 'user'
-export type NeuronKind = 'root' | 'answer' | 'condition' | 'branch' | 'opportunity' | 'investigation' | 'user_branch'
+/** `idea` : suggestion de l'IA acceptée — une idée à creuser, avec ses conseils et ses sources. */
+export type NeuronKind =
+  'root' | 'answer' | 'condition' | 'branch' | 'opportunity' | 'investigation' | 'user_branch' | 'idea'
 export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
 
 export interface CategoryView {
@@ -40,6 +42,8 @@ export interface NeuronView {
   readonly amountCents: number | null
   readonly dueDate: string | null
   readonly origin: Source
+  /** Sources web vérifiées d'une idée née d'une suggestion (vide sinon). */
+  readonly sources?: readonly WebSourceView[]
 }
 
 export interface ExtensionView {
@@ -116,7 +120,8 @@ export interface ConfirmView {
   readonly root: RootView
 }
 
-export type LinkStatus = 'suggested' | 'accepted' | 'rejected'
+/** `superseded` : lien remplacé par l'idée née de sa graine (A — idée — B), masqué, restauré par l'annulation. */
+export type LinkStatus = 'suggested' | 'accepted' | 'rejected' | 'superseded'
 
 /** Lien libellé entre deux idées (réseau des neurones éclos). */
 export interface LinkView {

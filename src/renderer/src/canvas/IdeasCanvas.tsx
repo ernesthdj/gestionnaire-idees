@@ -32,7 +32,7 @@ import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
 import { NeuronNode } from './nodes/NeuronNode'
-import { LINK_LABEL_MAX, useCreateLink } from './useCreateLink'
+import { useCreateLink } from './useCreateLink'
 
 const NODE_TYPES: NodeTypes = { neuron: NeuronNode, block: BlockNode }
 const EDGE_TYPES: EdgeTypes = { link: LinkEdge }
@@ -89,10 +89,8 @@ function CanvasInner(): React.JSX.Element {
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
   const createLink = useCreateLink()
-  /** Champ posé sur la carte : nouvelle idée (double-clic) ou libellé d'un lien tiré. */
-  const [draft, setDraft] = useState<
-    { kind: 'idea'; at: Point; position: Point } | { kind: 'link'; at: Point; aRootId: string; bRootId: string } | null
-  >(null)
+  /** Champ posé sur la carte à l'endroit d'un double-clic : nouvelle idée. */
+  const [draft, setDraft] = useState<{ at: Point; position: Point } | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
@@ -195,7 +193,7 @@ function CanvasInner(): React.JSX.Element {
     if (!(event.target instanceof Element) || event.target.closest('.react-flow__pane') === null) return
     const position = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
     const rounded = { x: Math.round(position.x), y: Math.round(position.y) }
-    setDraft({ kind: 'idea', at: toSurface(rounded), position: rounded })
+    setDraft({ at: toSurface(rounded), position: rounded })
   }
 
   const createIdea = async (text: string, position: Point): Promise<boolean> => {
@@ -211,15 +209,10 @@ function CanvasInner(): React.JSX.Element {
     }
   }
 
-  // Lien tiré d'une idée vers une autre (FR-031) : on demande son libellé au milieu des deux idées.
+  // Lien tiré d'une idée vers une autre (FR-031) : créé tout de suite, sans libellé ; la graine germe ensuite.
   const onConnect = (connection: Connection): void => {
     const { source, target } = connection
-    if (source === target) return
-    const a = graph.nodes.find((node) => node.id === source)
-    const b = graph.nodes.find((node) => node.id === target)
-    if (a === undefined || b === undefined) return
-    const middle = { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 }
-    setDraft({ kind: 'link', at: toSurface(middle), aRootId: source, bRootId: target })
+    if (source !== target) void createLink({ aRootId: source, bRootId: target, label: '' })
   }
 
   const onKeyDownCapture = (event: React.KeyboardEvent): void => {
@@ -365,7 +358,7 @@ function CanvasInner(): React.JSX.Element {
               </p>
             </div>
           ) : null}
-          {draft?.kind === 'idea' ? (
+          {draft !== null ? (
             <InlinePrompt
               key={`idea-${draft.position.x}-${draft.position.y}`}
               at={draft.at}
@@ -373,21 +366,6 @@ function CanvasInner(): React.JSX.Element {
               placeholder="Ton idée…"
               maxLength={CAPTURE_MAX_CHARS}
               onSubmit={(text) => createIdea(text, draft.position)}
-              onCancel={() => setDraft(null)}
-            />
-          ) : null}
-          {draft?.kind === 'link' ? (
-            <InlinePrompt
-              key={`link-${draft.aRootId}-${draft.bRootId}`}
-              at={draft.at}
-              label="Libellé du lien"
-              placeholder="Libellé du lien (ex. financement)"
-              maxLength={LINK_LABEL_MAX}
-              onSubmit={async (label) => {
-                const done = await createLink({ aRootId: draft.aRootId, bRootId: draft.bRootId, label })
-                if (done) setDraft(null)
-                return done
-              }}
               onCancel={() => setDraft(null)}
             />
           ) : null}

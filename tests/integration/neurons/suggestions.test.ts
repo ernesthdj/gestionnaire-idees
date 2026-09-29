@@ -77,14 +77,20 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     })
   })
 
-  it('should_turn_an_accepted_suggestion_into_an_ai_sub_neuron_and_keep_growing', async () => {
+  it('should_turn_an_accepted_suggestion_into_an_idea_sub_neuron_and_keep_growing', async () => {
     const tree = await developedWith([{ neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Environ 250 €.' }])
     const suggestion = tree.suggestions[0]
     t.h.claude.enqueue(etendreReply(['Quelle connectique ?']))
     const calls = t.h.claude.requests.length
     const result = await t.growth.acceptSuggestion(suggestion?.id ?? '')
     const neuron = result.tree.neurons.find((entry) => entry.title === 'Écran 27 pouces IPS')
-    expect(neuron).toMatchObject({ kind: 'answer', origin: 'ai', parentId: tree.root.id, content: 'Environ 250 €.' })
+    expect(neuron).toMatchObject({
+      kind: 'idea',
+      origin: 'ai',
+      parentId: tree.root.id,
+      content: 'Environ 250 €.',
+      sources: []
+    })
     expect(result.tree.suggestions).toEqual([])
     expect(t.h.claude.requests.length).toBe(calls + 1)
     expect(result.tree.extensions.some((entry) => entry.neuronId === neuron?.id)).toBe(true)

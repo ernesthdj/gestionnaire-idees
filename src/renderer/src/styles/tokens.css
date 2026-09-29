@@ -13,6 +13,8 @@
   --color-content-muted: #52525b;
   --color-accent: #2563eb;
   --color-focus: #2563eb;
+  /* Idées suggérées par l'IA (losanges) : ambre, contraste ≥ 4,5:1 sur la surface. */
+  --color-idea: #b45309;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +25,7 @@
     --color-content-muted: #a1a1aa;
     --color-accent: #60a5fa;
     --color-focus: #93c5fd;
+    --color-idea: #fbbf24;
   }
 }
 
@@ -33,6 +36,7 @@
   --color-content-muted: #a1a1aa;
   --color-accent: #60a5fa;
   --color-focus: #93c5fd;
+  --color-idea: #fbbf24;
 }
 
 @theme inline {
@@ -42,6 +46,7 @@
   --color-content-muted: var(--color-content-muted);
   --color-accent: var(--color-accent);
   --color-focus: var(--color-focus);
+  --color-idea: var(--color-idea);
 }
 
 :focus-visible {

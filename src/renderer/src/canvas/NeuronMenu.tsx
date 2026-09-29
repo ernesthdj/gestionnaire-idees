@@ -42,7 +42,7 @@ export function NeuronMenu({
 
   const link = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault()
-    if (target === '' || label.trim() === '' || busy) return
+    if (target === '' || busy) return
     setBusy(true)
     const done = await onLink(target, label)
     setBusy(false)
@@ -103,7 +103,7 @@ export function NeuronMenu({
             ))}
           </select>
           <label htmlFor={ids.label} className="block">
-            Libellé du lien
+            Libellé du lien (facultatif)
           </label>
           <input
             id={ids.label}
@@ -113,12 +113,7 @@ export function NeuronMenu({
             placeholder="ex. financement"
             className="h-8 w-full rounded-md bg-surface-raised px-2"
           />
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={busy || target === '' || label.trim() === ''}
-          >
+          <Button type="submit" variant="primary" className="w-full" disabled={busy || target === ''}>
             Relier
           </Button>
         </form>

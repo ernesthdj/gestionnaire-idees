@@ -169,6 +169,7 @@ export class NeuronRepository {
       WHERE id = ${id} AND kind = 'root'`)
   }
 
+  /** Sous-neurones de l'idée ; une idée née d'une suggestion garde ses sources web vérifiées. */
   neuronsOf(rootId: string): NeuronView[] {
     return this.db
       .select({
@@ -180,12 +181,18 @@ export class NeuronRepository {
         content: neurons.content,
         amountCents: neurons.amountCents,
         dueDate: neurons.dueDate,
-        origin: neurons.origin
+        origin: neurons.origin,
+        sourcesJson: suggestions.sourcesJson
       })
       .from(neurons)
+      .leftJoin(suggestions, eq(suggestions.acceptedNeuronId, neurons.id))
       .where(and(eq(neurons.rootId, rootId), ne(neurons.kind, 'root')))
       .orderBy(sql`${neurons}.rowid`)
       .all()
+      .map(({ sourcesJson, ...neuron }) => ({
+        ...neuron,
+        sources: sourcesJson === null ? [] : (JSON.parse(sourcesJson) as WebSourceView[])
+      }))
   }
 
   proposedExtensions(rootId: string): Omit<ExtensionView, 'outsideNature'>[] {

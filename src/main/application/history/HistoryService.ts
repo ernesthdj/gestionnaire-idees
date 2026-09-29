@@ -159,7 +159,7 @@ export class HistoryService {
   private linkSummary(entry: ChangeRow): string {
     const current = this.repository.snapshot('neuron_link', entry.entityId)
     const labelOf = (state: Snapshot): string | undefined =>
-      typeof state?.['label'] === 'string' ? state['label'] : undefined
+      typeof state?.['label'] === 'string' && state['label'] !== '' ? state['label'] : undefined
     const label = labelOf(entry.after) ?? labelOf(entry.before) ?? labelOf(current)
     const name = label === undefined ? 'un lien' : `le lien « ${label} »`
     if (entry.before === null) return `Création du lien${label === undefined ? '' : ` « ${label} »`}`

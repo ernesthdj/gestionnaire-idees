@@ -121,7 +121,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     const menu = await screen.findByRole('dialog', { name: 'Acheter un flash cobra' })
     await user.click(within(menu).getByRole('button', { name: 'Relier à une autre idée…' }))
     await user.selectOptions(within(menu).getByLabelText('Relier à'), HATCHED_A_ID)
-    await user.type(within(menu).getByLabelText('Libellé du lien'), 'éclairage')
+    await user.type(within(menu).getByLabelText('Libellé du lien (facultatif)'), 'éclairage')
     await user.click(within(menu).getByRole('button', { name: 'Relier' }))
     await waitFor(() =>
       expect(api.invoke).toHaveBeenCalledWith('links:create', {
@@ -146,7 +146,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     const menu = await screen.findByRole('dialog', { name: 'Acheter un flash cobra' })
     await user.click(within(menu).getByRole('button', { name: 'Relier à une autre idée…' }))
     await user.selectOptions(within(menu).getByLabelText('Relier à'), HATCHED_A_ID)
-    await user.type(within(menu).getByLabelText('Libellé du lien'), 'éclairage')
+    await user.type(within(menu).getByLabelText('Libellé du lien (facultatif)'), 'éclairage')
     await user.click(within(menu).getByRole('button', { name: 'Relier' }))
     await waitFor(() => expect(useUiStore.getState().toast?.text).toMatch(/déjà reliées/))
     expect(screen.getByRole('dialog', { name: 'Acheter un flash cobra' })).toBeDefined()

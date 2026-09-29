@@ -7,7 +7,7 @@ import { call, IpcFailure } from '../lib/ipc'
 export const LINK_LABEL_MAX = 40
 
 /**
- * Relie deux idées (FR-031) et rafraîchit la carte ; l'IA cherche ensuite, en arrière-plan, une graine sur ce lien
+ * Relie deux idées (FR-031, libellé facultatif) et rafraîchit la carte ; l'IA cherche ensuite, en arrière-plan, une graine sur ce lien
  * (FR-028). Renvoie `true` si le lien a été créé ; sinon la raison est annoncée par une notification.
  */
 export function useCreateLink(): (input: { aRootId: string; bRootId: string; label: string }) => Promise<boolean> {
@@ -25,7 +25,7 @@ export function useCreateLink(): (input: { aRootId: string; bRootId: string; lab
       } catch (error) {
         showToast(
           error instanceof IpcFailure && error.code === 'DUPLICATE'
-            ? 'Ces deux idées sont déjà reliées par ce lien.'
+            ? 'Ces deux idées sont déjà reliées.'
             : error instanceof IpcFailure
               ? error.message
               : 'Le lien n’a pas pu être créé.'

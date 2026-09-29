@@ -155,7 +155,8 @@ export class GrowthService {
         rootId: suggestion.rootId,
         parentId: parent.id,
         depth: parent.depth + 1,
-        kind: 'answer',
+        // Une suggestion acceptée reste une « idée » (forme propre sur la carte, fiche au double-clic).
+        kind: 'idea',
         title: suggestion.title.slice(0, TITLE_MAX),
         content: suggestion.content,
         origin: 'ai',

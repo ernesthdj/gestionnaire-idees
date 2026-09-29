@@ -8,8 +8,8 @@ import type { AIGateway } from '../ai/AIGateway'
 import type { ExampleStore } from '../ai/ExampleStore'
 import type { NeuronService } from './NeuronService'
 
-/** Libellé des liens qui relient une idée née à ses deux parents. */
-export const LINEAGE_LABEL = 'née de'
+/** Liens qui relient une idée née à ses deux parents : sans libellé (la filiation se lit sur la carte). */
+export const LINEAGE_LABEL = ''
 
 export type SeedEvent = { readonly type: 'seeds:suggested'; readonly linkId: string }
 
@@ -69,7 +69,7 @@ export class SeedService {
       input: [
         `Idée A : ${snippet(a.text, CANDIDATE_CHARS)}`,
         `Idée B : ${snippet(b.text, CANDIDATE_CHARS)}`,
-        `Lien : « ${link.label} »`,
+        link.label === '' ? 'Lien tracé par l’utilisateur (sans libellé)' : `Lien : « ${link.label} »`,
         'Consigne : propose une graine seulement si une idée nouvelle naît vraiment de ces deux idées.'
       ].join('\n\n')
     })
@@ -120,7 +120,16 @@ export class SeedService {
           after: { a, b, label: LINEAGE_LABEL, status: 'accepted', origin: 'ai' }
         }
       })
+      // L'idée née prend la place du lien A–B : A — idée — B, sans lien en double.
+      repository.update(link.id, { status: 'superseded' })
       repository.log(batchId, [
+        {
+          kind: 'seed',
+          entity: 'neuron_link',
+          entityId: link.id,
+          before: { status: 'accepted' },
+          after: { status: 'superseded' }
+        },
         {
           kind: 'seed',
           entity: 'link_seed',

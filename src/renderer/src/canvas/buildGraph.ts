@@ -169,7 +169,7 @@ export function buildGraph(
       dimmed: isDimmed(link.a.id) && isDimmed(link.b.id),
       seed: link.status === 'accepted' ? (pendingSeeds.get(link.id) ?? null) : null
     },
-    ariaLabel: `Lien « ${link.label} » entre ${link.a.title} et ${link.b.title}${link.status === 'suggested' ? ', suggéré par l’IA' : ''}`,
+    ariaLabel: `Lien${link.label === '' ? '' : ` « ${link.label} »`} entre ${link.a.title} et ${link.b.title}${link.status === 'suggested' ? ', suggéré par l’IA' : ''}`,
     deletable: false,
     selectable: false
   }))

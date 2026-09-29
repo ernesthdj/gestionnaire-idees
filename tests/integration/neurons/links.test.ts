@@ -111,6 +111,15 @@ describe('liens entre idées écloses (US4)', () => {
     expect(t.links.list('accepted')).toHaveLength(1)
   })
 
+  it('should_link_two_ideas_without_a_label_and_refuse_the_same_link_twice', async () => {
+    const a = await t.neurons.create({ text: 'Vélo électrique' })
+    const b = await t.neurons.create({ text: 'Déménagement' })
+    expect(t.links.create({ aRootId: a.id, bRootId: b.id, label: '' })).toMatchObject({ label: '', status: 'accepted' })
+    expect(() => t.links.create({ aRootId: b.id, bRootId: a.id, label: '  ' })).toThrow(
+      expect.objectContaining({ code: 'DUPLICATE' })
+    )
+  })
+
   it('should_create_rename_and_delete_a_user_link_and_refuse_duplicates', async () => {
     const a = await t.neurons.create({ text: 'Vélo électrique' })
     const b = await t.neurons.create({ text: 'Déménagement' })

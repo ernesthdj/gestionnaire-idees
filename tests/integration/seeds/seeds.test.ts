@@ -75,8 +75,10 @@ describe('graines d’idées sur les liens (FR-028)', () => {
     const born = t.neurons.getTree(rootId).root
     expect(born).toMatchObject({ title: seed.title, state: 'raw', position: { x: 200, y: 100 } })
     expect(t.examples.count('germer')).toBe(1)
-    // Reliée à ses deux parents par des liens acceptés « née de ».
-    const lineage = t.links.list('accepted').filter((l) => l.label === 'née de')
+    // L'idée née remplace le lien A–B : A — idée — B (liens sans libellé), le lien d'origine est masqué.
+    const lineage = t.links.list('accepted').filter((l) => l.a.id === rootId || l.b.id === rootId)
+    expect(lineage.every((l) => l.label === '')).toBe(true)
+    expect(t.links.list().some((l) => l.id === link.id)).toBe(false)
     expect(lineage.map((l) => [l.a.id, l.b.id].sort().join('|')).sort()).toEqual(
       [[rootId, wedding.id].sort().join('|'), [rootId, screen.id].sort().join('|')].sort()
     )
@@ -95,13 +97,16 @@ describe('graines d’idées sur les liens (FR-028)', () => {
 
     const { undoBatchId } = history.undo(batchId)
     expect(t.neurons.getTree(rootId).root.state).toBe('archived')
-    expect(t.links.list().filter((l) => l.label === 'née de')).toEqual([])
+    expect(t.links.list().filter((l) => l.a.id === rootId || l.b.id === rootId)).toEqual([])
+    // Le lien d'origine revient, avec sa graine en attente.
+    expect(t.links.list('accepted').some((l) => l.id === link.id)).toBe(true)
     expect(t.seeds.list()).toEqual([expect.objectContaining({ status: 'suggested', bornRootId: null })])
     expect(history.list().items[0]?.summary).toMatch(/^Graine annulée/)
 
     history.undo(undoBatchId)
     expect(t.neurons.getTree(rootId).root.state).toBe('raw')
-    expect(t.links.list('accepted').filter((l) => l.label === 'née de')).toHaveLength(2)
+    expect(t.links.list('accepted').filter((l) => l.a.id === rootId || l.b.id === rootId)).toHaveLength(2)
+    expect(t.links.list().some((l) => l.id === link.id)).toBe(false)
     expect(t.seeds.list()).toEqual([expect.objectContaining({ status: 'accepted', bornRootId: rootId })])
   })
 

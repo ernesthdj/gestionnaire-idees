@@ -4,6 +4,8 @@ import { defineRoute, type IpcRoute } from './registry'
 
 const Id = z.uuid()
 const Label = z.string().trim().min(1).max(40)
+/** Libellé facultatif à la création : relier deux idées suffit (retour de test de mentalyas). */
+const OptionalLabel = z.string().trim().max(40).default('')
 
 /** Canaux `links:*` : liens entre idées (spec 002 US4, contracts/ipc-neurons.md). */
 export function createLinkRoutes(links: LinkService): IpcRoute[] {
@@ -20,7 +22,7 @@ export function createLinkRoutes(links: LinkService): IpcRoute[] {
     }),
     defineRoute({
       channel: 'links:create',
-      input: z.object({ aRootId: Id, bRootId: Id, label: Label }).strict(),
+      input: z.object({ aRootId: Id, bRootId: Id, label: OptionalLabel }).strict(),
       handler: async ({ aRootId, bRootId, label }) => links.create({ aRootId, bRootId, label })
     }),
     defineRoute({

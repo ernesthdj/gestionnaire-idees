@@ -13,7 +13,8 @@ const KIND_LABELS: Readonly<Record<NeuronKind, string>> = {
   branch: 'branche',
   opportunity: 'opportunité',
   investigation: 'à trouver',
-  user_branch: 'piste ajoutée'
+  user_branch: 'piste ajoutée',
+  idea: 'idée suggérée'
 }
 
 function line(node: GrowthNode, alias: string): string {

@@ -1,4 +1,4 @@
-import type { ExtensionView, NeuronKind, Source, SuggestionView, TreeView } from '@shared/ipc/neurons'
+import type { ExtensionView, NeuronKind, Source, SuggestionView, TreeView, WebSourceView } from '@shared/ipc/neurons'
 
 /**
  * Arbre d'une idée ouverte, dessiné sur la carte autour d'elle (FR-013 révisée) : disposition radiale — chaque
@@ -19,6 +19,9 @@ export type TreeItem =
       readonly kind: NeuronKind
       readonly origin: Source
       readonly descendants: number
+      /** Texte complet (conseils d'une idée suggérée) et sources web vérifiées. */
+      readonly content: string | null
+      readonly sources: readonly WebSourceView[]
     }
   | { readonly type: 'pending'; readonly id: string; readonly title: string }
   | { readonly type: 'ghost'; readonly id: string; readonly suggestion: SuggestionView }
@@ -85,7 +88,9 @@ export function ideaTreeLayout(
           title: neuron.title,
           kind: neuron.kind,
           origin: neuron.origin,
-          descendants: count(neuron.id)
+          descendants: count(neuron.id),
+          content: neuron.content,
+          sources: neuron.sources ?? []
         })
       ),
       ...extrasOf(id)

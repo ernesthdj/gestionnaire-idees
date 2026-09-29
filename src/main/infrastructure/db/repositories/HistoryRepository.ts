@@ -309,7 +309,7 @@ export class HistoryRepository {
           label,
           fingerprint: linkFingerprint(current.aRootId, current.bRootId, label),
           ...(typeof target['status'] === 'string'
-            ? { status: target['status'] as 'suggested' | 'accepted' | 'rejected' }
+            ? { status: target['status'] as 'suggested' | 'accepted' | 'rejected' | 'superseded' }
             : {})
         })
         .where(eq(neuronLinks.id, id))

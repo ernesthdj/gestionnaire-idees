@@ -34,7 +34,8 @@ export function LinkEdge({ id, source, target, data }: EdgeProps<LinkEdgeType>):
   const labelShift = seed === null ? 0 : -36
   const suggested = link.status === 'suggested'
   const emphasized = hovered || endpointSelected
-  const showLabel = suggested || emphasized
+  // Un lien tracé sans libellé reste un simple trait (pas de pastille vide).
+  const showLabel = suggested || (emphasized && link.label !== '')
   const [path, labelX, labelY] = getStraightPath({ sourceX: from.x, sourceY: from.y, targetX: to.x, targetY: to.y })
 
   const decide = async (accept: boolean): Promise<void> => {
