@@ -21,7 +21,7 @@ function renderApp(settings: Partial<AppSettingsView> = {}) {
 describe('AppShell', () => {
   beforeAll(() => installReactFlowMocks())
   beforeEach(() => {
-    useUiStore.setState({ view: 'ideas', diveRootId: null })
+    useUiStore.setState({ view: 'ideas', openRootId: null })
   })
 
   it('should_show_the_three_sections_and_settings_with_ideas_selected_when_opened', () => {

@@ -46,9 +46,9 @@ L'écran Idées montre **toutes les idées dans un seul espace**, reliées ou no
 
 ---
 
-### User Story 3 - Plonger dans un neurone et le faire pousser (Priority: P1)
+### User Story 3 - Ouvrir un neurone sur la carte et le faire pousser (Priority: P1) — *révisée 2026-09-29*
 
-Un double-clic (ou `Entrée`) sur un neurone ouvre la **plongée** : zoom sur le neurone, fil d'Ariane (Idées › 2e écran › Budget ?), badge de profondeur, parent estompé (clic = remonter). Un panneau latéral affiche la question de l'IA sélectionnée, ses réponses rapides, un champ libre et « Je ne sais pas » ; autour du neurone, les extensions proposées apparaissent comme des emplacements « + ». Répondre fait pousser un sous-neurone ; l'utilisateur peut ajouter sa propre branche, écarter une extension, demander « plus de questions », modifier ou supprimer un sous-neurone. La jauge de contexte (barre + manques) est visible en permanence.
+Un **clic** (ou `Entrée`) sur un neurone l'ouvre **sur la carte principale**, sans changer d'écran (décision de mentalyas, 2026-09-29 : la même synergie que le graphe d'Obsidian) : son arbre se déploie autour de lui (sous-neurones reliés à leur parent, suggestions de l'IA en pointillés, questions « + » autour du neurone ciblé), les autres idées s'estompent, la vue se centre, et un **volet latéral** (38 %) affiche le fil d'Ariane, la jauge, la question sélectionnée (réponses rapides, texte libre, « Je ne sais pas »), « Plus de questions », « Ajouter ma branche ». Un clic sur un sous-neurone le cible ; `Échap` remonte puis referme le volet ; un clic dans le vide le referme. Le **double-clic est réservé** à une future vue « deep », plus riche, dans le contexte d'une seule idée. Répondre fait apparaître le sous-neurone tout de suite sur la carte.
 
 **Why this priority**: c'est l'interaction centrale.
 
@@ -159,7 +159,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 - **FR-031** *(ajout 2026-09-29)*: L'utilisateur MUST pouvoir relier deux idées en tirant le point d'accroche d'une idée (visible au survol ou à la sélection) jusqu'à une autre, puis en donnant un libellé ; au clavier, le menu de l'idée propose « Relier à une autre idée… » (choix de l'idée + libellé). Un lien identique existant est signalé. Le lien créé déclenche la recherche d'une graine (FR-028).
 
 **Plongée & croissance**
-- **FR-013**: Double-clic ou `Entrée` sur un neurone MUST ouvrir la plongée : neurone centré, sous-neurones autour, fil d'Ariane, badge de profondeur, parent estompé cliquable, panneau latéral.
+- **FR-013** *(révisée 2026-09-29)*: Un clic ou `Entrée` sur un neurone MUST l'ouvrir sur la carte principale : son arbre déployé autour de lui (disposition radiale, un anneau par niveau), les autres idées estompées mais cliquables, la vue centrée, et un volet latéral (38 %) avec fil d'Ariane, badge de profondeur, nature et catégorie, « née de A × B » le cas échéant. Un clic sur un sous-neurone le cible ; `Échap` remonte d'un niveau puis referme ; un clic dans le vide ou « × » referme. Le double-clic sur un neurone MUST rester sans effet (réservé à la future vue « deep »).
 - **FR-014**: Le panneau MUST afficher la question sélectionnée, ses réponses rapides, un champ libre, « Je ne sais pas », les autres extensions, « Plus de questions », « Ajouter ma branche », et la jauge (niveau + manques).
 - **FR-015**: Répondre MUST faire apparaître le sous-neurone immédiatement, puis afficher un indicateur tant que l'IA prépare les extensions suivantes.
 - **FR-016**: Les utilisateurs MUST pouvoir écarter une extension, modifier et supprimer un sous-neurone (confirmation si descendants), changer la nature et la catégorie du neurone.

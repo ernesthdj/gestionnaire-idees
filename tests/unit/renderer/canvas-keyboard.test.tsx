@@ -44,7 +44,7 @@ const idea = (name: RegExp): HTMLElement => screen.getByRole('group', { name })
 
 describe('écran Idées', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', diveRootId: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null }))
 
   it('should_show_counts_and_every_idea_with_a_spoken_description', async () => {
     renderCanvas()
@@ -62,7 +62,7 @@ describe('écran Idées', () => {
     const node = await waitFor(() => idea(/Deuxième écran/))
     node.focus()
     await user.keyboard('{Enter}')
-    expect(useUiStore.getState().diveRootId).toBe(DEVELOPING_ID)
+    expect(useUiStore.getState().openRootId).toBe(DEVELOPING_ID)
   })
 
   it('should_reach_ideas_with_tab_from_the_toolbar', async () => {

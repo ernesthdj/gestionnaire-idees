@@ -135,10 +135,13 @@ export function buildGraph(
   view: IdeasCanvasView,
   layout: CanvasLayout,
   /** Idée qui vient de naître (graine ou double-clic) : elle pousse (250 ms). */
-  bornId: string | null = null
+  bornId: string | null = null,
+  /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
+  openRootId: string | null = null
 ): { nodes: CanvasNode[]; edges: LinkEdgeType[] } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
-  const isDimmed = (id: string): boolean => highlighted !== null && !highlighted.has(id)
+  const isDimmed = (id: string): boolean =>
+    (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
   const parentsOf = bornFrom(view)
   const pendingSeeds = new Map(
     view.seeds.filter((seed) => seed.status === 'suggested').map((seed) => [seed.linkId, seed] as const)
@@ -148,7 +151,11 @@ export function buildGraph(
     type: 'neuron',
     position: layout.positions.get(neuron.id) ?? { x: 0, y: 0 },
     data: { neuron, dimmed: isDimmed(neuron.id) },
-    ...(neuron.id === bornId ? { className: 'neuron-born' } : {}),
+    ...(neuron.id === bornId
+      ? { className: 'neuron-born' }
+      : neuron.id === openRootId
+        ? { className: 'neuron-open' }
+        : {}),
     ariaLabel: neuronAriaLabel(neuron, parentsOf.get(neuron.id)),
     deletable: false
   }))

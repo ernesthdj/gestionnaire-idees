@@ -32,7 +32,7 @@ function renderWith(ui: React.ReactNode, handlers: Parameters<typeof installFake
 }
 
 describe('historique', () => {
-  beforeEach(() => useUiStore.setState({ view: 'history', diveRootId: null, toast: null }))
+  beforeEach(() => useUiStore.setState({ view: 'history', openRootId: null, toast: null }))
 
   it('should_list_changes_and_undo_one_of_them', async () => {
     const user = userEvent.setup()
@@ -80,7 +80,7 @@ describe('historique', () => {
     expect(api.invoke).toHaveBeenCalledWith('history:list', { limit: 30, cursor: '42' })
     expect(await screen.findByText('Éclosion de « Idée 1 »')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Ouvrir l’idée : Éclosion de « Idée 3 »' }))
-    expect(useUiStore.getState()).toMatchObject({ view: 'ideas', diveRootId: ROOT })
+    expect(useUiStore.getState()).toMatchObject({ view: 'ideas', openRootId: ROOT })
   })
 
   it('should_explain_that_nothing_happened_yet_when_the_history_is_empty', async () => {
@@ -107,7 +107,7 @@ describe('notification d’éclosion', () => {
   it('should_undo_the_hatching_from_the_notification', async () => {
     const user = userEvent.setup()
     const api = renderWith(<Toast />, { 'history:undo': () => ({ undoBatchId: 'x' }) })
-    act(() => useUiStore.getState().hatch(ROOT, '« Idée » a éclos.', entry(7).batchId))
+    act(() => useUiStore.getState().hatch('« Idée » a éclos.', entry(7).batchId))
     const toast = await screen.findByRole('status')
     await user.click(within(toast).getByRole('button', { name: 'Annuler' }))
     expect(api.invoke).toHaveBeenCalledWith('history:undo', { batchId: entry(7).batchId })

@@ -1,26 +1,17 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { DiveView } from '../../../src/renderer/src/dive/DiveView'
-import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
-import type { MainWindowChannel } from '../../../src/shared/ipc/channels'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import type { TreeView } from '../../../src/shared/ipc/neurons'
 import { expectNoAxeViolations } from '../../support/axe'
-import { emptyCanvasView } from '../../fixtures/ui/canvas'
 import { CHILD_ID, developingTree, rawTree, ROOT_ID } from '../../fixtures/ui/dive'
-import { FakeIpcError, installFakeApi } from './support/fakeApi'
+import { FakeIpcError } from './support/fakeApi'
+import { renderOpenIdea, type Handlers } from './support/openIdea'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
-type Handlers = Partial<Record<MainWindowChannel, (payload: unknown) => unknown>>
-
 function renderDive(tree: TreeView = developingTree(), handlers: Handlers = {}) {
-  const onClose = vi.fn()
   const growth = (): unknown => ({ tree })
-  const api = installFakeApi({
-    'neuron:getTree': () => tree,
-    'app:getSettings': () => DEFAULT_APP_SETTINGS,
-    'canvas:get': () => emptyCanvasView(),
+  const api = renderOpenIdea(() => tree, {
     'growth:develop': growth,
     'growth:answer': growth,
     'growth:more': growth,
@@ -30,22 +21,17 @@ function renderDive(tree: TreeView = developingTree(), handlers: Handlers = {}) 
     'growth:acceptSuggestion': growth,
     'growth:dismissSuggestion': growth,
     'neuron:delete': growth,
+    'fusion:getProposed': () => null,
     ...handlers
   })
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const result = render(
-    <QueryClientProvider client={client}>
-      <DiveView rootId={ROOT_ID} onClose={onClose} />
-    </QueryClientProvider>
-  )
-  return { api, onClose, ...result }
+  return { api }
 }
 
 const panel = (): HTMLElement => screen.getByRole('complementary', { name: 'Questions de l’IA' })
 const loaded = (): Promise<HTMLElement> => screen.findByRole('complementary', { name: 'Questions de l’IA' })
 
-describe('plongée', () => {
-  // ResizeObserver (mise à l'échelle de la scène) n'existe pas dans jsdom.
+describe('idée ouverte sur la carte (volet + arbre)', () => {
+  // ResizeObserver n'existe pas dans jsdom.
   beforeAll(() => installReactFlowMocks())
 
   it('should_start_developing_a_raw_idea_as_soon_as_it_is_opened', async () => {
@@ -94,20 +80,18 @@ describe('plongée', () => {
     expect(api.invoke).toHaveBeenCalledWith('growth:addBranch', { parentId: ROOT_ID, title: 'Vérifier le bureau' })
   })
 
-  it('should_go_down_into_a_sub_neuron_and_back_up_with_the_parent_breadcrumb_or_escape', async () => {
+  it('should_focus_a_sub_neuron_on_the_map_and_come_back_with_the_breadcrumb_then_close_with_escape', async () => {
     const user = userEvent.setup()
-    const { onClose } = renderDive()
-    await user.click(
-      await screen.findByRole('button', { name: /^réponse : budget : 200 €, 1 sous-neurones — plonger$/ })
-    )
+    renderDive()
+    await user.click(await screen.findByRole('button', { name: /^réponse : budget : 200 €, 1 sous-neurones$/ }))
     const crumbs = screen.getByRole('navigation', { name: 'Fil d’Ariane' })
     expect(within(crumbs).getByText('budget : 200 €').getAttribute('aria-current')).toBe('page')
     expect(screen.getByText('Profondeur 1/6')).toBeDefined()
     expect(within(panel()).getByRole('heading', { name: 'Neuf ou occasion ?' })).toBeDefined()
-    await user.click(screen.getByRole('button', { name: 'Remonter vers Deuxième écran' }))
+    await user.click(within(crumbs).getByRole('button', { name: 'Deuxième écran' }))
     expect(within(crumbs).queryByText('budget : 200 €')).toBeNull()
     await user.keyboard('{Escape}')
-    expect(onClose).toHaveBeenCalledOnce()
+    expect(useUiStore.getState().openRootId).toBeNull()
   })
 
   it('should_show_the_gauge_level_and_what_is_missing', async () => {
@@ -119,7 +103,7 @@ describe('plongée', () => {
 
   it('should_accept_a_ghost_with_enter_ignore_it_with_escape_and_list_its_web_sources', async () => {
     const user = userEvent.setup()
-    const { api, onClose } = renderDive()
+    const { api } = renderDive()
     const ghost = await screen.findByRole('button', {
       name: /^Suggestion de l’IA : Comparer les dalles IPS, vérifiée sur le web/
     })
@@ -130,7 +114,7 @@ describe('plongée', () => {
     ghost.focus()
     await user.keyboard('{Escape}')
     expect(api.invoke).toHaveBeenCalledWith('growth:dismissSuggestion', { suggestionId: 'sug-1' })
-    expect(onClose).not.toHaveBeenCalled()
+    expect(useUiStore.getState().openRootId).toBe(ROOT_ID)
   })
 
   it('should_ask_for_confirmation_before_deleting_a_sub_neuron_with_descendants', async () => {
@@ -157,9 +141,9 @@ describe('plongée', () => {
   })
 
   it('should_have_no_accessibility_violation', async () => {
-    const { container } = renderDive()
+    renderDive()
     await loaded()
     await within(panel()).findByRole('heading', { name: 'Pour quand ?' })
-    await expectNoAxeViolations(container)
+    await expectNoAxeViolations(document.body)
   })
 })

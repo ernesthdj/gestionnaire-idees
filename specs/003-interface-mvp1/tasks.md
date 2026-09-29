@@ -120,6 +120,9 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 - [x] T059 Double-clic → idée à cet endroit (`neuron:create` avec position) ; « + Une idée ? » retiré ; état vide expliqué
 - [x] T060 Lien tiré (point d'accroche) + libellé ; « Relier à une autre idée… » dans le menu (clavier) ; démo réduite à 12 idées / 8 liens / 2 graines `tests/unit/renderer/canvas-create.test.tsx`
 
+**Idée ouverte sur la carte (FR-013 révisée, 2026-09-29)**
+- [x] T061 Clic → volet latéral (`IdeaPanel`, 62/38) et arbre de l'idée sur la carte (`IdeaTree`, `ideaTreeLayout`, `ViewportPortal`) ; autres idées estompées ; recentrage ; Échap / clic dans le vide / × referment ; éclosion sur place avec résorption des sous-neurones ; double-clic sans effet ; `DiveView` / `DiveStage` retirés `tests/unit/ui/idea-tree.test.ts`, `tests/unit/renderer/{dive,preview,hatched,canvas-create}.test.tsx`
+
 ---
 
 ## Phase 7: User Story 5 — Neurones éclos : suivi, lecture, réouverture, export (Priority: P2)

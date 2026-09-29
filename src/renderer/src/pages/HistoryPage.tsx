@@ -15,7 +15,7 @@ function formatDate(iso: string): string {
 
 function Row({ entry }: { readonly entry: HistoryEntryView }): React.JSX.Element {
   const undo = useUndo()
-  const openDive = useUiStore((state) => state.openDive)
+  const openIdea = useUiStore((state) => state.openIdea)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const label = entry.kind === 'undo' ? 'Rétablir' : 'Annuler'
@@ -36,7 +36,7 @@ function Row({ entry }: { readonly entry: HistoryEntryView }): React.JSX.Element
       </div>
       <div className="flex shrink-0 gap-2">
         {entry.rootId === null ? null : (
-          <Button onClick={() => openDive(entry.rootId as string)} aria-label={`Ouvrir l’idée : ${entry.summary}`}>
+          <Button onClick={() => openIdea(entry.rootId as string)} aria-label={`Ouvrir l’idée : ${entry.summary}`}>
             Ouvrir
           </Button>
         )}

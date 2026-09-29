@@ -1,27 +1,20 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
-import { DiveView } from '../../../src/renderer/src/dive/DiveView'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
-import type { MainWindowChannel } from '../../../src/shared/ipc/channels'
 import type { SynthesisView } from '../../../src/shared/ipc/neurons'
 import { expectNoAxeViolations } from '../../support/axe'
-import { emptyCanvasView } from '../../fixtures/ui/canvas'
 import { developingTree, ROOT, ROOT_ID } from '../../fixtures/ui/dive'
 import { PLAN_ID, planPreview, SUMMARY_ID, summaryPreview } from '../../fixtures/ui/fusion'
-import { FakeIpcError, installFakeApi } from './support/fakeApi'
+import { FakeIpcError } from './support/fakeApi'
+import { renderOpenIdea, type Handlers } from './support/openIdea'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
-type Handlers = Partial<Record<MainWindowChannel, (payload: unknown) => unknown>>
-
 function renderWithPreview(proposed: SynthesisView | null, handlers: Handlers = {}) {
-  const api = installFakeApi({
-    'neuron:getTree': () => developingTree(),
+  return renderOpenIdea(developingTree, {
     // Animations réduites : la fusion se joue en fondus courts (tests rapides).
     'app:getSettings': () => ({ ...DEFAULT_APP_SETTINGS, motion: 'reduced' }),
-    'canvas:get': () => emptyCanvasView(),
     'fusion:getProposed': () => proposed,
     'fusion:editProposed': () => proposed,
     'fusion:revise': () => proposed,
@@ -29,20 +22,13 @@ function renderWithPreview(proposed: SynthesisView | null, handlers: Handlers = 
     'fusion:confirm': () => ({ batchId: 'b1', root: { ...ROOT, state: 'hatched' } }),
     ...handlers
   })
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
-    <QueryClientProvider client={client}>
-      <DiveView rootId={ROOT_ID} onClose={() => undefined} />
-    </QueryClientProvider>
-  )
-  return api
 }
 
 const preview = (name: RegExp | string): Promise<HTMLElement> => screen.findByRole('region', { name })
 
 describe('aperçu de synthèse et fusion', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', diveRootId: ROOT_ID, toast: null }))
+  beforeEach(() => useUiStore.setState({ toast: null }))
 
   it('should_show_the_plan_with_its_branches_dependencies_amounts_and_gaps', async () => {
     renderWithPreview(planPreview())
@@ -134,15 +120,16 @@ describe('aperçu de synthèse et fusion', () => {
     expect((await preview('Aperçu du plan d’action')).textContent).toMatch(/résultat risque de ne pas être optimal/)
   })
 
-  it('should_confirm_play_the_fusion_and_come_back_to_the_map_with_a_notification', async () => {
+  it('should_confirm_play_the_fusion_on_the_map_and_keep_the_idea_open_with_a_notification', async () => {
     const user = userEvent.setup()
     const api = renderWithPreview(planPreview())
     const region = await preview('Aperçu du plan d’action')
     await user.click(within(region).getByRole('button', { name: 'Confirmer' }))
     expect(api.invoke).toHaveBeenCalledWith('fusion:confirm', { synthesisId: PLAN_ID })
     expect(await screen.findByText('L’idée éclôt…')).toBeDefined()
-    await waitFor(() => expect(useUiStore.getState().diveRootId).toBeNull())
-    expect(useUiStore.getState().toast?.text).toBe('« Deuxième écran » a éclos.')
+    await waitFor(() => expect(useUiStore.getState().toast?.text).toBe('« Deuxième écran » a éclos.'))
+    expect(useUiStore.getState().toast?.undoBatchId).toBe('b1')
+    expect(useUiStore.getState().openRootId).toBe(ROOT_ID)
   })
 
   it('should_have_no_accessibility_violation_in_the_preview', async () => {

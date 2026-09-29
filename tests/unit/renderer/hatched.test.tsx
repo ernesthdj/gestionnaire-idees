@@ -1,14 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { DiveView } from '../../../src/renderer/src/dive/DiveView'
-import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { HatchedResultView } from '../../../src/shared/ipc/neurons'
 import { expectNoAxeViolations } from '../../support/axe'
-import { emptyCanvasView } from '../../fixtures/ui/canvas'
 import { CHILD_ID, developingTree, ROOT, ROOT_ID } from '../../fixtures/ui/dive'
-import { installFakeApi } from './support/fakeApi'
+import { renderOpenIdea } from './support/openIdea'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
 const PLAN: HatchedResultView = {
@@ -114,21 +110,11 @@ function renderHatched(result: HatchedResultView) {
     extensions: [],
     suggestions: []
   }
-  const api = installFakeApi({
-    'neuron:getTree': () => hatchedTree,
-    'app:getSettings': () => DEFAULT_APP_SETTINGS,
-    'canvas:get': () => emptyCanvasView(),
+  return renderOpenIdea(() => hatchedTree, {
     'fusion:getProposed': () => null,
     'hatched:get': () => result,
     'fusion:reopen': () => hatchedTree
   })
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
-    <QueryClientProvider client={client}>
-      <DiveView rootId={ROOT_ID} onClose={() => undefined} />
-    </QueryClientProvider>
-  )
-  return api
 }
 
 describe('idée éclose', () => {

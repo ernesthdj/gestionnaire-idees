@@ -185,3 +185,8 @@
 .neuron-connector.react-flow__handle.connectingfrom {
   opacity: 1;
 }
+
+/* Idée ouverte dans le volet : anneau de sélection, au-dessus de son arbre. */
+.react-flow__node.neuron-open .neuron-body {
+  box-shadow: 0 0 0 4px var(--color-focus);
+}

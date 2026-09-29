@@ -11,7 +11,7 @@ interface NeuronMenuProps {
   readonly categories: readonly CategoryView[]
   /** Position à l'écran (clic droit) ; le menu reste dans la fenêtre. */
   readonly at: { readonly x: number; readonly y: number }
-  readonly onDive: () => void
+  readonly onOpen: () => void
   readonly onClose: () => void
   /** Autres idées de la carte, cibles possibles d'un lien (FR-031, alternative clavier au lien tiré). */
   readonly others: readonly { readonly id: string; readonly title: string }[]
@@ -19,14 +19,14 @@ interface NeuronMenuProps {
 }
 
 /**
- * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : plonger, relier à une autre idée, et corriger en un
+ * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : ouvrir, relier à une autre idée, et corriger en un
  * geste la nature ou la catégorie proposées par l'IA (FR-008). Le choix de l'utilisateur ne sera plus jamais écrasé par l'IA.
  */
 export function NeuronMenu({
   neuron,
   categories,
   at,
-  onDive,
+  onOpen,
   onClose,
   others,
   onLink
@@ -80,8 +80,8 @@ export function NeuronMenu({
       <p id={ids.title} className="truncate font-semibold">
         {neuron.title}
       </p>
-      <Button variant="primary" className="w-full" onClick={onDive}>
-        Plonger dans l’idée
+      <Button variant="primary" className="w-full" onClick={onOpen}>
+        Ouvrir l’idée
       </Button>
       {linking ? (
         <form onSubmit={(event) => void link(event)} className="space-y-2">

@@ -8,6 +8,7 @@ import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import { canvasView, emptyCanvasView, HATCHED_A_ID, RAW_ID } from '../../fixtures/ui/canvas'
+import type { TreeView } from '../../../src/shared/ipc/neurons'
 import { FakeIpcError, installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
@@ -41,7 +42,7 @@ async function pane(container: HTMLElement): Promise<Element> {
 
 describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', diveRootId: null, toast: null, bornId: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null, focusId: null, toast: null, bornId: null }))
 
   it('should_grow_with_the_context_level_from_raw_to_hatched', () => {
     const [raw, developing, hatched] = canvasView().ideas
@@ -83,6 +84,32 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     await user.type(await screen.findByLabelText('Nouvelle idée'), 'Brouillon{Escape}')
     expect(screen.queryByLabelText('Nouvelle idée')).toBeNull()
     expect(api.invoke).not.toHaveBeenCalledWith('neuron:create', expect.anything())
+  })
+
+  it('should_open_an_idea_in_the_side_panel_with_one_click_and_close_it_with_a_click_in_the_void', async () => {
+    const idea = canvasView().ideas[0]
+    if (idea === undefined) throw new Error('fixture')
+    const tree: TreeView = { root: idea, neurons: [], extensions: [], suggestions: [], gauge: null }
+    const { container } = renderCanvas(canvasView(), {
+      'neuron:getTree': () => tree,
+      'growth:develop': () => ({ tree }),
+      'fusion:getProposed': () => null
+    })
+    const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
+    // Le double-clic est réservé à la future vue « deep » : il n'ouvre rien.
+    fireEvent.doubleClick(node)
+    expect(useUiStore.getState().openRootId).toBeNull()
+
+    fireEvent.click(node)
+    expect(useUiStore.getState().openRootId).toBe(RAW_ID)
+    const panel = await screen.findByRole('complementary', { name: 'Volet de l’idée' })
+    expect(await within(panel).findByRole('navigation', { name: 'Fil d’Ariane' })).toBeDefined()
+    // La carte reste affichée à côté du volet.
+    expect(screen.getByRole('group', { name: /Mission mariage/ })).toBeDefined()
+
+    fireEvent.click(await pane(container))
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Volet de l’idée' })).toBeNull())
+    expect(useUiStore.getState().openRootId).toBeNull()
   })
 
   it('should_link_two_ideas_from_the_menu_with_the_keyboard', async () => {

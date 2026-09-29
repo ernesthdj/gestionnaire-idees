@@ -22,7 +22,8 @@ import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
-import { buildGraph, computeLayout, movedPositions, type CanvasNode } from './buildGraph'
+import { OpenIdea } from '../dive/OpenIdea'
+import { bornFrom, buildGraph, computeLayout, movedPositions, TIER_SIZE, tierOf, type CanvasNode } from './buildGraph'
 import { useCanvasHover } from './hoverStore'
 import { CanvasToolbar } from './CanvasToolbar'
 import { LinkEdge } from './edges/LinkEdge'
@@ -78,7 +79,12 @@ function CanvasInner(): React.JSX.Element {
   const client = useQueryClient()
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
-  const openDive = useUiStore((state) => state.openDive)
+  const openRootId = useUiStore((state) => state.openRootId)
+  const openIdea = useUiStore((state) => state.openIdea)
+  const focusIdea = useUiStore((state) => state.focus)
+  const closeIdea = useUiStore((state) => state.closeIdea)
+  /** Colonne de droite où l'idée ouverte affiche son volet. */
+  const [panelHost, setPanelHost] = useState<HTMLElement | null>(null)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -124,8 +130,16 @@ function CanvasInner(): React.JSX.Element {
   const graph = useMemo(() => {
     if (view === undefined || layout === null) return { nodes: [] as CanvasNode[], edges: [] }
     const positions = new Map([...layout.positions, ...dragged.current])
-    return buildGraph(view, { area: layout.area, positions }, bornId)
-  }, [view, layout, bornId])
+    return buildGraph(view, { area: layout.area, positions }, bornId, openRootId)
+  }, [view, layout, bornId, openRootId])
+
+  // Idée ouverte : sa place et sa taille sur la carte (son arbre se déploie autour).
+  const openNeuron = openRootId === null ? undefined : view?.ideas.find((neuron) => neuron.id === openRootId)
+  const openCenter = graph.nodes.find((node) => node.id === openRootId)?.position
+  // Une idée ouverte qui disparaît (archivée, annulée) referme le volet.
+  useEffect(() => {
+    if (openRootId !== null && view !== undefined && openNeuron === undefined) closeIdea()
+  }, [openRootId, view, openNeuron, closeIdea])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])
@@ -222,7 +236,7 @@ function CanvasInner(): React.JSX.Element {
     if (id === null) return
     if (event.key === 'Enter') {
       event.preventDefault()
-      openDive(id)
+      openIdea(id)
     } else if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
       event.preventDefault()
       const box = (event.target as HTMLElement).getBoundingClientRect()
@@ -242,131 +256,162 @@ function CanvasInner(): React.JSX.Element {
         onRecenter={recenter}
         onAddBlock={() => void addBlock().catch(() => undefined)}
       />
-      <div
-        ref={surface}
-        className="relative min-h-0 flex-1"
-        data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
-        onKeyDownCapture={onKeyDownCapture}
-        onKeyDown={onKeyDown}
-        // Au clavier aussi, l'idée qui a le focus montre les libellés de ses liens.
-        onFocusCapture={(event) => setHoveredNode(neuronIdOf(event.target))}
-        onBlurCapture={() => setHoveredNode(null)}
-        onPointerDown={() => setInteracting(true)}
-        onPointerUp={() => setInteracting(false)}
-        onPointerLeave={() => setInteracting(false)}
-        onDoubleClick={onDoubleClick}
-      >
-        {query.isError ? (
-          <p role="alert" className="p-8 text-center text-sm">
-            Les idées n’ont pas pu être chargées.
-          </p>
-        ) : (
-          <ReactFlow<CanvasNode>
-            nodes={nodes}
-            edges={graph.edges}
-            nodeTypes={NODE_TYPES}
-            edgeTypes={EDGE_TYPES}
-            onNodesChange={onNodesChange}
-            nodeOrigin={[0.5, 0.5]}
-            onlyRenderVisibleElements
-            minZoom={0.2}
-            maxZoom={2}
-            nodesConnectable
-            connectionRadius={64}
-            onConnect={onConnect}
-            zoomOnDoubleClick={false}
-            // Tab va d'idée en idée ; les liens suggérés restent décidables au clavier par leurs boutons ✓ / ✗.
-            edgesFocusable={false}
-            deleteKeyCode={null}
-            ariaLabelConfig={ARIA_LABELS}
-            colorMode={settings.theme}
-            proOptions={{ hideAttribution: true }}
-            onEdgeMouseEnter={(_event, edge) => setHoveredEdge(edge.id)}
-            onEdgeMouseLeave={() => setHoveredEdge(null)}
-            onNodeMouseEnter={(_event, node) => setHoveredNode(node.type === 'neuron' ? node.id : null)}
-            onNodeMouseLeave={() => setHoveredNode(null)}
-            onMoveStart={() => setInteracting(true)}
-            onMoveEnd={() => setInteracting(false)}
-            onNodeDoubleClick={(_event, node) => {
-              if (node.type === 'neuron') openDive(node.id)
-            }}
-            onNodeContextMenu={(event, node) => {
-              if (node.type !== 'neuron') return
-              event.preventDefault()
-              setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
-            }}
-            onNodeDragStop={(_event, node) => {
-              if (node.type === 'block') {
-                void call('canvas:updateBlock', {
-                  id: node.id,
-                  x: node.position.x,
-                  y: node.position.y,
-                  width: node.width ?? node.measured?.width ?? 0,
-                  height: node.height ?? node.measured?.height ?? 0
-                })
-                  .then(() => client.invalidateQueries({ queryKey: ['canvas'] }))
-                  .catch(() => undefined)
-                return
-              }
-              if (node.type !== 'neuron') return
-              dragged.current.set(node.id, node.position)
-              void call('canvas:savePositions', {
-                positions: [{ rootId: node.id, x: node.position.x, y: node.position.y }]
-              }).catch(() => undefined)
-            }}
-          >
-            <Background gap={32} size={1} />
-            <Controls showInteractive={false} />
-          </ReactFlow>
-        )}
-        {empty && draft === null ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
-            <p className="max-w-md text-center text-sm text-content-muted">
-              Aucune idée pour l’instant. Double-clique n’importe où pour noter ta première idée, ou appuie sur{' '}
-              <kbd className="font-semibold">{settings.shortcut}</kbd> depuis n’importe quelle application.
+      <div className="flex min-h-0 flex-1">
+        <div
+          ref={surface}
+          className="relative min-h-0 min-w-0 flex-1"
+          data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
+          onKeyDownCapture={onKeyDownCapture}
+          onKeyDown={onKeyDown}
+          // Au clavier aussi, l'idée qui a le focus montre les libellés de ses liens.
+          onFocusCapture={(event) => setHoveredNode(neuronIdOf(event.target))}
+          onBlurCapture={() => setHoveredNode(null)}
+          onPointerDown={() => setInteracting(true)}
+          onPointerUp={() => setInteracting(false)}
+          onPointerLeave={() => setInteracting(false)}
+          onDoubleClick={onDoubleClick}
+        >
+          {query.isError ? (
+            <p role="alert" className="p-8 text-center text-sm">
+              Les idées n’ont pas pu être chargées.
             </p>
-          </div>
-        ) : null}
-        {draft?.kind === 'idea' ? (
-          <InlinePrompt
-            key={`idea-${draft.position.x}-${draft.position.y}`}
-            at={draft.at}
-            label="Nouvelle idée"
-            placeholder="Ton idée…"
-            maxLength={CAPTURE_MAX_CHARS}
-            onSubmit={(text) => createIdea(text, draft.position)}
-            onCancel={() => setDraft(null)}
-          />
-        ) : null}
-        {draft?.kind === 'link' ? (
-          <InlinePrompt
-            key={`link-${draft.aRootId}-${draft.bRootId}`}
-            at={draft.at}
-            label="Libellé du lien"
-            placeholder="Libellé du lien (ex. financement)"
-            maxLength={LINK_LABEL_MAX}
-            onSubmit={async (label) => {
-              const done = await createLink({ aRootId: draft.aRootId, bRootId: draft.bRootId, label })
-              if (done) setDraft(null)
-              return done
-            }}
-            onCancel={() => setDraft(null)}
-          />
-        ) : null}
-        {menuNeuron === undefined || menu === null || view === undefined ? null : (
-          <NeuronMenu
-            neuron={menuNeuron}
-            categories={view.categories}
-            at={menu.at}
-            onDive={() => {
-              setMenu(null)
-              openDive(menuNeuron.id)
-            }}
-            onClose={() => setMenu(null)}
-            others={view.ideas
-              .filter((neuron) => neuron.id !== menuNeuron.id)
-              .map((neuron) => ({ id: neuron.id, title: neuron.title }))}
-            onLink={(targetId, label) => createLink({ aRootId: menuNeuron.id, bRootId: targetId, label })}
+          ) : (
+            <ReactFlow<CanvasNode>
+              nodes={nodes}
+              edges={graph.edges}
+              nodeTypes={NODE_TYPES}
+              edgeTypes={EDGE_TYPES}
+              onNodesChange={onNodesChange}
+              nodeOrigin={[0.5, 0.5]}
+              onlyRenderVisibleElements
+              minZoom={0.2}
+              maxZoom={2}
+              nodesConnectable
+              connectionRadius={64}
+              onConnect={onConnect}
+              zoomOnDoubleClick={false}
+              // Tab va d'idée en idée ; les liens suggérés restent décidables au clavier par leurs boutons ✓ / ✗.
+              edgesFocusable={false}
+              deleteKeyCode={null}
+              ariaLabelConfig={ARIA_LABELS}
+              colorMode={settings.theme}
+              proOptions={{ hideAttribution: true }}
+              onEdgeMouseEnter={(_event, edge) => setHoveredEdge(edge.id)}
+              onEdgeMouseLeave={() => setHoveredEdge(null)}
+              onNodeMouseEnter={(_event, node) => setHoveredNode(node.type === 'neuron' ? node.id : null)}
+              onNodeMouseLeave={() => setHoveredNode(null)}
+              onMoveStart={() => setInteracting(true)}
+              onMoveEnd={() => setInteracting(false)}
+              // Un clic ouvre l'idée dans le volet (ou recible l'idée elle-même) ; le double-clic est réservé à la
+              // future vue « deep ». Un clic dans le vide referme le volet.
+              onNodeClick={(_event, node) => {
+                if (node.type !== 'neuron') return
+                if (node.id === openRootId) focusIdea(null)
+                else openIdea(node.id)
+              }}
+              onPaneClick={() => {
+                if (openRootId !== null) closeIdea()
+              }}
+              onNodeContextMenu={(event, node) => {
+                if (node.type !== 'neuron') return
+                event.preventDefault()
+                setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
+              }}
+              onNodeDragStop={(_event, node) => {
+                if (node.type === 'block') {
+                  void call('canvas:updateBlock', {
+                    id: node.id,
+                    x: node.position.x,
+                    y: node.position.y,
+                    width: node.width ?? node.measured?.width ?? 0,
+                    height: node.height ?? node.measured?.height ?? 0
+                  })
+                    .then(() => client.invalidateQueries({ queryKey: ['canvas'] }))
+                    .catch(() => undefined)
+                  return
+                }
+                if (node.type !== 'neuron') return
+                dragged.current.set(node.id, node.position)
+                void call('canvas:savePositions', {
+                  positions: [{ rootId: node.id, x: node.position.x, y: node.position.y }]
+                }).catch(() => undefined)
+              }}
+            >
+              <Background gap={32} size={1} />
+              <Controls showInteractive={false} />
+              {openRootId === null ||
+              openNeuron === undefined ||
+              openCenter === undefined ||
+              view === undefined ? null : (
+                <OpenIdea
+                  key={openRootId}
+                  rootId={openRootId}
+                  center={openCenter}
+                  rootSize={TIER_SIZE[tierOf(openNeuron)]}
+                  panelHost={panelHost}
+                  categories={view.categories}
+                  bornFrom={bornFrom(view).get(openRootId)}
+                  reduced={reduced}
+                />
+              )}
+            </ReactFlow>
+          )}
+          {empty && draft === null ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+              <p className="max-w-md text-center text-sm text-content-muted">
+                Aucune idée pour l’instant. Double-clique n’importe où pour noter ta première idée, ou appuie sur{' '}
+                <kbd className="font-semibold">{settings.shortcut}</kbd> depuis n’importe quelle application.
+              </p>
+            </div>
+          ) : null}
+          {draft?.kind === 'idea' ? (
+            <InlinePrompt
+              key={`idea-${draft.position.x}-${draft.position.y}`}
+              at={draft.at}
+              label="Nouvelle idée"
+              placeholder="Ton idée…"
+              maxLength={CAPTURE_MAX_CHARS}
+              onSubmit={(text) => createIdea(text, draft.position)}
+              onCancel={() => setDraft(null)}
+            />
+          ) : null}
+          {draft?.kind === 'link' ? (
+            <InlinePrompt
+              key={`link-${draft.aRootId}-${draft.bRootId}`}
+              at={draft.at}
+              label="Libellé du lien"
+              placeholder="Libellé du lien (ex. financement)"
+              maxLength={LINK_LABEL_MAX}
+              onSubmit={async (label) => {
+                const done = await createLink({ aRootId: draft.aRootId, bRootId: draft.bRootId, label })
+                if (done) setDraft(null)
+                return done
+              }}
+              onCancel={() => setDraft(null)}
+            />
+          ) : null}
+          {menuNeuron === undefined || menu === null || view === undefined ? null : (
+            <NeuronMenu
+              neuron={menuNeuron}
+              categories={view.categories}
+              at={menu.at}
+              onOpen={() => {
+                setMenu(null)
+                openIdea(menuNeuron.id)
+              }}
+              onClose={() => setMenu(null)}
+              others={view.ideas
+                .filter((neuron) => neuron.id !== menuNeuron.id)
+                .map((neuron) => ({ id: neuron.id, title: neuron.title }))}
+              onLink={(targetId, label) => createLink({ aRootId: menuNeuron.id, bRootId: targetId, label })}
+            />
+          )}
+        </div>
+        {openRootId === null ? null : (
+          <aside
+            ref={setPanelHost}
+            aria-label="Volet de l’idée"
+            className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface"
           />
         )}
       </div>
@@ -374,7 +419,10 @@ function CanvasInner(): React.JSX.Element {
   )
 }
 
-/** Écran Idées (spec 003 US2, FR-029 à FR-031) : toutes les idées dans un seul espace, reliées par leurs liens. */
+/**
+ * Écran Idées (spec 003 US2/US3, FR-029 à FR-031) : toutes les idées dans un seul espace, reliées par leurs liens ;
+ * une idée s'ouvre d'un clic, son arbre sur la carte et son volet à droite (62/38).
+ */
 export function IdeasCanvas(): React.JSX.Element {
   return (
     <ReactFlowProvider>
