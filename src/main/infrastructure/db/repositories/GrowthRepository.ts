@@ -3,8 +3,11 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Extension } from '@shared/ai/neurons'
 import type { WebSourceView } from '@shared/ipc/neurons'
 import type { GaugeLevel, NeuronKind, RootState, Source } from '@shared/ipc/neurons'
+import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
 import type { AppDatabase } from '../client'
-import { contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
+import { contextAssessments, extensions, neuronLinks, neurons, suggestions } from '../schemaNeurons'
+import { writeChanges, type ChangeEntry } from './changeLog'
+import { readPlacement, writePlacement, type Placement } from './placement'
 
 export interface GrowthNode {
   readonly id: string
@@ -279,6 +282,37 @@ export class GrowthRepository {
       .set(patch)
       .where(and(eq(neurons.id, id), sql`${neurons.kind} <> 'root'`))
       .run()
+  }
+
+  placement(id: string): Placement | undefined {
+    return readPlacement(this.db, id)
+  }
+
+  setPlacement(id: string, placement: Placement): void {
+    writePlacement(this.db, id, placement)
+  }
+
+  /** Lien accepté sans libellé entre deux idées (idée suggérée éclose à part, reliée à son idée d'origine). */
+  insertLink(first: string, second: string): { readonly id: string; readonly a: string; readonly b: string } {
+    const [a, b] = orderedPair(first, second)
+    const id = randomUUID()
+    this.db
+      .insert(neuronLinks)
+      .values({
+        id,
+        aRootId: a,
+        bRootId: b,
+        label: '',
+        origin: 'user',
+        status: 'accepted',
+        fingerprint: linkFingerprint(a, b, '')
+      })
+      .run()
+    return { id, a, b }
+  }
+
+  log(batchId: string, entries: readonly ChangeEntry[]): void {
+    writeChanges(this.db, batchId, entries)
   }
 
   touchRoot(rootId: string, state?: RootState): void {

@@ -24,6 +24,8 @@ interface IdeaPanelProps {
   readonly onOpenIdea: (rootId: string) => void
   readonly onConfirmed: (confirmed: ConfirmView) => void
   readonly onClose: () => void
+  /** Fait éclore l'idée suggérée ciblée en idée à part entière (FR-036). */
+  readonly onPromote: (neuronId: string) => Promise<boolean>
 }
 
 /**
@@ -131,6 +133,7 @@ export function IdeaPanel(props: IdeaPanelProps): React.JSX.Element {
             fusion={props.fusion}
             selectedExtensionId={props.selectedExtensionId}
             onSelectExtension={props.onSelectExtension}
+            onPromote={props.onPromote}
           />
         )}
       </div>

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { EtendreOut, type Extension } from '@shared/ai/neurons'
 import type { TreeView } from '@shared/ipc/neurons'
 import { MAX_WEB_SEARCHES } from '../../domain/ai/routing'
@@ -11,6 +12,7 @@ import {
   MIN_EXTENSIONS
 } from '../../domain/neurons/guards'
 import { aliasesOf, descendantsOf } from '../../domain/neurons/tree'
+import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
 import type { GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
 import type { AIGateway } from '../ai/AIGateway'
 import { buildGrowthInput, type ExtensionMode } from './GrowthContextBuilder'
@@ -169,6 +171,58 @@ export class GrowthService {
     this.deps.emit({ type: 'neuron:created', rootId: suggestion.rootId, neuronId })
     const mode: ExtensionMode = parent.depth + 1 >= MAX_AI_DEPTH ? 'assess_only' : 'follow_up'
     return this.extend(suggestion.rootId, neuronId, mode)
+  }
+
+  /**
+   * Fait éclore une idée suggérée (losange) en idée à part entière sur la carte : elle quitte l'arbre avec ses
+   * sous-neurones, garde son titre, ses conseils et sa place, prend la nature et la catégorie de son idée d'origine,
+   * et reste reliée à elle. Lot annulable de l'historique (tout revient dans l'arbre d'origine).
+   */
+  promoteIdea(neuronId: string): { readonly rootId: string; readonly batchId: string } {
+    const { repository } = this.deps
+    const node = repository.node(neuronId)
+    if (node === undefined) throw new AppError('NOT_FOUND', 'Neurone introuvable')
+    if (node.kind !== 'idea') throw new AppError('VALIDATION', 'Seule une idée suggérée peut éclore à part')
+    const originId = node.rootId
+    const origin = repository.placement(originId)
+    if (origin === undefined) throw new AppError('NOT_FOUND', 'Idée d’origine introuvable')
+    const moved = [node, ...descendantsOf(repository.nodes(originId), node.id)]
+    const batchId = randomUUID()
+    repository.transaction(() => {
+      const entries: ChangeEntry[] = moved.map((entry) => {
+        const before = repository.placement(entry.id)
+        if (before === undefined) throw new AppError('NOT_FOUND', 'Neurone introuvable')
+        const after =
+          entry.id === node.id
+            ? {
+                ...before,
+                rootId: node.id,
+                parentId: null,
+                depth: 0,
+                kind: 'root' as const,
+                state: 'raw' as const,
+                nature: origin.nature,
+                natureSource: 'ai' as const,
+                categoryId: origin.categoryId,
+                categorySource: origin.categoryId === null ? null : ('ai' as const)
+              }
+            : { ...before, rootId: node.id, depth: before.depth - node.depth }
+        repository.setPlacement(entry.id, after)
+        return { kind: 'promote', entity: 'neuron_placement', entityId: entry.id, before, after }
+      })
+      const link = repository.insertLink(originId, node.id)
+      entries.push({
+        kind: 'promote',
+        entity: 'neuron_link',
+        entityId: link.id,
+        before: null,
+        after: { a: link.a, b: link.b, label: '', status: 'accepted', origin: 'user' }
+      })
+      // L'idée d'origine a changé : un aperçu de synthèse en cours devient périmé.
+      repository.touchRoot(originId)
+      repository.log(batchId, entries)
+    })
+    return { rootId: node.id, batchId }
   }
 
   dismissSuggestion(suggestionId: string): GrowthResult {

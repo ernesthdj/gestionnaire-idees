@@ -9,7 +9,7 @@ import type {
 } from '../../infrastructure/db/repositories/HistoryRepository'
 
 /** Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, et une annulation (qui se rétablit). */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'undo'])
+const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 const UNCHECKED = new Set(['plan_dependency', 'example'])
 
@@ -19,7 +19,8 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   plan_node: 'Le plan a été remplacé depuis.',
   reflection_summary: 'La synthèse de réflexion a été remplacée depuis.',
   neuron_link: 'Ce lien a été modifié depuis.',
-  link_seed: 'Cette graine a changé depuis (son lien a peut-être été supprimé).'
+  link_seed: 'Cette graine a changé depuis (son lien a peut-être été supprimé).',
+  neuron_placement: 'L’idée éclose à part a changé depuis (elle a été développée ou déplacée).'
 }
 
 /** L'état actuel correspond-il à celui laissé par le lot ? (clés communes seulement ; `null` = absent). */
@@ -113,6 +114,9 @@ export class HistoryService {
   }
 
   private rootOf(entries: readonly ChangeRow[]): string | null {
+    // Idée suggérée éclose à part : c'est elle (le premier neurone déplacé) dont on parle.
+    const placed = entries.find((entry) => entry.entity === 'neuron_placement')
+    if (placed !== undefined) return placed.entityId
     const neuron = entries.find((entry) => entry.entity === 'neuron')
     if (neuron !== undefined) return neuron.entityId
     const link = entries.find((entry) => entry.entity === 'neuron_link')
@@ -139,7 +143,15 @@ export class HistoryService {
         return `Graine acceptée : ${title()}`
       case 'delete':
         return `Suppression de ${title()}`
+      case 'promote':
+        return `Idée éclose à part : ${title()}`
       case 'undo': {
+        const placed = entries.find((entry) => entry.entity === 'neuron_placement')
+        if (placed !== undefined) {
+          return placed.after?.['kind'] === 'root'
+            ? `Idée de nouveau à part : ${title()}`
+            : `Idée remise dans son arbre : ${title()}`
+        }
         const seed = entries.find((entry) => entry.entity === 'link_seed')
         if (seed !== undefined) {
           return seed.after?.['status'] === 'accepted' ? `Graine rétablie : ${title()}` : `Graine annulée : ${title()}`

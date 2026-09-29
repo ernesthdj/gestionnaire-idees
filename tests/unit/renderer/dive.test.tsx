@@ -190,6 +190,35 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     installReactFlowMocks()
   })
 
+  it('should_let_a_focused_suggested_idea_hatch_into_an_idea_of_its_own', async () => {
+    const user = userEvent.setup()
+    const base = developingTree()
+    const idea = {
+      id: '00000000-0000-4000-8000-0000000000e1',
+      parentId: ROOT_ID,
+      depth: 1,
+      kind: 'idea' as const,
+      title: 'Activer le réseau',
+      content: 'Liste 10 personnes.',
+      amountCents: null,
+      dueDate: null,
+      origin: 'ai' as const
+    }
+    const api = renderOpenIdea(() => ({ ...base, neurons: [...base.neurons, idea] }), {
+      'fusion:getProposed': () => null,
+      'growth:promoteIdea': () => ({ rootId: idea.id, batchId: 'lot-9' })
+    })
+    await loaded()
+    // Verrouiller nomme toujours l'idée entière qui éclôt.
+    expect(within(panel()).getByRole('button', { name: /^Verrouiller « Deuxième écran »/ })).toBeDefined()
+    expect(within(panel()).queryByRole('button', { name: 'Faire éclore cette idée' })).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: /^Idée suggérée : Activer le réseau/ }))
+    await user.click(await within(panel()).findByRole('button', { name: 'Faire éclore cette idée' }))
+    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('growth:promoteIdea', { neuronId: idea.id }))
+    await waitFor(() => expect(useUiStore.getState().toast).toMatchObject({ undoBatchId: 'lot-9' }))
+    expect(useUiStore.getState().toast?.text).toMatch(/est devenue une idée à part entière/)
+  })
+
   it('should_show_the_gauge_level_and_what_is_missing', async () => {
     renderDive()
     const bar = await screen.findByRole('progressbar', { name: 'Niveau de contexte' })

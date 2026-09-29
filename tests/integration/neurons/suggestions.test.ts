@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { HistoryService } from '../../../src/main/application/history/HistoryService'
+import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { createNeuronHarness, etendreReply, type NeuronHarness } from '../../support/neurons'
 
 interface Suggested {
@@ -134,5 +136,50 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     expect(answered.tree.suggestions[0]?.neuronId).toBe(branch?.id)
     const after = t.growth.deleteBranch(branch?.id ?? '')
     expect(after.tree.suggestions).toEqual([])
+  })
+
+  it('should_turn_an_accepted_idea_into_an_idea_of_its_own_linked_to_its_origin_then_undo_it', async () => {
+    const tree = await developedWith([{ neuronRef: 's0', title: 'Activer le réseau', content: 'Liste 10 personnes.' }])
+    const origin = tree.root
+    t.h.claude.enqueue(etendreReply(['Qui contacter en premier ?']))
+    const accepted = await t.growth.acceptSuggestion(tree.suggestions[0]?.id ?? '')
+    const idea = accepted.tree.neurons.find((entry) => entry.kind === 'idea')
+    if (idea === undefined) throw new Error('idée attendue')
+    const child = t.growth.addBranch({ parentId: idea.id, title: 'Anciens collègues' })
+    const childId = child.tree.neurons.find((entry) => entry.title === 'Anciens collègues')?.id ?? ''
+
+    const { rootId, batchId } = t.growth.promoteIdea(idea.id)
+    expect(rootId).toBe(idea.id)
+    const promoted = t.neurons.getTree(rootId)
+    expect(promoted.root).toMatchObject({ title: 'Activer le réseau', content: 'Liste 10 personnes.', state: 'raw' })
+    expect(promoted.root.nature).toBe(origin.nature)
+    // Ses sous-neurones et ses questions la suivent ; l'idée d'origine ne les a plus.
+    expect(promoted.neurons.map((entry) => entry.id)).toEqual([childId])
+    expect(promoted.neurons[0]?.depth).toBe(1)
+    const originTree = t.neurons.getTree(origin.id)
+    expect(originTree.neurons.some((entry) => entry.id === idea.id || entry.id === childId)).toBe(false)
+    // Reliée à son idée d'origine.
+    expect(
+      t.links
+        .list('accepted')
+        .some((link) => [link.a.id, link.b.id].sort().join() === [origin.id, rootId].sort().join())
+    ).toBe(true)
+
+    const history = new HistoryService(new HistoryRepository(t.handle.db))
+    expect(history.list().items[0]).toMatchObject({ batchId, kind: 'promote', undoable: true })
+    const { undoBatchId } = history.undo(batchId)
+    const back = t.neurons.getTree(origin.id)
+    expect(back.neurons.find((entry) => entry.id === idea.id)).toMatchObject({ kind: 'idea', parentId: origin.id })
+    expect(back.neurons.find((entry) => entry.id === childId)?.depth).toBe(2)
+    expect(history.list().items[0]?.summary).toMatch(/^Idée remise dans son arbre/)
+    history.undo(undoBatchId)
+    expect(t.neurons.getTree(rootId).root.state).toBe('raw')
+  })
+
+  it('should_refuse_to_promote_anything_but_an_accepted_idea', async () => {
+    const tree = await developedWith([])
+    const answer = t.growth.addBranch({ parentId: tree.root.id, title: 'Une branche' })
+    const id = answer.tree.neurons[0]?.id ?? ''
+    expect(() => t.growth.promoteIdea(id)).toThrow(expect.objectContaining({ code: 'VALIDATION' }))
   })
 })

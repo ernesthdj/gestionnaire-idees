@@ -1,6 +1,6 @@
 /** Vues de l'historique (spec 003 data-model `HistoryEntryView`). */
 
-export type HistoryKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'undo'
+export type HistoryKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
 
 export interface HistoryEntryView {
   readonly batchId: string

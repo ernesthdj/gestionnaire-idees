@@ -2,10 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
 import type { AppDatabase } from '../client'
+import { readPlacement, writePlacement, type Placement } from './placement'
 import { examples } from '../schema'
 import { changeLog, linkSeeds, neuronLinks, neurons, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
 
-export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'undo'
+export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
 
 export interface ChangeRow {
   readonly id: string
@@ -150,6 +151,8 @@ export class HistoryRepository {
         // Une idée archivée est « retirée » (ex. idée née d'une graine dont l'acceptation a été annulée).
         return row === undefined || row.state === 'archived' ? null : row
       }
+      case 'neuron_placement':
+        return (readPlacement(this.db, id) as Snapshot | undefined) ?? null
       case 'link_seed': {
         const row = this.db
           .select({ status: linkSeeds.status, bornRootId: linkSeeds.bornRootId })
@@ -226,6 +229,9 @@ export class HistoryRepository {
           .run()
         return
       }
+      case 'neuron_placement':
+        if (target !== null) writePlacement(this.db, id, target as unknown as Placement)
+        return
       case 'link_seed': {
         if (target === null || typeof target['status'] !== 'string') return
         const status = target['status'] as 'suggested' | 'accepted'

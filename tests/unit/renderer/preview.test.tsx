@@ -110,7 +110,7 @@ describe('aperçu de synthèse et fusion', () => {
         throw new FakeIpcError('CONTEXT_INSUFFICIENT', { missing: ['budget', 'quand'] })
       }
     })
-    await user.click(await screen.findByRole('button', { name: 'Verrouiller 🔒' }))
+    await user.click(await screen.findByRole('button', { name: /^Verrouiller « Deuxième écran » 🔒/ }))
     const warning = await screen.findByRole('alert')
     expect(warning.textContent).toMatch(/risque de ne pas être optimal/)
     expect(warning.textContent).toMatch(/Il manque : budget, quand/)

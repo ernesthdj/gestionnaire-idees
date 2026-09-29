@@ -237,7 +237,9 @@ export const changeLog = sqliteTable(
   {
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
-    kind: text('kind', { enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'undo'] }).notNull(),
+    kind: text('kind', {
+      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo']
+    }).notNull(),
     entity: text('entity').notNull(),
     entityId: text('entity_id').notNull(),
     beforeJson: text('before_json'),
