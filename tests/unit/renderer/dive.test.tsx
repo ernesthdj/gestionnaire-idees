@@ -51,9 +51,34 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     await user.click(await within(panel()).findByRole('button', { name: 'Ce mois-ci' }))
     expect(api.invoke).toHaveBeenCalledWith('growth:answer', { extensionId: 'ext-1', answer: { choice: 'Ce mois-ci' } })
     expect(screen.getByRole('status', { name: 'Nouveau sous-neurone : quand : Ce mois-ci' })).toBeDefined()
-    expect(within(panel()).getByText('L’IA réfléchit aux questions suivantes…')).toBeDefined()
+    expect(within(panel()).getByText('L’IA réfléchit…')).toBeDefined()
     await act(async () => finish())
     await waitFor(() => expect(screen.queryByRole('status', { name: /Nouveau sous-neurone/ })).toBeNull())
+  })
+
+  it('should_show_which_engine_is_thinking_then_hide_it_when_the_ai_is_done', async () => {
+    const { api } = renderDive()
+    await loaded()
+    await act(async () =>
+      api.emit('neuron:thinking', { rootId: ROOT_ID, neuronId: CHILD_ID, engine: 'claude', model: 'claude-opus-5-5' })
+    )
+    expect(within(panel()).getByText('Claude Opus 5.5')).toBeDefined()
+    await act(async () =>
+      api.emit('neuron:thinking', { rootId: ROOT_ID, neuronId: CHILD_ID, engine: 'ollama', model: 'qwen3.5:9b' })
+    )
+    expect(within(panel()).getByText('Ollama · qwen3.5:9b')).toBeDefined()
+    await act(async () => api.emit('neuron:thought', { rootId: ROOT_ID }))
+    expect(within(panel()).queryByText('L’IA réfléchit…')).toBeNull()
+    expect(within(panel()).queryByText(/Ollama/)).toBeNull()
+  })
+
+  it('should_ignore_the_thinking_event_of_another_idea', async () => {
+    const { api } = renderDive()
+    await loaded()
+    await act(async () =>
+      api.emit('neuron:thinking', { rootId: 'autre', neuronId: 'x', engine: 'claude', model: 'claude-opus-5-5' })
+    )
+    expect(within(panel()).queryByText('L’IA réfléchit…')).toBeNull()
   })
 
   it('should_answer_in_free_text_or_with_i_do_not_know', async () => {

@@ -24,6 +24,8 @@ export interface GatewayRequest<T> {
   readonly allowDegraded?: boolean
   /** Usage interne (rejeu par la file locale) : ne jamais remettre la demande en file. */
   readonly noQueue?: boolean
+  /** Appelé quand un moteur commence réellement à travailler (repli compris) : l'interface peut dire qui réfléchit. */
+  readonly onEngine?: (engine: Engine, model: string) => void
 }
 
 export interface AIResult<T> {
@@ -140,9 +142,11 @@ export class AIGateway {
     const prepared = await this.prepare(request.kind, request.input, engine)
     if (!prepared.ok) return prepared
     const { system, user } = prepared.value
-    const result = await this.semaphores[engine].use(() =>
-      this.callWithRetry(request, requestId, engine, system, user, degraded)
-    )
+    const chosen = engine
+    const result = await this.semaphores[chosen].use(() => {
+      request.onEngine?.(chosen, this.deps.providers[chosen].currentModel?.() ?? '')
+      return this.callWithRetry(request, requestId, chosen, system, user, degraded)
+    })
     if (result.ok) this.remember(requestId, result.value)
     return result
   }

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { EtendreOut, type Extension } from '@shared/ai/neurons'
 import type { TreeView } from '@shared/ipc/neurons'
 import { MAX_WEB_SEARCHES } from '../../domain/ai/routing'
-import type { AIErrorCode } from '../../domain/ai/types'
+import type { AIErrorCode, Engine } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
 import {
   applyGaugeFloor,
@@ -20,7 +20,14 @@ import type { NeuronService } from './NeuronService'
 
 export type GrowthEvent =
   | { readonly type: 'neuron:created'; readonly rootId: string; readonly neuronId: string }
-  | { readonly type: 'neuron:thinking'; readonly rootId: string; readonly neuronId: string }
+  | {
+      readonly type: 'neuron:thinking'
+      readonly rootId: string
+      readonly neuronId: string
+      /** Moteur qui travaille, connu une fois l'appel parti (repli compris). */
+      readonly engine?: Engine
+      readonly model?: string
+    }
   | { readonly type: 'neuron:thought'; readonly rootId: string }
   | { readonly type: 'suggestion:updated'; readonly rootId: string; readonly suggestionId: string }
 
@@ -306,6 +313,8 @@ export class GrowthService {
         kind: 'etendre',
         schema: EtendreOut,
         allowDegraded: true,
+        onEngine: (engine, model) =>
+          this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId, engine, model }),
         input: buildGrowthInput({
           nature: this.tree(rootId).root.nature,
           nodes: repository.nodes(rootId),

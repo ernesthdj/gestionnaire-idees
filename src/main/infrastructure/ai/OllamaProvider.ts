@@ -57,6 +57,10 @@ export function resolveOllamaUrl(value: string | undefined): { url: string; reje
 /** IA locale via l'API HTTP d'Ollama — uniquement sur la machine (127.0.0.1). */
 export class OllamaProvider implements AIProvider {
   readonly id = 'ollama' as const
+
+  currentModel(): string {
+    return this.options.model()
+  }
   private readonly fetchFn: FetchLike
 
   constructor(private readonly options: OllamaOptions) {

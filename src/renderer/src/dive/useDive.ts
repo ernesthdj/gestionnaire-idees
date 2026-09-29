@@ -11,6 +11,19 @@ export interface PendingChild {
   readonly title: string
 }
 
+/** Moteur qui travaille en ce moment (annoncé par l'événement `neuron:thinking`). */
+export interface AiWorker {
+  readonly engine: 'claude' | 'ollama'
+  readonly model: string
+}
+
+function workerOf(payload: unknown): AiWorker | null {
+  if (typeof payload !== 'object' || payload === null) return null
+  const { engine, model } = payload as { engine?: unknown; model?: unknown }
+  if (engine !== 'claude' && engine !== 'ollama') return null
+  return { engine, model: typeof model === 'string' ? model : '' }
+}
+
 function rootIdOf(payload: unknown): string | null {
   return typeof payload === 'object' && payload !== null && 'rootId' in payload && typeof payload.rootId === 'string'
     ? payload.rootId
@@ -35,6 +48,8 @@ export interface DiveActions {
   readonly tree: UseQueryResult<TreeView>
   /** L'IA prépare les questions suivantes (ou une action est en cours). */
   readonly thinking: boolean
+  /** Qui réfléchit (Claude et lequel, ou Ollama) ; null tant que l'appel n'est pas parti. */
+  readonly worker: AiWorker | null
   /** Sous-neurone affiché avant la confirmation du moteur. */
   readonly pending: readonly PendingChild[]
   readonly message: { readonly tone: 'info' | 'error'; readonly text: string } | null
@@ -57,6 +72,7 @@ export function useDive(rootId: string): DiveActions {
   const client = useQueryClient()
   const tree = useQuery({ queryKey: ['dive', rootId], queryFn: () => call<TreeView>('neuron:getTree', { rootId }) })
   const [thinking, setThinking] = useState(false)
+  const [worker, setWorker] = useState<AiWorker | null>(null)
   const [pending, setPending] = useState<readonly PendingChild[]>([])
   const [message, setMessage] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -73,10 +89,15 @@ export function useDive(rootId: string): DiveActions {
     const mine = (payload: unknown): boolean => rootIdOf(payload) === rootId
     const offs = [
       window.api.on('neuron:thinking', (payload) => {
-        if (mine(payload)) setThinking(true)
+        if (!mine(payload)) return
+        setThinking(true)
+        const announced = workerOf(payload)
+        if (announced !== null) setWorker(announced)
       }),
       window.api.on('neuron:thought', (payload) => {
-        if (mine(payload)) setThinking(false)
+        if (!mine(payload)) return
+        setThinking(false)
+        setWorker(null)
       }),
       window.api.on('neuron:created', (payload) => {
         if (!mine(payload)) return
@@ -104,6 +125,7 @@ export function useDive(rootId: string): DiveActions {
       } finally {
         setBusy(false)
         setThinking(false)
+        setWorker(null)
         setPending([])
       }
     },
@@ -121,6 +143,7 @@ export function useDive(rootId: string): DiveActions {
   return {
     tree,
     thinking: thinking || busy,
+    worker,
     pending,
     message,
     dismissMessage: () => setMessage(null),

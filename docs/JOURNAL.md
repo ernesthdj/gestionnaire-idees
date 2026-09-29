@@ -309,3 +309,9 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Tests :** le harnais du moteur garde un routage « tout Claude » explicite (`TEST_ROUTING`, réponses scénarisées) ; le routage réel et la révision sont testés à part.
 **Point d'attention :** si Ollama n'est pas lancé, les questions échouent avec un message clair ; le repli vers Claude n'est actif que si « Autoriser Claude en secours » est coché dans Réglages › IA (désactivé par défaut, confidentialité).
 **Suivi :** refaire le bilan (`npx electron scripts/ai-usage.cjs`) après la prochaine séance de tests pour mesurer le gain réel.
+
+### [2026-09-29 21:05] FEAT — « l'IA réfléchit » animé + étiquette du moteur qui travaille (demande de mentalyas)
+**Fichiers :** `AIGateway.ts` (`onEngine`), `AIProvider.ts` + `ClaudeProvider.ts`/`OllamaProvider.ts` (`currentModel`), `GrowthService.ts`, `FusionService.ts`, `useDive.ts` (`worker`), `dive/AiThinking.tsx` (nouveau), `QuestionPanel.tsx`, `dive.css`, tests (`gateway`, `dive`, `ai-thinking`).
+**Quoi :** pendant les questions-réponses et la synthèse, trois neurones s'allument tour à tour le long d'une synapse, avec à côté une pastille « Claude Opus 5.5 » (orange) ou « Ollama · qwen3.5:9b » (verte).
+**Pourquoi ainsi :** c'est la passerelle qui annonce le moteur **au moment où l'appel part**, repli compris : si Claude est indisponible ou le budget atteint et que l'IA locale prend le relais, la pastille dit « Ollama » et pas ce que le routage prévoyait. Une demande mise en file n'annonce rien. Le texte de la pastille reste en couleur de contenu (contraste AA) ; l'animation s'arrête avec « réduire les animations ».
+**Note :** `npm run lint` échoue sur `.kilo/worktrees/` (worktree de l'extension Kilo Code, hors projet) : deux racines tsconfig candidates. `npx eslint src tests` passe.

@@ -86,6 +86,10 @@ function toSystemParam(blocks: readonly SystemBlock[]): Anthropic.Beta.BetaTextB
 export class ClaudeProvider implements AIProvider {
   readonly id = 'claude' as const
 
+  currentModel(): string {
+    return this.options.model()
+  }
+
   constructor(private readonly options: ClaudeOptions) {}
 
   async isAvailable(): Promise<ProviderStatus> {

@@ -61,6 +61,29 @@ describe('AIGateway — routage, file, journal', () => {
     expect(result).toMatchObject({ ok: true, value: { engine: 'ollama', degraded: true } })
   })
 
+  it('should_announce_the_engine_that_really_works_when_falling_back_locally', async () => {
+    const h = createGatewayHarness()
+    h.claude.setAvailable(false)
+    h.ollama.enqueue({ raw: { answer: 'local' } })
+    const announced: string[] = []
+    await h.gateway.run({
+      kind: 'etendre',
+      input: 'x',
+      schema: Echo,
+      allowDegraded: true,
+      onEngine: (engine, model) => announced.push(`${engine}/${model}`)
+    })
+    expect(announced).toEqual(['ollama/fake-ollama'])
+  })
+
+  it('should_announce_no_engine_when_the_request_is_queued', async () => {
+    const h = createGatewayHarness()
+    h.ollama.setAvailable(false)
+    const announced: string[] = []
+    await h.gateway.run({ kind: 'categoriser', input: 'x', schema: CategoryOut, onEngine: (e) => announced.push(e) })
+    expect(announced).toEqual([])
+  })
+
   it('should_report_unavailable_when_claude_is_down_and_degraded_not_allowed', async () => {
     const h = createGatewayHarness()
     h.claude.setAvailable(false)

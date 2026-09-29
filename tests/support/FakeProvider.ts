@@ -39,6 +39,10 @@ export class FakeProvider implements AIProvider {
     this.replies = [...replies]
   }
 
+  currentModel(): string {
+    return `fake-${this.id}`
+  }
+
   setAvailable(up: boolean): void {
     this.status = up ? { up: true, model: 'fake-model' } : { up: false, reason: 'arrêté (simulation)' }
   }

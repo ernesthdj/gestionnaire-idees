@@ -188,6 +188,7 @@ export class FusionService {
         const outcome: Synthesized | { readonly failure: CheckFailure } =
           nature === 'action'
             ? await this.attempt(
+                rootId,
                 kind,
                 request,
                 ActionPlanOut,
@@ -198,6 +199,7 @@ export class FusionService {
                 })
               )
             : await this.attempt(
+                rootId,
                 kind,
                 request,
                 ReflectionSummaryOut,
@@ -217,13 +219,20 @@ export class FusionService {
   }
 
   private async attempt<T>(
+    rootId: string,
     kind: 'synthetiser' | 'reviser',
     input: string,
     schema: z.ZodType<T>,
     check: (data: T) => CheckFailure | null,
     toContent: (data: T) => SynthesisContent
   ): Promise<Synthesized | { readonly failure: CheckFailure }> {
-    const result = await this.deps.gateway.run({ kind, input, schema, allowDegraded: true })
+    const result = await this.deps.gateway.run({
+      kind,
+      input,
+      schema,
+      allowDegraded: true,
+      onEngine: (engine, model) => this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: rootId, engine, model })
+    })
     if (!result.ok) throw new AppError(result.error.code, result.error.message)
     const failure = check(result.value.data)
     return failure === null ? { content: toContent(result.value.data), degraded: result.value.degraded } : { failure }

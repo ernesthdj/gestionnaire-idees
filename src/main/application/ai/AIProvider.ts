@@ -60,6 +60,8 @@ export interface ProviderStatus {
 /** Stratégie par moteur (contracts/ai-gateway.md). Seul `AIGateway` l'utilise. */
 export interface AIProvider {
   readonly id: Engine
+  /** Modèle configuré, annoncé à l'interface pendant qu'il travaille (le modèle réel est dans la réponse). */
+  currentModel?(): string
   isAvailable(): Promise<ProviderStatus>
   complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>>
   /** Seul Claude sait chercher sur le web (outil exécuté par Anthropic). */

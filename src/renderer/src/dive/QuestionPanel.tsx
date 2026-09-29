@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../components/atoms/Button'
 import type { DiveModel } from './diveModel'
 import { MAX_AI_DEPTH } from './diveModel'
+import { AiThinking } from './AiThinking'
 import { Gauge } from './Gauge'
 import type { FusionActions } from '../fusion/useFusion'
 import type { DiveActions } from './useDive'
@@ -115,9 +116,7 @@ export function QuestionPanel({
 
       <LockSection model={model} fusion={fusion} />
 
-      <p role="status" aria-live="polite" className="min-h-5 text-xs text-content-muted">
-        {actions.thinking ? 'L’IA réfléchit aux questions suivantes…' : ''}
-      </p>
+      <AiThinking thinking={actions.thinking} worker={actions.worker} />
 
       {actions.message === null ? null : (
         <div
