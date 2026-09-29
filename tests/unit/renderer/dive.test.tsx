@@ -219,6 +219,24 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     expect(useUiStore.getState().toast?.text).toMatch(/est devenue une idée à part entière/)
   })
 
+  it('should_verify_a_suggested_idea_on_the_web_only_when_asked', async () => {
+    const base = developingTree()
+    const tree = {
+      ...base,
+      suggestions: base.suggestions.map((entry) => ({ ...entry, research: 'available' as const, sources: [] }))
+    }
+    const api = renderOpenIdea(() => tree, {
+      'fusion:getProposed': () => null,
+      'growth:researchSuggestion': () => ({ tree })
+    })
+    const verify = await screen.findByRole('button', { name: /^Vérifier sur le web : / })
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:researchSuggestion', expect.anything())
+    fireEvent.click(verify)
+    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('growth:researchSuggestion', { suggestionId: 'sug-1' }))
+    // Vérifier n'accepte pas l'idée.
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:acceptSuggestion', expect.anything())
+  })
+
   it('should_show_the_gauge_level_and_what_is_missing', async () => {
     renderDive()
     const bar = await screen.findByRole('progressbar', { name: 'Niveau de contexte' })

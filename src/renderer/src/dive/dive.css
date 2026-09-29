@@ -344,3 +344,15 @@
   transform: rotate(45deg);
   opacity: 0.8;
 }
+
+/* Vérifier une idée suggérée sur le web : seulement à la demande (coûte des crédits Claude). */
+.dive-ghost-research {
+  position: absolute;
+  bottom: -8px;
+  left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--color-surface-raised);
+  font-size: 12px;
+}

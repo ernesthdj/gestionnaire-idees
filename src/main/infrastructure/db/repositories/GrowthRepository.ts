@@ -206,7 +206,8 @@ export class GrowthRepository {
       id: randomUUID(),
       rootId,
       ...suggestion,
-      research: suggestion.webQuery === null ? ('none' as const) : ('pending' as const),
+      // Vérifiable, mais seulement si l'utilisateur le demande (coût : T069).
+      research: suggestion.webQuery === null ? ('none' as const) : ('available' as const),
       status: 'proposed' as const
     }))
     this.db.insert(suggestions).values(rows).run()
@@ -248,6 +249,11 @@ export class GrowthRepository {
   }
 
   /** Résultat de la vérification web : contenu remplacé par la réponse sourcée, ou échec signalé. */
+  /** Vérification web demandée : la suggestion passe « en cours ». */
+  startResearch(id: string): void {
+    this.db.update(suggestions).set({ research: 'pending' }).where(eq(suggestions.id, id)).run()
+  }
+
   completeResearch(id: string, result: { content: string; sources: readonly WebSourceView[] } | null): void {
     this.db
       .update(suggestions)

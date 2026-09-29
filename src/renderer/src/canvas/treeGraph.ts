@@ -96,7 +96,14 @@ export function treeGraph(input: TreeGraphInput): {
       id: item.id,
       type: 'tree',
       position: at(item.id, start),
-      data: { placed, focused, selected, categoryColor: tree.categoryColor, onDismiss: tree.actions.dismissSuggestion },
+      data: {
+        placed,
+        focused,
+        selected,
+        categoryColor: tree.categoryColor,
+        onDismiss: tree.actions.dismissSuggestion,
+        onResearch: tree.actions.researchSuggestion
+      },
       ariaLabel: treeAriaLabel(placed),
       // Élément activable (clic, Entrée) ; une idée suggérée contient son bouton « Ignorer » : c'est un groupe.
       ariaRole: item.type === 'ghost' ? 'group' : item.type === 'pending' ? 'status' : 'button',

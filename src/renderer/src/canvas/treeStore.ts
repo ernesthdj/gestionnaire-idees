@@ -7,6 +7,8 @@ export interface OpenTreeActions {
   selectExtension(extensionId: string): void
   acceptSuggestion(suggestionId: string): void
   dismissSuggestion(suggestionId: string): void
+  /** Vérification web d'une idée suggérée, seulement à la demande (T069). */
+  researchSuggestion(suggestionId: string): void
 }
 
 /** Arbre de l'idée ouverte, publié par le volet (`OpenIdea`) et dessiné sur la carte comme des nœuds physiques. */

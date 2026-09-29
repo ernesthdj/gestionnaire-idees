@@ -1,6 +1,6 @@
 import { AIGateway, type GatewayDependencies } from '../../src/main/application/ai/AIGateway'
 import type { CallRecord } from '../../src/main/application/ai/ports'
-import { DEFAULT_ROUTING } from '../../src/main/domain/ai/routing'
+import { DEFAULT_ROUTING, type RoutingTable } from '../../src/main/domain/ai/routing'
 import { FakeProvider } from './FakeProvider'
 
 export interface GatewayHarness {
@@ -12,6 +12,17 @@ export interface GatewayHarness {
   readonly anonymized: string[]
 }
 
+/**
+ * Routage des tests du moteur : les tâches qui partent en local par défaut (T069) sont ici envoyées au faux Claude,
+ * dont les réponses sont scénarisées. Le routage réel est testé à part (`routing.test.ts`).
+ */
+export const TEST_ROUTING: RoutingTable = {
+  ...DEFAULT_ROUTING,
+  etendre: 'claude',
+  germer: 'claude',
+  suggerer_liens: 'claude'
+}
+
 /** Passerelle IA câblée sur des doubles de test ; chaque dépendance est remplaçable. */
 export function createGatewayHarness(overrides: Partial<GatewayDependencies> = {}): GatewayHarness {
   const ollama = new FakeProvider('ollama')
@@ -21,7 +32,7 @@ export function createGatewayHarness(overrides: Partial<GatewayDependencies> = {
   const anonymized: string[] = []
   const gateway = new AIGateway({
     providers: { ollama, claude },
-    config: () => ({ routing: DEFAULT_ROUTING, allowClaudeFallback: false }),
+    config: () => ({ routing: TEST_ROUTING, allowClaudeFallback: false }),
     context: async () => undefined,
     anonymizer: {
       anonymize: async (text) => {

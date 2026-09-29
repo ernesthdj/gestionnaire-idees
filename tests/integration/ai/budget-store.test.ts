@@ -49,7 +49,7 @@ describe('stockage du budget', () => {
     expect(config.get()).toMatchObject({
       capCents: 1000,
       alertRatio: 0.8,
-      claudeModel: 'claude-opus-5',
+      claudeModel: 'claude-opus-5-5',
       allowClaudeFallback: false
     })
     config.update({ capCents: 2500, unlockedMonth: '2026-09' })
@@ -72,5 +72,25 @@ describe('stockage du budget', () => {
     const config = new AiConfigRepository(handle.db)
     expect(() => config.update({ capCents: -5 })).toThrow()
     expect(() => config.update({ alertRatio: 2 })).toThrow()
+  })
+
+  it('should_apply_the_savings_revision_once_to_settings_saved_before_it_then_respect_later_choices', () => {
+    const config = new AiConfigRepository(handle.db)
+    // Réglages enregistrés avant la révision : Opus 5, questions sur Claude.
+    handle.db
+      .insert(aiConfig)
+      .values({
+        key: 'ai',
+        valueJson: JSON.stringify({ claudeModel: 'claude-opus-5', routing: { etendre: 'claude', germer: 'claude' } })
+      })
+      .run()
+    expect(config.get()).toMatchObject({
+      claudeModel: 'claude-opus-5-5',
+      revision: 2,
+      routing: expect.objectContaining({ etendre: 'ollama', germer: 'ollama', suggerer_liens: 'ollama' })
+    })
+    // Un choix fait ensuite (questions de nouveau sur Claude) est gardé.
+    config.update({ routing: { ...config.get().routing, etendre: 'claude' } })
+    expect(config.get().routing.etendre).toBe('claude')
   })
 })

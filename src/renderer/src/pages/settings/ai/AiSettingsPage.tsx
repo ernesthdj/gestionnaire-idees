@@ -7,9 +7,10 @@ import { budgetPercent, formatEuros, parseEurosToCents } from './format'
 
 const LOCAL_MODEL_SUGGESTIONS = ['qwen3.5:9b', 'llama3.1:8b', 'gemma3:4b']
 const MODEL_LABELS: Record<string, string> = {
-  'claude-opus-5': 'Claude Opus 5 — meilleur raisonnement',
-  'claude-sonnet-5': 'Claude Sonnet 5 — plus économique',
-  'claude-haiku-4-5': 'Claude Haiku 4.5 — le plus rapide'
+  'claude-opus-5-5': 'Claude Opus 5.5 — meilleur raisonnement',
+  'claude-sonnet-5-5': 'Claude Sonnet 5.5 — deux fois moins cher',
+  'claude-haiku-4-5': 'Claude Haiku 4.5 — le plus rapide et le moins cher',
+  'claude-opus-5': 'Claude Opus 5 — ancienne génération, plus chère'
 }
 
 function errorText<T>(result: IpcResult<T>): string | null {

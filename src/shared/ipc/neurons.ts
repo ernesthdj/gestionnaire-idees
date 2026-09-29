@@ -74,7 +74,8 @@ export interface SuggestionView {
   readonly title: string
   readonly content: string
   /** `pending` : vérification web en cours ; `done` : `sources` renseignées ; `failed` : non vérifiée. */
-  readonly research: 'none' | 'pending' | 'done' | 'failed'
+  /** `available` : vérifiable sur le web, à la demande de l'utilisateur (plus de vérification automatique). */
+  readonly research: 'none' | 'available' | 'pending' | 'done' | 'failed'
   readonly sources: readonly WebSourceView[]
 }
 

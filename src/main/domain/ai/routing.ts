@@ -2,17 +2,21 @@ import type { Effort, Engine, TaskKind } from './types'
 
 export type RoutingTable = Readonly<Record<TaskKind, Engine>>
 
-/** Table par défaut (spec 001 FR-002) : tâches simples en local, raisonnement profond sur Claude. */
+/**
+ * Table par défaut (spec 001 FR-002, révisée le 2026-09-29 après mesure des coûts — T069) : tout ce que l'IA locale
+ * fait bien reste en local (questions suivantes, graines, liens) ; Claude garde la synthèse, la révision et la
+ * recherche web (impossible en local).
+ */
 export const DEFAULT_ROUTING: RoutingTable = {
   categoriser: 'ollama',
   resumer: 'ollama',
   anonymiser: 'ollama',
   briefing_texte: 'ollama',
-  etendre: 'claude',
+  etendre: 'ollama',
   synthetiser: 'claude',
   reviser: 'claude',
-  suggerer_liens: 'claude',
-  germer: 'claude',
+  suggerer_liens: 'ollama',
+  germer: 'ollama',
   suggerer: 'claude',
   // Recherche web : uniquement possible avec Claude (outil serveur).
   rechercher: 'claude'

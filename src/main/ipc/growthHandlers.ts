@@ -64,6 +64,11 @@ export function createGrowthRoutes(growth: GrowthService): IpcRoute[] {
       handler: async ({ suggestionId }) => growth.dismissSuggestion(suggestionId)
     }),
     defineRoute({
+      channel: 'growth:researchSuggestion',
+      input: z.object({ suggestionId: Id }).strict(),
+      handler: async ({ suggestionId }) => growth.researchSuggestion(suggestionId)
+    }),
+    defineRoute({
       channel: 'growth:promoteIdea',
       input: z.object({ neuronId: Id }).strict(),
       handler: async ({ neuronId }) => growth.promoteIdea(neuronId)

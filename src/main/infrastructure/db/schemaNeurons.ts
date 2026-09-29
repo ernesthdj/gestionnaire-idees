@@ -94,7 +94,7 @@ export const suggestions = sqliteTable(
     title: text('title').notNull(),
     content: text('content').notNull(),
     webQuery: text('web_query'),
-    research: text('research', { enum: ['none', 'pending', 'done', 'failed'] }).notNull(),
+    research: text('research', { enum: ['none', 'available', 'pending', 'done', 'failed'] }).notNull(),
     sourcesJson: text('sources_json').notNull().default('[]'),
     status: text('status', { enum: ['proposed', 'accepted', 'dismissed'] }).notNull(),
     acceptedNeuronId: text('accepted_neuron_id'),

@@ -7,8 +7,18 @@ describe('routing', () => {
     for (const kind of LOCAL_TASK_KINDS) expect(resolveEngine(kind, DEFAULT_ROUTING)).toBe('ollama')
   })
 
-  it('should_route_deep_reasoning_to_claude_when_using_defaults', () => {
-    for (const kind of REMOTE_TASK_KINDS) expect(resolveEngine(kind, DEFAULT_ROUTING)).toBe('claude')
+  it('should_route_deep_reasoning_and_web_search_to_claude_when_using_defaults', () => {
+    for (const kind of ['synthetiser', 'reviser', 'suggerer', 'rechercher'] as const) {
+      expect(resolveEngine(kind, DEFAULT_ROUTING)).toBe('claude')
+    }
+  })
+
+  it('should_keep_questions_seeds_and_links_on_the_local_engine_by_default_to_save_credits', () => {
+    // T069 : mesuré le 29/09, ces tâches coûtaient cher sur Claude et l'IA locale les fait déjà.
+    for (const kind of ['etendre', 'germer', 'suggerer_liens'] as const) {
+      expect(resolveEngine(kind, DEFAULT_ROUTING)).toBe('ollama')
+    }
+    expect(REMOTE_TASK_KINDS).toContain('etendre')
   })
 
   it('should_follow_configuration_when_routing_is_overridden', () => {

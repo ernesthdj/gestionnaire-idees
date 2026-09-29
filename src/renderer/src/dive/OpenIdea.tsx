@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { CategoryView, ConfirmView, SeedView } from '@shared/ipc/neurons'
+import type { CategoryView, ConfirmView, GrowthResultView, SeedView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 import { ideaTreeLayout, type Point } from '../canvas/ideaTreeLayout'
@@ -146,6 +146,16 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
     }
   }
 
+  // Vérification web à la demande (T069) : la suggestion passe « en cours », le résultat arrive par événement.
+  const research = async (suggestionId: string): Promise<void> => {
+    try {
+      const result = await call<GrowthResultView>('growth:researchSuggestion', { suggestionId })
+      client.setQueryData(['dive', rootId], result.tree)
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'La vérification web n’a pas pu démarrer.')
+    }
+  }
+
   // Supprimer le neurone ciblé ramène à son parent.
   const actions: DiveActions = {
     ...dive,
@@ -186,14 +196,16 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
     focus: (neuronId) => onFocus(neuronId),
     selectExtension: (extensionId) => setSelectedExtensionId(extensionId),
     acceptSuggestion: (suggestionId) => void dive.acceptSuggestion(suggestionId),
-    dismissSuggestion: (suggestionId) => void dive.dismissSuggestion(suggestionId)
+    dismissSuggestion: (suggestionId) => void dive.dismissSuggestion(suggestionId),
+    researchSuggestion: (suggestionId) => void research(suggestionId)
   }
   const stableActions = useMemo<OpenTreeActions>(
     () => ({
       focus: (id) => treeActions.current?.focus(id),
       selectExtension: (id) => treeActions.current?.selectExtension(id),
       acceptSuggestion: (id) => treeActions.current?.acceptSuggestion(id),
-      dismissSuggestion: (id) => treeActions.current?.dismissSuggestion(id)
+      dismissSuggestion: (id) => treeActions.current?.dismissSuggestion(id),
+      researchSuggestion: (id) => treeActions.current?.researchSuggestion(id)
     }),
     []
   )

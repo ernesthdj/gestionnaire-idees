@@ -31,8 +31,8 @@ describe('sorties IA des graines (FR-028)', () => {
     expect(GermerOut.parse({ seed: 'n’importe quoi' }).seed).toBeUndefined()
   })
 
-  it('should_route_germer_to_claude_with_low_effort', () => {
-    expect(resolveEngine('germer', DEFAULT_ROUTING)).toBe('claude')
+  it('should_route_germer_to_the_local_engine_with_low_effort', () => {
+    expect(resolveEngine('germer', DEFAULT_ROUTING)).toBe('ollama')
     expect(effortFor('germer')).toBe('low')
   })
 })

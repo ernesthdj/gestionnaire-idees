@@ -44,7 +44,7 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     expect(t.h.anonymized.at(-1)).toMatch(/Suggestions déjà faites[^]*Écran 27 pouces IPS/)
   })
 
-  it('should_verify_only_the_first_flagged_suggestion_on_the_web_then_show_its_sources', async () => {
+  it('should_verify_a_flagged_suggestion_on_the_web_only_when_asked_then_show_its_sources', async () => {
     t.h.claude.enqueueResearch({
       text: 'Compte 220 à 300 € pour un 27 pouces IPS.',
       sources: [{ url: 'https://exemple.be/ecrans', title: 'Comparatif écrans' }]
@@ -53,8 +53,13 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
       { neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Prix à vérifier.', webQuery: 'prix écran 27 IPS' },
       { neuronRef: 's0', title: 'Bras articulé', content: 'Libère le bureau.', webQuery: 'prix bras écran' }
     ])
-    expect(tree.suggestions.map((entry) => entry.research)).toEqual(['pending', 'none'])
+    // Plus de vérification automatique (T069) : vérifiable, à la demande.
+    expect(tree.suggestions.map((entry) => entry.research)).toEqual(['available', 'none'])
+    await t.growth.settled()
+    expect(t.h.claude.researchRequests).toHaveLength(0)
 
+    const started = t.growth.researchSuggestion(tree.suggestions[0]?.id ?? '')
+    expect(started.tree.suggestions[0]?.research).toBe('pending')
     await t.growth.settled()
     const [verified, plain] = t.growth.tree(tree.root.id).suggestions
     expect(verified).toMatchObject({
@@ -72,6 +77,7 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     const tree = await developedWith([
       { neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Prix à vérifier.', webQuery: 'prix écran 27 IPS' }
     ])
+    t.growth.researchSuggestion(tree.suggestions[0]?.id ?? '')
     await t.growth.settled() // aucune recherche scriptée : le faux moteur échoue
     expect(t.growth.tree(tree.root.id).suggestions[0]).toMatchObject({
       research: 'failed',

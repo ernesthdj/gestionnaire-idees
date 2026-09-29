@@ -24,7 +24,7 @@ export interface ClaudeOptions {
 }
 
 /** Modèles pour lesquels la bascule serveur en cas de refus est activée (research R3, vérification T024). */
-const SERVER_FALLBACK_MODELS = new Set(['claude-opus-5'])
+const SERVER_FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-opus-5'])
 
 /** Recherche localisée (prix en euros, magasins belges) sans rien révéler de plus précis que le pays. */
 const SEARCH_LOCATION = { type: 'approximate', country: 'BE', timezone: 'Europe/Brussels' } as const

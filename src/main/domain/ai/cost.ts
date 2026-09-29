@@ -19,9 +19,11 @@ function pricing(input: number, output: number): ModelPricing {
 }
 
 export const DEFAULT_PRICING: Readonly<Record<string, ModelPricing>> = {
+  'claude-opus-5-5': pricing(4, 20),
   'claude-opus-5': pricing(5, 25),
   // Cible possible de la bascule serveur en cas de refus (fallbacks « default »).
   'claude-opus-4-8': pricing(5, 25),
+  'claude-sonnet-5-5': pricing(2, 10),
   'claude-sonnet-5': pricing(2, 10),
   'claude-haiku-4-5': pricing(1, 5)
 }

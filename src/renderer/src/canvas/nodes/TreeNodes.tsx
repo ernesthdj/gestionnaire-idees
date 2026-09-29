@@ -24,6 +24,7 @@ export type TreeNodeData = {
   readonly selected: boolean
   readonly categoryColor: string
   readonly onDismiss: (suggestionId: string) => void
+  readonly onResearch: (suggestionId: string) => void
 }
 export type TreeNodeType = Node<TreeNodeData, 'tree'>
 
@@ -70,7 +71,9 @@ export function treeAriaLabel(placed: PlacedItem): string {
           ? ', vérification web en cours'
           : item.suggestion.research === 'done'
             ? ', vérifiée sur le web'
-            : ''
+            : item.suggestion.research === 'available'
+              ? ', vérifiable sur le web'
+              : ''
       return `Idée suggérée par l’IA : ${item.suggestion.title}${research}. Entrée pour l’accepter, Échap pour l’ignorer`
     }
     case 'slot':
@@ -167,6 +170,20 @@ export function TreeNode({ data }: NodeProps<TreeNodeType>): React.JSX.Element {
           >
             ×
           </button>
+          {item.suggestion.research === 'available' ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                data.onResearch(item.suggestion.id)
+              }}
+              aria-label={`Vérifier sur le web : ${item.suggestion.title}`}
+              title="Vérifier sur le web (utilise des crédits Claude)"
+              className="nodrag dive-ghost-research"
+            >
+              🔍
+            </button>
+          ) : null}
           {item.suggestion.sources.length > 0 ? (
             <div className="dive-sources">
               <Sources sources={item.suggestion.sources} />

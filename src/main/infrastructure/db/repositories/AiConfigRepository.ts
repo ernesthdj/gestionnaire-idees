@@ -17,12 +17,14 @@ export const AiConfigSchema = z.object({
     .nullable()
     .default(null),
   usdEurRate: z.number().min(0.5).max(2).default(0.92),
-  claudeModel: z.string().min(1).max(60).default('claude-opus-5'),
+  claudeModel: z.string().min(1).max(60).default('claude-opus-5-5'),
   localModel: z.string().min(1).max(80).default('qwen3.5:9b'),
   allowClaudeFallback: z.boolean().default(false),
   /** Montants exacts envoyés à Claude par défaut (choix de mentalyas, constitution v1.1.0). */
   maskAmounts: z.boolean().default(false),
-  routing: z.record(TaskKind, Engine).default({ ...DEFAULT_ROUTING })
+  routing: z.record(TaskKind, Engine).default({ ...DEFAULT_ROUTING }),
+  /** Révision des réglages par défaut déjà appliquée (voir `withRevision`). */
+  revision: z.number().int().min(1).default(1)
 })
 export type AiConfig = z.infer<typeof AiConfigSchema>
 
@@ -39,6 +41,24 @@ function withNewTaskKinds(stored: unknown): unknown {
   return { ...stored, routing: { ...DEFAULT_ROUTING, ...routing } }
 }
 
+/** Révision 2 (2026-09-29, T069) : économies décidées par mentalyas après mesure des coûts. */
+export const CONFIG_REVISION = 2
+
+/**
+ * Applique une seule fois les nouveaux défauts aux réglages enregistrés avant eux : questions, graines et liens
+ * en local, `claude-opus-5` → `claude-opus-5-5` (20 % moins cher). Un choix fait ensuite dans Réglages › IA est
+ * enregistré avec la révision courante et n'est plus jamais modifié.
+ */
+function withRevision(config: AiConfig): AiConfig {
+  if (config.revision >= CONFIG_REVISION) return config
+  return {
+    ...config,
+    revision: CONFIG_REVISION,
+    claudeModel: config.claudeModel === 'claude-opus-5' ? 'claude-opus-5-5' : config.claudeModel,
+    routing: { ...config.routing, etendre: 'ollama', germer: 'ollama', suggerer_liens: 'ollama' }
+  }
+}
+
 /** Configuration stockée comme un seul document JSON validé à la lecture et à l'écriture. */
 export class AiConfigRepository {
   constructor(private readonly db: AppDatabase) {}
@@ -52,7 +72,7 @@ export class AiConfigRepository {
     const stored: unknown = row === undefined ? {} : JSON.parse(row.valueJson)
     const parsed = AiConfigSchema.safeParse(withNewTaskKinds(stored))
     // Document corrompu ou d'une ancienne version : on repart des valeurs par défaut plutôt que de planter.
-    return parsed.success ? parsed.data : AiConfigSchema.parse({})
+    return withRevision(parsed.success ? parsed.data : AiConfigSchema.parse({}))
   }
 
   update(patch: Partial<AiConfig>): AiConfig {

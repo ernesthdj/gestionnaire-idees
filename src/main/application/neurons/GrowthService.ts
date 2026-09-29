@@ -351,7 +351,7 @@ export class GrowthService {
       ...repository.knownSuggestions(rootId),
       ...nodes.map((node) => node.title)
     ])
-    const suggestionIds = repository.transaction(() => {
+    repository.transaction(() => {
       repository.insertExtensions(rootId, targetId, kept)
       const answered = repository.answeredCount(rootId)
       repository.insertAssessment({
@@ -372,9 +372,6 @@ export class GrowthService {
         }))
       )
     })
-    suggestionIds.forEach((id, index) => {
-      if (suggested[index]?.research === true) this.researchInBackground(rootId, id)
-    })
 
     const notice =
       mode === 'first' && kept.length < MIN_EXTENSIONS
@@ -386,7 +383,22 @@ export class GrowthService {
     return this.finish(rootId, notice)
   }
 
-  /** Vérification web d'une suggestion, sans bloquer la croissance : le fantôme est mis à jour à la fin. */
+  /**
+   * Vérifie une suggestion sur le web, à la demande de l'utilisateur (T069 : la vérification automatique coûtait
+   * 64 % de la dépense). La recherche tourne en arrière-plan ; le fantôme est mis à jour à la fin.
+   */
+  researchSuggestion(suggestionId: string): GrowthResult {
+    const { repository } = this.deps
+    const suggestion = repository.suggestion(suggestionId)
+    if (suggestion === undefined) throw new AppError('NOT_FOUND', 'Suggestion introuvable')
+    if (suggestion.webQuery === null)
+      throw new AppError('VALIDATION', 'Cette suggestion n’a rien à vérifier sur le web')
+    repository.startResearch(suggestionId)
+    this.researchInBackground(suggestion.rootId, suggestionId)
+    return { tree: this.tree(suggestion.rootId) }
+  }
+
+  /** Vérification web d'une suggestion, sans bloquer : le fantôme est mis à jour à la fin. */
   private researchInBackground(rootId: string, suggestionId: string): void {
     const { repository, gateway } = this.deps
     const suggestion = repository.suggestion(suggestionId)

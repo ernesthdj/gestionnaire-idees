@@ -284,3 +284,28 @@
 **Question de mentalyas :** « comment je fais pour faire éclore la suggestion d'idée ? » — ce n'était pas possible : « Verrouiller » portait (sans le dire) sur l'idée principale.
 **Résumé :** quand un losange est ciblé, le volet propose « Faire éclore cette idée » : le neurone lui-même devient une idée de la carte (racine, brute, nature et catégorie de son idée d'origine), ses sous-neurones le suivent (profondeurs recalculées), ses questions et suggestions aussi ; il garde titre, conseils et place, est relié à son idée d'origine (lien sans libellé), et s'ouvre aussitôt ; l'idée d'origine change de version (un aperçu en cours devient périmé). Lot `promote` annulable : chaque neurone déplacé reprend sa place d'avant (« Idée remise dans son arbre »), rétablissable. « Verrouiller « titre » 🔒 » nomme toujours l'idée qui éclôt.
 **Choix :** transformation sur place (le losange devient la racine) plutôt qu'une copie : rien n'est dupliqué, les sources web et l'historique suivent, et l'annulation n'a qu'à rétablir la « place » de chaque neurone (module `placement.ts` partagé entre l'action et l'historique).
+
+### [2026-09-29 20:00] DOCS — enquête sur la consommation API (T069) : constat mesuré
+**Fichiers :** `scripts/ai-usage.cjs` (outil de développement, lecture seule : `npx electron scripts/ai-usage.cjs [--demo]`)
+**Mesure (table `ai_calls`, profil principal, 29/09 de 13 h à 15 h UTC, tests manuels) :** 107 appels Claude = **4,56 €** (tous sur `claude-opus-5`) ; 119 appels locaux gratuits (anonymiser, catégoriser).
+| Tâche | Appels | Coût | Part | Coût moyen |
+|---|---|---|---|---|
+| `rechercher` (vérification web des suggestions) | 44 | 2,90 € | 64 % | 0,066 € |
+| `etendre` (questions suivantes) | 53 | 1,47 € | 32 % | 0,028 € |
+| `synthetiser` | 2 | 0,15 € | 3 % | 0,077 € |
+| `germer` | 4 | 0,04 € | 1 % | 0,009 € |
+Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, `germer`, `suggerer_liens`, `synthetiser`) acceptés, 0 €.
+**Causes :** chaque suggestion d'idée portant une requête web déclenche automatiquement une vérification (2 recherches + lecture des pages ≈ 1 M de tokens lus au total), même si l'utilisateur ne la regarde pas ; `etendre` part après chaque réponse sur le modèle le plus cher.
+**Tarifs vérifiés (doc API, 2026-09-25) :** Opus 5 5/25 $ par MTok, Opus 5.5 4/20 $, Sonnet 5.5 2/10 $, Haiku 4.5 1/5 $ ; recherche web 0,01 $.
+**Délégable à l'IA locale :** `etendre`, `germer`, `suggerer_liens` (déjà prouvés en démo, qualité des questions à juger) ; à garder sur Claude : `synthetiser`/`reviser` (qualité du plan, coût faible) ; impossible en local : `rechercher` (outil web de Claude) → à rendre « à la demande ». Décisions à prendre par mentalyas.
+
+### [2026-09-29 20:30] PERF — économies de crédits API appliquées (T069, décisions de mentalyas)
+**Fichiers :** `src/main/domain/ai/{routing,cost}.ts`, `AiConfigRepository.ts` (révision 2), `src/shared/ipc/{ai,neurons,channels}.ts`, `ClaudeProvider.ts`, `GrowthService.ts` + `GrowthRepository.ts` + `growthHandlers.ts` (`growth:researchSuggestion`), `schemaNeurons.ts`, `src/renderer/src/{canvas/{nodes/TreeNodes,treeGraph,treeStore}.ts(x),dive/{OpenIdea.tsx,dive.css},pages/settings/ai/AiSettingsPage.tsx}`, `scripts/ai-usage.cjs`, tests (551)
+**Décisions (sur la mesure du 29/09 : 4,56 € dont 64 % de vérification web automatique et 32 % de questions sur Opus 5) :**
+1. **Vérification web à la demande** : une suggestion qui porte une requête web est « vérifiable » (nouvel état `available`), plus rien n'est lancé automatiquement ; bouton 🔍 « Vérifier sur le web » sur l'idée suggérée (`growth:researchSuggestion`), qui n'accepte pas l'idée.
+2. **Questions suivantes, graines et liens sur l'IA locale** par défaut (`etendre`, `germer`, `suggerer_liens` → Ollama) ; Claude garde synthèse, révision, suggestions et recherche web.
+3. **`claude-opus-5-5` par défaut** (4/20 $ au lieu de 5/25 $, tarifs vérifiés dans la doc API) ; Réglages › IA proposent Opus 5.5, Sonnet 5.5, Haiku 4.5 (et Opus 5 pour l'existant) ; repli serveur en cas de refus étendu à Opus 5.5 et Sonnet 5.5. Compatibilité vérifiée : réflexion adaptative, effort explicite, pas de choix d'outil forcé ni de pré-remplissage.
+4. **Révision des réglages enregistrés** (une seule fois) : questions/graines/liens en local et Opus 5 → 5.5 ; un choix fait ensuite dans Réglages › IA est respecté.
+**Tests :** le harnais du moteur garde un routage « tout Claude » explicite (`TEST_ROUTING`, réponses scénarisées) ; le routage réel et la révision sont testés à part.
+**Point d'attention :** si Ollama n'est pas lancé, les questions échouent avec un message clair ; le repli vers Claude n'est actif que si « Autoriser Claude en secours » est coché dans Réglages › IA (désactivé par défaut, confidentialité).
+**Suivi :** refaire le bilan (`npx electron scripts/ai-usage.cjs`) après la prochaine séance de tests pour mesurer le gain réel.

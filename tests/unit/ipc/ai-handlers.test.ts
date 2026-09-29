@@ -59,12 +59,12 @@ describe('canaux ai:*', () => {
 
   it('should_update_only_allowed_fields_when_setting_config', async () => {
     const h = make()
-    await expect(h.dispatch('ai:setConfig', { capCents: 2000, claudeModel: 'claude-sonnet-5' })).resolves.toMatchObject(
-      {
-        success: true,
-        data: { capCents: 2000, claudeModel: 'claude-sonnet-5' }
-      }
-    )
+    await expect(
+      h.dispatch('ai:setConfig', { capCents: 2000, claudeModel: 'claude-sonnet-5-5' })
+    ).resolves.toMatchObject({
+      success: true,
+      data: { capCents: 2000, claudeModel: 'claude-sonnet-5-5' }
+    })
     await expect(h.dispatch('ai:getConfig', undefined)).resolves.toMatchObject({ data: { maskAmounts: false } })
     await expect(h.dispatch('ai:setConfig', { maskAmounts: true })).resolves.toMatchObject({
       data: { maskAmounts: true }
