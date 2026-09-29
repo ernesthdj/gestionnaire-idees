@@ -13,7 +13,8 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   ['neuron:thought', [['canvas'], ['dive']]],
   ['synthesis:stale', [['dive'], ['pending']]],
   ['suggestion:updated', [['dive']]],
-  ['links:suggested', [['canvas'], ['pending'], ['history']]]
+  ['links:suggested', [['canvas'], ['pending'], ['history']]],
+  ['seeds:suggested', [['canvas'], ['seeds']]]
 ]
 
 function isNavigateEvent(payload: unknown): payload is NavigateEvent {

@@ -38,6 +38,16 @@ export class NeuronService {
   constructor(private readonly deps: { readonly repository: NeuronRepository; readonly gateway: AIGateway }) {}
 
   async create(input: CreateNeuronInput): Promise<RootView> {
+    const id = this.insert(input)
+    this.categorizeInBackground(id)
+    return this.rootOrThrow(id)
+  }
+
+  /**
+   * Insertion seule, synchrone : utilisable dans une transaction plus large (idée née d'une graine). L'appelant
+   * lance `categorizeInBackground` une fois la transaction validée.
+   */
+  insert(input: CreateNeuronInput & { readonly position?: { readonly x: number; readonly y: number } }): string {
     const text = input.text.trim()
     if (text === '') throw new AppError('VALIDATION', 'Le texte de l’idée est vide')
     const id = randomUUID()
@@ -46,10 +56,10 @@ export class NeuronService {
       title: titleOf(text),
       content: /\r?\n/.test(text) ? text : null,
       nature: input.nature ?? 'reflection',
-      natureSource: input.nature === undefined ? null : 'user'
+      natureSource: input.nature === undefined ? null : 'user',
+      position: input.position ?? null
     })
-    this.categorizeInBackground(id, text)
-    return this.rootOrThrow(id)
+    return id
   }
 
   getTree(rootId: string): TreeView {
@@ -104,7 +114,11 @@ export class NeuronService {
     await Promise.all([...this.inFlight])
   }
 
-  private categorizeInBackground(id: string, text: string): void {
+  /** Nature et catégorie proposées par l'IA locale, sans bloquer ; jamais par-dessus un choix de l'utilisateur. */
+  categorizeInBackground(id: string): void {
+    const root = this.deps.repository.root(id)
+    if (root === undefined) return
+    const text = root.content ?? root.title
     const task = this.deps.gateway
       .run({
         kind: 'categoriser',

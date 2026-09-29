@@ -5,6 +5,7 @@ export const REMOTE_TASK_KINDS = [
   'synthetiser',
   'reviser',
   'suggerer_liens',
+  'germer',
   'suggerer',
   'rechercher'
 ] as const

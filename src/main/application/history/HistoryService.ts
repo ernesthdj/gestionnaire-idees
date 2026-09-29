@@ -8,8 +8,8 @@ import type {
   Snapshot
 } from '../../infrastructure/db/repositories/HistoryRepository'
 
-/** Types de lots annulables : éclosion, décisions de liens, et une annulation (qui se rétablit). */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'undo'])
+/** Types de lots annulables : éclosion, décisions de liens, graine acceptée, et une annulation (qui se rétablit). */
+const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'undo'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 const UNCHECKED = new Set(['plan_dependency', 'example'])
 
@@ -18,7 +18,8 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   synthesis: 'La synthèse a changé depuis.',
   plan_node: 'Le plan a été remplacé depuis.',
   reflection_summary: 'La synthèse de réflexion a été remplacée depuis.',
-  neuron_link: 'Ce lien a été modifié depuis.'
+  neuron_link: 'Ce lien a été modifié depuis.',
+  link_seed: 'Cette graine a changé depuis (son lien a peut-être été supprimé).'
 }
 
 /** L'état actuel correspond-il à celui laissé par le lot ? (clés communes seulement ; `null` = absent). */
@@ -134,7 +135,13 @@ export class HistoryService {
         return head.after?.['state'] === 'developing' ? `Réouverture de ${title()}` : `Modification de ${title()}`
       case 'link':
         return this.linkSummary(head)
+      case 'seed':
+        return `Graine acceptée : ${title()}`
       case 'undo': {
+        const seed = entries.find((entry) => entry.entity === 'link_seed')
+        if (seed !== undefined) {
+          return seed.after?.['status'] === 'accepted' ? `Graine rétablie : ${title()}` : `Graine annulée : ${title()}`
+        }
         const neuron = entries.find((entry) => entry.entity === 'neuron')
         if (neuron !== undefined) {
           return neuron.after?.['state'] === 'hatched'

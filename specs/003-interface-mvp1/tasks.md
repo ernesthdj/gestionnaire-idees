@@ -103,6 +103,18 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 
 ---
 
+## Phase 6b: Graines d'idées sur les liens (FR-028, ajout 2026-09-29)
+
+**G2 — moteur**
+- [x] T052 [P] Migration `0007_link_seeds` (+ down) : table `link_seeds` (lien, titre, pourquoi, origine, statut, idée née, empreinte ; une graine par lien) + `LinkSeedRepository`
+- [x] T053 [P] `SuggererLiensOut` : graine facultative par lien (tolérante : graine mal formée écartée, lien gardé) + consigne ; nouveau type `germer` (lien créé par l'utilisateur, 0 ou 1 graine) `tests/unit/ai/seeds-output.test.ts`
+- [x] T054 `SeedService` : enregistrement à l'éclosion, `germer` en arrière-plan après `link:create`, `seed:list`, `seed:accept` (idée brute entre ses parents, transaction + `change_log`), `seed:reject` ; annulation par `HistoryService` `tests/integration/seeds/seeds.test.ts`
+
+**G3 — interface**
+- [ ] T055 Pastille 🌱 sur les liens acceptés (`LinkEdge`) : titre/pourquoi au survol ou au focus, ✓ / ✗, clavier ; idée née placée au milieu du lien dans le réseau, pousse 250 ms ; « née de A × B » dans la plongée `tests/unit/renderer/seeds.test.tsx`
+
+---
+
 ## Phase 7: User Story 5 — Neurones éclos : suivi, lecture, réouverture, export (Priority: P2)
 
 - [ ] T034 [P] [US5] Tests `computeStatuses` (après/déclencheur/branches inactives/statuts utilisateur, cascade) `tests/unit/plan/statuses.test.ts`

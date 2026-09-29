@@ -6,6 +6,7 @@ import { FusionService, type FusionEvent } from '../../src/main/application/neur
 import { GrowthService } from '../../src/main/application/neurons/GrowthService'
 import { LinkService, type LinkEvent } from '../../src/main/application/neurons/LinkService'
 import { NeuronService } from '../../src/main/application/neurons/NeuronService'
+import { SeedService, type SeedEvent } from '../../src/main/application/neurons/SeedService'
 import { SynthesisApplier } from '../../src/main/application/neurons/SynthesisApplier'
 import { openDatabase, type DatabaseHandle } from '../../src/main/infrastructure/db/client'
 import { ContextRepository } from '../../src/main/infrastructure/db/repositories/ContextRepository'
@@ -45,6 +46,8 @@ interface Services {
   readonly fusionRepository: FusionRepository
   readonly examples: ExampleStore
   readonly links: LinkService
+  readonly seeds: SeedService
+  readonly linkRepository: LinkRepository
 }
 
 export interface NeuronHarness {
@@ -55,7 +58,9 @@ export interface NeuronHarness {
   readonly fusionRepository: FusionRepository
   readonly examples: ExampleStore
   readonly links: LinkService
-  readonly events: (FusionEvent | LinkEvent)[]
+  readonly seeds: SeedService
+  readonly linkRepository: LinkRepository
+  readonly events: (FusionEvent | LinkEvent | SeedEvent)[]
   /** Nombre d'appels Claude déjà faits au moment de chaque événement (même index que `events`). */
   readonly claudeCallsAtEvent: number[]
   readonly handle: DatabaseHandle
@@ -71,11 +76,11 @@ export function createNeuronHarness(): NeuronHarness {
   let handle = openDatabase({ file, key, migrationsFolder: MIGRATIONS })
   const h = createGatewayHarness()
   h.ollama.setAvailable(false) // catégorisation hors sujet ici : l'IA locale reste arrêtée
-  const events: (FusionEvent | LinkEvent)[] = []
+  const events: (FusionEvent | LinkEvent | SeedEvent)[] = []
   const claudeCallsAtEvent: number[] = []
 
   const build = (db: DatabaseHandle): Services => {
-    const emit = (event: FusionEvent | LinkEvent): void => {
+    const emit = (event: FusionEvent | LinkEvent | SeedEvent): void => {
       events.push(event)
       claudeCallsAtEvent.push(h.claude.requests.length)
     }
@@ -92,7 +97,9 @@ export function createNeuronHarness(): NeuronHarness {
       examples,
       onStale: (row) => emit({ type: 'synthesis:stale', rootId: row.rootId, synthesisId: row.id })
     })
-    const links = new LinkService({ repository: new LinkRepository(db.db), gateway: h.gateway, examples, emit })
+    const linkRepository = new LinkRepository(db.db)
+    const seeds = new SeedService({ repository: linkRepository, neurons, gateway: h.gateway, examples, emit })
+    const links = new LinkService({ repository: linkRepository, gateway: h.gateway, examples, seeds, emit })
     const fusion = new FusionService({
       repository: fusionRepository,
       tree,
@@ -102,7 +109,7 @@ export function createNeuronHarness(): NeuronHarness {
       links,
       emit
     })
-    return { neurons, growth, fusion, fusionRepository, examples, links }
+    return { neurons, growth, fusion, fusionRepository, examples, links, seeds, linkRepository }
   }
 
   const services = build(handle)

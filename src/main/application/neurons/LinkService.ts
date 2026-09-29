@@ -13,6 +13,7 @@ import {
 import type { LinkRepository, LinkRow } from '../../infrastructure/db/repositories/LinkRepository'
 import type { AIGateway } from '../ai/AIGateway'
 import type { ExampleStore } from '../ai/ExampleStore'
+import type { SeedService } from './SeedService'
 
 export type LinkEvent = { readonly type: 'links:suggested'; readonly rootId: string; readonly count: number }
 
@@ -22,6 +23,8 @@ export interface LinkDependencies {
   readonly repository: LinkRepository
   readonly gateway: AIGateway
   readonly examples: ExampleStore
+  /** Graines portées par les liens (FR-028). */
+  readonly seeds: Pick<SeedService, 'record' | 'germinateInBackground'>
   readonly emit: (event: LinkEvent) => void
 }
 
@@ -81,7 +84,7 @@ export class LinkService {
       const fingerprint = linkFingerprint(rootId, candidate.fiche.id, proposal.label)
       if (known.has(fingerprint)) continue // déjà proposée, acceptée ou refusée
       const [a, b] = orderedPair(rootId, candidate.fiche.id)
-      repository.insert({
+      const linkId = repository.insert({
         aRootId: a,
         bRootId: b,
         label: proposal.label,
@@ -90,6 +93,7 @@ export class LinkService {
         status: 'suggested',
         fingerprint
       })
+      if (proposal.seed !== undefined) this.deps.seeds.record(linkId, proposal.seed)
       known.set(fingerprint, 'suggested')
       count++
     }
@@ -151,6 +155,7 @@ export class LinkService {
       ])
       return created
     })
+    this.deps.seeds.germinateInBackground(id)
     return this.viewOf(id)
   }
 

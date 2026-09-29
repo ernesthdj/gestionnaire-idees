@@ -130,6 +130,23 @@ export interface LinkView {
   readonly createdAt: string
 }
 
+export type SeedStatus = 'suggested' | 'accepted' | 'rejected'
+
+/** Graine d'un lien (spec 003 FR-028) : en attente sur un lien accepté, ou acceptée (`bornRootId`). */
+export interface SeedView {
+  readonly id: string
+  readonly linkId: string
+  readonly title: string
+  readonly why: string
+  readonly status: SeedStatus
+  readonly bornRootId: string | null
+  /** Les deux idées reliées : l'idée née est « née de A × B ». */
+  readonly parents: readonly [
+    { readonly id: string; readonly title: string },
+    { readonly id: string; readonly title: string }
+  ]
+}
+
 /** Réponse des canaux `growth:*` : l'arbre à jour et, éventuellement, un avertissement à montrer. */
 export interface GrowthResultView {
   readonly tree: TreeView

@@ -16,6 +16,15 @@ const SYNTHESIS_RULES = [
   '- Phrases courtes, tutoiement, dans la langue de l’utilisateur.'
 ].join('\n')
 
+const SEED_RULES = [
+  'Graine (facultative, au plus une par lien) : une idée NOUVELLE qui naît de la rencontre des deux idées reliées',
+  '  et qu’aucune des deux ne contient seule (ex. « acompte du mariage » × « écran photo » → « Faire financer',
+  '  l’écran par la prochaine mission »). Pas de reformulation ni de simple fusion ; aucune graine vaut mieux',
+  '  qu’une graine banale.',
+  '- seed.title = l’idée en une phrase courte, à l’infinitif ou nominale ; seed.why = une phrase qui dit ce que',
+  '  chacune des deux idées apporte.'
+].join('\n')
+
 /**
  * Consignes propres à chaque type de tâche, ajoutées après le cadre système (bloc stable, mis en cache).
  * Les tâches de raisonnement (etendre, synthetiser, reviser) reçoivent les leurs avec la spec 002.
@@ -67,7 +76,12 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     '- Propose 0 à 3 liens, seulement s’ils sont réellement utiles (ressource commune, dépendance, même objectif,',
     '  l’une finance ou débloque l’autre). Aucun lien vaut mieux qu’un lien forcé.',
     '- targetAlias = alias de la candidate ; label = 1 à 3 mots (ex. « financement », « photo ») ;',
-    '  justification = une phrase qui explique le lien avec les éléments des fiches.'
+    '  justification = une phrase qui explique le lien avec les éléments des fiches.',
+    SEED_RULES
+  ].join('\n'),
+  germer: [
+    'Deux idées de l’utilisateur viennent d’être reliées (fiches A et B, et le libellé du lien).',
+    SEED_RULES
   ].join('\n'),
   rechercher: [
     'Tu vérifies sur le web une suggestion faite à l’utilisateur (2 recherches au plus).',

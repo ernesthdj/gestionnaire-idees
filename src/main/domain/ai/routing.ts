@@ -12,6 +12,7 @@ export const DEFAULT_ROUTING: RoutingTable = {
   synthetiser: 'claude',
   reviser: 'claude',
   suggerer_liens: 'claude',
+  germer: 'claude',
   suggerer: 'claude',
   // Recherche web : uniquement possible avec Claude (outil serveur).
   rechercher: 'claude'
@@ -24,6 +25,7 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   briefing_texte: 'low',
   etendre: 'low',
   suggerer_liens: 'medium',
+  germer: 'low',
   synthetiser: 'high',
   reviser: 'high',
   suggerer: 'high',
@@ -37,6 +39,7 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   briefing_texte: 1000,
   etendre: 4000,
   suggerer_liens: 2000,
+  germer: 1000,
   synthetiser: 16000,
   reviser: 16000,
   suggerer: 8000,

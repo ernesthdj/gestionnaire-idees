@@ -114,15 +114,30 @@ export const ReflectionSummaryOut = z.object({
 })
 export type ReflectionSummaryOut = z.infer<typeof ReflectionSummaryOut>
 
+/** Graine (spec 003 FR-028) : une idée nouvelle née de la rencontre de deux idées reliées. */
+export const SeedOut = z.object({
+  title: z.string().min(1).max(120),
+  why: z.string().min(1).max(200)
+})
+export type SeedOut = z.infer<typeof SeedOut>
+
+/** Graine facultative : mal formée, elle est ignorée sans faire rejeter le reste de la réponse. */
+const optionalSeed = SeedOut.optional().catch(undefined)
+
 export const SuggererLiensOut = z.object({
   links: z
     .array(
       z.object({
         targetAlias: z.string().regex(/^N([1-9]|10)$/),
         label: z.string().min(1).max(40),
-        justification: z.string().min(1).max(200)
+        justification: z.string().min(1).max(200),
+        seed: optionalSeed
       })
     )
     .max(3)
 })
 export type SuggererLiensOut = z.infer<typeof SuggererLiensOut>
+
+/** `germer` : 0 ou 1 graine pour un lien que l'utilisateur vient de créer. */
+export const GermerOut = z.object({ seed: optionalSeed })
+export type GermerOut = z.infer<typeof GermerOut>

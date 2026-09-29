@@ -211,13 +211,31 @@ export const neuronLinks = sqliteTable(
   (t) => [index('neuron_links_status_idx').on(t.status), index('neuron_links_fingerprint_idx').on(t.fingerprint)]
 )
 
+/**
+ * Graine d'idée portée par un lien (spec 003 FR-028) : une seule par lien, jamais reproposée une fois refusée.
+ * Acceptée, elle devient une idée brute (`bornRootId`) « née de A × B ».
+ */
+export const linkSeeds = sqliteTable('link_seeds', {
+  id: text('id').primaryKey(),
+  linkId: text('link_id')
+    .notNull()
+    .unique()
+    .references(() => neuronLinks.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  why: text('why').notNull(),
+  status: text('status', { enum: ['suggested', 'accepted', 'rejected'] }).notNull(),
+  bornRootId: text('born_root_id').references(() => neurons.id),
+  createdAt: createdAt(),
+  decidedAt: text('decided_at')
+})
+
 /** Historique append-only, groupé par lot (annulation, spec 003). */
 export const changeLog = sqliteTable(
   'change_log',
   {
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
-    kind: text('kind', { enum: ['confirm_synthesis', 'manual_edit', 'link', 'undo'] }).notNull(),
+    kind: text('kind', { enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'undo'] }).notNull(),
     entity: text('entity').notNull(),
     entityId: text('entity_id').notNull(),
     beforeJson: text('before_json'),

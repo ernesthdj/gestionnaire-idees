@@ -46,6 +46,9 @@ export const MAIN_WINDOW_CHANNELS = [
   'links:create',
   'links:update',
   'links:delete',
+  'seeds:list',
+  'seeds:accept',
+  'seeds:reject',
   'canvas:get',
   'canvas:savePositions',
   'canvas:createBlock',
@@ -70,7 +73,8 @@ export const MAIN_WINDOW_EVENTS = [
   'neuron:thought',
   'synthesis:stale',
   'suggestion:updated',
-  'links:suggested'
+  'links:suggested',
+  'seeds:suggested'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

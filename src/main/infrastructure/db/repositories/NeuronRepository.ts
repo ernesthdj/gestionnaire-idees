@@ -86,6 +86,7 @@ export class NeuronRepository {
     content: string | null
     nature: Nature
     natureSource: Source | null
+    position?: { readonly x: number; readonly y: number } | null
   }): void {
     this.db
       .insert(neurons)
@@ -98,7 +99,9 @@ export class NeuronRepository {
         origin: 'user',
         nature: input.nature,
         natureSource: input.natureSource,
-        state: 'raw'
+        state: 'raw',
+        posX: input.position?.x ?? null,
+        posY: input.position?.y ?? null
       })
       .run()
   }

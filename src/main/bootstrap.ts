@@ -9,6 +9,7 @@ import { ExampleStore } from './application/ai/ExampleStore'
 import { FusionService } from './application/neurons/FusionService'
 import { GrowthService } from './application/neurons/GrowthService'
 import { LinkService } from './application/neurons/LinkService'
+import { SeedService } from './application/neurons/SeedService'
 import { NeuronService } from './application/neurons/NeuronService'
 import { SynthesisApplier } from './application/neurons/SynthesisApplier'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
@@ -37,6 +38,7 @@ import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
 import { createLinkRoutes } from './ipc/linkHandlers'
+import { createSeedRoutes } from './ipc/seedHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import type { MainWindowEvent } from '@shared/ipc/channels'
@@ -140,10 +142,18 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (event) => broadcast(event.type, event)
   })
   const linkRepository = new LinkRepository(database.db)
+  const seeds = new SeedService({
+    repository: linkRepository,
+    neurons,
+    gateway: ai.gateway,
+    examples,
+    emit: (event) => broadcast(event.type, event)
+  })
   const links = new LinkService({
     repository: linkRepository,
     gateway: ai.gateway,
     examples,
+    seeds,
     emit: (event) => broadcast(event.type, event)
   })
   const fusionRepository = new FusionRepository(database.db)
@@ -186,6 +196,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createGrowthRoutes(growth),
       ...createFusionRoutes(fusion),
       ...createLinkRoutes(links),
+      ...createSeedRoutes(seeds),
       ...createCanvasRoutes(
         new CanvasService({
           neurons: neuronRepository,

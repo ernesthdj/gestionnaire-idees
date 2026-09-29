@@ -3,9 +3,9 @@ import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
 import type { AppDatabase } from '../client'
 import { examples } from '../schema'
-import { changeLog, neuronLinks, neurons, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
+import { changeLog, linkSeeds, neuronLinks, neurons, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
 
-export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'undo'
+export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'undo'
 
 export interface ChangeRow {
   readonly id: string
@@ -147,6 +147,15 @@ export class HistoryRepository {
           .from(neurons)
           .where(eq(neurons.id, id))
           .get()
+        // Une idée archivée est « retirée » (ex. idée née d'une graine dont l'acceptation a été annulée).
+        return row === undefined || row.state === 'archived' ? null : row
+      }
+      case 'link_seed': {
+        const row = this.db
+          .select({ status: linkSeeds.status, bornRootId: linkSeeds.bornRootId })
+          .from(linkSeeds)
+          .where(eq(linkSeeds.id, id))
+          .get()
         return row ?? null
       }
       case 'synthesis': {
@@ -194,15 +203,40 @@ export class HistoryRepository {
   apply(entity: string, id: string, target: Snapshot): void {
     switch (entity) {
       case 'neuron': {
-        if (target === null) return
+        const now = new Date().toISOString()
+        if (target === null) {
+          // Retrait réversible : l'idée est archivée, jamais supprimée (un rétablissement la fait revenir).
+          this.db
+            .update(neurons)
+            .set({ state: 'archived', archivedAt: now, updatedAt: now })
+            .where(eq(neurons.id, id))
+            .run()
+          return
+        }
         this.db
           .update(neurons)
           .set({
-            ...(typeof target['state'] === 'string' ? { state: target['state'] as 'developing' | 'hatched' } : {}),
+            ...(typeof target['state'] === 'string'
+              ? { state: target['state'] as 'raw' | 'developing' | 'hatched', archivedAt: null }
+              : {}),
             ...(typeof target['version'] === 'number' ? { version: target['version'] } : {}),
-            updatedAt: new Date().toISOString()
+            updatedAt: now
           })
           .where(eq(neurons.id, id))
+          .run()
+        return
+      }
+      case 'link_seed': {
+        if (target === null || typeof target['status'] !== 'string') return
+        const status = target['status'] as 'suggested' | 'accepted'
+        this.db
+          .update(linkSeeds)
+          .set({
+            status,
+            bornRootId: typeof target['bornRootId'] === 'string' ? target['bornRootId'] : null,
+            decidedAt: status === 'suggested' ? null : new Date().toISOString()
+          })
+          .where(eq(linkSeeds.id, id))
           .run()
         return
       }
