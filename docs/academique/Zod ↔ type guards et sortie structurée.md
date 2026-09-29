@@ -48,3 +48,15 @@ statut: complet
 **Question d'oral probable** : « Pourquoi ne pas faire confiance à la sortie structurée de Claude puisqu'elle est contrainte ? » → Parce que la contrainte vient d'un service externe (et Ollama peut renvoyer autre chose), qu'un refus ou une troncature (`max_tokens`) reste possible, et que la constitution III impose de valider toute réponse IA avant usage — défense en profondeur.
 
 **Lien avec la suite** : [[IPC typé — le guichet unique entre interface et moteur]] et [[Passerelle IA hybride — un seul point d'accès à l'IA]] — les deux frontières où ce schéma travaille.
+
+## Évolution du 29/09 — sortie tolérante : réparer ou élaguer plutôt que tout rejeter
+**Constat réel** (qwen3.5:9b, profil démo sans clé Claude) : Ollama impose la **structure** JSON mais pas les **motifs** (`regex`) — le modèle renvoyait `"neuronRef": "[s2]"` ou `"expectedDate": "2023-11"`, et **toute** la réponse était rejetée (1 essai sur 3 accepté).
+**Correction** (`src/shared/ai/neurons.ts`), sans changer le JSON Schema envoyé au modèle :
+
+| Outil Zod | Effet | Exemple |
+|-----------|-------|---------|
+| `z.preprocess(fn, schema)` | transformer la valeur **avant** validation | `unbracket` : « [s2] » → « s2 » |
+| `lenientList(item, max)` | filtrer les éléments invalides **un par un**, puis borner | une question mal formée est écartée, les autres gardées |
+| `.catch(undefined)` | remplacer une valeur facultative invalide par « absente » | date `2023-11` ignorée au lieu de tout rejeter |
+
+Résultat mesuré : **5 réponses sur 5** acceptées. **Limite volontaire** : on ne répare que ce qui est **sans risque** (champ facultatif, élément de liste indépendant) ; les champs obligatoires et les contrôles métier restent stricts. Règle apprise : *une sortie d'IA imparfaite se répare ou s'élague élément par élément quand c'est sans risque ; mesurer sur le vrai modèle avant de conclure.*

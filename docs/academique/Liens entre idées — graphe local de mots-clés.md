@@ -101,3 +101,8 @@ export function rankCandidates(target: Fiche, others: readonly Fiche[]): RankedC
 - [[Budget IA — convertir des tokens en euros]] — pourquoi économiser les tokens.
 - [[Glossaire — Empreinte SHA-256]] — la fonction d'empreinte.
 - [[Glossaire — FTS5 (recherche plein texte)]] — l'autre recherche locale du projet.
+
+## Évolution du 29/09 — liens dessinés, discrets, et « graines » décidées
+- **Affichage** : les liens acceptés sont dessinés sur la carte (trait fin et pâle) ; leur **libellé n'apparaît qu'au survol** du lien ou d'une de ses idées, ou au **focus clavier** (petit magasin Zustand `hoverStore.ts`) — *progressive disclosure* : l'essentiel par défaut, le détail à la demande. Les liens **suggérés** restent visibles, en pointillés, avec ✓ / ✗. Disposition et anti-croisements → [[Carte des idées — simulation de forces et croisements de liens]].
+- **Décision de mentalyas (à implémenter, étapes G2/G3)** : un lien intéressant doit faire **germer une nouvelle idée** entre les deux idées reliées — l'IA propose une graine (titre + pourquoi), acceptée elle devient une idée « née de A × B » placée entre ses parents. Rien ne se crée sans acceptation (même principe « l'IA propose, l'humain décide »).
+- **Annulation** : accepter/refuser un lien écrit un lot `link` dans l'historique, donc annulable → [[Annuler par lot — journal avant-après, conflit et lot inverse]].

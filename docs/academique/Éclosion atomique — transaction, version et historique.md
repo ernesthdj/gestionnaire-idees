@@ -113,3 +113,8 @@ confirm(synthesisId: string): ConfirmView {
 - [[Glossaire — Transaction ACID]] — la garantie de base de données sous-jacente.
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — comment les tables `change_log`, `plan_nodes`… sont créées.
 - [[Liens entre idées — graphe local de mots-clés]] — lancé après la confirmation, sans la bloquer.
+
+## Évolution du 29/09 — aperçu éditable et annulation réelle
+- **Aperçu corrigeable avant confirmation** (`domain/neurons/synthesisPatch.ts`) : chaque élément du plan (titre, montant, date) ou de la synthèse se corrige ; le document corrigé est **revalidé côté main** (Zod + contrôles P1–P5). **P6 (provenance) ne s'applique pas** à une valeur que l'utilisateur vient d'écrire lui-même — la provenance sert à empêcher l'IA d'inventer, pas à contredire l'humain. Rien n'est écrit dans les tables de résultat avant « Confirmer ».
+- **Annulation** : l'étape 3 ci-dessus annonçait l'annulation par lot « dans la spec 003 » — elle existe maintenant : bouton « Annuler » (10 s) dans la notification d'éclosion et page Historique. Annuler une éclosion remet l'idée en développement avec sa version d'avant ; l'aperçu redevient **confirmable tel quel**, sans nouvel appel à l'IA → [[Annuler par lot — journal avant-après, conflit et lot inverse]].
+- **Lecture et réouverture** d'une idée éclose (panneau `HatchedPanel`) : la réouverture n'est pas encore annulable (JOURNAL).

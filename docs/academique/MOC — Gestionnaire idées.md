@@ -1,8 +1,8 @@
 ---
 type: MOC
-subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002)
-tags: [#MOC, #electron, #ia, #neurones, #securite]
-date: 2026-09-28
+subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface)
+tags: [#MOC, #electron, #ia, #neurones, #securite, #ui]
+date: 2026-09-29
 ---
 
 # Gestionnaire idées — Map of Content
@@ -28,9 +28,16 @@ flowchart TD
     subgraph "Spec 002 — moteur de neurones"
         J["Croissance + jauge"] --> K["Synthèse vérifiée"] --> L["Éclosion atomique"] --> M["Liens entre idées"]
     end
+    subgraph "Spec 003 — interface MVP-1 (soir du 28→29/09)"
+        O["Coquille de bureau"] --> P["Carte des idées<br/>forces + croisements"] --> Q["Plongée radiale"] --> R["Annuler par lot"]
+    end
     A --> B
     I --> J
+    B --> O
+    L --> R
 ```
+
+> 🆕 **Session du 28→29/09 (spec 003)** : l'app devient **visible et utilisable** — icône de notification, capture rapide au raccourci, carte des idées sans croisements, plongée en couronne, aperçu éditable, éclosion animée, historique avec « Annuler ». Nouvelles notes : 4 concepts, 1 pont, 2 glossaires ; blocs « Évolution du 29/09 » ajoutés dans 4 notes existantes (Electron, Éclosion, Liens, Zod).
 
 ---
 
@@ -50,6 +57,8 @@ flowchart TD
 - [[Glossaire — Tri topologique de Kahn]] — détecter une boucle
 - [[Glossaire — Expression régulière]] — motifs de texte déterministes
 - [[Glossaire — FTS5 (recherche plein texte)]] — index inversé SQLite
+- [[Glossaire — Générateur pseudo-aléatoire à graine (PRNG)]] — du hasard reproductible *(29/09)*
+- [[Glossaire — Mise à jour optimiste]] — afficher avant la confirmation *(29/09)*
 
 ## Concepts fondamentaux
 *À maîtriser en premier — la charpente*
@@ -74,9 +83,17 @@ flowchart TD
 - [[Liens entre idées — graphe local de mots-clés]] — présélection gratuite avant Claude
 - [[Import de contexte — paquet vérifié, versionné, réversible]] — former l'agent sans ré-entraîner
 
+## Interface (spec 003 — session du 28→29/09)
+*Ce que l'utilisateur voit et touche — s'appuie sur la charpente et le moteur*
+- [[Coquille de bureau — zone de notification, instance unique et fenêtres cachées]] — *intermédiaire* — l'app résidente, toujours prête
+- [[Carte des idées — simulation de forces et croisements de liens]] — *avancé* — physique d3-force + géométrie anti-croisements
+- [[Plongée radiale — couronne sur un arc et affichage optimiste]] — *intermédiaire* — un niveau à la fois, trigonométrie simple
+- [[Annuler par lot — journal avant-après, conflit et lot inverse]] — *avancé* — undo/redo transactionnel avec détection de conflit
+
 ## Ponts outil ↔ mécanisme
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que l'ORM fait à ta place (et pourquoi pas Prisma)
-- [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier
+- [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier (+ sortie tolérante, 29/09)
+- [[TanStack Query et Zustand ↔ cache de données et état d'interface]] — cache invalidé par événements vs état d'écran *(29/09)*
 
 ## Ordre d'apprentissage recommandé
 0. [[Du brainstorm au code — spécifications et constitution]] — le pourquoi de toutes les règles qui suivent
@@ -93,8 +110,13 @@ flowchart TD
 11. [[Éclosion atomique — transaction, version et historique]] — écrire sans risque
 12. [[Liens entre idées — graphe local de mots-clés]] — relier en économisant
 13. [[Import de contexte — paquet vérifié, versionné, réversible]] — personnaliser l'agent
+14. [[Coquille de bureau — zone de notification, instance unique et fenêtres cachées]] — l'app prend corps sur le bureau
+15. [[TanStack Query et Zustand ↔ cache de données et état d'interface]] — comment l'interface garde et rafraîchit ses données
+16. [[Carte des idées — simulation de forces et croisements de liens]] — avec [[Glossaire — Générateur pseudo-aléatoire à graine (PRNG)]]
+17. [[Plongée radiale — couronne sur un arc et affichage optimiste]] — avec [[Glossaire — Mise à jour optimiste]]
+18. [[Annuler par lot — journal avant-après, conflit et lot inverse]] — relire d'abord le bloc « Évolution du 29/09 » de la note 11
 
-> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses.
+> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit.
 
 ## Questions de révision globale
 > **Q :** Suis une réponse de l'utilisateur, de son clic jusqu'au disque puis jusqu'à Claude : quelles barrières traverse-t-elle ?
@@ -109,6 +131,9 @@ flowchart TD
 > **Q :** Quelle est la différence entre une barrière *déterministe* et une consigne dans le prompt ?
 > **R :** Le code applique toujours la barrière et se teste ; le LLM peut ignorer une consigne. Les règles critiques sont donc codées, le prompt ne fait que guider.
 
+> **Q :** Tu confirmes une éclosion, puis tu cliques « Annuler » dans la notification : que se passe-t-il de l'écran jusqu'au disque, et retour ?
+> **R :** `history:undo` (canal de la fenêtre principale, Zod) → `HistoryService` : transaction, contrôle état actuel = « après » du lot, restauration des « avant » en ordre inverse, lot inverse écrit → retour OK → l'interface invalide `canvas`, `dive`, `synthesis`, `history`, `pending` → TanStack Query relit ce qui est affiché ; l'idée revient dans l'incubateur.
+
 ## Ressources complémentaires
 - Cadrage : `docs/FOUNDATION.md` (§0 amendements Brainstormer prioritaires), `docs/brainstorm/L1-…L4c-*.md`, `.specify/memory/constitution.md` (v1.1.0)
 - Specs : `specs/001-moteur-ia-hybride/`, `specs/002-structuration-ia/`, `specs/003-interface-mvp1/` (spec, plan, research, data-model, contracts, tasks, analysis-report)
@@ -116,4 +141,5 @@ flowchart TD
 - Journal : `docs/JOURNAL.md` — table « Règles apprises » (23 règles citées dans les notes par leur numéro)
 - Code clé : `src/main/index.ts`, `src/main/bootstrap.ts`, `src/main/ipc/registry.ts`, `src/main/application/ai/AIGateway.ts`, `src/main/domain/neurons/*.ts`, `src/main/application/neurons/*.ts`
 - Graphe : `graphify-out/GRAPH_REPORT.md` (1 214 nœuds, 83 communautés ; nœuds centraux : `GrowthRepository`, `ContextRepository`, `NeuronService`, `AIGateway`)
+- *Mise à jour du 29/09* — Graphe : 2 071 nœuds, 140 communautés ; nouveaux nœuds centraux côté interface : `useUiStore` (19 liens), communautés « Croisements de liens », « Plongée — scène & fantômes », « Canaux IPC par fenêtre ». Code clé spec 003 : `src/main/shell/*.ts`, `src/renderer/src/canvas/{forceLayout,crossings}.ts`, `src/renderer/src/dive/{radialLayout,useDive}.ts`, `src/main/application/history/HistoryService.ts`, `src/main/infrastructure/db/repositories/HistoryRepository.ts`, `src/renderer/src/app/{uiStore,useMainEvents,useUndo}.ts`, `src/shared/ai/neurons.ts` (tolérance). Décisions : `specs/003-interface-mvp1/research.md` (R1–R8). 500 tests en fin de session (lus, non exécutés ici).
 - 💡 Glisse ces notes dans NotebookLM / Gemini si tu veux un *study guide* ou un quiz audio.

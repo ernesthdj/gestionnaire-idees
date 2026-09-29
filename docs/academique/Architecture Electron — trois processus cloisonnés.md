@@ -111,3 +111,6 @@ contents.session.setPermissionRequestHandler((_wc, _p, callback) => callback(fal
 - [[IPC typé — le guichet unique entre interface et moteur]] — le protocole du guichet.
 - [[Stockage local chiffré — SQLite, SQLCipher et DPAPI]] — ce que protège le bureau de direction.
 - [[Glossaire — CSP (Content Security Policy)]] — le quatrième verrou.
+
+## Évolution du 29/09 — deux fenêtres, un preload, deux API
+La spec 003 ajoute une **deuxième fenêtre** (la capture rapide). Plutôt que deux preloads (un preload en sandbox ne peut rien charger d'autre, et l'option expérimentale `isolatedEntries` d'electron-vite plantait), le **même** preload lit un argument de lancement `--gi-window=capture|main` (passé par `hardenedWebPreferences(window)`) et n'expose que **l'API de sa fenêtre** : `window.captureApi` (canaux `capture:*`) **ou** `window.api`. Le main vérifie en plus la **page émettrice** de chaque canal (défense en profondeur). Même durcissement pour les deux (`contextIsolation`, `sandbox`, `nodeIntegration: false`, navigation bloquée). Cycle de vie des fenêtres (cachées, pré-chargées, instance unique) → [[Coquille de bureau — zone de notification, instance unique et fenêtres cachées]].
