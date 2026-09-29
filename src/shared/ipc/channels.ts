@@ -25,6 +25,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'neuron:getTree',
   'neuron:update',
   'neuron:archive',
+  'neuron:remove',
   'neuron:delete',
   'growth:develop',
   'growth:answer',

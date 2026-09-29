@@ -140,4 +140,21 @@ describe('historique et annulation (spec 003 T040)', () => {
     expect(reopening?.undoable).toBe(false)
     expect(() => history.undo(reopening?.batchId ?? '')).toThrow(expect.objectContaining({ code: 'NOT_UNDOABLE' }))
   })
+
+  it('should_remove_an_idea_with_all_its_content_then_restore_it_by_undo', async () => {
+    const root = await t.neurons.create({ text: 'Idée à supprimer', nature: 'action' })
+    const { batchId } = t.neurons.remove(root.id)
+    expect(t.neurons.getTree(root.id).root.state).toBe('archived')
+    const [entry] = history.list().items
+    expect(entry).toMatchObject({ batchId, kind: 'delete', undoable: true })
+    expect(entry?.summary).toBe('Suppression de « Idée à supprimer »')
+
+    const { undoBatchId } = history.undo(batchId)
+    expect(t.neurons.getTree(root.id).root.state).toBe('raw')
+    expect(history.list().items[0]?.summary).toBe('Idée restaurée : « Idée à supprimer »')
+
+    history.undo(undoBatchId)
+    expect(t.neurons.getTree(root.id).root.state).toBe('archived')
+    expect(() => t.neurons.remove(root.id)).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
+  })
 })

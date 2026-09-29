@@ -63,8 +63,8 @@ describe('graines d’idées sur les liens (FR-028)', () => {
   it('should_accept_a_seed_into_a_raw_idea_placed_between_its_parents', async () => {
     const { wedding, screen, link } = await suggestedLink(seed)
     new NeuronRepository(t.handle.db).savePositions([
-      { rootId: wedding.id, x: 100, y: 0 },
-      { rootId: screen.id, x: 300, y: 200 }
+      { neuronId: wedding.id, x: 100, y: 0 },
+      { neuronId: screen.id, x: 300, y: 200 }
     ])
     t.links.decide({ linkId: link.id, accept: true })
     const [pending] = t.seeds.list()

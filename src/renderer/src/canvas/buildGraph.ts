@@ -92,7 +92,7 @@ export function layoutInput(view: IdeasCanvasView): LayoutNode[] {
 
 export interface CanvasLayout {
   readonly area: Rect
-  readonly positions: Map<string, Point>
+  readonly positions: ReadonlyMap<string, Point>
 }
 
 /** Marge autour des idées posées à la main, pour qu'elles restent dans l'espace (et ne soient pas replacées). */

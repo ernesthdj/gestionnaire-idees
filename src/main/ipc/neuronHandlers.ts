@@ -71,6 +71,11 @@ export function createNeuronRoutes(service: NeuronService): IpcRoute[] {
         })
     }),
     defineRoute({
+      channel: 'neuron:remove',
+      input: z.object({ rootId: Id }).strict(),
+      handler: async ({ rootId }) => service.remove(rootId)
+    }),
+    defineRoute({
       channel: 'neuron:archive',
       input: z.object({ rootId: Id }).strict(),
       handler: async ({ rootId }) => service.archive(rootId)

@@ -43,8 +43,10 @@ export interface CanvasFilterInput {
   readonly search?: string
 }
 
+/** Position d'une idée ou d'un sous-neurone sur la carte ; `pinned` : glissé à la main (gardé en place). */
 export interface CanvasPosition {
-  readonly rootId: string
+  readonly neuronId: string
   readonly x: number
   readonly y: number
+  readonly pinned?: boolean
 }

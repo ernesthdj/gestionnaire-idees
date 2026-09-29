@@ -126,6 +126,8 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 **Retours de test du 2026-09-29 (lots A et B)**
 - [x] T062 Lot A : champ de réponse vidé au changement de question (sélection retenue, pas de vidage sur rafraîchissement) ; zone de réponse qui grandit ; « Répondre » jamais grisé sans explication ; `neuron:thought` garanti ; arbre qui suit l'idée glissée (ressort)
 - [x] T063 Lot B : lien sans libellé, graine qui remplace le lien (FR-033) ; nœuds « idée » (FR-032)
+- [x] T066 Physique de toute la carte (FR-034) : `CanvasPhysics` (d3-force continu), arbre de l'idée ouverte en nœuds React Flow (glissables), épinglage mémorisé (migration `0008_neuron_pinned`), « Libérer »
+- [x] T067 Suppression d'une idée avec avertissement, annulable (FR-035, `neuron:remove`, lot `delete`)
 - [ ] T064 Lot C : cycle 2 après éclosion (anciens sous-nœuds en données seulement, nouvelles questions depuis la synthèse) + synthèse en document lisible
 - [ ] T065 Lot D : index de tags (IA à l'éclosion + mots-clés locaux) pour des questions orientées par les autres idées
 

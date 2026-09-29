@@ -13,7 +13,9 @@ import type {
   SuggestionView,
   WebSourceView
 } from '@shared/ipc/neurons'
+import type { CanvasPosition } from '@shared/ipc/canvas'
 import type { AppDatabase } from '../client'
+import { writeChanges, type ChangeEntry } from './changeLog'
 import { categories, contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
 
 export interface RootFilter {
@@ -67,6 +69,7 @@ function toRootView(row: RootRow): RootView {
     state: row.state ?? 'raw',
     version: row.version,
     position: row.posX === null || row.posY === null ? null : { x: row.posX, y: row.posY },
+    pinned: row.pinned,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   }
@@ -75,6 +78,14 @@ function toRootView(row: RootRow): RootView {
 /** Accès aux neurones (racines et sous-neurones), extensions et jauges (spec 002). */
 export class NeuronRepository {
   constructor(private readonly db: AppDatabase) {}
+
+  transaction<T>(work: () => T): T {
+    return this.db.transaction(() => work())
+  }
+
+  log(batchId: string, entries: readonly ChangeEntry[]): void {
+    writeChanges(this.db, batchId, entries)
+  }
 
   categoryBySlug(slug: string): CategoryView | undefined {
     const row = this.db.select().from(categories).where(eq(categories.slug, slug)).get()
@@ -182,6 +193,9 @@ export class NeuronRepository {
         amountCents: neurons.amountCents,
         dueDate: neurons.dueDate,
         origin: neurons.origin,
+        posX: neurons.posX,
+        posY: neurons.posY,
+        pinned: neurons.pinned,
         sourcesJson: suggestions.sourcesJson
       })
       .from(neurons)
@@ -189,8 +203,9 @@ export class NeuronRepository {
       .where(and(eq(neurons.rootId, rootId), ne(neurons.kind, 'root')))
       .orderBy(sql`${neurons}.rowid`)
       .all()
-      .map(({ sourcesJson, ...neuron }) => ({
+      .map(({ sourcesJson, posX, posY, ...neuron }) => ({
         ...neuron,
+        position: posX === null || posY === null ? null : { x: posX, y: posY },
         sources: sourcesJson === null ? [] : (JSON.parse(sourcesJson) as WebSourceView[])
       }))
   }
@@ -314,13 +329,16 @@ export class NeuronRepository {
       .all()
   }
 
-  /** Positions sur la carte : sans changer la version (déplacer une idée ne périme pas sa synthèse). */
-  savePositions(positions: readonly { readonly rootId: string; readonly x: number; readonly y: number }[]): void {
+  /**
+   * Positions sur la carte (idées et sous-neurones), épinglage éventuel : sans changer la version (déplacer une
+   * idée ne périme pas sa synthèse).
+   */
+  savePositions(positions: readonly CanvasPosition[]): void {
     this.db.transaction((tx) => {
-      for (const { rootId, x, y } of positions) {
+      for (const { neuronId, x, y, pinned } of positions) {
         tx.update(neurons)
-          .set({ posX: x, posY: y })
-          .where(and(eq(neurons.id, rootId), eq(neurons.kind, 'root')))
+          .set({ posX: x, posY: y, ...(pinned === undefined ? {} : { pinned }) })
+          .where(eq(neurons.id, neuronId))
           .run()
       }
     })

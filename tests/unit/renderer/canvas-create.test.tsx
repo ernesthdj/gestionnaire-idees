@@ -77,6 +77,22 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     expect(useUiStore.getState().bornId).toBe(NEW_ID)
   })
 
+  it('should_never_create_an_idea_when_double_clicking_an_object_of_the_map', async () => {
+    const { api, container } = renderCanvas()
+    await pane(container)
+    const idea = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
+    fireEvent.doubleClick(idea, { clientX: 200, clientY: 120 })
+    const edge = container.querySelector('.react-flow__edge')
+    if (edge !== null) fireEvent.doubleClick(edge, { clientX: 300, clientY: 200 })
+    const control = container.querySelector('.react-flow__controls button')
+    if (control !== null) fireEvent.doubleClick(control)
+    expect(screen.queryByLabelText('Nouvelle idée')).toBeNull()
+    expect(api.invoke).not.toHaveBeenCalledWith('neuron:create', expect.anything())
+    // Le vide, lui, crée toujours une idée.
+    fireEvent.doubleClick(await pane(container), { clientX: 200, clientY: 120 })
+    expect(await screen.findByLabelText('Nouvelle idée')).toBeDefined()
+  })
+
   it('should_cancel_the_new_idea_with_escape', async () => {
     const user = userEvent.setup()
     const { api, container } = renderCanvas()
@@ -110,6 +126,25 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     fireEvent.click(await pane(container))
     await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Volet de l’idée' })).toBeNull())
     expect(useUiStore.getState().openRootId).toBeNull()
+  })
+
+  it('should_warn_before_removing_an_idea_and_offer_to_undo', async () => {
+    const user = userEvent.setup()
+    const { api } = renderCanvas(canvasView(), { 'neuron:remove': () => ({ batchId: 'lot-1' }) })
+    const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
+    node.focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+    const menu = await screen.findByRole('dialog', { name: 'Acheter un flash cobra' })
+    await user.click(within(menu).getByRole('button', { name: 'Supprimer l’idée…' }))
+    // Avertissement : rien n'est supprimé avant la confirmation ; « Garder » annule.
+    expect(within(menu).getByRole('alert').textContent).toMatch(/tout son contenu/)
+    expect(api.invoke).not.toHaveBeenCalledWith('neuron:remove', expect.anything())
+    await user.click(within(menu).getByRole('button', { name: 'Garder' }))
+    expect(within(menu).queryByRole('alert')).toBeNull()
+    await user.click(within(menu).getByRole('button', { name: 'Supprimer l’idée…' }))
+    await user.click(within(menu).getByRole('button', { name: 'Supprimer' }))
+    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('neuron:remove', { rootId: RAW_ID }))
+    await waitFor(() => expect(useUiStore.getState().toast).toMatchObject({ undoBatchId: 'lot-1' }))
   })
 
   it('should_link_two_ideas_from_the_menu_with_the_keyboard', async () => {

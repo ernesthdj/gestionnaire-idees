@@ -1,0 +1,1 @@
+ALTER TABLE `neurons` ADD `pinned` integer DEFAULT false NOT NULL;

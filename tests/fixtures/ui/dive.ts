@@ -17,6 +17,7 @@ export const ROOT: RootView = {
   state: 'developing',
   version: 4,
   position: null,
+  pinned: false,
   createdAt: '2026-09-28T10:00:00.000Z',
   updatedAt: '2026-09-28T10:00:00.000Z'
 }

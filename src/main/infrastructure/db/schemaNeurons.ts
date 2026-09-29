@@ -42,6 +42,8 @@ export const neurons = sqliteTable(
     version: integer('version').notNull().default(0),
     posX: real('pos_x'),
     posY: real('pos_y'),
+    /** Glissé à la main sur la carte : la physique le garde à sa place (les autres s'écartent). */
+    pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -235,7 +237,7 @@ export const changeLog = sqliteTable(
   {
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
-    kind: text('kind', { enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'undo'] }).notNull(),
+    kind: text('kind', { enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'undo'] }).notNull(),
     entity: text('entity').notNull(),
     entityId: text('entity_id').notNull(),
     beforeJson: text('before_json'),

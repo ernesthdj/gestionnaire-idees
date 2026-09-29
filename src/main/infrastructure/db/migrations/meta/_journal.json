@@ -57,6 +57,13 @@
       "when": 1790669789633,
       "tag": "0007_link_seeds",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790692206700,
+      "tag": "0008_neuron_pinned",
+      "breakpoints": true
     }
   ]
 }

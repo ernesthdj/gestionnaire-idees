@@ -5,7 +5,7 @@ import type { AppDatabase } from '../client'
 import { examples } from '../schema'
 import { changeLog, linkSeeds, neuronLinks, neurons, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
 
-export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'undo'
+export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'undo'
 
 export interface ChangeRow {
   readonly id: string

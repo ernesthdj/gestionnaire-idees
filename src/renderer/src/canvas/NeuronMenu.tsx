@@ -16,11 +16,17 @@ interface NeuronMenuProps {
   /** Autres idées de la carte, cibles possibles d'un lien (FR-031, alternative clavier au lien tiré). */
   readonly others: readonly { readonly id: string; readonly title: string }[]
   readonly onLink: (targetId: string, label: string) => Promise<boolean>
+  /** Nombre de liens de l'idée (annoncé dans l'avertissement de suppression). */
+  readonly linkCount: number
+  /** Supprime l'idée et tout son contenu (après confirmation) ; `true` si c'est fait. */
+  readonly onRemove: () => Promise<boolean>
+  /** Libère une idée épinglée : la physique peut de nouveau la déplacer. */
+  readonly onRelease: () => void
 }
 
 /**
- * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : ouvrir, relier à une autre idée, et corriger en un
- * geste la nature ou la catégorie proposées par l'IA (FR-008). Le choix de l'utilisateur ne sera plus jamais écrasé par l'IA.
+ * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : ouvrir, relier à une autre idée, corriger en un geste
+ * la nature ou la catégorie proposées par l'IA (FR-008), libérer une idée épinglée, supprimer (avec avertissement). Le choix de l'utilisateur ne sera plus jamais écrasé par l'IA.
  */
 export function NeuronMenu({
   neuron,
@@ -29,8 +35,12 @@ export function NeuronMenu({
   onOpen,
   onClose,
   others,
-  onLink
+  onLink,
+  linkCount,
+  onRemove,
+  onRelease
 }: NeuronMenuProps): React.JSX.Element {
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
   const client = useQueryClient()
   const [error, setError] = useState('')
   const panel = useRef<HTMLDivElement>(null)
@@ -45,6 +55,14 @@ export function NeuronMenu({
     if (target === '' || busy) return
     setBusy(true)
     const done = await onLink(target, label)
+    setBusy(false)
+    if (done) onClose()
+  }
+
+  const remove = async (): Promise<void> => {
+    if (busy) return
+    setBusy(true)
+    const done = await onRemove()
     setBusy(false)
     if (done) onClose()
   }
@@ -74,8 +92,11 @@ export function NeuronMenu({
           onClose()
         }
       }}
-      className="fixed z-50 w-64 space-y-3 rounded-lg border border-content-muted/30 bg-surface p-4 text-sm text-content shadow-lg"
-      style={{ left: Math.min(at.x, window.innerWidth - 272), top: Math.min(at.y, window.innerHeight - 392) }}
+      className="fixed z-50 max-h-[calc(100vh-16px)] w-64 space-y-3 overflow-y-auto rounded-lg border border-content-muted/30 bg-surface p-4 text-sm text-content shadow-lg"
+      style={{
+        left: Math.min(at.x, window.innerWidth - 272),
+        top: Math.max(8, Math.min(at.y, window.innerHeight - 520))
+      }}
     >
       <p id={ids.title} className="truncate font-semibold">
         {neuron.title}
@@ -151,6 +172,32 @@ export function NeuronMenu({
       {neuron.natureSource === 'ai' || neuron.categorySource === 'ai' ? (
         <p className="text-xs text-content-muted">✦ proposé par l’IA — ton choix remplace le sien.</p>
       ) : null}
+      {neuron.pinned ? (
+        <Button className="w-full" onClick={onRelease} title="La physique de la carte pourra de nouveau la déplacer">
+          Libérer (désépingler)
+        </Button>
+      ) : null}
+      {confirmingRemoval ? (
+        <div role="alert" className="space-y-2 rounded-md border border-red-500/40 p-2">
+          <p>
+            Supprimer « {neuron.title} » ? Elle part avec tout son contenu : ses sous-neurones, sa synthèse
+            {linkCount > 0 ? ` et ses ${linkCount} lien${linkCount > 1 ? 's' : ''}` : ''}. Tu pourras l’annuler depuis
+            la notification ou l’Historique.
+          </p>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => setConfirmingRemoval(false)}>
+              Garder
+            </Button>
+            <Button variant="danger" className="flex-1" disabled={busy} onClick={() => void remove()}>
+              Supprimer
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="danger" className="w-full" onClick={() => setConfirmingRemoval(true)}>
+          Supprimer l’idée…
+        </Button>
+      )}
       {error === '' ? null : (
         <p role="alert" className="text-xs">
           {error}

@@ -98,6 +98,30 @@ export class NeuronService {
     return this.rootOrThrow(input.id)
   }
 
+  /**
+   * Supprime une idée et tout son contenu de la carte (sous-neurones, liens, graines) : elle est archivée, jamais
+   * effacée, dans un lot annulable de l'historique (retour de test de mentalyas, avec avertissement côté interface).
+   */
+  remove(rootId: string): { readonly batchId: string } {
+    const root = this.rootOrThrow(rootId)
+    if (root.state === 'archived') throw new AppError('INVALID_STATE', 'Cette idée est déjà supprimée')
+    const batchId = randomUUID()
+    const { repository } = this.deps
+    repository.transaction(() => {
+      repository.updateRoot(rootId, { state: 'archived', archivedAt: new Date().toISOString() })
+      repository.log(batchId, [
+        {
+          kind: 'delete',
+          entity: 'neuron',
+          entityId: rootId,
+          before: { state: root.state, version: root.version },
+          after: null
+        }
+      ])
+    })
+    return { batchId }
+  }
+
   archive(rootId: string): RootView {
     this.rootOrThrow(rootId)
     this.deps.repository.updateRoot(rootId, { state: 'archived', archivedAt: new Date().toISOString() })

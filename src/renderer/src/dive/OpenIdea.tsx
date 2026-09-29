@@ -1,11 +1,11 @@
 import './dive.css'
-import { useReactFlow, ViewportPortal } from '@xyflow/react'
+import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { CategoryView, ConfirmView, SeedView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
-import { IdeaTree } from '../canvas/IdeaTree'
 import { ideaTreeLayout, type Point } from '../canvas/ideaTreeLayout'
+import { useOpenTree, type OpenTreeActions } from '../canvas/treeStore'
 import { useFusion } from '../fusion/useFusion'
 import { timingFor } from '../motion/durations'
 import { diveModel } from './diveModel'
@@ -14,9 +14,8 @@ import { useDive, type DiveActions } from './useDive'
 
 interface OpenIdeaProps {
   readonly rootId: string
-  /** Centre et diamètre de l'idée sur la carte (l'arbre se déploie autour). */
+  /** Centre de l'idée sur la carte : la vue s'y centre à l'ouverture (son arbre se déploie autour). */
   readonly center: Point
-  readonly rootSize: number
   /** Colonne de droite où le volet est affiché. */
   readonly panelHost: HTMLElement | null
   readonly categories: readonly CategoryView[]
@@ -151,27 +150,42 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
       />
     )
 
-  return (
-    <>
-      {layout === null || model === null ? null : (
-        <ViewportPortal>
-          <IdeaTree
-            layout={layout}
-            center={center}
-            reduced={props.reduced}
-            rootSize={props.rootSize}
-            categoryColor={model.root.category?.color ?? '#71717a'}
-            focusId={model.focus.id}
-            selectedExtensionId={selectedExtensionId}
-            fusing={fusing}
-            onFocus={onFocus}
-            onSelectExtension={setSelectedExtensionId}
-            onAcceptSuggestion={(id) => void dive.acceptSuggestion(id)}
-            onDismissSuggestion={(id) => void dive.dismissSuggestion(id)}
-          />
-        </ViewportPortal>
-      )}
-      {props.panelHost === null ? null : createPortal(panel, props.panelHost)}
-    </>
+  // L'arbre est publié pour la carte, qui en fait des objets physiques (glissables, qui se repoussent).
+  const treeActions = useRef<OpenTreeActions | null>(null)
+  treeActions.current = {
+    focus: (neuronId) => onFocus(neuronId),
+    selectExtension: (extensionId) => setSelectedExtensionId(extensionId),
+    acceptSuggestion: (suggestionId) => void dive.acceptSuggestion(suggestionId),
+    dismissSuggestion: (suggestionId) => void dive.dismissSuggestion(suggestionId)
+  }
+  const stableActions = useMemo<OpenTreeActions>(
+    () => ({
+      focus: (id) => treeActions.current?.focus(id),
+      selectExtension: (id) => treeActions.current?.selectExtension(id),
+      acceptSuggestion: (id) => treeActions.current?.acceptSuggestion(id),
+      dismissSuggestion: (id) => treeActions.current?.dismissSuggestion(id)
+    }),
+    []
   )
+  const publish = useOpenTree((state) => state.publish)
+  const focusedId = model?.focus.id ?? rootId
+  const categoryColor = model?.root.category?.color ?? '#71717a'
+  useEffect(() => {
+    publish(
+      layout === null
+        ? null
+        : {
+            rootId,
+            items: layout.items,
+            focusId: focusedId,
+            selectedExtensionId,
+            fusing,
+            categoryColor,
+            actions: stableActions
+          }
+    )
+  }, [publish, layout, rootId, focusedId, selectedExtensionId, fusing, categoryColor, stableActions])
+  useEffect(() => () => publish(null), [publish])
+
+  return props.panelHost === null ? null : createPortal(panel, props.panelHost)
 }

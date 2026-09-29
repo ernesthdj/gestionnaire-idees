@@ -7,7 +7,7 @@ import { useCanvasHover } from '../hoverStore'
 import { SeedBadge } from './SeedBadge'
 
 /** Centre d'un nœud mesuré (les neurones n'ont pas de poignées : les liens relient les centres). */
-function useCenter(id: string): { x: number; y: number } | null {
+export function useCenter(id: string): { x: number; y: number } | null {
   const node = useInternalNode(id)
   if (node === undefined) return null
   const { x, y } = node.internals.positionAbsolute

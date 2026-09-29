@@ -30,11 +30,17 @@ export function createCanvasRoutes(canvas: CanvasService): IpcRoute[] {
       channel: 'canvas:savePositions',
       input: z
         .object({
-          positions: z.array(z.object({ rootId: z.uuid(), x: Coordinate, y: Coordinate }).strict()).max(1000)
+          positions: z
+            .array(
+              z.object({ neuronId: z.uuid(), x: Coordinate, y: Coordinate, pinned: z.boolean().optional() }).strict()
+            )
+            .max(1000)
         })
         .strict(),
       handler: async ({ positions }) => {
-        canvas.savePositions(positions)
+        canvas.savePositions(
+          positions.map(({ pinned, ...position }) => (pinned === undefined ? position : { ...position, pinned }))
+        )
         return { ok: true }
       }
     }),

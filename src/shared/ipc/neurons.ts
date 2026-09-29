@@ -28,6 +28,8 @@ export interface RootView {
   readonly state: RootState
   readonly version: number
   readonly position: { readonly x: number; readonly y: number } | null
+  /** Glissée à la main : la physique de la carte la garde à sa place. */
+  readonly pinned: boolean
   readonly createdAt: string
   readonly updatedAt: string
 }
@@ -44,6 +46,9 @@ export interface NeuronView {
   readonly origin: Source
   /** Sources web vérifiées d'une idée née d'une suggestion (vide sinon). */
   readonly sources?: readonly WebSourceView[]
+  /** Place mémorisée sur la carte et épinglage (sous-neurone glissé à la main). */
+  readonly position?: { readonly x: number; readonly y: number } | null
+  readonly pinned?: boolean
 }
 
 export interface ExtensionView {

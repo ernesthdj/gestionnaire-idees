@@ -91,7 +91,7 @@
   font-size: 20px;
   line-height: 1;
 }
-.dive-slot[aria-pressed='true'] {
+.dive-slot-selected {
   border-style: solid;
   background: color-mix(in oklab, var(--cat-ink) 25%, var(--color-surface));
 }
@@ -141,23 +141,15 @@
   opacity: 0.4;
 }
 
-.idea-tree {
-  position: absolute;
-  pointer-events: none;
-}
-.idea-tree-lines {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  transition: opacity 700ms;
-}
-.idea-tree-item {
-  position: absolute;
-  pointer-events: auto;
+/* Éléments de l'arbre : des nœuds de la carte (physique, glisser), qui poussent en 250 ms à leur apparition. */
+.react-flow__node-tree > div,
+.react-flow__node-note > div {
+  position: relative;
   animation: idea-tree-grow 250ms ease-out;
-  transition:
-    transform 700ms ease-in,
-    opacity 700ms ease-in;
+}
+.react-flow__node-tree:focus-visible > div {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
 }
 @keyframes idea-tree-grow {
   from {
@@ -169,21 +161,24 @@
     transform: scale(1);
   }
 }
-/* Éclosion : les sous-neurones se résorbent vers l'idée (700 ms), simple fondu en mode réduit. */
-.idea-tree-fusing .idea-tree-lines {
-  opacity: 0;
-}
-.idea-tree-fusing .idea-tree-item {
-  transform: translate(var(--dx), var(--dy)) scale(0.2);
+/* Éclosion : les sous-neurones glissent vers l'idée et s'effacent (700 ms) ; simple fondu en mode réduit. */
+.react-flow__node.tree-fusing {
   opacity: 0;
   pointer-events: none;
+  transition:
+    transform 700ms ease-in,
+    opacity 700ms ease-in;
 }
-[data-reduced-motion='true'] .idea-tree-item {
+.react-flow__edge.tree-fusing {
+  opacity: 0;
+  transition: opacity 700ms;
+}
+[data-reduced-motion='true'] .react-flow__node-tree > div,
+[data-reduced-motion='true'] .react-flow__node-note > div {
   animation: none;
-  transition: opacity 150ms;
 }
-[data-reduced-motion='true'] .idea-tree-fusing .idea-tree-item {
-  transform: none;
+[data-reduced-motion='true'] .react-flow__node.tree-fusing {
+  transition: opacity 150ms;
 }
 
 /*
@@ -191,6 +186,7 @@
  * ambre qui scintille ; en attente, il respire en pointillés avec une étincelle en orbite. Immobile en mode réduit.
  */
 .idea-gem {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,12 +289,11 @@
   opacity: 0.55;
 }
 
-/* Texte d'une idée posé sur son lien : quatre lignes, en entier au clic. */
+/* Texte d'une idée accroché à elle (objet physique de la carte) : quatre lignes, en entier au clic. */
 .idea-note {
   width: 208px;
   max-height: 88px;
   overflow: hidden;
-  transform: translate(-50%, -50%);
   padding: 4px 8px;
   border-left: 2px solid var(--color-idea);
   border-radius: 6px;
@@ -318,17 +313,12 @@
   overflow-y: auto;
   display: block;
 }
-.idea-note:focus-visible {
+.react-flow__node-note:focus-visible .idea-note {
   outline: 3px solid var(--color-focus);
-}
-.idea-tree-fusing .idea-note {
-  transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2);
 }
 
 /* Fiche d'une idée, sur la carte à côté d'elle (double-clic). */
 .idea-doc {
-  position: absolute;
-  z-index: 10;
   width: 320px;
   max-height: 360px;
   overflow-y: auto;
@@ -340,7 +330,7 @@
   color: var(--color-content);
   font-size: 13px;
   line-height: 20px;
-  pointer-events: auto;
+  cursor: auto;
 }
 .idea-doc-glyph {
   color: var(--color-idea);

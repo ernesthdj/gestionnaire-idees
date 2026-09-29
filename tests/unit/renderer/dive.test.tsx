@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
@@ -72,7 +72,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     await loaded()
     const field = await within(panel()).findByLabelText('Ta réponse')
     await user.type(field, 'Brouillon pour la date')
-    await user.click(await screen.findByRole('button', { name: 'Question : Quelle taille ?' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Question : Quelle taille ?' }))
     expect(within(panel()).getByRole('heading', { name: 'Quelle taille ?' })).toBeDefined()
     expect((within(panel()).getByLabelText('Ta réponse') as HTMLTextAreaElement).value).toBe('')
   })
@@ -131,7 +131,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   it('should_switch_question_dismiss_it_ask_for_more_and_add_a_branch', async () => {
     const user = userEvent.setup()
     const { api } = renderDive()
-    await user.click(await screen.findByRole('button', { name: 'Question : Quelle taille ?' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Question : Quelle taille ?' }))
     expect(within(panel()).getByRole('heading', { name: 'Quelle taille ?' })).toBeDefined()
     await user.click(within(panel()).getByRole('button', { name: 'Écarter la question' }))
     expect(api.invoke).toHaveBeenCalledWith('growth:dismiss', { extensionId: 'ext-2' })
@@ -145,7 +145,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   it('should_focus_a_sub_neuron_on_the_map_and_come_back_with_the_breadcrumb_then_close_with_escape', async () => {
     const user = userEvent.setup()
     renderDive()
-    await user.click(await screen.findByRole('button', { name: /^réponse : budget : 200 €, 1 sous-neurones$/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^réponse : budget : 200 €, 1 sous-neurones$/ }))
     const crumbs = screen.getByRole('navigation', { name: 'Fil d’Ariane' })
     expect(within(crumbs).getByText('budget : 200 €').getAttribute('aria-current')).toBe('page')
     expect(screen.getByText('Profondeur 1/6')).toBeDefined()
@@ -157,6 +157,8 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   })
 
   it('should_draw_an_accepted_idea_as_a_gem_with_its_text_on_the_link_and_its_sheet_on_double_click', async () => {
+    // Grand écran simulé : React Flow ne dessine que ce qui est visible, l'arbre et ses textes doivent y tenir.
+    installReactFlowMocks({ width: 3200, height: 2000 })
     const user = userEvent.setup()
     const base = developingTree()
     const idea = {
@@ -173,18 +175,19 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     }
     renderOpenIdea(() => ({ ...base, neurons: [...base.neurons, idea] }), { 'fusion:getProposed': () => null })
     const gem = await screen.findByRole('button', { name: /^Idée suggérée : Choisir un écran mat/ })
-    expect(gem.className).toContain('idea-gem')
+    expect(gem.querySelector('.idea-gem')).not.toBeNull()
     // Le texte de l'idée est posé sur son lien ; un clic le déplie en entier.
-    const note = screen.getByRole('button', { name: /^Texte de l’idée : Un écran mat/ })
-    await user.click(note)
+    const note = await screen.findByRole('button', { name: /^Texte de l’idée : Un écran mat/ })
+    fireEvent.click(note)
     expect(note.getAttribute('aria-expanded')).toBe('true')
     // Double-clic : sa fiche s'ouvre sur la carte, avec ses sources ; Échap la referme sans fermer l'idée.
-    await user.dblClick(gem)
+    fireEvent.doubleClick(gem)
     const sheet = await screen.findByRole('dialog', { name: 'Fiche de l’idée : Choisir un écran mat' })
     expect(within(sheet).getByRole('link', { name: /Guide des écrans mats/ })).toBeDefined()
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: /Fiche de l’idée/ })).toBeNull()
     expect(useUiStore.getState().openRootId).toBe(ROOT_ID)
+    installReactFlowMocks()
   })
 
   it('should_show_the_gauge_level_and_what_is_missing', async () => {
@@ -197,7 +200,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   it('should_accept_a_ghost_with_enter_ignore_it_with_escape_and_list_its_web_sources', async () => {
     const user = userEvent.setup()
     const { api } = renderDive()
-    const ghost = await screen.findByRole('button', {
+    const ghost = await screen.findByRole('group', {
       name: /^Idée suggérée par l’IA : Comparer les dalles IPS, vérifiée sur le web/
     })
     expect(screen.getByRole('link', { name: /Guide des dalles/ }).getAttribute('href')).toBe('https://example.org/ips')
@@ -213,7 +216,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   it('should_ask_for_confirmation_before_deleting_a_sub_neuron_with_descendants', async () => {
     const user = userEvent.setup()
     const { api } = renderDive()
-    await user.click(await screen.findByRole('button', { name: /^réponse : budget : 200 €/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^réponse : budget : 200 €/ }))
     await user.click(within(panel()).getByRole('button', { name: 'Supprimer' }))
     expect(api.invoke).not.toHaveBeenCalledWith('neuron:delete', expect.anything())
     expect(within(panel()).getByText('Ses 1 sous-neurone seront supprimés aussi.')).toBeDefined()

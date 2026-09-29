@@ -8,8 +8,8 @@ import type {
   Snapshot
 } from '../../infrastructure/db/repositories/HistoryRepository'
 
-/** Types de lots annulables : éclosion, décisions de liens, graine acceptée, et une annulation (qui se rétablit). */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'undo'])
+/** Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, et une annulation (qui se rétablit). */
+const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'undo'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 const UNCHECKED = new Set(['plan_dependency', 'example'])
 
@@ -137,12 +137,18 @@ export class HistoryService {
         return this.linkSummary(head)
       case 'seed':
         return `Graine acceptée : ${title()}`
+      case 'delete':
+        return `Suppression de ${title()}`
       case 'undo': {
         const seed = entries.find((entry) => entry.entity === 'link_seed')
         if (seed !== undefined) {
           return seed.after?.['status'] === 'accepted' ? `Graine rétablie : ${title()}` : `Graine annulée : ${title()}`
         }
         const neuron = entries.find((entry) => entry.entity === 'neuron')
+        // Annulation d'une suppression : l'idée revient (ou repart, si on annule l'annulation).
+        if (neuron !== undefined && entries.length === 1 && (neuron.before === null || neuron.after === null)) {
+          return neuron.before === null ? `Idée restaurée : ${title()}` : `Idée supprimée de nouveau : ${title()}`
+        }
         if (neuron !== undefined) {
           return neuron.after?.['state'] === 'hatched'
             ? `Éclosion rétablie de ${title()}`

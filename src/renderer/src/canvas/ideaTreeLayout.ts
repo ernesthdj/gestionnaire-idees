@@ -22,6 +22,9 @@ export type TreeItem =
       /** Texte complet (conseils d'une idée suggérée) et sources web vérifiées. */
       readonly content: string | null
       readonly sources: readonly WebSourceView[]
+      /** Place mémorisée (glissé à la main : épinglé). */
+      readonly position: Point | null
+      readonly pinned: boolean
     }
   | { readonly type: 'pending'; readonly id: string; readonly title: string }
   | { readonly type: 'ghost'; readonly id: string; readonly suggestion: SuggestionView }
@@ -34,6 +37,8 @@ export interface PlacedItem {
   readonly from: Point
   /** Le parent est l'idée elle-même (le trait part du bord de son cercle). */
   readonly fromRoot: boolean
+  /** Identifiant du parent (l'idée elle-même ou un sous-neurone) : ressort de la physique, trait de l'arbre. */
+  readonly parentId: string
 }
 
 export interface IdeaTreeLayout {
@@ -90,7 +95,9 @@ export function ideaTreeLayout(
           origin: neuron.origin,
           descendants: count(neuron.id),
           content: neuron.content,
-          sources: neuron.sources ?? []
+          sources: neuron.sources ?? [],
+          position: neuron.position ?? null,
+          pinned: neuron.pinned ?? false
         })
       ),
       ...extrasOf(id)
@@ -117,6 +124,7 @@ export function ideaTreeLayout(
     branch.children.length === 0 ? 1 : branch.children.reduce((total, child) => total + leaves(child), 0)
   const items: PlacedItem[] = []
   const place = (branch: Branch, from: Point, depth: number, start: number, span: number): void => {
+    const parentId = branch.item?.id ?? rootId
     const total = leaves(branch)
     let cursor = start
     for (const child of branch.children) {
@@ -124,7 +132,7 @@ export function ideaTreeLayout(
       const angle = cursor + share / 2
       const radius = radii[depth] ?? RING
       const point = { x: round(radius * Math.cos(angle)), y: round(radius * Math.sin(angle)) }
-      if (child.item !== null) items.push({ item: child.item, point, from, fromRoot: depth === 0 })
+      if (child.item !== null) items.push({ item: child.item, point, from, fromRoot: depth === 0, parentId })
       place(child, point, depth + 1, cursor, share)
       cursor += share
     }
