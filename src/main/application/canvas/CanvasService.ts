@@ -14,13 +14,13 @@ import type { NeuronRepository } from '../../infrastructure/db/repositories/Neur
 export interface CanvasDeps {
   readonly neurons: Pick<
     NeuronRepository,
-    'canvasRoots' | 'matchingRootIds' | 'subNeuronPreviews' | 'categories' | 'savePositions'
+    'canvasRoots' | 'matchingRootIds' | 'subNeuronPreviews' | 'categories' | 'savePositions' | 'latestGaugeLevels'
   >
   readonly links: { list(): LinkView[]; seeds(): SeedView[] }
   readonly blocks: Pick<BlockRepository, 'list' | 'insert' | 'update' | 'delete'>
 }
 
-/** Écran Idées (spec 003 US2) : incubateur (brutes, en développement), réseau (écloses) et liens. */
+/** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens et leurs graines. */
 export class CanvasService {
   constructor(private readonly deps: CanvasDeps) {}
 
@@ -29,10 +29,12 @@ export class CanvasService {
     const previews = this.deps.neurons.subNeuronPreviews(
       roots.filter((root) => root.state === 'developing').map((root) => root.id)
     )
-    const withPreview = roots.map((root): CanvasNeuronView => ({
+    const levels = this.deps.neurons.latestGaugeLevels()
+    const ideas = roots.map((root): CanvasNeuronView => ({
       ...root,
       subNeurons: previews.get(root.id)?.items ?? [],
-      subCount: previews.get(root.id)?.count ?? 0
+      subCount: previews.get(root.id)?.count ?? 0,
+      contextLevel: levels.get(root.id) ?? null
     }))
     const visible = new Set(roots.map((root) => root.id))
     // Un lien vers une idée archivée n'a plus de sens sur la carte.
@@ -43,9 +45,6 @@ export class CanvasService {
       .filter((seed) =>
         seed.status === 'accepted' ? seed.bornRootId !== null && visible.has(seed.bornRootId) : linkIds.has(seed.linkId)
       )
-    // Une idée née d'une graine vit dans le réseau, entre ses parents, quel que soit son état (FR-028).
-    const born = new Set(seeds.flatMap((seed) => (seed.bornRootId === null ? [] : [seed.bornRootId])))
-    const inNetwork = (root: CanvasNeuronView): boolean => root.state === 'hatched' || born.has(root.id)
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -53,8 +52,7 @@ export class CanvasService {
         developing: roots.filter((root) => root.state === 'developing').length,
         hatched: roots.filter((root) => root.state === 'hatched').length
       },
-      incubator: withPreview.filter((root) => !inNetwork(root)),
-      network: withPreview.filter(inNetwork),
+      ideas,
       links,
       seeds,
       categories: this.deps.neurons.categories(),

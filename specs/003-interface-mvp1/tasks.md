@@ -113,6 +113,13 @@ description: "Task list — 003 Interface MVP-1 « Brainstormer » (v2)"
 **G3 — interface**
 - [x] T055 Pastille 🌱 sur les liens acceptés (`LinkEdge`) : titre/pourquoi au survol ou au focus, ✓ / ✗, clavier ; idée née placée au milieu du lien dans le réseau, pousse 250 ms ; « née de A × B » dans la plongée `tests/unit/renderer/seeds.test.tsx`
 
+**Carte unique (FR-029 à FR-031, révision 2026-09-29 après test de mentalyas)**
+- [x] T056 Liens « née de » entre l'idée née d'une graine et ses deux parents (même lot annulable)
+- [x] T057 Vue `canvas:get` : liste unique `ideas` + `contextLevel` ; disposition dans un seul espace (`areaFor`, agrandi pour les positions posées à la main) ; zones et migration retirées
+- [x] T058 Taille des neurones en 5 paliers selon le contexte, croissance animée sur place
+- [x] T059 Double-clic → idée à cet endroit (`neuron:create` avec position) ; « + Une idée ? » retiré ; état vide expliqué
+- [x] T060 Lien tiré (point d'accroche) + libellé ; « Relier à une autre idée… » dans le menu (clavier) ; démo réduite à 12 idées / 8 liens / 2 graines `tests/unit/renderer/canvas-create.test.tsx`
+
 ---
 
 ## Phase 7: User Story 5 — Neurones éclos : suivi, lecture, réouverture, export (Priority: P2)

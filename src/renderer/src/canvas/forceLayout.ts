@@ -11,11 +11,9 @@ import {
 
 /**
  * Disposition « organique » de l'écran Idées (research R2) : simulation physique douce (répulsion, attraction des
- * liens), chaque idée contenue dans sa zone — incubateur à gauche, réseau à droite. Fonction pure et déterministe :
- * mêmes entrées, mêmes positions.
+ * liens), toutes les idées dans un seul espace (FR-029). Fonction pure et déterministe : mêmes entrées, mêmes
+ * positions.
  */
-
-export type Zone = 'incubator' | 'network'
 
 export interface Point {
   readonly x: number
@@ -31,10 +29,9 @@ export interface Rect {
 
 export interface LayoutNode {
   readonly id: string
-  readonly zone: Zone
   /** Rayon occupé (cercle + satellites éventuels). */
   readonly radius: number
-  /** Position mémorisée ; ignorée si elle n'est plus dans la zone de l'idée (ex. idée éclose depuis). */
+  /** Position mémorisée ; ignorée si elle sort de l'espace de la carte. */
   readonly initial: Point | null
 }
 
@@ -43,17 +40,11 @@ export interface LayoutLink {
   readonly target: string
 }
 
-export interface Zones {
-  readonly incubator: Rect
-  readonly network: Rect
-}
-
 /** Espace libre entre deux idées. */
 export const NODE_GAP = 16
 /** Encombrement minimal d'une idée : son titre (160 px de large sous le cercle) ne doit pas toucher le voisin. */
 export const MIN_FOOTPRINT = 80
 const CELL = 176
-const ZONE_GAP = 160
 const TICKS = 300
 /** Réglages choisis sur banc d'essai (arbres, groupes d'idées, réseau emmêlé) : le moins de croisements. */
 const CHARGE = -40
@@ -62,19 +53,15 @@ const LINK_STRENGTH = 0.7
 /** Départs supplémentaires essayés si le premier laisse des croisements (seulement pour de nouvelles idées). */
 const EXTRA_STARTS = 2
 
-/**
- * Zones dimensionnées selon le nombre d'idées (≈ 1,6 cellule par idée), proportion incubateur/réseau proche de
- * 38/62 quand les deux sont vides (nombre d'or).
- */
-export function zonesFor(incubatorCount: number, networkCount: number): Zones {
-  const height = Math.max(640, CELL * Math.ceil(Math.sqrt(1.6 * Math.max(incubatorCount, networkCount, 1))))
-  const rows = height / CELL
-  const incubatorWidth = Math.max(480, CELL * Math.ceil((1.6 * incubatorCount) / rows))
-  const networkWidth = Math.max(784, CELL * Math.ceil((1.6 * networkCount) / rows))
-  return {
-    incubator: { x: 0, y: 0, width: incubatorWidth, height },
-    network: { x: incubatorWidth + ZONE_GAP, y: 0, width: networkWidth, height }
-  }
+/** Proportion largeur/hauteur de l'espace : nombre d'or, comme un écran large. */
+const PHI = 1.618
+
+/** Espace dimensionné selon le nombre d'idées (≈ 1,6 cellule par idée), au format du nombre d'or. */
+export function areaFor(count: number): Rect {
+  const cells = 1.6 * Math.max(count, 1)
+  const height = Math.max(640, CELL * Math.ceil(Math.sqrt(cells / PHI)))
+  const width = Math.max(1040, CELL * Math.ceil(cells / (height / CELL)))
+  return { x: 0, y: 0, width, height }
 }
 
 function inside(point: Point, rect: Rect, margin: number): boolean {
@@ -100,26 +87,21 @@ function lcg(seed: number): () => number {
 
 interface SimNode extends SimulationNodeDatum {
   readonly id: string
-  readonly zone: Zone
   readonly radius: number
 }
 
 export function forceLayout(
   nodes: readonly LayoutNode[],
   links: readonly LayoutLink[],
-  zones: Zones
+  area: Rect
 ): Map<string, Point> {
-  // Un lien ne sort pas de la zone de ses idées : seules les idées de ces zones peuvent se trouver sous un trait.
-  const linked = new Set(links.flatMap((link) => [link.source, link.target]))
-  const linkedZones = new Set(nodes.filter((node) => linked.has(node.id)).map((node) => node.zone))
-  const obstacles = nodes
-    .filter((node) => linkedZones.has(node.zone))
-    .map((node) => ({ id: node.id, radius: node.radius }))
-  let best = layoutOnce(nodes, links, zones, obstacles, 0)
+  // Toute idée peut se trouver sous un trait : toutes sont des obstacles.
+  const obstacles = nodes.map((node) => ({ id: node.id, radius: node.radius }))
+  let best = layoutOnce(nodes, links, area, obstacles, 0)
   if (best.fresh === 0) return best.positions
   let bestCost = crossingCost(links, obstacles, best.positions)
   for (let start = 1; start <= EXTRA_STARTS && bestCost > 0; start++) {
-    const candidate = layoutOnce(nodes, links, zones, obstacles, start)
+    const candidate = layoutOnce(nodes, links, area, obstacles, start)
     const cost = crossingCost(links, obstacles, candidate.positions)
     if (cost < bestCost) {
       best = candidate
@@ -132,26 +114,23 @@ export function forceLayout(
 function layoutOnce(
   nodes: readonly LayoutNode[],
   links: readonly LayoutLink[],
-  zones: Zones,
+  area: Rect,
   obstacles: readonly { readonly id: string; readonly radius: number }[],
   start: number
 ): { positions: Map<string, Point>; fresh: number } {
-  const rectOf = (zone: Zone): Rect => zones[zone]
-  // Départ : position mémorisée si elle est encore valable, sinon spirale au centre de la zone (nombre d'or).
+  // Départ : position mémorisée si elle est encore valable, sinon spirale au centre de l'espace (nombre d'or).
   let fresh = 0
   const simNodes: SimNode[] = nodes.map((node) => {
-    const rect = rectOf(node.zone)
-    if (node.initial !== null && inside(node.initial, rect, node.radius)) {
-      return { id: node.id, zone: node.zone, radius: node.radius, x: node.initial.x, y: node.initial.y }
+    if (node.initial !== null && inside(node.initial, area, node.radius)) {
+      return { id: node.id, radius: node.radius, x: node.initial.x, y: node.initial.y }
     }
     const angle = fresh * 2.399963 + start * 2.1
     const distance = 24 * Math.sqrt(++fresh)
     return {
       id: node.id,
-      zone: node.zone,
       radius: node.radius,
-      x: rect.x + rect.width / 2 + distance * Math.cos(angle),
-      y: rect.y + rect.height / 2 + distance * Math.sin(angle)
+      x: area.x + area.width / 2 + distance * Math.cos(angle),
+      y: area.y + area.height / 2 + distance * Math.sin(angle)
     }
   })
 
@@ -164,8 +143,8 @@ function layoutOnce(
     .randomSource(lcg(42 + start))
     .force('collide', forceCollide<SimNode>((node) => footprint(node) + NODE_GAP / 2).iterations(3))
     .force('charge', forceManyBody<SimNode>().strength(CHARGE).distanceMax(600))
-    .force('x', forceX<SimNode>((node) => rectOf(node.zone).x + rectOf(node.zone).width / 2).strength(0.06))
-    .force('y', forceY<SimNode>((node) => rectOf(node.zone).y + rectOf(node.zone).height / 2).strength(0.06))
+    .force('x', forceX<SimNode>(area.x + area.width / 2).strength(0.06))
+    .force('y', forceY<SimNode>(area.y + area.height / 2).strength(0.06))
     .force(
       'link',
       forceLink<SimNode, { source: string; target: string }>(simLinks)
@@ -180,15 +159,15 @@ function layoutOnce(
   const ticks = fresh === 0 ? 0 : TICKS
   for (let tick = 0; tick < ticks; tick++) {
     simulation.tick()
-    for (const node of simNodes) clampInto(node, rectOf(node.zone))
+    for (const node of simNodes) clampInto(node, area)
   }
-  resolveOverlaps(simNodes, rectOf)
+  resolveOverlaps(simNodes, area)
 
-  // Moins de traits qui se croisent : échanges entre idées de même zone et de même encombrement.
+  // Moins de traits qui se croisent : échanges entre idées de même encombrement.
   const groups = new Map<string, string[]>()
   for (const node of simNodes) {
     if (!obstacles.some((obstacle) => obstacle.id === node.id)) continue
-    const key = `${node.zone}:${footprint(node)}`
+    const key = String(footprint(node))
     groups.set(key, [...(groups.get(key) ?? []), node.id])
   }
   const byId = new Map(simNodes.map((node) => [node.id, node]))
@@ -198,7 +177,7 @@ function layoutOnce(
     obstacles,
     new Map(simNodes.map((node) => [node.id, { x: node.x ?? 0, y: node.y ?? 0 }])),
     {
-      candidates: (id) => slotsIn(rectOf((byId.get(id) as SimNode).zone), (byId.get(id) as SimNode).radius),
+      candidates: (id) => slotsIn(area, (byId.get(id) as SimNode).radius),
       fits: (id, point, positions) => {
         const node = byId.get(id) as SimNode
         for (const [otherId, other] of positions) {
@@ -218,7 +197,7 @@ function layoutOnce(
 }
 
 /** Dernière passe déterministe : écarte les paires encore trop proches (la simulation laisse de légers recouvrements). */
-function resolveOverlaps(nodes: SimNode[], rectOf: (zone: Zone) => Rect): void {
+function resolveOverlaps(nodes: SimNode[], area: Rect): void {
   for (let pass = 0; pass < 20; pass++) {
     let moved = false
     for (let i = 0; i < nodes.length; i++) {
@@ -237,8 +216,8 @@ function resolveOverlaps(nodes: SimNode[], rectOf: (zone: Zone) => Rect): void {
         a.y = (a.y ?? 0) - uy * push
         b.x = (b.x ?? 0) + ux * push
         b.y = (b.y ?? 0) + uy * push
-        clampInto(a, rectOf(a.zone))
-        clampInto(b, rectOf(b.zone))
+        clampInto(a, area)
+        clampInto(b, area)
         moved = true
       }
     }
@@ -246,7 +225,7 @@ function resolveOverlaps(nodes: SimNode[], rectOf: (zone: Zone) => Rect): void {
   }
 }
 
-/** Emplacements candidats d'une zone : quadrillage d'une demi-cellule, à l'intérieur des bords. */
+/** Emplacements candidats : quadrillage d'une demi-cellule, à l'intérieur des bords. */
 const slotCache = new Map<string, Point[]>()
 function slotsIn(rect: Rect, margin: number): Point[] {
   const key = `${rect.x},${rect.y},${rect.width},${rect.height},${margin}`

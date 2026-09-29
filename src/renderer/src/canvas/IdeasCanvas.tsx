@@ -9,14 +9,17 @@ import {
   useNodesState,
   useReactFlow,
   useStore,
+  type Connection,
   type NodeTypes,
   type EdgeTypes
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { CAPTURE_MAX_CHARS } from '@shared/ipc/app'
 import type { CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
+import type { RootView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
-import { call } from '../lib/ipc'
+import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { buildGraph, computeLayout, movedPositions, type CanvasNode } from './buildGraph'
@@ -24,14 +27,17 @@ import { useCanvasHover } from './hoverStore'
 import { CanvasToolbar } from './CanvasToolbar'
 import { LinkEdge } from './edges/LinkEdge'
 import { driftActive, type Point } from './forceLayout'
+import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
 import { NeuronNode } from './nodes/NeuronNode'
-import { ZoneNode } from './nodes/ZoneNode'
+import { LINK_LABEL_MAX, useCreateLink } from './useCreateLink'
 
-const NODE_TYPES: NodeTypes = { neuron: NeuronNode, zone: ZoneNode, block: BlockNode }
+const NODE_TYPES: NodeTypes = { neuron: NeuronNode, block: BlockNode }
 const EDGE_TYPES: EdgeTypes = { link: LinkEdge }
 const PAN_STEP = 64
+/** Marge du cadrage autour des idées. */
+const FIT_MARGIN = 128
 const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
   ArrowLeft: [PAN_STEP, 0],
   ArrowRight: [-PAN_STEP, 0],
@@ -51,9 +57,9 @@ const ARIA_LABELS = {
   'controls.interactive.ariaLabel': 'Verrouiller la carte'
 }
 
-/** Signature de ce qui change la disposition (idées, états, liens) — pas les filtres ni les titres. */
+/** Signature de ce qui change la disposition (idées, tailles, liens) — pas les filtres ni les titres. */
 function layoutSignature(view: IdeasCanvasView): string {
-  const ideas = [...view.incubator, ...view.network].map((root) => `${root.id}:${root.state}`).join(',')
+  const ideas = view.ideas.map((root) => `${root.id}:${root.state}:${root.contextLevel ?? ''}`).join(',')
   return `${ideas}|${view.links.map((link) => `${link.a.id}-${link.b.id}`).join(',')}`
 }
 
@@ -73,10 +79,14 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const openDive = useUiStore((state) => state.openDive)
-  const hatchedId = useUiStore((state) => state.hatchedId)
-  const clearHatched = useUiStore((state) => state.clearHatched)
   const bornId = useUiStore((state) => state.bornId)
-  const [migratingId, setMigratingId] = useState<string | null>(null)
+  const markBorn = useUiStore((state) => state.markBorn)
+  const showToast = useUiStore((state) => state.showToast)
+  const createLink = useCreateLink()
+  /** Champ posé sur la carte : nouvelle idée (double-clic) ou libellé d'un lien tiré. */
+  const [draft, setDraft] = useState<
+    { kind: 'idea'; at: Point; position: Point } | { kind: 'link'; at: Point; aRootId: string; bRootId: string } | null
+  >(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
@@ -114,37 +124,25 @@ function CanvasInner(): React.JSX.Element {
   const graph = useMemo(() => {
     if (view === undefined || layout === null) return { nodes: [] as CanvasNode[], edges: [] }
     const positions = new Map([...layout.positions, ...dragged.current])
-    // Idée qui vient d'éclore : elle apparaît d'abord à son ancienne place dans l'incubateur.
-    const hatched = hatchedId === null ? undefined : view.network.find((neuron) => neuron.id === hatchedId)
-    if (hatched?.position != null) positions.set(hatched.id, hatched.position)
-    return buildGraph(view, { zones: layout.zones, positions }, migratingId, bornId)
-  }, [view, layout, hatchedId, migratingId, bornId])
-
-  // …puis glisse vers sa place dans le réseau.
-  useEffect(() => {
-    if (hatchedId === null || view?.network.some((neuron) => neuron.id === hatchedId) !== true) return
-    const frame = requestAnimationFrame(() => {
-      setMigratingId(hatchedId)
-      clearHatched()
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [hatchedId, view, clearHatched])
-  useEffect(() => {
-    if (migratingId === null) return
-    const timer = setTimeout(() => setMigratingId(null), timingFor('migrate', reduced).duration + 100)
-    return () => clearTimeout(timer)
-  }, [migratingId, reduced])
+    return buildGraph(view, { area: layout.area, positions }, bornId)
+  }, [view, layout, bornId])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])
 
-  // Cadrage sur les zones, connues par calcul : React Flow ne mesure que les éléments visibles
-  // (`onlyRenderVisibleElements`), son cadrage automatique serait faux.
+  // Cadrage sur les idées et les blocs, connus par calcul : React Flow ne mesure que les éléments visibles
+  // (`onlyRenderVisibleElements`), son cadrage automatique serait faux. Carte vide : l'espace de départ.
+  const blocks = view?.blocks
   const bounds = useMemo(() => {
     if (layout === null) return null
-    const { incubator, network } = layout.zones
-    return { x: incubator.x, y: incubator.y, width: network.x + network.width - incubator.x, height: network.height }
-  }, [layout])
+    const points = [...layout.positions.values(), ...(blocks ?? [])]
+    if (points.length === 0) return layout.area
+    const xs = points.map((point) => point.x)
+    const ys = points.map((point) => point.y)
+    const x = Math.min(...xs) - FIT_MARGIN
+    const y = Math.min(...ys) - FIT_MARGIN
+    return { x, y, width: Math.max(...xs) + FIT_MARGIN - x, height: Math.max(...ys) + FIT_MARGIN - y }
+  }, [layout, blocks])
   // Cadrage initial dès que React Flow connaît la taille réelle de son conteneur (0 px au premier rendu).
   const hasSize = useStore((state) => state.width > 0 && state.height > 0)
   const fitted = useRef(false)
@@ -166,6 +164,48 @@ function CanvasInner(): React.JSX.Element {
     await call('canvas:createBlock', { x: Math.round(center.x), y: Math.round(center.y) })
     await client.invalidateQueries({ queryKey: ['canvas'] })
   }, [flow, client])
+
+  /** Position à l'écran (relative à la surface de la carte) d'un point de la carte. */
+  const toSurface = useCallback(
+    (point: Point): Point => {
+      const box = surface.current?.getBoundingClientRect()
+      const screen = flow.flowToScreenPosition(point)
+      return { x: screen.x - (box?.left ?? 0), y: screen.y - (box?.top ?? 0) }
+    },
+    [flow]
+  )
+
+  // Double-clic dans le vide : une idée à cet endroit (FR-030).
+  const onDoubleClick = (event: React.MouseEvent): void => {
+    if (!(event.target instanceof Element) || event.target.closest('.react-flow__pane') === null) return
+    const position = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+    const rounded = { x: Math.round(position.x), y: Math.round(position.y) }
+    setDraft({ kind: 'idea', at: toSurface(rounded), position: rounded })
+  }
+
+  const createIdea = async (text: string, position: Point): Promise<boolean> => {
+    try {
+      const root = await call<RootView>('neuron:create', { text, position })
+      markBorn(root.id)
+      setDraft(null)
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+      return true
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'L’idée n’a pas pu être ajoutée.')
+      return false
+    }
+  }
+
+  // Lien tiré d'une idée vers une autre (FR-031) : on demande son libellé au milieu des deux idées.
+  const onConnect = (connection: Connection): void => {
+    const { source, target } = connection
+    if (source === target) return
+    const a = graph.nodes.find((node) => node.id === source)
+    const b = graph.nodes.find((node) => node.id === target)
+    if (a === undefined || b === undefined) return
+    const middle = { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 }
+    setDraft({ kind: 'link', at: toSurface(middle), aRootId: source, bRootId: target })
+  }
 
   const onKeyDownCapture = (event: React.KeyboardEvent): void => {
     const delta = ARROWS[event.key]
@@ -190,11 +230,8 @@ function CanvasInner(): React.JSX.Element {
     }
   }
 
-  const menuNeuron =
-    menu === null || view === undefined
-      ? undefined
-      : [...view.incubator, ...view.network].find((neuron) => neuron.id === menu.id)
-  const empty = view !== undefined && view.incubator.length + view.network.length === 0
+  const menuNeuron = menu === null ? undefined : view?.ideas.find((neuron) => neuron.id === menu.id)
+  const empty = view !== undefined && view.ideas.length === 0
 
   return (
     <div className="flex h-full flex-col">
@@ -217,18 +254,12 @@ function CanvasInner(): React.JSX.Element {
         onPointerDown={() => setInteracting(true)}
         onPointerUp={() => setInteracting(false)}
         onPointerLeave={() => setInteracting(false)}
+        onDoubleClick={onDoubleClick}
       >
         {query.isError ? (
           <p role="alert" className="p-8 text-center text-sm">
             Les idées n’ont pas pu être chargées.
           </p>
-        ) : empty ? (
-          <div className="flex h-full items-center justify-center p-8">
-            <p className="max-w-md text-center text-sm text-content-muted">
-              Aucune idée pour l’instant. Appuie sur <kbd className="font-semibold">{settings.shortcut}</kbd> depuis
-              n’importe quelle application pour noter ta première idée, ou utilise « + Une idée ? ».
-            </p>
-          </div>
         ) : (
           <ReactFlow<CanvasNode>
             nodes={nodes}
@@ -240,7 +271,10 @@ function CanvasInner(): React.JSX.Element {
             onlyRenderVisibleElements
             minZoom={0.2}
             maxZoom={2}
-            nodesConnectable={false}
+            nodesConnectable
+            connectionRadius={64}
+            onConnect={onConnect}
+            zoomOnDoubleClick={false}
             // Tab va d'idée en idée ; les liens suggérés restent décidables au clavier par leurs boutons ✓ / ✗.
             edgesFocusable={false}
             deleteKeyCode={null}
@@ -285,6 +319,40 @@ function CanvasInner(): React.JSX.Element {
             <Controls showInteractive={false} />
           </ReactFlow>
         )}
+        {empty && draft === null ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+            <p className="max-w-md text-center text-sm text-content-muted">
+              Aucune idée pour l’instant. Double-clique n’importe où pour noter ta première idée, ou appuie sur{' '}
+              <kbd className="font-semibold">{settings.shortcut}</kbd> depuis n’importe quelle application.
+            </p>
+          </div>
+        ) : null}
+        {draft?.kind === 'idea' ? (
+          <InlinePrompt
+            key={`idea-${draft.position.x}-${draft.position.y}`}
+            at={draft.at}
+            label="Nouvelle idée"
+            placeholder="Ton idée…"
+            maxLength={CAPTURE_MAX_CHARS}
+            onSubmit={(text) => createIdea(text, draft.position)}
+            onCancel={() => setDraft(null)}
+          />
+        ) : null}
+        {draft?.kind === 'link' ? (
+          <InlinePrompt
+            key={`link-${draft.aRootId}-${draft.bRootId}`}
+            at={draft.at}
+            label="Libellé du lien"
+            placeholder="Libellé du lien (ex. financement)"
+            maxLength={LINK_LABEL_MAX}
+            onSubmit={async (label) => {
+              const done = await createLink({ aRootId: draft.aRootId, bRootId: draft.bRootId, label })
+              if (done) setDraft(null)
+              return done
+            }}
+            onCancel={() => setDraft(null)}
+          />
+        ) : null}
         {menuNeuron === undefined || menu === null || view === undefined ? null : (
           <NeuronMenu
             neuron={menuNeuron}
@@ -295,6 +363,10 @@ function CanvasInner(): React.JSX.Element {
               openDive(menuNeuron.id)
             }}
             onClose={() => setMenu(null)}
+            others={view.ideas
+              .filter((neuron) => neuron.id !== menuNeuron.id)
+              .map((neuron) => ({ id: neuron.id, title: neuron.title }))}
+            onLink={(targetId, label) => createLink({ aRootId: menuNeuron.id, bRootId: targetId, label })}
           />
         )}
       </div>
@@ -302,7 +374,7 @@ function CanvasInner(): React.JSX.Element {
   )
 }
 
-/** Écran Idées (spec 003 US2) : incubateur et réseau des neurones, reliés par leurs liens. */
+/** Écran Idées (spec 003 US2, FR-029 à FR-031) : toutes les idées dans un seul espace, reliées par leurs liens. */
 export function IdeasCanvas(): React.JSX.Element {
   return (
     <ReactFlowProvider>

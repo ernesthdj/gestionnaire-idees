@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
-import { buildGraph, computeLayout, layoutInput } from '../../../src/renderer/src/canvas/buildGraph'
+import { buildGraph, computeLayout } from '../../../src/renderer/src/canvas/buildGraph'
 import { SeedBadge } from '../../../src/renderer/src/canvas/edges/SeedBadge'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import type { SeedView } from '../../../src/shared/ipc/neurons'
@@ -70,12 +70,11 @@ describe('graines sur la carte (FR-028)', () => {
     expect(buildGraph(suggested, computeLayout(suggested)).edges[0]?.data?.seed).toBeNull()
   })
 
-  it('should_place_a_born_idea_in_the_network_and_say_where_it_comes_from', () => {
+  it('should_say_where_a_born_idea_comes_from_and_let_it_grow', () => {
     const view = viewWithSeed({ status: 'accepted', bornRootId: BORN_ID })
-    const born = { ...view.incubator[0], id: BORN_ID, title: 'Financer le portfolio' } as (typeof view.network)[0]
-    const withBorn = { ...view, network: [...view.network, born] }
-    expect(layoutInput(withBorn).find((node) => node.id === BORN_ID)?.zone).toBe('network')
-    const node = buildGraph(withBorn, computeLayout(withBorn), null, BORN_ID).nodes.find((n) => n.id === BORN_ID)
+    const born = { ...view.ideas[0], id: BORN_ID, title: 'Financer le portfolio' } as (typeof view.ideas)[0]
+    const withBorn = { ...view, ideas: [...view.ideas, born] }
+    const node = buildGraph(withBorn, computeLayout(withBorn), BORN_ID).nodes.find((n) => n.id === BORN_ID)
     expect(node?.ariaLabel).toMatch(/née de Mission mariage × Portfolio photo/)
     expect(node?.className).toBe('neuron-born')
   })

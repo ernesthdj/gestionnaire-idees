@@ -14,8 +14,8 @@ import {
 } from '../schemaNeurons'
 
 /**
- * Jeu de démonstration FICTIF (spec 003 T002) : 100 idées dans les 3 états et 50 liens, pour juger la fluidité
- * de l'écran Idées (SC-004). Déterministe (graine fixe) et inséré une seule fois, uniquement dans le profil démo.
+ * Jeu de démonstration FICTIF (spec 003 T002) : 12 idées couvrant tous les niveaux de contexte, 8 liens et
+ * 2 graines — lisible d'un coup d'œil (révisé le 2026-09-29 ; la fluidité à 100 idées est mesurée par les tests). Déterministe (graine fixe) et inséré une seule fois, uniquement dans le profil démo.
  */
 
 /** Identifiants au format UUID (exigé par les canaux IPC), reconnaissables à leur préfixe `dea00000-`. */
@@ -41,8 +41,18 @@ export function demoId(kind: keyof typeof KIND, n: number): string {
 
 const DEMO_SEEDS = [
   { title: 'Graine fictive : regrouper les deux achats', why: 'Les deux idées visent le même budget (démo).' },
-  { title: 'Graine fictive : un seul déplacement pour les deux', why: 'Même période, même lieu (démo).' },
-  { title: 'Graine fictive : en faire un petit projet commun', why: 'Idées complémentaires (démo).' }
+  { title: 'Graine fictive : un seul déplacement pour les deux', why: 'Même période, même lieu (démo).' }
+] as const
+
+/** Niveaux de contexte des idées en développement : tous les paliers de taille sont représentés. */
+const DEVELOPING_LEVELS = [
+  'insufficient',
+  'sufficient',
+  'complete',
+  'insufficient',
+  'sufficient',
+  'complete',
+  'sufficient'
 ] as const
 
 export interface DemoSize {
@@ -52,7 +62,7 @@ export interface DemoSize {
   readonly links: number
 }
 
-export const DEFAULT_DEMO_SIZE: DemoSize = { raw: 30, developing: 30, hatched: 40, links: 50 }
+export const DEFAULT_DEMO_SIZE: DemoSize = { raw: 2, developing: 7, hatched: 3, links: 8 }
 
 const CATEGORIES = ['cat-general', 'cat-achat', 'cat-projet', 'cat-sortie', 'cat-photo', 'cat-it'] as const
 const SUBJECTS = [
@@ -96,7 +106,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
   if (existing !== undefined) return { seeded: false }
 
   const random = seededRandom(20260928)
-  const hatchedIds: string[] = []
+  const allIds: string[] = []
 
   db.transaction((tx) => {
     const insertRoot = (
@@ -121,6 +131,7 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           version: state === 'raw' ? 0 : 2
         })
         .run()
+      allIds.push(id)
       return id
     }
 
@@ -158,8 +169,8 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
         .values({
           id: demoId('gauge', index),
           rootId,
-          level: 'insufficient',
-          aiLevel: 'insufficient',
+          level: DEVELOPING_LEVELS[i % DEVELOPING_LEVELS.length] ?? 'insufficient',
+          aiLevel: DEVELOPING_LEVELS[i % DEVELOPING_LEVELS.length] ?? 'insufficient',
           coveredJson: JSON.stringify(['quoi', 'budget']),
           missingJson: JSON.stringify(['quand']),
           answeredCount: 2
@@ -170,7 +181,6 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
     for (let i = 0; i < size.hatched; i++) {
       const nature = i % 2 === 0 ? 'action' : 'reflection'
       const rootId = insertRoot(++index, 'hatched', nature)
-      hatchedIds.push(rootId)
       const synthesisId = demoId('synthesis', index)
       tx.insert(syntheses)
         .values({
@@ -257,16 +267,12 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       }
     }
 
-    // Liens réalistes : comme dans l'app (liens proposés entre idées proches), des groupes de 5 idées reliées
-    // (une chaîne + 2 raccourcis) et quelques ponts entre groupes. Les 20 % derniers restent suggérés.
+    // Liens entre idées de tous états (espace unique, FR-029) : de petites chaînes qui mêlent brutes, en
+    // développement et écloses (idées prises de 3 en 3). Les 20 % derniers restent suggérés.
     const pairs: [string, string][] = []
-    const at = (k: number): string => hatchedIds[k] as string
-    for (let group = 0; group + 5 <= hatchedIds.length; group += 5) {
-      for (let k = 0; k < 4; k++) pairs.push([at(group + k), at(group + k + 1)])
-      pairs.push([at(group), at(group + 2)], [at(group + 2), at(group + 4)])
-    }
-    for (let group = 5; group + 5 <= hatchedIds.length && pairs.length < size.links; group += 15) {
-      pairs.push([at(group - 1), at(group)])
+    for (let offset = 0; offset < 3; offset++) {
+      const chain = allIds.filter((_, k) => k % 3 === offset)
+      for (let k = 0; k + 1 < chain.length; k++) pairs.push([chain[k] as string, chain[k + 1] as string])
     }
     const kept = pairs.slice(0, size.links)
     kept.forEach(([first, second], index) => {

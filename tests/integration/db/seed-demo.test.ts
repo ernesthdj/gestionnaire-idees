@@ -24,22 +24,26 @@ describe('jeu de démonstration', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('should_create_100_roots_in_the_3_states_and_50_links_when_the_base_is_empty', () => {
+  it('should_create_12_roots_covering_every_context_level_and_8_links_when_the_base_is_empty', () => {
     expect(seedDemo(handle.db)).toEqual({ seeded: true })
 
     const roots = new NeuronRepository(handle.db)
     const count = (state: 'raw' | 'developing' | 'hatched'): number =>
       roots.listRoots({ state, limit: 100 }).items.length
-    expect([count('raw'), count('developing'), count('hatched')]).toEqual([30, 30, 40])
+    expect([count('raw'), count('developing'), count('hatched')]).toEqual([2, 7, 3])
 
     const links = new LinkRepository(handle.db)
-    expect(links.list('accepted')).toHaveLength(40)
-    expect(links.list('suggested')).toHaveLength(10)
+    expect(links.list('accepted')).toHaveLength(6)
+    expect(links.list('suggested')).toHaveLength(2)
     const pairs = links.list().map((link) => [link.a.id, link.b.id].sort().join('|'))
-    expect(new Set(pairs).size).toBe(50)
+    expect(new Set(pairs).size).toBe(8)
+    // Des liens entre idées d'états différents (espace unique).
+    const stateOf = new Map(roots.canvasRoots().map((root) => [root.id, root.state]))
+    expect(links.list().some((link) => stateOf.get(link.a.id) !== stateOf.get(link.b.id))).toBe(true)
+    expect(new Set(roots.latestGaugeLevels().values())).toEqual(new Set(['insufficient', 'sufficient', 'complete']))
     // Graines fictives en attente sur des liens acceptés (FR-028).
     expect(links.seeds()).toEqual(
-      Array.from({ length: 3 }, () => expect.objectContaining({ status: 'suggested', bornRootId: null }))
+      Array.from({ length: 2 }, () => expect.objectContaining({ status: 'suggested', bornRootId: null }))
     )
   })
 
@@ -51,13 +55,13 @@ describe('jeu de démonstration', () => {
     const rootId = developing?.id ?? ''
     expect(repository.neuronsOf(rootId)).toHaveLength(2)
     expect(repository.proposedExtensions(rootId)).toHaveLength(1)
-    expect(repository.latestGauge(rootId)?.level).toBe('insufficient')
+    expect(repository.latestGauge(rootId)?.level).toBeDefined()
   })
 
   it('should_do_nothing_when_demo_data_already_exists', () => {
     seedDemo(handle.db)
     expect(seedDemo(handle.db)).toEqual({ seeded: false })
-    expect(new NeuronRepository(handle.db).listRoots({ limit: 200 }).items).toHaveLength(100)
+    expect(new NeuronRepository(handle.db).listRoots({ limit: 200 }).items).toHaveLength(12)
   })
 
   it('should_use_uuid_ids_when_seeded_so_that_ipc_channels_accept_them', () => {

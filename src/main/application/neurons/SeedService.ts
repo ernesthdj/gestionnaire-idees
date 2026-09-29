@@ -2,11 +2,14 @@ import { randomUUID } from 'node:crypto'
 import { GermerOut, type SeedOut } from '@shared/ai/neurons'
 import type { SeedView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
-import { CANDIDATE_CHARS } from '../../domain/neurons/links'
+import { CANDIDATE_CHARS, linkFingerprint, orderedPair } from '../../domain/neurons/links'
 import type { LinkRepository, SeedRow } from '../../infrastructure/db/repositories/LinkRepository'
 import type { AIGateway } from '../ai/AIGateway'
 import type { ExampleStore } from '../ai/ExampleStore'
 import type { NeuronService } from './NeuronService'
+
+/** Libellé des liens qui relient une idée née à ses deux parents. */
+export const LINEAGE_LABEL = 'née de'
 
 export type SeedEvent = { readonly type: 'seeds:suggested'; readonly linkId: string }
 
@@ -97,6 +100,26 @@ export class SeedService {
         ...this.midpoint(link.aRootId, link.bRootId)
       })
       repository.updateSeed(seed.id, { status: 'accepted', bornRootId: id })
+      // L'idée née est reliée à chacun de ses parents : elle ne flotte pas seule sur la carte.
+      const lineage = [link.aRootId, link.bRootId].map((parentId) => {
+        const [a, b] = orderedPair(id, parentId)
+        const linkId = repository.insert({
+          aRootId: a,
+          bRootId: b,
+          label: LINEAGE_LABEL,
+          justification: seed.why,
+          origin: 'ai',
+          status: 'accepted',
+          fingerprint: linkFingerprint(a, b, LINEAGE_LABEL)
+        })
+        return {
+          kind: 'seed' as const,
+          entity: 'neuron_link',
+          entityId: linkId,
+          before: null,
+          after: { a, b, label: LINEAGE_LABEL, status: 'accepted', origin: 'ai' }
+        }
+      })
       repository.log(batchId, [
         {
           kind: 'seed',
@@ -105,7 +128,8 @@ export class SeedService {
           before: { status: 'suggested', bornRootId: null },
           after: { status: 'accepted', bornRootId: id }
         },
-        { kind: 'seed', entity: 'neuron', entityId: id, before: null, after: { state: 'raw', version: 0 } }
+        { kind: 'seed', entity: 'neuron', entityId: id, before: null, after: { state: 'raw', version: 0 } },
+        ...lineage
       ])
       this.recordExample(seed, 'positive')
       return id

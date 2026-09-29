@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, lt, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CategoryView,
   ExtensionView,
+  GaugeLevel,
   GaugeView,
   Nature,
   NeuronView,
@@ -235,6 +236,21 @@ export class NeuronRepository {
       missing: JSON.parse(row.missingJson) as string[],
       answered: row.answeredCount
     }
+  }
+
+  /** Dernier niveau de contexte de chaque idée évaluée (taille du neurone sur la carte). */
+  latestGaugeLevels(): Map<string, GaugeLevel> {
+    // SQLite : avec max(), les autres colonnes viennent de la ligne qui porte ce maximum (la plus récente).
+    const rows = this.db
+      .select({
+        rootId: contextAssessments.rootId,
+        level: contextAssessments.level,
+        seq: sql<number>`max(${contextAssessments}.rowid)`
+      })
+      .from(contextAssessments)
+      .groupBy(contextAssessments.rootId)
+      .all()
+    return new Map(rows.map((row) => [row.rootId, row.level]))
   }
 
   /** Toutes les idées non archivées, pour la carte (aucune pagination : quelques centaines au plus). */

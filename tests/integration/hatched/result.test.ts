@@ -25,7 +25,7 @@ describe('résultat d’une idée éclose (spec 003 US5)', () => {
   it('should_read_a_full_plan_with_its_condition_branches_dependency_and_trigger', async () => {
     seedDemo(t.handle.db)
     // Idées 61 à 100 : écloses ; la 61e (i = 0) a le plan complet.
-    const result = await get(demoId('root', 61))
+    const result = await get(demoId('root', 10))
     expect(result?.type).toBe('action_plan')
     if (result?.type !== 'action_plan') return
     expect(result.nodes.map((node) => [node.type, node.title, node.branchLabel])).toEqual([
@@ -44,11 +44,11 @@ describe('résultat d’une idée éclose (spec 003 US5)', () => {
 
   it('should_read_a_reflection_with_the_titles_of_its_source_sub_neurons', async () => {
     seedDemo(t.handle.db)
-    const result = await get(demoId('root', 62))
+    const result = await get(demoId('root', 11))
     expect(result?.type).toBe('reflection_summary')
     if (result?.type !== 'reflection_summary') return
     expect(result.keyPoints).toEqual([
-      { text: 'Idée fictive de démonstration', sources: [{ id: demoId('sub', 620), title: 'budget : 250 €' }] }
+      { text: 'Idée fictive de démonstration', sources: [{ id: demoId('sub', 110), title: 'budget : 250 €' }] }
     ])
     expect(result.pros[0]?.sources.map((source) => source.title)).toEqual(['budget : 250 €', 'échéance : ce mois-ci'])
     expect(result.openQuestions).toEqual([{ text: 'Quel budget ?' }])

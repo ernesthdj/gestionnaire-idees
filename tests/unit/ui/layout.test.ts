@@ -3,44 +3,42 @@ import {
   driftActive,
   forceLayout,
   MIN_FOOTPRINT,
-  zonesFor,
+  areaFor,
   type LayoutLink,
   type LayoutNode,
   type Point
 } from '../../../src/renderer/src/canvas/forceLayout'
 
-function demoNodes(incubator: number, network: number): LayoutNode[] {
-  return [
-    ...Array.from({ length: incubator }, (_, i) => ({
-      id: `i${i}`,
-      zone: 'incubator' as const,
-      radius: i % 2 === 0 ? 32 : 56,
-      initial: null
-    })),
-    ...Array.from({ length: network }, (_, i) => ({ id: `n${i}`, zone: 'network' as const, radius: 44, initial: null }))
-  ]
+/** 100 idées de toutes tailles (5 paliers de 40 à 104 px, satellites compris) dans un seul espace. */
+function demoNodes(count: number): LayoutNode[] {
+  const radii = [20, 28, 36 + 24, 44, 52]
+  return Array.from({ length: count }, (_, i) => ({
+    id: `n${i}`,
+    radius: radii[i % radii.length] ?? 44,
+    initial: null
+  }))
 }
 
 const LINKS: LayoutLink[] = Array.from({ length: 50 }, (_, i) => ({
-  source: `n${i % 40}`,
-  target: `n${(i * 7 + 3) % 40}`
+  source: `n${i % 100}`,
+  target: `n${(i * 7 + 3) % 100}`
 }))
 
 describe('disposition de l’écran Idées', () => {
-  const nodes = demoNodes(60, 40)
-  const zones = zonesFor(60, 40)
-  const positions = forceLayout(nodes, LINKS, zones)
+  const nodes = demoNodes(100)
+  const area = areaFor(100)
+  const positions = forceLayout(nodes, LINKS, area)
 
-  it('should_keep_incubator_ideas_left_and_hatched_ideas_right_inside_their_zone', () => {
+  it('should_keep_every_idea_inside_the_single_space', () => {
     for (const node of nodes) {
       const point = positions.get(node.id) as Point
-      const rect = zones[node.zone]
+      const rect = area
       expect(point.x - node.radius).toBeGreaterThanOrEqual(rect.x - 0.1)
       expect(point.x + node.radius).toBeLessThanOrEqual(rect.x + rect.width + 0.1)
       expect(point.y - node.radius).toBeGreaterThanOrEqual(rect.y - 0.1)
       expect(point.y + node.radius).toBeLessThanOrEqual(rect.y + rect.height + 0.1)
     }
-    expect(zones.incubator.x + zones.incubator.width).toBeLessThan(zones.network.x)
+    expect(area.width / area.height).toBeGreaterThan(1.2)
   })
 
   it('should_never_let_two_ideas_or_their_titles_touch_with_100_ideas_and_50_links', () => {
@@ -57,14 +55,14 @@ describe('disposition de l’écran Idées', () => {
   })
 
   it('should_give_the_same_result_when_run_twice_with_the_same_input', () => {
-    expect(forceLayout(nodes, LINKS, zones)).toEqual(positions)
+    expect(forceLayout(nodes, LINKS, area)).toEqual(positions)
   })
 
   it('should_barely_move_ideas_when_reopened_with_the_saved_positions', () => {
     const reopened = forceLayout(
       nodes.map((node) => ({ ...node, initial: positions.get(node.id) ?? null })),
       LINKS,
-      zones
+      area
     )
     for (const node of nodes) {
       const before = positions.get(node.id) as Point
@@ -73,15 +71,20 @@ describe('disposition de l’écran Idées', () => {
     }
   })
 
-  it('should_move_a_newly_hatched_idea_into_the_network_even_with_an_old_incubator_position', () => {
-    const hatched: LayoutNode = { id: 'x', zone: 'network', radius: 44, initial: { x: 100, y: 100 } }
-    const point = forceLayout([hatched], [], zonesFor(0, 1)).get('x') as Point
-    expect(point.x).toBeGreaterThan(zonesFor(0, 1).network.x)
+  it('should_keep_an_idea_where_the_user_put_it', () => {
+    const placed: LayoutNode = { id: 'x', radius: 20, initial: { x: 300, y: 200 } }
+    expect(forceLayout([placed], [], areaFor(1)).get('x')).toEqual({ x: 300, y: 200 })
   })
 
-  it('should_keep_a_minimum_zone_size_when_there_is_no_idea', () => {
-    const empty = zonesFor(0, 0)
-    expect(empty.incubator.width).toBeGreaterThan(0)
+  it('should_replace_an_idea_whose_saved_position_is_outside_the_space', () => {
+    const lost: LayoutNode = { id: 'x', radius: 20, initial: { x: -5000, y: 0 } }
+    const point = forceLayout([lost], [], areaFor(1)).get('x') as Point
+    expect(point.x).toBeGreaterThanOrEqual(0)
+  })
+
+  it('should_keep_a_minimum_space_when_there_is_no_idea', () => {
+    const empty = areaFor(0)
+    expect(empty.width).toBeGreaterThan(0)
     expect(forceLayout([], [], empty).size).toBe(0)
   })
 

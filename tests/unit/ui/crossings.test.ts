@@ -7,7 +7,7 @@ import {
   type CrossingLink,
   type Point
 } from '../../../src/renderer/src/canvas/crossings'
-import { forceLayout, zonesFor, type LayoutLink, type LayoutNode } from '../../../src/renderer/src/canvas/forceLayout'
+import { areaFor, forceLayout, type LayoutLink, type LayoutNode } from '../../../src/renderer/src/canvas/forceLayout'
 
 const p = (x: number, y: number): Point => ({ x, y })
 
@@ -24,7 +24,7 @@ function clusteredLinks(): LayoutLink[] {
 }
 
 function networkNodes(count: number): LayoutNode[] {
-  return Array.from({ length: count }, (_, i) => ({ id: `n${i}`, zone: 'network' as const, radius: 44, initial: null }))
+  return Array.from({ length: count }, (_, i) => ({ id: `n${i}`, radius: 44, initial: null }))
 }
 
 const obstaclesOf = (nodes: readonly LayoutNode[]) => nodes.map((node) => ({ id: node.id, radius: node.radius }))
@@ -44,27 +44,27 @@ describe('croisements de liens', () => {
   it('should_leave_no_crossing_and_no_link_under_an_idea_when_the_network_is_realistic', () => {
     const nodes = networkNodes(40)
     const links = clusteredLinks()
-    const positions = forceLayout(nodes, links, zonesFor(0, 40))
+    const positions = forceLayout(nodes, links, areaFor(40))
     expect(crossingCost(links, obstaclesOf(nodes), positions)).toBe(0)
   })
 
   it('should_leave_no_crossing_when_the_links_form_a_tree', () => {
     const nodes = networkNodes(30)
     const links = nodes.slice(1).map((node, i) => ({ source: `n${Math.floor(i / 3)}`, target: node.id }))
-    const positions = forceLayout(nodes, links, zonesFor(0, 30))
+    const positions = forceLayout(nodes, links, areaFor(30))
     expect(crossingCost(links, obstaclesOf(nodes), positions)).toBe(0)
   })
 
   it('should_leave_no_crossing_when_the_links_form_a_binary_tree', () => {
     const nodes = networkNodes(40)
     const links = nodes.slice(1).map((node, i) => ({ source: `n${Math.floor(i / 2)}`, target: node.id }))
-    expect(crossingCost(links, [], forceLayout(nodes, links, zonesFor(0, 40)))).toBe(0)
+    expect(crossingCost(links, [], forceLayout(nodes, links, areaFor(40)))).toBe(0)
   })
 
   it('should_leave_no_crossing_even_when_50_links_are_drawn_at_random_between_40_ideas', () => {
     const nodes = networkNodes(40)
     const links = Array.from({ length: 50 }, (_, i) => ({ source: `n${i % 40}`, target: `n${(i * 7 + 3) % 40}` }))
-    expect(crossingCost(links, [], forceLayout(nodes, links, zonesFor(0, 40)))).toBe(0)
+    expect(crossingCost(links, [], forceLayout(nodes, links, areaFor(40)))).toBe(0)
   })
 
   it('should_at_least_halve_the_crossings_of_a_badly_tangled_arrangement', () => {

@@ -28,18 +28,18 @@ Depuis n'importe quelle application, un raccourci clavier global ouvre une petit
 
 ---
 
-### User Story 2 - Voir tout son cerveau : incubateur et réseau (Priority: P1)
+### User Story 2 - Voir tout son cerveau : un seul espace de neurones (Priority: P1) — *révisée 2026-09-29*
 
-L'écran Idées montre deux zones : à gauche l'**incubateur** (neurones bruts en pointillés qui dérivent lentement, neurones en développement avec leurs premiers sous-neurones), à droite le **réseau** (neurones éclos à double anneau et halo, reliés par des liens libellés). Un en-tête résume « N brutes · N en dév. · N écloses ». L'utilisateur peut créer une idée (« + Une idée ? »), zoomer, recentrer, filtrer (nature, catégorie), rechercher.
+L'écran Idées montre **toutes les idées dans un seul espace**, reliées ou non entre elles : il n'y a plus de zones « incubateur » et « réseau » (décision de mentalyas, 2026-09-29 : on part d'une carte vide, on crée une idée et on la travaille sur place). La **taille** d'un neurone suit son niveau de contexte (5 paliers : brute, insuffisant, suffisant, complet, éclose) ; son **aspect** suit son état (brute en pointillés qui dérive lentement, en développement pleine avec ses premiers sous-neurones, éclose à double anneau et halo). Un en-tête résume « N brutes · N en dév. · N écloses ». L'utilisateur crée une idée par un double-clic dans le vide, relie deux idées en tirant de l'une à l'autre (ou par le menu de l'idée au clavier), zoome, recentre, filtre (nature, catégorie), recherche.
 
 **Why this priority**: c'est la vision neuronale demandée ; l'écran d'accueil du Brainstormer.
 
-**Independent Test**: charger un jeu de neurones fictifs dans les trois états ; vérifier la répartition dans les deux zones, les aspects distincts, les liens, les compteurs, les filtres et la navigation au clavier.
+**Independent Test**: charger un jeu de neurones fictifs de tous niveaux de contexte ; vérifier l'espace unique, les tailles et aspects, les liens, les compteurs, la création au double-clic, le lien tiré, les filtres et la navigation au clavier.
 
 **Acceptance Scenarios**:
 
-1. **Given** des neurones dans les trois états, **When** l'utilisateur ouvre Idées, **Then** bruts et en développement sont dans l'incubateur, éclos dans le réseau, chacun avec un aspect distinct, et les compteurs sont justes.
-2. **Given** des liens acceptés, **When** le réseau s'affiche, **Then** chaque lien porte son libellé ; les liens suggérés apparaissent en pointillés avec ✓ / ✗.
+1. **Given** des neurones de tous niveaux de contexte, **When** l'utilisateur ouvre Idées, **Then** ils cohabitent dans un seul espace, plus grands quand leur contexte est plus complet, avec un aspect distinct par état, et les compteurs sont justes.
+2. **Given** des liens acceptés, **When** la carte s'affiche, **Then** chaque lien porte son libellé ; les liens suggérés apparaissent en pointillés avec ✓ / ✗.
 3. **Given** beaucoup de neurones, **When** l'utilisateur filtre par nature ou catégorie, ou recherche un mot, **Then** seuls les neurones correspondants restent mis en évidence.
 4. **Given** aucun neurone, **When** l'écran s'ouvre, **Then** un état vide explique comment capturer la première idée.
 5. **Given** la souris inutilisée, **When** l'utilisateur navigue au clavier, **Then** il peut parcourir les neurones, en ouvrir un et revenir, avec un focus visible.
@@ -75,7 +75,7 @@ Un double-clic (ou `Entrée`) sur un neurone ouvre la **plongée** : zoom sur le
 **Acceptance Scenarios**:
 
 1. **Given** un neurone « suffisant », **When** l'utilisateur verrouille, **Then** l'aperçu de synthèse adapté à la nature s'affiche et rien n'est encore appliqué.
-2. **Given** un aperçu, **When** l'utilisateur confirme, **Then** l'animation de fusion joue, le neurone devient éclos et apparaît dans le réseau ; une notification propose « Annuler » pendant 10 secondes.
+2. **Given** un aperçu, **When** l'utilisateur confirme, **Then** l'animation de fusion joue, le neurone devient éclos et grandit sur place ; une notification propose « Annuler » pendant 10 secondes.
 3. **Given** un aperçu, **When** l'utilisateur demande une révision avec une consigne, **Then** un nouvel aperçu remplace le précédent.
 4. **Given** un neurone « insuffisant », **When** l'utilisateur verrouille, **Then** un avertissement liste les manques et la synthèse ne part qu'après confirmation.
 5. **Given** la préférence système « réduire les animations », **When** une fusion a lieu, **Then** elle est remplacée par un fondu court, sans mouvement.
@@ -96,7 +96,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 2. **Given** une condition, **When** l'utilisateur choisit une branche, **Then** les autres sont grisées et restent réactivables.
 3. **Given** un déclencheur, **When** il est marqué atteint, **Then** les tâches qui l'attendent deviennent prêtes.
 4. **Given** un neurone éclos, **When** l'utilisateur l'exporte, **Then** un fichier Markdown contient le titre, la nature, l'arbre des questions/réponses et le plan ou la synthèse, à l'emplacement choisi.
-5. **Given** un neurone éclos, **When** l'utilisateur le rouvre, **Then** il repasse en développement dans l'incubateur, son plan ou sa synthèse précédents restant consultables.
+5. **Given** un neurone éclos, **When** l'utilisateur le rouvre, **Then** il repasse en développement (et reprend la taille de son niveau de contexte), son plan ou sa synthèse précédents restant consultables.
 
 ---
 
@@ -144,15 +144,19 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 - **FR-008**: Un neurone capturé MUST être créé même sans IA ; nature et catégorie proposées en arrière-plan, signalées comme telles, modifiables en un clic.
 
 **Écran Idées**
-- **FR-009**: L'écran Idées MUST présenter l'incubateur (bruts + en développement) et le réseau (éclos), avec trois aspects distincts : brut (contour pointillé), en développement (plein, sous-neurones visibles), éclos (double anneau + halo).
-- **FR-010**: Le réseau MUST afficher les liens libellés ; les liens suggérés MUST être distincts (pointillés) et acceptables/refusables sur place.
+- **FR-009** *(révisée 2026-09-29)*: L'écran Idées MUST présenter toutes les idées dans un seul espace (FR-029), avec trois aspects selon l'état : brute (contour pointillé), en développement (plein, satellites = premiers sous-neurones), éclose (double anneau + halo) ; couleur = catégorie.
+- **FR-010**: La carte MUST afficher les liens libellés ; les liens suggérés MUST être distincts (pointillés) et acceptables/refusables sur place.
   Les liens MUST NOT se croiser (ni passer sous une idée) dès que le réseau le permet géométriquement (réseau planaire) ; sinon le nombre de croisements MUST être réduit au minimum atteignable par la disposition *(exigence de mentalyas, 2026-09-28)*.
-- **FR-011**: L'écran MUST offrir : compteurs par état, « + Une idée ? », zoom, recentrer, filtres (nature, catégorie), recherche, état vide.
+- **FR-011** *(révisée 2026-09-29)*: L'écran MUST offrir : compteurs par état, création d'idée au double-clic (FR-030), zoom, recentrer, filtres (nature, catégorie), recherche, état vide qui explique le double-clic et le raccourci.
 - **FR-012**: Les neurones bruts MUST dériver lentement ; la dérive MUST se suspendre pendant l'interaction et être désactivée en mode animations réduites.
 
 - **FR-026**: La toile MUST accepter un type de nœud générique « bloc » (conteneur vide que l'utilisateur place, déplace, redimensionne et supprime, avec position et taille persistées), sans exécution de code en MVP-1 ; il servira de support aux mini-widgets de la v2 (docs/brainstorm/L4c-widgets.md).
 - **FR-027**: Les suggestions de l'IA (spec 002 US6) MUST apparaître comme **neurones fantômes** rattachés à leur neurone (contour en pointillés, opacité réduite, apparition 150 ms) : Tab ou clic = accepter (le fantôme se solidifie en sous-neurone marqué ✦ IA), Échap ou « × » = ignorer ; un fantôme en vérification web affiche un indicateur discret, puis ses sources (titre + domaine, lien externe ouvert dans le navigateur système) au survol ou au focus ; tout reste utilisable au clavier et lisible par lecteur d'écran (« suggestion de l'IA »).
-- **FR-028** *(ajout 2026-09-29, décision de mentalyas)*: Un lien accepté MAY porter **une seule graine** : une idée nouvelle (titre + pourquoi) que l'IA voit naître de la rencontre des deux idées. Elle est proposée avec les liens suggérés à l'éclosion (même appel, aucun coût en plus) et, en arrière-plan, quand l'utilisateur relie lui-même deux idées. La graine n'est visible qu'une fois le lien accepté (pastille 🌱 au milieu du trait ; un clic ou `Entrée` ouvre une carte — titre, pourquoi, « Refuser » / « Faire naître » — refermée par un clic ailleurs ou `Échap` ; *révisé 2026-09-29 après test : l'ouverture au survol se refermait avant qu'on atteigne les boutons*). Acceptée, elle devient une idée **brute** « née de A × B », placée entre ses parents **dans le réseau**, développable comme les autres ; l'acceptation est annulable depuis l'historique. Refusée, elle n'est jamais reproposée pour ce lien. Rien ne se crée sans acceptation.
+- **FR-028** *(ajout 2026-09-29, décision de mentalyas)*: Un lien accepté MAY porter **une seule graine** : une idée nouvelle (titre + pourquoi) que l'IA voit naître de la rencontre des deux idées. Elle est proposée avec les liens suggérés à l'éclosion (même appel, aucun coût en plus) et, en arrière-plan, quand l'utilisateur relie lui-même deux idées. La graine n'est visible qu'une fois le lien accepté (pastille 🌱 au milieu du trait ; un clic ou `Entrée` ouvre une carte — titre, pourquoi, « Refuser » / « Faire naître » — refermée par un clic ailleurs ou `Échap` ; *révisé 2026-09-29 après test : l'ouverture au survol se refermait avant qu'on atteigne les boutons*). Acceptée, elle devient une idée **brute** « née de A × B », placée entre ses parents et **reliée à chacun par un lien « née de »** (révisé 2026-09-29), développable comme les autres ; l'acceptation est annulable depuis l'historique. Refusée, elle n'est jamais reproposée pour ce lien. Rien ne se crée sans acceptation.
+
+- **FR-029** *(ajout 2026-09-29, décision de mentalyas)*: Toutes les idées MUST cohabiter dans un seul espace, reliées ou non. La taille d'un neurone MUST suivre son niveau de contexte en 5 paliers nets (40 / 56 / 72 / 88 / 104 px : brute jamais travaillée, insuffisant, suffisant, complet, éclose) ; un changement de palier MUST s'animer (~600 ms, instantané en mode réduit) ; le lecteur d'écran annonce le niveau de contexte.
+- **FR-030** *(ajout 2026-09-29)*: Un double-clic dans le vide MUST ouvrir, à cet endroit, un champ de saisie ; `Entrée` crée l'idée brute exactement là (position enregistrée, pousse 250 ms), `Échap` annule. Le bouton « + Une idée ? » est retiré.
+- **FR-031** *(ajout 2026-09-29)*: L'utilisateur MUST pouvoir relier deux idées en tirant le point d'accroche d'une idée (visible au survol ou à la sélection) jusqu'à une autre, puis en donnant un libellé ; au clavier, le menu de l'idée propose « Relier à une autre idée… » (choix de l'idée + libellé). Un lien identique existant est signalé. Le lien créé déclenche la recherche d'une graine (FR-028).
 
 **Plongée & croissance**
 - **FR-013**: Double-clic ou `Entrée` sur un neurone MUST ouvrir la plongée : neurone centré, sous-neurones autour, fil d'Ariane, badge de profondeur, parent estompé cliquable, panneau latéral.
@@ -163,7 +167,7 @@ En plongée dans un neurone **Action** éclos : le plan s'affiche (tâches, cond
 **Fusion**
 - **FR-017**: « Verrouiller » MUST être actif dès « suffisant » ; avant, il MUST avertir que le résultat risque de ne pas être optimal, afficher les manques et demander confirmation.
 - **FR-018**: L'aperçu de synthèse MUST être compact et adapté à la nature (plan ou synthèse), éditable élément par élément, avec Réviser (consigne), Refuser et Confirmer ; un aperçu périmé MUST être signalé et non confirmable.
-- **FR-019**: La confirmation MUST déclencher l'animation de fusion, l'aspect éclos et la migration vers le réseau, puis une notification « Annuler » pendant 10 secondes.
+- **FR-019** *(révisée 2026-09-29)*: La confirmation MUST déclencher l'animation de fusion puis, sur la carte, l'aspect éclos : le neurone grandit sur place (~600 ms) ; une notification « Annuler » s'affiche pendant 10 secondes.
 
 **Neurones éclos**
 - **FR-020**: La plongée dans un neurone Action éclos MUST afficher le plan et permettre : changer le statut d'une tâche (avec propagation aux dépendantes), choisir une branche, marquer un déclencheur, éditer titre/date/montant, ajouter une tâche.

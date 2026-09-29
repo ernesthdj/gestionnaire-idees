@@ -19,7 +19,7 @@ describe('écran Idées', () => {
 
   beforeEach(() => {
     harness = createNeuronHarness()
-    seedDemo(harness.handle.db)
+    seedDemo(harness.handle.db, { raw: 30, developing: 30, hatched: 40, links: 50 })
     const neurons = new NeuronRepository(harness.handle.db)
     canvas = new CanvasService({
       neurons,
@@ -37,21 +37,22 @@ describe('écran Idées', () => {
     return result.data as IdeasCanvasView
   }
 
-  it('should_split_ideas_between_incubator_and_network_with_exact_counts', async () => {
+  it('should_list_every_idea_in_one_space_with_its_context_level_and_exact_counts', async () => {
     const view = await get()
     expect(view.counts).toEqual({ raw: 30, developing: 30, hatched: 40 })
-    expect(view.incubator).toHaveLength(60)
-    expect(view.incubator.every((root) => root.state === 'raw' || root.state === 'developing')).toBe(true)
-    expect(view.network).toHaveLength(40)
-    expect(view.network.every((root) => root.state === 'hatched')).toBe(true)
+    expect(view.ideas).toHaveLength(100)
+    expect(view.ideas.filter((root) => root.state === 'raw').every((root) => root.contextLevel === null)).toBe(true)
+    expect(view.ideas.filter((root) => root.state === 'developing').every((root) => root.contextLevel !== null)).toBe(
+      true
+    )
     expect(view.categories.map((category) => category.slug)).toContain('photo')
     expect(view.highlighted).toBeNull()
   })
 
   it('should_preview_the_first_sub_neurons_of_developing_ideas_only', async () => {
     const view = await get()
-    const developing = view.incubator.find((root) => root.state === 'developing')
-    const raw = view.incubator.find((root) => root.state === 'raw')
+    const developing = view.ideas.find((root) => root.state === 'developing')
+    const raw = view.ideas.find((root) => root.state === 'raw')
     expect(developing?.subNeurons.map((sub) => sub.title)).toEqual(['Oui, dès que possible', 'Budget à définir'])
     expect(developing?.subCount).toBe(2)
     expect(raw?.subNeurons).toEqual([])
@@ -65,12 +66,12 @@ describe('écran Idées', () => {
     await harness.neurons.archive(linked)
     const after = await get()
     expect(after.links.some((link) => link.a.id === linked || link.b.id === linked)).toBe(false)
-    expect(after.counts.hatched).toBe(39)
+    expect(after.ideas).toHaveLength(99)
   })
 
   it('should_highlight_only_matching_ideas_when_filtered_by_nature_category_or_search', async () => {
     const all = await get()
-    const everyone = [...all.incubator, ...all.network]
+    const everyone = all.ideas
     const actions = await get({ nature: 'action' })
     expect(new Set(actions.highlighted)).toEqual(
       new Set(everyone.filter((root) => root.nature === 'action').map((root) => root.id))
@@ -86,7 +87,7 @@ describe('écran Idées', () => {
       true
     )
     // Les idées non retenues restent sur la carte.
-    expect(search.incubator.length + search.network.length).toBe(100)
+    expect(search.ideas).toHaveLength(100)
   })
 
   it('should_highlight_nothing_when_the_search_has_no_word', async () => {
@@ -95,10 +96,10 @@ describe('écran Idées', () => {
 
   it('should_store_positions_without_changing_the_idea_version', async () => {
     const rootId = demoId('root', 1)
-    const version = (await get()).incubator.find((root) => root.id === rootId)?.version
+    const version = (await get()).ideas.find((root) => root.id === rootId)?.version
     const result = await dispatch('canvas:savePositions', { positions: [{ rootId, x: -120.5, y: 48 }] })
     expect(result).toEqual({ success: true, data: { ok: true } })
-    const root = (await get()).incubator.find((entry) => entry.id === rootId)
+    const root = (await get()).ideas.find((entry) => entry.id === rootId)
     expect(root?.position).toEqual({ x: -120.5, y: 48 })
     expect(root?.version).toBe(version)
   })

@@ -4,7 +4,7 @@ import type { CanvasService } from '../application/canvas/CanvasService'
 import { defineRoute, type IpcRoute } from './registry'
 
 /** Coordonnées de la carte : finies et bornées (aucune valeur extrême stockée). */
-const Coordinate = z.number().finite().min(-1_000_000).max(1_000_000)
+export const Coordinate = z.number().finite().min(-1_000_000).max(1_000_000)
 const Size = z.number().finite().min(BLOCK_SIZE_LIMITS.min).max(BLOCK_SIZE_LIMITS.max)
 
 /** Canaux de l'écran Idées (spec 003 contracts § Écran Idées). */

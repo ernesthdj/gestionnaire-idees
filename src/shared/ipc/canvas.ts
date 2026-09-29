@@ -1,4 +1,4 @@
-import type { CategoryView, LinkView, Nature, RootView, SeedView } from './neurons'
+import type { CategoryView, GaugeLevel, LinkView, Nature, RootView, SeedView } from './neurons'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
@@ -6,14 +6,14 @@ export interface CanvasNeuronView extends RootView {
   /** Premiers sous-neurones directs (aperçu autour d'une idée en développement). */
   readonly subNeurons: readonly { readonly id: string; readonly title: string }[]
   readonly subCount: number
+  /** Dernier niveau de contexte évalué ; `null` tant que l'idée n'a pas été travaillée (taille du neurone). */
+  readonly contextLevel: GaugeLevel | null
 }
 
 export interface IdeasCanvasView {
   readonly counts: { readonly raw: number; readonly developing: number; readonly hatched: number }
-  /** Idées brutes et en développement (zone de gauche). */
-  readonly incubator: readonly CanvasNeuronView[]
-  /** Idées écloses et idées nées d'une graine (zone de droite, entre leurs parents). */
-  readonly network: readonly CanvasNeuronView[]
+  /** Toutes les idées, quel que soit leur état, dans un seul espace (FR-029). */
+  readonly ideas: readonly CanvasNeuronView[]
   /** Liens acceptés et suggérés entre idées visibles. */
   readonly links: readonly LinkView[]
   /** Graines en attente sur les liens visibles, et graines acceptées (« née de A × B ») des idées visibles. */

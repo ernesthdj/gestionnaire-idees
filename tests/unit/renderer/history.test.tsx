@@ -32,7 +32,7 @@ function renderWith(ui: React.ReactNode, handlers: Parameters<typeof installFake
 }
 
 describe('historique', () => {
-  beforeEach(() => useUiStore.setState({ view: 'history', diveRootId: null, toast: null, hatchedId: null }))
+  beforeEach(() => useUiStore.setState({ view: 'history', diveRootId: null, toast: null }))
 
   it('should_list_changes_and_undo_one_of_them', async () => {
     const user = userEvent.setup()
@@ -102,7 +102,7 @@ describe('historique', () => {
 })
 
 describe('notification d’éclosion', () => {
-  beforeEach(() => useUiStore.setState({ toast: null, hatchedId: null }))
+  beforeEach(() => useUiStore.setState({ toast: null }))
 
   it('should_undo_the_hatching_from_the_notification', async () => {
     const user = userEvent.setup()

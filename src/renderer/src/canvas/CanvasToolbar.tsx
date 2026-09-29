@@ -1,9 +1,6 @@
 import { useEffect, useId, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { CAPTURE_MAX_CHARS } from '@shared/ipc/app'
 import type { CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
 import { Button } from '../components/atoms/Button'
-import { call } from '../lib/ipc'
 
 interface CanvasToolbarProps {
   readonly view: IdeasCanvasView | undefined
@@ -23,7 +20,7 @@ function withOption(filter: CanvasFilterInput, key: keyof CanvasFilterInput, val
   return next as CanvasFilterInput
 }
 
-/** En-tête de l'écran Idées (FR-011) : compteurs, « + Une idée ? », filtres, recherche, recentrer. */
+/** En-tête de l'écran Idées (FR-011) : compteurs, filtres, recherche, recentrer (une idée se crée au double-clic). */
 export function CanvasToolbar({
   view,
   filter,
@@ -31,12 +28,8 @@ export function CanvasToolbar({
   onRecenter,
   onAddBlock
 }: CanvasToolbarProps): React.JSX.Element {
-  const client = useQueryClient()
-  const [adding, setAdding] = useState(false)
-  const [text, setText] = useState('')
   const [search, setSearch] = useState(filter.search ?? '')
-  const [error, setError] = useState('')
-  const ids = { add: useId(), nature: useId(), category: useId(), search: useId() }
+  const ids = { nature: useId(), category: useId(), search: useId() }
 
   // Recherche appliquée après une courte pause de frappe.
   useEffect(() => {
@@ -45,20 +38,6 @@ export function CanvasToolbar({
     const timer = setTimeout(() => onFilter(withOption(filter, 'search', trimmed)), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timer)
   }, [search, filter, onFilter])
-
-  const addIdea = async (event: React.FormEvent): Promise<void> => {
-    event.preventDefault()
-    if (text.trim() === '') return
-    try {
-      await call('neuron:create', { text })
-      setText('')
-      setAdding(false)
-      setError('')
-      await client.invalidateQueries({ queryKey: ['canvas'] })
-    } catch {
-      setError('L’idée n’a pas pu être ajoutée.')
-    }
-  }
 
   const setOption = (key: 'nature' | 'categoryId', value: string): void => onFilter(withOption(filter, key, value))
 
@@ -70,38 +49,6 @@ export function CanvasToolbar({
           ? 'Chargement…'
           : `${counts.raw} brute${counts.raw > 1 ? 's' : ''} · ${counts.developing} en dév. · ${counts.hatched} éclose${counts.hatched > 1 ? 's' : ''}`}
       </p>
-      {adding ? (
-        <form onSubmit={(event) => void addIdea(event)} className="flex items-center gap-2">
-          <label htmlFor={ids.add} className="sr-only">
-            Nouvelle idée
-          </label>
-          <input
-            id={ids.add}
-            autoFocus
-            value={text}
-            maxLength={CAPTURE_MAX_CHARS}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setAdding(false)
-            }}
-            placeholder="Ton idée…"
-            className="h-8 w-64 rounded-md bg-surface-raised px-2"
-          />
-          <Button type="submit" variant="primary">
-            Ajouter
-          </Button>
-          <Button onClick={() => setAdding(false)}>Annuler</Button>
-        </form>
-      ) : (
-        <Button variant="primary" onClick={() => setAdding(true)}>
-          + Une idée ?
-        </Button>
-      )}
-      {error === '' ? null : (
-        <p role="alert" className="text-xs">
-          {error}
-        </p>
-      )}
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <label htmlFor={ids.nature} className="sr-only">
           Filtrer par nature

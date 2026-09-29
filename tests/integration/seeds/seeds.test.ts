@@ -75,6 +75,11 @@ describe('graines d’idées sur les liens (FR-028)', () => {
     const born = t.neurons.getTree(rootId).root
     expect(born).toMatchObject({ title: seed.title, state: 'raw', position: { x: 200, y: 100 } })
     expect(t.examples.count('germer')).toBe(1)
+    // Reliée à ses deux parents par des liens acceptés « née de ».
+    const lineage = t.links.list('accepted').filter((l) => l.label === 'née de')
+    expect(lineage.map((l) => [l.a.id, l.b.id].sort().join('|')).sort()).toEqual(
+      [[rootId, wedding.id].sort().join('|'), [rootId, screen.id].sort().join('|')].sort()
+    )
     expect(() => t.seeds.accept(pending?.id ?? '')).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
 
     const [entry] = history.list().items
@@ -90,15 +95,17 @@ describe('graines d’idées sur les liens (FR-028)', () => {
 
     const { undoBatchId } = history.undo(batchId)
     expect(t.neurons.getTree(rootId).root.state).toBe('archived')
+    expect(t.links.list().filter((l) => l.label === 'née de')).toEqual([])
     expect(t.seeds.list()).toEqual([expect.objectContaining({ status: 'suggested', bornRootId: null })])
     expect(history.list().items[0]?.summary).toMatch(/^Graine annulée/)
 
     history.undo(undoBatchId)
     expect(t.neurons.getTree(rootId).root.state).toBe('raw')
+    expect(t.links.list('accepted').filter((l) => l.label === 'née de')).toHaveLength(2)
     expect(t.seeds.list()).toEqual([expect.objectContaining({ status: 'accepted', bornRootId: rootId })])
   })
 
-  it('should_show_the_born_idea_in_the_network_with_its_parents_on_the_map', async () => {
+  it('should_show_the_born_idea_on_the_map_linked_to_its_parents', async () => {
     const { link } = await suggestedLink(seed)
     t.links.decide({ linkId: link.id, accept: true })
     const canvas = new CanvasService({
@@ -110,8 +117,7 @@ describe('graines d’idées sur les liens (FR-028)', () => {
 
     const { rootId } = t.seeds.accept(canvas.get().seeds[0]?.id ?? '')
     const view = canvas.get()
-    expect(view.network.map((root) => root.id)).toContain(rootId)
-    expect(view.incubator.map((root) => root.id)).not.toContain(rootId)
+    expect(view.ideas.find((root) => root.id === rootId)).toMatchObject({ state: 'raw', contextLevel: null })
     expect(view.counts.raw).toBe(1)
     expect(view.seeds).toEqual([expect.objectContaining({ status: 'accepted', bornRootId: rootId })])
   })

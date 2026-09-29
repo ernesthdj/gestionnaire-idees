@@ -1,10 +1,9 @@
 import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { canvasState, CIRCLE, type NeuronNodeType } from '../buildGraph'
+import { canvasState, SATELLITE_MARGIN, TIER_SIZE, tierOf, type NeuronNodeType } from '../buildGraph'
 
 /** Satellites (premiers sous-neurones) répartis sur un arc à droite du neurone en développement. */
 const SATELLITE_ANGLES = [-50, 0, 50]
-const SATELLITE_DISTANCE = 52
 
 /** Action = triangle « avancer », Réflexion = losange ; dessinés (un caractère ▶ s'afficherait en émoji). */
 function NatureIcon({ nature }: { readonly nature: 'action' | 'reflection' }): React.JSX.Element {
@@ -23,13 +22,14 @@ function driftDelay(id: string): string {
 }
 
 /**
- * Neurone de l'écran Idées, trois aspects (FR-009) : brute (pointillés), en développement (plein + satellites),
- * éclose (double anneau + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
+ * Neurone de l'écran Idées : taille selon le niveau de contexte (FR-029, 5 paliers), aspect selon l'état (FR-009) :
+ * brute (pointillés), en développement (plein + satellites), éclose (double anneau + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
  */
 export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Element {
   const { neuron, dimmed } = data
   const state = canvasState(neuron)
-  const size = CIRCLE[state]
+  const size = TIER_SIZE[tierOf(neuron)]
+  const satelliteDistance = size / 2 + SATELLITE_MARGIN - 8
   const aiProposed = neuron.natureSource === 'ai' || neuron.categorySource === 'ai'
   const style = {
     width: size,
@@ -50,8 +50,8 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
                 className="neuron-satellite"
                 title={sub.title}
                 style={{
-                  left: size / 2 + SATELLITE_DISTANCE * Math.cos(angle),
-                  top: size / 2 + SATELLITE_DISTANCE * Math.sin(angle)
+                  left: size / 2 + satelliteDistance * Math.cos(angle),
+                  top: size / 2 + satelliteDistance * Math.sin(angle)
                 }}
               />
             )
@@ -60,9 +60,25 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
       <span className="absolute inset-0 flex items-center justify-center text-content">
         <NatureIcon nature={neuron.nature} />
       </span>
-      {/* Poignées invisibles au centre : React Flow n'affiche un lien que si ses deux extrémités en ont une. */}
-      <Handle type="target" position={Position.Top} isConnectable={false} className="neuron-handle" />
+      {/* Poignées invisibles au centre : React Flow n'affiche un lien que si ses deux extrémités en ont une.
+          Celle de destination reçoit aussi un lien tiré depuis une autre idée (FR-031). */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectableStart={false}
+        isConnectableEnd
+        className="neuron-handle"
+      />
       <Handle type="source" position={Position.Top} isConnectable={false} className="neuron-handle" />
+      {/* Point d'accroche visible au survol : on le tire vers une autre idée pour les relier. */}
+      <Handle
+        id="connect"
+        type="source"
+        position={Position.Right}
+        isConnectableEnd={false}
+        className="neuron-connector"
+        title="Tirer vers une autre idée pour les relier"
+      />
       {aiProposed ? (
         <span
           className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface-raised text-xs text-content"

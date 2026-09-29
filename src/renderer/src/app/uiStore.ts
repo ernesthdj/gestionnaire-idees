@@ -19,20 +19,19 @@ interface UiState {
   readonly diveRootId: string | null
   show(view: View): void
   navigate(event: NavigateEvent): void
-  /** Idée qui vient d'éclore : l'écran Idées la fait migrer de l'incubateur vers le réseau. */
-  readonly hatchedId: string | null
   /** Notification brève (FR-019). */
   readonly toast: Toast | null
-  /** Idée qui vient de naître d'une graine : elle pousse sur la carte (FR-028). */
+  /** Idée qui vient de naître (graine ou double-clic) : elle pousse sur la carte. */
   readonly bornId: string | null
   openDive(rootId: string): void
   closeDive(): void
-  /** Éclosion confirmée : migration sur la carte et notification avec « Annuler » (lot d'historique). */
+  /** Éclosion confirmée : retour à la carte et notification avec « Annuler » (lot d'historique). */
   hatch(rootId: string, text: string, undoBatchId: string): void
   showToast(text: string, undo?: { readonly batchId: string; readonly undoneText: string }): void
   /** Graine acceptée : l'idée née pousse sur la carte, notification avec « Annuler ». */
   bear(rootId: string, text: string, undoBatchId: string): void
-  clearHatched(): void
+  /** Idée créée sur la carte : elle pousse à l'endroit choisi. */
+  markBorn(rootId: string): void
   hideToast(): void
 }
 
@@ -40,7 +39,6 @@ interface UiState {
 export const useUiStore = create<UiState>()((set) => ({
   view: 'ideas',
   diveRootId: null,
-  hatchedId: null,
   toast: null,
   bornId: null,
   show: (view) => set({ view, diveRootId: null }),
@@ -50,7 +48,6 @@ export const useUiStore = create<UiState>()((set) => ({
   hatch: (rootId, text, undoBatchId) =>
     set((state) => ({
       diveRootId: null,
-      hatchedId: rootId,
       toast: {
         id: (state.toast?.id ?? 0) + 1,
         text,
@@ -76,6 +73,6 @@ export const useUiStore = create<UiState>()((set) => ({
         undoneText: 'Naissance annulée : la graine attend de nouveau sur son lien.'
       }
     })),
-  clearHatched: () => set({ hatchedId: null }),
+  markBorn: (rootId) => set({ bornId: rootId }),
   hideToast: () => set({ toast: null })
 }))

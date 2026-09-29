@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { NeuronService } from '../application/neurons/NeuronService'
+import { Coordinate } from './canvasHandlers'
 import { defineRoute, type IpcRoute } from './registry'
 
 const Nature = z.enum(['action', 'reflection'])
@@ -11,8 +12,20 @@ export function createNeuronRoutes(service: NeuronService): IpcRoute[] {
   return [
     defineRoute({
       channel: 'neuron:create',
-      input: z.object({ text: z.string().trim().min(1).max(2000), nature: Nature.optional() }).strict(),
-      handler: ({ text, nature }) => service.create({ text, ...(nature === undefined ? {} : { nature }) })
+      input: z
+        .object({
+          text: z.string().trim().min(1).max(2000),
+          nature: Nature.optional(),
+          // Idée créée au double-clic sur la carte : à cet endroit (FR-030).
+          position: z.object({ x: Coordinate, y: Coordinate }).strict().optional()
+        })
+        .strict(),
+      handler: ({ text, nature, position }) =>
+        service.create({
+          text,
+          ...(nature === undefined ? {} : { nature }),
+          ...(position === undefined ? {} : { position })
+        })
     }),
     defineRoute({
       channel: 'neuron:list',

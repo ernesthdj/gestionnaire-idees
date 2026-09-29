@@ -42,7 +42,7 @@ const preview = (name: RegExp | string): Promise<HTMLElement> => screen.findByRo
 
 describe('aperçu de synthèse et fusion', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', diveRootId: ROOT_ID, hatchedId: null, toast: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', diveRootId: ROOT_ID, toast: null }))
 
   it('should_show_the_plan_with_its_branches_dependencies_amounts_and_gaps', async () => {
     renderWithPreview(planPreview())
@@ -141,8 +141,7 @@ describe('aperçu de synthèse et fusion', () => {
     await user.click(within(region).getByRole('button', { name: 'Confirmer' }))
     expect(api.invoke).toHaveBeenCalledWith('fusion:confirm', { synthesisId: PLAN_ID })
     expect(await screen.findByText('L’idée éclôt…')).toBeDefined()
-    await waitFor(() => expect(useUiStore.getState().hatchedId).toBe(ROOT_ID))
-    expect(useUiStore.getState().diveRootId).toBeNull()
+    await waitFor(() => expect(useUiStore.getState().diveRootId).toBeNull())
     expect(useUiStore.getState().toast?.text).toBe('« Deuxième écran » a éclos.')
   })
 

@@ -3,7 +3,11 @@
 .neuron {
   --cat-ink: var(--cat);
   position: relative;
-  transition: opacity 150ms;
+  /* Une idée grandit sur place quand son contexte s'enrichit ou qu'elle éclot (~600 ms, FR-019/FR-029). */
+  transition:
+    opacity 150ms,
+    width 600ms ease-in-out,
+    height 600ms ease-in-out;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -135,12 +139,8 @@
   pointer-events: none;
 }
 
-/* Migration d'une idée qui vient d'éclore, de l'incubateur vers le réseau (~600 ms, FR-019). */
-.react-flow__node.neuron-migrating {
-  transition: transform 600ms ease-in-out;
-}
-[data-reduced-motion='true'] .react-flow__node.neuron-migrating {
-  transition: none;
+[data-reduced-motion='true'] .neuron {
+  transition: opacity 150ms;
 }
 
 /* Idée qui vient de naître d'une graine (FR-028) : pousse de 250 ms, fondu court en mode réduit. */
@@ -167,4 +167,21 @@
 }
 [data-reduced-motion='true'] .react-flow__node.neuron-born .neuron {
   animation: neuron-fade-in 150ms ease-out;
+}
+
+/* Point d'accroche d'un lien (FR-031) : visible au survol ou quand l'idée est sélectionnée / a le focus. */
+.neuron-connector.react-flow__handle {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface);
+  opacity: 0;
+  cursor: crosshair;
+  transition: opacity 150ms;
+}
+.react-flow__node-neuron:hover .neuron-connector.react-flow__handle,
+.react-flow__node-neuron:focus-visible .neuron-connector.react-flow__handle,
+.react-flow__node-neuron.selected .neuron-connector.react-flow__handle,
+.neuron-connector.react-flow__handle.connectingfrom {
+  opacity: 1;
 }

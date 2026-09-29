@@ -12,6 +12,8 @@ const CATEGORIZE_PREFIX = 'categorize:'
 export interface CreateNeuronInput {
   readonly text: string
   readonly nature?: Nature
+  /** Position sur la carte (idée créée au double-clic ou née entre ses parents). */
+  readonly position?: { readonly x: number; readonly y: number }
 }
 
 export interface UpdateNeuronInput {
@@ -47,7 +49,7 @@ export class NeuronService {
    * Insertion seule, synchrone : utilisable dans une transaction plus large (idée née d'une graine). L'appelant
    * lance `categorizeInBackground` une fois la transaction validée.
    */
-  insert(input: CreateNeuronInput & { readonly position?: { readonly x: number; readonly y: number } }): string {
+  insert(input: CreateNeuronInput): string {
     const text = input.text.trim()
     if (text === '') throw new AppError('VALIDATION', 'Le texte de l’idée est vide')
     const id = randomUUID()
