@@ -66,6 +66,68 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     expect(api.invoke).toHaveBeenCalledWith('growth:answer', { extensionId: 'ext-1', answer: { unknown: true } })
   })
 
+  it('should_empty_the_answer_when_another_question_is_chosen', async () => {
+    const user = userEvent.setup()
+    renderDive()
+    await loaded()
+    const field = await within(panel()).findByLabelText('Ta réponse')
+    await user.type(field, 'Brouillon pour la date')
+    await user.click(await screen.findByRole('button', { name: 'Question : Quelle taille ?' }))
+    expect(within(panel()).getByRole('heading', { name: 'Quelle taille ?' })).toBeDefined()
+    expect((within(panel()).getByLabelText('Ta réponse') as HTMLTextAreaElement).value).toBe('')
+  })
+
+  it('should_keep_the_question_and_the_text_being_typed_when_new_questions_arrive_in_the_background', async () => {
+    const user = userEvent.setup()
+    let tree = developingTree()
+    const api = renderOpenIdea(() => tree, { 'fusion:getProposed': () => null })
+    await loaded()
+    await user.type(await within(panel()).findByLabelText('Ta réponse'), 'Avant la ren')
+    // L'IA a fini de réfléchir : une nouvelle question arrive en tête de liste.
+    const [first] = tree.extensions
+    if (first === undefined) throw new Error('fixture')
+    tree = {
+      ...tree,
+      extensions: [
+        { ...first, id: 'ext-new', question: 'Quel budget maximum ?', dimension: 'budget' },
+        ...tree.extensions
+      ]
+    }
+    await act(async () => api.emit('neuron:created', { rootId: ROOT_ID }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Question : Quel budget maximum ?' })).toBeDefined())
+    expect(within(panel()).getByRole('heading', { name: 'Pour quand ?' })).toBeDefined()
+    expect((within(panel()).getByLabelText('Ta réponse') as HTMLTextAreaElement).value).toBe('Avant la ren')
+  })
+
+  it('should_explain_what_to_do_instead_of_greying_out_the_answer_button_when_the_field_is_empty', async () => {
+    const user = userEvent.setup()
+    const { api } = renderDive()
+    await loaded()
+    const button = within(panel()).getByRole('button', { name: 'Répondre' })
+    expect(button.hasAttribute('disabled')).toBe(false)
+    await user.click(button)
+    expect(within(panel()).getByText('Écris ta réponse ou choisis une réponse rapide ci-dessus.')).toBeDefined()
+    expect(document.activeElement).toBe(within(panel()).getByLabelText('Ta réponse'))
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:answer', expect.anything())
+    await user.type(within(panel()).getByLabelText('Ta réponse'), 'D')
+    expect(within(panel()).queryByText('Écris ta réponse ou choisis une réponse rapide ci-dessus.')).toBeNull()
+  })
+
+  it('should_write_a_long_answer_on_several_lines_and_send_it_with_enter', async () => {
+    const user = userEvent.setup()
+    const { api } = renderDive()
+    await loaded()
+    const field = await within(panel()).findByLabelText('Ta réponse')
+    expect(field.tagName).toBe('TEXTAREA')
+    await user.type(field, 'Première ligne{Shift>}{Enter}{/Shift}seconde ligne')
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:answer', expect.anything())
+    await user.keyboard('{Enter}')
+    expect(api.invoke).toHaveBeenCalledWith('growth:answer', {
+      extensionId: 'ext-1',
+      answer: { text: 'Première ligne\nseconde ligne' }
+    })
+  })
+
   it('should_switch_question_dismiss_it_ask_for_more_and_add_a_branch', async () => {
     const user = userEvent.setup()
     const { api } = renderDive()

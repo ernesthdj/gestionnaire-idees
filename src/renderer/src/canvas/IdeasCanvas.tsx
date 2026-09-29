@@ -133,16 +133,17 @@ function CanvasInner(): React.JSX.Element {
     return buildGraph(view, { area: layout.area, positions }, bornId, openRootId)
   }, [view, layout, bornId, openRootId])
 
+  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
+  useEffect(() => setNodes(graph.nodes), [graph, setNodes])
+
   // Idée ouverte : sa place et sa taille sur la carte (son arbre se déploie autour).
   const openNeuron = openRootId === null ? undefined : view?.ideas.find((neuron) => neuron.id === openRootId)
-  const openCenter = graph.nodes.find((node) => node.id === openRootId)?.position
+  // Position en direct (les nœuds de React Flow bougent pendant un glisser) : l'arbre suit l'idée.
+  const openCenter = nodes.find((node) => node.id === openRootId)?.position
   // Une idée ouverte qui disparaît (archivée, annulée) referme le volet.
   useEffect(() => {
     if (openRootId !== null && view !== undefined && openNeuron === undefined) closeIdea()
   }, [openRootId, view, openNeuron, closeIdea])
-
-  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
-  useEffect(() => setNodes(graph.nodes), [graph, setNodes])
 
   // Cadrage sur les idées et les blocs, connus par calcul : React Flow ne mesure que les éléments visibles
   // (`onlyRenderVisibleElements`), son cadrage automatique serait faux. Carte vide : l'espace de départ.

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../components/atoms/Button'
 import type { DiveModel } from './diveModel'
 import { MAX_AI_DEPTH } from './diveModel'
@@ -25,7 +25,10 @@ export function QuestionPanel({
   selectedExtensionId,
   onSelectExtension
 }: QuestionPanelProps): React.JSX.Element {
-  const ids = { free: useId(), branch: useId(), edit: useId(), warn: useId(), question: useId() }
+  const ids = { free: useId(), freeHint: useId(), branch: useId(), edit: useId(), warn: useId(), question: useId() }
+  const freeField = useRef<HTMLTextAreaElement>(null)
+  /** « Répondre » sans texte : on explique quoi faire plutôt que de griser le bouton (retour de test). */
+  const [emptyHint, setEmptyHint] = useState(false)
   const [freeText, setFreeText] = useState('')
   const [branch, setBranch] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
@@ -42,6 +45,22 @@ export function QuestionPanel({
     setConfirmDelete(false)
     setFreeText('')
   }, [focus.id])
+
+  // Choisir une autre question vide le champ ; un simple rafraîchissement de la liste, jamais.
+  useEffect(() => {
+    setFreeText('')
+    setEmptyHint(false)
+  }, [selectedExtensionId])
+
+  const submitFree = (): void => {
+    if (disabled) return
+    if (freeText.trim() === '') {
+      setEmptyHint(true)
+      freeField.current?.focus()
+      return
+    }
+    void reply({ text: freeText.trim() })
+  }
 
   const reply = async (answer: Parameters<DiveActions['answer']>[2]): Promise<void> => {
     if (selected === undefined) return
@@ -93,26 +112,46 @@ export function QuestionPanel({
               </div>
             ) : null}
             <form
-              className="flex gap-2"
+              className="space-y-2"
               onSubmit={(event) => {
                 event.preventDefault()
-                if (freeText.trim() !== '') void reply({ text: freeText.trim() })
+                submitFree()
               }}
             >
               <label htmlFor={ids.free} className="sr-only">
                 Ta réponse
               </label>
-              <input
+              {/* Zone large qui grandit avec le texte puis défile (Entrée envoie, Maj+Entrée va à la ligne). */}
+              <textarea
+                ref={freeField}
                 id={ids.free}
                 value={freeText}
+                aria-describedby={emptyHint ? ids.freeHint : undefined}
                 maxLength={1000}
-                onChange={(event) => setFreeText(event.target.value)}
-                placeholder="Ta réponse…"
-                className="h-8 min-w-0 flex-1 rounded-md bg-surface px-2"
+                rows={3}
+                onChange={(event) => {
+                  setFreeText(event.target.value)
+                  setEmptyHint(false)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    submitFree()
+                  }
+                }}
+                placeholder="Ta réponse… (Maj+Entrée pour aller à la ligne)"
+                className="field-sizing-content max-h-40 min-h-20 w-full resize-none overflow-y-auto rounded-md bg-surface px-2 py-2 leading-5"
               />
-              <Button type="submit" variant="primary" disabled={disabled || freeText.trim() === ''}>
-                Répondre
-              </Button>
+              <div className="flex items-center justify-end gap-2">
+                {emptyHint ? (
+                  <p id={ids.freeHint} role="status" className="mr-auto text-xs text-content-muted">
+                    Écris ta réponse ou choisis une réponse rapide ci-dessus.
+                  </p>
+                ) : null}
+                <Button type="submit" variant="primary" disabled={disabled}>
+                  Répondre
+                </Button>
+              </div>
             </form>
             <div className="flex flex-wrap gap-2">
               <Button disabled={disabled} onClick={() => void reply({ unknown: true })}>

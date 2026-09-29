@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { NeuronKind, SuggestionView } from '@shared/ipc/neurons'
 import type { IdeaTreeLayout, PlacedItem, Point } from './ideaTreeLayout'
+import { useSpringFollow } from './useSpringFollow'
 
 const KIND_LABELS: Record<NeuronKind, string> = {
   root: 'idée',
@@ -18,8 +19,10 @@ const SLOT_SIZE = 32
 
 interface IdeaTreeProps {
   readonly layout: IdeaTreeLayout
-  /** Centre de l'idée ouverte, en coordonnées de la carte. */
+  /** Centre de l'idée ouverte, en coordonnées de la carte (suivi en direct pendant un glisser). */
   readonly center: Point
+  /** Animations réduites : l'arbre suit l'idée sans ressort. */
+  readonly reduced: boolean
   /** Diamètre du cercle de l'idée : les traits partent de son bord. */
   readonly rootSize: number
   readonly categoryColor: string
@@ -37,12 +40,17 @@ function sizeOf(placed: PlacedItem): number {
   return placed.item.type === 'slot' ? SLOT_SIZE : NODE_SIZE
 }
 
-/** Départ d'un trait : le bord du cercle de l'idée, ou le centre du sous-neurone parent. */
-function lineStart(placed: PlacedItem, rootSize: number): Point {
+/**
+ * Départ d'un trait : le centre du sous-neurone parent, ou le bord du cercle de l'idée à sa position réelle
+ * (`root`, relative à l'arbre) — le trait reste accroché à l'idée pendant que l'arbre la rattrape.
+ */
+function lineStart(placed: PlacedItem, rootSize: number, root: Point): Point {
   if (!placed.fromRoot) return placed.from
-  const length = Math.hypot(placed.point.x, placed.point.y) || 1
+  const dx = placed.point.x - root.x
+  const dy = placed.point.y - root.y
+  const length = Math.hypot(dx, dy) || 1
   const offset = rootSize / 2
-  return { x: (placed.point.x / length) * offset, y: (placed.point.y / length) * offset }
+  return { x: root.x + (dx / length) * offset, y: root.y + (dy / length) * offset }
 }
 
 /** Hostname affiché pour une source web (le lien lui-même s'ouvre dans le navigateur système). */
@@ -57,10 +65,13 @@ function domainOf(url: string): string {
 export function IdeaTree(props: IdeaTreeProps): React.JSX.Element {
   const { layout, center, rootSize } = props
   const extent = layout.extent
+  // L'arbre suit son idée avec un ressort (effet flottant) quand on la déplace.
+  const anchor = useSpringFollow(center, !props.reduced)
+  const root = { x: center.x - anchor.x, y: center.y - anchor.y }
   const style = {
     '--cat': props.categoryColor,
-    left: center.x - extent,
-    top: center.y - extent,
+    left: anchor.x - extent,
+    top: anchor.y - extent,
     width: 2 * extent,
     height: 2 * extent
   } as CSSProperties
@@ -78,7 +89,7 @@ export function IdeaTree(props: IdeaTreeProps): React.JSX.Element {
     <div className={`idea-tree nodrag nopan${props.fusing ? ' idea-tree-fusing' : ''}`} style={style}>
       <svg className="idea-tree-lines" width={2 * extent} height={2 * extent} aria-hidden="true">
         {layout.items.map((placed) => {
-          const start = lineStart(placed, rootSize)
+          const start = lineStart(placed, rootSize, root)
           const dashed = placed.item.type !== 'neuron'
           return (
             <line

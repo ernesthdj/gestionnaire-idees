@@ -15,6 +15,13 @@ describe('croissance d’un neurone (US1) et jauge (US2)', () => {
     return { root, result }
   }
 
+  it('should_always_announce_the_end_of_thinking_even_on_an_unexpected_error', async () => {
+    const root = await t.neurons.create({ text: 'Acheter un 2e écran', nature: 'action' })
+    t.h.gateway.run = () => Promise.reject(new Error('panne imprévue'))
+    await expect(t.growth.develop(root.id)).rejects.toThrow('panne imprévue')
+    expect(t.events).toContainEqual({ type: 'neuron:thought', rootId: root.id })
+  })
+
   it('should_propose_at_least_three_extensions_and_start_developing', async () => {
     const { result } = await developed()
     expect(result.tree.root.state).toBe('developing')

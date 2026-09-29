@@ -46,6 +46,17 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
 
   const tree = dive.tree.data
   const model = useMemo(() => (tree === undefined ? null : diveModel(tree, focusId)), [tree, focusId])
+  // Question affichée retenue explicitement : de nouvelles questions arrivées en arrière-plan ne la remplacent pas
+  // (sinon la question — et le texte en cours — changeaient pendant la frappe). Seule sa disparition (répondue,
+  // écartée) ou un choix de l'utilisateur la change.
+  const extensionIds = model?.extensions.map((extension) => extension.id).join(',') ?? ''
+  useEffect(() => {
+    const ids = extensionIds === '' ? [] : extensionIds.split(',')
+    if (selectedExtensionId !== null && ids.includes(selectedExtensionId)) return
+    const next = ids[0] ?? null
+    if (next !== selectedExtensionId) setSelectedExtensionId(next)
+  }, [extensionIds, selectedExtensionId])
+
   const layout = useMemo(
     () => (tree === undefined ? null : ideaTreeLayout(tree, model?.focus.id ?? rootId, dive.pending)),
     [tree, model, rootId, dive.pending]
@@ -53,10 +64,11 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
 
   // À l'ouverture, la vue se centre sur l'idée (dans la partie de carte laissée libre par le volet).
   const { center } = props
-  // Seulement quand l'idée est ouverte ou déplacée (pas à chaque réponse).
-  const { x: centerX, y: centerY } = center
+  // Seulement à l'ouverture : ni pendant un glisser de l'idée, ni à chaque réponse.
+  const opening = useRef(center)
   const { reduced } = props
   useEffect(() => {
+    const { x: centerX, y: centerY } = opening.current
     // Deux images plus tard : le volet vient d'apparaître, la carte a pris sa nouvelle largeur.
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
@@ -67,7 +79,7 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
       })
     })
     return () => cancelAnimationFrame(frame)
-  }, [flow, centerX, centerY, reduced])
+  }, [flow, reduced])
 
   // Échap remonte d'un niveau puis referme le volet, où que soit le focus ; jamais depuis un champ.
   const upRef = useRef<() => void>(() => undefined)
@@ -146,6 +158,7 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
           <IdeaTree
             layout={layout}
             center={center}
+            reduced={props.reduced}
             rootSize={props.rootSize}
             categoryColor={model.root.category?.color ?? '#71717a'}
             focusId={model.focus.id}

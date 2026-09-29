@@ -233,7 +233,17 @@ export class GrowthService {
   }
 
   /** Appel `etendre` : extensions filtrées (E1–E3) + jauge avec plancher (E4). */
+  /** « L'IA réfléchit » se termine toujours, même sur une erreur inattendue : l'interface n'est jamais bloquée. */
   private async extend(rootId: string, targetId: string, mode: ExtensionMode): Promise<GrowthResult> {
+    try {
+      return await this.grow(rootId, targetId, mode)
+    } catch (error) {
+      this.deps.emit({ type: 'neuron:thought', rootId })
+      throw error
+    }
+  }
+
+  private async grow(rootId: string, targetId: string, mode: ExtensionMode): Promise<GrowthResult> {
     const { repository } = this.deps
     this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId })
     const attempt = async () =>
