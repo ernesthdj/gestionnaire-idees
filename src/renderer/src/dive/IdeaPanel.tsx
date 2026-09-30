@@ -8,6 +8,7 @@ import { call } from '../lib/ipc'
 import { Breadcrumb } from './Breadcrumb'
 import type { DiveModel } from './diveModel'
 import { QuestionPanel } from './QuestionPanel'
+import { SeedCard } from './SeedCard'
 import type { DiveActions } from './useDive'
 
 interface IdeaPanelProps {
@@ -25,8 +26,6 @@ interface IdeaPanelProps {
   readonly onConfirming: () => void
   readonly onConfirmed: (confirmed: ConfirmView | null) => void
   readonly onClose: () => void
-  /** Fait éclore l'idée suggérée ciblée en idée à part entière (FR-036). */
-  readonly onPromote: (neuronId: string) => Promise<boolean>
 }
 
 /**
@@ -87,6 +86,7 @@ export function IdeaPanel(props: IdeaPanelProps): React.JSX.Element {
             ))}
           </p>
         )}
+        <SeedCard root={model.root} />
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <label htmlFor={ids.nature} className="text-content-muted">
             Nature{model.root.natureSource === 'ai' ? ' ✦' : ''}
@@ -134,7 +134,6 @@ export function IdeaPanel(props: IdeaPanelProps): React.JSX.Element {
             fusion={props.fusion}
             selectedExtensionId={props.selectedExtensionId}
             onSelectExtension={props.onSelectExtension}
-            onPromote={props.onPromote}
           />
         )}
       </div>

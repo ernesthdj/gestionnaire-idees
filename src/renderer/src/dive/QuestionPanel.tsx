@@ -14,45 +14,6 @@ interface QuestionPanelProps {
   readonly fusion: FusionActions
   readonly selectedExtensionId: string | null
   readonly onSelectExtension: (extensionId: string) => void
-  /** Fait éclore l'idée suggérée ciblée en idée à part entière (FR-036) ; `true` si c'est fait. */
-  readonly onPromote: (neuronId: string) => Promise<boolean>
-}
-
-/**
- * Idée suggérée ciblée : elle peut éclore en idée à part entière sur la carte (reliée à son idée d'origine), pour
- * être développée et verrouillée pour elle-même.
- */
-function PromoteSection({
-  model,
-  onPromote
-}: {
-  readonly model: DiveModel
-  readonly onPromote: (neuronId: string) => Promise<boolean>
-}): React.JSX.Element | null {
-  const [busy, setBusy] = useState(false)
-  if (model.focus.kind !== 'idea') return null
-  return (
-    <section aria-label="Idée suggérée" className="space-y-2 rounded-lg border border-idea/40 p-3">
-      <p className="text-xs text-content-muted">
-        <span aria-hidden="true" className="text-idea">
-          ✦{' '}
-        </span>
-        Cette idée suggérée peut devenir une idée à part entière : elle quitte l’arbre avec ses sous-neurones, garde ses
-        conseils, et reste reliée à « {model.root.title} ».
-      </p>
-      <Button
-        variant="primary"
-        className="w-full"
-        disabled={busy}
-        onClick={() => {
-          setBusy(true)
-          void onPromote(model.focus.id).finally(() => setBusy(false))
-        }}
-      >
-        Faire éclore cette idée
-      </Button>
-    </section>
-  )
 }
 
 /**
@@ -64,8 +25,7 @@ export function QuestionPanel({
   actions,
   fusion,
   selectedExtensionId,
-  onSelectExtension,
-  onPromote
+  onSelectExtension
 }: QuestionPanelProps): React.JSX.Element {
   const ids = { free: useId(), freeHint: useId(), branch: useId(), edit: useId(), warn: useId(), question: useId() }
   const freeField = useRef<HTMLTextAreaElement>(null)
@@ -124,8 +84,6 @@ export function QuestionPanel({
           </article>
         </details>
       )}
-
-      <PromoteSection model={model} onPromote={onPromote} />
 
       <LockSection model={model} fusion={fusion} />
 

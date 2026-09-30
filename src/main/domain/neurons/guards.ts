@@ -10,6 +10,17 @@ export const MAX_AI_DEPTH = 6
 /** Nombre de réponses sous lequel la jauge reste « insuffisant » (E4). */
 export const GAUGE_FLOOR_ANSWERS = 3
 
+/**
+ * Nombre de réponses sous lequel l'IA ne propose aucune idée (décision du 2026-09-30) : avant, elle manque de
+ * contexte et ses idées sont faibles.
+ */
+export const MIN_ANSWERS_FOR_SUGGESTIONS = 3
+
+/** Une idée qui a déjà éclos (document) a assez de contexte, quel que soit le nombre de réponses du cycle. */
+export function suggestionsAllowed(answered: number, hasDocument: boolean): boolean {
+  return hasDocument || answered >= MIN_ANSWERS_FOR_SUGGESTIONS
+}
+
 export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
 
 interface ProposedExtension {

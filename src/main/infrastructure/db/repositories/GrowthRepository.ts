@@ -3,11 +3,9 @@ import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { Extension } from '@shared/ai/neurons'
 import type { WebSourceView } from '@shared/ipc/neurons'
 import type { GaugeLevel, NeuronKind, RootState, Source } from '@shared/ipc/neurons'
-import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
 import type { AppDatabase } from '../client'
-import { contextAssessments, extensions, neuronLinks, neurons, suggestions } from '../schemaNeurons'
-import { writeChanges, type ChangeEntry } from './changeLog'
-import { readPlacement, writePlacement, type Placement } from './placement'
+import { contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
+import type { ChangeEntry } from './changeLog'
 
 export interface GrowthNode {
   readonly id: string
@@ -358,35 +356,38 @@ export class GrowthRepository {
       .run()
   }
 
-  placement(id: string): Placement | undefined {
-    return readPlacement(this.db, id)
-  }
-
-  setPlacement(id: string, placement: Placement): void {
-    writePlacement(this.db, id, placement)
-  }
-
-  /** Lien accepté sans libellé entre deux idées (idée suggérée éclose à part, reliée à son idée d'origine). */
-  insertLink(first: string, second: string): { readonly id: string; readonly a: string; readonly b: string } {
-    const [a, b] = orderedPair(first, second)
-    const id = randomUUID()
-    this.db
-      .insert(neuronLinks)
-      .values({
-        id,
-        aRootId: a,
-        bRootId: b,
-        label: '',
-        origin: 'user',
-        status: 'accepted',
-        fingerprint: linkFingerprint(a, b, '')
+  /** Idée de départ et son résumé mémorisé (fiche du volet). */
+  summary(rootId: string):
+    | {
+        readonly title: string
+        readonly content: string | null
+        readonly nature: 'action' | 'reflection' | null
+        readonly version: number
+        readonly summary: string | null
+        readonly summaryVersion: number | null
+      }
+    | undefined {
+    return this.db
+      .select({
+        title: neurons.title,
+        content: neurons.content,
+        nature: neurons.nature,
+        version: neurons.version,
+        summary: neurons.summary,
+        summaryVersion: neurons.summaryVersion
       })
-      .run()
-    return { id, a, b }
+      .from(neurons)
+      .where(and(eq(neurons.id, rootId), eq(neurons.kind, 'root')))
+      .get()
   }
 
-  log(batchId: string, entries: readonly ChangeEntry[]): void {
-    writeChanges(this.db, batchId, entries)
+  /** Mémorise le résumé pour la version de l'idée qu'il décrit (ne change pas cette version). */
+  saveSummary(rootId: string, summary: string, version: number): void {
+    this.db
+      .update(neurons)
+      .set({ summary, summaryVersion: version })
+      .where(and(eq(neurons.id, rootId), eq(neurons.kind, 'root')))
+      .run()
   }
 
   touchRoot(rootId: string, state?: RootState): void {

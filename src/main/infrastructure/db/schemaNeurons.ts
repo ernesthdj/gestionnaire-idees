@@ -49,6 +49,12 @@ export const neurons = sqliteTable(
      * questions, mais reste en données (source du document, cycles suivants).
      */
     absorbedIn: text('absorbed_in'),
+    /**
+     * Idée de départ : résumé de l'idée par l'IA (fiche au clic) et version de l'idée pour laquelle il a été
+     * calculé — recalculé seulement quand l'idée a changé.
+     */
+    summary: text('summary'),
+    summaryVersion: integer('summary_version'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()

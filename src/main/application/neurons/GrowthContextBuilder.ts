@@ -1,6 +1,6 @@
 import type { Extension } from '@shared/ai/neurons'
 import type { HatchedResultView, Nature } from '@shared/ipc/neurons'
-import { MIN_EXTENSIONS } from '../../domain/neurons/guards'
+import { MIN_EXTENSIONS, suggestionsAllowed } from '../../domain/neurons/guards'
 import { REFERENCE_DIMENSIONS } from '../../domain/neurons/nature'
 import { aliasesOf, pathTo } from '../../domain/neurons/tree'
 import type { GrowthNode } from '../../infrastructure/db/repositories/GrowthRepository'
@@ -100,6 +100,9 @@ export function buildGrowthInput(input: {
     `- [${alias.get(node.id) ?? '?'}] ${node.title}${node.content !== null && node.content !== node.title ? ` — ${node.content}` : ''}`
 
   const deepening = input.document !== undefined
+  // Pas d'idée suggérée tant que l'utilisateur n'a pas assez répondu : sans contexte, elles sont faibles.
+  const mayIdeate = suggestionsAllowed(input.answered, deepening)
+  const firstIdeas = mayIdeate && input.knownSuggestions.length === 0
   // Le modèle local propose rarement des idées suggérées quand elles sont facultatives (34 % des appels contre 98 %
   // pour Claude, mesuré le 2026-09-29) : la consigne les demande explicitement en début de cycle.
   const request =
@@ -110,9 +113,17 @@ export function buildGrowthInput(input: {
         : input.mode === 'first' && deepening
           ? 'Nouveau cycle : l’idée a déjà un document (ci-dessus). Propose AU MOINS 3 questions qui vont AU-DELÀ du document (questions ouvertes, manques, prochaines étapes) ; ne repose rien de ce qu’il tranche déjà. Propose aussi 1 à 2 suggestions.'
           : input.mode === 'first'
-            ? 'Premier développement de l’idée : propose AU MOINS 3 questions complémentaires et 1 à 2 suggestions.'
+            ? mayIdeate
+              ? 'Premier développement de l’idée : propose AU MOINS 3 questions complémentaires et 1 à 2 suggestions.'
+              : 'Premier développement de l’idée : propose AU MOINS 3 questions complémentaires. Ne propose AUCUNE suggestion : l’utilisateur n’a pas encore assez répondu pour qu’une idée soit pertinente.'
             : input.mode === 'follow_up'
-              ? 'Nouvelle réponse sur le neurone ciblé : propose 0 à 3 questions seulement si la réponse ouvre de nouvelles pistes.'
+              ? `Nouvelle réponse sur le neurone ciblé : propose 0 à 3 questions seulement si la réponse ouvre de nouvelles pistes. ${
+                  firstIdeas
+                    ? 'L’utilisateur a maintenant assez répondu : propose 1 à 2 suggestions, des pistes concrètes tirées de ses réponses.'
+                    : mayIdeate
+                      ? 'Propose 0 à 1 suggestion, seulement si cette réponse ouvre une piste concrète nouvelle.'
+                      : 'Ne propose AUCUNE suggestion : l’utilisateur n’a pas encore assez répondu.'
+                }`
               : 'Profondeur maximale atteinte : ne propose AUCUNE question, évalue seulement le contexte.'
 
   const sections = [

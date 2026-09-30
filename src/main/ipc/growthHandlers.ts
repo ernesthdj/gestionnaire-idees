@@ -69,11 +69,6 @@ export function createGrowthRoutes(growth: GrowthService): IpcRoute[] {
       handler: async ({ suggestionId }) => growth.researchSuggestion(suggestionId)
     }),
     defineRoute({
-      channel: 'growth:promoteIdea',
-      input: z.object({ neuronId: Id }).strict(),
-      handler: async ({ neuronId }) => growth.promoteIdea(neuronId)
-    }),
-    defineRoute({
       channel: 'neuron:delete',
       input: z.object({ neuronId: Id, confirm: z.literal(true) }).strict(),
       handler: async ({ neuronId }) => growth.deleteBranch(neuronId)

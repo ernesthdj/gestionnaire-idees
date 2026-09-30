@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { HistoryService } from '../../../src/main/application/history/HistoryService'
-import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { createNeuronHarness, etendreReply, type NeuronHarness } from '../../support/neurons'
 
 interface Suggested {
@@ -20,11 +18,46 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
   })
   afterEach(() => t.dispose())
 
+  const QUESTIONS = ['Pour quand ?', 'Quel budget ?', 'Quel modèle ?', 'Quel usage ?', 'Où le poser ?']
+  const ANSWERS = ['Avant Noël', 'Un petit budget', 'Un 27 pouces']
+
+  /**
+   * Idée développée puis trois réponses données : le minimum avant que l'IA propose des idées. Les suggestions
+   * arrivent avec la troisième réponse ; il reste deux questions ouvertes ; les réponses sont [s1] à [s3].
+   */
   async function developedWith(suggestions: Suggested[]) {
     const root = await t.neurons.create({ text: 'Acheter un 2e écran', nature: 'action' })
-    t.h.claude.enqueue(withSuggestions(['Pour quand ?', 'Quel budget ?', 'Quel modèle ?'], suggestions))
-    return (await t.growth.develop(root.id)).tree
+    t.h.claude.enqueue(etendreReply(QUESTIONS))
+    let tree = (await t.growth.develop(root.id)).tree
+    for (const [index, text] of ANSWERS.entries()) {
+      t.h.claude.enqueue(index === ANSWERS.length - 1 ? withSuggestions([], suggestions) : etendreReply([]))
+      tree = (await t.growth.answer({ extensionId: tree.extensions[0]?.id ?? '', answer: { text } })).tree
+    }
+    return tree
   }
+
+  it('should_propose_no_idea_before_three_answers_even_when_the_ai_suggests_some', async () => {
+    const root = await t.neurons.create({ text: 'Acheter un 2e écran', nature: 'action' })
+    const premature = [{ neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Trop tôt pour le savoir.' }]
+    t.h.claude.enqueue(withSuggestions(QUESTIONS, premature))
+    let tree = (await t.growth.develop(root.id)).tree
+    expect(tree.suggestions).toEqual([])
+    expect(t.h.anonymized.at(-1)).toContain('Ne propose AUCUNE suggestion')
+
+    for (const text of ANSWERS.slice(0, 2)) {
+      t.h.claude.enqueue(withSuggestions([], premature))
+      tree = (await t.growth.answer({ extensionId: tree.extensions[0]?.id ?? '', answer: { text } })).tree
+      expect(tree.suggestions).toEqual([])
+      expect(t.h.anonymized.at(-1)).toContain('Ne propose AUCUNE suggestion')
+    }
+
+    // Troisième réponse : le contexte suffit, l'IA est invitée à proposer et ses idées sont retenues.
+    t.h.claude.enqueue(withSuggestions([], premature))
+    tree = (await t.growth.answer({ extensionId: tree.extensions[0]?.id ?? '', answer: { text: ANSWERS[2] ?? '' } }))
+      .tree
+    expect(tree.suggestions.map((entry) => entry.title)).toEqual(['Écran 27 pouces IPS'])
+    expect(t.h.anonymized.at(-1)).toContain('a maintenant assez répondu : propose 1 à 2 suggestions')
+  })
 
   it('should_attach_ghosts_to_existing_neurons_and_drop_unknown_or_duplicate_ones', async () => {
     const tree = await developedWith([
@@ -123,7 +156,7 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     await t.growth.acceptSuggestion(tree.suggestions[0]?.id ?? '')
     t.h.claude.enqueue({
       raw: {
-        nodes: [{ ref: 't1', type: 'task', title: 'Commander l’écran', amountCents: 25_000, sourceRefs: ['s1'] }],
+        nodes: [{ ref: 't1', type: 'task', title: 'Commander l’écran', amountCents: 25_000, sourceRefs: ['s4'] }],
         dependencies: [],
         gaps: []
       }
@@ -145,59 +178,15 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
 
   it('should_delete_ghosts_with_the_branch_they_are_attached_to', async () => {
     const tree = await developedWith([])
-    t.h.claude.enqueue(withSuggestions([], [{ neuronRef: 's1', title: 'Piste occasion', content: 'Seconde main.' }]))
+    t.h.claude.enqueue(withSuggestions([], [{ neuronRef: 's4', title: 'Piste occasion', content: 'Seconde main.' }]))
     const answered = await t.growth.answer({
       extensionId: tree.extensions[0]?.id ?? '',
       answer: { text: 'Budget serré' }
     })
-    const branch = answered.tree.neurons[0]
+    const branch = answered.tree.neurons.find((entry) => entry.title.includes('Budget serré'))
+    expect(branch).toBeDefined()
     expect(answered.tree.suggestions[0]?.neuronId).toBe(branch?.id)
     const after = t.growth.deleteBranch(branch?.id ?? '')
     expect(after.tree.suggestions).toEqual([])
-  })
-
-  it('should_turn_an_accepted_idea_into_an_idea_of_its_own_linked_to_its_origin_then_undo_it', async () => {
-    const tree = await developedWith([{ neuronRef: 's0', title: 'Activer le réseau', content: 'Liste 10 personnes.' }])
-    const origin = tree.root
-    t.h.claude.enqueue(etendreReply(['Qui contacter en premier ?']))
-    const accepted = await t.growth.acceptSuggestion(tree.suggestions[0]?.id ?? '')
-    const idea = accepted.tree.neurons.find((entry) => entry.kind === 'idea')
-    if (idea === undefined) throw new Error('idée attendue')
-    const child = t.growth.addBranch({ parentId: idea.id, title: 'Anciens collègues' })
-    const childId = child.tree.neurons.find((entry) => entry.title === 'Anciens collègues')?.id ?? ''
-
-    const { rootId, batchId } = t.growth.promoteIdea(idea.id)
-    expect(rootId).toBe(idea.id)
-    const promoted = t.neurons.getTree(rootId)
-    expect(promoted.root).toMatchObject({ title: 'Activer le réseau', content: 'Liste 10 personnes.', state: 'raw' })
-    expect(promoted.root.nature).toBe(origin.nature)
-    // Ses sous-neurones et ses questions la suivent ; l'idée d'origine ne les a plus.
-    expect(promoted.neurons.map((entry) => entry.id)).toEqual([childId])
-    expect(promoted.neurons[0]?.depth).toBe(1)
-    const originTree = t.neurons.getTree(origin.id)
-    expect(originTree.neurons.some((entry) => entry.id === idea.id || entry.id === childId)).toBe(false)
-    // Reliée à son idée d'origine.
-    expect(
-      t.links
-        .list('accepted')
-        .some((link) => [link.a.id, link.b.id].sort().join() === [origin.id, rootId].sort().join())
-    ).toBe(true)
-
-    const history = new HistoryService(new HistoryRepository(t.handle.db))
-    expect(history.list().items[0]).toMatchObject({ batchId, kind: 'promote', undoable: true })
-    const { undoBatchId } = history.undo(batchId)
-    const back = t.neurons.getTree(origin.id)
-    expect(back.neurons.find((entry) => entry.id === idea.id)).toMatchObject({ kind: 'idea', parentId: origin.id })
-    expect(back.neurons.find((entry) => entry.id === childId)?.depth).toBe(2)
-    expect(history.list().items[0]?.summary).toMatch(/^Idée remise dans son arbre/)
-    history.undo(undoBatchId)
-    expect(t.neurons.getTree(rootId).root.state).toBe('raw')
-  })
-
-  it('should_refuse_to_promote_anything_but_an_accepted_idea', async () => {
-    const tree = await developedWith([])
-    const answer = t.growth.addBranch({ parentId: tree.root.id, title: 'Une branche' })
-    const id = answer.tree.neurons[0]?.id ?? ''
-    expect(() => t.growth.promoteIdea(id)).toThrow(expect.objectContaining({ code: 'VALIDATION' }))
   })
 })

@@ -86,6 +86,13 @@ export interface GaugeView {
   readonly answered: number
 }
 
+/** Résumé de l'idée de départ par l'IA ; `null` tant qu'il n'y a rien à résumer ou que l'IA n'a pas répondu. */
+export interface IdeaSummaryView {
+  readonly summary: string | null
+  /** L'idée a changé depuis ce résumé et l'IA n'a pas pu le refaire. */
+  readonly stale: boolean
+}
+
 export interface TreeView {
   readonly root: RootView
   readonly neurons: readonly NeuronView[]

@@ -50,6 +50,12 @@ export const TASK_INSTRUCTIONS: Partial<Readonly<Record<TaskKind, string>>> = {
     'Exemples : « Remplacer la batterie de l’appareil photo » → achat, action. « Faut-il passer au 35 mm fixe ? » → photo,',
     'reflection. « Mettre à jour Node sur le PC » → it, action. « Comment mieux organiser mes semaines ? » → general, reflection.'
   ].join('\n'),
+  resumer: [
+    "Résume l'idée de l'utilisateur en 2 à 3 phrases courtes, dans sa langue, en le tutoyant :",
+    'ce qu’il veut, où en est sa réflexion, ce qui reste à trancher.',
+    '- N’utilise que ce qui est écrit : n’invente rien ; reprends montants et dates tels quels.',
+    '- Un seul paragraphe : pas de liste, pas de titre, pas de formule d’introduction.'
+  ].join('\n'),
   etendre: [
     "Tu fais grandir une idée (un « neurone ») en posant des questions qui aident l'utilisateur à la préciser.",
     '- Respecte la consigne du message : nombre de questions attendu et neurone ciblé.',

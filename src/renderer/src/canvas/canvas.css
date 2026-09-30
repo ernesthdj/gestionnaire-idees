@@ -23,28 +23,52 @@
 .neuron-body {
   position: absolute;
   inset: 0;
-  border-radius: 9999px;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Graine (idée de départ) : hexagone à la couleur réservée, liseré à la couleur de la catégorie. */
+.seed-shape,
+.seed-ring,
+.seed-focus {
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.seed-shape {
+  stroke: var(--cat-ink);
+  stroke-width: 3px;
+}
+.seed-ring,
+.seed-focus {
+  fill: none;
+  stroke: none;
 }
 
 /* Brute : contour pointillé. */
-.neuron-raw .neuron-body {
-  border: 2px dashed var(--cat-ink);
-  background: color-mix(in oklab, var(--cat-ink) 8%, var(--color-surface));
+.neuron-raw .seed-shape {
+  stroke-dasharray: 6 4;
+  fill: color-mix(in oklab, var(--color-seed) 12%, var(--color-surface));
 }
 
-/* En développement : disque plein, sous-neurones en satellites. */
-.neuron-developing .neuron-body {
-  border: 2px solid var(--cat-ink);
-  background: color-mix(in oklab, var(--cat-ink) 28%, var(--color-surface));
+/* En développement : hexagone plein, sous-neurones en satellites. */
+.neuron-developing .seed-shape {
+  fill: color-mix(in oklab, var(--color-seed) 38%, var(--color-surface));
 }
 
-/* Éclose : double anneau + halo. */
+/* Éclose : double contour + halo. */
+.neuron-hatched .seed-shape {
+  fill: color-mix(in oklab, var(--color-seed) 62%, var(--color-surface));
+}
+.neuron-hatched .seed-ring {
+  stroke: var(--color-seed);
+  stroke-width: 2px;
+  transform: scale(1.18);
+}
 .neuron-hatched .neuron-body {
-  border: 3px double var(--cat-ink);
-  outline: 2px solid color-mix(in oklab, var(--cat-ink) 45%, transparent);
-  outline-offset: 4px;
-  background: color-mix(in oklab, var(--cat-ink) 40%, var(--color-surface));
-  box-shadow: 0 0 16px 2px color-mix(in oklab, var(--cat-ink) 45%, transparent);
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--color-seed) 55%, transparent));
 }
 
 .neuron-satellite {
@@ -82,13 +106,15 @@
 .react-flow__node-neuron:focus-visible {
   outline: none;
 }
-.react-flow__node-neuron:focus-visible .neuron-body {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 6px;
+.react-flow__node-neuron:focus-visible .seed-focus {
+  stroke: var(--color-focus);
+  stroke-width: 3px;
+  transform: scale(1.34);
 }
-.react-flow__node-neuron.selected .neuron-body {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 6px;
+.react-flow__node-neuron.selected .seed-focus {
+  stroke: var(--color-focus);
+  stroke-width: 2px;
+  transform: scale(1.34);
 }
 
 /* Dérive lente des idées brutes : suspendue pendant l'interaction, absente en mode réduit. */
@@ -112,7 +138,7 @@
 /* Halo en pulsation lente (statique en mode réduit). */
 @keyframes neuron-halo {
   50% {
-    box-shadow: 0 0 28px 6px color-mix(in oklab, var(--cat-ink) 30%, transparent);
+    filter: drop-shadow(0 0 16px color-mix(in oklab, var(--color-seed) 40%, transparent));
   }
 }
 [data-reduced-motion='false'] .neuron-hatched .neuron-body {
@@ -187,8 +213,10 @@
 }
 
 /* Idée ouverte dans le volet : anneau de sélection, au-dessus de son arbre. */
-.react-flow__node.neuron-open .neuron-body {
-  box-shadow: 0 0 0 4px var(--color-focus);
+.react-flow__node.neuron-open .seed-focus {
+  stroke: var(--color-focus);
+  stroke-width: 4px;
+  transform: scale(1.34);
 }
 
 /*

@@ -245,8 +245,7 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     installReactFlowMocks()
   })
 
-  it('should_let_a_focused_suggested_idea_hatch_into_an_idea_of_its_own', async () => {
-    const user = userEvent.setup()
+  it('should_only_lock_the_original_idea_when_a_suggested_idea_is_focused', async () => {
     const base = developingTree()
     const idea = {
       id: '00000000-0000-4000-8000-0000000000e1',
@@ -259,19 +258,12 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
       dueDate: null,
       origin: 'ai' as const
     }
-    const api = renderOpenIdea(() => ({ ...base, neurons: [...base.neurons, idea] }), {
-      'fusion:getProposed': () => null,
-      'growth:promoteIdea': () => ({ rootId: idea.id, batchId: 'lot-9' })
-    })
+    renderOpenIdea(() => ({ ...base, neurons: [...base.neurons, idea] }), { 'fusion:getProposed': () => null })
     await loaded()
-    // Verrouiller nomme toujours l'idée entière qui éclôt.
-    expect(within(panel()).getByRole('button', { name: /^Verrouiller « Deuxième écran »/ })).toBeDefined()
-    expect(within(panel()).queryByRole('button', { name: 'Faire éclore cette idée' })).toBeNull()
     fireEvent.click(await screen.findByRole('button', { name: /^Idée suggérée : Activer le réseau/ }))
-    await user.click(await within(panel()).findByRole('button', { name: 'Faire éclore cette idée' }))
-    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('growth:promoteIdea', { neuronId: idea.id }))
-    await waitFor(() => expect(useUiStore.getState().toast).toMatchObject({ undoBatchId: 'lot-9' }))
-    expect(useUiStore.getState().toast?.text).toMatch(/est devenue une idée à part entière/)
+    // Une idée née d'une idée reste dans son arbre : seule l'idée de départ se verrouille.
+    expect(await within(panel()).findByRole('button', { name: /^Verrouiller « Deuxième écran »/ })).toBeDefined()
+    expect(within(panel()).queryByRole('button', { name: 'Faire éclore cette idée' })).toBeNull()
   })
 
   it('should_verify_a_suggested_idea_on_the_web_only_when_asked', async () => {

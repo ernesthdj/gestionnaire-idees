@@ -7,6 +7,10 @@ export const CategoryOut = z.object({
 })
 export type CategoryOut = z.infer<typeof CategoryOut>
 
+/** Sortie de `resumer` (IA locale) : résumé court d'une idée et de ce que le brainstorming lui a apporté. */
+export const SummaryOut = z.object({ summary: z.string().trim().min(1).max(700) })
+export type SummaryOut = z.infer<typeof SummaryOut>
+
 /** Réponse de refus : demande d'œuvre finie ou hors du rôle de partenaire de réflexion. */
 export const OutOfScope = z.object({
   kind: z.literal('out_of_scope'),

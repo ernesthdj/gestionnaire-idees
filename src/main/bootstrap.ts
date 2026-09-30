@@ -37,6 +37,8 @@ import { createHatchedRoutes } from './ipc/hatchedHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
 import { createFusionRoutes } from './ipc/fusionHandlers'
 import { createGrowthRoutes } from './ipc/growthHandlers'
+import { createSummaryRoutes } from './ipc/summaryHandlers'
+import { IdeaSummaryService } from './application/neurons/IdeaSummaryService'
 import { createLinkRoutes } from './ipc/linkHandlers'
 import { createSeedRoutes } from './ipc/seedHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
@@ -148,6 +150,11 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (event) => broadcast(event.type, event),
     document: (rootId) => hatchedRepository.result(rootId)
   })
+  const summaries = new IdeaSummaryService({
+    repository: growthRepository,
+    gateway: ai.gateway,
+    document: (rootId) => hatchedRepository.result(rootId)
+  })
   const linkRepository = new LinkRepository(database.db)
   const seeds = new SeedService({
     repository: linkRepository,
@@ -207,6 +214,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...contextRoutes,
       ...createNeuronRoutes(neurons),
       ...createGrowthRoutes(growth),
+      ...createSummaryRoutes(summaries),
       ...createFusionRoutes(fusion),
       ...createLinkRoutes(links),
       ...createSeedRoutes(seeds),

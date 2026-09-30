@@ -15,6 +15,8 @@
   --color-focus: #2563eb;
   /* Idées suggérées par l'IA (losanges) : ambre, contraste ≥ 4,5:1 sur la surface. */
   --color-idea: #b45309;
+  /* Graine : idée de départ d'un brainstorming (hexagone) — couleur réservée, contraste ≥ 4,5:1 sur la surface. */
+  --color-seed: #0f766e;
   /* Fiche d'une idée éclose : arguments pour / contre (contraste ≥ 4,5:1 sur la surface). */
   --color-pro: #15803d;
   --color-con: #b91c1c;
@@ -29,6 +31,7 @@
     --color-accent: #60a5fa;
     --color-focus: #93c5fd;
     --color-idea: #fbbf24;
+    --color-seed: #2dd4bf;
     --color-pro: #4ade80;
     --color-con: #f87171;
   }
@@ -42,6 +45,7 @@
   --color-accent: #60a5fa;
   --color-focus: #93c5fd;
   --color-idea: #fbbf24;
+  --color-seed: #2dd4bf;
   --color-pro: #4ade80;
   --color-con: #f87171;
 }
@@ -54,6 +58,7 @@
   --color-accent: var(--color-accent);
   --color-focus: var(--color-focus);
   --color-idea: var(--color-idea);
+  --color-seed: var(--color-seed);
   --color-pro: var(--color-pro);
   --color-con: var(--color-con);
 }

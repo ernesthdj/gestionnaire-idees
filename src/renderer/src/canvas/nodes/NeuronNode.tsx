@@ -5,6 +5,9 @@ import { canvasState, SATELLITE_MARGIN, TIER_SIZE, tierOf, type NeuronNodeType }
 /** Satellites (premiers sous-neurones) répartis sur un arc à droite du neurone en développement. */
 const SATELLITE_ANGLES = [-50, 0, 50]
 
+/** Hexagone pointe en haut, inscrit dans le carré du neurone (repère 0–100). */
+const HEXAGON = '50,2 92,26 92,74 50,98 8,74 8,26'
+
 /** Action = triangle « avancer », Réflexion = losange ; dessinés (un caractère ▶ s'afficherait en émoji). */
 function NatureIcon({ nature }: { readonly nature: 'action' | 'reflection' }): React.JSX.Element {
   return (
@@ -22,8 +25,8 @@ function driftDelay(id: string): string {
 }
 
 /**
- * Neurone de l'écran Idées : taille selon le niveau de contexte (FR-029, 5 paliers), aspect selon l'état (FR-009) :
- * brute (pointillés), en développement (plein + satellites), éclose (double anneau + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
+ * Idée de départ (« graine ») de l'écran Idées : hexagone à la couleur réservée `--color-seed`, taille selon le niveau de contexte (FR-029, 5 paliers), aspect selon l'état (FR-009) :
+ * brute (pointillés), en développement (plein + satellites), éclose (double contour + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
  */
 export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Element {
   const { neuron, dimmed } = data
@@ -40,7 +43,12 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
 
   return (
     <div className={`neuron neuron-${state}${dimmed ? ' neuron-dimmed' : ''}`} style={style} aria-hidden="true">
-      <div className="neuron-body" />
+      {/* Graine : hexagone (forme réservée aux idées de départ), liseré à la couleur de la catégorie. */}
+      <svg className="neuron-body" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
+        <polygon className="seed-focus" points={HEXAGON} />
+        <polygon className="seed-ring" points={HEXAGON} />
+        <polygon className="seed-shape" points={HEXAGON} />
+      </svg>
       {state === 'developing'
         ? neuron.subNeurons.map((sub, index) => {
             const angle = ((SATELLITE_ANGLES[index] ?? 0) * Math.PI) / 180
