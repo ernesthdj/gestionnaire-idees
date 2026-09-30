@@ -125,3 +125,9 @@ confirm(synthesisId: string): ConfirmView {
 - **« Rouvrir » devient « Approfondir »** : l'idée repart en développement **sans perdre son document** ; les questions laissées ouvertes par la synthèse deviennent les questions du nouveau cycle **sans appel à l'IA** (JOURNAL 29/09 22:20).
 - **Migration avec rattrapage de données** : `0009` ne fait pas qu'ajouter une colonne, elle exécute un `UPDATE` pour ranger les sous-neurones des idées déjà écloses. Son `down` retire la colonne mais **ne rejoue pas** le rattrapage des questions closes (c'est écrit dans le fichier) : un retour arrière de schéma n'est pas toujours un retour arrière de données.
 - **Fiche éditoriale** (migration `0010`) : champs facultatifs `overview`, `headline`, `nextStep` avec `.catch(undefined)` — un champ mal formé n'invalide jamais la synthèse (voir [[Zod ↔ type guards et sortie structurée]]).
+
+## Évolution du 30/09 (soir) — la transaction accueille les outils cochés (spec 006)
+- `SynthesisApplier.confirm(synthesisId, toolIndexes)` : dans **la même** transaction et **le même** lot que le document, un widget vide par outil coché, son branchement sur l'idée (`widget_inputs`) et sa demande (`widget_requests`). Annuler l'éclosion les retire d'un seul geste.
+- **Ordre du journal** : les entrées « outil » sont écrites **en dernier**, parce que l'Historique résume un lot par sa **première** entrée (« Éclosion de … »).
+- **Ce qui reste dehors** : la génération par Claude, lancée **après** le commit — un échec ne remet jamais l'éclosion en cause → [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]].
+- Le choix arrive sous forme d'**index** dans la proposition stockée ; le main refuse un index absent ou répété, et ignore les outils si la synthèse vient de l'IA locale (mode dégradé).

@@ -35,6 +35,7 @@ localStorage.getItem   // SecurityError : pas de stockage pour une origine opaqu
 - [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]] — la première des cinq barrières.
 - [[Glossaire — CSP (Content Security Policy)]] — `'self'` dans une CSP veut dire « mon origine ».
 - [[Architecture Electron — trois processus cloisonnés]] — `webSecurity: true` garde cette règle active dans l'app.
+- [[Widget branché — autorisation par empreinte et pont postMessage]] — *(30/09)* le pont `postMessage` annoncé ci-dessous existe : comme l'origine opaque vaut `"null"` pour **tous** les cadres isolés, on vise la fenêtre avec `'*'` et on reconnaît l'expéditeur par `event.source`, jamais par `event.origin`.
 
 ## Retenir et vérifier
 - **À retenir** : origine = protocole + hôte + port ; même origine = accès, sinon refus ; origine opaque = aucun accès, aucun stockage.

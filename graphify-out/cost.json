@@ -25,8 +25,14 @@
       "output_tokens": 213371,
       "files": 381,
       "note": "update: total subagent tokens (input+output not split)"
+    },
+    {
+      "date": "2026-09-30T20:15:05.069479+00:00",
+      "input_tokens": 290509,
+      "output_tokens": 0,
+      "files": 130
     }
   ],
-  "total_input_tokens": 568094,
+  "total_input_tokens": 858603,
   "total_output_tokens": 213371
 }

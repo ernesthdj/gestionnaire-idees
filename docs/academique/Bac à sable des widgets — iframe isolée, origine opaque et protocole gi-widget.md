@@ -148,3 +148,8 @@ session.webRequest.onBeforeRequest((details, callback) => {
 - [[Glossaire — CSP (Content Security Policy)]] — même mécanisme, utilisé dans l'autre sens (empêcher de sortir).
 - [[Glossaire — Origine web et origine opaque]] — ce que retire l'absence de `allow-same-origin`.
 - [[Du brainstorm au code — spécifications et constitution]] — l'amendement 1.2.0 qui autorise ce code, à cette condition.
+
+## Évolution du 30/09 (soir) — une porte étroite dans la vitre (spec 005)
+- Le cadre peut désormais **recevoir** des données (`gi.onInputs`) et **publier** un résultat (`gi.output`) par `postMessage`. Les cinq barrières ne changent pas : `postMessage` n'est pas une connexion réseau, la CSP `default-src 'none'` reste identique.
+- Le prélude gagne un objet `window.gi` **figé** (`Object.freeze`, `writable: false`). Comme pour le cadre système : **le prélude n'est pas une barrière**. Les deux décisions sont dans le main — ce qui entre (autorisation par empreinte) → [[Widget branché — autorisation par empreinte et pont postMessage]] ; ce qui sort (bornes) → [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]].
+- Nouvelle adresse servie : `gi-widget://result/<bloc>` (`parseResultUrl`), même enveloppe isolée, pour du **code figé de l'app**.

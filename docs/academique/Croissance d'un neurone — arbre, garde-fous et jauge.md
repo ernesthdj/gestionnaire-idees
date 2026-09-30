@@ -101,3 +101,6 @@ export const applyGaugeFloor = (aiLevel: GaugeLevel, answered: number): GaugeLev
 - [[Synthèse vérifiée — contrôles déterministes et provenance]] — l'étape suivante du cycle de vie.
 - [[Glossaire — Idempotence]] — rejouer sans effet de bord.
 - [[Passerelle IA hybride — un seul point d'accès à l'IA]] — l'appel `etendre` y passe.
+
+## Évolution du 30/09 — pas d'idée suggérée avant trois réponses
+Retour de test de mentalyas : « sans contexte, les idées proposées sont faibles ». Nouveau garde-fou dans `domain/neurons/guards.ts` (`MIN_ANSWERS_FOR_SUGGESTIONS = 3`, `suggestionsAllowed`) : au début, l'IA ne pose que des questions ; les suggestions n'arrivent qu'à partir de la 3ᵉ réponse. **Double verrou**, comme le plancher de la jauge (même seuil) : la consigne le demande à l'IA **et** l'application écarte toute suggestion reçue trop tôt. Exception : une idée déjà éclose garde ses suggestions dès le début d'un nouveau cycle (son document sert de contexte).

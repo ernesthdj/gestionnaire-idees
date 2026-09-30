@@ -30,6 +30,7 @@ createHash('sha256').update(`${a}|${b}|${normalizeLabel(label)}`).digest('hex')
 ## Utilisé dans ce cours
 - [[Import de contexte — paquet vérifié, versionné, réversible]] — intégrité des fichiers du paquet.
 - [[Liens entre idées — graphe local de mots-clés]] — empreinte d'un lien pour éviter les re-propositions.
+- [[Widget branché — autorisation par empreinte et pont postMessage]] — *(30/09)* sceller une **autorisation** : `sha256(html, css, ts, capacités triées)` ; tout changement de code ou de droits produit une autre empreinte, donc plus d'autorisation.
 
 ## Retenir et vérifier
 - **À retenir** : sortie fixe de 64 hex ; déterministe ; un bit change tout ; non réversible ; ≠ chiffrement.

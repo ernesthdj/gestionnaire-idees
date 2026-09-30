@@ -141,3 +141,8 @@ async prompt(input) {
 - [[Zod ↔ type guards et sortie structurée]] — `WidgetOut` valide la sortie.
 - [[Injection de prompt — cadre figé et données balisées]] — le cadre dédié `WIDGET_FRAME`.
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — migration `0011` et son `down`.
+
+## Évolution du 30/09 (soir) — ce que Claude sait en plus, et qui peut demander
+- **Structure des entrées jointe** : si le widget est branché, `WidgetService.prompt` ajoute à la demande « Entrées branchées sur ce widget, lues par gi.inputs (structure seulement) » — la sortie de `shapeOf`, **sans aucune valeur** → [[Widget branché — autorisation par empreinte et pont postMessage]]. Le cadre système passe en v2 (`gi.onInputs`) puis v3 (`gi.output`).
+- **Un nouveau demandeur** : la génération n'est plus lancée seulement depuis la chatbox ; `ToolGeneration` l'appelle pour les outils cochés à l'éclosion, avec la proposition comme texte de demande (`toolRequestText`) → [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]].
+- **Widget disparu pendant la génération** : nouveau contrôle **avant** la transaction d'écriture (`repository.widget(blockId) === undefined` → réponse ignorée). Même logique « valider → transformer → écrire », avec une question de plus : *la cible existe-t-elle encore ?*

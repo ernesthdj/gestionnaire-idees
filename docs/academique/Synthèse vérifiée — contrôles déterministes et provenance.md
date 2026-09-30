@@ -101,3 +101,8 @@ export function applyProvenance(plan: ActionPlanOut, sources: ReadonlyMap<string
 - [[Glossaire — Tri topologique de Kahn]] — l'algorithme de détection de boucle.
 - [[Anonymisation en deux couches]] — d'où viennent les montants masqués en fourchettes.
 - [[Zod ↔ type guards et sortie structurée]] — la première barrière avant ces contrôles.
+
+## Évolution du 30/09 — l'arbre lu branche par branche, et des outils proposés
+- **Arbre envoyé au verrouillage** (T072, `SynthesisContextBuilder.treeText`) : tous les nœuds partaient déjà, mais **dans l'ordre de création**, indentés par leur seule profondeur — un enfant créé tard apparaissait loin de son parent, rattaché à la mauvaise branche à la lecture. Il est maintenant écrit en **parcours en profondeur** (chaque nœud sous son parent, avec la question à laquelle chaque réponse répond) → [[Glossaire — Parcours en profondeur (DFS)]]. Les alias `[sN]` restent ceux de l'**ordre de création** : le contrôle de provenance P6 n'est pas touché.
+- **Borne 12 000 → 40 000 caractères** (≈ 10 000 tokens) : au-delà de 12 000, c'étaient les réponses les plus récentes qui étaient coupées. Coût d'entrée jusqu'à ×3 sur une grosse idée, à re-mesurer (`scripts/ai-usage.cjs`).
+- **Outils proposés** (spec 006) : la sortie de synthèse porte `tools` (0 à 3) et `toolsNote`. Nouveau contrôle déterministe dans l'esprit de cette note : `keepNewTools` écarte les outils déjà branchés et les doublons de titre, **en plus** de la consigne qui les rappelle à Claude (double verrou). `settleTools` vide les propositions d'une synthèse faite par l'IA locale.

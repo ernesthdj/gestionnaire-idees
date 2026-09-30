@@ -13,3 +13,4 @@ graphify-out/
 out/
 node_modules/
 .kilo/
+.obsidian/

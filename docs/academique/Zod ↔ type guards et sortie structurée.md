@@ -60,3 +60,17 @@ statut: complet
 | `.catch(undefined)` | remplacer une valeur facultative invalide par « absente » | date `2023-11` ignorée au lieu de tout rejeter |
 
 Résultat mesuré : **5 réponses sur 5** acceptées. **Limite volontaire** : on ne répare que ce qui est **sans risque** (champ facultatif, élément de liste indépendant) ; les champs obligatoires et les contrôles métier restent stricts. Règle apprise : *une sortie d'IA imparfaite se répare ou s'élague élément par élément quand c'est sans risque ; mesurer sur le vrai modèle avant de conclure.*
+
+## Évolution du 30/09 (soir) — obligatoire à l'envoi, tolérant à la lecture
+**Constat réel** (spec 006, retour de test de mentalyas) : après verrouillage, Claude ne proposait **jamais** d'outil. Cause mesurée sur le format envoyé (`betaZodOutputFormat`) : le champ `tools` était écrit `lenientList(…).optional().catch(undefined)` → **absent** de la liste `required` du JSON Schema. Avec les sorties structurées, un champ facultatif est un champ que le modèle peut ignorer — et il l'ignorait.
+
+**Un même schéma Zod a deux lectures** :
+
+| Lecture | Qui la fait | Ce qui compte |
+|---------|-------------|---------------|
+| **Contrat** (JSON Schema envoyé à Claude) | `betaZodOutputFormat(schema)` | `.optional()` retire le champ de `required` ; sans `.optional()`, il y est |
+| **Parseur** (au retour) | `schema.safeParse(...)` | `.catch(valeur)` remplace un champ absent ou invalide, **sans** le rendre facultatif dans le contrat |
+
+**Correction** (`src/shared/ai/neurons.ts`) : `tools: lenientList(ToolProposal, 3).catch([])` et `toolsNote: z.string().trim().min(1).max(200).catch('')` — plus de `.optional()`. Claude **doit** répondre `tools` (liste vide permise) **et** dire en une phrase pourquoi (`toolsNote`) ; l'IA locale et les anciennes synthèses, qui n'ont pas ces champs, restent lisibles (`[]`, `''`). Un test verrouille la décision : `format.schema.required` doit contenir `tools` et `toolsNote` (`tests/integration/neurons/tool-proposals.test.ts`).
+
+Règle à retenir : *pour qu'un modèle pense à un champ, rends-le obligatoire dans le contrat ; pour ne pas tout rejeter, rends-le tolérant dans le parseur.* Application complète → [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]].

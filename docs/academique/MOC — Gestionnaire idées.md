@@ -1,6 +1,6 @@
 ---
 type: MOC
-subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets)
+subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés)
 tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets]
 date: 2026-09-30
 ---
@@ -34,16 +34,23 @@ flowchart TD
     subgraph "Spec 004 — widgets (29→30/09)"
         S["Bac à sable<br/>iframe + gi-widget"] --> T["Widget généré<br/>par Claude"]
     end
+    subgraph "Specs 005-006 — widgets branchés et proposés (30/09 soir)"
+        U["Widget branché<br/>empreinte + postMessage"] --> V["Cadre résultat<br/>bornes + vue figée"] --> W["Outils au verrouillage<br/>transaction puis génération"]
+    end
     A --> B
     I --> J
     B --> O
     L --> R
     R --> S
+    T --> U
+    L --> W
 ```
 
 > 🆕 **Session du 28→29/09 (spec 003)** : l'app devient **visible et utilisable** — icône de notification, capture rapide au raccourci, carte des idées sans croisements, plongée en couronne, aperçu éditable, éclosion animée, historique avec « Annuler ». Nouvelles notes : 4 concepts, 1 pont, 2 glossaires ; blocs « Évolution du 29/09 » ajoutés dans 4 notes existantes (Electron, Éclosion, Liens, Zod).
 
 > 🆕 **Session du 29→30/09 (cycle 2, économies, spec 004)** : Claude **fabrique des outils** (mini-widgets) directement sur la carte, et ce code s'exécute dans un enclos dont il ne peut pas sortir. Nouvelles notes : 2 concepts, 2 glossaires ; blocs « Évolution du 30/09 » ajoutés dans 10 notes existantes (Electron, CSP, Injection, Passerelle, Budget, Annuler, Éclosion, Carte, Plongée, Brainstorm au code). ⚠️ Deux de ces blocs sont des **corrections** : les zones incubateur/réseau de la note 16 et l'écran de plongée de la note 17 n'existent plus dans le code.
+
+> 🆕 **Après-midi et soir du 30/09 (T070–T072, specs 005 et 006)** : un widget peut **lire** une idée (après ta revue, scellée par une empreinte), **publier** un résultat dans un cadre dédié, et Claude peut **proposer** des outils au verrouillage, créés avec l'éclosion puis générés en arrière-plan. Nouvelles notes : 3 concepts, 3 glossaires ; blocs « Évolution du 30/09 » ajoutés dans 7 notes existantes (Zod, Éclosion, Synthèse, Bac à sable, Widget généré, Croissance, Carte) et une ligne dans 2 glossaires (SHA-256, Origine). ⚠️ Test manuel T016 de la spec 006 lot 2 encore à faire.
 
 ---
 
@@ -67,6 +74,9 @@ flowchart TD
 - [[Glossaire — Mise à jour optimiste]] — afficher avant la confirmation *(29/09)*
 - [[Glossaire — Origine web et origine opaque]] — qui peut lire quoi dans un navigateur *(30/09)*
 - [[Glossaire — Suppression douce (soft delete)]] — marquer au lieu d'effacer *(30/09)*
+- [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]] — une seule source de vérité *(30/09 soir)*
+- [[Glossaire — Parcours en profondeur (DFS)]] — parent puis ses enfants, et la pile d'appels *(30/09 soir)*
+- [[Glossaire — Throttle et debounce (regrouper des événements)]] — débit maximal ou attente du calme *(30/09 soir)*
 
 ## Concepts fondamentaux
 *À maîtriser en premier — la charpente*
@@ -103,6 +113,12 @@ flowchart TD
 - [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]] — *avancé* — cinq barrières indépendantes du modèle
 - [[Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât]] — *intermédiaire* — de la demande à la version N+1, et retour
 
+## Widgets branchés et proposés (specs 005-006 — soir du 30/09)
+*Ouvrir des portes étroites dans l'enclos, et faire naître les outils au bon moment*
+- [[Widget branché — autorisation par empreinte et pont postMessage]] — *avancé* — ce qui entre : revue, empreinte, `event.source`, forme sans valeur pour Claude
+- [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]] — *avancé* — ce qui sort : bornes dans le main, `textContent`, throttle
+- [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]] — *avancé* — rapide et annulable dedans, lent et faillible après
+
 ## Ponts outil ↔ mécanisme
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que l'ORM fait à ta place (et pourquoi pas Prisma)
 - [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier (+ sortie tolérante, 29/09)
@@ -130,8 +146,11 @@ flowchart TD
 18. [[Annuler par lot — journal avant-après, conflit et lot inverse]] — relire d'abord le bloc « Évolution du 29/09 » de la note 11
 19. [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]] — avec [[Glossaire — Origine web et origine opaque]] ; relire avant le bloc « Évolution du 30/09 » de [[Glossaire — CSP (Content Security Policy)]]
 20. [[Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât]] — avec [[Glossaire — Suppression douce (soft delete)]]
+21. [[Widget branché — autorisation par empreinte et pont postMessage]] — relire avant [[Glossaire — Empreinte SHA-256]] ; avec [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]]
+22. [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]] — avec [[Glossaire — Throttle et debounce (regrouper des événements)]] et [[Glossaire — Parcours en profondeur (DFS)]]
+23. [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]] — relire avant le bloc « Évolution du 30/09 (soir) » de [[Zod ↔ type guards et sortie structurée]]
 
-> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau.
+> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion.
 
 ## Questions de révision globale
 > **Q :** Suis une réponse de l'utilisateur, de son clic jusqu'au disque puis jusqu'à Claude : quelles barrières traverse-t-elle ?
@@ -155,6 +174,12 @@ flowchart TD
 > **Q :** Donne trois endroits du projet où l'on **marque** au lieu d'effacer, et ce que ça permet.
 > **R :** `canvas_blocks.deleted_at` (note ou widget supprimé → annulable) ; `neurons.absorbed_in` (sous-neurones rangés à l'éclosion → synthèse suivante toujours sourcée) ; versions de widget jamais modifiées + `current_version_id` (retour à une version précédente).
 
+> **Q :** Tu branches une idée sur un widget, tu l'autorises, puis Claude le fait évoluer. Le widget émet ensuite `{ html: "<script>…" }`. Suis la donnée dans les deux sens.
+> **R :** Entrée : la nouvelle version a une autre empreinte → `widgetIo:inputs` renvoie `[]`, bandeau « À revoir » jusqu'à ta nouvelle autorisation. Sortie : `gi.output` → `postMessage` (reconnu par `event.source`) → throttle 500 ms → `widgetIo:emit` → `checkResult` (JSON, 200 Ko, 8 niveaux) → `widget_results` → cadre résultat, qui l'affiche par `textContent` : le script reste du texte.
+
+> **Q :** Donne trois « doubles verrous » (consigne + code) ajoutés le 30/09.
+> **R :** Pas d'idée suggérée avant 3 réponses (`suggestionsAllowed`) ; pas d'outil déjà branché reproposé (`keepNewTools`) ; champ `tools` obligatoire dans le contrat mais tolérant au parseur (`.catch([])`).
+
 ## Ressources complémentaires
 - Cadrage : `docs/FOUNDATION.md` (§0 amendements Brainstormer prioritaires), `docs/brainstorm/L1-…L4c-*.md`, `.specify/memory/constitution.md` (v1.1.0)
 - Specs : `specs/001-moteur-ia-hybride/`, `specs/002-structuration-ia/`, `specs/003-interface-mvp1/` (spec, plan, research, data-model, contracts, tasks, analysis-report)
@@ -164,4 +189,5 @@ flowchart TD
 - Graphe : `graphify-out/GRAPH_REPORT.md` (1 214 nœuds, 83 communautés ; nœuds centraux : `GrowthRepository`, `ContextRepository`, `NeuronService`, `AIGateway`)
 - *Mise à jour du 29/09* — Graphe : 2 071 nœuds, 140 communautés ; nouveaux nœuds centraux côté interface : `useUiStore` (19 liens), communautés « Croisements de liens », « Plongée — scène & fantômes », « Canaux IPC par fenêtre ». Code clé spec 003 : `src/main/shell/*.ts`, `src/renderer/src/canvas/{forceLayout,crossings}.ts`, `src/renderer/src/dive/{radialLayout,useDive}.ts`, `src/main/application/history/HistoryService.ts`, `src/main/infrastructure/db/repositories/HistoryRepository.ts`, `src/renderer/src/app/{uiStore,useMainEvents,useUndo}.ts`, `src/shared/ai/neurons.ts` (tolérance). Décisions : `specs/003-interface-mvp1/research.md` (R1–R8). 500 tests en fin de session (lus, non exécutés ici).
 - *Mise à jour du 30/09* — Graphe : 2 558 nœuds, 177 communautés ; nouvelles communautés « Spec 004 — Boîte à outils de la carte et mini-widgets », « WidgetRepository », « WidgetNode.tsx », hyper-arête « Bac à sable des widgets : isolation en couches gi-widget:// ». Cadrage : `specs/004-widgets/` (spec, plan § Isolation, tasks, quickstart § 4 « Évasion du bac à sable »), `.specify/memory/constitution.md` (v1.2.0), `docs/brainstorm/L4c-widgets.md`. Code clé spec 004 : `src/main/application/widgets/{WidgetDocument,transpile,widgetUrl,WidgetService}.ts`, `src/main/shell/{widgetProtocol,hardening}.ts`, `src/main/infrastructure/ai/WidgetFrame.ts`, `src/main/infrastructure/db/repositories/{WidgetRepository,BlockRepository}.ts`, `src/main/infrastructure/db/migrations/0009…0011` (+ `down/`), `src/renderer/src/canvas/{ToolMenu.tsx,useBlockActions.ts,nodes/WidgetNode.tsx,nodes/LabelNode.tsx}`, `src/shared/ai/widgets.ts`. Tests : `tests/unit/widgets/{widget-document,widget-escape}.test.ts`, `tests/integration/widgets/widgets.test.ts`. 634 tests en fin de session selon le journal (lus, non exécutés ici).
+- *Mise à jour du 30/09 (soir)* — Graphe : 3 082 nœuds, 191 communautés ; nouvelles communautés « WidgetIoService », « WidgetIoRepository » (24 liens), « Spec 005 — Widgets branchés », « Spec 006 — Widgets proposés au verrouillage », « tool-hatching.test.ts » ; hyper-arêtes « Pont d'entrées d'un widget » et « Outils à l'éclosion ». Cadrage : `specs/005-widgets-entrees-sorties/` (plan § Pont, § Revue et empreinte, § Signature de structure, § Cadre résultat), `specs/006-widgets-au-verrouillage/` (plan, décisions R1–R8). Code clé : `src/main/application/widgets/{WidgetIoService,InputAssembler,ToolGeneration,toolSurroundings,GenericResultView}.ts`, `src/main/domain/widgets/{shape,resultLimits,placeTools,toolProposals}.ts`, `src/shared/widgets/genericResultView.ts`, `src/renderer/src/widgets/{useWidgetBridge,emitThrottle}.ts`, `src/main/application/neurons/{SynthesisApplier,SynthesisContextBuilder}.ts`, `src/main/domain/neurons/nextStep.ts`, `src/shared/ai/neurons.ts`, migrations `0012…0016` (+ `down/`). 788 tests en fin de session selon le journal (lus, non exécutés ici).
 - 💡 Glisse ces notes dans NotebookLM / Gemini si tu veux un *study guide* ou un quiz audio.

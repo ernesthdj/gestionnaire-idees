@@ -275,6 +275,45 @@
       "width": 380,
       "height": 320,
       "color": "1"
+    },
+    {
+      "id": "label_005",
+      "type": "text",
+      "text": "Specs 005-006 — widgets branchés et proposés (soir du 30/09)\nColonne centrale = parcours 21 à 23\nNouveaux glossaires : Donnée dérivée, Parcours en profondeur (DFS), Throttle et debounce — voir MOC\nBlocs « Évolution du 30/09 » dans 7 notes existantes",
+      "x": -560,
+      "y": 7100,
+      "width": 320,
+      "height": 220
+    },
+    {
+      "id": "c_branche",
+      "type": "file",
+      "file": "academique/Widget branché — autorisation par empreinte et pont postMessage.md",
+      "x": 0,
+      "y": 7100,
+      "width": 380,
+      "height": 320,
+      "color": "1"
+    },
+    {
+      "id": "c_resultat",
+      "type": "file",
+      "file": "academique/Cadre résultat — sortie bornée, vue figée et rafales regroupées.md",
+      "x": 0,
+      "y": 7500,
+      "width": 380,
+      "height": 320,
+      "color": "1"
+    },
+    {
+      "id": "c_outils",
+      "type": "file",
+      "file": "academique/Outils proposés au verrouillage — créer dans la transaction, générer hors transaction.md",
+      "x": 0,
+      "y": 7900,
+      "width": 380,
+      "height": 320,
+      "color": "1"
     }
   ],
   "edges": [
@@ -461,6 +500,30 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "20 le fabriquer et le versionner"
+    },
+    {
+      "id": "e_widget_branche",
+      "fromNode": "c_widget",
+      "toNode": "c_branche",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "21 lui donner des données, après revue"
+    },
+    {
+      "id": "e_branche_resultat",
+      "fromNode": "c_branche",
+      "toNode": "c_resultat",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "22 recevoir ce qu'il publie"
+    },
+    {
+      "id": "e_resultat_outils",
+      "fromNode": "c_resultat",
+      "toNode": "c_outils",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "23 le faire naître à l'éclosion"
     }
   ]
 }
