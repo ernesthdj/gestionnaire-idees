@@ -2,11 +2,26 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['out/**', 'dist/**', 'release/**', 'node_modules/**', 'graphify-out/**', '.specify/**', '.claude/**'] },
+  {
+    ignores: [
+      'out/**',
+      'dist/**',
+      'release/**',
+      'node_modules/**',
+      'graphify-out/**',
+      '.specify/**',
+      '.claude/**',
+      '.kilo/**',
+      'docs/**',
+      'scripts/**/*.cjs'
+    ]
+  },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
     files: ['**/*.{ts,tsx}'],
+    // Racine explicite : un worktree git imbriqué (outil tiers) contient son propre tsconfig.
+    languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-module-boundary-types': 'error',
