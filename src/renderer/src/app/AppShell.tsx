@@ -5,6 +5,7 @@ import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
+import { ThemeSwitch } from './ThemeSwitch'
 import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
 import { useEffectiveSettings } from './useAppSettings'
@@ -74,15 +75,18 @@ export function AppShell(): React.JSX.Element {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-content-muted/20 px-4">
             <h1 className="text-base font-semibold">{TITLES[view]}</h1>
-            <button
-              type="button"
-              aria-label="Réglages"
-              aria-current={view === 'settings' ? 'page' : undefined}
-              onClick={() => show('settings')}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-lg text-content-muted hover:bg-surface-raised"
-            >
-              <span aria-hidden="true">⚙</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeSwitch />
+              <button
+                type="button"
+                aria-label="Réglages"
+                aria-current={view === 'settings' ? 'page' : undefined}
+                onClick={() => show('settings')}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-lg text-content-muted hover:bg-surface-raised"
+              >
+                <span aria-hidden="true">⚙</span>
+              </button>
+            </div>
           </header>
           <main className="min-h-0 flex-1 overflow-hidden">
             <CurrentView view={view} />
