@@ -13,6 +13,7 @@ import { checkPlan, checkReflection, type CheckFailure } from '../../domain/neur
 import { applyProvenance } from '../../domain/neurons/provenance'
 import { patchPlan, patchReflection } from '../../domain/neurons/synthesisPatch'
 import { aliasesOf } from '../../domain/neurons/tree'
+import { keepNewTools, withTools, type ExistingTool } from '../../domain/widgets/toolProposals'
 import type { FusionRepository, SynthesisRow } from '../../infrastructure/db/repositories/FusionRepository'
 import type { GrowthNode, GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
 import type { AIGateway } from '../ai/AIGateway'
@@ -36,6 +37,8 @@ export interface FusionDependencies {
   /** Suggestions de liens lancées après chaque éclosion (US4), sans bloquer la confirmation. */
   readonly links: { suggestInBackground(rootId: string): void }
   readonly emit: (event: FusionEvent) => void
+  /** Widgets déjà branchés sur une idée (spec 006 FR-011) ; absent : aucun. */
+  readonly existingTools?: (rootId: string) => readonly ExistingTool[]
 }
 
 interface Synthesized {
@@ -75,7 +78,8 @@ export class FusionService {
     }
 
     const nodes = this.deps.tree.nodesWithHistory(root.id)
-    const request = buildSynthesisInput({ nature: root.nature, nodes, missing, forced })
+    const existingTools = this.existingTools(root.id)
+    const request = buildSynthesisInput({ nature: root.nature, nodes, missing, forced, existingTools })
     const result = await this.synthesize(root.id, root.nature, nodes, request)
     return this.propose(root.id, root.version, result, { instruction: null, forced })
   }
@@ -94,7 +98,8 @@ export class FusionService {
         nodes,
         missing: gauge?.missing ?? [],
         forced: row.forced,
-        revision: { previous, instruction: input.instruction }
+        revision: { previous, instruction: input.instruction },
+        existingTools: this.existingTools(row.rootId)
       }),
       'reviser'
     )
@@ -153,10 +158,16 @@ export class FusionService {
     result: Synthesized,
     options: { readonly instruction: string | null; readonly forced: boolean }
   ): SynthesisView {
+    // Outils proposés (spec 006) : aucun sans Claude (FR-013), jamais un outil déjà branché ni un doublon (FR-011).
+    const tools = (proposed: ActionPlanOut['tools']): ActionPlanOut['tools'] =>
+      result.degraded ? undefined : keepNewTools(proposed, this.existingTools(rootId))
     const id = this.deps.repository.insertProposal({
       rootId,
       type: result.content.type,
-      payload: result.content.type === 'action_plan' ? result.content.plan : result.content.summary,
+      payload:
+        result.content.type === 'action_plan'
+          ? withTools(result.content.plan, tools(result.content.plan.tools))
+          : withTools(result.content.summary, tools(result.content.summary.tools)),
       baseVersion,
       instruction: options.instruction,
       forced: options.forced,
@@ -236,6 +247,10 @@ export class FusionService {
     if (!result.ok) throw new AppError(result.error.code, result.error.message)
     const failure = check(result.value.data)
     return failure === null ? { content: toContent(result.value.data), degraded: result.value.degraded } : { failure }
+  }
+
+  private existingTools(rootId: string): readonly ExistingTool[] {
+    return this.deps.existingTools?.(rootId) ?? []
   }
 
   private stale(row: SynthesisRow): void {

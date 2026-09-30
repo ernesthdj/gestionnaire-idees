@@ -11,6 +11,21 @@ import { FakeIpcError } from './support/fakeApi'
 import { renderOpenIdea, type Handlers } from './support/openIdea'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
+const TOOLS = [
+  {
+    title: 'Tableau des dépenses',
+    description: 'Additionne les achats prévus et compare au budget.',
+    parts: ['tree', 'document'] as const,
+    producesResult: true
+  },
+  {
+    title: 'Compte à rebours',
+    description: 'Jours restants avant la livraison.',
+    parts: [] as const,
+    producesResult: false
+  }
+].map((tool) => ({ ...tool, parts: [...tool.parts] }))
+
 function renderWithPreview(proposed: SynthesisView | null, handlers: Handlers = {}) {
   return renderOpenIdea(developingTree, {
     // Animations réduites : la fusion se joue en fondus courts (tests rapides).
@@ -157,6 +172,43 @@ describe('aperçu de synthèse et fusion', () => {
     // La base a déjà absorbé les sous-neurones, mais la carte les garde le temps de les résorber vers l'idée.
     expect(document.querySelectorAll('.react-flow__node.tree-fusing').length).toBeGreaterThan(0)
     await waitFor(() => expect(document.querySelectorAll('.react-flow__node.tree-fusing')).toHaveLength(0))
+  })
+
+  it('should_show_no_tool_section_when_claude_proposes_no_tool', async () => {
+    renderWithPreview(planPreview())
+    const region = await preview('Aperçu du plan d’action')
+    expect(within(region).queryByRole('region', { name: 'Outils proposés' })).toBeNull()
+  })
+
+  it('should_show_the_proposed_tools_unchecked_with_what_they_read_and_count_the_generations', async () => {
+    const user = userEvent.setup()
+    const base = planPreview()
+    if (base.type !== 'action_plan') throw new Error('plan attendu')
+    renderWithPreview({ ...base, plan: { ...base.plan, tools: TOOLS } })
+    const tools = await screen.findByRole('region', { name: 'Outils proposés' })
+    const budget = within(tools).getByRole('checkbox', { name: /Tableau des dépenses/ })
+    const countdown = within(tools).getByRole('checkbox', { name: /Compte à rebours/ })
+    expect((budget as HTMLInputElement).checked).toBe(false)
+    expect((countdown as HTMLInputElement).checked).toBe(false)
+    expect(within(tools).getByText('lit : sous-neurones, document · produit un résultat')).toBeDefined()
+    expect(within(tools).getByText('ne lit rien de l’idée')).toBeDefined()
+    expect(within(tools).getByRole('status').textContent).toBe('Aucun outil coché : aucune génération.')
+
+    await user.click(budget)
+    await user.click(countdown)
+    expect(within(tools).getByRole('status').textContent).toBe(
+      '2 outils cochés : 2 générations Claude à la confirmation.'
+    )
+    await user.click(countdown)
+    expect(within(tools).getByRole('status').textContent).toBe('1 outil coché : 1 génération Claude à la confirmation.')
+  })
+
+  it('should_offer_the_tools_of_a_reflection_too', async () => {
+    const base = summaryPreview()
+    if (base.type !== 'reflection_summary') throw new Error('synthèse attendue')
+    renderWithPreview({ ...base, summary: { ...base.summary, tools: TOOLS.slice(0, 1) } })
+    const tools = await screen.findByRole('region', { name: 'Outils proposés' })
+    expect(within(tools).getAllByRole('checkbox')).toHaveLength(1)
   })
 
   it('should_have_no_accessibility_violation_in_the_preview', async () => {

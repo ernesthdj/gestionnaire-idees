@@ -1,5 +1,6 @@
 import type { NeuronKind, Nature } from '@shared/ipc/neurons'
 import { aliasesOf } from '../../domain/neurons/tree'
+import type { ExistingTool } from '../../domain/widgets/toolProposals'
 import type { GrowthNode } from '../../infrastructure/db/repositories/GrowthRepository'
 
 /**
@@ -78,6 +79,8 @@ export function buildSynthesisInput(input: {
   readonly missing: readonly string[]
   readonly forced: boolean
   readonly revision?: { readonly previous: unknown; readonly instruction: string }
+  /** Widgets déjà branchés sur l'idée (spec 006 FR-011) : à ne pas reproposer. */
+  readonly existingTools?: readonly ExistingTool[]
 }): string {
   const expected =
     input.nature === 'action'
@@ -92,6 +95,11 @@ export function buildSynthesisInput(input: {
           `Verrouillage forcé : le contexte est incomplet. Manques connus : ${input.missing.join(', ') || 'non évalués'}.`
         ]
       : []),
+    `Outils déjà branchés sur cette idée : ${
+      (input.existingTools ?? []).length === 0
+        ? 'aucun'
+        : (input.existingTools ?? []).map((tool) => `\n- ${tool.title} : ${tool.summary}`).join('')
+    }`,
     ...(input.revision === undefined
       ? []
       : [

@@ -3,6 +3,7 @@ import type { ActionPlanOut, ReflectionSummaryOut } from '@shared/ai/neurons'
 import type { ConfirmView, SynthesisPatch } from '@shared/ipc/neurons'
 import { Button } from '../components/atoms/Button'
 import { formatEuros } from '../pages/settings/ai/format'
+import { ToolChoices } from './ToolChoices'
 import type { FusionActions } from './useFusion'
 
 type PlanNode = ActionPlanOut['nodes'][number]
@@ -267,8 +268,22 @@ export function SynthesisPreview({
 }): React.JSX.Element | null {
   const ids = { title: useId(), instruction: useId() }
   const [instruction, setInstruction] = useState<string | null>(null)
+  // Outils cochés (spec 006) : propres à un aperçu — un aperçu refait repart sans rien de coché.
+  const [chosenTools, setChosenTools] = useState<{ readonly synthesisId: string; readonly indexes: readonly number[] }>(
+    {
+      synthesisId: '',
+      indexes: []
+    }
+  )
   const synthesis = fusion.synthesis
   if (synthesis === null) return null
+  const tools = (synthesis.type === 'action_plan' ? synthesis.plan.tools : synthesis.summary.tools) ?? []
+  const chosen = chosenTools.synthesisId === synthesis.id ? chosenTools.indexes : []
+  const toggleTool = (index: number): void =>
+    setChosenTools({
+      synthesisId: synthesis.id,
+      indexes: chosen.includes(index) ? chosen.filter((entry) => entry !== index) : [...chosen, index].sort()
+    })
   const busy = fusion.state.kind === 'working'
   const editor: EditorProps = { busy, onSave: (patch) => fusion.edit(patch) }
 
@@ -327,6 +342,10 @@ export function SynthesisPreview({
           <ReflectionContent summary={synthesis.summary} {...editor} />
         )}
       </div>
+
+      {tools.length === 0 ? null : (
+        <ToolChoices tools={tools} chosen={chosen} disabled={busy || fusion.stale} onToggle={toggleTool} />
+      )}
 
       {instruction === null ? null : (
         <form

@@ -173,6 +173,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     seeds,
     emit: (event) => broadcast(event.type, event)
   })
+  const widgetIoRepository = new WidgetIoRepository(database.db)
   const fusionRepository = new FusionRepository(database.db)
   const fusion = new FusionService({
     repository: fusionRepository,
@@ -187,13 +188,14 @@ export function bootstrap(shell: ShellPort): AppContext {
       onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id })
     }),
     links,
-    emit: (event) => broadcast(event.type, event)
+    emit: (event) => broadcast(event.type, event),
+    existingTools: (rootId) => widgetIoRepository.toolsOf(rootId)
   })
 
   const appSettings = new AppSettingsRepository(database.db)
   const widgetRepository = new WidgetRepository(database.db)
   const widgetIo = new WidgetIoService({
-    repository: new WidgetIoRepository(database.db),
+    repository: widgetIoRepository,
     widgets: widgetRepository,
     blocks: new BlockRepository(database.db),
     tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),

@@ -2,7 +2,15 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { IDEA_PARTS, type IdeaPart, type InputSourceKind } from '@shared/ipc/widgetIo'
 import type { AppDatabase } from '../client'
-import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs, widgetResults } from '../schemaNeurons'
+import {
+  canvasBlocks,
+  extensions,
+  neurons,
+  widgetApprovals,
+  widgetInputs,
+  widgetResults,
+  widgetVersions
+} from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export interface WidgetInputRow {
@@ -120,6 +128,25 @@ export class WidgetIoRepository {
 
   approve(blockId: string, fingerprint: string): void {
     this.db.insert(widgetApprovals).values({ blockId, fingerprint }).onConflictDoNothing().run()
+  }
+
+  /** Widgets visibles branchés sur une idée, avec le titre et le résumé de leur version affichée (spec 006). */
+  toolsOf(rootId: string): { readonly title: string; readonly summary: string }[] {
+    return this.db
+      .selectDistinct({ blockId: canvasBlocks.id, title: widgetVersions.title, summary: widgetVersions.summary })
+      .from(widgetInputs)
+      .innerJoin(canvasBlocks, eq(canvasBlocks.id, widgetInputs.blockId))
+      .innerJoin(widgetVersions, eq(widgetVersions.id, canvasBlocks.currentVersionId))
+      .where(
+        and(
+          eq(widgetInputs.sourceId, rootId),
+          isNull(widgetInputs.deletedAt),
+          eq(canvasBlocks.kind, 'widget'),
+          isNull(canvasBlocks.deletedAt)
+        )
+      )
+      .all()
+      .map(({ title, summary }) => ({ title, summary }))
   }
 
   /** Dernier résultat d'un widget : remplace le précédent. */

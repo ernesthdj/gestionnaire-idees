@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { IDEA_PARTS, type IdeaPart } from '../ipc/widgetIo'
 
 /**
  * Sorties IA du moteur de neurones (spec 002 contracts/ai-outputs.md).
@@ -67,6 +68,29 @@ export const EtendreOut = z.object({
 })
 export type EtendreOut = z.infer<typeof EtendreOut>
 
+/** Au plus trois outils proposés par verrouillage (spec 006 FR-001) : chaque outil coché coûte une génération. */
+export const TOOL_PROPOSALS_MAX = 3
+
+const isIdeaPart = (value: unknown): value is IdeaPart => (IDEA_PARTS as readonly unknown[]).includes(value)
+
+/**
+ * Outil proposé avec la synthèse (spec 006) : un widget que Claude juge utile pour avancer sur l'idée. Les parties
+ * inconnues sont écartées plutôt que de faire rejeter la proposition ; `producesResult` absent vaut « non ».
+ */
+export const ToolProposal = z.object({
+  title: z.string().trim().min(1).max(60),
+  description: z.string().trim().min(1).max(200),
+  parts: z.preprocess(
+    (value) => (Array.isArray(value) ? IDEA_PARTS.filter((part) => value.filter(isIdeaPart).includes(part)) : value),
+    z.array(z.enum(IDEA_PARTS)).max(IDEA_PARTS.length)
+  ),
+  producesResult: z.boolean().catch(false)
+})
+export type ToolProposal = z.infer<typeof ToolProposal>
+
+/** Facultatif et tolérant (FR-003) : une proposition fautive est écartée seule, jamais la synthèse. */
+const optionalTools = lenientList(ToolProposal, TOOL_PROPOSALS_MAX).optional().catch(undefined)
+
 const Ref = z.string().regex(/^[a-z][a-z0-9]{0,15}$/)
 const SourceRefs = z.array(z.preprocess(unbracket, z.string().min(1).max(16))).max(20)
 
@@ -99,7 +123,8 @@ export const ActionPlanOut = z.object({
       })
     )
     .max(80),
-  gaps: z.array(z.string().min(1).max(200)).max(10)
+  gaps: z.array(z.string().min(1).max(200)).max(10),
+  tools: optionalTools
 })
 export type ActionPlanOut = z.infer<typeof ActionPlanOut>
 
@@ -117,7 +142,8 @@ export const ReflectionSummaryOut = z.object({
   cons: z.array(Point).max(10),
   openQuestions: z.array(z.object({ text: z.string().min(1).max(300) })).max(10),
   /** Prochaine étape concrète conseillée, tirée de l'arbre. */
-  nextStep: optionalLine(200)
+  nextStep: optionalLine(200),
+  tools: optionalTools
 })
 export type ReflectionSummaryOut = z.infer<typeof ReflectionSummaryOut>
 

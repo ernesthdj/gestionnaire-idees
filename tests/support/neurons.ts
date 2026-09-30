@@ -10,6 +10,7 @@ import { SeedService, type SeedEvent } from '../../src/main/application/neurons/
 import { SynthesisApplier } from '../../src/main/application/neurons/SynthesisApplier'
 import { openDatabase, type DatabaseHandle } from '../../src/main/infrastructure/db/client'
 import { ContextRepository } from '../../src/main/infrastructure/db/repositories/ContextRepository'
+import { WidgetIoRepository } from '../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { FusionRepository } from '../../src/main/infrastructure/db/repositories/FusionRepository'
 import { GrowthRepository } from '../../src/main/infrastructure/db/repositories/GrowthRepository'
 import { HatchedRepository } from '../../src/main/infrastructure/db/repositories/HatchedRepository'
@@ -117,7 +118,8 @@ export function createNeuronHarness(): NeuronHarness {
       gateway: h.gateway,
       applier,
       links,
-      emit
+      emit,
+      existingTools: (rootId) => new WidgetIoRepository(db.db).toolsOf(rootId)
     })
     return { neurons, growth, fusion, fusionRepository, growthRepository: tree, examples, links, seeds, linkRepository }
   }
