@@ -32,6 +32,14 @@ export function createCanvasRoutes(canvas: CanvasService): IpcRoute[] {
         })
     }),
     defineRoute({
+      channel: 'canvas:saveStepPosition',
+      input: z.object({ rootId: z.uuid(), x: Coordinate, y: Coordinate }).strict(),
+      handler: async (input) => {
+        canvas.saveStepPosition(input)
+        return { ok: true }
+      }
+    }),
+    defineRoute({
       channel: 'canvas:savePositions',
       input: z
         .object({

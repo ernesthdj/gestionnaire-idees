@@ -54,6 +54,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'seeds:reject',
   'canvas:get',
   'canvas:savePositions',
+  'canvas:saveStepPosition',
   'canvas:createBlock',
   'canvas:updateBlock',
   'canvas:deleteBlock',

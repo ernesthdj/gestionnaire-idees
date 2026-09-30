@@ -8,10 +8,12 @@ import {
   type CanvasFilterInput,
   type CanvasNeuronView,
   type CanvasPosition,
-  type IdeasCanvasView
+  type IdeasCanvasView,
+  type StepView
 } from '@shared/ipc/canvas'
-import type { LinkView, SeedView } from '@shared/ipc/neurons'
+import type { HatchedResultView, LinkView, SeedView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
+import { nextStepOf } from '../../domain/neurons/nextStep'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
 
@@ -22,6 +24,12 @@ export interface CanvasDeps {
   >
   readonly links: { list(): LinkView[]; seeds(): SeedView[] }
   readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
+  /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
+  readonly steps: {
+    result(rootId: string): HatchedResultView | null
+    stepPlaces(): Map<string, { readonly x: number; readonly y: number }>
+    saveStepPlace(rootId: string, place: { readonly x: number; readonly y: number }): void
+  }
 }
 
 /** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens et leurs graines. */
@@ -49,6 +57,12 @@ export class CanvasService {
       .filter((seed) =>
         seed.status === 'accepted' ? seed.bornRootId !== null && visible.has(seed.bornRootId) : linkIds.has(seed.linkId)
       )
+    // Une idée brute n'a jamais eu de document ; les autres portent la prochaine étape de leur document en cours.
+    const places = this.deps.steps.stepPlaces()
+    const steps = roots.flatMap((root): StepView[] => {
+      const text = root.state === 'raw' ? null : nextStepOf(this.deps.steps.result(root.id))
+      return text === null ? [] : [{ rootId: root.id, text, position: places.get(root.id) ?? null }]
+    })
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -61,12 +75,21 @@ export class CanvasService {
       seeds,
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
-      blocks: this.deps.blocks.list()
+      blocks: this.deps.blocks.list(),
+      steps
     }
   }
 
   savePositions(positions: readonly CanvasPosition[]): void {
     this.deps.neurons.savePositions(positions)
+  }
+
+  /** Étape glissée à la main : elle reste épinglée à cette place. */
+  saveStepPosition(input: { readonly rootId: string; readonly x: number; readonly y: number }): void {
+    if (nextStepOf(this.deps.steps.result(input.rootId)) === null) {
+      throw new AppError('NOT_FOUND', 'Cette idée n’a pas de prochaine étape')
+    }
+    this.deps.steps.saveStepPlace(input.rootId, { x: input.x, y: input.y })
   }
 
   /** Nouveau bloc au point voulu, à la taille par défaut de son type (spec 004 FR-001). */

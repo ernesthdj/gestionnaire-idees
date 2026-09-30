@@ -287,6 +287,18 @@ export const canvasBlocks = sqliteTable('canvas_blocks', {
   createdAt: createdAt()
 })
 
+/**
+ * Place de la « prochaine étape » d'une idée sur la carte, quand elle a été glissée à la main (épinglée). L'étape
+ * elle-même n'est pas stockée : elle se lit dans le document en cours de l'idée.
+ */
+export const ideaSteps = sqliteTable('idea_steps', {
+  rootId: text('root_id')
+    .primaryKey()
+    .references(() => neurons.id, { onDelete: 'cascade' }),
+  x: real('x').notNull(),
+  y: real('y').notNull()
+})
+
 /** Versions d'un widget (spec 004) : chaque génération par Claude en crée une ; le code n'est jamais modifié. */
 export const widgetVersions = sqliteTable(
   'widget_versions',

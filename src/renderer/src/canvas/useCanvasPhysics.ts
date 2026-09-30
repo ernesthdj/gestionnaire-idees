@@ -1,13 +1,16 @@
 import { useMemo, useRef } from 'react'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
 import { MIN_FOOTPRINT } from './forceLayout'
-import { TIER_SIZE, tierOf, type CanvasLayout } from './buildGraph'
+import { STEP_OFFSET, stepNodeId, TIER_SIZE, tierOf, type CanvasLayout } from './buildGraph'
+import { STEP_RADIUS } from './nodes/StepNode'
 import { CanvasPhysics, type Body, type Point, type Spring } from './physics'
 import { treeBodies } from './treeGraph'
 import type { OpenTree } from './treeStore'
 
 /** Ressort d'un lien entre idées : souple, il garde la disposition sans croisement du départ. */
 const IDEA_LINK = { distance: 240, strength: 0.08 } as const
+/** Ressort qui garde une prochaine étape près de son idée. */
+const STEP_LINK = { distance: 230, strength: 0.2 } as const
 
 /** Encombrement d'une idée : son cercle, et son titre de 160 px sous le cercle. */
 function ideaRadius(neuron: IdeasCanvasView['ideas'][number]): number {
@@ -60,6 +63,20 @@ export function useCanvasPhysics(input: PhysicsInput): {
         pinned: true,
         gravity: false
       })
+    }
+    // Prochaines étapes (FR-037) : près de leur idée ; glissées à la main, elles restent à leur place.
+    for (const step of view.steps) {
+      const root = seed.positions.get(step.rootId) ?? { x: 0, y: 0 }
+      const start = step.position ?? { x: root.x + STEP_OFFSET.x, y: root.y + STEP_OFFSET.y }
+      bodies.push({
+        id: stepNodeId(step.rootId),
+        radius: STEP_RADIUS,
+        x: start.x,
+        y: start.y,
+        pinned: step.position !== null,
+        gravity: false
+      })
+      springs.push({ source: step.rootId, target: stepNodeId(step.rootId), ...STEP_LINK })
     }
     for (const link of view.links) springs.push({ source: link.a.id, target: link.b.id, ...IDEA_LINK })
     if (tree !== null) {

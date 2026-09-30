@@ -10,11 +10,11 @@ description: "Task list — 005 Widgets branchés : entrées, sorties et cadre r
 
 ## Phase 0 : Gouvernance
 
-- [ ] T001 Validation de la spec et du plan par mentalyas (pas d'amendement de constitution : 1.2.0 couvre les capacités)
+- [x] T001 Validation de la spec et du plan par mentalyas (2026-09-30) (pas d'amendement de constitution : 1.2.0 couvre les capacités)
 
 ## Phase 1 : Lot 1 — Entrées (US1)
 
-- [ ] T002 Migration 0013 (+ down) : `widget_inputs`, `widget_approvals`, `widget_results`, `neuron_data`, `widget_proposals`, `canvas_blocks.source_block_id`, `kind` `result`
+- [ ] T002 Migration 0014 (+ down) : `widget_inputs`, `widget_approvals`, `widget_results`, `neuron_data`, `widget_proposals`, `canvas_blocks.source_block_id`, `kind` `result`
 - [ ] T003 [P] Tests : `InputAssembler` (chaque partie, parties décochées absentes, idée supprimée → entrée vide)
 - [ ] T004 [P] Tests : `WidgetIoService` — branchement, empreinte, aucune donnée sans approbation, nouvelle version → revue, boucle refusée, suppression annulable
 - [ ] T005 `InputAssembler`, `WidgetIoService` (connect, approve, inputs), `WidgetIoRepository`, canaux `widgetIo:connect|approve|inputs|disconnect`
@@ -22,6 +22,7 @@ description: "Task list — 005 Widgets branchés : entrées, sorties et cadre r
 - [ ] T007 Prélude `gi` dans `WidgetDocument` ; `WidgetFrame` décrit `gi.inputs` à Claude ; structure des entrées jointe aux demandes d'évolution (`shapeOf`)
 - [ ] T008 [P] Tests renderer : lien idée → widget, revue (code, capacité, parties), refus, bandeau « À revoir », pont (source vérifiée, message hors contrat ignoré)
 - [ ] T009 `IoEdge`, `WidgetReview`, `WidgetBridge`, intégration `WidgetNode` / `IdeasCanvas`
+- [ ] T009b Prochaine étape comme source d'entrée (FR-014) : poignée de lien sur `StepNode`, partie transmise « étape »
 - [ ] T010 Test manuel guidé lot 1 — **validation mentalyas**
 
 ## Phase 2 : Lot 2 — Sorties (US2)

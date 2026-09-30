@@ -23,6 +23,18 @@ export interface IdeasCanvasView {
   readonly highlighted: readonly string[] | null
   /** Blocs posés sur la carte : vides, notes et widgets (spec 004). */
   readonly blocks: readonly BlockView[]
+  /** Prochaine étape de chaque idée qui en a une (document en cours). */
+  readonly steps: readonly StepView[]
+}
+
+/**
+ * « Prochaine étape » d'une idée, posée sur la carte à côté d'elle (FR-037) : tirée du document, non modifiable ;
+ * point de départ d'un nouveau brainstorming. `position` : place mémorisée si elle a été glissée (épinglée).
+ */
+export interface StepView {
+  readonly rootId: string
+  readonly text: string
+  readonly position: { readonly x: number; readonly y: number } | null
 }
 
 export const BLOCK_KINDS = ['empty', 'label', 'widget'] as const

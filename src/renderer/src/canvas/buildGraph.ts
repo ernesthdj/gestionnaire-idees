@@ -1,6 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { BlockView, CanvasNeuronView, IdeasCanvasView } from '@shared/ipc/canvas'
+import type { BlockView, CanvasNeuronView, IdeasCanvasView, StepView } from '@shared/ipc/canvas'
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
+import type { BranchEdgeType } from './edges/BranchEdge'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
 /**
@@ -42,7 +43,16 @@ export type BlockNodeType = Node<BlockNodeData, 'block'>
 export type LabelNodeType = Node<BlockNodeData, 'label'>
 export type WidgetNodeType = Node<BlockNodeData, 'widget'>
 
-export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType
+/** « Prochaine étape » d'une idée (FR-037) : non modifiable, reliée à son idée. */
+export type StepNodeData = { readonly step: StepView; readonly dimmed: boolean }
+export type StepNodeType = Node<StepNodeData, 'step'>
+
+export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType | StepNodeType
+
+/** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
+export const stepNodeId = (rootId: string): string => `step-${rootId}`
+/** Place de départ d'une étape jamais glissée : en bas à droite de son idée. */
+export const STEP_OFFSET = { x: 190, y: 130 } as const
 
 const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget' } as const
 
@@ -149,7 +159,7 @@ export function buildGraph(
   bornId: string | null = null,
   /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
   openRootId: string | null = null
-): { nodes: CanvasNode[]; edges: LinkEdgeType[] } {
+): { nodes: CanvasNode[]; edges: LinkEdgeType[]; stepEdges: BranchEdgeType[] } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean =>
     (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
@@ -194,5 +204,28 @@ export function buildGraph(
     ariaLabel: blockAriaLabel(block),
     deletable: false
   }))
-  return { nodes: [...neuronNodes, ...blockNodes], edges }
+  const titles = new Map(view.ideas.map((neuron) => [neuron.id, neuron.title] as const))
+  const stepNodes = view.steps.map((step): StepNodeType => {
+    const root = layout.positions.get(step.rootId) ?? { x: 0, y: 0 }
+    return {
+      id: stepNodeId(step.rootId),
+      type: 'step',
+      position: layout.positions.get(stepNodeId(step.rootId)) ??
+        step.position ?? { x: root.x + STEP_OFFSET.x, y: root.y + STEP_OFFSET.y },
+      data: { step, dimmed: isDimmed(step.rootId) },
+      ariaLabel: `Prochaine étape de « ${titles.get(step.rootId) ?? 'l’idée'} », non modifiable : ${step.text}`,
+      deletable: false
+    }
+  })
+  const stepEdges = view.steps.map((step): BranchEdgeType => ({
+    id: `step-line-${step.rootId}`,
+    type: 'branch',
+    source: step.rootId,
+    target: stepNodeId(step.rootId),
+    data: { style: 'step' },
+    deletable: false,
+    selectable: false,
+    focusable: false
+  }))
+  return { nodes: [...neuronNodes, ...blockNodes, ...stepNodes], edges, stepEdges }
 }

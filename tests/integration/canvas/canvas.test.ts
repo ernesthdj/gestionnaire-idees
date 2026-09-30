@@ -7,6 +7,7 @@ import { HistoryService } from '../../../src/main/application/history/HistorySer
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { demoId, seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
+import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { createCanvasRoutes } from '../../../src/main/ipc/canvasHandlers'
@@ -26,7 +27,8 @@ describe('écran Idées', () => {
     canvas = new CanvasService({
       neurons,
       links: new LinkRepository(harness.handle.db),
-      blocks: new BlockRepository(harness.handle.db)
+      blocks: new BlockRepository(harness.handle.db),
+      steps: new HatchedRepository(harness.handle.db)
     })
     dispatch = createDispatcher(createCanvasRoutes(canvas))
   })
@@ -240,5 +242,29 @@ describe('écran Idées', () => {
       sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'canvas_blocks'`
     )
     expect(table).toBeUndefined()
+  })
+
+  it('should_show_the_next_step_of_ideas_that_have_a_document_and_never_of_raw_ideas', async () => {
+    const view = await get()
+    expect(view.steps.length).toBeGreaterThan(0)
+    const states = new Map(view.ideas.map((root) => [root.id, root.state]))
+    expect(view.steps.every((step) => states.get(step.rootId) === 'hatched')).toBe(true)
+    expect(view.steps.every((step) => step.text !== '' && step.position === null)).toBe(true)
+    expect(new Set(view.steps.map((step) => step.rootId)).size).toBe(view.steps.length)
+  })
+
+  it('should_remember_where_a_next_step_was_dragged', async () => {
+    const step = (await get()).steps[0]
+    if (step === undefined) throw new Error('étape attendue')
+    const saved = await dispatch('canvas:saveStepPosition', { rootId: step.rootId, x: 320, y: -48 })
+    expect(saved.success).toBe(true)
+    await dispatch('canvas:saveStepPosition', { rootId: step.rootId, x: 400, y: 16 })
+    expect((await get()).steps.find((entry) => entry.rootId === step.rootId)?.position).toEqual({ x: 400, y: 16 })
+  })
+
+  it('should_refuse_to_place_a_step_for_an_idea_that_has_none', async () => {
+    const raw = (await get()).ideas.find((root) => root.state === 'raw')
+    const result = await dispatch('canvas:saveStepPosition', { rootId: raw?.id ?? '', x: 0, y: 0 })
+    expect(result).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } })
   })
 })

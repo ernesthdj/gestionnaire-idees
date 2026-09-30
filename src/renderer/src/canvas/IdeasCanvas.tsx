@@ -33,6 +33,7 @@ import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
 import { LabelNode } from './nodes/LabelNode'
+import { StepNode } from './nodes/StepNode'
 import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
@@ -49,6 +50,7 @@ const NODE_TYPES: NodeTypes = {
   block: BlockNode,
   label: LabelNode,
   widget: WidgetNode,
+  step: StepNode,
   tree: TreeNode,
   note: NoteNode,
   doc: DocNode
@@ -209,7 +211,8 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
-    const base = buildGraph(view, { area: layout.area, positions: live }, bornId, openRootId)
+    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, openRootId)
+    const base = { nodes: built.nodes, edges: [...built.edges, ...built.stepEdges] }
     const root = tree === null ? undefined : live.get(tree.rootId)
     if (tree === null || root === undefined || tree.rootId !== openRootId) return base
     const branch = treeGraph({ tree, positions: live, root, docId, expanded, closeDoc: () => openDoc(null) })
@@ -510,6 +513,14 @@ function CanvasInner(): React.JSX.Element {
                     width: node.width ?? node.measured?.width ?? 0,
                     height: node.height ?? node.measured?.height ?? 0
                   })
+                  return
+                }
+                if (node.type === 'step') {
+                  void call('canvas:saveStepPosition', {
+                    rootId: node.data.step.rootId,
+                    x: Math.round(node.position.x),
+                    y: Math.round(node.position.y)
+                  }).catch(() => undefined)
                   return
                 }
                 const isNeuron =

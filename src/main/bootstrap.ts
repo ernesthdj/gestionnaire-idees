@@ -222,7 +222,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         new CanvasService({
           neurons: neuronRepository,
           links: linkRepository,
-          blocks: new BlockRepository(database.db)
+          blocks: new BlockRepository(database.db),
+          steps: hatchedRepository
         })
       ),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),

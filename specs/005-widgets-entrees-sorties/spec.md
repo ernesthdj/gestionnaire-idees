@@ -101,6 +101,7 @@ ce widget (chaîne d'outils). « Nouvelle idée depuis ce résultat » crée une
 - **FR-007** Vue générique locale, sans IA : valeur simple, liste, tableau (liste d'objets homogènes), arbre (objet imbriqué).
 - **FR-008** Mise en forme par Claude **à la demande** (tâche `widget`), à partir de la **signature de structure** du résultat (champs, types, tailles) ; réutilisée tant que la signature est identique ; évolutive par chatbox ; retour à la vue générique possible.
 - **FR-009** Lien résultat → idée : **proposition** soumise à validation (principe II), puis données attachées à l'idée avec provenance (widget, version, date) ; Historique, annulation.
+- **FR-014** *(ajout 2026-09-30)* La « prochaine étape » d'une idée (spec 003 FR-037) est une source d'entrée : un lien tiré de l'étape vers un widget lui transmet son texte et l'identité de son idée (même revue que FR-002).
 - **FR-010** Lien résultat → widget : branchement d'entrée de type résultat (même revue que FR-002) ; boucles refusées.
 - **FR-011** « Nouvelle idée depuis ce résultat » : idée brute portant les données attachées.
 - **FR-012** Claude ne reçoit jamais les valeurs des entrées ni des résultats : seulement leur structure. Les données réelles ne circulent qu'entre la base locale et les cadres isolés (aucun réseau : spec 004).

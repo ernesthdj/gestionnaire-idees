@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CanvasService } from '../../../src/main/application/canvas/CanvasService'
 import { HistoryService } from '../../../src/main/application/history/HistoryService'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
+import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
@@ -116,7 +117,8 @@ describe('graines d’idées sur les liens (FR-028)', () => {
     const canvas = new CanvasService({
       neurons: new NeuronRepository(t.handle.db),
       links: t.linkRepository,
-      blocks: new BlockRepository(t.handle.db)
+      blocks: new BlockRepository(t.handle.db),
+      steps: new HatchedRepository(t.handle.db)
     })
     expect(canvas.get().seeds).toEqual([expect.objectContaining({ linkId: link.id, status: 'suggested' })])
 

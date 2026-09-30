@@ -2,8 +2,8 @@ import { BaseEdge, getStraightPath, type Edge, type EdgeProps } from '@xyflow/re
 import { useCenter } from './LinkEdge'
 
 export type BranchEdgeData = {
-  /** Trait plein (sous-neurone), pointillé (suggestion, question), ambre (vers une idée). */
-  readonly style: 'solid' | 'dashed' | 'idea' | 'idea-dashed'
+  /** Trait plein (sous-neurone), pointillé (suggestion, question), ambre (vers une idée), bleu (prochaine étape). */
+  readonly style: 'solid' | 'dashed' | 'idea' | 'idea-dashed' | 'step'
 }
 export type BranchEdgeType = Edge<BranchEdgeData, 'branch'>
 
@@ -19,7 +19,7 @@ export function BranchEdge({ id, source, target, data }: EdgeProps<BranchEdgeTyp
     <BaseEdge
       id={id}
       path={path}
-      className={`dive-line${dashed ? ' dive-line-dashed' : ''}${idea ? ' idea-line' : ''}`}
+      className={`dive-line${dashed ? ' dive-line-dashed' : ''}${idea ? ' idea-line' : ''}${data.style === 'step' ? ' step-line' : ''}`}
     />
   )
 }
