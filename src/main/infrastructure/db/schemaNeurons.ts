@@ -345,6 +345,21 @@ export const widgetResults = sqliteTable('widget_results', {
 })
 
 /**
+ * Outil proposé à l'éclosion et coché (spec 006) : la demande reste attachée à son widget tant qu'il n'a aucune
+ * version, pour que « Réessayer » relance la même génération (après un échec ou un redémarrage).
+ */
+export const widgetRequests = sqliteTable('widget_requests', {
+  blockId: text('block_id')
+    .primaryKey()
+    .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+  rootId: text('root_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  producesResult: integer('produces_result', { mode: 'boolean' }).notNull().default(false),
+  createdAt: createdAt()
+})
+
+/**
  * Place de la « prochaine étape » d'une idée sur la carte, quand elle a été glissée à la main (épinglée). L'étape
  * elle-même n'est pas stockée : elle se lit dans le document en cours de l'idée.
  */

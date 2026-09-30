@@ -13,6 +13,8 @@ export interface WidgetActions {
   readonly worker: AiWorker | null
   prompt(text: string): Promise<boolean>
   restore(versionId: string): Promise<void>
+  /** Relance la génération d'un outil coché à l'éclosion (spec 006 : « Réessayer »). */
+  retry(): Promise<void>
 }
 
 function workerOf(payload: unknown, blockId: string): AiWorker | null | undefined {
@@ -35,14 +37,22 @@ export function useWidget(blockId: string): WidgetActions {
     const offs = [
       window.api.on('widget:thinking', (payload) => {
         const announced = workerOf(payload, blockId)
-        if (announced !== undefined && announced !== null) setWorker(announced)
+        if (announced === undefined) return
+        if (announced !== null) setWorker(announced)
+        // Génération lancée par le main (outil coché à l'éclosion) : l'état de la demande change.
+        void client.invalidateQueries({ queryKey: ['widget', blockId] })
       }),
       window.api.on('widget:thought', (payload) => {
-        if (workerOf(payload, blockId) !== undefined) setWorker(null)
+        if (workerOf(payload, blockId) === undefined) return
+        setWorker(null)
+        void Promise.all([
+          client.invalidateQueries({ queryKey: ['widget', blockId] }),
+          client.invalidateQueries({ queryKey: ['widgetIo', blockId] })
+        ])
       })
     ]
     return () => offs.forEach((off) => off())
-  }, [blockId])
+  }, [blockId, client])
 
   const prompt = useCallback(
     async (text: string): Promise<boolean> => {
@@ -73,5 +83,19 @@ export function useWidget(blockId: string): WidgetActions {
     [blockId, client, showToast]
   )
 
-  return { widget, busy, worker, prompt, restore }
+  const retry = useCallback(async (): Promise<void> => {
+    setBusy(true)
+    try {
+      client.setQueryData(['widget', blockId], await call<WidgetView>('widget:generate', { blockId }))
+      await client.invalidateQueries({ queryKey: ['widgetIo', blockId] })
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'La fabrication n’a pas pu être relancée.')
+      await client.invalidateQueries({ queryKey: ['widget', blockId] })
+    } finally {
+      setBusy(false)
+      setWorker(null)
+    }
+  }, [blockId, client, showToast])
+
+  return { widget, busy, worker, prompt, restore, retry }
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TOOL_PROPOSALS_MAX } from '@shared/ai/neurons'
 import type { FusionService } from '../application/neurons/FusionService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -51,8 +52,23 @@ export function createFusionRoutes(fusion: FusionService): IpcRoute[] {
     }),
     defineRoute({
       channel: 'fusion:confirm',
-      input: z.object({ synthesisId: Id }).strict(),
-      handler: async ({ synthesisId }) => fusion.confirm(synthesisId)
+      // Outils cochés dans l'aperçu (spec 006) : positions dans la liste proposée.
+      input: z
+        .object({
+          synthesisId: Id,
+          tools: z
+            .array(
+              z
+                .number()
+                .int()
+                .min(0)
+                .max(TOOL_PROPOSALS_MAX - 1)
+            )
+            .max(TOOL_PROPOSALS_MAX)
+            .optional()
+        })
+        .strict(),
+      handler: async ({ synthesisId, tools }) => fusion.confirm(synthesisId, tools ?? [])
     }),
     defineRoute({
       channel: 'fusion:reject',

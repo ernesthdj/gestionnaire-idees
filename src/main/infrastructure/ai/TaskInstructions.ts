@@ -18,7 +18,7 @@ const SYNTHESIS_RULES = [
   '  (une phrase qui explique, sans répéter le headline) ; nextStep = LA prochaine étape concrète, une phrase à',
   '  l’infinitif. Tout reste tiré de l’arbre.',
   '- Phrases courtes, tutoiement, dans la langue de l’utilisateur.',
-  'Outils (champ tools, facultatif, pour les deux natures) :',
+  'Outils (champs tools et toolsNote, OBLIGATOIRES pour les deux natures ; tools peut être []) :',
   '- 0 à 3 mini-outils interactifs affichés sur la carte (calculateur, tableau de suivi, planning, compte à rebours,',
   '  check-list, comparateur…) qui aideraient VRAIMENT à avancer sur cette idée. La plupart des idées n’en ont',
   '  besoin d’aucun : dans le doute, tools = []. Chaque outil proposé coûte une génération s’il est retenu.',
@@ -27,7 +27,9 @@ const SYNTHESIS_RULES = [
   '  answers (questions et réponses), tree (sous-neurones, montants, dates), document (ce document et la prochaine',
   '  étape) ; seulement ce dont il a besoin, [] s’il n’a besoin de rien.',
   '- producesResult = true seulement si l’outil produit des données réutilisables ailleurs (total, tableau, liste).',
-  '- Ne propose jamais un outil de la liste « Outils déjà branchés », ni un équivalent.'
+  '- Ne propose jamais un outil de la liste « Outils déjà branchés », ni un équivalent.',
+  '- toolsNote = une phrase courte : si tools est vide, POURQUOI (contexte encore insuffisant pour savoir quel outil',
+  '  aiderait — dis ce qui manque —, ou idée qui n’appelle pas d’outil) ; sinon, ce que ces outils apportent.'
 ].join('\n')
 
 const SEED_RULES = [

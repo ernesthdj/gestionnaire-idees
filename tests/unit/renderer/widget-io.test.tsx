@@ -32,6 +32,7 @@ const block: BlockView = {
 
 const widget: WidgetView = {
   blockId: BLOCK_ID,
+  request: null,
   current: {
     id: VERSION_ID,
     number: 1,

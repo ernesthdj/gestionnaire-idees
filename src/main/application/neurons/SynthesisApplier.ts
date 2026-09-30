@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { ActionPlanOut, ReflectionSummaryOut } from '@shared/ai/neurons'
+import { ActionPlanOut, ReflectionSummaryOut, type ToolProposal } from '@shared/ai/neurons'
+import { BLOCK_DEFAULT_SIZES } from '@shared/ipc/canvas'
 import type { ConfirmView, TreeView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
 import { aliasesOf } from '../../domain/neurons/tree'
+import { placeTools, type Box } from '../../domain/widgets/placeTools'
+import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
+import type { WidgetIoRepository } from '../../infrastructure/db/repositories/WidgetIoRepository'
+import type { WidgetRequestRepository } from '../../infrastructure/db/repositories/WidgetRequestRepository'
 import type {
   ChangeEntry,
   DependencyInsert,
@@ -22,6 +27,16 @@ export interface SynthesisApplierDependencies {
   readonly examples: ExampleStore
   /** Signale au renderer qu'une proposition ne correspond plus à l'arbre. */
   readonly onStale: (synthesis: SynthesisRow) => void
+  /** Outils cochés (spec 006) : blocs, branchements et demandes écrits dans la transaction de l'éclosion. */
+  readonly tools?: ToolWriters
+}
+
+export interface ToolWriters {
+  readonly blocks: Pick<BlockRepository, 'insert'>
+  readonly inputs: Pick<WidgetIoRepository, 'insertInput'>
+  readonly requests: Pick<WidgetRequestRepository, 'insert'>
+  /** L'idée (centre et encombrement) et ce qui l'entoure sur la carte, pour placer les outils sans recouvrement. */
+  readonly surroundings: (rootId: string) => { readonly idea: Box; readonly obstacles: readonly Box[] }
 }
 
 /**
@@ -46,9 +61,11 @@ export class SynthesisApplier {
     return row
   }
 
-  confirm(synthesisId: string): ConfirmView {
+  confirm(synthesisId: string, toolIndexes: readonly number[] = []): ConfirmView {
     const row = this.current(synthesisId)
     const { repository } = this.deps
+    const chosen = this.chosenTools(row, toolIndexes)
+    const toolBlockIds: string[] = []
     const nodes = this.deps.tree.nodesWithHistory(row.rootId)
     const idOf = new Map([...aliasesOf(nodes)].map(([id, alias]) => [alias, id]))
     const before = this.deps.neurons.getTree(row.rootId).root
@@ -73,6 +90,7 @@ export class SynthesisApplier {
           input: outline(nodes),
           output: payload
         })
+        const tools = this.writeTools(row.rootId, chosen, toolBlockIds)
         repository.log(batchId, [
           ...retired,
           ...changes,
@@ -97,14 +115,83 @@ export class SynthesisApplier {
             entityId: row.id,
             before: { status: 'proposed' },
             after: { status: 'confirmed' }
-          }
+          },
+          // En dernier : l'Historique résume un lot par sa première entrée (ici, l'éclosion).
+          ...tools
         ])
       })
     } catch (error) {
       if (error instanceof AppError) throw error
       throw new AppError('APPLY_FAILED', 'L’éclosion a échoué : rien n’a été modifié')
     }
-    return { batchId, root: this.deps.neurons.getTree(row.rootId).root }
+    return { batchId, root: this.deps.neurons.getTree(row.rootId).root, toolBlockIds }
+  }
+
+  /**
+   * Outils cochés (spec 006 FR-005) : positions dans la liste proposée, uniques et existantes. Une synthèse faite
+   * sans Claude n'en propose pas (FR-013) : rien à créer.
+   */
+  private chosenTools(row: SynthesisRow, indexes: readonly number[]): ToolProposal[] {
+    if (indexes.length === 0 || row.degraded) return []
+    if (new Set(indexes).size !== indexes.length) throw new AppError('VALIDATION', 'Outil coché deux fois')
+    const payload: unknown = JSON.parse(row.payloadJson)
+    const proposed =
+      row.type === 'action_plan' ? ActionPlanOut.parse(payload).tools : ReflectionSummaryOut.parse(payload).tools
+    return indexes.map((index) => {
+      const tool = proposed[index]
+      if (tool === undefined) throw new AppError('VALIDATION', 'Cet outil ne fait pas partie des propositions')
+      return tool
+    })
+  }
+
+  /**
+   * Un widget vide par outil coché, placé autour de l'idée, branché sur elle avec les parties annoncées, et sa
+   * demande de génération. Dans la transaction de l'éclosion : l'annuler les retire (SC-003).
+   */
+  private writeTools(rootId: string, chosen: readonly ToolProposal[], created: string[]): ChangeEntry[] {
+    const writers = this.deps.tools
+    if (chosen.length === 0 || writers === undefined) return []
+    const size = BLOCK_DEFAULT_SIZES.widget
+    const { idea, obstacles } = writers.surroundings(rootId)
+    const places = placeTools(idea, chosen.length, size, obstacles)
+    return chosen.flatMap((tool, index): ChangeEntry[] => {
+      const place = places[index] ?? { x: idea.x, y: idea.y }
+      const block = writers.blocks.insert({ kind: 'widget', ...place, ...size, text: null })
+      created.push(block.id)
+      writers.requests.insert({
+        blockId: block.id,
+        rootId,
+        title: tool.title,
+        description: tool.description,
+        producesResult: tool.producesResult
+      })
+      const entries: ChangeEntry[] = [
+        {
+          kind: 'confirm_synthesis',
+          entity: 'canvas_block',
+          entityId: block.id,
+          before: null,
+          after: { kind: 'widget' }
+        }
+      ]
+      if (tool.parts.length === 0) return entries
+      const input = writers.inputs.insertInput({
+        blockId: block.id,
+        sourceKind: 'idea',
+        sourceId: rootId,
+        parts: tool.parts
+      })
+      return [
+        ...entries,
+        {
+          kind: 'confirm_synthesis',
+          entity: 'widget_input',
+          entityId: input.id,
+          before: null,
+          after: { sourceKind: 'idea' }
+        }
+      ]
+    })
   }
 
   /**

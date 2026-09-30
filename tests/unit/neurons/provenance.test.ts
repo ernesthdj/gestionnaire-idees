@@ -5,7 +5,7 @@ import { applyProvenance } from '../../../src/main/domain/neurons/provenance'
 
 type PlanNode = ActionPlanOut['nodes'][number]
 
-const plan = (nodes: PlanNode[]): ActionPlanOut => ({ nodes, dependencies: [], gaps: [] })
+const plan = (nodes: PlanNode[]): ActionPlanOut => ({ nodes, dependencies: [], gaps: [], tools: [], toolsNote: '' })
 const task = (extra: Partial<PlanNode>): PlanNode => ({
   ref: 't1',
   type: 'task',

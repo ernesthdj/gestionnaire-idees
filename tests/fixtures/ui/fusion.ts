@@ -37,7 +37,9 @@ export function planPreview(patch: Partial<SynthesisView> = {}): SynthesisView {
         { ref: 't3', type: 'task', title: 'Installer l’écran', sourceRefs: [] }
       ],
       dependencies: [{ fromRef: 't1', toRef: 't3', kind: 'after_done' }],
-      gaps: ['Taille exacte du bureau']
+      gaps: ['Taille exacte du bureau'],
+      tools: [],
+      toolsNote: 'Rien à outiller : le plan tient en trois tâches.'
     },
     ...patch
   } as SynthesisView
@@ -53,7 +55,9 @@ export function summaryPreview(): SynthesisView {
       decisions: [{ text: 'Tester en location', sourceRefs: [] }],
       pros: [{ text: 'Plus discret', sourceRefs: [] }],
       cons: [],
-      openQuestions: [{ text: 'Revendre le 24-70 ?' }]
+      openQuestions: [{ text: 'Revendre le 24-70 ?' }],
+      tools: [],
+      toolsNote: ''
     }
   }
 }

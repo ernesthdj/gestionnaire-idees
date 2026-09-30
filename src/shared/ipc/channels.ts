@@ -71,7 +71,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'widgetIo:result',
   'widget:get',
   'widget:prompt',
-  'widget:restore'
+  'widget:restore',
+  'widget:generate'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

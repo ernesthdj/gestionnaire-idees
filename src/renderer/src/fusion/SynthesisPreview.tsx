@@ -277,7 +277,7 @@ export function SynthesisPreview({
   )
   const synthesis = fusion.synthesis
   if (synthesis === null) return null
-  const tools = (synthesis.type === 'action_plan' ? synthesis.plan.tools : synthesis.summary.tools) ?? []
+  const { tools, toolsNote } = synthesis.type === 'action_plan' ? synthesis.plan : synthesis.summary
   const chosen = chosenTools.synthesisId === synthesis.id ? chosenTools.indexes : []
   const toggleTool = (index: number): void =>
     setChosenTools({
@@ -343,9 +343,14 @@ export function SynthesisPreview({
         )}
       </div>
 
-      {tools.length === 0 ? null : (
-        <ToolChoices tools={tools} chosen={chosen} disabled={busy || fusion.stale} onToggle={toggleTool} />
-      )}
+      <ToolChoices
+        tools={tools}
+        note={toolsNote}
+        degraded={synthesis.degraded}
+        chosen={chosen}
+        disabled={busy || fusion.stale}
+        onToggle={toggleTool}
+      />
 
       {instruction === null ? null : (
         <form
@@ -394,7 +399,7 @@ export function SynthesisPreview({
           disabled={busy || fusion.stale}
           onClick={() => {
             onConfirming?.()
-            void fusion.confirm().then(onConfirmed)
+            void fusion.confirm(chosen).then(onConfirmed)
           }}
         >
           Confirmer

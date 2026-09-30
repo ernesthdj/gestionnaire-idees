@@ -49,6 +49,10 @@ import { WidgetIoService } from './application/widgets/WidgetIoService'
 import { WidgetIoRepository } from './infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetService } from './application/widgets/WidgetService'
 import { WidgetRepository } from './infrastructure/db/repositories/WidgetRepository'
+import type { WidgetRequestView } from '@shared/ipc/widgets'
+import { WidgetRequestRepository } from './infrastructure/db/repositories/WidgetRequestRepository'
+import { ToolGeneration } from './application/widgets/ToolGeneration'
+import { toolSurroundings } from './application/widgets/toolSurroundings'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 
 export interface AppContext {
@@ -174,6 +178,8 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (event) => broadcast(event.type, event)
   })
   const widgetIoRepository = new WidgetIoRepository(database.db)
+  const widgetRequestRepository = new WidgetRequestRepository(database.db)
+  const blockRepository = new BlockRepository(database.db)
   const fusionRepository = new FusionRepository(database.db)
   const fusion = new FusionService({
     repository: fusionRepository,
@@ -185,11 +191,18 @@ export function bootstrap(shell: ShellPort): AppContext {
       tree: growthRepository,
       neurons,
       examples,
-      onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id })
+      onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id }),
+      tools: {
+        blocks: blockRepository,
+        inputs: widgetIoRepository,
+        requests: widgetRequestRepository,
+        surroundings: (rootId) => toolSurroundings(canvas.get(), rootId)
+      }
     }),
     links,
     emit: (event) => broadcast(event.type, event),
-    existingTools: (rootId) => widgetIoRepository.toolsOf(rootId)
+    existingTools: (rootId) => widgetIoRepository.toolsOf(rootId),
+    onToolsCreated: (blockIds) => toolGeneration.start(blockIds)
   })
 
   const appSettings = new AppSettingsRepository(database.db)
@@ -197,7 +210,7 @@ export function bootstrap(shell: ShellPort): AppContext {
   const widgetIo = new WidgetIoService({
     repository: widgetIoRepository,
     widgets: widgetRepository,
-    blocks: new BlockRepository(database.db),
+    blocks: blockRepository,
     tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
     document: (rootId) => hatchedRepository.result(rootId)
   })
@@ -205,7 +218,20 @@ export function bootstrap(shell: ShellPort): AppContext {
     repository: widgetRepository,
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event),
-    inputShape: (blockId) => widgetIo.inputShape(blockId)
+    inputShape: (blockId) => widgetIo.inputShape(blockId),
+    request: (blockId): WidgetRequestView | null => toolGeneration.view(blockId)
+  })
+  const toolGeneration = new ToolGeneration({
+    requests: widgetRequestRepository,
+    widgets,
+    exists: (blockId) => widgetRepository.widget(blockId) !== undefined
+  })
+  const canvas = new CanvasService({
+    neurons: neuronRepository,
+    links: linkRepository,
+    blocks: blockRepository,
+    steps: hatchedRepository,
+    io: widgetIo
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -231,18 +257,10 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createFusionRoutes(fusion),
       ...createLinkRoutes(links),
       ...createSeedRoutes(seeds),
-      ...createCanvasRoutes(
-        new CanvasService({
-          neurons: neuronRepository,
-          links: linkRepository,
-          blocks: new BlockRepository(database.db),
-          steps: hatchedRepository,
-          io: widgetIo
-        })
-      ),
+      ...createCanvasRoutes(canvas),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
       ...createHatchedRoutes(hatchedRepository),
-      ...createWidgetRoutes(widgets),
+      ...createWidgetRoutes(widgets, toolGeneration),
       ...createWidgetIoRoutes(widgetIo)
     ],
     logger,

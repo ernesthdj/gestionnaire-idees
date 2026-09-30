@@ -11,7 +11,7 @@ function node(ref: string, extra: Partial<PlanNode> = {}): PlanNode {
 }
 
 function plan(nodes: PlanNode[], dependencies: ActionPlanOut['dependencies'] = []): ActionPlanOut {
-  return { nodes, dependencies, gaps: [] }
+  return { nodes, dependencies, gaps: [], tools: [], toolsNote: '' }
 }
 
 /** Plan « 2e écran » : condition « J'ai l'argent ? » et ses deux branches. */
@@ -123,7 +123,9 @@ describe('contrôle de la synthèse Réflexion (S1)', () => {
     decisions: [],
     pros: [{ text: 'Plus léger', sourceRefs: ['s2'] }],
     cons: [],
-    openQuestions: [{ text: 'Garder le 24-70 ?' }]
+    openQuestions: [{ text: 'Garder le 24-70 ?' }],
+    tools: [],
+    toolsNote: ''
   })
 
   it('should_accept_known_sources', () => {

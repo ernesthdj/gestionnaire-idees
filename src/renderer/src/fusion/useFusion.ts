@@ -21,7 +21,7 @@ export interface FusionActions {
   revise(instruction: string): Promise<void>
   reject(): Promise<void>
   /** Confirme : renvoie l'idée éclose, ou `null` si la confirmation a échoué (rien n'a été appliqué). */
-  confirm(): Promise<ConfirmView | null>
+  confirm(tools?: readonly number[]): Promise<ConfirmView | null>
 }
 
 function missingOf(error: IpcFailure): readonly string[] {
@@ -126,10 +126,14 @@ export function useFusion(rootId: string): FusionActions {
       const done = await work('Refus…', () => call('fusion:reject', { synthesisId: synthesis.id }))
       if (done !== null) set(null)
     },
-    confirm: async () => {
+    confirm: async (tools = []) => {
       if (synthesis === null) return null
+      // Outils cochés (spec 006) : créés avec l'éclosion, générés ensuite par Claude en arrière-plan.
       const confirmed = await work('Éclosion…', () =>
-        call<ConfirmView>('fusion:confirm', { synthesisId: synthesis.id })
+        call<ConfirmView>('fusion:confirm', {
+          synthesisId: synthesis.id,
+          ...(tools.length === 0 ? {} : { tools: [...tools] })
+        })
       )
       if (confirmed !== null) {
         set(null)

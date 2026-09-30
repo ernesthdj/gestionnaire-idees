@@ -13,7 +13,7 @@ import { checkPlan, checkReflection, type CheckFailure } from '../../domain/neur
 import { applyProvenance } from '../../domain/neurons/provenance'
 import { patchPlan, patchReflection } from '../../domain/neurons/synthesisPatch'
 import { aliasesOf } from '../../domain/neurons/tree'
-import { keepNewTools, withTools, type ExistingTool } from '../../domain/widgets/toolProposals'
+import { settleTools, type ExistingTool } from '../../domain/widgets/toolProposals'
 import type { FusionRepository, SynthesisRow } from '../../infrastructure/db/repositories/FusionRepository'
 import type { GrowthNode, GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
 import type { AIGateway } from '../ai/AIGateway'
@@ -37,6 +37,8 @@ export interface FusionDependencies {
   /** Suggestions de liens lancées après chaque éclosion (US4), sans bloquer la confirmation. */
   readonly links: { suggestInBackground(rootId: string): void }
   readonly emit: (event: FusionEvent) => void
+  /** Outils créés par une éclosion (spec 006) : leur génération part en arrière-plan. */
+  readonly onToolsCreated?: (blockIds: readonly string[]) => void
   /** Widgets déjà branchés sur une idée (spec 006 FR-011) ; absent : aucun. */
   readonly existingTools?: (rootId: string) => readonly ExistingTool[]
 }
@@ -142,9 +144,10 @@ export class FusionService {
     return { ok: true }
   }
 
-  confirm(synthesisId: string): ConfirmView {
-    const confirmed = this.deps.applier.confirm(synthesisId)
+  confirm(synthesisId: string, tools: readonly number[] = []): ConfirmView {
+    const confirmed = this.deps.applier.confirm(synthesisId, tools)
     this.deps.links.suggestInBackground(confirmed.root.id)
+    if (confirmed.toolBlockIds.length > 0) this.deps.onToolsCreated?.(confirmed.toolBlockIds)
     return confirmed
   }
 
@@ -159,15 +162,14 @@ export class FusionService {
     options: { readonly instruction: string | null; readonly forced: boolean }
   ): SynthesisView {
     // Outils proposés (spec 006) : aucun sans Claude (FR-013), jamais un outil déjà branché ni un doublon (FR-011).
-    const tools = (proposed: ActionPlanOut['tools']): ActionPlanOut['tools'] =>
-      result.degraded ? undefined : keepNewTools(proposed, this.existingTools(rootId))
+    const settle = { degraded: result.degraded, existing: this.existingTools(rootId) }
     const id = this.deps.repository.insertProposal({
       rootId,
       type: result.content.type,
       payload:
         result.content.type === 'action_plan'
-          ? withTools(result.content.plan, tools(result.content.plan.tools))
-          : withTools(result.content.summary, tools(result.content.summary.tools)),
+          ? settleTools(result.content.plan, settle)
+          : settleTools(result.content.summary, settle),
       baseVersion,
       instruction: options.instruction,
       forced: options.forced,

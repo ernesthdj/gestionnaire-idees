@@ -34,6 +34,9 @@ export interface IdeasCanvasView {
  * « Prochaine étape » d'une idée, posée sur la carte à côté d'elle (FR-037) : tirée du document, non modifiable ;
  * point de départ d'un nouveau brainstorming. `position` : place mémorisée si elle a été glissée (épinglée).
  */
+/** Place de départ d'une étape jamais glissée, par rapport au centre de son idée : en bas à droite. */
+export const STEP_START_OFFSET = { x: 190, y: 130 } as const
+
 export interface StepView {
   readonly rootId: string
   readonly text: string

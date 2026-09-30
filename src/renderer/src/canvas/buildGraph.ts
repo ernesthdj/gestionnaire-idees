@@ -1,5 +1,11 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { BlockView, CanvasNeuronView, IdeasCanvasView, StepView } from '@shared/ipc/canvas'
+import {
+  STEP_START_OFFSET,
+  type BlockView,
+  type CanvasNeuronView,
+  type IdeasCanvasView,
+  type StepView
+} from '@shared/ipc/canvas'
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
@@ -58,8 +64,8 @@ export const stepRootId = (nodeId: string): string | null =>
   nodeId.startsWith('step-') ? nodeId.slice('step-'.length) : null
 /** Libellé du lien entre une idée et celle née de sa prochaine étape (« Brainstormer cette étape »). */
 export const STEP_LINK_LABEL = 'prochaine étape'
-/** Place de départ d'une étape jamais glissée : en bas à droite de son idée. */
-export const STEP_OFFSET = { x: 190, y: 130 } as const
+/** Place de départ d'une étape jamais glissée : en bas à droite de son idée (partagée avec le main). */
+export const STEP_OFFSET = STEP_START_OFFSET
 
 const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget', result: 'result' } as const
 

@@ -174,10 +174,19 @@ describe('aperçu de synthèse et fusion', () => {
     await waitFor(() => expect(document.querySelectorAll('.react-flow__node.tree-fusing')).toHaveLength(0))
   })
 
-  it('should_show_no_tool_section_when_claude_proposes_no_tool', async () => {
+  it('should_always_say_why_no_tool_is_suggested', async () => {
     renderWithPreview(planPreview())
-    const region = await preview('Aperçu du plan d’action')
-    expect(within(region).queryByRole('region', { name: 'Outils proposés' })).toBeNull()
+    const tools = await screen.findByRole('region', { name: 'Outils suggérés' })
+    expect(tools.textContent).toBe('Outils suggérés : aucun — Rien à outiller : le plan tient en trois tâches.')
+    expect(within(tools).queryByRole('checkbox')).toBeNull()
+  })
+
+  it('should_explain_a_missing_verdict_and_the_local_ai', async () => {
+    const base = summaryPreview()
+    renderWithPreview({ ...base, degraded: true })
+    expect((await screen.findByRole('region', { name: 'Outils suggérés' })).textContent).toMatch(
+      /aucun — synthèse faite par l’IA locale/
+    )
   })
 
   it('should_show_the_proposed_tools_unchecked_with_what_they_read_and_count_the_generations', async () => {
@@ -185,7 +194,7 @@ describe('aperçu de synthèse et fusion', () => {
     const base = planPreview()
     if (base.type !== 'action_plan') throw new Error('plan attendu')
     renderWithPreview({ ...base, plan: { ...base.plan, tools: TOOLS } })
-    const tools = await screen.findByRole('region', { name: 'Outils proposés' })
+    const tools = await screen.findByRole('region', { name: 'Outils suggérés' })
     const budget = within(tools).getByRole('checkbox', { name: /Tableau des dépenses/ })
     const countdown = within(tools).getByRole('checkbox', { name: /Compte à rebours/ })
     expect((budget as HTMLInputElement).checked).toBe(false)
@@ -203,11 +212,22 @@ describe('aperçu de synthèse et fusion', () => {
     expect(within(tools).getByRole('status').textContent).toBe('1 outil coché : 1 génération Claude à la confirmation.')
   })
 
+  it('should_send_the_checked_tools_with_the_confirmation', async () => {
+    const user = userEvent.setup()
+    const base = planPreview()
+    if (base.type !== 'action_plan') throw new Error('plan attendu')
+    const api = renderWithPreview({ ...base, plan: { ...base.plan, tools: TOOLS } })
+    const tools = await screen.findByRole('region', { name: 'Outils suggérés' })
+    await user.click(within(tools).getByRole('checkbox', { name: /Compte à rebours/ }))
+    await user.click(within(await preview('Aperçu du plan d’action')).getByRole('button', { name: 'Confirmer' }))
+    expect(api.invoke).toHaveBeenCalledWith('fusion:confirm', { synthesisId: PLAN_ID, tools: [1] })
+  })
+
   it('should_offer_the_tools_of_a_reflection_too', async () => {
     const base = summaryPreview()
     if (base.type !== 'reflection_summary') throw new Error('synthèse attendue')
     renderWithPreview({ ...base, summary: { ...base.summary, tools: TOOLS.slice(0, 1) } })
-    const tools = await screen.findByRole('region', { name: 'Outils proposés' })
+    const tools = await screen.findByRole('region', { name: 'Outils suggérés' })
     expect(within(tools).getAllByRole('checkbox')).toHaveLength(1)
   })
 

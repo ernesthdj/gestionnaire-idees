@@ -16,17 +16,29 @@ function reads(tool: ToolProposal): string {
   return tool.producesResult ? `${parts} · produit un résultat` : parts
 }
 
+/** Pourquoi aucun outil : le verdict de Claude, sinon ce que l'application sait. */
+function noToolReason(note: string, degraded: boolean): string {
+  if (degraded) return 'synthèse faite par l’IA locale, les outils ne sont proposés qu’avec Claude.'
+  return note === '' ? 'Claude n’a rien proposé pour cette idée.' : note
+}
+
 /**
- * Outils proposés par Claude avec la synthèse (spec 006 US1) : décochés par défaut. Chaque outil coché sera
- * fabriqué à l'éclosion, branché sur l'idée — une génération Claude par outil.
+ * Outils suggérés par Claude avec la synthèse (spec 006 US1) : toujours une ligne de verdict — les outils
+ * (décochés, chacun coûte une génération s'il est coché) ou pourquoi il n'y en a pas (contexte insuffisant, idée
+ * qui n'en appelle pas, IA locale).
  */
 export function ToolChoices({
   tools,
+  note,
+  degraded,
   chosen,
   disabled,
   onToggle
 }: {
   readonly tools: readonly ToolProposal[]
+  /** Verdict de Claude en une phrase ; vide s'il n'en a pas donné. */
+  readonly note: string
+  readonly degraded: boolean
   /** Positions des outils cochés dans `tools`. */
   readonly chosen: readonly number[]
   readonly disabled: boolean
@@ -34,12 +46,25 @@ export function ToolChoices({
 }): React.JSX.Element {
   const titleId = useId()
   const count = chosen.length
+  if (tools.length === 0) {
+    return (
+      <section aria-labelledby={titleId} className="rounded-lg border border-content-muted/30 p-3 text-xs">
+        <p>
+          <span id={titleId} className="font-semibold text-accent">
+            Outils suggérés
+          </span>
+          <span> : aucun — {noToolReason(note, degraded)}</span>
+        </p>
+      </section>
+    )
+  }
   return (
     <section aria-labelledby={titleId} className="space-y-2 rounded-lg border border-accent/40 p-3">
       <h3 id={titleId} className="text-xs font-semibold text-accent">
-        Outils proposés
+        Outils suggérés
       </h3>
       <p className="text-xs text-content-muted">
+        {note === '' ? null : <span className="block text-content">{note}</span>}
         Coche ceux que tu veux : Claude les fabriquera à l’éclosion, branchés sur l’idée. Tu relis chaque outil avant
         qu’il lise quoi que ce soit.
       </p>

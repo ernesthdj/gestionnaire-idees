@@ -8,6 +8,7 @@ import {
   neurons,
   widgetApprovals,
   widgetInputs,
+  widgetRequests,
   widgetResults,
   widgetVersions
 } from '../schemaNeurons'
@@ -130,13 +131,21 @@ export class WidgetIoRepository {
     this.db.insert(widgetApprovals).values({ blockId, fingerprint }).onConflictDoNothing().run()
   }
 
-  /** Widgets visibles branchés sur une idée, avec le titre et le résumé de leur version affichée (spec 006). */
+  /**
+   * Widgets visibles branchés sur une idée (spec 006) : titre et résumé de leur version affichée, ou de la demande
+   * d'un outil pas encore généré.
+   */
   toolsOf(rootId: string): { readonly title: string; readonly summary: string }[] {
     return this.db
-      .selectDistinct({ blockId: canvasBlocks.id, title: widgetVersions.title, summary: widgetVersions.summary })
+      .selectDistinct({
+        blockId: canvasBlocks.id,
+        title: sql<string | null>`coalesce(${widgetVersions.title}, ${widgetRequests.title})`,
+        summary: sql<string | null>`coalesce(${widgetVersions.summary}, ${widgetRequests.description})`
+      })
       .from(widgetInputs)
       .innerJoin(canvasBlocks, eq(canvasBlocks.id, widgetInputs.blockId))
-      .innerJoin(widgetVersions, eq(widgetVersions.id, canvasBlocks.currentVersionId))
+      .leftJoin(widgetVersions, eq(widgetVersions.id, canvasBlocks.currentVersionId))
+      .leftJoin(widgetRequests, eq(widgetRequests.blockId, canvasBlocks.id))
       .where(
         and(
           eq(widgetInputs.sourceId, rootId),
@@ -146,7 +155,7 @@ export class WidgetIoRepository {
         )
       )
       .all()
-      .map(({ title, summary }) => ({ title, summary }))
+      .flatMap(({ title, summary }) => (title === null ? [] : [{ title, summary: summary ?? '' }]))
   }
 
   /** Dernier résultat d'un widget : remplace le précédent. */

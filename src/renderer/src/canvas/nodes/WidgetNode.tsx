@@ -111,7 +111,13 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   const frame = useRef<HTMLIFrameElement>(null)
   useWidgetBridge(frame, id, current?.id ?? null, run)
   const inputCount = io.state.data?.inputs.length ?? 0
-  const toReview = inputCount > 0 && io.state.data?.approved === false
+  // Un outil sans code n'a encore rien à revoir : la revue vient avec sa première version.
+  const toReview = current !== null && inputCount > 0 && io.state.data?.approved === false
+  // Outil coché à l'éclosion (spec 006) : Claude le prépare, ou sa fabrication est à relancer.
+  const request = current === null ? (view?.request ?? null) : null
+  const generating = actions.busy || (request !== null && request.state !== 'idle')
+  const chatActions: WidgetActions = generating === actions.busy ? actions : { ...actions, busy: generating }
+  const title = current?.title ?? request?.title ?? 'Widget IA'
 
   return (
     <>
@@ -128,12 +134,12 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
         }}
       />
       <section
-        aria-label={current === null ? 'Widget IA' : `Widget IA : ${current.title}`}
+        aria-label={title === 'Widget IA' ? 'Widget IA' : `Widget IA : ${title}`}
         className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-content-muted/40 bg-surface text-content shadow-lg"
       >
         <header className="flex h-8 shrink-0 cursor-grab items-center gap-1 border-b border-content-muted/20 bg-surface-raised px-2 text-xs active:cursor-grabbing">
           <span aria-hidden="true">▣</span>
-          <span className="flex-1 truncate font-semibold">{current?.title ?? 'Widget IA'}</span>
+          <span className="flex-1 truncate font-semibold">{title}</span>
           {view !== undefined && view.versions.length > 1 && current !== null ? (
             <select
               aria-label="Version affichée"
@@ -191,7 +197,29 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             ×
           </button>
         </header>
-        {current === null ? (
+        {current === null && request !== null ? (
+          <div className="nodrag flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs">
+            <p className="max-w-80 text-content-muted">{request.description}</p>
+            {generating ? (
+              <p role="status" className="font-medium">
+                Claude prépare cet outil…
+              </p>
+            ) : (
+              <>
+                <p role="status" className="font-medium">
+                  La fabrication de cet outil n’a pas abouti.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void actions.retry()}
+                  className="h-8 rounded-md bg-accent px-3 font-semibold text-surface"
+                >
+                  Réessayer
+                </button>
+              </>
+            )}
+          </div>
+        ) : current === null ? (
           <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-content-muted">
             {actions.widget.isError
               ? 'Ce widget n’a pas pu être chargé.'
@@ -228,7 +256,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             </button>
           </div>
         ) : null}
-        <Chat view={view} actions={actions} />
+        <Chat view={view} actions={chatActions} />
         {/* Point d'arrivée d'un lien tiré depuis une idée ou une prochaine étape (spec 005 FR-001). */}
         <Handle
           type="target"

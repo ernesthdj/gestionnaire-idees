@@ -88,8 +88,16 @@ export const ToolProposal = z.object({
 })
 export type ToolProposal = z.infer<typeof ToolProposal>
 
-/** Facultatif et tolérant (FR-003) : une proposition fautive est écartée seule, jamais la synthèse. */
-const optionalTools = lenientList(ToolProposal, TOOL_PROPOSALS_MAX).optional().catch(undefined)
+/**
+ * OBLIGATOIRES dans le format imposé à Claude (sinon il les omet, faute de devoir y penser), mais tolérants à la
+ * lecture (FR-003) : une proposition fautive est écartée seule, un champ absent (IA locale, anciennes synthèses)
+ * vaut « aucun outil » — jamais la synthèse n'est rejetée. `toolsNote` dit en une phrase pourquoi ces outils, ou
+ * pourquoi aucun (contexte insuffisant, idée qui n'en appelle pas).
+ */
+const toolFields = {
+  tools: lenientList(ToolProposal, TOOL_PROPOSALS_MAX).catch([]),
+  toolsNote: z.string().trim().min(1).max(200).catch('')
+}
 
 const Ref = z.string().regex(/^[a-z][a-z0-9]{0,15}$/)
 const SourceRefs = z.array(z.preprocess(unbracket, z.string().min(1).max(16))).max(20)
@@ -124,7 +132,7 @@ export const ActionPlanOut = z.object({
     )
     .max(80),
   gaps: z.array(z.string().min(1).max(200)).max(10),
-  tools: optionalTools
+  ...toolFields
 })
 export type ActionPlanOut = z.infer<typeof ActionPlanOut>
 
@@ -143,7 +151,7 @@ export const ReflectionSummaryOut = z.object({
   openQuestions: z.array(z.object({ text: z.string().min(1).max(300) })).max(10),
   /** Prochaine étape concrète conseillée, tirée de l'arbre. */
   nextStep: optionalLine(200),
-  tools: optionalTools
+  ...toolFields
 })
 export type ReflectionSummaryOut = z.infer<typeof ReflectionSummaryOut>
 

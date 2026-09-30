@@ -23,12 +23,12 @@ description: "Task list — 006 Widgets proposés au verrouillage"
 
 ## Phase 2 : Lot 2 — Éclosion et génération (US2, US3, US4)
 
-- [ ] T008 Migration 0016 (+ down) : `widget_requests`
-- [ ] T009 [P] Tests : `fusion:confirm` avec outils — blocs, branchements (parties annoncées) et demandes créés dans la transaction et le lot ; index inconnu ou en double refusé ; coordonnées bornées ; rien créé sans outil ; outils ignorés si la synthèse est dégradée
-- [ ] T010 [P] Tests : annuler l'éclosion retire widgets et branchements (SC-003) ; une génération terminée après l'annulation est ignorée
-- [ ] T011 [P] Tests : génération séquentielle en arrière-plan ; échec de l'un sans effet sur l'autre ni sur l'éclosion (SC-005) ; « Réessayer » ; demande envoyée sans aucune valeur de l'idée (SC-006) ; demande supprimée au succès
-- [ ] T012 `SynthesisApplier` / `FusionService.confirm` étendus, `WidgetRequestRepository`, `ToolGeneration`, canal `widget:generate`, `widget:get` avec `request`
-- [ ] T013 [P] Tests : `placeTools` (autour de l'idée, ni sur l'idée, ni sur l'étape, ni sur un bloc)
-- [ ] T014 [P] Tests renderer : confirmation avec outils cochés (places envoyées) ; widget en préparation ; widget en échec avec « Réessayer » ; outil généré « À revoir »
-- [ ] T015 `placeTools`, confirmation étendue dans `useFusion`, états du `WidgetNode`
-- [ ] T016 Test manuel guidé lot 2 + mesure du coût (`scripts/ai-usage.cjs`), JOURNAL — **validation mentalyas**
+- [x] T008 Migration 0016 (+ down) : `widget_requests`
+- [x] T009 [P] Tests : `fusion:confirm` avec outils — blocs, branchements (parties annoncées) et demandes créés dans la transaction et le lot ; index inconnu ou en double refusé ; rien créé sans outil ; outils ignorés si la synthèse est dégradée
+- [x] T010 [P] Tests : annuler l'éclosion retire widgets et branchements (SC-003) ; une génération terminée après l'annulation est ignorée
+- [x] T011 [P] Tests : génération séquentielle en arrière-plan ; échec de l'un sans effet sur l'autre ni sur l'éclosion (SC-005) ; « Réessayer » ; demande envoyée sans aucune valeur de l'idée (SC-006) ; demande supprimée au succès
+- [x] T012 `SynthesisApplier` / `FusionService.confirm` étendus, `WidgetRequestRepository`, `ToolGeneration`, canal `widget:generate`, `widget:get` avec `request`
+- [x] T013 [P] Tests : `placeTools` (autour de l'idée, ni sur l'idée, ni sur l'étape, ni sur un bloc) — côté main (plan R3 révisé)
+- [x] T014 [P] Tests renderer : confirmation avec outils cochés ; widget en préparation ; widget en échec avec « Réessayer » ; rafraîchi à la fin d'une génération de fond
+- [x] T015 Confirmation étendue dans `useFusion`, `retry` dans `useWidget`, états du `WidgetNode`
+- [ ] T016 Test manuel guidé lot 2 + mesure du coût (`scripts/ai-usage.cjs`), JOURNAL — **validation mentalyas en attente**

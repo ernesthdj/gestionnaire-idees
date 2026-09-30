@@ -131,6 +131,8 @@ export type SynthesisView = SynthesisContent & {
 export interface ConfirmView {
   readonly batchId: string
   readonly root: RootView
+  /** Widgets créés pour les outils cochés (spec 006) ; Claude les génère ensuite en arrière-plan. */
+  readonly toolBlockIds: readonly string[]
 }
 
 /** `superseded` : lien remplacé par l'idée née de sa graine (A — idée — B), masqué, restauré par l'annulation. */

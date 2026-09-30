@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ActionPlanOut, ReflectionSummaryOut } from '../../../src/shared/ai/neurons'
-import { keepNewTools } from '../../../src/main/domain/widgets/toolProposals'
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod'
+import { ALREADY_CONNECTED_NOTE, keepNewTools, settleTools } from '../../../src/main/domain/widgets/toolProposals'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
@@ -23,9 +24,23 @@ const countdown = {
 describe('outils proposés dans la sortie de synthèse (spec 006 FR-001 à FR-003)', () => {
   const plan = screenPlan().raw
 
-  it('should_accept_a_synthesis_without_tools', () => {
-    expect(ActionPlanOut.parse(plan).tools).toBeUndefined()
-    expect(ReflectionSummaryOut.parse(reflectionSummary.raw).tools).toBeUndefined()
+  it('should_accept_a_synthesis_without_tools_as_no_tool_and_no_verdict', () => {
+    expect(ActionPlanOut.parse(plan)).toMatchObject({ tools: [], toolsNote: '' })
+    expect(ReflectionSummaryOut.parse(reflectionSummary.raw)).toMatchObject({ tools: [], toolsNote: '' })
+  })
+
+  it('should_require_the_tools_and_their_verdict_in_the_format_imposed_on_claude', () => {
+    // Facultatifs, Claude les omettait : ils sont obligatoires dans le format de sortie (tools peut être vide).
+    for (const schema of [ActionPlanOut, ReflectionSummaryOut]) {
+      const format = betaZodOutputFormat(schema) as unknown as { schema: { required: string[] } }
+      expect(format.schema.required).toEqual(expect.arrayContaining(['tools', 'toolsNote']))
+    }
+  })
+
+  it('should_keep_the_verdict_of_claude', () => {
+    const note = 'Contexte encore insuffisant : il manque les dates.'
+    expect(ReflectionSummaryOut.parse({ ...reflectionSummary.raw, tools: [], toolsNote: note }).toolsNote).toBe(note)
+    expect(ActionPlanOut.parse({ ...plan, toolsNote: 42 }).toolsNote).toBe('')
   })
 
   it('should_keep_valid_proposals_and_drop_only_the_faulty_one', () => {
@@ -50,8 +65,8 @@ describe('outils proposés dans la sortie de synthèse (spec 006 FR-001 à FR-00
   })
 
   it('should_never_invalidate_the_synthesis_when_the_tools_field_is_malformed', () => {
-    expect(ActionPlanOut.parse({ ...plan, tools: 'un tableau, merci' }).tools).toBeUndefined()
-    expect(ReflectionSummaryOut.parse({ ...reflectionSummary.raw, tools: null }).tools).toBeUndefined()
+    expect(ActionPlanOut.parse({ ...plan, tools: 'un tableau, merci' }).tools).toEqual([])
+    expect(ReflectionSummaryOut.parse({ ...reflectionSummary.raw, tools: null }).tools).toEqual([])
   })
 })
 
@@ -63,12 +78,17 @@ describe('outils déjà branchés et doublons (spec 006 FR-011)', () => {
       [tool(' tableau  des DÉPENSES '), tool('Compte à rebours'), tool('compte à rebours'), tool('Check-list')],
       [{ title: 'Tableau des dépenses', summary: 'Suit les dépenses.' }]
     )
-    expect(kept?.map((entry) => entry.title)).toEqual(['Compte à rebours', 'Check-list'])
+    expect(kept.map((entry) => entry.title)).toEqual(['Compte à rebours', 'Check-list'])
   })
 
-  it('should_leave_no_tools_field_when_nothing_is_left', () => {
-    expect(keepNewTools([tool('A')], [{ title: 'a', summary: '' }])).toBeUndefined()
-    expect(keepNewTools(undefined, [])).toBeUndefined()
+  it('should_explain_that_the_tools_are_already_connected_when_the_filter_removes_them_all', () => {
+    const data = { tools: [tool('A')], toolsNote: 'Un outil A aiderait.' }
+    expect(settleTools(data, { degraded: false, existing: [{ title: 'a', summary: '' }] })).toEqual({
+      tools: [],
+      toolsNote: ALREADY_CONNECTED_NOTE
+    })
+    expect(settleTools(data, { degraded: false, existing: [] })).toEqual(data)
+    expect(settleTools(data, { degraded: true, existing: [] })).toEqual({ tools: [], toolsNote: '' })
   })
 })
 
@@ -144,7 +164,7 @@ describe('outils proposés au verrouillage (spec 006 US1)', () => {
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
     expect(proposal.degraded).toBe(true)
     if (proposal.type !== 'action_plan') throw new Error('plan attendu')
-    expect(proposal.plan.tools).toBeUndefined()
+    expect(proposal.plan).toMatchObject({ tools: [], toolsNote: '' })
   })
 
   it('should_keep_the_proposals_when_a_point_of_the_preview_is_corrected', async () => {

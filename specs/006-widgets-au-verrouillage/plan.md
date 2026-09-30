@@ -29,8 +29,8 @@ périmètre resserré) ; le `quickstart.md` est écrit avec le code.
 | # | Décision | Pourquoi | Écarté |
 |---|----------|----------|--------|
 | R1 | `tools` dans la sortie de synthèse existante (les deux natures), `lenientList(…, 3).optional().catch(undefined)` | FR-001/003 : zéro appel en plus ; une proposition fautive est écartée seule, jamais la synthèse | Appel séparé « proposer des outils » (coût, latence, contexte à renvoyer) |
-| R2 | Le choix (cases cochées) part avec `fusion:confirm` : `tools: [{ index, x, y }]` | Aucune écriture avant « Confirmer » (principe II) ; pas d'état à synchroniser | Enregistrer les cases à chaque clic (état de plus, sans usage) |
-| R3 | Places calculées par l'interface (`placeTools`, fonction pure), bornées et vérifiées par le main | Seule l'interface connaît les positions calculées des idées non épinglées et la taille des étiquettes ; le main contrôle bornes et nombre | Placement dans le main (il ignore la disposition physique) |
+| R2 | Le choix (cases cochées) part avec `fusion:confirm` : `tools: [index…]` | Aucune écriture avant « Confirmer » (principe II) ; pas d'état à synchroniser | Enregistrer les cases à chaque clic (état de plus, sans usage) |
+| R3 | *(révisé au lot 2)* Places calculées par le main (`placeTools`, fonction pure) à partir de la vue de la carte | L'écran Idées enregistre la place de chaque idée après la disposition : le main la connaît ; contrat plus simple, placement testé en intégration | Places envoyées par l'interface (contrat et bornes en plus, pour une information que le main a déjà) |
 | R4 | Widgets et branchements créés dans la transaction d'éclosion, journalisés dans son lot (`canvas_block`, `widget_input`, `before: null`) | FR-005, SC-003 : l'annulation de l'éclosion les retire par le mécanisme d'historique existant | Lot séparé (deux annulations pour une action) |
 | R5 | Génération hors transaction, séquentielle, par `WidgetService.prompt` ; le texte de la demande = la proposition | FR-006/007 : réutilise validation, transpilation, versions, conversation, indicateur IA ; la structure des entrées est déjà jointe (`inputShape`) | Chemin de génération dédié (doublon) |
 | R6 | Table `widget_requests` : la proposition reste attachée au widget tant qu'il n'a aucune version | FR-010 : « Réessayer » après un échec ou un redémarrage relance la même demande | Relire la synthèse (elle n'est plus proposée, et l'aperçu a pu être corrigé) |
@@ -75,7 +75,7 @@ tools?: ToolProposal[] (≤ 3, élément invalide écarté)
 
 | Canal | Entrée (Zod, `.strict()`) | Sortie | Règles |
 |-------|---------------------------|--------|--------|
-| `fusion:confirm` (étendu) | `{ synthesisId, tools?: [{ index: 0..2, x, y }] ≤ 3 }` | `ConfirmView` + `toolBlockIds` | `index` unique et présent dans la proposition ; coordonnées finies et bornées (±10⁶) ; `tools` ignoré si la synthèse est dégradée |
+| `fusion:confirm` (étendu) | `{ synthesisId, tools?: (0..2)[] ≤ 3 }` | `ConfirmView` + `toolBlockIds` | index unique et présent dans la proposition ; `tools` ignoré si la synthèse est dégradée |
 | `widget:generate` (nouveau) | `{ blockId }` | `WidgetView` | Seulement pour un widget sans version qui a une demande en attente ; refus si une génération est déjà en cours |
 | `widget:get` (étendu) | inchangé | `WidgetView` + `request: { title, description } \| null` | — |
 
@@ -104,7 +104,8 @@ src/main/application/widgets/ToolGeneration.ts        # file de générations en
 src/main/infrastructure/db/repositories/WidgetRequestRepository.ts
 src/main/infrastructure/db/migrations/0016_widget_requests.sql (+ down)
 src/renderer/src/fusion/SynthesisPreview.tsx          # section « Outils proposés »
-src/renderer/src/fusion/placeTools.ts                 # places autour de l'idée, sans recouvrement
+src/main/domain/widgets/placeTools.ts                 # places autour de l'idée, sans recouvrement
+src/main/application/widgets/toolSurroundings.ts      # idée et obstacles tirés de la vue de la carte
 src/renderer/src/canvas/nodes/WidgetNode.tsx          # en préparation / échec + Réessayer
 ```
 
