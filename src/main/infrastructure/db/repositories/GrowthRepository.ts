@@ -15,6 +15,8 @@ export interface GrowthNode {
   readonly kind: NeuronKind
   readonly title: string
   readonly content: string | null
+  /** Question à laquelle ce sous-neurone répond (absente pour une branche ajoutée ou une idée suggérée). */
+  readonly question?: string | null
 }
 
 export interface ExtensionRow {
@@ -71,9 +73,11 @@ export class GrowthRepository {
         depth: neurons.depth,
         kind: neurons.kind,
         title: neurons.title,
-        content: neurons.content
+        content: neurons.content,
+        question: extensions.question
       })
       .from(neurons)
+      .leftJoin(extensions, eq(extensions.id, neurons.fromExtensionId))
       .where(where)
       .orderBy(sql`${neurons}.rowid`)
       .all()
