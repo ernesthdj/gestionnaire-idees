@@ -66,7 +66,9 @@ export function themeFromQuery(query: URLSearchParams): WidgetTheme {
 /**
  * Prélude exécuté avant le widget :
  * - WebRTC neutralisé (il contourne la CSP) ;
- * - erreurs du widget affichées dans un bandeau (utile pour demander une correction à Claude).
+ * - erreurs du widget affichées dans un bandeau (utile pour demander une correction à Claude) ;
+ * - pont des entrées `window.gi` (spec 005) : il ne fait que relayer ce que l'application envoie — la barrière est
+ *   côté main, qui ne remet que les données autorisées.
  */
 const PRELUDE = `(() => {
   for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection', 'RTCDataChannel', 'RTCSessionDescription', 'RTCIceCandidate']) {
@@ -82,6 +84,30 @@ const PRELUDE = `(() => {
     }
     bar.textContent = 'Erreur dans le widget : ' + String(message).slice(0, 300)
   }
+  // Pont des entrées (spec 005) : l'application remet les données autorisées ; le widget les lit par gi.onInputs.
+  let inputs = []
+  let received = false
+  const listeners = []
+  const gi = Object.freeze({
+    get inputs() { return inputs },
+    onInputs(callback) {
+      if (typeof callback !== 'function') return
+      listeners.push(callback)
+      if (received) callback(inputs)
+    }
+  })
+  Object.defineProperty(window, 'gi', { value: gi, writable: false, configurable: false })
+  window.addEventListener('message', (event) => {
+    if (event.source !== window.parent) return
+    const data = event.data
+    if (data === null || typeof data !== 'object' || data.type !== 'gi:inputs' || !Array.isArray(data.inputs)) return
+    inputs = data.inputs
+    received = true
+    for (const listener of listeners) {
+      try { listener(inputs) } catch (error) { show(error instanceof Error ? error.message : error) }
+    }
+  })
+  window.parent.postMessage({ type: 'gi:ready' }, '*')
   window.addEventListener('error', (event) => show(event.message))
   window.addEventListener('unhandledrejection', (event) => show(event.reason instanceof Error ? event.reason.message : event.reason))
 })()`

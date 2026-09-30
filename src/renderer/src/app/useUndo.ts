@@ -5,7 +5,7 @@ import { call, IpcFailure } from '../lib/ipc'
 export type UndoOutcome = { readonly ok: true } | { readonly ok: false; readonly message: string }
 
 /** Données touchées par une annulation : carte, plongée, aperçus, historique, À valider. */
-const AFFECTED = [['canvas'], ['dive'], ['synthesis'], ['history'], ['pending']]
+const AFFECTED = [['canvas'], ['dive'], ['synthesis'], ['history'], ['pending'], ['widgetIo'], ['widgetInputs']]
 
 /** Annule un lot d'historique (FR-024) et rafraîchit l'interface ; un conflit est expliqué. */
 export function useUndo(): (batchId: string) => Promise<UndoOutcome> {

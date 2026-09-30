@@ -206,6 +206,8 @@
   transition: opacity 150ms;
 }
 .react-flow__node-neuron:hover .neuron-connector.react-flow__handle,
+.react-flow__node-step:hover .neuron-connector.react-flow__handle,
+.react-flow__node-step.selected .neuron-connector.react-flow__handle,
 .react-flow__node-neuron:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron.selected .neuron-connector.react-flow__handle,
 .neuron-connector.react-flow__handle.connectingfrom {
@@ -331,4 +333,16 @@
   stroke-width: 2;
   stroke-dasharray: 2 5;
   stroke-linecap: round;
+}
+
+/* Entrées d'un widget (spec 005) : trait source → widget, et point d'arrivée sur le bord gauche du widget. */
+.react-flow__edge .io-line {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+.io-target.react-flow__handle {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface);
 }

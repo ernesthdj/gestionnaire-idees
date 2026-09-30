@@ -72,10 +72,10 @@ Lien résultat → idée = ligne `widget_proposals` (état `pending`), visible s
 Validation → `neuron_data` (copie figée du résultat, provenance) + `change_log` (lot annulable). Aucune écriture
 directe : le widget n'a pas de capacité d'écriture, c'est l'utilisateur qui tire le lien et valide.
 
-## Data Model (migration 0014 + down)
+## Data Model (une migration par lot, chacune avec son down ; lot 1 = 0014)
 
 - `widget_inputs` : id, block_id → canvas_blocks (cascade), source_kind (`idea` | `result` | `step`), source_id, parts (JSON, liste), created_at, deleted_at.
-- `widget_approvals` : id, block_id (cascade), version_id, fingerprint, capabilities (JSON), approved_at.
+- `widget_approvals` : block_id (cascade) + fingerprint (clé), approved_at. L'empreinte couvre le code de la version ET la liste exacte des sources et parties lues : changer l'un ou l'autre redemande la revue.
 - `widget_results` : block_id (le widget, cascade) PK, result_block_id → canvas_blocks, data (JSON), shape, updated_at.
 - `neuron_data` : id, root_id → neurons (cascade), title, data (JSON), source_block_id, source_version_id, created_at, deleted_at.
 - `widget_proposals` : id, result_block_id, target_root_id, data (JSON), status (`pending` | `accepted` | `rejected`), created_at.

@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, real, sqliteTable, text, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+  type AnySQLiteColumn
+} from 'drizzle-orm/sqlite-core'
 
 /** Modèle central du Brainstormer (spec 002 data-model v2). */
 
@@ -286,6 +295,43 @@ export const canvasBlocks = sqliteTable('canvas_blocks', {
   deletedAt: text('deleted_at'),
   createdAt: createdAt()
 })
+
+/**
+ * Branchements d'entrée des widgets (spec 005) : une idée ou une prochaine étape reliée à un widget, avec les
+ * parties de l'idée transmises. Débranchement annulable (`deleted_at`).
+ */
+export const widgetInputs = sqliteTable(
+  'widget_inputs',
+  {
+    id: text('id').primaryKey(),
+    blockId: text('block_id')
+      .notNull()
+      .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+    sourceKind: text('source_kind', { enum: ['idea', 'step'] }).notNull(),
+    /** Idée branchée, ou idée dont la prochaine étape est branchée. */
+    sourceId: text('source_id').notNull(),
+    partsJson: text('parts_json').notNull().default('[]'),
+    deletedAt: text('deleted_at'),
+    createdAt: createdAt()
+  },
+  (t) => [index('widget_inputs_block_idx').on(t.blockId)]
+)
+
+/**
+ * Autorisations (spec 005 FR-002) : empreinte du code d'une version et de ce qu'elle lit, approuvée par
+ * l'utilisateur après revue. Sans ligne correspondante, le widget ne reçoit rien.
+ */
+export const widgetApprovals = sqliteTable(
+  'widget_approvals',
+  {
+    blockId: text('block_id')
+      .notNull()
+      .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+    fingerprint: text('fingerprint').notNull(),
+    approvedAt: createdAt()
+  },
+  (t) => [primaryKey({ columns: [t.blockId, t.fingerprint] })]
+)
 
 /**
  * Place de la « prochaine étape » d'une idée sur la carte, quand elle a été glissée à la main (épinglée). L'étape

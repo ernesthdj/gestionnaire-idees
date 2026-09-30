@@ -61,6 +61,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'history:list',
   'history:undo',
   'hatched:get',
+  'widgetIo:state',
+  'widgetIo:connect',
+  'widgetIo:setParts',
+  'widgetIo:disconnect',
+  'widgetIo:approve',
+  'widgetIo:inputs',
   'widget:get',
   'widget:prompt',
   'widget:restore'

@@ -44,6 +44,9 @@ import { createSeedRoutes } from './ipc/seedHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import { createWidgetRoutes } from './ipc/widgetHandlers'
+import { createWidgetIoRoutes } from './ipc/widgetIoHandlers'
+import { WidgetIoService } from './application/widgets/WidgetIoService'
+import { WidgetIoRepository } from './infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetService } from './application/widgets/WidgetService'
 import { WidgetRepository } from './infrastructure/db/repositories/WidgetRepository'
 import type { MainWindowEvent } from '@shared/ipc/channels'
@@ -189,10 +192,17 @@ export function bootstrap(shell: ShellPort): AppContext {
 
   const appSettings = new AppSettingsRepository(database.db)
   const widgetRepository = new WidgetRepository(database.db)
+  const widgetIo = new WidgetIoService({
+    repository: new WidgetIoRepository(database.db),
+    widgets: widgetRepository,
+    tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
+    document: (rootId) => hatchedRepository.result(rootId)
+  })
   const widgets = new WidgetService({
     repository: widgetRepository,
     gateway: ai.gateway,
-    emit: (event) => broadcast(event.type, event)
+    emit: (event) => broadcast(event.type, event),
+    inputShape: (blockId) => widgetIo.inputShape(blockId)
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -223,12 +233,14 @@ export function bootstrap(shell: ShellPort): AppContext {
           neurons: neuronRepository,
           links: linkRepository,
           blocks: new BlockRepository(database.db),
-          steps: hatchedRepository
+          steps: hatchedRepository,
+          io: widgetIo
         })
       ),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
       ...createHatchedRoutes(hatchedRepository),
-      ...createWidgetRoutes(widgets)
+      ...createWidgetRoutes(widgets),
+      ...createWidgetIoRoutes(widgetIo)
     ],
     logger,
     rendererFileUrl

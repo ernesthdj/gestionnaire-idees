@@ -68,6 +68,7 @@ export function canvasView(): IdeasCanvasView {
     highlighted: null,
     blocks: [],
     steps: [],
+    io: [],
     seeds: []
   }
 }
@@ -81,6 +82,7 @@ export function emptyCanvasView(): IdeasCanvasView {
     highlighted: null,
     blocks: [],
     steps: [],
+    io: [],
     seeds: []
   }
 }

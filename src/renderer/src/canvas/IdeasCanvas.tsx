@@ -23,7 +23,7 @@ import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { OpenIdea } from '../dive/OpenIdea'
-import { bornFrom, buildGraph, computeLayout, type CanvasNode, type LinkEdgeType } from './buildGraph'
+import { bornFrom, buildGraph, computeLayout, stepRootId, type CanvasNode, type LinkEdgeType } from './buildGraph'
 import { useCanvasHover } from './hoverStore'
 import { CanvasToolbar } from './CanvasToolbar'
 import { BranchEdge, type BranchEdgeType } from './edges/BranchEdge'
@@ -34,6 +34,9 @@ import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
 import { LabelNode } from './nodes/LabelNode'
 import { StepNode } from './nodes/StepNode'
+import { WidgetReview } from '../widgets/WidgetReview'
+import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
+import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
 import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
@@ -341,9 +344,33 @@ function CanvasInner(): React.JSX.Element {
   }
 
   // Lien tiré d'une idée vers une autre (FR-031) : créé tout de suite, sans libellé ; la graine germe ensuite.
+  // Vers un widget (spec 005 FR-001) : la source (idée ou prochaine étape) devient une entrée, et la revue s'ouvre.
+  const openReview = useWidgetReview((state) => state.open)
+  const connectInput = async (blockId: string, source: string): Promise<void> => {
+    const stepOf = stepRootId(source)
+    try {
+      const next = await call<WidgetIoStateView>('widgetIo:connect', {
+        blockId,
+        sourceKind: stepOf === null ? 'idea' : 'step',
+        sourceId: stepOf ?? source
+      })
+      client.setQueryData(widgetIoKey(blockId), next)
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+      openReview(blockId)
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'Le branchement n’a pas pu être créé.')
+    }
+  }
+
   const onConnect = (connection: Connection): void => {
     const { source, target } = connection
-    if (source !== target) void createLink({ aRootId: source, bRootId: target, label: '' })
+    if (source === target) return
+    if (viewRef.current?.blocks.some((block) => block.id === target && block.kind === 'widget') === true) {
+      void connectInput(target, source)
+      return
+    }
+    // Une prochaine étape ne se relie pas à une idée : elle se « brainstorme » (bouton de l'étape).
+    if (stepRootId(source) === null) void createLink({ aRootId: source, bRootId: target, label: '' })
   }
 
   const onKeyDownCapture = (event: React.KeyboardEvent): void => {
@@ -603,6 +630,7 @@ function CanvasInner(): React.JSX.Element {
           />
         )}
       </div>
+      <WidgetReview />
     </div>
   )
 }

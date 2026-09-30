@@ -12,6 +12,7 @@ import {
   type StepView
 } from '@shared/ipc/canvas'
 import type { HatchedResultView, LinkView, SeedView } from '@shared/ipc/neurons'
+import type { IoLinkView } from '@shared/ipc/widgetIo'
 import { AppError } from '../../domain/errors'
 import { nextStepOf } from '../../domain/neurons/nextStep'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
@@ -24,6 +25,8 @@ export interface CanvasDeps {
   >
   readonly links: { list(): LinkView[]; seeds(): SeedView[] }
   readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
+  /** Branchements d'entrée des widgets (spec 005). */
+  readonly io: { links(): IoLinkView[] }
   /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
   readonly steps: {
     result(rootId: string): HatchedResultView | null
@@ -76,7 +79,13 @@ export class CanvasService {
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
       blocks: this.deps.blocks.list(),
-      steps
+      steps,
+      // Un trait n'a de sens que si sa source est encore sur la carte (idée visible, étape présente).
+      io: this.deps.io
+        .links()
+        .filter((link) =>
+          link.sourceKind === 'idea' ? visible.has(link.sourceId) : steps.some((step) => step.rootId === link.sourceId)
+        )
     }
   }
 

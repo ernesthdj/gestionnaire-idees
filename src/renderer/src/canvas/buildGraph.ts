@@ -51,6 +51,9 @@ export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | Widget
 
 /** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
 export const stepNodeId = (rootId: string): string => `step-${rootId}`
+/** Idée dont ce nœud est la prochaine étape ; `null` si ce n'est pas un nœud d'étape. */
+export const stepRootId = (nodeId: string): string | null =>
+  nodeId.startsWith('step-') ? nodeId.slice('step-'.length) : null
 /** Place de départ d'une étape jamais glissée : en bas à droite de son idée. */
 export const STEP_OFFSET = { x: 190, y: 130 } as const
 
@@ -227,5 +230,15 @@ export function buildGraph(
     selectable: false,
     focusable: false
   }))
-  return { nodes: [...neuronNodes, ...blockNodes, ...stepNodes], edges, stepEdges }
+  const ioEdges = view.io.map((link): BranchEdgeType => ({
+    id: `io-${link.id}`,
+    type: 'branch',
+    source: link.sourceKind === 'idea' ? link.sourceId : stepNodeId(link.sourceId),
+    target: link.blockId,
+    data: { style: 'io' },
+    deletable: false,
+    selectable: false,
+    focusable: false
+  }))
+  return { nodes: [...neuronNodes, ...blockNodes, ...stepNodes], edges, stepEdges: [...stepEdges, ...ioEdges] }
 }

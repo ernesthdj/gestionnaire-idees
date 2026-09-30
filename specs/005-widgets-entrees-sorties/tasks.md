@@ -14,16 +14,16 @@ description: "Task list — 005 Widgets branchés : entrées, sorties et cadre r
 
 ## Phase 1 : Lot 1 — Entrées (US1)
 
-- [ ] T002 Migration 0014 (+ down) : `widget_inputs`, `widget_approvals`, `widget_results`, `neuron_data`, `widget_proposals`, `canvas_blocks.source_block_id`, `kind` `result`
-- [ ] T003 [P] Tests : `InputAssembler` (chaque partie, parties décochées absentes, idée supprimée → entrée vide)
-- [ ] T004 [P] Tests : `WidgetIoService` — branchement, empreinte, aucune donnée sans approbation, nouvelle version → revue, boucle refusée, suppression annulable
-- [ ] T005 `InputAssembler`, `WidgetIoService` (connect, approve, inputs), `WidgetIoRepository`, canaux `widgetIo:connect|approve|inputs|disconnect`
-- [ ] T006 [P] Tests : prélude `gi` (figé, `inputs`, `onInputs`), document inchangé côté CSP
-- [ ] T007 Prélude `gi` dans `WidgetDocument` ; `WidgetFrame` décrit `gi.inputs` à Claude ; structure des entrées jointe aux demandes d'évolution (`shapeOf`)
-- [ ] T008 [P] Tests renderer : lien idée → widget, revue (code, capacité, parties), refus, bandeau « À revoir », pont (source vérifiée, message hors contrat ignoré)
-- [ ] T009 `IoEdge`, `WidgetReview`, `WidgetBridge`, intégration `WidgetNode` / `IdeasCanvas`
-- [ ] T009b Prochaine étape comme source d'entrée (FR-014) : poignée de lien sur `StepNode`, partie transmise « étape »
-- [ ] T010 Test manuel guidé lot 1 — **validation mentalyas**
+- [x] T002 Migration 0014 (+ down) : `widget_inputs`, `widget_approvals` — les tables des lots suivants (`widget_results`, `neuron_data`, `widget_proposals`, `canvas_blocks.source_block_id`) arrivent avec leur lot, une migration par lot
+- [x] T003 [P] Tests : `InputAssembler` (chaque partie, parties décochées absentes, idée supprimée → entrée vide)
+- [x] T004 [P] Tests : `WidgetIoService` — branchement, empreinte, aucune donnée sans approbation, nouvelle version → revue, boucle refusée, suppression annulable
+- [x] T005 `InputAssembler`, `WidgetIoService` (connect, approve, inputs), `WidgetIoRepository`, canaux `widgetIo:connect|approve|inputs|disconnect`
+- [x] T006 [P] Tests : prélude `gi` (figé, `inputs`, `onInputs`), document inchangé côté CSP
+- [x] T007 Prélude `gi` dans `WidgetDocument` ; `WidgetFrame` décrit `gi.inputs` à Claude ; structure des entrées jointe aux demandes d'évolution (`shapeOf`)
+- [x] T008 [P] Tests renderer : lien idée → widget, revue (code, capacité, parties), refus, bandeau « À revoir », pont (source vérifiée, message hors contrat ignoré)
+- [x] T009 `IoEdge`, `WidgetReview`, `WidgetBridge`, intégration `WidgetNode` / `IdeasCanvas`
+- [x] T009b Prochaine étape comme source d'entrée (FR-014) : poignée de lien sur `StepNode`, partie transmise « étape »
+- [x] T010 Test manuel guidé lot 1 (`quickstart.md`) — validé par mentalyas (2026-09-30)
 
 ## Phase 2 : Lot 2 — Sorties (US2)
 

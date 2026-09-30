@@ -14,7 +14,8 @@ import {
   planNodes,
   reflectionSummaries,
   suggestions,
-  syntheses
+  syntheses,
+  widgetInputs
 } from '../schemaNeurons'
 
 export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
@@ -172,6 +173,14 @@ export class HistoryRepository {
           .get()
         return row === undefined || row.deletedAt !== null ? null : { kind: row.kind }
       }
+      case 'widget_input': {
+        const row = this.db
+          .select({ sourceKind: widgetInputs.sourceKind, deletedAt: widgetInputs.deletedAt })
+          .from(widgetInputs)
+          .where(eq(widgetInputs.id, id))
+          .get()
+        return row === undefined || row.deletedAt !== null ? null : { sourceKind: row.sourceKind }
+      }
       case 'neuron_absorb': {
         const row = this.db.select({ absorbedIn: neurons.absorbedIn }).from(neurons).where(eq(neurons.id, id)).get()
         return row ?? null
@@ -268,6 +277,13 @@ export class HistoryRepository {
           .update(canvasBlocks)
           .set({ deletedAt: target === null ? new Date().toISOString() : null })
           .where(eq(canvasBlocks.id, id))
+          .run()
+        return
+      case 'widget_input':
+        this.db
+          .update(widgetInputs)
+          .set({ deletedAt: target === null ? new Date().toISOString() : null })
+          .where(eq(widgetInputs.id, id))
           .run()
         return
       case 'neuron_absorb':

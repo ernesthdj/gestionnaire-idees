@@ -1,56 +1,18 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
-import { useId, useState } from 'react'
+import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
+import { useId, useRef, useState } from 'react'
 import { BLOCK_LIMITS } from '@shared/ipc/canvas'
-import { WIDGET_PROMPT_MAX_CHARS, type WidgetCodeView, type WidgetView } from '@shared/ipc/widgets'
+import { WIDGET_PROMPT_MAX_CHARS, type WidgetView } from '@shared/ipc/widgets'
 import { useEffectiveSettings } from '../../app/useAppSettings'
 import { AiThinking } from '../../dive/AiThinking'
+import { CodeView } from '../../widgets/CodeView'
 import { useWidget, type WidgetActions } from '../../widgets/useWidget'
+import { useWidgetBridge } from '../../widgets/useWidgetBridge'
+import { useWidgetIo, useWidgetReview } from '../../widgets/useWidgetIo'
 import { resolvedScheme, widgetFrameUrl } from '../../widgets/widgetFrame'
 import type { WidgetNodeType } from '../buildGraph'
 import { useBlockActions } from '../useBlockActions'
 
 const LIMITS = BLOCK_LIMITS.widget
-const CODE_TABS = [
-  ['html', 'HTML'],
-  ['css', 'CSS'],
-  ['ts', 'TypeScript']
-] as const
-
-/** Onglet « Code » : le code de la version affichée, lu comme du TEXTE (jamais interprété dans l'app). */
-function CodeView({ code }: { readonly code: WidgetCodeView }): React.JSX.Element {
-  const [tab, setTab] = useState<(typeof CODE_TABS)[number][0]>('ts')
-  return (
-    <div className="nodrag nowheel flex min-h-0 flex-1 flex-col">
-      <div
-        role="tablist"
-        aria-label="Parties du code"
-        className="flex gap-1 border-b border-content-muted/20 px-2 py-1"
-      >
-        {CODE_TABS.map(([part, label]) => (
-          <button
-            key={part}
-            type="button"
-            role="tab"
-            aria-selected={tab === part}
-            onClick={() => setTab(part)}
-            className={`rounded px-2 py-0.5 text-xs ${tab === part ? 'bg-surface-raised font-semibold' : 'text-content-muted'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <pre
-        role="tabpanel"
-        tabIndex={0}
-        aria-label={`Code ${tab}`}
-        className="min-h-0 flex-1 overflow-auto p-2 font-mono text-[11px] leading-snug whitespace-pre"
-      >
-        {code[tab]}
-      </pre>
-    </div>
-  )
-}
-
 /** Conversation avec Claude : dernière réponse visible, historique dépliable, demande (Entrée envoie). */
 function Chat({ view, actions }: { readonly view: WidgetView | undefined; readonly actions: WidgetActions }) {
   const fieldId = useId()
@@ -143,6 +105,13 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   /** « Arrêter » recharge le cadre : un widget qui boucle ne bloque que lui-même. */
   const [run, setRun] = useState(0)
   const scheme = resolvedScheme(settings.theme)
+  // Entrées (spec 005) : ce qui est branché, et si la version affichée est autorisée à le lire.
+  const io = useWidgetIo(id)
+  const openReview = useWidgetReview((state) => state.open)
+  const frame = useRef<HTMLIFrameElement>(null)
+  useWidgetBridge(frame, id, current?.id ?? null, run)
+  const inputCount = io.state.data?.inputs.length ?? 0
+  const toReview = inputCount > 0 && io.state.data?.approved === false
 
   return (
     <>
@@ -201,6 +170,18 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
               </button>
             </>
           )}
+          {inputCount === 0 ? null : (
+            <button
+              type="button"
+              aria-label={`Entrées du widget : ${inputCount}${toReview ? ', à revoir' : ''}`}
+              title="Ce que ce widget lit : revoir, régler, débrancher"
+              onClick={() => openReview(id)}
+              className={`nodrag flex h-7 items-center justify-center gap-1 rounded-md px-1.5 hover:bg-surface ${toReview ? 'font-semibold text-con' : ''}`}
+            >
+              <span aria-hidden="true">⇢</span>
+              {inputCount}
+            </button>
+          )}
           <button
             type="button"
             aria-label="Supprimer le widget"
@@ -220,6 +201,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
           <CodeView code={current} />
         ) : (
           <iframe
+            ref={frame}
             key={`${current.id}-${scheme}-${run}`}
             title={current.title}
             src={widgetFrameUrl(id, current.id, scheme)}
@@ -232,7 +214,29 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             className={`nodrag nowheel min-h-0 w-full flex-1 border-0 bg-surface ${resizing || dragging ? 'pointer-events-none' : ''}`}
           />
         )}
+        {toReview ? (
+          <div role="alert" className="nodrag flex shrink-0 items-center gap-2 bg-con/10 px-2 py-1.5 text-xs">
+            <p className="flex-1">
+              À revoir : ce widget ne reçoit rien tant que tu n’as pas autorisé cette version à lire ce qui est branché.
+            </p>
+            <button
+              type="button"
+              onClick={() => openReview(id)}
+              className="h-7 shrink-0 rounded-md bg-accent px-2 font-semibold text-surface"
+            >
+              Revoir
+            </button>
+          </div>
+        ) : null}
         <Chat view={view} actions={actions} />
+        {/* Point d'arrivée d'un lien tiré depuis une idée ou une prochaine étape (spec 005 FR-001). */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          isConnectableStart={false}
+          className="io-target"
+          title="Tire un lien d’une idée jusqu’ici pour la brancher sur ce widget"
+        />
       </section>
     </>
   )

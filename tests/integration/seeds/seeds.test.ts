@@ -118,7 +118,8 @@ describe('graines d’idées sur les liens (FR-028)', () => {
       neurons: new NeuronRepository(t.handle.db),
       links: t.linkRepository,
       blocks: new BlockRepository(t.handle.db),
-      steps: new HatchedRepository(t.handle.db)
+      steps: new HatchedRepository(t.handle.db),
+      io: { links: () => [] }
     })
     expect(canvas.get().seeds).toEqual([expect.objectContaining({ linkId: link.id, status: 'suggested' })])
 

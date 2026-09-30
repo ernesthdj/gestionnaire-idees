@@ -28,7 +28,8 @@ describe('écran Idées', () => {
       neurons,
       links: new LinkRepository(harness.handle.db),
       blocks: new BlockRepository(harness.handle.db),
-      steps: new HatchedRepository(harness.handle.db)
+      steps: new HatchedRepository(harness.handle.db),
+      io: { links: () => [] }
     })
     dispatch = createDispatcher(createCanvasRoutes(canvas))
   })

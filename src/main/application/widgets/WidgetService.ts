@@ -20,6 +20,8 @@ export interface WidgetDependencies {
   readonly repository: WidgetRepository
   readonly gateway: Pick<AIGateway, 'run'>
   readonly emit: (event: WidgetEvent) => void
+  /** Structure (sans valeur) des entrées branchées sur un widget ; `null` s'il n'en a pas (spec 005). */
+  readonly inputShape?: (blockId: string) => string | null
 }
 
 /** Demandes précédentes rappelées à Claude (le code actuel porte le reste) : borne le contexte envoyé. */
@@ -87,8 +89,10 @@ export class WidgetService {
       .map((message) => `- ${message.text}`)
     repository.insertMessage({ blockId: input.blockId, role: 'user', text: input.text })
 
+    const shape = this.deps.inputShape?.(input.blockId) ?? null
     const request = [
       previous.length === 0 ? null : `Demandes précédentes :\n${previous.join('\n')}`,
+      shape === null ? null : `Entrées branchées sur ce widget, lues par gi.inputs (structure seulement) :\n${shape}`,
       `${current === undefined ? 'Widget à fabriquer' : 'Évolution demandée'} : ${input.text}`
     ]
       .filter((part) => part !== null)

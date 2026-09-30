@@ -23,7 +23,8 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   link_seed: 'Cette graine a changé depuis (son lien a peut-être été supprimé).',
   neuron_placement: 'L’idée éclose à part a changé depuis (elle a été développée ou déplacée).',
   neuron_absorb: 'Une réponse rangée dans le document a changé depuis (supprimée ou reprise).',
-  canvas_block: 'Ce bloc a changé depuis.'
+  canvas_block: 'Ce bloc a changé depuis.',
+  widget_input: 'Ce branchement a changé depuis.'
 }
 
 const BLOCK_NAMES: Readonly<Record<string, string>> = { label: 'une note', widget: 'un widget', empty: 'un bloc' }
@@ -34,6 +35,12 @@ function blockSummary(entry: ChangeRow): string {
   const name = BLOCK_NAMES[typeof kind === 'string' ? kind : 'empty'] ?? 'un bloc'
   if (entry.kind === 'delete') return `Suppression d’${name}`
   return entry.after === null ? `Suppression d’${name} rétablie` : `Restauration d’${name}`
+}
+
+/** Débranchement d'une source d'un widget (spec 005), ou son annulation. */
+function inputSummary(entry: ChangeRow): string {
+  if (entry.kind === 'delete') return 'Débranchement d’une entrée de widget'
+  return entry.after === null ? 'Débranchement d’une entrée de widget rétabli' : 'Entrée de widget rebranchée'
 }
 
 /** L'état actuel correspond-il à celui laissé par le lot ? (clés communes seulement ; `null` = absent). */
@@ -142,6 +149,7 @@ export class HistoryService {
   private summarize(entries: readonly ChangeRow[]): string {
     const head = entries[0] as ChangeRow
     if (head.entity === 'canvas_block') return blockSummary(head)
+    if (head.entity === 'widget_input') return inputSummary(head)
     const title = (): string => {
       const rootId = this.rootOf(entries)
       return rootId === null ? 'une idée' : `« ${this.repository.rootTitle(rootId) ?? 'idée supprimée'} »`

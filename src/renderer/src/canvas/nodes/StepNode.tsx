@@ -73,6 +73,15 @@ export function StepNode({ data, positionAbsoluteX, positionAbsoluteY }: NodePro
       </button>
       {/* Poignée invisible au centre : le trait qui relie l'étape à son idée y arrive. */}
       <Handle type="target" position={Position.Top} isConnectable={false} className="neuron-handle" />
+      {/* Point d'accroche : on le tire vers un widget pour lui transmettre cette étape (spec 005 FR-014). */}
+      <Handle
+        id="connect"
+        type="source"
+        position={Position.Right}
+        isConnectableEnd={false}
+        className="neuron-connector"
+        title="Tirer vers un widget pour lui transmettre cette étape"
+      />
     </div>
   )
 }

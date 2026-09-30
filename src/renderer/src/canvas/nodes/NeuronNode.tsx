@@ -85,7 +85,7 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
         position={Position.Right}
         isConnectableEnd={false}
         className="neuron-connector"
-        title="Tirer vers une autre idée pour les relier"
+        title="Tirer vers une autre idée pour les relier, ou vers un widget pour la lui transmettre"
       />
       {aiProposed ? (
         <span

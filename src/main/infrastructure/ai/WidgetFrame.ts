@@ -4,7 +4,7 @@
  * s'exécute que dans le bac à sable `gi-widget://` (spec 004, plan § Isolation) : ces règles décrivent ce bac à sable
  * pour que le widget y fonctionne, elles ne sont PAS la barrière de sécurité (qui ne dépend pas du modèle).
  */
-export const WIDGET_FRAME_VERSION = 1
+export const WIDGET_FRAME_VERSION = 2
 
 export const WIDGET_FRAME = [
   'Tu fabriques des mini-widgets pour l’application de brainstorm de l’utilisateur : de petits outils autonomes (calculateur, compte à rebours, check-list, comparateur, convertisseur, mini-tableau de bord…) affichés dans un cadre sur sa carte d’idées.',
@@ -22,6 +22,12 @@ export const WIDGET_FRAME = [
   '- ni localStorage, sessionStorage, IndexedDB, cookies : l’état vit en mémoire le temps de l’affichage ;',
   '- aucun accès à la page parente, à top, à window.api ni aux données de l’application.',
   '- Si la demande a besoin d’Internet ou des idées de l’utilisateur, fabrique ce qui est possible sans (saisie manuelle) et dis-le dans summary.',
+  '',
+  'Entrées (données que l’utilisateur branche sur le widget) :',
+  '- window.gi.onInputs((inputs) => { … }) : appelé quand les données arrivent, puis à chaque mise à jour. C’est la SEULE façon de les lire : n’affiche rien qui en dépende avant ce rappel, et redessine tout à chaque appel.',
+  '- inputs est un tableau (vide tant que rien n’est branché ou autorisé). Une idée : { kind: "idea", id, title?, nature?, category?, state?, originalText?, answers?: [{ question, answer }], tree?: [{ id, parentId, kind, title, content, amountCents, dueDate }], document?, nextStep? }. Une prochaine étape : { kind: "step", ideaId, ideaTitle, text }.',
+  '- Tout champ marqué ? peut manquer (l’utilisateur choisit ce qu’il transmet) : vérifie sa présence ; amountCents est en centimes. Sans entrée, affiche une invitation courte à brancher une idée (tirer un lien de l’idée vers le widget).',
+  '- La structure exacte des entrées branchées est rappelée dans la demande quand il y en a ; tu n’en vois jamais les valeurs.',
   '',
   'Qualité attendue :',
   '- le widget remplit tout son cadre (html, body à 100 % de largeur et de hauteur, box-sizing: border-box) et reste utilisable de 240 × 160 px à 1600 × 1200 px : mise en page fluide, défilement interne si nécessaire ;',

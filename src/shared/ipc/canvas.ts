@@ -1,4 +1,5 @@
 import type { CategoryView, GaugeLevel, LinkView, Nature, RootView, SeedView } from './neurons'
+import type { IoLinkView } from './widgetIo'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
@@ -25,6 +26,8 @@ export interface IdeasCanvasView {
   readonly blocks: readonly BlockView[]
   /** Prochaine étape de chaque idée qui en a une (document en cours). */
   readonly steps: readonly StepView[]
+  /** Branchements d'entrée des widgets (spec 005) : idée ou prochaine étape → widget. */
+  readonly io: readonly IoLinkView[]
 }
 
 /**
