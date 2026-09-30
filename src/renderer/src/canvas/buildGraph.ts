@@ -56,6 +56,8 @@ export const stepNodeId = (rootId: string): string => `step-${rootId}`
 /** Idée dont ce nœud est la prochaine étape ; `null` si ce n'est pas un nœud d'étape. */
 export const stepRootId = (nodeId: string): string | null =>
   nodeId.startsWith('step-') ? nodeId.slice('step-'.length) : null
+/** Libellé du lien entre une idée et celle née de sa prochaine étape (« Brainstormer cette étape »). */
+export const STEP_LINK_LABEL = 'prochaine étape'
 /** Place de départ d'une étape jamais glissée : en bas à droite de son idée. */
 export const STEP_OFFSET = { x: 190, y: 130 } as const
 
@@ -186,11 +188,22 @@ export function buildGraph(
     ariaLabel: neuronAriaLabel(neuron, parentsOf.get(neuron.id)),
     deletable: false
   }))
+  const stepOf = new Set(view.steps.map((step) => step.rootId))
+  const created = new Map(view.ideas.map((neuron) => [neuron.id, neuron.createdAt] as const))
+  /**
+   * Une idée née d'une prochaine étape sort de l'étape, pas de l'idée : le trait part de l'étiquette tant qu'elle est
+   * sur la carte. L'idée d'origine est la plus ancienne des deux (la nouvelle peut avoir sa propre étape plus tard).
+   */
+  const endpoints = (link: LinkView): { source: string; target: string } => {
+    if (link.label !== STEP_LINK_LABEL) return { source: link.a.id, target: link.b.id }
+    const aFirst = (created.get(link.a.id) ?? '') <= (created.get(link.b.id) ?? '')
+    const [origin, born] = aFirst ? [link.a.id, link.b.id] : [link.b.id, link.a.id]
+    return { source: stepOf.has(origin) ? stepNodeId(origin) : origin, target: born }
+  }
   const edges = view.links.map((link): LinkEdgeType => ({
     id: link.id,
     type: 'link',
-    source: link.a.id,
-    target: link.b.id,
+    ...endpoints(link),
     data: {
       link,
       dimmed: isDimmed(link.a.id) && isDimmed(link.b.id),

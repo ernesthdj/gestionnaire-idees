@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
-import { buildGraph, computeLayout, stepNodeId } from '../../../src/renderer/src/canvas/buildGraph'
+import { buildGraph, computeLayout, STEP_LINK_LABEL, stepNodeId } from '../../../src/renderer/src/canvas/buildGraph'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
@@ -46,6 +46,32 @@ describe('prochaine étape sur la carte (FR-037)', () => {
     expect(node?.ariaLabel).toBe(`Prochaine étape de « Mission mariage », non modifiable : ${STEP}`)
     expect(graph.stepEdges).toEqual([
       expect.objectContaining({ source: HATCHED_A_ID, target: stepNodeId(HATCHED_A_ID), data: { style: 'step' } })
+    ])
+  })
+
+  it('should_draw_the_link_of_an_idea_born_from_the_step_from_the_step_itself', () => {
+    const base = withStep()
+    const [first] = base.ideas
+    const [anyLink] = base.links
+    if (first === undefined || anyLink === undefined) throw new Error('données de test attendues')
+    const born = { ...first, id: NEW_ID, title: STEP, createdAt: '2026-09-30T18:00:00.000Z' }
+    // Le lien est rangé dans l'ordre inverse : c'est l'ancienneté qui désigne l'idée d'origine.
+    const link = {
+      ...anyLink,
+      id: 'link-step',
+      a: { id: NEW_ID, title: STEP },
+      b: { id: HATCHED_A_ID, title: 'Mission mariage' },
+      label: STEP_LINK_LABEL,
+      status: 'accepted' as const
+    }
+    const view: IdeasCanvasView = { ...base, ideas: [...base.ideas, born], links: [link] }
+    expect(buildGraph(view, computeLayout(view)).edges).toEqual([
+      expect.objectContaining({ id: 'link-step', source: stepNodeId(HATCHED_A_ID), target: NEW_ID })
+    ])
+    // Sans étape affichée (idée rouverte, document retiré), le trait revient à l'idée d'origine.
+    const noStep: IdeasCanvasView = { ...view, steps: [] }
+    expect(buildGraph(noStep, computeLayout(noStep)).edges).toEqual([
+      expect.objectContaining({ source: HATCHED_A_ID, target: NEW_ID })
     ])
   })
 
