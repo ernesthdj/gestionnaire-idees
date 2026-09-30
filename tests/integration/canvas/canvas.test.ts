@@ -3,6 +3,8 @@ import { resolve } from 'node:path'
 import { sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CanvasService } from '../../../src/main/application/canvas/CanvasService'
+import { HistoryService } from '../../../src/main/application/history/HistoryService'
+import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { demoId, seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
@@ -132,18 +134,79 @@ describe('écran Idées', () => {
     expect(await dispatch(channel, payload)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
   })
 
+  const create = async (input: Record<string, unknown>): Promise<BlockView> => {
+    const created = await dispatch('canvas:createBlock', input)
+    if (!created.success) throw new Error(created.error.code)
+    return created.data as BlockView
+  }
+  const geometry = (block: BlockView) => ({
+    id: block.id,
+    x: block.x,
+    y: block.y,
+    width: block.width,
+    height: block.height
+  })
+
   it('should_create_move_resize_and_delete_a_block_and_keep_it_between_openings', async () => {
-    const created = await dispatch('canvas:createBlock', { x: 100, y: 200 })
-    const block = (created.success ? created.data : null) as BlockView
-    expect(block).toMatchObject({ x: 100, y: 200, width: 240, height: 160 })
+    const block = await create({ x: 100, y: 200 })
+    expect(block).toMatchObject({ kind: 'empty', x: 100, y: 200, width: 240, height: 160, text: null, versionId: null })
     expect((await get()).blocks).toEqual([block])
 
     const moved = { ...block, x: -50, y: 20, width: 400, height: 300 }
-    expect(await dispatch('canvas:updateBlock', moved)).toEqual({ success: true, data: moved })
+    expect(await dispatch('canvas:updateBlock', geometry(moved))).toEqual({ success: true, data: moved })
     expect((await get()).blocks).toEqual([moved])
 
-    expect(await dispatch('canvas:deleteBlock', { id: block.id })).toEqual({ success: true, data: { ok: true } })
+    expect(await dispatch('canvas:deleteBlock', { id: block.id })).toMatchObject({ success: true })
     expect((await get()).blocks).toEqual([])
+  })
+
+  it('should_create_a_note_and_a_widget_at_the_given_place_with_the_default_size_of_their_kind', async () => {
+    expect(await create({ kind: 'label', x: 10, y: 20 })).toMatchObject({ kind: 'label', x: 10, y: 20, text: '' })
+    expect(await create({ kind: 'widget', x: 30, y: 40 })).toMatchObject({
+      kind: 'widget',
+      width: 520,
+      height: 440,
+      text: null
+    })
+  })
+
+  it('should_store_the_text_of_a_note_but_refuse_text_on_another_block', async () => {
+    const note = await create({ kind: 'label', x: 0, y: 0 })
+    const written = await dispatch('canvas:updateBlock', { ...geometry(note), text: 'Zone mariage' })
+    expect(written).toMatchObject({ success: true, data: { text: 'Zone mariage' } })
+    const widget = await create({ kind: 'widget', x: 0, y: 0 })
+    expect(await dispatch('canvas:updateBlock', { ...geometry(widget), text: 'x' })).toMatchObject({
+      success: false,
+      error: { code: 'VALIDATION' }
+    })
+    expect(await dispatch('canvas:updateBlock', { ...geometry(note), text: 'x'.repeat(2001) })).toMatchObject({
+      success: false,
+      error: { code: 'VALIDATION' }
+    })
+  })
+
+  it.each([
+    ['widget', { width: 239, height: 300 }],
+    ['widget', { width: 600, height: 1201 }],
+    ['label', { width: 801, height: 100 }],
+    ['label', { width: 200, height: 47 }]
+  ])('should_refuse_a_%s_outside_its_size_limits_%o', async (kind, size) => {
+    const block = await create({ kind, x: 0, y: 0 })
+    expect(await dispatch('canvas:updateBlock', { ...geometry(block), ...size })).toMatchObject({
+      success: false,
+      error: { code: 'VALIDATION' }
+    })
+  })
+
+  it('should_bring_a_deleted_widget_back_when_the_deletion_is_undone', async () => {
+    const widget = await create({ kind: 'widget', x: 5, y: 6 })
+    const deleted = await dispatch('canvas:deleteBlock', { id: widget.id })
+    const batchId = (deleted.success ? deleted.data : null) as { batchId: string }
+    expect((await get()).blocks).toEqual([])
+    const history = new HistoryService(new HistoryRepository(harness.handle.db))
+    expect(history.list().items[0]?.summary).toBe('Suppression d’un widget')
+    history.undo(batchId.batchId)
+    expect((await get()).blocks).toEqual([widget])
   })
 
   it('should_report_not_found_when_the_block_no_longer_exists', async () => {
@@ -160,9 +223,8 @@ describe('écran Idées', () => {
     { width: 200, height: 5000 },
     { width: Number.POSITIVE_INFINITY, height: 200 }
   ])('should_refuse_an_unreasonable_block_size_%o', async (size) => {
-    const created = await dispatch('canvas:createBlock', { x: 0, y: 0 })
-    const block = (created.success ? created.data : null) as BlockView
-    expect(await dispatch('canvas:updateBlock', { ...block, ...size })).toMatchObject({
+    const block = await create({ x: 0, y: 0 })
+    expect(await dispatch('canvas:updateBlock', { ...geometry(block), ...size })).toMatchObject({
       success: false,
       error: { code: 'VALIDATION' }
     })

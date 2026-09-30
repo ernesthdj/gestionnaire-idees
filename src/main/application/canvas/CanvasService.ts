@@ -1,5 +1,9 @@
+import { randomUUID } from 'node:crypto'
 import {
-  BLOCK_DEFAULT_SIZE,
+  BLOCK_DEFAULT_SIZES,
+  BLOCK_LIMITS,
+  LABEL_MAX_CHARS,
+  type BlockKind,
   type BlockView,
   type CanvasFilterInput,
   type CanvasNeuronView,
@@ -8,7 +12,7 @@ import {
 } from '@shared/ipc/canvas'
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import { AppError } from '../../domain/errors'
-import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
+import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
 
 export interface CanvasDeps {
@@ -17,7 +21,7 @@ export interface CanvasDeps {
     'canvasRoots' | 'matchingRootIds' | 'subNeuronPreviews' | 'categories' | 'savePositions' | 'latestGaugeLevels'
   >
   readonly links: { list(): LinkView[]; seeds(): SeedView[] }
-  readonly blocks: Pick<BlockRepository, 'list' | 'insert' | 'update' | 'delete'>
+  readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
 }
 
 /** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens et leurs graines. */
@@ -65,16 +69,42 @@ export class CanvasService {
     this.deps.neurons.savePositions(positions)
   }
 
-  createBlock(at: { x: number; y: number }): BlockView {
-    return this.deps.blocks.insert({ ...at, ...BLOCK_DEFAULT_SIZE })
+  /** Nouveau bloc au point voulu, à la taille par défaut de son type (spec 004 FR-001). */
+  createBlock(input: { readonly kind: BlockKind; readonly x: number; readonly y: number }): BlockView {
+    const { kind, x, y } = input
+    return this.deps.blocks.insert({ kind, x, y, ...BLOCK_DEFAULT_SIZES[kind], text: kind === 'label' ? '' : null })
   }
 
-  updateBlock(block: BlockView): BlockView {
-    if (!this.deps.blocks.update(block)) throw new AppError('NOT_FOUND', 'Bloc introuvable')
-    return block
+  /** Déplacement, redimensionnement (bornes du type) et texte d'une note. */
+  updateBlock(patch: BlockPatch): BlockView {
+    const current = this.deps.blocks.get(patch.id)
+    if (current === undefined) throw new AppError('NOT_FOUND', 'Bloc introuvable')
+    const limits = BLOCK_LIMITS[current.kind]
+    const fits =
+      patch.width >= limits.minWidth &&
+      patch.width <= limits.maxWidth &&
+      patch.height >= limits.minHeight &&
+      patch.height <= limits.maxHeight
+    if (!fits) throw new AppError('VALIDATION', 'Taille hors des bornes de ce bloc')
+    if (patch.text !== undefined && (current.kind !== 'label' || patch.text.length > LABEL_MAX_CHARS)) {
+      throw new AppError('VALIDATION', 'Seule une note porte un texte (2 000 caractères au plus)')
+    }
+    this.deps.blocks.update(patch)
+    return this.deps.blocks.get(patch.id) ?? current
   }
 
-  deleteBlock(id: string): void {
-    if (!this.deps.blocks.delete(id)) throw new AppError('NOT_FOUND', 'Bloc introuvable')
+  /** Suppression annulable depuis l'Historique (le bloc revient avec ses versions et sa conversation). */
+  deleteBlock(id: string): { readonly batchId: string } {
+    const { blocks } = this.deps
+    const current = blocks.get(id)
+    if (current === undefined) throw new AppError('NOT_FOUND', 'Bloc introuvable')
+    const batchId = randomUUID()
+    blocks.transaction(() => {
+      blocks.softDelete(id)
+      blocks.log(batchId, [
+        { kind: 'delete', entity: 'canvas_block', entityId: id, before: { kind: current.kind }, after: null }
+      ])
+    })
+    return { batchId }
   }
 }

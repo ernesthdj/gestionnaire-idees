@@ -88,7 +88,7 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
   it('should_turn_an_accepted_suggestion_into_an_idea_sub_neuron_and_keep_growing', async () => {
     const tree = await developedWith([{ neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Environ 250 €.' }])
     const suggestion = tree.suggestions[0]
-    t.h.claude.enqueue(etendreReply(['Quelle connectique ?']))
+    t.h.claude.enqueue(etendreReply(['Quelle connectique ?', 'Quel pied ?']))
     const calls = t.h.claude.requests.length
     const result = await t.growth.acceptSuggestion(suggestion?.id ?? '')
     const neuron = result.tree.neurons.find((entry) => entry.title === 'Écran 27 pouces IPS')
@@ -103,6 +103,18 @@ describe('suggestions d’approfondissement (neurones fantômes)', () => {
     expect(t.h.claude.requests.length).toBe(calls + 1)
     expect(result.tree.extensions.some((entry) => entry.neuronId === neuron?.id)).toBe(true)
     await expect(t.growth.acceptSuggestion(suggestion?.id ?? '')).rejects.toMatchObject({ code: 'INVALID_STATE' })
+  })
+
+  it('should_develop_an_adopted_idea_from_its_text_right_away_retrying_when_the_ai_asks_too_little', async () => {
+    const tree = await developedWith([{ neuronRef: 's0', title: 'Écran 27 pouces IPS', content: 'Environ 250 €.' }])
+    t.h.claude.enqueue(etendreReply([]), etendreReply(['Quelle connectique ?', 'Quel pied ?']))
+    const result = await t.growth.acceptSuggestion(tree.suggestions[0]?.id ?? '')
+    const idea = result.tree.neurons.find((entry) => entry.title === 'Écran 27 pouces IPS')
+    const questions = result.tree.extensions.filter((entry) => entry.neuronId === idea?.id)
+    expect(questions.map((entry) => entry.question)).toEqual(['Quelle connectique ?', 'Quel pied ?'])
+    const input = t.h.anonymized.at(-1) ?? ''
+    expect(input).toContain('vient d’adopter l’idée suggérée')
+    expect(input).toContain('Environ 250 €.')
   })
 
   it('should_count_values_of_an_accepted_suggestion_as_validated_by_the_user', async () => {

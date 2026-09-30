@@ -24,6 +24,12 @@ export interface GatewayRequest<T> {
   readonly allowDegraded?: boolean
   /** Usage interne (rejeu par la file locale) : ne jamais remettre la demande en file. */
   readonly noQueue?: boolean
+  /**
+   * Texte renvoyé tel quel après l'entrée anonymisée : UNIQUEMENT une sortie antérieure de Claude que l'utilisateur
+   * ne peut pas modifier (code courant d'un widget, spec 004). L'anonymiseur la casserait, et rien de nouveau ne
+   * quitte la machine.
+   */
+  readonly verbatim?: string
   /** Appelé quand un moteur commence réellement à travailler (repli compris) : l'interface peut dire qui réfléchit. */
   readonly onEngine?: (engine: Engine, model: string) => void
 }
@@ -141,11 +147,13 @@ export class AIGateway {
 
     const prepared = await this.prepare(request.kind, request.input, engine)
     if (!prepared.ok) return prepared
-    const { system, user } = prepared.value
+    const { system } = prepared.value
+    const user = request.verbatim === undefined ? prepared.value.user : `${prepared.value.user}\n\n${request.verbatim}`
+    const model = engine === 'claude' ? config.claudeModelFor?.(request.kind) : undefined
     const chosen = engine
     const result = await this.semaphores[chosen].use(() => {
-      request.onEngine?.(chosen, this.deps.providers[chosen].currentModel?.() ?? '')
-      return this.callWithRetry(request, requestId, chosen, system, user, degraded)
+      request.onEngine?.(chosen, model ?? this.deps.providers[chosen].currentModel?.() ?? '')
+      return this.callWithRetry(request, requestId, chosen, system, user, degraded, model)
     })
     if (result.ok) this.remember(requestId, result.value)
     return result
@@ -256,7 +264,8 @@ export class AIGateway {
     engine: Engine,
     system: Parameters<AIProvider['complete']>[0]['system'],
     user: string,
-    degraded: boolean
+    degraded: boolean,
+    model: string | undefined
   ): Promise<Result<AIResult<T>, AIError>> {
     const provider = this.deps.providers[engine]
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -268,7 +277,8 @@ export class AIGateway {
           user: attempt === 0 ? user : `${user}\n\n${RETRY_HINT}`,
           schema: request.schema,
           effort: effortFor(request.kind),
-          maxTokens: maxTokensFor(request.kind)
+          maxTokens: maxTokensFor(request.kind),
+          ...(model === undefined ? {} : { model })
         })
       } catch (error) {
         const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'

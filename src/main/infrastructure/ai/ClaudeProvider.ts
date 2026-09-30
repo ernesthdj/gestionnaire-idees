@@ -114,7 +114,7 @@ export class ClaudeProvider implements AIProvider {
     const apiKey = this.options.apiKey()
     if (apiKey === null) throw new ProviderError('AUTH_FAILED', 'Clé API Claude non configurée', false)
     const client = this.options.createClient?.(apiKey) ?? new Anthropic({ apiKey })
-    const model = this.options.model()
+    const model = request.model ?? this.options.model()
     const fallback = SERVER_FALLBACK_MODELS.has(model)
 
     try {

@@ -18,6 +18,8 @@ export interface ContextExample {
 export interface GatewayConfig {
   readonly routing: RoutingTable
   readonly allowClaudeFallback: boolean
+  /** Modèle Claude propre à une tâche (ex. `widget`) ; `undefined` : le modèle général. */
+  readonly claudeModelFor?: (kind: TaskKind) => string | undefined
 }
 
 /** Réduit une donnée au strict nécessaire avant tout envoi externe (US2). Lève une erreur en cas d'échec. */

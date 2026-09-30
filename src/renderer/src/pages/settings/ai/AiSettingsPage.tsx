@@ -32,6 +32,7 @@ export function AiSettingsPage(): React.JSX.Element {
     key: useId(),
     cap: useId(),
     model: useId(),
+    widgetModel: useId(),
     local: useId(),
     fallback: useId(),
     masking: useId(),
@@ -223,6 +224,26 @@ export function AiSettingsPage(): React.JSX.Element {
               disabled={busy}
               onChange={(event) =>
                 void saveConfig({ claudeModel: event.target.value }, `Modèle Claude : ${event.target.value}.`)
+              }
+              className="h-8 w-80 rounded-md border border-content-muted/40 bg-surface px-2 text-sm"
+            >
+              {CLAUDE_MODELS.map((model) => (
+                <option key={model} value={model}>
+                  {MODEL_LABELS[model] ?? model}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor={ids.widgetModel} className="text-sm">
+              Modèle des widgets
+            </label>
+            <select
+              id={ids.widgetModel}
+              value={config.widgetModel}
+              disabled={busy}
+              onChange={(event) =>
+                void saveConfig({ widgetModel: event.target.value }, `Modèle des widgets : ${event.target.value}.`)
               }
               className="h-8 w-80 rounded-md border border-content-muted/40 bg-surface px-2 text-sm"
             >

@@ -18,6 +18,8 @@ export const AiConfigSchema = z.object({
     .default(null),
   usdEurRate: z.number().min(0.5).max(2).default(0.92),
   claudeModel: z.string().min(1).max(60).default('claude-opus-5-5'),
+  /** Modèle des widgets (spec 004) : Sonnet, excellent en code et deux fois moins cher qu'Opus. */
+  widgetModel: z.string().min(1).max(60).default('claude-sonnet-5-5'),
   localModel: z.string().min(1).max(80).default('qwen3.5:9b'),
   allowClaudeFallback: z.boolean().default(false),
   /** Montants exacts envoyés à Claude par défaut (choix de mentalyas, constitution v1.1.0). */

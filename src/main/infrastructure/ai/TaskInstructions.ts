@@ -13,6 +13,10 @@ const SYNTHESIS_RULES = [
   '- Date non donnée par l’utilisateur : pas de dueDate, mets toSchedule. Info manquante : investigation + gaps.',
   'Synthèse de réflexion :',
   '- keyPoints (au moins 1) = pistes retenues ; decisions ; pros / cons ; openQuestions = ce qui reste à trancher.',
+  '- C’est une fiche qu’on a plaisir à relire, pas un procès-verbal : overview = « En bref », 2 à 3 phrases',
+  '  fluides qui disent où en est l’idée ; chaque point a un headline (2 à 5 mots, sans point final) et un text',
+  '  (une phrase qui explique, sans répéter le headline) ; nextStep = LA prochaine étape concrète, une phrase à',
+  '  l’infinitif. Tout reste tiré de l’arbre.',
   '- Phrases courtes, tutoiement, dans la langue de l’utilisateur.'
 ].join('\n')
 

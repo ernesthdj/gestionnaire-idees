@@ -31,6 +31,13 @@ describe('historique et annulation (spec 003 T040)', () => {
 
   const planIsCurrent = (rootId: string): boolean[] => t.fusionRepository.planOf(rootId).map((node) => node.isCurrent)
 
+  it('should_bring_back_the_absorbed_sub_neurons_when_the_hatching_is_undone', async () => {
+    const { rootId, batchId } = await hatched()
+    expect(t.neurons.getTree(rootId).neurons).toHaveLength(0)
+    expect((await dispatch('history:undo', { batchId })).success).toBe(true)
+    expect(t.neurons.getTree(rootId).neurons.length).toBeGreaterThan(0)
+  })
+
   it('should_restore_exactly_the_state_before_the_hatching_when_undone', async () => {
     const { rootId, synthesis, before, examples, batchId } = await hatched()
     expect(t.neurons.getTree(rootId).root.state).toBe('hatched')

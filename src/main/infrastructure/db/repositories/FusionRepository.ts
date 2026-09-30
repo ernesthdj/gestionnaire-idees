@@ -49,6 +49,8 @@ export interface ReflectionInsert {
   readonly prosJson: string
   readonly consJson: string
   readonly openQuestionsJson: string
+  readonly overview: string | null
+  readonly nextStep: string | null
 }
 
 export type { ChangeEntry } from './changeLog'
@@ -166,10 +168,32 @@ export class FusionRepository {
       .run()
   }
 
-  /** Plans et synthèses précédents restent consultables mais ne sont plus « en cours ». */
-  retireCurrentResults(rootId: string): void {
+  /** Plan et synthèse en cours retirés par une nouvelle éclosion : consignés pour pouvoir l'annuler. */
+  retireCurrentResults(rootId: string): ChangeEntry[] {
+    const retired = (entity: string, id: string): ChangeEntry => ({
+      kind: 'confirm_synthesis',
+      entity,
+      entityId: id,
+      before: { isCurrent: true },
+      after: null
+    })
+    const entries = [
+      ...this.db
+        .select({ id: planNodes.id })
+        .from(planNodes)
+        .where(and(eq(planNodes.rootId, rootId), eq(planNodes.isCurrent, true)))
+        .all()
+        .map((row) => retired('plan_node', row.id)),
+      ...this.db
+        .select({ id: reflectionSummaries.id })
+        .from(reflectionSummaries)
+        .where(and(eq(reflectionSummaries.rootId, rootId), eq(reflectionSummaries.isCurrent, true)))
+        .all()
+        .map((row) => retired('reflection_summary', row.id))
+    ]
     this.db.update(planNodes).set({ isCurrent: false }).where(eq(planNodes.rootId, rootId)).run()
     this.db.update(reflectionSummaries).set({ isCurrent: false }).where(eq(reflectionSummaries.rootId, rootId)).run()
+    return entries
   }
 
   setRootState(rootId: string, state: 'developing' | 'hatched'): void {

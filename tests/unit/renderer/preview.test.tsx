@@ -132,6 +132,33 @@ describe('aperçu de synthèse et fusion', () => {
     expect(useUiStore.getState().openRootId).toBe(ROOT_ID)
   })
 
+  it('should_let_the_absorbed_sub_neurons_melt_into_the_idea_before_they_disappear', async () => {
+    const user = userEvent.setup()
+    let hatched = false
+    const absorbed = {
+      ...developingTree(),
+      root: { ...ROOT, state: 'hatched' as const },
+      neurons: [],
+      extensions: [],
+      suggestions: []
+    }
+    renderOpenIdea(() => (hatched ? absorbed : developingTree()), {
+      'app:getSettings': () => ({ ...DEFAULT_APP_SETTINGS, motion: 'reduced' }),
+      'fusion:getProposed': () => planPreview(),
+      'fusion:confirm': () => {
+        hatched = true
+        return { batchId: 'b1', root: { ...ROOT, state: 'hatched' } }
+      },
+      'hatched:get': () => null
+    })
+    const region = await preview('Aperçu du plan d’action')
+    await user.click(within(region).getByRole('button', { name: 'Confirmer' }))
+    await screen.findByText('L’idée éclôt…')
+    // La base a déjà absorbé les sous-neurones, mais la carte les garde le temps de les résorber vers l'idée.
+    expect(document.querySelectorAll('.react-flow__node.tree-fusing').length).toBeGreaterThan(0)
+    await waitFor(() => expect(document.querySelectorAll('.react-flow__node.tree-fusing')).toHaveLength(0))
+  })
+
   it('should_have_no_accessibility_violation_in_the_preview', async () => {
     renderWithPreview(planPreview())
     await preview('Aperçu du plan d’action')

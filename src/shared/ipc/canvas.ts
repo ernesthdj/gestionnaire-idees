@@ -21,21 +21,50 @@ export interface IdeasCanvasView {
   readonly categories: readonly CategoryView[]
   /** Idées correspondant au filtre ; `null` sans filtre (toutes normales). */
   readonly highlighted: readonly string[] | null
-  /** Blocs libres (supports des mini-widgets de la v2, vides en MVP-1). */
+  /** Blocs posés sur la carte : vides, notes et widgets (spec 004). */
   readonly blocks: readonly BlockView[]
 }
 
-/** Bloc libre : position (centre) et taille sur la carte. */
+export const BLOCK_KINDS = ['empty', 'label', 'widget'] as const
+/** Bloc vide (003), note = étiquette de texte, widget généré par Claude (spec 004). */
+export type BlockKind = (typeof BLOCK_KINDS)[number]
+
+/** Bloc posé sur la carte : position (centre) et taille. */
 export interface BlockView {
   readonly id: string
+  readonly kind: BlockKind
   readonly x: number
   readonly y: number
   readonly width: number
   readonly height: number
+  /** Texte d'une note ; `null` pour les autres blocs. */
+  readonly text: string | null
+  /** Version affichée d'un widget ; `null` tant qu'aucune n'a été générée. */
+  readonly versionId: string | null
 }
 
-export const BLOCK_DEFAULT_SIZE = { width: 240, height: 160 } as const
-export const BLOCK_SIZE_LIMITS = { min: 96, max: 1600 } as const
+export interface SizeLimits {
+  readonly minWidth: number
+  readonly minHeight: number
+  readonly maxWidth: number
+  readonly maxHeight: number
+}
+
+/** Bornes de taille par type de bloc (spec 004 FR-002, FR-003) : appliquées par l'interface ET par le main. */
+export const BLOCK_LIMITS: Readonly<Record<BlockKind, SizeLimits>> = {
+  empty: { minWidth: 96, minHeight: 96, maxWidth: 1600, maxHeight: 1600 },
+  label: { minWidth: 120, minHeight: 48, maxWidth: 800, maxHeight: 600 },
+  widget: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 }
+}
+
+export const BLOCK_DEFAULT_SIZES: Readonly<Record<BlockKind, { width: number; height: number }>> = {
+  empty: { width: 240, height: 160 },
+  label: { width: 240, height: 72 },
+  widget: { width: 520, height: 440 }
+}
+
+/** Longueur maximale du texte d'une note. */
+export const LABEL_MAX_CHARS = 2000
 
 export interface CanvasFilterInput {
   readonly nature?: Nature

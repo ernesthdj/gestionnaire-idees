@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lt, ne, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, lt, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CategoryView,
   ExtensionView,
@@ -200,7 +200,7 @@ export class NeuronRepository {
       })
       .from(neurons)
       .leftJoin(suggestions, eq(suggestions.acceptedNeuronId, neurons.id))
-      .where(and(eq(neurons.rootId, rootId), ne(neurons.kind, 'root')))
+      .where(and(eq(neurons.rootId, rootId), ne(neurons.kind, 'root'), isNull(neurons.absorbedIn)))
       .orderBy(sql`${neurons}.rowid`)
       .all()
       .map(({ sourcesJson, posX, posY, ...neuron }) => ({
@@ -309,7 +309,7 @@ export class NeuronRepository {
     const rows = this.db
       .select({ id: neurons.id, rootId: neurons.rootId, title: neurons.title })
       .from(neurons)
-      .where(and(inArray(neurons.rootId, [...rootIds]), eq(neurons.depth, 1)))
+      .where(and(inArray(neurons.rootId, [...rootIds]), eq(neurons.depth, 1), isNull(neurons.absorbedIn)))
       .orderBy(asc(sql`${neurons}.rowid`))
       .all()
     for (const row of rows) {

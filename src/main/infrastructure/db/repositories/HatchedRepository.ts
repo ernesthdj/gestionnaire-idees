@@ -4,6 +4,7 @@ import type { AppDatabase } from '../client'
 import { neurons, planDependencies, planNodes, reflectionSummaries } from '../schemaNeurons'
 
 interface StoredPoint {
+  readonly headline?: string
   readonly text: string
   readonly sourceIds: readonly string[]
 }
@@ -16,7 +17,8 @@ function parsePoints(json: string): StoredPoint[] {
     if (typeof point === 'string') return [{ text: point, sourceIds: [] }]
     if (typeof point !== 'object' || point === null || !('text' in point) || typeof point.text !== 'string') return []
     const ids = 'sourceIds' in point && Array.isArray(point.sourceIds) ? point.sourceIds : []
-    return [{ text: point.text, sourceIds: ids.filter((id): id is string => typeof id === 'string') }]
+    const headline = 'headline' in point && typeof point.headline === 'string' ? { headline: point.headline } : {}
+    return [{ ...headline, text: point.text, sourceIds: ids.filter((id): id is string => typeof id === 'string') }]
   })
 }
 
@@ -93,6 +95,7 @@ export class HatchedRepository {
     )
     const withSources = (points: StoredPoint[]): SourcedPointView[] =>
       points.map((point) => ({
+        headline: point.headline ?? null,
         text: point.text,
         sources: point.sourceIds.flatMap((id) => {
           const title = titles.get(id)
@@ -101,6 +104,8 @@ export class HatchedRepository {
       }))
     return {
       type: 'reflection_summary',
+      overview: summary.overview,
+      nextStep: summary.nextStep,
       keyPoints: withSources(sections.keyPoints),
       decisions: withSources(sections.decisions),
       pros: withSources(sections.pros),

@@ -150,9 +150,14 @@ function PlanItem({
 
 function PointItem({
   refId,
+  headline,
   text,
   ...editor
-}: { readonly refId: string; readonly text: string } & EditorProps): React.JSX.Element {
+}: {
+  readonly refId: string
+  readonly headline?: string | undefined
+  readonly text: string
+} & EditorProps): React.JSX.Element {
   const id = useId()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(text)
@@ -186,7 +191,10 @@ function PointItem({
   }
   return (
     <li className="flex items-start justify-between gap-2">
-      <p>{text}</p>
+      <p>
+        {headline === undefined ? null : <span className="block font-semibold">{headline}</span>}
+        {text}
+      </p>
       <Button className="shrink-0" onClick={() => setEditing(true)} aria-label={`Modifier : ${text}`}>
         Modifier
       </Button>
@@ -208,17 +216,35 @@ function ReflectionContent({
 }: { readonly summary: ReflectionSummaryOut } & EditorProps): React.JSX.Element {
   return (
     <>
+      {summary.overview === undefined ? null : (
+        <section aria-label="En bref" className="space-y-1 border-l-4 border-accent pl-3">
+          <h3 className="text-xs font-semibold text-content-muted">En bref</h3>
+          <p className="leading-relaxed">{summary.overview}</p>
+        </section>
+      )}
       {SECTIONS.map(([section, label]) =>
         summary[section].length === 0 ? null : (
           <section key={section} aria-label={label} className="space-y-1">
             <h3 className="text-xs font-semibold text-content-muted">{label}</h3>
             <ul className="space-y-1">
               {summary[section].map((point, index) => (
-                <PointItem key={`${section}.${index}`} refId={`${section}.${index}`} text={point.text} {...editor} />
+                <PointItem
+                  key={`${section}.${index}`}
+                  refId={`${section}.${index}`}
+                  headline={'headline' in point ? point.headline : undefined}
+                  text={point.text}
+                  {...editor}
+                />
               ))}
             </ul>
           </section>
         )
+      )}
+      {summary.nextStep === undefined ? null : (
+        <section aria-label="Prochaine étape" className="space-y-1 rounded-lg bg-accent/10 p-3">
+          <h3 className="text-xs font-semibold text-accent">Prochaine étape</h3>
+          <p className="font-medium">{summary.nextStep}</p>
+        </section>
       )}
     </>
   )
@@ -230,10 +256,14 @@ function ReflectionContent({
  */
 export function SynthesisPreview({
   fusion,
+  onConfirming,
   onConfirmed
 }: {
   readonly fusion: FusionActions
-  readonly onConfirmed: (confirmed: ConfirmView) => void
+  /** Juste avant l'éclosion : l'arbre affiché est figé pour que ses sous-neurones puissent se résorber. */
+  readonly onConfirming?: () => void
+  /** Idée éclose, ou `null` si la confirmation a échoué (rien n'a été appliqué). */
+  readonly onConfirmed: (confirmed: ConfirmView | null) => void
 }): React.JSX.Element | null {
   const ids = { title: useId(), instruction: useId() }
   const [instruction, setInstruction] = useState<string | null>(null)
@@ -344,9 +374,8 @@ export function SynthesisPreview({
           className="ml-auto"
           disabled={busy || fusion.stale}
           onClick={() => {
-            void fusion.confirm().then((confirmed) => {
-              if (confirmed !== null) onConfirmed(confirmed)
-            })
+            onConfirming?.()
+            void fusion.confirm().then(onConfirmed)
           }}
         >
           Confirmer

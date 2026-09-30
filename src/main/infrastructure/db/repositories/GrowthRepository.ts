@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { Extension } from '@shared/ai/neurons'
 import type { WebSourceView } from '@shared/ipc/neurons'
 import type { GaugeLevel, NeuronKind, RootState, Source } from '@shared/ipc/neurons'
@@ -54,7 +54,17 @@ export class GrowthRepository {
     return this.db.transaction(() => work())
   }
 
+  /** Arbre du cycle en cours : les sous-neurones absorbés par une éclosion n'en font plus partie. */
   nodes(rootId: string): GrowthNode[] {
+    return this.selectNodes(and(eq(neurons.rootId, rootId), isNull(neurons.absorbedIn)))
+  }
+
+  /** Arbre complet, cycles précédents compris : entrée de la synthèse (le document reste sourcé). */
+  nodesWithHistory(rootId: string): GrowthNode[] {
+    return this.selectNodes(eq(neurons.rootId, rootId))
+  }
+
+  private selectNodes(where: ReturnType<typeof and>): GrowthNode[] {
     return this.db
       .select({
         id: neurons.id,
@@ -66,9 +76,67 @@ export class GrowthRepository {
         content: neurons.content
       })
       .from(neurons)
-      .where(eq(neurons.rootId, rootId))
+      .where(where)
       .orderBy(sql`${neurons}.rowid`)
       .all()
+  }
+
+  /**
+   * Éclosion (spec 003 T064) : les sous-neurones du cycle sont absorbés par la synthèse, les questions et idées
+   * suggérées encore ouvertes sur eux (et les questions sur la racine) sont closes. Renvoie le journal d'annulation.
+   */
+  absorb(rootId: string, synthesisId: string): ChangeEntry[] {
+    const absorbed = this.db
+      .select({ id: neurons.id })
+      .from(neurons)
+      .where(and(eq(neurons.rootId, rootId), isNull(neurons.absorbedIn), ne(neurons.id, rootId)))
+      .all()
+      .map((row) => row.id)
+    const openExtensions = this.db
+      .select({ id: extensions.id })
+      .from(extensions)
+      .where(and(eq(extensions.rootId, rootId), eq(extensions.status, 'proposed')))
+      .all()
+      .map((row) => row.id)
+    const openSuggestions =
+      absorbed.length === 0
+        ? []
+        : this.db
+            .select({ id: suggestions.id })
+            .from(suggestions)
+            .where(and(inArray(suggestions.neuronId, absorbed), eq(suggestions.status, 'proposed')))
+            .all()
+            .map((row) => row.id)
+    const resolvedAt = new Date().toISOString()
+    if (absorbed.length > 0) {
+      this.db.update(neurons).set({ absorbedIn: synthesisId }).where(inArray(neurons.id, absorbed)).run()
+    }
+    if (openExtensions.length > 0) {
+      this.db
+        .update(extensions)
+        .set({ status: 'dismissed', resolvedAt })
+        .where(inArray(extensions.id, openExtensions))
+        .run()
+    }
+    if (openSuggestions.length > 0) {
+      this.db
+        .update(suggestions)
+        .set({ status: 'dismissed', resolvedAt })
+        .where(inArray(suggestions.id, openSuggestions))
+        .run()
+    }
+    const entry = (entity: string, entityId: string, before: unknown, after: unknown): ChangeEntry => ({
+      kind: 'confirm_synthesis',
+      entity,
+      entityId,
+      before,
+      after
+    })
+    return [
+      ...absorbed.map((id) => entry('neuron_absorb', id, { absorbedIn: null }, { absorbedIn: synthesisId })),
+      ...openExtensions.map((id) => entry('extension', id, { status: 'proposed' }, { status: 'dismissed' })),
+      ...openSuggestions.map((id) => entry('suggestion', id, { status: 'proposed' }, { status: 'dismissed' }))
+    ]
   }
 
   node(id: string): GrowthNode | undefined {

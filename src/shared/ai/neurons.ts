@@ -103,14 +103,21 @@ export const ActionPlanOut = z.object({
 })
 export type ActionPlanOut = z.infer<typeof ActionPlanOut>
 
-const Point = z.object({ text: z.string().min(1).max(300), sourceRefs: SourceRefs })
+/** Titre court d'un point (fiche éditoriale) : facultatif, un titre mal formé est ignoré. */
+const optionalLine = (max: number) => z.string().min(1).max(max).optional().catch(undefined)
+
+const Point = z.object({ headline: optionalLine(60), text: z.string().min(1).max(300), sourceRefs: SourceRefs })
 
 export const ReflectionSummaryOut = z.object({
+  /** « En bref » : où en est l'idée, en 2 à 3 phrases. */
+  overview: optionalLine(500),
   keyPoints: z.array(Point).min(1).max(10),
   decisions: z.array(Point).max(10),
   pros: z.array(Point).max(10),
   cons: z.array(Point).max(10),
-  openQuestions: z.array(z.object({ text: z.string().min(1).max(300) })).max(10)
+  openQuestions: z.array(z.object({ text: z.string().min(1).max(300) })).max(10),
+  /** Prochaine étape concrète conseillée, tirée de l'arbre. */
+  nextStep: optionalLine(200)
 })
 export type ReflectionSummaryOut = z.infer<typeof ReflectionSummaryOut>
 

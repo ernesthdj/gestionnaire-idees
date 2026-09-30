@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CAPTURE_MAX_CHARS } from '@shared/ipc/app'
-import type { CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
+import type { BlockView, CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
 import type { RootView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
@@ -32,6 +32,10 @@ import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
+import { LabelNode } from './nodes/LabelNode'
+import { WidgetNode } from './nodes/WidgetNode'
+import { ToolMenu, type Tool } from './ToolMenu'
+import { useBlockActions } from './useBlockActions'
 import { NeuronNode } from './nodes/NeuronNode'
 import { DocNode, NoteNode, TreeNode, type DocNodeType, type NoteNodeType, type TreeNodeType } from './nodes/TreeNodes'
 import { treeGraph } from './treeGraph'
@@ -40,7 +44,18 @@ import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
 
-const NODE_TYPES: NodeTypes = { neuron: NeuronNode, block: BlockNode, tree: TreeNode, note: NoteNode, doc: DocNode }
+const NODE_TYPES: NodeTypes = {
+  neuron: NeuronNode,
+  block: BlockNode,
+  label: LabelNode,
+  widget: WidgetNode,
+  tree: TreeNode,
+  note: NoteNode,
+  doc: DocNode
+}
+
+/** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
+const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget'])
 const EDGE_TYPES: EdgeTypes = { link: LinkEdge, branch: BranchEdge }
 
 /** Tout objet de la carte : idées, blocs, et arbre de l'idée ouverte (éléments, textes, fiche). */
@@ -145,6 +160,10 @@ function CanvasInner(): React.JSX.Element {
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
+  /** Boîte à outils ouverte par un clic droit dans le vide : position à l'écran et point de la carte visé. */
+  const [tools, setTools] = useState<{ at: Point; position: Point } | null>(null)
+  const closeTools = useCallback(() => setTools(null), [])
+  const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
   const tree = useOpenTree((state) => state.tree)
   const docId = useOpenTree((state) => state.docId)
@@ -285,6 +304,24 @@ function CanvasInner(): React.JSX.Element {
     const position = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
     const rounded = { x: Math.round(position.x), y: Math.round(position.y) }
     setDraft({ at: toSurface(rounded), position: rounded })
+  }
+
+  // Outil choisi dans la boîte à outils : l'objet naît au point du clic droit (spec 004 FR-001).
+  const pickTool = async (tool: Tool): Promise<void> => {
+    if (tools === null) return
+    const { position } = tools
+    setTools(null)
+    if (tool === 'idea') {
+      setDraft({ at: toSurface(position), position })
+      return
+    }
+    try {
+      const block = await call<BlockView>('canvas:createBlock', { kind: tool, x: position.x, y: position.y })
+      markBorn(block.id)
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'L’objet n’a pas pu être ajouté.')
+    }
   }
 
   const createIdea = async (text: string, position: Point): Promise<boolean> => {
@@ -432,6 +469,15 @@ function CanvasInner(): React.JSX.Element {
               onPaneClick={() => {
                 if (openRootId !== null) closeIdea()
               }}
+              // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
+              onPaneContextMenu={(event) => {
+                event.preventDefault()
+                const position = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+                setTools({
+                  at: { x: event.clientX, y: event.clientY },
+                  position: { x: Math.round(position.x), y: Math.round(position.y) }
+                })
+              }}
               onNodeContextMenu={(event, node) => {
                 // Clic droit sur un sous-neurone : il est ciblé, le volet propose de le modifier ou de le supprimer.
                 if (node.type === 'tree') {
@@ -458,16 +504,12 @@ function CanvasInner(): React.JSX.Element {
                 // Lâché : il reste épinglé à cette place ; la physique se repose autour de lui.
                 physics.pin(node.id, node.position)
                 drag.current = null
-                if (node.type === 'block') {
-                  void call('canvas:updateBlock', {
-                    id: node.id,
-                    x: node.position.x,
-                    y: node.position.y,
+                if (node.type !== undefined && BLOCK_TYPES.has(node.type)) {
+                  void blockActions.save(node.id, {
+                    ...node.position,
                     width: node.width ?? node.measured?.width ?? 0,
                     height: node.height ?? node.measured?.height ?? 0
                   })
-                    .then(() => client.invalidateQueries({ queryKey: ['canvas'] }))
-                    .catch(() => undefined)
                   return
                 }
                 const isNeuron =
@@ -513,6 +555,9 @@ function CanvasInner(): React.JSX.Element {
               onCancel={() => setDraft(null)}
             />
           ) : null}
+          {tools === null ? null : (
+            <ToolMenu at={tools.at} onPick={(tool) => void pickTool(tool)} onClose={closeTools} />
+          )}
           {menuNeuron === undefined || menu === null || view === undefined ? null : (
             <NeuronMenu
               neuron={menuNeuron}

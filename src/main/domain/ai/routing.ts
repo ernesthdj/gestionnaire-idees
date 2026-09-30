@@ -19,7 +19,8 @@ export const DEFAULT_ROUTING: RoutingTable = {
   germer: 'ollama',
   suggerer: 'claude',
   // Recherche web : uniquement possible avec Claude (outil serveur).
-  rechercher: 'claude'
+  rechercher: 'claude',
+  widget: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
@@ -33,7 +34,8 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   synthetiser: 'high',
   reviser: 'high',
   suggerer: 'high',
-  rechercher: 'low'
+  rechercher: 'low',
+  widget: 'medium'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
@@ -47,7 +49,9 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   synthetiser: 16000,
   reviser: 16000,
   suggerer: 8000,
-  rechercher: 2000
+  rechercher: 2000,
+  // Borne haute d'un appel non diffusé en flux (le SDK refuse au-delà d'environ 21 000).
+  widget: 20000
 }
 
 /**
@@ -59,12 +63,23 @@ const LOCAL_ONLY_KINDS: ReadonlySet<TaskKind> = new Set<TaskKind>(['anonymiser']
 /** Recherches web au plus par demande `rechercher` (coût borné : 1 centime $ chacune + lecture). */
 export const MAX_WEB_SEARCHES = 2
 
+/**
+ * Tâches qui n'ont AUCUN équivalent local, quelle que soit la configuration : l'IA locale ne génère pas de code
+ * (spec 004, décision du 2026-09-29).
+ */
+const CLAUDE_ONLY_KINDS: ReadonlySet<TaskKind> = new Set<TaskKind>(['widget'])
+
 export function isLocalOnly(kind: TaskKind): boolean {
   return LOCAL_ONLY_KINDS.has(kind)
 }
 
+export function isClaudeOnly(kind: TaskKind): boolean {
+  return CLAUDE_ONLY_KINDS.has(kind)
+}
+
 export function resolveEngine(kind: TaskKind, routing: RoutingTable): Engine {
-  return isLocalOnly(kind) ? 'ollama' : routing[kind]
+  if (isLocalOnly(kind)) return 'ollama'
+  return isClaudeOnly(kind) ? 'claude' : routing[kind]
 }
 
 export function effortFor(kind: TaskKind): Effort {

@@ -11,7 +11,8 @@ import type {
 /** Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, et une annulation (qui se rétablit). */
 const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
-const UNCHECKED = new Set(['plan_dependency', 'example'])
+/** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
+const UNCHECKED = new Set(['plan_dependency', 'example', 'extension', 'suggestion'])
 
 const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   neuron: 'L’idée a changé depuis (réouverte, complétée ou déjà modifiée).',
@@ -20,7 +21,19 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   reflection_summary: 'La synthèse de réflexion a été remplacée depuis.',
   neuron_link: 'Ce lien a été modifié depuis.',
   link_seed: 'Cette graine a changé depuis (son lien a peut-être été supprimé).',
-  neuron_placement: 'L’idée éclose à part a changé depuis (elle a été développée ou déplacée).'
+  neuron_placement: 'L’idée éclose à part a changé depuis (elle a été développée ou déplacée).',
+  neuron_absorb: 'Une réponse rangée dans le document a changé depuis (supprimée ou reprise).',
+  canvas_block: 'Ce bloc a changé depuis.'
+}
+
+const BLOCK_NAMES: Readonly<Record<string, string>> = { label: 'une note', widget: 'un widget', empty: 'un bloc' }
+
+/** Suppression d'un bloc de la carte (spec 004), ou son annulation. */
+function blockSummary(entry: ChangeRow): string {
+  const kind = entry.before?.['kind'] ?? entry.after?.['kind']
+  const name = BLOCK_NAMES[typeof kind === 'string' ? kind : 'empty'] ?? 'un bloc'
+  if (entry.kind === 'delete') return `Suppression d’${name}`
+  return entry.after === null ? `Suppression d’${name} rétablie` : `Restauration d’${name}`
 }
 
 /** L'état actuel correspond-il à celui laissé par le lot ? (clés communes seulement ; `null` = absent). */
@@ -128,6 +141,7 @@ export class HistoryService {
 
   private summarize(entries: readonly ChangeRow[]): string {
     const head = entries[0] as ChangeRow
+    if (head.entity === 'canvas_block') return blockSummary(head)
     const title = (): string => {
       const rootId = this.rootOf(entries)
       return rootId === null ? 'une idée' : `« ${this.repository.rootTitle(rootId) ?? 'idée supprimée'} »`

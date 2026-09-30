@@ -1,6 +1,7 @@
 import type { TaskKind } from '../../domain/ai/types'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
 import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
+import { WIDGET_FRAME } from '../../infrastructure/ai/WidgetFrame'
 import type { SystemBlock } from './AIProvider'
 import type { AgentContext } from './ports'
 
@@ -20,6 +21,14 @@ export function assembleContext(request: {
   readonly input: string
   readonly context: AgentContext | undefined
 }): AssembledContext {
+  // Les widgets ont leur propre cadre figé (constitution 1.2.0) et ne reçoivent ni profil ni exemples
+  // (minimisation : un outil n'a pas besoin de la vie de l'utilisateur).
+  if (request.kind === 'widget') {
+    return {
+      system: [{ text: WIDGET_FRAME, cacheable: true, role: 'frame' }],
+      user: `Tâche : widget\n${wrapUserData(request.input)}`
+    }
+  }
   const system: SystemBlock[] = [{ text: SYSTEM_FRAME, cacheable: true, role: 'frame' }]
   const instructions = TASK_INSTRUCTIONS[request.kind]
   if (instructions !== undefined) system.push({ text: instructions, cacheable: true, role: 'instructions' })

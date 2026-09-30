@@ -190,3 +190,36 @@
 .react-flow__node.neuron-open .neuron-body {
   box-shadow: 0 0 0 4px var(--color-focus);
 }
+
+/*
+ * Redimensionnement des blocs (notes, widgets) par les bords ET les coins (retour de test) : les lignes de React Flow
+ * ne font qu'1 px et passent sous le contenu. Zone de saisie de 12 px centrée sur le bord, trait visible d'1 px,
+ * poignées d'angle agrandies ; toujours au-dessus du contenu du bloc.
+ */
+.react-flow__resize-control {
+  z-index: 10;
+}
+.react-flow__resize-control.line {
+  --resize-line: var(--xy-resize-background-color, var(--xy-resize-background-color-default));
+  border-width: 0;
+}
+.react-flow__resize-control.line.left,
+.react-flow__resize-control.line.right {
+  width: 12px;
+  background: linear-gradient(to right, transparent 5.5px, var(--resize-line) 5.5px 6.5px, transparent 6.5px);
+}
+.react-flow__resize-control.line.top,
+.react-flow__resize-control.line.bottom {
+  height: 12px;
+  background: linear-gradient(to bottom, transparent 5.5px, var(--resize-line) 5.5px 6.5px, transparent 6.5px);
+}
+.react-flow__resize-control.handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Widget en cours de déplacement : son cadre isolé ne capte plus la souris (le geste reste fluide). */
+.react-flow__node.dragging iframe {
+  pointer-events: none;
+}

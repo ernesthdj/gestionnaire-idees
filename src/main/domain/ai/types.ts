@@ -7,7 +7,9 @@ export const REMOTE_TASK_KINDS = [
   'suggerer_liens',
   'germer',
   'suggerer',
-  'rechercher'
+  'rechercher',
+  // Mini-widget généré par Claude (spec 004) : seule tâche qui produit du code.
+  'widget'
 ] as const
 
 export type TaskKind = (typeof LOCAL_TASK_KINDS)[number] | (typeof REMOTE_TASK_KINDS)[number]

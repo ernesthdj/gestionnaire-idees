@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../components/atoms/Button'
 import type { DiveModel } from './diveModel'
 import { MAX_AI_DEPTH } from './diveModel'
+import { DocumentBody, useIdeaDocument } from '../hatched/HatchedPanel'
 import { AiThinking } from './AiThinking'
 import { Gauge } from './Gauge'
 import type { FusionActions } from '../fusion/useFusion'
@@ -78,6 +79,7 @@ export function QuestionPanel({
   const others = model.extensions.filter((extension) => extension.id !== selected?.id)
   const focus = model.focus
   const disabled = actions.thinking
+  const ideaDocument = useIdeaDocument(model.root.id).data ?? null
 
   // Changer de neurone ciblé referme les formulaires ouverts.
   useEffect(() => {
@@ -112,11 +114,22 @@ export function QuestionPanel({
     <aside aria-label="Questions de l’IA" className="flex h-full flex-col gap-4 overflow-auto p-4 text-sm">
       <Gauge gauge={model.gauge} />
 
+      {ideaDocument === null ? null : (
+        <details className="rounded-lg bg-surface-raised p-3">
+          <summary className="cursor-pointer text-xs font-semibold select-none">
+            Document de l’idée (cycle précédent)
+          </summary>
+          <article className="mt-3 space-y-4">
+            <DocumentBody document={ideaDocument} />
+          </article>
+        </details>
+      )}
+
       <PromoteSection model={model} onPromote={onPromote} />
 
       <LockSection model={model} fusion={fusion} />
 
-      <AiThinking thinking={actions.thinking} worker={actions.worker} />
+      <AiThinking thinking={actions.thinking} searching={actions.searching} worker={actions.worker} />
 
       {actions.message === null ? null : (
         <div
@@ -170,6 +183,8 @@ export function QuestionPanel({
                 aria-describedby={emptyHint ? ids.freeHint : undefined}
                 maxLength={1000}
                 rows={3}
+                // Figé pendant que l'IA travaille : la question affichée va être remplacée, le texte serait perdu.
+                readOnly={disabled}
                 onChange={(event) => {
                   setFreeText(event.target.value)
                   setEmptyHint(false)
@@ -180,8 +195,12 @@ export function QuestionPanel({
                     submitFree()
                   }
                 }}
-                placeholder="Ta réponse… (Maj+Entrée pour aller à la ligne)"
-                className="field-sizing-content max-h-40 min-h-20 w-full resize-none overflow-y-auto rounded-md bg-surface px-2 py-2 leading-5"
+                placeholder={
+                  disabled
+                    ? 'L’IA réfléchit… tu pourras répondre dans un instant.'
+                    : 'Ta réponse… (Maj+Entrée pour aller à la ligne)'
+                }
+                className="field-sizing-content max-h-40 min-h-20 w-full resize-none overflow-y-auto rounded-md bg-surface px-2 py-2 leading-5 read-only:cursor-wait read-only:opacity-60"
               />
               <div className="flex items-center justify-end gap-2">
                 {emptyHint ? (

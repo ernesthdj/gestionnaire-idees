@@ -1,12 +1,16 @@
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { app, globalShortcut, Notification } from 'electron'
+import { app, globalShortcut, Notification, session } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
 import { seedDemo } from './infrastructure/db/demo/seedDemo'
 import { GlobalShortcut } from './shell/GlobalShortcut'
 import { loginItemSettings, startsHidden } from './shell/lifecycle'
 import { TrayController } from './shell/TrayController'
 import { WindowManager } from './shell/WindowManager'
+import { installWidgetProtocol, registerWidgetScheme } from './shell/widgetProtocol'
+
+// Protocole isolé des widgets (spec 004) : à déclarer avant que l'app soit prête.
+registerWidgetScheme()
 
 // Profil de démonstration (développement uniquement) : données FICTIVES dans un dossier séparé, jamais le vrai profil.
 const demoProfile = !app.isPackaged && process.argv.includes('--demo')
@@ -66,6 +70,7 @@ function start(): void {
       }
     })
     if (demoProfile && seedDemo(context.database.db).seeded) context.logger.info('demo.seeded', {})
+    installWidgetProtocol(session.defaultSession, context.widgets)
 
     const settings = context.appSettings.get()
     applyLaunchAtLogin(settings.launchAtLogin)

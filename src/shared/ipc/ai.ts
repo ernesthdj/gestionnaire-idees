@@ -31,6 +31,8 @@ export interface AiConfigView {
   readonly alertRatio: number
   readonly usdEurRate: number
   readonly claudeModel: string
+  /** Modèle Claude des widgets (spec 004). */
+  readonly widgetModel: string
   readonly localModel: string
   readonly allowClaudeFallback: boolean
   readonly maskAmounts: boolean

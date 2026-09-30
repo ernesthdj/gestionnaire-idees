@@ -12,6 +12,7 @@ import { openDatabase, type DatabaseHandle } from '../../src/main/infrastructure
 import { ContextRepository } from '../../src/main/infrastructure/db/repositories/ContextRepository'
 import { FusionRepository } from '../../src/main/infrastructure/db/repositories/FusionRepository'
 import { GrowthRepository } from '../../src/main/infrastructure/db/repositories/GrowthRepository'
+import { HatchedRepository } from '../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { LinkRepository } from '../../src/main/infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from '../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { createGatewayHarness, type GatewayHarness } from './gateway'
@@ -44,6 +45,7 @@ interface Services {
   readonly growth: GrowthService
   readonly fusion: FusionService
   readonly fusionRepository: FusionRepository
+  readonly growthRepository: GrowthRepository
   readonly examples: ExampleStore
   readonly links: LinkService
   readonly seeds: SeedService
@@ -56,6 +58,7 @@ export interface NeuronHarness {
   readonly growth: GrowthService
   readonly fusion: FusionService
   readonly fusionRepository: FusionRepository
+  readonly growthRepository: GrowthRepository
   readonly examples: ExampleStore
   readonly links: LinkService
   readonly seeds: SeedService
@@ -87,7 +90,14 @@ export function createNeuronHarness(): NeuronHarness {
     const neuronRepository = new NeuronRepository(db.db)
     const neurons = new NeuronService({ repository: neuronRepository, gateway: h.gateway })
     const tree = new GrowthRepository(db.db)
-    const growth = new GrowthService({ repository: tree, neurons, gateway: h.gateway, emit })
+    const hatched = new HatchedRepository(db.db)
+    const growth = new GrowthService({
+      repository: tree,
+      neurons,
+      gateway: h.gateway,
+      emit,
+      document: (rootId) => hatched.result(rootId)
+    })
     const fusionRepository = new FusionRepository(db.db)
     const examples = new ExampleStore(new ContextRepository(db.db))
     const applier = new SynthesisApplier({
@@ -109,7 +119,7 @@ export function createNeuronHarness(): NeuronHarness {
       links,
       emit
     })
-    return { neurons, growth, fusion, fusionRepository, examples, links, seeds, linkRepository }
+    return { neurons, growth, fusion, fusionRepository, growthRepository: tree, examples, links, seeds, linkRepository }
   }
 
   const services = build(handle)

@@ -130,7 +130,16 @@ describe('écran Idées', () => {
 
   it('should_add_a_block_and_delete_it_with_its_button', async () => {
     const user = userEvent.setup()
-    const block = { id: '00000000-0000-4000-8000-0000000000b1', x: 0, y: 0, width: 240, height: 160 }
+    const block = {
+      id: '00000000-0000-4000-8000-0000000000b1',
+      kind: 'empty' as const,
+      x: 0,
+      y: 0,
+      width: 240,
+      height: 160,
+      text: null,
+      versionId: null
+    }
     const { api } = renderCanvas({ ...canvasView(), blocks: [block] })
     await user.click(await screen.findByRole('button', { name: '+ Bloc' }))
     expect(api.invoke).toHaveBeenCalledWith('canvas:createBlock', expect.objectContaining({ x: expect.any(Number) }))

@@ -48,7 +48,11 @@ describe('résultat d’une idée éclose (spec 003 US5)', () => {
     expect(result?.type).toBe('reflection_summary')
     if (result?.type !== 'reflection_summary') return
     expect(result.keyPoints).toEqual([
-      { text: 'Idée fictive de démonstration', sources: [{ id: demoId('sub', 110), title: 'budget : 250 €' }] }
+      {
+        headline: null,
+        text: 'Idée fictive de démonstration',
+        sources: [{ id: demoId('sub', 110), title: 'budget : 250 €' }]
+      }
     ])
     expect(result.pros[0]?.sources.map((source) => source.title)).toEqual(['budget : 250 €', 'échéance : ce mois-ci'])
     expect(result.openQuestions).toEqual([{ text: 'Quel budget ?' }])

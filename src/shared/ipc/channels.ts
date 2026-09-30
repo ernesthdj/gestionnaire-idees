@@ -59,7 +59,10 @@ export const MAIN_WINDOW_CHANNELS = [
   'canvas:deleteBlock',
   'history:list',
   'history:undo',
-  'hatched:get'
+  'hatched:get',
+  'widget:get',
+  'widget:prompt',
+  'widget:restore'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -77,7 +80,9 @@ export const MAIN_WINDOW_EVENTS = [
   'synthesis:stale',
   'suggestion:updated',
   'links:suggested',
-  'seeds:suggested'
+  'seeds:suggested',
+  'widget:thinking',
+  'widget:thought'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

@@ -4,7 +4,18 @@ import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
 import type { AppDatabase } from '../client'
 import { readPlacement, writePlacement, type Placement } from './placement'
 import { examples } from '../schema'
-import { changeLog, linkSeeds, neuronLinks, neurons, planNodes, reflectionSummaries, syntheses } from '../schemaNeurons'
+import {
+  canvasBlocks,
+  changeLog,
+  extensions,
+  linkSeeds,
+  neuronLinks,
+  neurons,
+  planNodes,
+  reflectionSummaries,
+  suggestions,
+  syntheses
+} from '../schemaNeurons'
 
 export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
 
@@ -153,6 +164,26 @@ export class HistoryRepository {
       }
       case 'neuron_placement':
         return (readPlacement(this.db, id) as Snapshot | undefined) ?? null
+      case 'canvas_block': {
+        const row = this.db
+          .select({ kind: canvasBlocks.kind, deletedAt: canvasBlocks.deletedAt })
+          .from(canvasBlocks)
+          .where(eq(canvasBlocks.id, id))
+          .get()
+        return row === undefined || row.deletedAt !== null ? null : { kind: row.kind }
+      }
+      case 'neuron_absorb': {
+        const row = this.db.select({ absorbedIn: neurons.absorbedIn }).from(neurons).where(eq(neurons.id, id)).get()
+        return row ?? null
+      }
+      case 'extension': {
+        const row = this.db.select({ status: extensions.status }).from(extensions).where(eq(extensions.id, id)).get()
+        return row ?? null
+      }
+      case 'suggestion': {
+        const row = this.db.select({ status: suggestions.status }).from(suggestions).where(eq(suggestions.id, id)).get()
+        return row ?? null
+      }
       case 'link_seed': {
         const row = this.db
           .select({ status: linkSeeds.status, bornRootId: linkSeeds.bornRootId })
@@ -232,6 +263,41 @@ export class HistoryRepository {
       case 'neuron_placement':
         if (target !== null) writePlacement(this.db, id, target as unknown as Placement)
         return
+      case 'canvas_block':
+        this.db
+          .update(canvasBlocks)
+          .set({ deletedAt: target === null ? new Date().toISOString() : null })
+          .where(eq(canvasBlocks.id, id))
+          .run()
+        return
+      case 'neuron_absorb':
+        if (target === null) return
+        this.db
+          .update(neurons)
+          .set({ absorbedIn: typeof target['absorbedIn'] === 'string' ? target['absorbedIn'] : null })
+          .where(eq(neurons.id, id))
+          .run()
+        return
+      case 'extension': {
+        const status = target?.['status']
+        if (status !== 'proposed' && status !== 'dismissed') return
+        this.db
+          .update(extensions)
+          .set({ status, resolvedAt: status === 'proposed' ? null : new Date().toISOString() })
+          .where(eq(extensions.id, id))
+          .run()
+        return
+      }
+      case 'suggestion': {
+        const status = target?.['status']
+        if (status !== 'proposed' && status !== 'dismissed') return
+        this.db
+          .update(suggestions)
+          .set({ status, resolvedAt: status === 'proposed' ? null : new Date().toISOString() })
+          .where(eq(suggestions.id, id))
+          .run()
+        return
+      }
       case 'link_seed': {
         if (target === null || typeof target['status'] !== 'string') return
         const status = target['status'] as 'suggested' | 'accepted'

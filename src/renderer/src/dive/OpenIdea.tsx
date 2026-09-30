@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { CategoryView, ConfirmView, GrowthResultView, SeedView } from '@shared/ipc/neurons'
+import type { CategoryView, ConfirmView, GrowthResultView, SeedView, TreeView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 import { ideaTreeLayout, type Point } from '../canvas/ideaTreeLayout'
@@ -45,7 +45,9 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
   const fusionTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(fusionTimer.current), [])
 
-  const tree = dive.tree.data
+  // Pendant l'éclosion, l'arbre d'avant reste affiché : ses sous-neurones (déjà absorbés en base) se résorbent.
+  const [frozen, setFrozen] = useState<TreeView | null>(null)
+  const tree = frozen ?? dive.tree.data
   const model = useMemo(() => (tree === undefined ? null : diveModel(tree, focusId)), [tree, focusId])
   // Question affichée retenue explicitement : de nouvelles questions arrivées en arrière-plan ne la remplacent pas
   // (sinon la question — et le texte en cours — changeaient pendant la frappe). Seule sa disparition (répondue,
@@ -110,11 +112,17 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
   }
 
   // Confirmation : les sous-neurones se résorbent vers l'idée, qui grandit sur place (FR-019).
-  const onConfirmed = (confirmed: ConfirmView): void => {
+  const onConfirming = (): void => setFrozen(dive.tree.data ?? null)
+  const onConfirmed = (confirmed: ConfirmView | null): void => {
+    if (confirmed === null) {
+      setFrozen(null)
+      return
+    }
     focus(null)
     setFusing(true)
     fusionTimer.current = setTimeout(() => {
       setFusing(false)
+      setFrozen(null)
       hatch(`« ${confirmed.root.title} » a éclos.`, confirmed.batchId)
     }, timingFor('fusion', props.reduced).duration)
   }
@@ -184,6 +192,7 @@ export function OpenIdea(props: OpenIdeaProps): React.JSX.Element | null {
         onSelectExtension={setSelectedExtensionId}
         onFocus={onFocus}
         onOpenIdea={openIdea}
+        onConfirming={onConfirming}
         onConfirmed={onConfirmed}
         onClose={closeIdea}
         onPromote={promote}

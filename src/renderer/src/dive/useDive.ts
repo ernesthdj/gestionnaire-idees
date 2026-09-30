@@ -48,6 +48,8 @@ export interface DiveActions {
   readonly tree: UseQueryResult<TreeView>
   /** L'IA prépare les questions suivantes (ou une action est en cours). */
   readonly thinking: boolean
+  /** L'IA cherche des idées en arrière-plan : la question affichée ne change pas, la saisie reste libre. */
+  readonly searching: boolean
   /** Qui réfléchit (Claude et lequel, ou Ollama) ; null tant que l'appel n'est pas parti. */
   readonly worker: AiWorker | null
   /** Sous-neurone affiché avant la confirmation du moteur. */
@@ -55,6 +57,8 @@ export interface DiveActions {
   readonly message: { readonly tone: 'info' | 'error'; readonly text: string } | null
   dismissMessage(): void
   answer(extensionId: string, dimension: string, answer: Answer): Promise<boolean>
+  /** Nouveau cycle de questions (idée approfondie après son éclosion). */
+  develop(): Promise<boolean>
   more(neuronId: string): Promise<boolean>
   dismiss(extensionId: string): Promise<boolean>
   addBranch(parentId: string, title: string): Promise<boolean>
@@ -73,6 +77,7 @@ export function useDive(rootId: string): DiveActions {
   const tree = useQuery({ queryKey: ['dive', rootId], queryFn: () => call<TreeView>('neuron:getTree', { rootId }) })
   const [thinking, setThinking] = useState(false)
   const [worker, setWorker] = useState<AiWorker | null>(null)
+  const [searching, setSearching] = useState(false)
   const [pending, setPending] = useState<readonly PendingChild[]>([])
   const [message, setMessage] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -90,13 +95,16 @@ export function useDive(rootId: string): DiveActions {
     const offs = [
       window.api.on('neuron:thinking', (payload) => {
         if (!mine(payload)) return
-        setThinking(true)
+        const background = typeof payload === 'object' && payload !== null && 'background' in payload
+        if (background) setSearching(true)
+        else setThinking(true)
         const announced = workerOf(payload)
         if (announced !== null) setWorker(announced)
       }),
       window.api.on('neuron:thought', (payload) => {
         if (!mine(payload)) return
         setThinking(false)
+        setSearching(false)
         setWorker(null)
       }),
       window.api.on('neuron:created', (payload) => {
@@ -143,6 +151,7 @@ export function useDive(rootId: string): DiveActions {
   return {
     tree,
     thinking: thinking || busy,
+    searching,
     worker,
     pending,
     message,
@@ -152,6 +161,7 @@ export function useDive(rootId: string): DiveActions {
       setPending([{ extensionId, title: value === null ? `À trouver : ${dimension}` : `${dimension} : ${value}` }])
       return run('growth:answer', { extensionId, answer })
     },
+    develop: () => run('growth:develop', { rootId }),
     more: (neuronId: string) => run('growth:more', { neuronId }),
     dismiss: (extensionId: string) => run('growth:dismiss', { extensionId }),
     addBranch: (parentId: string, title: string) => run('growth:addBranch', { parentId, title }),

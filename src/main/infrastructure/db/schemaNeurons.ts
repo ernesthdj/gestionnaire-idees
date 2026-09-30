@@ -44,6 +44,11 @@ export const neurons = sqliteTable(
     posY: real('pos_y'),
     /** Glissé à la main sur la carte : la physique le garde à sa place (les autres s'écartent). */
     pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
+    /**
+     * Synthèse qui a absorbé ce sous-neurone à l'éclosion (spec 003 T064) : il disparaît de la carte et des
+     * questions, mais reste en données (source du document, cycles suivants).
+     */
+    absorbedIn: text('absorbed_in'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -190,6 +195,9 @@ export const reflectionSummaries = sqliteTable(
     prosJson: text('pros_json').notNull(),
     consJson: text('cons_json').notNull(),
     openQuestionsJson: text('open_questions_json').notNull(),
+    /** Fiche éditoriale : « En bref » et prochaine étape conseillée (absents des synthèses plus anciennes). */
+    overview: text('overview'),
+    nextStep: text('next_step'),
     isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(true)
   },
   (t) => [index('reflection_summaries_root_idx').on(t.rootId)]
@@ -256,12 +264,62 @@ export const changeLog = sqliteTable(
  */
 export const canvasBlocks = sqliteTable('canvas_blocks', {
   id: text('id').primaryKey(),
+  /** Bloc vide (003), note (étiquette de texte) ou widget généré par Claude (spec 004). */
+  kind: text('kind', { enum: ['empty', 'label', 'widget'] })
+    .notNull()
+    .default('empty'),
   x: real('x').notNull(),
   y: real('y').notNull(),
   width: real('width').notNull(),
   height: real('height').notNull(),
+  /** Texte d'une note. */
+  text: text('text'),
+  /** Version affichée d'un widget (restaurer une version = changer ce pointeur). */
+  currentVersionId: text('current_version_id'),
+  /** Suppression annulable : le bloc (et les versions d'un widget) reste en base jusqu'à la purge. */
+  deletedAt: text('deleted_at'),
   createdAt: createdAt()
 })
+
+/** Versions d'un widget (spec 004) : chaque génération par Claude en crée une ; le code n'est jamais modifié. */
+export const widgetVersions = sqliteTable(
+  'widget_versions',
+  {
+    id: text('id').primaryKey(),
+    blockId: text('block_id')
+      .notNull()
+      .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
+    title: text('title').notNull(),
+    html: text('html').notNull(),
+    css: text('css').notNull(),
+    ts: text('ts').notNull(),
+    /** JavaScript issu du TypeScript (types retirés localement) : seul code exécuté. */
+    js: text('js').notNull(),
+    summary: text('summary').notNull(),
+    model: text('model').notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [index('widget_versions_block_idx').on(t.blockId)]
+)
+
+/** Conversation d'un widget : demandes de l'utilisateur et réponses de Claude (résumé de ce qui a changé). */
+export const widgetMessages = sqliteTable(
+  'widget_messages',
+  {
+    id: text('id').primaryKey(),
+    blockId: text('block_id')
+      .notNull()
+      .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['user', 'assistant'] }).notNull(),
+    text: text('text').notNull(),
+    versionId: text('version_id'),
+    /** Réponse en échec (message d'erreur affiché, aucune version créée). */
+    failed: integer('failed', { mode: 'boolean' }).notNull().default(false),
+    createdAt: createdAt()
+  },
+  (t) => [index('widget_messages_block_idx').on(t.blockId)]
+)
 
 /** Réglages génériques clé/valeur (JSON validé à la lecture). */
 export const settings = sqliteTable('settings', {

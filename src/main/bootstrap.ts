@@ -41,6 +41,9 @@ import { createLinkRoutes } from './ipc/linkHandlers'
 import { createSeedRoutes } from './ipc/seedHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
+import { createWidgetRoutes } from './ipc/widgetHandlers'
+import { WidgetService } from './application/widgets/WidgetService'
+import { WidgetRepository } from './infrastructure/db/repositories/WidgetRepository'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 
 export interface AppContext {
@@ -51,6 +54,8 @@ export interface AppContext {
   readonly examples: ExampleStore
   readonly neurons: NeuronService
   readonly appSettings: AppSettingsRepository
+  /** Versions des widgets : lues par le protocole isolé `gi-widget://` (spec 004). */
+  readonly widgets: WidgetRepository
   stop(): void
 }
 
@@ -135,11 +140,13 @@ export function bootstrap(shell: ShellPort): AppContext {
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
   const growthRepository = new GrowthRepository(database.db)
+  const hatchedRepository = new HatchedRepository(database.db)
   const growth = new GrowthService({
     repository: growthRepository,
     neurons,
     gateway: ai.gateway,
-    emit: (event) => broadcast(event.type, event)
+    emit: (event) => broadcast(event.type, event),
+    document: (rootId) => hatchedRepository.result(rootId)
   })
   const linkRepository = new LinkRepository(database.db)
   const seeds = new SeedService({
@@ -174,6 +181,12 @@ export function bootstrap(shell: ShellPort): AppContext {
   })
 
   const appSettings = new AppSettingsRepository(database.db)
+  const widgetRepository = new WidgetRepository(database.db)
+  const widgets = new WidgetService({
+    repository: widgetRepository,
+    gateway: ai.gateway,
+    emit: (event) => broadcast(event.type, event)
+  })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
@@ -205,7 +218,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         })
       ),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
-      ...createHatchedRoutes(new HatchedRepository(database.db))
+      ...createHatchedRoutes(hatchedRepository),
+      ...createWidgetRoutes(widgets)
     ],
     logger,
     rendererFileUrl
@@ -219,6 +233,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     examples,
     neurons,
     appSettings,
+    widgets: widgetRepository,
     stop: () => {
       stopWatching()
       ai.stop()

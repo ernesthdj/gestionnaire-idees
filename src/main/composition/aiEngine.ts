@@ -86,7 +86,11 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     providers: { ollama, claude },
     config: () => {
       const current = config.get()
-      return { routing: current.routing as RoutingTable, allowClaudeFallback: current.allowClaudeFallback }
+      return {
+        routing: current.routing as RoutingTable,
+        allowClaudeFallback: current.allowClaudeFallback,
+        claudeModelFor: (kind) => (kind === 'widget' ? current.widgetModel : undefined)
+      }
     },
     context: async (kind) => options.contextSource(kind),
     anonymizer: {

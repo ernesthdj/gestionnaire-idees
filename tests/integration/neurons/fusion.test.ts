@@ -196,7 +196,7 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
     expect(() => t.fusion.confirm(first.id)).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
   })
 
-  it('should_reopen_a_hatched_neuron_keeping_previous_plan', async () => {
+  it('should_deepen_a_hatched_neuron_keeping_its_plan_as_current_document', async () => {
     const tree = await readyRoot(t)
     t.h.claude.enqueue(screenPlan())
     const proposal = await t.fusion.lock({ rootId: tree.root.id })
@@ -205,9 +205,74 @@ describe('verrouillage, synthèse et éclosion (US3)', () => {
     expect(reopened.root.state).toBe('developing')
     const plan = t.fusionRepository.planOf(tree.root.id)
     expect(plan).toHaveLength(4)
-    expect(plan.every((node) => !node.isCurrent)).toBe(true)
+    expect(plan.every((node) => node.isCurrent)).toBe(true)
     expect(t.fusionRepository.synthesis(proposal.id)?.status).toBe('confirmed')
     expect(() => t.fusion.reopen(tree.root.id)).toThrow(expect.objectContaining({ code: 'NOT_HATCHED' }))
+  })
+
+  it('should_absorb_the_sub_neurons_into_the_document_when_hatching', async () => {
+    const tree = await readyRoot(t)
+    const before = t.growthRepository.nodes(tree.root.id).length
+    t.h.claude.enqueue(screenPlan())
+    t.fusion.confirm((await t.fusion.lock({ rootId: tree.root.id })).id)
+    const after = t.neurons.getTree(tree.root.id)
+    expect(after.neurons).toHaveLength(0)
+    expect(after.extensions).toHaveLength(0)
+    expect(t.growthRepository.nodes(tree.root.id).map((node) => node.id)).toEqual([tree.root.id])
+    expect(t.growthRepository.nodesWithHistory(tree.root.id)).toHaveLength(before)
+  })
+
+  it('should_carry_the_open_questions_of_the_document_without_calling_the_ai_when_deepened', async () => {
+    const tree = await readyRoot(t, 'reflection', ['Pour le reportage', 'Poids du sac', 'Location possible'])
+    t.h.claude.enqueue(reflectionSummary)
+    t.fusion.confirm((await t.fusion.lock({ rootId: tree.root.id })).id)
+    t.fusion.reopen(tree.root.id)
+    t.h.claude.enqueue(
+      etendreReply(['Question inventée ?'], 'sufficient', {
+        suggestions: [{ neuronRef: 's0', title: 'Louer un 35 mm un week-end', content: 'Tester avant d’acheter.' }]
+      })
+    )
+    const developed = (await t.growth.develop(tree.root.id)).tree
+    // Les questions reprises sont là tout de suite, sans attendre l'IA.
+    expect(developed.extensions.map((extension) => extension.question)).toEqual(['Revendre le 24-70 ?'])
+    expect(developed.extensions[0]?.dimension).toBe('Revendre le 24-70')
+    // En arrière-plan, l'IA n'apporte que des idées suggérées : aucune question en plus.
+    await t.growth.settled()
+    const after = t.neurons.getTree(tree.root.id)
+    expect(after.extensions.map((extension) => extension.question)).toEqual(['Revendre le 24-70 ?'])
+    expect(after.suggestions.map((suggestion) => suggestion.title)).toEqual(['Louer un 35 mm un week-end'])
+    expect(t.h.anonymized.at(-1)).toContain('ne propose AUCUNE question')
+  })
+
+  it('should_ask_new_questions_from_the_document_when_it_leaves_nothing_open', async () => {
+    const tree = await readyRoot(t)
+    t.h.claude.enqueue(screenPlan())
+    t.fusion.confirm((await t.fusion.lock({ rootId: tree.root.id })).id)
+    t.fusion.reopen(tree.root.id)
+    t.h.claude.enqueue(etendreReply(['Quelle marque ?', 'Où l’acheter ?', 'Quel pied ?']))
+    const developed = (await t.growth.develop(tree.root.id)).tree
+    expect(developed.extensions.map((extension) => extension.question)).toEqual([
+      'Quelle marque ?',
+      'Où l’acheter ?',
+      'Quel pied ?'
+    ])
+    const input = t.h.anonymized.at(-1) ?? ''
+    expect(input).toContain("Document de l'idée (cycles précédents")
+    expect(input).toMatch(/Nouveau cycle/)
+  })
+
+  it('should_synthesize_the_next_cycle_from_the_whole_history', async () => {
+    const tree = await readyRoot(t)
+    t.h.claude.enqueue(screenPlan())
+    t.fusion.confirm((await t.fusion.lock({ rootId: tree.root.id })).id)
+    const firstCycle = t.growthRepository.nodesWithHistory(tree.root.id).map((node) => node.title)
+    t.fusion.reopen(tree.root.id)
+    t.h.claude.enqueue(etendreReply(['Quelle marque ?', 'Où l’acheter ?', 'Quel pied ?']))
+    await t.growth.develop(tree.root.id)
+    t.h.claude.enqueue(screenPlan())
+    await t.fusion.lock({ rootId: tree.root.id, force: true })
+    const request = t.h.anonymized.at(-1) ?? ''
+    for (const title of firstCycle) expect(request).toContain(title)
   })
 
   it('should_refuse_locking_a_hatched_neuron', async () => {

@@ -72,6 +72,36 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
     expect(within(panel()).queryByText(/Ollama/)).toBeNull()
   })
 
+  it('should_freeze_the_answer_field_while_the_ai_prepares_the_next_questions', async () => {
+    const user = userEvent.setup()
+    let finish = (): void => undefined
+    renderDive(developingTree(), {
+      'growth:answer': () => new Promise((resolve) => (finish = () => resolve({ tree: developingTree() })))
+    })
+    await loaded()
+    await user.click(await within(panel()).findByRole('button', { name: 'Ce mois-ci' }))
+    const field = within(panel()).getByLabelText('Ta réponse') as HTMLTextAreaElement
+    expect(field.readOnly).toBe(true)
+    await act(async () => finish())
+    await waitFor(() => expect(field.readOnly).toBe(false))
+  })
+
+  it('should_keep_the_answer_field_free_while_the_ai_searches_ideas_in_the_background', async () => {
+    const { api } = renderDive()
+    await loaded()
+    await act(async () =>
+      api.emit('neuron:thinking', {
+        rootId: ROOT_ID,
+        neuronId: ROOT_ID,
+        background: true,
+        engine: 'ollama',
+        model: 'qwen3.5:9b'
+      })
+    )
+    expect(within(panel()).getByText('L’IA cherche des idées…')).toBeDefined()
+    expect((within(panel()).getByLabelText('Ta réponse') as HTMLTextAreaElement).readOnly).toBe(false)
+  })
+
   it('should_ignore_the_thinking_event_of_another_idea', async () => {
     const { api } = renderDive()
     await loaded()

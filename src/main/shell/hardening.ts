@@ -25,6 +25,12 @@ export function guardNavigation(window: BrowserWindow): void {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
     if (devUrl === undefined || !url.startsWith(devUrl)) event.preventDefault()
   })
+  // Un cadre (widget, spec 004) ne navigue que vers un document de widget : jamais vers le web ni un fichier.
+  window.webContents.on('will-frame-navigate', (event) => {
+    if (!event.isMainFrame && !event.url.startsWith('gi-widget:')) event.preventDefault()
+  })
+  // WebRTC contourne la CSP : aucune connexion UDP directe, quelle que soit la page.
+  window.webContents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
 }
 
 /** Charge une page de l'interface : serveur de développement, ou fichiers empaquetés. */

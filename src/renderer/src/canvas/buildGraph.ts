@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { CanvasNeuronView, IdeasCanvasView } from '@shared/ipc/canvas'
+import type { BlockView, CanvasNeuronView, IdeasCanvasView } from '@shared/ipc/canvas'
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
@@ -36,9 +36,20 @@ export type LinkEdgeData = {
 }
 export type LinkEdgeType = Edge<LinkEdgeData, 'link'>
 
-export type BlockNodeType = Node<Record<string, never>, 'block'>
+export type BlockNodeData = { readonly block: BlockView }
+export type BlockNodeType = Node<BlockNodeData, 'block'>
+/** Note posée sur la carte (spec 004). Type React Flow « label » : « note » désigne déjà le texte d'un sous-neurone. */
+export type LabelNodeType = Node<BlockNodeData, 'label'>
+export type WidgetNodeType = Node<BlockNodeData, 'widget'>
 
-export type CanvasNode = NeuronNodeType | BlockNodeType
+export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType
+
+const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget' } as const
+
+function blockAriaLabel(block: BlockView): string {
+  if (block.kind === 'label') return block.text === '' || block.text === null ? 'Note vide' : `Note : ${block.text}`
+  return block.kind === 'widget' ? 'Widget IA' : 'Bloc vide'
+}
 
 const STATE_LABELS: Record<CanvasState, string> = {
   raw: 'Idée brute',
@@ -173,14 +184,14 @@ export function buildGraph(
     deletable: false,
     selectable: false
   }))
-  const blockNodes = view.blocks.map((block): BlockNodeType => ({
+  const blockNodes = view.blocks.map((block): BlockNodeType | LabelNodeType | WidgetNodeType => ({
     id: block.id,
-    type: 'block',
+    type: BLOCK_NODE_TYPES[block.kind],
     position: { x: block.x, y: block.y },
     width: block.width,
     height: block.height,
-    data: {},
-    ariaLabel: 'Bloc vide (mini-widgets en v2)',
+    data: { block },
+    ariaLabel: blockAriaLabel(block),
     deletable: false
   }))
   return { nodes: [...neuronNodes, ...blockNodes], edges }

@@ -49,7 +49,7 @@ export class SynthesisApplier {
   confirm(synthesisId: string): ConfirmView {
     const row = this.current(synthesisId)
     const { repository } = this.deps
-    const nodes = this.deps.tree.nodes(row.rootId)
+    const nodes = this.deps.tree.nodesWithHistory(row.rootId)
     const idOf = new Map([...aliasesOf(nodes)].map(([id, alias]) => [alias, id]))
     const before = this.deps.neurons.getTree(row.rootId).root
     const batchId = randomUUID()
@@ -57,11 +57,13 @@ export class SynthesisApplier {
 
     try {
       repository.transaction(() => {
-        repository.retireCurrentResults(row.rootId)
+        const retired = repository.retireCurrentResults(row.rootId)
         const changes =
           row.type === 'action_plan'
             ? this.writePlan(row, ActionPlanOut.parse(payload))
             : this.writeReflection(row, ReflectionSummaryOut.parse(payload), idOf)
+        // Les sous-neurones du cycle rejoignent le document : la carte se vide pour le cycle suivant (T064).
+        const absorbed = this.deps.tree.absorb(row.rootId, row.id)
         repository.setRootState(row.rootId, 'hatched')
         repository.decide(row.id, 'confirmed', batchId)
         // Exemple appris consigné dans le lot : l'annulation de l'éclosion le retire.
@@ -72,7 +74,9 @@ export class SynthesisApplier {
           output: payload
         })
         repository.log(batchId, [
+          ...retired,
           ...changes,
+          ...absorbed,
           {
             kind: 'confirm_synthesis',
             entity: 'example',
@@ -103,13 +107,15 @@ export class SynthesisApplier {
     return { batchId, root: this.deps.neurons.getTree(row.rootId).root }
   }
 
-  /** Réouverture (FR-015) : l'idée repart en développement, plan et synthèse précédents restent consultables. */
+  /**
+   * Approfondir (FR-015, T064) : l'idée repart en développement pour un nouveau cycle de questions. Son document
+   * reste en cours : il nourrit les questions et reste lisible jusqu'à la prochaine éclosion qui le remplace.
+   */
   reopen(rootId: string): TreeView {
     const root = this.deps.neurons.getTree(rootId).root
     if (root.state !== 'hatched') throw new AppError('NOT_HATCHED', 'Seule une idée éclose peut être rouverte')
     const { repository } = this.deps
     repository.transaction(() => {
-      repository.retireCurrentResults(rootId)
       repository.setRootState(rootId, 'developing')
       repository.log(randomUUID(), [
         {
@@ -179,7 +185,11 @@ export class SynthesisApplier {
   ): ChangeEntry[] {
     const points = (list: ReflectionSummaryOut['keyPoints']): string =>
       JSON.stringify(
-        list.map((point) => ({ text: point.text, sourceIds: point.sourceRefs.flatMap((ref) => idOf.get(ref) ?? []) }))
+        list.map((point) => ({
+          ...(point.headline === undefined ? {} : { headline: point.headline }),
+          text: point.text,
+          sourceIds: point.sourceRefs.flatMap((ref) => idOf.get(ref) ?? [])
+        }))
       )
     const insert = {
       id: randomUUID(),
@@ -187,7 +197,9 @@ export class SynthesisApplier {
       decisionsJson: points(summary.decisions),
       prosJson: points(summary.pros),
       consJson: points(summary.cons),
-      openQuestionsJson: JSON.stringify(summary.openQuestions)
+      openQuestionsJson: JSON.stringify(summary.openQuestions),
+      overview: summary.overview ?? null,
+      nextStep: summary.nextStep ?? null
     }
     this.deps.repository.insertReflection(row.rootId, row.id, insert)
     return [

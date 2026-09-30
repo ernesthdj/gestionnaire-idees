@@ -1,21 +1,21 @@
 import { randomUUID } from 'node:crypto'
 import { EtendreOut, type Extension } from '@shared/ai/neurons'
-import type { TreeView } from '@shared/ipc/neurons'
+import type { HatchedResultView, TreeView } from '@shared/ipc/neurons'
 import { MAX_WEB_SEARCHES } from '../../domain/ai/routing'
 import type { AIErrorCode, Engine } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
-import {
-  applyGaugeFloor,
-  filterNewExtensions,
-  filterNewSuggestions,
-  MAX_AI_DEPTH,
-  MIN_EXTENSIONS
-} from '../../domain/neurons/guards'
+import { applyGaugeFloor, filterNewExtensions, filterNewSuggestions, MAX_AI_DEPTH } from '../../domain/neurons/guards'
 import { aliasesOf, descendantsOf } from '../../domain/neurons/tree'
 import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
 import type { GrowthRepository } from '../../infrastructure/db/repositories/GrowthRepository'
 import type { AIGateway } from '../ai/AIGateway'
-import { buildGrowthInput, type ExtensionMode } from './GrowthContextBuilder'
+import {
+  buildGrowthInput,
+  carriedQuestions,
+  documentText,
+  minimumExtensions,
+  type ExtensionMode
+} from './GrowthContextBuilder'
 import type { NeuronService } from './NeuronService'
 
 export type GrowthEvent =
@@ -27,6 +27,8 @@ export type GrowthEvent =
       /** Moteur qui travaille, connu une fois l'appel parti (repli compris). */
       readonly engine?: Engine
       readonly model?: string
+      /** Travail de fond (idées suggérées d'un nouveau cycle) : la question affichée ne changera pas. */
+      readonly background?: boolean
     }
   | { readonly type: 'neuron:thought'; readonly rootId: string }
   | { readonly type: 'suggestion:updated'; readonly rootId: string; readonly suggestionId: string }
@@ -54,6 +56,8 @@ export interface GrowthDependencies {
   readonly neurons: NeuronService
   readonly gateway: AIGateway
   readonly emit: (event: GrowthEvent) => void
+  /** Document en cours de l'idée (éclosions précédentes) : contexte interne du cycle suivant (T064). */
+  readonly document?: (rootId: string) => HatchedResultView | null
 }
 
 /**
@@ -65,7 +69,7 @@ export class GrowthService {
 
   constructor(private readonly deps: GrowthDependencies) {}
 
-  /** Attend la fin des vérifications web en cours (tests, arrêt propre). */
+  /** Attend la fin des tâches de fond (vérifications web, idées d'un nouveau cycle) : tests, arrêt propre. */
   async settled(): Promise<void> {
     await Promise.all([...this.inFlight])
   }
@@ -83,7 +87,37 @@ export class GrowthService {
       return { tree: this.tree(rootId) }
     }
     this.deps.repository.touchRoot(rootId, 'developing')
+    const carried = this.carryOpenQuestions(rootId)
+    if (carried !== null) return carried
     return this.extend(rootId, rootId, 'first')
+  }
+
+  /**
+   * Début d'un nouveau cycle (T064) : les questions laissées ouvertes par le document deviennent les questions du
+   * cycle, sans appel à l'IA. `null` si ce n'est pas un nouveau cycle ou qu'il ne reste rien à reprendre.
+   */
+  private carryOpenQuestions(rootId: string): GrowthResult | null {
+    const { repository } = this.deps
+    const current = this.deps.document?.(rootId) ?? null
+    if (current === null || repository.nodes(rootId).length > 1) return null
+    const known = new Set(repository.knownQuestions(rootId))
+    const carried = carriedQuestions(current).filter((extension) => !known.has(extension.question))
+    if (carried.length === 0) return null
+    repository.transaction(() => {
+      repository.insertExtensions(rootId, rootId, carried)
+      repository.touchRoot(rootId)
+    })
+    this.suggestInBackground(rootId)
+    return { tree: this.tree(rootId) }
+  }
+
+  /** Idées suggérées et jauge du nouveau cycle, sans faire attendre ses questions (IA locale par défaut). */
+  private suggestInBackground(rootId: string): void {
+    const task = this.extend(rootId, rootId, 'new_cycle')
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => this.inFlight.delete(task))
+    this.inFlight.add(task)
   }
 
   async answer(input: { readonly extensionId: string; readonly answer: Answer }): Promise<GrowthResult> {
@@ -176,7 +210,7 @@ export class GrowthService {
       return id
     })
     this.deps.emit({ type: 'neuron:created', rootId: suggestion.rootId, neuronId })
-    const mode: ExtensionMode = parent.depth + 1 >= MAX_AI_DEPTH ? 'assess_only' : 'follow_up'
+    const mode: ExtensionMode = parent.depth + 1 >= MAX_AI_DEPTH ? 'assess_only' : 'adopted'
     return this.extend(suggestion.rootId, neuronId, mode)
   }
 
@@ -307,14 +341,17 @@ export class GrowthService {
 
   private async grow(rootId: string, targetId: string, mode: ExtensionMode): Promise<GrowthResult> {
     const { repository } = this.deps
-    this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId })
+    const background = mode === 'new_cycle' ? { background: true } : {}
+    this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId, ...background })
+    const current = this.deps.document?.(rootId) ?? null
+    const document = current === null ? undefined : documentText(current)
     const attempt = async () =>
       this.deps.gateway.run({
         kind: 'etendre',
         schema: EtendreOut,
         allowDegraded: true,
         onEngine: (engine, model) =>
-          this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId, engine, model }),
+          this.deps.emit({ type: 'neuron:thinking', rootId, neuronId: targetId, engine, model, ...background }),
         input: buildGrowthInput({
           nature: this.tree(rootId).root.nature,
           nodes: repository.nodes(rootId),
@@ -322,7 +359,8 @@ export class GrowthService {
           knownQuestions: repository.knownQuestions(rootId),
           knownSuggestions: repository.knownSuggestions(rootId),
           answered: repository.answeredCount(rootId),
-          mode
+          mode,
+          ...(document === undefined ? {} : { document })
         })
       })
 
@@ -340,9 +378,12 @@ export class GrowthService {
     }
 
     const fresh = (data: EtendreOut): Extension[] =>
-      mode === 'assess_only' ? [] : filterNewExtensions(data.extensions, repository.knownQuestions(rootId))
+      mode === 'assess_only' || mode === 'new_cycle'
+        ? []
+        : filterNewExtensions(data.extensions, repository.knownQuestions(rootId))
     let kept = fresh(result.value.data)
-    if (mode === 'first' && kept.length < MIN_EXTENSIONS) {
+    const minimum = minimumExtensions(mode)
+    if (kept.length < minimum) {
       const retry = await attempt()
       if (retry.ok && retry.value.data.kind === 'extensions') {
         const retried = fresh(retry.value.data)
@@ -383,7 +424,7 @@ export class GrowthService {
     })
 
     const notice =
-      mode === 'first' && kept.length < MIN_EXTENSIONS
+      kept.length < minimum
         ? {
             code: 'FEW_EXTENSIONS' as const,
             message: 'L’IA a peu de pistes : ajoute les tiennes avec « Ajouter ma branche ».'

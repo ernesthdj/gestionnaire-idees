@@ -15,6 +15,8 @@ export interface CompletionRequest<T> {
   readonly schema: z.ZodType<T>
   readonly effort?: Effort
   readonly maxTokens: number
+  /** Modèle propre à la tâche (ex. widgets sur Sonnet) ; sinon le modèle configuré du moteur. */
+  readonly model?: string
 }
 
 export interface CompletionResponse<T> {

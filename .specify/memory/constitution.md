@@ -1,6 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0 (2026-09-28, validé par mentalyas)
+- Version change: 1.1.0 → 1.2.0 (2026-09-29, validé par mentalyas)
+- Modified principles: III (exception unique au refus de produire du code : tâche `widget`, bac à sable)
+- Motif : mini-widgets générés par Claude sur la carte (FOUNDATION §0.3, spec 004)
+- Impact : spec 004 (cadre système `WidgetFrame`, protocole isolé `gi-widget://`), spec 005 (capacités)
+- Historique : 1.0.0 → 1.1.0 (2026-09-28, validé par mentalyas)
 - Modified principles: III (suggestions de valeurs par l'IA, sourcées et soumises à acceptation),
   IV (montants exacts par défaut, masquage en fourchettes devenu un réglage)
 - Motif : calculs sur montants exacts ; suggestions d'approfondissement (neurones fantômes, recherche web)
@@ -50,6 +54,12 @@ Rationale : une IA peut se tromper ; l'utilisateur reste maître de son agenda (
   système est figé dans le code et ne peut pas être remplacé par un import de contexte.
 - Le contexte importé (profil, règles, exemples) MUST passer par un aperçu validé par l'utilisateur,
   versionné et réversible.
+- Exception unique au refus de produire du code : la tâche `widget` dispose de son propre cadre système
+  figé (fichier unique HTML/CSS/TypeScript effaçable, aucune ressource externe, aucune API de l'app hors
+  pont de capacités). Le code généré MUST s'exécuter uniquement dans le bac à sable `gi-widget://`
+  (iframe sans `allow-same-origin`, CSP sans réseau, requêtes sortantes filtrées) ; il n'est jamais évalué
+  ni injecté dans l'app. Un widget sans capacité peut s'exécuter sans revue préalable ; toute demande de
+  capacité MUST imposer la revue du code et des capacités avant exécution.
 Rationale : limiter hallucinations et injections de prompt, garder l'agent dans son rôle de secrétaire.
 
 ### IV. Local d'abord & minimisation des données
@@ -124,4 +134,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-28
+**Version**: 1.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29

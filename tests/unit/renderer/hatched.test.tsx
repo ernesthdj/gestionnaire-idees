@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { HatchedResultView } from '../../../src/shared/ipc/neurons'
@@ -96,10 +96,18 @@ const PLAN: HatchedResultView = {
 
 const SUMMARY: HatchedResultView = {
   type: 'reflection_summary',
-  keyPoints: [{ text: 'Le budget tient', sources: [{ id: CHILD_ID, title: 'budget : 200 €' }] }],
+  overview: 'L’écran rentre dans le budget ; reste à choisir la taille.',
+  nextStep: 'Mesurer le bureau ce soir',
+  keyPoints: [
+    {
+      headline: 'Budget tenu',
+      text: 'Les 200 € prévus suffisent.',
+      sources: [{ id: CHILD_ID, title: 'budget : 200 €' }]
+    }
+  ],
   decisions: [],
-  pros: [],
-  cons: [],
+  pros: [{ headline: null, text: 'Travail plus confortable', sources: [] }],
+  cons: [{ headline: null, text: 'Moins de place sur le bureau', sources: [] }],
   openQuestions: [{ text: 'Quelle taille ?' }]
 }
 
@@ -113,7 +121,8 @@ function renderHatched(result: HatchedResultView) {
   return renderOpenIdea(() => hatchedTree, {
     'fusion:getProposed': () => null,
     'hatched:get': () => result,
-    'fusion:reopen': () => hatchedTree
+    'fusion:reopen': () => hatchedTree,
+    'growth:develop': () => ({ tree: developingTree() })
   })
 }
 
@@ -130,21 +139,44 @@ describe('idée éclose', () => {
     expect(within(panel).getByText('quand : mission payée (pas encore)')).toBeDefined()
   })
 
-  it('should_open_the_source_sub_neuron_of_a_reflection_point', async () => {
-    const user = userEvent.setup()
+  it('should_present_the_summary_as_an_editorial_sheet', async () => {
     renderHatched(SUMMARY)
-    await user.click(await screen.findByRole('button', { name: 'Voir la source : budget : 200 €' }))
-    const crumbs = screen.getByRole('navigation', { name: 'Fil d’Ariane' })
-    expect(within(crumbs).getByText('budget : 200 €').getAttribute('aria-current')).toBe('page')
+    const brief = await screen.findByRole('region', { name: 'En bref' })
+    expect(within(brief).getByText('L’écran rentre dans le budget ; reste à choisir la taille.')).toBeDefined()
+    const points = screen.getByRole('region', { name: 'Points clés' })
+    expect(within(points).getByText('Budget tenu')).toBeDefined()
+    expect(within(points).getByText('Les 200 € prévus suffisent.')).toBeDefined()
+    expect(within(screen.getByRole('region', { name: 'Pour' })).getByText('Travail plus confortable')).toBeDefined()
+    expect(
+      within(screen.getByRole('region', { name: 'Contre' })).getByText('Moins de place sur le bureau')
+    ).toBeDefined()
+    const next = screen.getByRole('region', { name: 'Prochaine étape' })
+    expect(within(next).getByText('Mesurer le bureau ce soir')).toBeDefined()
   })
 
-  it('should_reopen_the_idea_only_after_confirmation', async () => {
+  it('should_read_as_a_clean_document_with_its_origins_folded', async () => {
+    const user = userEvent.setup()
+    renderHatched(SUMMARY)
+    const points = await screen.findByRole('region', { name: 'Points clés' })
+    expect(within(points).getByText('Budget tenu')).toBeDefined()
+    const origin = within(points).getByText('budget : 200 €')
+    expect(origin.closest('details')?.open).toBe(false)
+    await user.click(within(points).getByText('D’où ça vient'))
+    expect(origin.closest('details')?.open).toBe(true)
+  })
+
+  it('should_start_a_new_cycle_of_questions_when_deepened', async () => {
     const user = userEvent.setup()
     const api = renderHatched(PLAN)
-    await user.click(await screen.findByRole('button', { name: 'Rouvrir l’idée' }))
-    expect(api.invoke).not.toHaveBeenCalledWith('fusion:reopen', expect.anything())
-    await user.click(screen.getByRole('button', { name: 'Confirmer la réouverture' }))
+    await user.click(await screen.findByRole('button', { name: 'Approfondir' }))
     expect(api.invoke).toHaveBeenCalledWith('fusion:reopen', { rootId: ROOT_ID })
+    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('growth:develop', { rootId: ROOT_ID }))
+  })
+
+  it('should_have_no_accessibility_violation_in_the_editorial_sheet', async () => {
+    renderHatched(SUMMARY)
+    await screen.findByRole('region', { name: 'En bref' })
+    await expectNoAxeViolations(document.body)
   })
 
   it('should_have_no_accessibility_violation', async () => {

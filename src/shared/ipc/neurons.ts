@@ -204,6 +204,8 @@ export interface PlanDependencyView {
 }
 
 export interface SourcedPointView {
+  /** Titre court du point (fiche éditoriale) ; `null` pour les synthèses plus anciennes. */
+  readonly headline: string | null
   readonly text: string
   /** Sous-neurones d'où vient le point (peuvent avoir été supprimés depuis). */
   readonly sources: readonly { readonly id: string; readonly title: string }[]
@@ -218,6 +220,9 @@ export type HatchedResultView =
     }
   | {
       readonly type: 'reflection_summary'
+      /** « En bref » et prochaine étape conseillée ; `null` pour les synthèses plus anciennes. */
+      readonly overview: string | null
+      readonly nextStep: string | null
       readonly keyPoints: readonly SourcedPointView[]
       readonly decisions: readonly SourcedPointView[]
       readonly pros: readonly SourcedPointView[]

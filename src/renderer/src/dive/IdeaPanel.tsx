@@ -22,7 +22,8 @@ interface IdeaPanelProps {
   readonly onSelectExtension: (extensionId: string) => void
   readonly onFocus: (neuronId: string | null) => void
   readonly onOpenIdea: (rootId: string) => void
-  readonly onConfirmed: (confirmed: ConfirmView) => void
+  readonly onConfirming: () => void
+  readonly onConfirmed: (confirmed: ConfirmView | null) => void
   readonly onClose: () => void
   /** Fait éclore l'idée suggérée ciblée en idée à part entière (FR-036). */
   readonly onPromote: (neuronId: string) => Promise<boolean>
@@ -123,9 +124,9 @@ export function IdeaPanel(props: IdeaPanelProps): React.JSX.Element {
             L’idée éclôt…
           </p>
         ) : model.root.state === 'hatched' ? (
-          <HatchedPanel rootId={rootId} onOpenSource={(id) => props.onFocus(id)} />
+          <HatchedPanel rootId={rootId} onDeepened={() => void props.actions.develop()} />
         ) : props.fusion.synthesis !== null ? (
-          <SynthesisPreview fusion={props.fusion} onConfirmed={props.onConfirmed} />
+          <SynthesisPreview fusion={props.fusion} onConfirming={props.onConfirming} onConfirmed={props.onConfirmed} />
         ) : (
           <QuestionPanel
             model={model}

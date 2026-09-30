@@ -1,45 +1,86 @@
 import { randomUUID } from 'node:crypto'
-import { asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { BlockView } from '@shared/ipc/canvas'
 import type { AppDatabase } from '../client'
 import { canvasBlocks } from '../schemaNeurons'
+import { writeChanges, type ChangeEntry } from './changeLog'
 
 const COLUMNS = {
   id: canvasBlocks.id,
+  kind: canvasBlocks.kind,
   x: canvasBlocks.x,
   y: canvasBlocks.y,
   width: canvasBlocks.width,
-  height: canvasBlocks.height
+  height: canvasBlocks.height,
+  text: canvasBlocks.text,
+  versionId: canvasBlocks.currentVersionId
 }
 
-/** Blocs libres de l'écran Idées (spec 003 FR-026). */
+export interface BlockPatch {
+  readonly id: string
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+  /** Texte d'une note (absent : inchangé). */
+  readonly text?: string
+}
+
+/** Blocs de l'écran Idées : vides (spec 003 FR-026), notes et widgets (spec 004). */
 export class BlockRepository {
   constructor(private readonly db: AppDatabase) {}
 
+  transaction<T>(work: () => T): T {
+    return this.db.transaction(() => work())
+  }
+
+  /** Blocs visibles (les blocs supprimés restent en base pour l'annulation). */
   list(): BlockView[] {
     return this.db
       .select(COLUMNS)
       .from(canvasBlocks)
+      .where(isNull(canvasBlocks.deletedAt))
       .orderBy(asc(sql`${canvasBlocks}.rowid`))
       .all()
   }
 
   get(id: string): BlockView | undefined {
-    return this.db.select(COLUMNS).from(canvasBlocks).where(eq(canvasBlocks.id, id)).get()
+    return this.db
+      .select(COLUMNS)
+      .from(canvasBlocks)
+      .where(and(eq(canvasBlocks.id, id), isNull(canvasBlocks.deletedAt)))
+      .get()
   }
 
-  insert(block: Omit<BlockView, 'id'>): BlockView {
+  insert(block: Omit<BlockView, 'id' | 'versionId'>): BlockView {
     const created = { id: randomUUID(), ...block }
     this.db.insert(canvasBlocks).values(created).run()
-    return created
+    return { ...created, versionId: null }
   }
 
-  update(block: BlockView): boolean {
-    const { id, ...geometry } = block
-    return this.db.update(canvasBlocks).set(geometry).where(eq(canvasBlocks.id, id)).run().changes > 0
+  update(patch: BlockPatch): boolean {
+    const { id, text, ...geometry } = patch
+    return (
+      this.db
+        .update(canvasBlocks)
+        .set({ ...geometry, ...(text === undefined ? {} : { text }) })
+        .where(and(eq(canvasBlocks.id, id), isNull(canvasBlocks.deletedAt)))
+        .run().changes > 0
+    )
   }
 
-  delete(id: string): boolean {
-    return this.db.delete(canvasBlocks).where(eq(canvasBlocks.id, id)).run().changes > 0
+  /** Suppression annulable : le bloc disparaît de la carte, ses versions et sa conversation sont gardées. */
+  softDelete(id: string): boolean {
+    return (
+      this.db
+        .update(canvasBlocks)
+        .set({ deletedAt: new Date().toISOString() })
+        .where(and(eq(canvasBlocks.id, id), isNull(canvasBlocks.deletedAt)))
+        .run().changes > 0
+    )
+  }
+
+  log(batchId: string, entries: readonly ChangeEntry[]): void {
+    writeChanges(this.db, batchId, entries)
   }
 }

@@ -42,6 +42,7 @@ function configView(config: AiConfig): AiConfigView {
     alertRatio: config.alertRatio,
     usdEurRate: config.usdEurRate,
     claudeModel: config.claudeModel,
+    widgetModel: config.widgetModel,
     localModel: config.localModel,
     allowClaudeFallback: config.allowClaudeFallback,
     maskAmounts: config.maskAmounts
@@ -54,6 +55,7 @@ const ConfigPatch = z
     alertRatio: z.number().min(0.5).max(0.95),
     usdEurRate: z.number().min(0.5).max(2),
     claudeModel: z.enum(CLAUDE_MODELS),
+    widgetModel: z.enum(CLAUDE_MODELS),
     localModel: z
       .string()
       .min(1)

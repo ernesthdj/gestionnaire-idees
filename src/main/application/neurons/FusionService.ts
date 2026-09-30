@@ -74,7 +74,7 @@ export class FusionService {
       this.stale(existing)
     }
 
-    const nodes = this.deps.tree.nodes(root.id)
+    const nodes = this.deps.tree.nodesWithHistory(root.id)
     const request = buildSynthesisInput({ nature: root.nature, nodes, missing, forced })
     const result = await this.synthesize(root.id, root.nature, nodes, request)
     return this.propose(root.id, root.version, result, { instruction: null, forced })
@@ -83,7 +83,7 @@ export class FusionService {
   async revise(input: { readonly synthesisId: string; readonly instruction: string }): Promise<SynthesisView> {
     const row = this.deps.applier.current(input.synthesisId)
     const { root, gauge } = this.deps.neurons.getTree(row.rootId)
-    const nodes = this.deps.tree.nodes(row.rootId)
+    const nodes = this.deps.tree.nodesWithHistory(row.rootId)
     const previous: unknown = JSON.parse(row.payloadJson)
     const result = await this.synthesize(
       row.rootId,
@@ -117,7 +117,7 @@ export class FusionService {
   /** Correction d'un élément de l'aperçu, revalidée (P1–P5 / S1) avant d'être enregistrée (spec 003 T031). */
   editProposed(input: { readonly synthesisId: string; readonly patch: SynthesisPatch }): SynthesisView {
     const row = this.deps.applier.current(input.synthesisId)
-    const known = new Set(aliasesOf(this.deps.tree.nodes(row.rootId)).values())
+    const known = new Set(aliasesOf(this.deps.tree.nodesWithHistory(row.rootId)).values())
     const payload: unknown = JSON.parse(row.payloadJson)
     const outcome =
       row.type === 'action_plan'
@@ -250,7 +250,7 @@ export class FusionService {
         ? { type: 'action_plan', plan: ActionPlanOut.parse(payload) }
         : { type: 'reflection_summary', summary: ReflectionSummaryOut.parse(payload) }
     const sources = Object.fromEntries(
-      [...aliasesOf(this.deps.tree.nodes(row.rootId))].map(([id, alias]) => [alias, id])
+      [...aliasesOf(this.deps.tree.nodesWithHistory(row.rootId))].map(([id, alias]) => [alias, id])
     )
     return {
       ...content,
