@@ -102,3 +102,12 @@ else swap(u, v)                                      // ④ pas mieux → on ann
 - [[Liens entre idées — graphe local de mots-clés]] — d'où viennent les liens dessinés.
 - [[Glossaire — Générateur pseudo-aléatoire à graine (PRNG)]] — le hasard reproductible.
 - [[TanStack Query et Zustand ↔ cache de données et état d'interface]] — quand la carte est recalculée.
+
+
+## Évolution du 30/09 — une seule carte, une physique pour tout
+> ⚠️ **Correction du 30/09** — Cette note décrit deux **zones** (incubateur à gauche, réseau à droite) et une force de rappel « vers le centre de la zone ». Depuis les décisions du 29/09 (FR-029 à FR-035, JOURNAL), **les zones n'existent plus** : toutes les idées partagent un seul espace (`ZoneNode` supprimé). Le principe forces + réduction des croisements reste valable.
+
+- **Taille = niveau de contexte** : 5 paliers (brute → éclose) au lieu d'une zone par état.
+- **Un seul moteur physique** (`physics.ts`, `useCanvasPhysics.ts`) pour idées, sous-neurones, textes et blocs : pendant un glisser, les voisins s'écartent en direct ; l'objet lâché est **épinglé** (mémorisé en base, migration `0008`).
+- **Limite assumée** : la disposition sans croisement sert de point de départ ; une fois que la physique a déplacé des objets, le zéro croisement n'est plus garanti (arbitrage validé).
+- **Nouveaux objets sur la carte** : notes et widgets, créés par clic droit dans le vide (`ToolMenu.tsx`), bornes de taille vérifiées **par le main** (`BLOCK_LIMITS`) → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]]. Une idée « supprimée » est archivée → [[Glossaire — Suppression douce (soft delete)]].

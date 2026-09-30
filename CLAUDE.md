@@ -42,7 +42,7 @@ gestionnaire-idees/
 
 Active : oui
 Dossier : docs/academique/
-Derniere mise a jour : 2026-09-29
+Derniere mise a jour : 2026-09-30
 
 ## Stack
 

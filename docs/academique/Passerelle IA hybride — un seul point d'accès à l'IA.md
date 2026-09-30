@@ -113,3 +113,10 @@ for (let attempt = 0; attempt < 2; attempt += 1) {
 - [[Budget IA — convertir des tokens en euros]] — `budget.check()` avant, `budget.record()` après.
 - [[Zod ↔ type guards et sortie structurée]] — la validation de la réponse.
 - [[Injection de prompt — cadre figé et données balisées]] — l'assemblage du contexte envoyé.
+
+
+## Évolution du 30/09 — routage révisé, moteur annoncé, texte « tel quel »
+- **Routage par défaut révisé** (mesure des coûts du 29/09, T069) : `etendre`, `germer` et `suggerer_liens` passent sur **Ollama** ; Claude garde `synthetiser`, `reviser`, `suggerer`, `rechercher` et `widget`. L'extrait `DEFAULT_ROUTING` plus haut (« `etendre: 'claude'` ») date d'avant cette révision. Le repli vers Claude si Ollama est arrêté n'a lieu que si « Autoriser Claude en secours » est coché (JOURNAL).
+- **`CLAUDE_ONLY_KINDS`** : pendant de `LOCAL_ONLY_KINDS` — la tâche `widget` va toujours chez Claude, quelle que soit la configuration (l'IA locale ne génère pas de code).
+- **`onEngine(engine, model)`** : rappel appelé **au moment où l'appel part réellement** (à l'intérieur du sémaphore, repli compris). L'interface affiche donc le moteur qui travaille vraiment (« Ollama · … » ou « Claude … »), pas celui que le routage prévoyait ; une demande encore en file n'annonce rien.
+- **`verbatim`** : texte ajouté à la demande **après** l'anonymisation, sans la traverser. Utilisé pour renvoyer à Claude le code actuel d'un widget → [[Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât]].

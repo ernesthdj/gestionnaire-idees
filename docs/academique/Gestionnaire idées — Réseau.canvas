@@ -246,6 +246,35 @@
       "width": 380,
       "height": 320,
       "color": "2"
+    },
+    {
+      "id": "label_004",
+      "type": "text",
+      "text": "Spec 004 — widgets (session du 29→30/09)\nColonne centrale = parcours 19 à 20\nNouveaux glossaires : Origine web et origine opaque, Suppression douce — voir MOC\nBlocs « Évolution du 30/09 » dans 10 notes existantes",
+      "x": -560,
+      "y": 6300,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "c_sandbox",
+      "type": "file",
+      "file": "academique/Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget.md",
+      "x": 0,
+      "y": 6300,
+      "width": 380,
+      "height": 320,
+      "color": "1"
+    },
+    {
+      "id": "c_widget",
+      "type": "file",
+      "file": "academique/Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât.md",
+      "x": 0,
+      "y": 6700,
+      "width": 380,
+      "height": 320,
+      "color": "1"
     }
   ],
   "edges": [
@@ -416,6 +445,22 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "18 éclore puis annuler"
+    },
+    {
+      "id": "e_annuler_sandbox",
+      "fromNode": "c_annuler",
+      "toNode": "c_sandbox",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "19 du code d'IA sur la carte : l'enfermer"
+    },
+    {
+      "id": "e_sandbox_widget",
+      "fromNode": "c_sandbox",
+      "toNode": "c_widget",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "20 le fabriquer et le versionner"
     }
   ]
 }

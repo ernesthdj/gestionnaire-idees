@@ -93,3 +93,7 @@ Extrait réel de `.specify/memory/constitution.md` (en-tête « Sync Impact Repo
 **Connexions**
 - [[Architecture Electron — trois processus cloisonnés]] — première exigence de sécurité mise en œuvre.
 - [[Clean Architecture — domaine, application, infrastructure]] — le principe VI (simplicité) et V (tests) y prennent forme.
+
+
+## Évolution du 30/09 — amendement 1.2.0 : une exception écrite avant le code
+La spec 004 voulait que Claude **génère du code** (les widgets), ce que le principe III interdisait. Même démarche qu'en 1.1.0 : la tâche T001 de `specs/004-widgets/tasks.md` est l'**amendement** (`MINOR`, validé), avant toute ligne de code. L'exception est bornée par des `MUST` vérifiables : cadre système dédié, exécution **uniquement** dans le bac à sable `gi-widget://`, et revue obligatoire dès qu'un widget demandera une capacité (spec 005). Ce que ça donne en code → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]].

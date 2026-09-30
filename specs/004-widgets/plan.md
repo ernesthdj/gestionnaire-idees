@@ -14,7 +14,7 @@ Clic droit sur la carte → panneau d'outils (idée, note, widget). Les notes et
 - **Stack** inchangée (Electron 44 / Node 24.21, React, React Flow, Drizzle/SQLCipher, Zod). **Aucune dépendance
   ajoutée** : transpilation par `stripTypeScriptTypes` de `node:module` (Node 24, mode « strip » : TypeScript
   effaçable uniquement — pas d'`enum`, de `namespace` ni de propriétés de paramètres ; la consigne l'impose).
-- **Modèle** : `claude-sonnet-5-5` par défaut (nouveau réglage `widgetModel`), effort `medium`, `max_tokens` 32 000.
+- **Modèle** : `claude-sonnet-5-5` par défaut (nouveau réglage `widgetModel`), effort `medium`, `max_tokens` 20 000.
   Coût estimé : 3 000 à 6 000 jetons de sortie ≈ 3 à 6 centimes (Sonnet 5.5 : 2 $ / 10 $ par MTok).
 - **Pas de repli local** : l'IA locale ne génère pas de code (`widget` routé Claude, `allowDegraded` faux).
 
@@ -85,7 +85,7 @@ Principes I (sécurité : isolement en 6 couches, tests d'évasion), II (aucune 
 ```
 src/main/application/widgets/WidgetService.ts        # prompt, restore, transpile, bornes
 src/main/application/widgets/WidgetDocument.ts       # construit le document isolé (CSP, prélude, jetons de thème)
-src/main/domain/widgets/transpile.ts                 # stripTypeScriptTypes + messages d'erreur
+src/main/application/widgets/transpile.ts            # stripTypeScriptTypes + messages d'erreur
 src/main/infrastructure/ai/WidgetFrame.ts            # cadre système de la tâche `widget`
 src/main/infrastructure/db/repositories/WidgetRepository.ts
 src/main/shell/widgetProtocol.ts                     # protocole gi-widget:// + filtre webRequest

@@ -93,3 +93,9 @@ export function radialLayout(count: number, hasParent: boolean): RadialLayout {
 - [[Croissance d'un neurone — arbre, garde-fous et jauge]] — l'arbre que la plongée affiche.
 - [[Glossaire — Mise à jour optimiste]] — le principe « afficher avant confirmation ».
 - [[TanStack Query et Zustand ↔ cache de données et état d'interface]] — où vit l'arbre en mémoire côté interface.
+
+
+## Évolution du 30/09 — la plongée n'est plus un écran
+> ⚠️ **Correction du 30/09** — L'écran de plongée décrit ci-dessus a été **retiré** le 29/09 (FR-013 révisée) : `dive/DiveView.tsx`, `DiveStage.tsx` et `radialLayout.ts` sont supprimés. Une idée s'ouvre maintenant **sur la carte** : volet latéral à droite (`dive/OpenIdea.tsx`, `IdeaPanel.tsx`) et arbre déployé autour de l'idée (`canvas/ideaTreeLayout.ts`, puis vrais nœuds React Flow dans `treeGraph.ts`). La **trigonométrie** de cette note reste la bonne base (un anneau par niveau, secteurs proportionnels au nombre de feuilles), et l'affichage optimiste est inchangé ; seuls les fichiers cités ne sont plus à jour.
+
+Règle apprise en chemin (JOURNAL 29/09 16:00) : un état d'interface dérivé d'une liste rafraîchie en arrière-plan (« la première question ») ne doit pas piloter une action destructive (vider la saisie) — retenir la sélection **explicitement**.

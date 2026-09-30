@@ -96,3 +96,7 @@ return { allowed: spent + estimate <= settings.capCents * MILLICENTS_PER_CENT }
 - [[Glossaire — Token (IA)]] — l'unité facturée.
 - [[Injection de prompt — cadre figé et données balisées]] — l'ordre des blocs qui rend le cache efficace.
 - [[Liens entre idées — graphe local de mots-clés]] — une stratégie pour **réduire** les tokens envoyés.
+
+
+## Évolution du 30/09 — mesurer avant d'optimiser (T069)
+Le journal des appels (`ai_calls`) a servi à un **bilan réel** (`scripts/ai-usage.cjs`, lecture seule) : sur deux heures de tests manuels, 107 appels Claude = 4,56 €, dont **64 %** pour la vérification web automatique des suggestions et **32 %** pour les questions suivantes sur le modèle le plus cher (JOURNAL du 29/09). Trois décisions en découlent : vérification web **à la demande** (bouton, plus rien d'automatique), questions/graines/liens sur l'**IA locale**, modèle par défaut moins cher ; les réglages déjà enregistrés sont révisés **une seule fois** (`AiConfigRepository`, révision 2), un choix fait ensuite par l'utilisateur est respecté. Leçon : le plafond protège du pire, mais seule la **répartition par tâche** dit où agir. ⚠️ Gain réel non encore re-mesuré (suivi noté dans le journal).

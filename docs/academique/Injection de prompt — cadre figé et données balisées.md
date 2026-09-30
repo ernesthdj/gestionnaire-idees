@@ -96,3 +96,7 @@ export function wrapUserData(text: string): string {
 - [[Zod ↔ type guards et sortie structurée]] — la deuxième barrière : la forme de la réponse.
 - [[Import de contexte — paquet vérifié, versionné, réversible]] — d'où viennent profil, règles et exemples.
 - [[Glossaire — Token (IA)]] — l'unité de texte que lit le modèle.
+
+
+## Évolution du 30/09 — un deuxième cadre figé, pour la seule tâche `widget`
+L'étape 4 ci-dessus (« demander du code → `out_of_scope` ») reste vraie pour toutes les tâches **sauf une** : la constitution 1.2.0 autorise la tâche `widget` à produire du code. Elle a son **propre cadre** (`WIDGET_FRAME`, `src/main/infrastructure/ai/WidgetFrame.ts`), lui aussi constante versionnée ; `assembleContext` l'envoie **seul** — ni profil, ni règles, ni exemples importés (minimisation) — et la demande reste enfermée entre `<donnees_utilisateur>`. Point clé, écrit dans le commentaire du fichier : ce cadre **décrit** le bac à sable pour que le widget y fonctionne, il n'est **pas** la barrière de sécurité, qui ne dépend pas du modèle → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]].

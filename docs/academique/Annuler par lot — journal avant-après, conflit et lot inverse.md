@@ -103,3 +103,13 @@ return repository.transaction(() => {
 - [[Éclosion atomique — transaction, version et historique]] — où le lot est écrit.
 - [[Glossaire — Transaction ACID]] — la garantie tout-ou-rien.
 - [[Glossaire — Idempotence]] — pourquoi `ALREADY_UNDONE` : rejouer l'annulation ne doit rien doubler.
+
+
+## Évolution du 30/09 — de nouveaux lots, même mécanique
+Le journal avant/après s'est élargi sans changer de principe (`HistoryKind` : `seed`, `delete`, `promote` en plus de `confirm_synthesis`, `manual_edit`, `link`, `undo`) :
+- **`seed`** — idée née d'une graine : l'annuler **archive** l'idée née ; conflit si elle a poussé depuis.
+- **`delete`** — idée supprimée (archivée avec tout son contenu) ou **bloc de la carte** supprimé (note, widget) : entité `canvas_block`, « avant » = présent, « après » = `null` ; restaurer = vider `deleted_at` → [[Glossaire — Suppression douce (soft delete)]].
+- **`promote`** — une suggestion devenue idée à part entière : chaque neurone déplacé reprend sa **place** d'avant (module `placement.ts`).
+- L'éclosion consigne désormais aussi l'**absorption** des sous-neurones (`neuron_absorb`) et les questions closes : annuler une éclosion les fait revenir.
+
+Suite côté éclosion (« Approfondir ») : bloc du 30/09 de [[Éclosion atomique — transaction, version et historique]].
