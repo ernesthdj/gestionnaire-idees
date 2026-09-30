@@ -22,7 +22,7 @@ export interface IdeasCanvasView {
   readonly categories: readonly CategoryView[]
   /** Idées correspondant au filtre ; `null` sans filtre (toutes normales). */
   readonly highlighted: readonly string[] | null
-  /** Blocs posés sur la carte : vides, notes et widgets (spec 004). */
+  /** Blocs posés sur la carte : vides, notes, widgets (spec 004) et cadres résultat (spec 005). */
   readonly blocks: readonly BlockView[]
   /** Prochaine étape de chaque idée qui en a une (document en cours). */
   readonly steps: readonly StepView[]
@@ -40,8 +40,11 @@ export interface StepView {
   readonly position: { readonly x: number; readonly y: number } | null
 }
 
-export const BLOCK_KINDS = ['empty', 'label', 'widget'] as const
-/** Bloc vide (003), note = étiquette de texte, widget généré par Claude (spec 004). */
+/** Blocs que l'utilisateur pose lui-même : bloc vide (003), note = étiquette de texte, widget (spec 004). */
+export const CREATABLE_BLOCK_KINDS = ['empty', 'label', 'widget'] as const
+export type CreatableBlockKind = (typeof CREATABLE_BLOCK_KINDS)[number]
+/** S'y ajoute le cadre résultat (spec 005), créé par l'application à la première émission d'un widget. */
+export const BLOCK_KINDS = [...CREATABLE_BLOCK_KINDS, 'result'] as const
 export type BlockKind = (typeof BLOCK_KINDS)[number]
 
 /** Bloc posé sur la carte : position (centre) et taille. */
@@ -56,6 +59,8 @@ export interface BlockView {
   readonly text: string | null
   /** Version affichée d'un widget ; `null` tant qu'aucune n'a été générée. */
   readonly versionId: string | null
+  /** Widget dont un cadre résultat affiche la sortie ; `null` pour les autres blocs. */
+  readonly sourceBlockId: string | null
 }
 
 export interface SizeLimits {
@@ -69,14 +74,19 @@ export interface SizeLimits {
 export const BLOCK_LIMITS: Readonly<Record<BlockKind, SizeLimits>> = {
   empty: { minWidth: 96, minHeight: 96, maxWidth: 1600, maxHeight: 1600 },
   label: { minWidth: 120, minHeight: 48, maxWidth: 800, maxHeight: 600 },
-  widget: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 }
+  widget: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 },
+  result: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 }
 }
 
 export const BLOCK_DEFAULT_SIZES: Readonly<Record<BlockKind, { width: number; height: number }>> = {
   empty: { width: 240, height: 160 },
   label: { width: 240, height: 72 },
-  widget: { width: 520, height: 440 }
+  widget: { width: 520, height: 440 },
+  result: { width: 400, height: 320 }
 }
+
+/** Écart entre un widget et son cadre résultat, posé à sa droite. */
+export const RESULT_GAP = 48
 
 /** Longueur maximale du texte d'une note. */
 export const LABEL_MAX_CHARS = 2000

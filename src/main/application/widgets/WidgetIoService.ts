@@ -1,16 +1,21 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { BLOCK_DEFAULT_SIZES, RESULT_GAP } from '@shared/ipc/canvas'
 import type { HatchedResultView, TreeView } from '@shared/ipc/neurons'
 import {
   IDEA_PARTS,
   type IdeaPart,
   type InputSourceKind,
   type IoLinkView,
+  type WidgetEmitView,
   type WidgetInputData,
   type WidgetInputsView,
-  type WidgetIoStateView
+  type WidgetIoStateView,
+  type WidgetResultView
 } from '@shared/ipc/widgetIo'
 import { AppError } from '../../domain/errors'
+import { checkResult } from '../../domain/widgets/resultLimits'
 import { shapeOf } from '../../domain/widgets/shape'
+import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { WidgetInputRow, WidgetIoRepository } from '../../infrastructure/db/repositories/WidgetIoRepository'
 import type { WidgetRepository, WidgetVersionRow } from '../../infrastructure/db/repositories/WidgetRepository'
 import { assembleIdea, assembleStep, type IdeaFacts } from './InputAssembler'
@@ -18,6 +23,8 @@ import { assembleIdea, assembleStep, type IdeaFacts } from './InputAssembler'
 export interface WidgetIoDependencies {
   readonly repository: WidgetIoRepository
   readonly widgets: Pick<WidgetRepository, 'widget' | 'version'>
+  /** Blocs de la carte : place du widget, et son cadre résultat (créé à la première émission). */
+  readonly blocks: Pick<BlockRepository, 'get' | 'insert' | 'resultBlockOf'>
   /** Idée et son arbre en cours ; `undefined` si elle n'existe plus. */
   readonly tree: (rootId: string) => TreeView | undefined
   readonly document: (rootId: string) => HatchedResultView | null
@@ -37,9 +44,10 @@ export function ioFingerprint(version: WidgetVersionRow, inputs: readonly Widget
 }
 
 /**
- * Entrées des widgets (spec 005 lot 1) : brancher une idée ou une prochaine étape, autoriser une version figée à
- * les lire, puis lui remettre ces données — et seulement elles. C'est ici, dans le main, que se décide ce qu'un
- * widget reçoit : l'interface et le cadre isolé ne font que relayer.
+ * Entrées et sorties des widgets (spec 005) : brancher une idée ou une prochaine étape, autoriser une version figée
+ * à les lire, lui remettre ces données — et seulement elles — puis recevoir le résultat qu'elle publie. C'est ici,
+ * dans le main, que se décide ce qu'un widget reçoit et ce qui est gardé de lui : l'interface et le cadre isolé ne
+ * font que relayer.
  */
 export class WidgetIoService {
   constructor(private readonly deps: WidgetIoDependencies) {}
@@ -138,6 +146,58 @@ export class WidgetIoService {
       return { approved: false, inputs: [] }
     }
     return { approved: true, inputs: this.assemble(rows) }
+  }
+
+  /**
+   * Résultat publié par la version affichée (FR-005, FR-006) : vérifié, gardé comme dernier résultat, et affiché
+   * dans le cadre résultat du widget — créé à sa droite à la première émission, recréé s'il a été supprimé.
+   */
+  emit(input: { readonly blockId: string; readonly versionId: string; readonly data: unknown }): WidgetEmitView {
+    const { repository, blocks } = this.deps
+    const widget = this.widgetOrThrow(input.blockId)
+    if (widget.versionId !== input.versionId) {
+      throw new AppError('INVALID_STATE', 'Ce résultat vient d’une version qui n’est plus affichée')
+    }
+    const check = checkResult(input.data)
+    if (!check.ok) throw new AppError('VALIDATION', check.reason)
+    return repository.transaction((): WidgetEmitView => {
+      repository.saveResult(input.blockId, check.json)
+      const existing = blocks.resultBlockOf(input.blockId)
+      if (existing !== undefined) return { resultBlockId: existing.id, created: false }
+      const source = blocks.get(input.blockId)
+      if (source === undefined) throw new AppError('NOT_FOUND', 'Widget introuvable')
+      const size = BLOCK_DEFAULT_SIZES.result
+      const created = blocks.insert({
+        kind: 'result',
+        x: source.x + source.width / 2 + RESULT_GAP + size.width / 2,
+        y: source.y,
+        ...size,
+        text: null,
+        sourceBlockId: input.blockId
+      })
+      return { resultBlockId: created.id, created: true }
+    })
+  }
+
+  /** Ce qu'affiche un cadre résultat : le dernier résultat de son widget, rien d'autre. */
+  result(resultBlockId: string): WidgetResultView {
+    const frame = this.deps.blocks.get(resultBlockId)
+    if (frame === undefined || frame.kind !== 'result' || frame.sourceBlockId === null) {
+      throw new AppError('NOT_FOUND', 'Cadre résultat introuvable')
+    }
+    const widget = this.widgetOrThrow(frame.sourceBlockId)
+    const row = this.deps.repository.result(frame.sourceBlockId)
+    if (row === undefined) throw new AppError('NOT_FOUND', 'Ce widget n’a pas encore publié de résultat')
+    const version =
+      widget.versionId === null ? undefined : this.deps.widgets.version(frame.sourceBlockId, widget.versionId)
+    const data: unknown = JSON.parse(row.dataJson)
+    return {
+      blockId: frame.id,
+      widgetBlockId: frame.sourceBlockId,
+      widgetTitle: version?.title ?? null,
+      data,
+      updatedAt: row.updatedAt
+    }
   }
 
   /** Structure des entrées branchées (sans aucune valeur), décrite à Claude quand il fait évoluer le widget. */

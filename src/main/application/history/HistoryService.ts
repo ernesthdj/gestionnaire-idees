@@ -27,7 +27,12 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   widget_input: 'Ce branchement a changé depuis.'
 }
 
-const BLOCK_NAMES: Readonly<Record<string, string>> = { label: 'une note', widget: 'un widget', empty: 'un bloc' }
+const BLOCK_NAMES: Readonly<Record<string, string>> = {
+  label: 'une note',
+  widget: 'un widget',
+  result: 'un cadre résultat',
+  empty: 'un bloc'
+}
 
 /** Suppression d'un bloc de la carte (spec 004), ou son annulation. */
 function blockSummary(entry: ChangeRow): string {

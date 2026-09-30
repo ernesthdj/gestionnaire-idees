@@ -17,6 +17,19 @@ export function parseWidgetUrl(url: string): { readonly blockId: string; readonl
   return UUID.test(blockId) && UUID.test(versionId) ? { blockId, versionId } : null
 }
 
+/** Adresse du document d'un cadre résultat (spec 005 FR-006) : `gi-widget://result/<bloc>?scheme=…`. */
+export function parseResultUrl(url: string): { readonly blockId: string } | null {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return null
+  }
+  if (parsed.protocol !== `${WIDGET_SCHEME}:` || parsed.hostname !== 'result') return null
+  const [blockId, ...rest] = parsed.pathname.split('/').filter((part) => part !== '')
+  return blockId !== undefined && rest.length === 0 && UUID.test(blockId) ? { blockId } : null
+}
+
 /**
  * Vrai si une requête émise par un document de widget sort du protocole des widgets : elle doit être annulée
  * (défense en profondeur, FR-007 — même si la CSP du document était contournée).

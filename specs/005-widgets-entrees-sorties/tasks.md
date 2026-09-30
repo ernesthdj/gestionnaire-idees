@@ -27,12 +27,12 @@ description: "Task list — 005 Widgets branchés : entrées, sorties et cadre r
 
 ## Phase 2 : Lot 2 — Sorties (US2)
 
-- [ ] T011 [P] Tests : bornes d'un résultat (taille, profondeur, clés, non-JSON), regroupement des émissions
-- [ ] T012 [P] Tests : `emit` crée le cadre résultat une seule fois, le met à jour, le recrée après suppression
-- [ ] T013 `resultLimits`, `WidgetIoService.emit`, `widgetIo:emit|result`, `gi.output` dans le prélude
-- [ ] T014 [P] Tests : vue générique (valeur, liste, tableau, arbre, HTML affiché comme texte, 1 000 lignes)
-- [ ] T015 `GenericResultView`, protocole `gi-widget://result/…`, `ResultNode`, lien widget → résultat
-- [ ] T016 Test manuel guidé lot 2 — **validation mentalyas**
+- [x] T011 [P] Tests : bornes d'un résultat (taille, profondeur, clés, non-JSON), regroupement des émissions
+- [x] T012 [P] Tests : `emit` crée le cadre résultat une seule fois, le met à jour, le recrée après suppression
+- [x] T013 `resultLimits`, `WidgetIoService.emit`, `widgetIo:emit|result`, `gi.output` dans le prélude ; migration 0015 (+ down) : `widget_results`, `canvas_blocks.source_block_id` ; cadre système `widget` v3 (Claude connaît `gi.output`)
+- [x] T014 [P] Tests : vue générique (valeur, liste, tableau, arbre, HTML affiché comme texte, 1 000 lignes)
+- [x] T015 `GenericResultView`, protocole `gi-widget://result/…`, `ResultNode`, lien widget → résultat
+- [x] T016 Test manuel guidé lot 2 (`quickstart.md`) — validé par mentalyas (2026-09-30)
 
 ## Phase 3 : Lot 3 — Mise en forme par Claude (US3)
 

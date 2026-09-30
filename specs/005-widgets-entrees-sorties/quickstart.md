@@ -54,3 +54,49 @@ affiche ce que tu obtiens. »
 
 - [ ] Aucune donnée en plus de ce qui est branché ; `window.api` absent ; l'app reste utilisable.
 - [ ] Un second widget, non branché, ne reçoit rien (`gi.inputs` vide).
+
+## Lot 2 — Sorties
+
+Préparer : un widget vide (clic droit dans le vide → Widget IA). Aucune idée n'a besoin d'être branchée.
+
+### Premier résultat
+
+- [ ] Demander au widget : « Fais un petit budget : je saisis des lignes (libellé, montant), tu affiches le total.
+      Publie le résultat avec gi.output : le total et la liste des lignes. »
+- [ ] Saisir une première ligne → un **cadre résultat** apparaît à droite du widget, relié à lui par un trait bleu,
+      titré « Résultat · (nom du widget) ».
+- [ ] Le cadre montre le total et, en dessous, les lignes dans un **tableau** (une colonne par champ, montants
+      alignés à droite).
+- [ ] Ajouter, modifier, supprimer des lignes dans le widget : le cadre se met à jour tout seul ; il n'y a
+      toujours qu'un seul cadre.
+
+### Un bloc comme les autres
+
+- [ ] Déplacer le cadre résultat par sa barre de titre, le redimensionner par ses bords : place et taille sont
+      gardées après avoir quitté puis rouvert l'écran Idées.
+- [ ] Fermer l'app, la relancer : le cadre résultat est toujours là, relié à son widget. (Un widget garde son état
+      en mémoire seulement : s'il republie au démarrage, le cadre montre ce nouveau résultat, sinon le dernier.)
+- [ ] Changer de thème (clair / sombre) : le cadre suit.
+
+### Suppression
+
+- [ ] × sur le cadre résultat → il disparaît, notification « Annuler » ; l'annulation le ramène avec son contenu.
+- [ ] Le supprimer de nouveau, puis modifier une ligne dans le widget : un cadre résultat est recréé.
+- [ ] Supprimer le **widget** : son cadre résultat disparaît avec lui ; « Annuler » ramène les deux.
+
+### Autres formes
+
+- [ ] Widget « Pile ou face : publie seulement le dernier tirage (un texte) » → le cadre affiche la valeur en grand.
+- [ ] Widget « Liste de courses : publie la liste des articles (des textes) » → le cadre affiche une liste numérotée.
+
+### Résultat refusé
+
+- [ ] Demander : « Ajoute un bouton de test qui publie un résultat de 300 000 caractères. » Cliquer → un bandeau
+      « Résultat refusé : … » s'affiche en bas du widget ; le cadre résultat garde le résultat précédent.
+
+### Isolation (SC-002, partie sorties)
+
+- [ ] Demander : « Ajoute une ligne dont le libellé est <img src=x onerror=alert(1)><b>gras</b>. » Dans le cadre
+      résultat, le libellé s'affiche tel quel, en texte : ni image, ni gras, ni boîte de dialogue.
+- [ ] Un widget qui publie en boucle (« publie le résultat 100 fois par seconde ») ne ralentit pas la carte ; le
+      cadre se met à jour environ deux fois par seconde.

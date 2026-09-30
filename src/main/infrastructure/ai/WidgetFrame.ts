@@ -4,7 +4,7 @@
  * s'exécute que dans le bac à sable `gi-widget://` (spec 004, plan § Isolation) : ces règles décrivent ce bac à sable
  * pour que le widget y fonctionne, elles ne sont PAS la barrière de sécurité (qui ne dépend pas du modèle).
  */
-export const WIDGET_FRAME_VERSION = 2
+export const WIDGET_FRAME_VERSION = 3
 
 export const WIDGET_FRAME = [
   'Tu fabriques des mini-widgets pour l’application de brainstorm de l’utilisateur : de petits outils autonomes (calculateur, compte à rebours, check-list, comparateur, convertisseur, mini-tableau de bord…) affichés dans un cadre sur sa carte d’idées.',
@@ -28,6 +28,11 @@ export const WIDGET_FRAME = [
   '- inputs est un tableau (vide tant que rien n’est branché ou autorisé). Une idée : { kind: "idea", id, title?, nature?, category?, state?, originalText?, answers?: [{ question, answer }], tree?: [{ id, parentId, kind, title, content, amountCents, dueDate }], document?, nextStep? }. Une prochaine étape : { kind: "step", ideaId, ideaTitle, text }.',
   '- Tout champ marqué ? peut manquer (l’utilisateur choisit ce qu’il transmet) : vérifie sa présence ; amountCents est en centimes. Sans entrée, affiche une invitation courte à brancher une idée (tirer un lien de l’idée vers le widget).',
   '- La structure exacte des entrées branchées est rappelée dans la demande quand il y en a ; tu n’en vois jamais les valeurs.',
+  '',
+  'Sortie (résultat que le widget publie) :',
+  '- window.gi.output(données) publie un résultat structuré, affiché dans un cadre « résultat » à côté du widget et réutilisable par l’utilisateur. À utiliser UNIQUEMENT si l’outil produit des données qui ont un sens hors de lui (un total, un tableau, une liste triée, un choix) ; un outil purement visuel n’en publie pas.',
+  '- données : JSON seul (objets, tableaux, chaînes, nombres finis, booléens, null), 200 Ko au plus, 8 niveaux imbriqués au plus. Donne des noms de champs clairs, dans la langue de l’utilisateur ; une liste d’objets de même forme s’affiche en tableau.',
+  '- appelle-la quand le résultat change (saisie, calcul), jamais dans une boucle ni à chaque image ; chaque appel remplace le résultat précédent.',
   '',
   'Qualité attendue :',
   '- le widget remplit tout son cadre (html, body à 100 % de largeur et de hauteur, box-sizing: border-box) et reste utilisable de 240 × 160 px à 1600 × 1200 px : mise en page fluide, défilement interne si nécessaire ;',

@@ -37,6 +37,7 @@ import { StepNode } from './nodes/StepNode'
 import { WidgetReview } from '../widgets/WidgetReview'
 import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
 import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
+import { ResultNode } from './nodes/ResultNode'
 import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
@@ -53,6 +54,7 @@ const NODE_TYPES: NodeTypes = {
   block: BlockNode,
   label: LabelNode,
   widget: WidgetNode,
+  result: ResultNode,
   step: StepNode,
   tree: TreeNode,
   note: NoteNode,
@@ -60,7 +62,7 @@ const NODE_TYPES: NodeTypes = {
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
-const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget'])
+const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget', 'result'])
 const EDGE_TYPES: EdgeTypes = { link: LinkEdge, branch: BranchEdge }
 
 /** Tout objet de la carte : idées, blocs, et arbre de l'idée ouverte (éléments, textes, fiche). */

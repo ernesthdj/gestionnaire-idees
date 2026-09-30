@@ -67,6 +67,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'widgetIo:disconnect',
   'widgetIo:approve',
   'widgetIo:inputs',
+  'widgetIo:emit',
+  'widgetIo:result',
   'widget:get',
   'widget:prompt',
   'widget:restore'

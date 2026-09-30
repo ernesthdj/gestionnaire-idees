@@ -42,12 +42,14 @@ export type BlockNodeType = Node<BlockNodeData, 'block'>
 /** Note posée sur la carte (spec 004). Type React Flow « label » : « note » désigne déjà le texte d'un sous-neurone. */
 export type LabelNodeType = Node<BlockNodeData, 'label'>
 export type WidgetNodeType = Node<BlockNodeData, 'widget'>
+/** Cadre résultat d'un widget (spec 005). */
+export type ResultNodeType = Node<BlockNodeData, 'result'>
 
 /** « Prochaine étape » d'une idée (FR-037) : non modifiable, reliée à son idée. */
 export type StepNodeData = { readonly step: StepView; readonly dimmed: boolean }
 export type StepNodeType = Node<StepNodeData, 'step'>
 
-export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType | StepNodeType
+export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType | ResultNodeType | StepNodeType
 
 /** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
 export const stepNodeId = (rootId: string): string => `step-${rootId}`
@@ -57,10 +59,11 @@ export const stepRootId = (nodeId: string): string | null =>
 /** Place de départ d'une étape jamais glissée : en bas à droite de son idée. */
 export const STEP_OFFSET = { x: 190, y: 130 } as const
 
-const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget' } as const
+const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget', result: 'result' } as const
 
 function blockAriaLabel(block: BlockView): string {
   if (block.kind === 'label') return block.text === '' || block.text === null ? 'Note vide' : `Note : ${block.text}`
+  if (block.kind === 'result') return 'Résultat d’un widget'
   return block.kind === 'widget' ? 'Widget IA' : 'Bloc vide'
 }
 
@@ -197,7 +200,7 @@ export function buildGraph(
     deletable: false,
     selectable: false
   }))
-  const blockNodes = view.blocks.map((block): BlockNodeType | LabelNodeType | WidgetNodeType => ({
+  const blockNodes = view.blocks.map((block): BlockNodeType | LabelNodeType | WidgetNodeType | ResultNodeType => ({
     id: block.id,
     type: BLOCK_NODE_TYPES[block.kind],
     position: { x: block.x, y: block.y },
@@ -240,5 +243,26 @@ export function buildGraph(
     selectable: false,
     focusable: false
   }))
-  return { nodes: [...neuronNodes, ...blockNodes, ...stepNodes], edges, stepEdges: [...stepEdges, ...ioEdges] }
+  // Un cadre résultat est relié au widget dont il affiche la sortie.
+  const resultEdges = view.blocks.flatMap((block): BranchEdgeType[] =>
+    block.sourceBlockId === null
+      ? []
+      : [
+          {
+            id: `result-line-${block.id}`,
+            type: 'branch',
+            source: block.sourceBlockId,
+            target: block.id,
+            data: { style: 'io' },
+            deletable: false,
+            selectable: false,
+            focusable: false
+          }
+        ]
+  )
+  return {
+    nodes: [...neuronNodes, ...blockNodes, ...stepNodes],
+    edges,
+    stepEdges: [...stepEdges, ...ioEdges, ...resultEdges]
+  }
 }

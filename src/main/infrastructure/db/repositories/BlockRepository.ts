@@ -13,7 +13,8 @@ const COLUMNS = {
   width: canvasBlocks.width,
   height: canvasBlocks.height,
   text: canvasBlocks.text,
-  versionId: canvasBlocks.currentVersionId
+  versionId: canvasBlocks.currentVersionId,
+  sourceBlockId: canvasBlocks.sourceBlockId
 }
 
 export interface BlockPatch {
@@ -26,7 +27,7 @@ export interface BlockPatch {
   readonly text?: string
 }
 
-/** Blocs de l'écran Idées : vides (spec 003 FR-026), notes et widgets (spec 004). */
+/** Blocs de l'écran Idées : vides (spec 003 FR-026), notes et widgets (spec 004), cadres résultat (spec 005). */
 export class BlockRepository {
   constructor(private readonly db: AppDatabase) {}
 
@@ -52,10 +53,28 @@ export class BlockRepository {
       .get()
   }
 
-  insert(block: Omit<BlockView, 'id' | 'versionId'>): BlockView {
-    const created = { id: randomUUID(), ...block }
+  insert(
+    block: Omit<BlockView, 'id' | 'versionId' | 'sourceBlockId'> & { readonly sourceBlockId?: string }
+  ): BlockView {
+    const created = { id: randomUUID(), ...block, sourceBlockId: block.sourceBlockId ?? null }
     this.db.insert(canvasBlocks).values(created).run()
     return { ...created, versionId: null }
+  }
+
+  /** Cadre résultat visible d'un widget (le plus ancien s'il y en a plusieurs après une annulation). */
+  resultBlockOf(widgetBlockId: string): BlockView | undefined {
+    return this.db
+      .select(COLUMNS)
+      .from(canvasBlocks)
+      .where(
+        and(
+          eq(canvasBlocks.kind, 'result'),
+          eq(canvasBlocks.sourceBlockId, widgetBlockId),
+          isNull(canvasBlocks.deletedAt)
+        )
+      )
+      .orderBy(asc(sql`${canvasBlocks}.rowid`))
+      .get()
   }
 
   update(patch: BlockPatch): boolean {

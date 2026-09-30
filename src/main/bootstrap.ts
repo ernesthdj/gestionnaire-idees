@@ -195,6 +195,7 @@ export function bootstrap(shell: ShellPort): AppContext {
   const widgetIo = new WidgetIoService({
     repository: new WidgetIoRepository(database.db),
     widgets: widgetRepository,
+    blocks: new BlockRepository(database.db),
     tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
     document: (rootId) => hatchedRepository.result(rootId)
   })

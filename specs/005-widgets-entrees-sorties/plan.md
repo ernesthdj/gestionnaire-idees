@@ -61,7 +61,7 @@ notre propre format d'idée, pas de la saisie de l'utilisateur ; ils passent mal
 
 ### Cadre résultat
 
-Bloc `kind: 'result'` relié à son widget (`source_block_id`). Document servi par `gi-widget://result/<bloc>/<rev>` :
+Bloc `kind: 'result'` relié à son widget (`source_block_id`). Document servi par `gi-widget://result/<bloc>` :
 - sans mise en forme : vue générique, **code figé de l'app** (tableau / liste / arbre / valeur), données reçues par le pont ;
 - avec mise en forme : version générée par Claude (mêmes tables `widget_versions` / `widget_messages`, rattachées au bloc résultat), qui lit `gi.inputs`.
 Un cadre résultat n'a qu'une capacité : lire le résultat de son widget. Pas de revue (il ne lit aucune idée directement) ; il hérite de l'approbation du widget source.
@@ -76,7 +76,7 @@ directe : le widget n'a pas de capacité d'écriture, c'est l'utilisateur qui ti
 
 - `widget_inputs` : id, block_id → canvas_blocks (cascade), source_kind (`idea` | `result` | `step`), source_id, parts (JSON, liste), created_at, deleted_at.
 - `widget_approvals` : block_id (cascade) + fingerprint (clé), approved_at. L'empreinte couvre le code de la version ET la liste exacte des sources et parties lues : changer l'un ou l'autre redemande la revue.
-- `widget_results` : block_id (le widget, cascade) PK, result_block_id → canvas_blocks, data (JSON), shape, updated_at.
+- `widget_results` (lot 2, migration 0015) : block_id (le widget, cascade) PK, data_json, updated_at. Le cadre se retrouve par `canvas_blocks.source_block_id` (pas de `result_block_id` en double) ; `shape` arrive au lot 3.
 - `neuron_data` : id, root_id → neurons (cascade), title, data (JSON), source_block_id, source_version_id, created_at, deleted_at.
 - `widget_proposals` : id, result_block_id, target_root_id, data (JSON), status (`pending` | `accepted` | `rejected`), created_at.
 - `canvas_blocks.kind` accepte `result` ; `canvas_blocks.source_block_id` (cadre résultat → widget).

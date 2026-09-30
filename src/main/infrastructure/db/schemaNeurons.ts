@@ -279,8 +279,8 @@ export const changeLog = sqliteTable(
  */
 export const canvasBlocks = sqliteTable('canvas_blocks', {
   id: text('id').primaryKey(),
-  /** Bloc vide (003), note (étiquette de texte) ou widget généré par Claude (spec 004). */
-  kind: text('kind', { enum: ['empty', 'label', 'widget'] })
+  /** Bloc vide (003), note (étiquette de texte), widget généré par Claude (spec 004) ou cadre résultat (spec 005). */
+  kind: text('kind', { enum: ['empty', 'label', 'widget', 'result'] })
     .notNull()
     .default('empty'),
   x: real('x').notNull(),
@@ -291,6 +291,8 @@ export const canvasBlocks = sqliteTable('canvas_blocks', {
   text: text('text'),
   /** Version affichée d'un widget (restaurer une version = changer ce pointeur). */
   currentVersionId: text('current_version_id'),
+  /** Cadre résultat (spec 005) : widget dont il affiche le résultat. */
+  sourceBlockId: text('source_block_id'),
   /** Suppression annulable : le bloc (et les versions d'un widget) reste en base jusqu'à la purge. */
   deletedAt: text('deleted_at'),
   createdAt: createdAt()
@@ -332,6 +334,15 @@ export const widgetApprovals = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.blockId, t.fingerprint] })]
 )
+
+/** Dernier résultat émis par un widget (spec 005 FR-006) : JSON borné, affiché par son cadre résultat. */
+export const widgetResults = sqliteTable('widget_results', {
+  blockId: text('block_id')
+    .primaryKey()
+    .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+  dataJson: text('data_json').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
 
 /**
  * Place de la « prochaine étape » d'une idée sur la carte, quand elle a été glissée à la main (épinglée). L'étape

@@ -44,6 +44,17 @@ export class WidgetRepository {
     return row
   }
 
+  /** Vrai si ce bloc est un cadre résultat visible (spec 005) : son document est servi par le protocole isolé. */
+  isResultFrame(blockId: string): boolean {
+    return (
+      this.db
+        .select({ id: canvasBlocks.id })
+        .from(canvasBlocks)
+        .where(and(eq(canvasBlocks.id, blockId), eq(canvasBlocks.kind, 'result'), isNull(canvasBlocks.deletedAt)))
+        .get() !== undefined
+    )
+  }
+
   version(blockId: string, versionId: string): WidgetVersionRow | undefined {
     return this.db
       .select()

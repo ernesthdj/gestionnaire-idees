@@ -24,7 +24,8 @@ const block: BlockView = {
   width: 520,
   height: 440,
   text: null,
-  versionId: null
+  versionId: null,
+  sourceBlockId: null
 }
 
 const version = (id: string, number: number, title: string) => ({

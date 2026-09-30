@@ -21,10 +21,11 @@ export interface BlockActions {
 const NAMES: Readonly<Record<BlockKind, { readonly removed: string; readonly restored: string }>> = {
   empty: { removed: 'Bloc supprimé.', restored: 'Bloc restauré.' },
   label: { removed: 'Note supprimée.', restored: 'Note restaurée.' },
-  widget: { removed: 'Widget supprimé.', restored: 'Widget restauré, avec ses versions.' }
+  widget: { removed: 'Widget supprimé.', restored: 'Widget restauré, avec ses versions.' },
+  result: { removed: 'Cadre résultat supprimé.', restored: 'Cadre résultat restauré.' }
 }
 
-/** Actions communes aux blocs de la carte : bloc vide, note, widget (spec 004). */
+/** Actions communes aux blocs de la carte : bloc vide, note, widget (spec 004), cadre résultat (spec 005). */
 export function useBlockActions(): BlockActions {
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)

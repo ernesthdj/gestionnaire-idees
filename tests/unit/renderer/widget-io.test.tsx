@@ -26,7 +26,8 @@ const block: BlockView = {
   width: 520,
   height: 440,
   text: null,
-  versionId: VERSION_ID
+  versionId: VERSION_ID,
+  sourceBlockId: null
 }
 
 const widget: WidgetView = {

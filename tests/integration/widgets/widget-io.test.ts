@@ -40,6 +40,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     io = new WidgetIoService({
       repository: new WidgetIoRepository(db),
       widgets,
+      blocks: new BlockRepository(db),
       tree: (id) => (neuronRepository.root(id) === undefined ? undefined : t.neurons.getTree(id)),
       document: (id) => hatched.result(id)
     })

@@ -3,7 +3,7 @@ import {
   BLOCK_DEFAULT_SIZES,
   BLOCK_LIMITS,
   LABEL_MAX_CHARS,
-  type BlockKind,
+  type CreatableBlockKind,
   type BlockView,
   type CanvasFilterInput,
   type CanvasNeuronView,
@@ -78,7 +78,7 @@ export class CanvasService {
       seeds,
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
-      blocks: this.deps.blocks.list(),
+      blocks: this.visibleBlocks(),
       steps,
       // Un trait n'a de sens que si sa source est encore sur la carte (idée visible, étape présente).
       io: this.deps.io
@@ -87,6 +87,13 @@ export class CanvasService {
           link.sourceKind === 'idea' ? visible.has(link.sourceId) : steps.some((step) => step.rootId === link.sourceId)
         )
     }
+  }
+
+  /** Un cadre résultat suit son widget : widget supprimé, cadre masqué (il revient si la suppression est annulée). */
+  private visibleBlocks(): BlockView[] {
+    const blocks = this.deps.blocks.list()
+    const ids = new Set(blocks.map((block) => block.id))
+    return blocks.filter((block) => block.sourceBlockId === null || ids.has(block.sourceBlockId))
   }
 
   savePositions(positions: readonly CanvasPosition[]): void {
@@ -102,7 +109,7 @@ export class CanvasService {
   }
 
   /** Nouveau bloc au point voulu, à la taille par défaut de son type (spec 004 FR-001). */
-  createBlock(input: { readonly kind: BlockKind; readonly x: number; readonly y: number }): BlockView {
+  createBlock(input: { readonly kind: CreatableBlockKind; readonly x: number; readonly y: number }): BlockView {
     const { kind, x, y } = input
     return this.deps.blocks.insert({ kind, x, y, ...BLOCK_DEFAULT_SIZES[kind], text: kind === 'label' ? '' : null })
   }

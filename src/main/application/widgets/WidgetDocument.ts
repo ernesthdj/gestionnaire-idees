@@ -67,14 +67,14 @@ export function themeFromQuery(query: URLSearchParams): WidgetTheme {
  * Prélude exécuté avant le widget :
  * - WebRTC neutralisé (il contourne la CSP) ;
  * - erreurs du widget affichées dans un bandeau (utile pour demander une correction à Claude) ;
- * - pont des entrées `window.gi` (spec 005) : il ne fait que relayer ce que l'application envoie — la barrière est
- *   côté main, qui ne remet que les données autorisées.
+ * - pont `window.gi` (spec 005), entrées et sortie : il ne fait que relayer — la barrière est côté main, qui ne
+ *   remet que les données autorisées et n'accepte qu'un résultat dans ses bornes.
  */
 const PRELUDE = `(() => {
   for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection', 'RTCDataChannel', 'RTCSessionDescription', 'RTCIceCandidate']) {
     try { Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false }) } catch {}
   }
-  const show = (message) => {
+  const show = (message, prefix = 'Erreur dans le widget : ') => {
     let bar = document.getElementById('gi-widget-error')
     if (bar === null) {
       bar = document.createElement('div')
@@ -82,9 +82,10 @@ const PRELUDE = `(() => {
       bar.setAttribute('role', 'alert')
       document.body.append(bar)
     }
-    bar.textContent = 'Erreur dans le widget : ' + String(message).slice(0, 300)
+    bar.textContent = prefix + String(message).slice(0, 300)
   }
-  // Pont des entrées (spec 005) : l'application remet les données autorisées ; le widget les lit par gi.onInputs.
+  // Pont (spec 005) : l'application remet les données autorisées (gi.onInputs) ; le widget publie un résultat
+  // (gi.output), que l'application vérifie avant de l'afficher dans le cadre résultat.
   let inputs = []
   let received = false
   const listeners = []
@@ -94,13 +95,21 @@ const PRELUDE = `(() => {
       if (typeof callback !== 'function') return
       listeners.push(callback)
       if (received) callback(inputs)
+    },
+    output(data) {
+      let plain
+      try { plain = JSON.parse(JSON.stringify(data)) } catch { plain = undefined }
+      if (plain === undefined) { show('le résultat doit être du JSON (objets, listes, textes, nombres).', 'Résultat refusé : '); return }
+      window.parent.postMessage({ type: 'gi:output', data: plain }, '*')
     }
   })
   Object.defineProperty(window, 'gi', { value: gi, writable: false, configurable: false })
   window.addEventListener('message', (event) => {
     if (event.source !== window.parent) return
     const data = event.data
-    if (data === null || typeof data !== 'object' || data.type !== 'gi:inputs' || !Array.isArray(data.inputs)) return
+    if (data === null || typeof data !== 'object') return
+    if (data.type === 'gi:refused' && typeof data.message === 'string') { show(data.message, ''); return }
+    if (data.type !== 'gi:inputs' || !Array.isArray(data.inputs)) return
     inputs = data.inputs
     received = true
     for (const listener of listeners) {

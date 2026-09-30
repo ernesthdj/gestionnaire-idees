@@ -23,6 +23,7 @@ const block = (patch: Partial<BlockView>): BlockView => ({
   height: 72,
   text: 'Zone mariage',
   versionId: null,
+  sourceBlockId: null,
   ...patch
 })
 

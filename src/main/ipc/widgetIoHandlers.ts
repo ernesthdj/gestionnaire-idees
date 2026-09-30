@@ -5,7 +5,7 @@ import { defineRoute, type IpcRoute } from './registry'
 
 const Id = z.uuid()
 
-/** Canaux `widgetIo:*` (spec 005 lot 1) : brancher, régler, autoriser, remettre les entrées d'un widget. */
+/** Canaux `widgetIo:*` (spec 005) : brancher, régler, autoriser, remettre les entrées d'un widget, recevoir sa sortie. */
 export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
   return [
     defineRoute({
@@ -37,6 +37,17 @@ export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
       channel: 'widgetIo:inputs',
       input: z.object({ blockId: Id, versionId: Id }).strict(),
       handler: async (input) => io.inputs(input)
+    }),
+    // Le résultat est une donnée libre : ses bornes (JSON seul, taille, profondeur) sont vérifiées par le service.
+    defineRoute({
+      channel: 'widgetIo:emit',
+      input: z.object({ blockId: Id, versionId: Id, data: z.unknown() }).strict(),
+      handler: async (input) => io.emit(input)
+    }),
+    defineRoute({
+      channel: 'widgetIo:result',
+      input: z.object({ blockId: Id }).strict(),
+      handler: async ({ blockId }) => io.result(blockId)
     })
   ]
 }

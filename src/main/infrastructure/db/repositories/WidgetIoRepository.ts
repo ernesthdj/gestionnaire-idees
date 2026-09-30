@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { IDEA_PARTS, type IdeaPart, type InputSourceKind } from '@shared/ipc/widgetIo'
 import type { AppDatabase } from '../client'
-import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs } from '../schemaNeurons'
+import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs, widgetResults } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export interface WidgetInputRow {
@@ -40,7 +40,7 @@ const toRow = (row: {
   parts: parseParts(row.partsJson)
 })
 
-/** Branchements d'entrée et autorisations des widgets (spec 005). */
+/** Branchements d'entrée, autorisations et derniers résultats des widgets (spec 005). */
 export class WidgetIoRepository {
   constructor(private readonly db: AppDatabase) {}
 
@@ -120,6 +120,24 @@ export class WidgetIoRepository {
 
   approve(blockId: string, fingerprint: string): void {
     this.db.insert(widgetApprovals).values({ blockId, fingerprint }).onConflictDoNothing().run()
+  }
+
+  /** Dernier résultat d'un widget : remplace le précédent. */
+  saveResult(blockId: string, dataJson: string): void {
+    const updatedAt = new Date().toISOString()
+    this.db
+      .insert(widgetResults)
+      .values({ blockId, dataJson, updatedAt })
+      .onConflictDoUpdate({ target: widgetResults.blockId, set: { dataJson, updatedAt } })
+      .run()
+  }
+
+  result(blockId: string): { readonly dataJson: string; readonly updatedAt: string } | undefined {
+    return this.db
+      .select({ dataJson: widgetResults.dataJson, updatedAt: widgetResults.updatedAt })
+      .from(widgetResults)
+      .where(eq(widgetResults.blockId, blockId))
+      .get()
   }
 
   /** Questions posées sur une idée et la réponse donnée à chacune (sous-neurone né de la question). */

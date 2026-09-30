@@ -70,6 +70,29 @@ export type WidgetInputData =
     }
   | { readonly kind: 'step'; readonly ideaId: string; readonly ideaTitle: string; readonly text: string }
 
+/** Réponse de `widgetIo:emit` : cadre résultat du widget, créé à la première émission (FR-006). */
+export interface WidgetEmitView {
+  readonly resultBlockId: string
+  readonly created: boolean
+}
+
+/** Dernier résultat d'un widget, affiché par son cadre résultat. */
+export interface WidgetResultView {
+  /** Cadre résultat. */
+  readonly blockId: string
+  readonly widgetBlockId: string
+  /** Titre de la version affichée du widget ; `null` s'il n'en a plus. */
+  readonly widgetTitle: string | null
+  readonly data: unknown
+  readonly updatedAt: string
+}
+
+/** Ce que reçoit le cadre résultat dans `gi.inputs` : le résultat de son widget, rien d'autre. */
+export interface ResultFrameInput {
+  readonly kind: 'result'
+  readonly data: unknown
+}
+
 /** Réponse de `widgetIo:inputs` : rien n'est transmis tant que la version n'est pas autorisée. */
 export interface WidgetInputsView {
   readonly approved: boolean

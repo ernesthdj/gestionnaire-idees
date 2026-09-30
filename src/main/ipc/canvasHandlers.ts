@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BLOCK_KINDS, BLOCK_LIMITS, LABEL_MAX_CHARS } from '@shared/ipc/canvas'
+import { BLOCK_LIMITS, CREATABLE_BLOCK_KINDS, LABEL_MAX_CHARS } from '@shared/ipc/canvas'
 import type { CanvasService } from '../application/canvas/CanvasService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -59,7 +59,7 @@ export function createCanvasRoutes(canvas: CanvasService): IpcRoute[] {
     }),
     defineRoute({
       channel: 'canvas:createBlock',
-      input: z.object({ kind: z.enum(BLOCK_KINDS).default('empty'), x: Coordinate, y: Coordinate }).strict(),
+      input: z.object({ kind: z.enum(CREATABLE_BLOCK_KINDS).default('empty'), x: Coordinate, y: Coordinate }).strict(),
       handler: async (input) => canvas.createBlock(input)
     }),
     defineRoute({
