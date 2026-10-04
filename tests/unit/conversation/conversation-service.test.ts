@@ -179,7 +179,7 @@ describe('conversations Claude Code des neurones', () => {
     expect(options.cwd).toBe('C:\\ws')
     const args = options.args
     expect(args).toEqual(
-      expect.arrayContaining(['-p', '--input-format', 'stream-json', '--setting-sources', 'project'])
+      expect.arrayContaining(['-p', '--input-format', 'stream-json', '--setting-sources', ''])
     )
     expect(args[args.indexOf('--session-id') + 1]).toBe(neurons.get(N1)?.sessionId)
     expect(args).not.toContain('--resume')

@@ -453,3 +453,7 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Quoi :** les réponses de Claude (et le texte en cours d'écriture) sont mises en forme : titres, gras, listes, cases à cocher, tableaux, code, citations, liens. Les messages de mentalyas restent du texte.
 **Pourquoi ainsi :** rendu sûr par construction — `skipHtml` (aucun HTML brut interprété), filtre d'URL par défaut de react-markdown (`javascript:` neutralisé), liens ouverts hors de l'app (seuls les https passent, `guardNavigation`), images jamais chargées (texte alternatif). Testé avec un `<script>`, un `<b>` et un lien `javascript:`.
 
+### [2026-10-04 16:15] SECURITY — un dossier de projet lié ne peut plus exécuter ses hooks
+**Fichiers :** `ConversationService.ts` (`--setting-sources ""`), `contextBlock.ts`, `frame.ts`, `conversation-service.test.ts`, `CLAUDE.md`.
+**Constat (vérifié sur Claude Code 2.1.289, faux projet) :** avec `--setting-sources project`, un hook `SessionStart` déclaré dans le `.claude/settings.json` du dossier lié s'exécutait à l'ouverture de la conversation — un dépôt non fiable pouvait donc lancer des commandes sans que mentalyas le voie.
+**Correction :** aucune source de réglages (`--setting-sources ""`) : ni hooks ni réglages de l'utilisateur, ni ceux d'un projet lié. Conséquence vérifiée : le `CLAUDE.md` du projet n'est plus chargé d'office ; Claude le lit lui-même (outil Read) en premier, comme une donnée — la consigne et le contexte joint le demandent. Essai réel par `spawn` Node sans shell : hook non exécuté, `CLAUDE.md` lu.

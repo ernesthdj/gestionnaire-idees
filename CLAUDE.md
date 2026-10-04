@@ -73,7 +73,8 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > Le relais (`out/main/mcp-relay.js`) existe apres `npm run dev` ou `npm run build` ; canal nomme par profil, secret
 > dans `<profil>/mcp.token` (jamais dans `~/.claude.json`).
 > Chat des neurones (spec 008) : double-clic sur une idee = conversation `claude -p` (stream-json) dans
-> `<profil>/workspace`, session reprise ; hooks utilisateur coupes (`--setting-sources project`), outils restreints.
+> `<profil>/workspace` (ou le dossier de projet lie), session reprise ; AUCUNE source de reglages (`--setting-sources ""` :
+> ni hooks utilisateur, ni hooks d'un projet lie ; le CLAUDE.md d'un projet est lu par Claude, pas charge d'office), outils restreints.
 > Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
 > `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
 > serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.

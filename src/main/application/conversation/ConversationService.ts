@@ -105,8 +105,11 @@ export function conversationArgs(input: {
     ...(input.resume ? ['--resume', input.sessionId] : ['--session-id', input.sessionId]),
     '--model',
     settings.model,
+    // Aucune source de réglages : ni hooks ni réglages de l'utilisateur, ni ceux d'un projet lié (un dépôt non fiable
+    // pourrait y cacher des commandes). Vérifié sur 2.1.289 : avec « project », un hook du projet s'exécute ; avec
+    // « », rien ne s'exécute — et le CLAUDE.md du projet n'est plus chargé d'office : Claude le lit (Read), comme une donnée.
     '--setting-sources',
-    'project',
+    '',
     '--strict-mcp-config',
     '--mcp-config',
     JSON.stringify(mcpConfig),
