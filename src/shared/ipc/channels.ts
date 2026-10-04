@@ -80,7 +80,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:send',
   'chat:stop',
   'chat:close',
-  'chat:linkFolder'
+  'chat:linkFolder',
+  'element:setCollapsed'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

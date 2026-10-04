@@ -56,6 +56,10 @@ describe('conversations Claude Code des neurones', () => {
       manques: []
     }),
     projectDir: null,
+    genesisId: null,
+    elementType: null,
+    pathsJson: null,
+    parentId: null,
     ...extra
   })
 

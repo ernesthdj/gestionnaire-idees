@@ -1,7 +1,13 @@
 import { BaseEdge, EdgeLabelRenderer, getStraightPath, type Edge, type EdgeProps } from '@xyflow/react'
 import { useCenter } from './LinkEdge'
 
-export type MapLinkEdgeData = { readonly label: string | null }
+import type { ElementRelation } from '@shared/ipc/canvas'
+
+export type MapLinkEdgeData = {
+  readonly label: string | null
+  /** Relation d'une carte de structure (spec 009) : style du trait. */
+  readonly relation?: ElementRelation | null
+}
 export type MapLinkEdgeType = Edge<MapLinkEdgeData, 'mapLink'>
 
 /** Lien libre de la carte (spec 007) : trait fin, libellé toujours visible au milieu (texte, jamais du HTML). */
@@ -13,7 +19,11 @@ export function MapLinkEdge({ id, source, target, data }: EdgeProps<MapLinkEdgeT
   const label = data?.label ?? null
   return (
     <>
-      <BaseEdge id={id} path={path} className="map-link-line" />
+      <BaseEdge
+        id={id}
+        path={path}
+        className={`map-link-line${data?.relation === undefined || data.relation === null ? '' : ` relation-${data.relation}`}`}
+      />
       {label === null || label === '' ? null : (
         <EdgeLabelRenderer>
           <span

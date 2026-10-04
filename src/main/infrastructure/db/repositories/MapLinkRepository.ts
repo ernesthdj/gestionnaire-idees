@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm'
-import type { MapEnd, MapLinkView } from '@shared/ipc/canvas'
+import { ELEMENT_RELATIONS, type ElementRelation, type MapEnd, type MapLinkView } from '@shared/ipc/canvas'
 import type { AppDatabase } from '../client'
 import { mapLinks } from '../schemaNeurons'
 
@@ -11,7 +11,10 @@ const toView = (row: Row): MapLinkView => ({
   from: { kind: row.fromKind, id: row.fromId },
   to: { kind: row.toKind, id: row.toId },
   label: row.label,
-  origin: row.origin
+  origin: row.origin,
+  relation: (ELEMENT_RELATIONS as readonly string[]).includes(row.relation ?? '')
+    ? (row.relation as ElementRelation)
+    : null
 })
 
 /** Liens libres de la carte (spec 007) : retrait annulable (`deleted_at`), jamais d'effacement. */
@@ -55,7 +58,7 @@ export class MapLinkRepository {
       .map(toView)
   }
 
-  insert(link: Omit<MapLinkView, 'id'>): MapLinkView {
+  insert(link: Omit<MapLinkView, 'id' | 'relation'> & { readonly relation?: ElementRelation | null }): MapLinkView {
     const id = randomUUID()
     this.db
       .insert(mapLinks)
@@ -66,10 +69,11 @@ export class MapLinkRepository {
         toKind: link.to.kind,
         toId: link.to.id,
         label: link.label,
-        origin: link.origin
+        origin: link.origin,
+        relation: link.relation ?? null
       })
       .run()
-    return { id, ...link }
+    return { id, ...link, relation: link.relation ?? null }
   }
 
   softDelete(id: string): boolean {

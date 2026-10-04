@@ -119,7 +119,9 @@ export class NeuronTools {
     }
     if (caller.neuronId !== null && id !== undefined) {
       const own = this.deps.conversations.neuron(caller.neuronId)
-      if (own === undefined || own.rootId !== neuron.rootId) {
+      // Un projet = un genesis et ses éléments de structure (spec 009) ; une idée = sa racine et son arbre.
+      const treeOf = (row: ConversationNeuron): string => row.genesisId ?? row.rootId
+      if (own === undefined || treeOf(own) !== treeOf(neuron)) {
         throw new McpToolError(
           'NON_MODIFIABLE',
           'Ce neurone appartient à un autre arbre que celui de cette conversation.'

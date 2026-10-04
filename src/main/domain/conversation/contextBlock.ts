@@ -15,6 +15,27 @@ export interface NeuronContext {
   readonly resumed: boolean
   /** Nom du dossier de projet lié (dossier de travail de la conversation) ; `null` : aucun. */
   readonly folder?: string | null
+  /** Élément d'une carte de structure de projet (spec 009). */
+  readonly element?: {
+    readonly type: string
+    readonly paths: readonly string[]
+    /** Ancêtres du genesis à l'élément (exclu), ex. « module « main » ». */
+    readonly chain: readonly string[]
+    readonly projectTitle: string
+    readonly projectSheet: Sheet
+  }
+}
+
+function elementLines(title: string, id: string, element: NonNullable<NeuronContext['element']>): string {
+  return [
+    `Neurone ouvert : ${element.type} « ${title} » (id ${id}) de la carte de structure du projet « ${element.projectTitle} ».`,
+    `Chemin : projet${element.chain.map((step) => ` › ${step}`).join('')} › ${title}.`,
+    element.paths.length === 0
+      ? 'Fichiers : aucun indiqué — repère-les dans le projet.'
+      : `Fichiers : ${element.paths.join(', ')} — lis-les avant de répondre.`,
+    'Fiche du projet :',
+    sheetMarkdown(element.projectSheet)
+  ].join('\n')
 }
 
 /**
@@ -24,7 +45,9 @@ export interface NeuronContext {
 export function contextBlock(neuron: NeuronContext): string {
   const lines = [
     '<contexte_brainstormer>',
-    `Neurone ouvert : genesis « ${neuron.title} » (id ${neuron.id}, couche 1 — vision et cadrage).`,
+    neuron.element === undefined
+      ? `Neurone ouvert : genesis « ${neuron.title} » (id ${neuron.id}, couche 1 — vision et cadrage).`
+      : elementLines(neuron.title, neuron.id, neuron.element),
     neuron.content === null || neuron.content.trim() === '' ? null : `Description saisie : ${neuron.content.trim()}`,
     `Maturité actuelle : ${neuron.maturity ?? 'non évaluée'}.`,
     neuron.folder === undefined || neuron.folder === null

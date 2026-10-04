@@ -13,7 +13,7 @@ import {
 } from '@shared/ipc/canvas'
 import type { HatchedResultView, LinkView, SeedView } from '@shared/ipc/neurons'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
-import type { MapLinkView } from '@shared/ipc/canvas'
+import type { ElementView, MapLinkView } from '@shared/ipc/canvas'
 import { AppError } from '../../domain/errors'
 import { nextStepOf } from '../../domain/neurons/nextStep'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
@@ -32,6 +32,8 @@ export interface CanvasDeps {
   readonly mapLinks?: { list(): MapLinkView[] }
   /** Résumés des fiches des neurones (spec 008). */
   readonly sheetSummaries?: () => Map<string, string>
+  /** Éléments des cartes de structure (spec 009). */
+  readonly elements?: { views(): ElementView[] }
   /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
   readonly steps: {
     result(rootId: string): HatchedResultView | null
@@ -77,7 +79,9 @@ export class CanvasService {
       return text === null ? [] : [{ rootId: root.id, text, position: places.get(root.id) ?? null }]
     })
     const blocks = this.visibleBlocks()
-    const present = new Set([...visible, ...blocks.map((block) => block.id)])
+    // Un élément de structure n'apparaît que si son genesis est sur la carte.
+    const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
+    const present = new Set([...visible, ...blocks.map((block) => block.id), ...elements.map((element) => element.id)])
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -100,7 +104,8 @@ export class CanvasService {
         ),
       mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
         (link) => present.has(link.from.id) && present.has(link.to.id)
-      )
+      ),
+      elements
     }
   }
 

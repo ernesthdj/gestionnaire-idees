@@ -141,6 +141,13 @@
       "when": 1791115894671,
       "tag": "0019_neuron_project_dir",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1791118088768,
+      "tag": "0020_project_elements",
+      "breakpoints": true
     }
   ]
 }

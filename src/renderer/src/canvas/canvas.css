@@ -370,3 +370,22 @@
   overflow: hidden;
   pointer-events: none;
 }
+
+/* Liens typés d'une carte de structure (spec 009) : un style par relation, toujours accompagné de son libellé. */
+.react-flow__edge .relation-depend_de {
+  stroke-dasharray: 6 4;
+}
+.react-flow__edge .relation-appelle {
+  stroke: var(--color-accent);
+}
+.react-flow__edge .relation-lit_ecrit {
+  stroke: #d97706;
+}
+.react-flow__edge .relation-bloque {
+  stroke: #dc2626;
+  stroke-width: 2;
+}
+.react-flow__edge .relation-teste {
+  stroke: #059669;
+  stroke-dasharray: 2 3;
+}

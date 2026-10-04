@@ -30,8 +30,10 @@ export interface IdeasCanvasView {
   readonly steps: readonly StepView[]
   /** Branchements d'entrée des widgets (spec 005) : idée ou prochaine étape → widget. */
   readonly io: readonly IoLinkView[]
-  /** Liens libres entre blocs et idées (spec 007). */
+  /** Liens libres entre blocs et idées (spec 007), et liens typés des cartes de structure (spec 009). */
   readonly mapLinks: readonly MapLinkView[]
+  /** Éléments des cartes de structure des projets liés (spec 009). */
+  readonly elements: readonly ElementView[]
 }
 
 /**
@@ -90,11 +92,53 @@ export interface MapLinkView {
   readonly to: MapEnd
   readonly label: string | null
   readonly origin: BlockOrigin
+  /** Relation typée d'une carte de structure (spec 009) ; `null` : lien libre. */
+  readonly relation: ElementRelation | null
 }
 
 export interface MapEnd {
-  readonly kind: 'block' | 'idea'
+  readonly kind: 'block' | 'idea' | 'element'
   readonly id: string
+}
+
+/** Types d'éléments d'une carte de structure de projet (spec 009, L1e §3). */
+export const ELEMENT_TYPES = [
+  'module',
+  'fonctionnalite',
+  'composant',
+  'donnee',
+  'interface',
+  'tache',
+  'decision',
+  'operation'
+] as const
+export type ElementType = (typeof ELEMENT_TYPES)[number]
+
+/** Statuts possibles d'un élément (selon son type). */
+export const ELEMENT_STATUSES = ['idee', 'specifiee', 'en_cours', 'livree', 'a_faire', 'faite', 'bloquee'] as const
+export type ElementStatus = (typeof ELEMENT_STATUSES)[number]
+
+/** Relations typées entre éléments (L1e §3). */
+export const ELEMENT_RELATIONS = ['depend_de', 'appelle', 'lit_ecrit', 'implemente', 'teste', 'bloque'] as const
+export type ElementRelation = (typeof ELEMENT_RELATIONS)[number]
+
+/** Élément de la carte de structure d'un projet : un neurone typé, avec sa conversation et sa fiche (spec 009). */
+export interface ElementView {
+  readonly id: string
+  readonly genesisId: string
+  /** Parent : un autre élément, ou le genesis (niveau 1). */
+  readonly parentId: string
+  readonly key: string
+  readonly type: ElementType
+  readonly title: string
+  readonly status: ElementStatus | null
+  /** Résumé de sa fiche (ou celui donné à la cartographie). */
+  readonly summary: string | null
+  /** Chemins relatifs au dossier du projet. */
+  readonly paths: readonly string[]
+  /** Ses enfants sont repliés sur la carte. */
+  readonly collapsed: boolean
+  readonly childCount: number
 }
 
 export interface SizeLimits {

@@ -12,7 +12,7 @@ import type {
   ChatUsageView,
   ChatView
 } from '@shared/ipc/chat'
-import { withContext } from '../../domain/conversation/contextBlock'
+import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolLabel, type StreamEvent } from '../../domain/conversation/streamEvents'
 import { AppError } from '../../domain/errors'
@@ -195,7 +195,9 @@ export class ConversationService {
       busy: live?.busy ?? false,
       partial: live?.partial ?? '',
       usage: this.usage(neuronId),
-      folder: neuron.projectDir === null ? null : basename(neuron.projectDir)
+      folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
+      role: neuron.genesisId === null ? 'genesis' : 'element',
+      elementType: neuron.elementType
     }
   }
 
@@ -224,6 +226,12 @@ export class ConversationService {
    */
   async linkFolder(neuronId: string, unlink = false): Promise<{ readonly folder: string | null }> {
     const neuron = this.neuronOrThrow(neuronId)
+    if (neuron.genesisId !== null) {
+      throw new AppError(
+        'VALIDATION',
+        'Un élément travaille dans le dossier de son projet : lie le dossier sur le genesis.'
+      )
+    }
     if (this.live.get(neuronId)?.busy === true)
       throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
     let folder: string | null = null
@@ -289,7 +297,8 @@ export class ConversationService {
     }
     const settings = this.deps.settings()
     const exists = this.deps.folderExists ?? existsSync
-    if (neuron.projectDir !== null && !exists(neuron.projectDir)) {
+    const folder = this.folderOf(neuron)
+    if (folder !== null && !exists(folder)) {
       this.fail(neuron.id, 'FOLDER_MISSING', null)
       return undefined
     }
@@ -305,7 +314,7 @@ export class ConversationService {
     const process = this.deps.spawn({
       command,
       args,
-      cwd: neuron.projectDir ?? settings.cwd,
+      cwd: folder ?? settings.cwd,
       onLine: (line) => {
         for (const event of parseStreamLine(line)) this.onEvent(neuronId, event)
       },
@@ -433,16 +442,52 @@ export class ConversationService {
     return this.deps.repository.addMessage(neuronId, role, text)
   }
 
-  private contextOf(neuron: ConversationNeuron, live: Live) {
-    return {
+  private contextOf(neuron: ConversationNeuron, live: Live): NeuronContext {
+    const folder = this.folderOf(neuron)
+    const base = {
       id: neuron.id,
       title: neuron.title,
       content: neuron.content,
       sheet: readSheet(neuron.sheetJson),
       maturity: this.deps.repository.maturity(neuron.rootId),
       resumed: live.started,
-      folder: neuron.projectDir === null ? null : basename(neuron.projectDir)
+      folder: folder === null ? null : basename(folder)
     }
+    if (neuron.genesisId === null) return base
+    // Élément d'une carte de structure (spec 009) : son type, ses fichiers, son chemin d'ancêtres, la fiche du projet.
+    const genesis = this.deps.repository.neuron(neuron.genesisId)
+    const chain: string[] = []
+    let parentId = neuron.parentId
+    for (let guard = 0; parentId !== null && parentId !== neuron.genesisId && guard < 50; guard++) {
+      const parent = this.deps.repository.neuron(parentId)
+      if (parent === undefined) break
+      chain.unshift(`${parent.elementType ?? 'élément'} « ${parent.title} »`)
+      parentId = parent.parentId
+    }
+    let paths: string[] = []
+    try {
+      const value: unknown = JSON.parse(neuron.pathsJson ?? '[]')
+      if (Array.isArray(value)) paths = value.filter((item): item is string => typeof item === 'string')
+    } catch {
+      paths = []
+    }
+    return {
+      ...base,
+      element: {
+        type: neuron.elementType ?? 'élément',
+        paths,
+        chain,
+        projectTitle: genesis?.title ?? 'projet',
+        projectSheet: readSheet(genesis?.sheetJson ?? null)
+      }
+    }
+  }
+
+  /** Dossier de travail d'un neurone : le sien, ou celui du projet de son genesis (élément de structure). */
+  private folderOf(neuron: ConversationNeuron): string | null {
+    if (neuron.projectDir !== null) return neuron.projectDir
+    if (neuron.genesisId === null) return null
+    return this.deps.repository.neuron(neuron.genesisId)?.projectDir ?? null
   }
 
   private touch(neuronId: string, live: Live, delay: number): void {

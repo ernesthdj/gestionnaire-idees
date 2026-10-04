@@ -30,6 +30,9 @@ export interface ChatView {
   readonly usage: ChatUsageView
   /** Nom du dossier de projet lié (la conversation s'y ouvre) ; `null` : aucun. Le chemin complet reste dans le main. */
   readonly folder: string | null
+  /** Genesis (idée ou projet) ou élément d'une carte de structure (spec 009), avec son type. */
+  readonly role: 'genesis' | 'element'
+  readonly elementType: string | null
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */

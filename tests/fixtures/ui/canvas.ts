@@ -70,6 +70,7 @@ export function canvasView(): IdeasCanvasView {
     steps: [],
     io: [],
     mapLinks: [],
+    elements: [],
     seeds: []
   }
 }
@@ -85,6 +86,7 @@ export function emptyCanvasView(): IdeasCanvasView {
     steps: [],
     io: [],
     mapLinks: [],
+    elements: [],
     seeds: []
   }
 }

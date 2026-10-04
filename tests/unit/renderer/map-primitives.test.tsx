@@ -51,9 +51,17 @@ const drawn = (): IdeasCanvasView => ({
       from: { kind: 'idea', id: RAW_ID },
       to: { kind: 'block', id: NOTE },
       label: 'budget',
-      origin: 'claude'
+      origin: 'claude',
+      relation: null
     },
-    { id: 'l2', from: { kind: 'block', id: NOTE }, to: { kind: 'block', id: 'absent' }, label: null, origin: 'claude' }
+    {
+      id: 'l2',
+      from: { kind: 'block', id: NOTE },
+      to: { kind: 'block', id: 'absent' },
+      label: null,
+      origin: 'claude',
+      relation: null
+    }
   ]
 })
 

@@ -2,6 +2,8 @@ import type { Edge, Node } from '@xyflow/react'
 import {
   STEP_START_OFFSET,
   type BlockView,
+  type ElementRelation,
+  type ElementView,
   type CanvasNeuronView,
   type IdeasCanvasView,
   type StepView
@@ -9,6 +11,7 @@ import {
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
+import { structureGraph } from './structureGraph'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
 /**
@@ -54,6 +57,8 @@ export type ResultNodeType = Node<BlockNodeData, 'result'>
 /** Note titrée et cadre de regroupement (spec 007, pont MCP). « mapNote » : « note » désigne le texte d'un sous-neurone. */
 export type MapNoteNodeType = Node<BlockNodeData, 'mapNote'>
 export type FrameNodeType = Node<BlockNodeData, 'frame'>
+/** Élément d'une carte de structure de projet (spec 009). */
+export type ElementNodeType = Node<{ readonly element: ElementView }, 'element'>
 
 /** « Prochaine étape » d'une idée (FR-037) : non modifiable, reliée à son idée. */
 export type StepNodeData = { readonly step: StepView; readonly dimmed: boolean }
@@ -67,6 +72,7 @@ export type CanvasNode =
   | ResultNodeType
   | MapNoteNodeType
   | FrameNodeType
+  | ElementNodeType
   | StepNodeType
 
 /** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
@@ -95,6 +101,16 @@ function blockAriaLabel(block: BlockView): string {
   if (block.kind === 'note') return `Note « ${block.title ?? 'Note'} »${byClaude}`
   if (block.kind === 'frame') return `Cadre « ${block.title ?? 'Cadre'} »${byClaude}`
   return block.kind === 'widget' ? 'Widget IA' : 'Bloc vide'
+}
+
+/** Relations d'une carte de structure, en clair (L1e §3). */
+const RELATION_LABELS: Readonly<Record<ElementRelation, string>> = {
+  depend_de: 'dépend de',
+  appelle: 'appelle',
+  lit_ecrit: 'lit / écrit',
+  implemente: 'implémente',
+  teste: 'teste',
+  bloque: 'bloque'
 }
 
 const STATE_LABELS: Record<CanvasState, string> = {
@@ -195,7 +211,12 @@ export function buildGraph(
   bornId: string | null = null,
   /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
   openRootId: string | null = null
-): { nodes: CanvasNode[]; edges: LinkEdgeType[]; stepEdges: BranchEdgeType[]; mapEdges: MapLinkEdgeType[] } {
+): {
+  nodes: CanvasNode[]
+  edges: LinkEdgeType[]
+  stepEdges: BranchEdgeType[]
+  mapEdges: (MapLinkEdgeType | BranchEdgeType)[]
+} {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean =>
     (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
@@ -323,7 +344,7 @@ export function buildGraph(
   )
   const visible = new Set([...visibleBlocks, ...view.ideas.map((neuron) => neuron.id)])
   const mapEdges = view.mapLinks
-    .filter((link) => visible.has(link.from.id) && visible.has(link.to.id))
+    .filter((link) => link.relation === null && visible.has(link.from.id) && visible.has(link.to.id))
     .map((link): MapLinkEdgeType => ({
       id: `map-${link.id}`,
       type: 'mapLink',
@@ -334,10 +355,54 @@ export function buildGraph(
       selectable: false,
       focusable: false
     }))
+  // Cartes de structure des projets liés (spec 009) : éléments dépliés autour de leur genesis, liens typés regroupés.
+  const genesisCenters = new Map(neuronNodes.map((node) => [node.id, node.position] as const))
+  const structure = structureGraph(view.elements, genesisCenters, view.mapLinks)
+  const elementNodes = structure.placed.map((entry): ElementNodeType => ({
+    id: entry.element.id,
+    type: 'element',
+    position: { x: entry.x, y: entry.y },
+    data: { element: entry.element },
+    draggable: false,
+    ariaLabel: `${entry.element.type} « ${entry.element.title} »${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
+    deletable: false
+  }))
+  const structureEdges = structure.edges.map((edge): MapLinkEdgeType | BranchEdgeType =>
+    edge.kind === 'hierarchy'
+      ? {
+          id: edge.id,
+          type: 'branch',
+          source: edge.source,
+          target: edge.target,
+          data: { style: 'solid' },
+          deletable: false,
+          selectable: false,
+          focusable: false
+        }
+      : {
+          id: edge.id,
+          type: 'mapLink',
+          source: edge.source,
+          target: edge.target,
+          data: {
+            label: [
+              edge.relation === null ? null : RELATION_LABELS[edge.relation],
+              edge.label,
+              edge.count > 1 ? `×${edge.count}` : null
+            ]
+              .filter((part) => part !== null)
+              .join(' · '),
+            relation: edge.relation
+          },
+          deletable: false,
+          selectable: false,
+          focusable: false
+        }
+  )
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...stepNodes],
+    nodes: [...neuronNodes, ...blockNodes, ...stepNodes, ...elementNodes],
     edges,
     stepEdges: [...stepEdges, ...ioEdges, ...resultEdges, ...noteEdges],
-    mapEdges
+    mapEdges: [...mapEdges, ...structureEdges]
   }
 }

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { ChatPanel, OPENING_MESSAGE } from '../../../src/renderer/src/chat/ChatPanel'
+import { ChatPanel, MAP_MESSAGE, OPENING_MESSAGE } from '../../../src/renderer/src/chat/ChatPanel'
 import type { ChatView } from '../../../src/shared/ipc/chat'
 import { installFakeApi } from './support/fakeApi'
 
@@ -21,8 +21,19 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
     app: { weekTokens: 0, weekTurns: 0, totalTokens: 0, totalTurns: 0, neuronTokens: 0, neuronTurns: 0 }
   },
   folder: null,
+  role: 'genesis',
+  elementType: null,
   ...extra
 })
+
+function renderChatWithContainer(initial: ChatView) {
+  installFakeApi({ 'chat:open': () => initial, 'chat:close': () => ({ ok: true }) })
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ChatPanel neuronId={ID} onClose={() => undefined} />
+    </QueryClientProvider>
+  )
+}
 
 function renderChat(initial: ChatView = view()) {
   let current = initial
@@ -154,5 +165,47 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Lier un dossier de projet…' }))
     expect(api.invoke).toHaveBeenCalledWith('chat:linkFolder', { neuronId: ID, unlink: false })
     expect(await screen.findByText('Dossier : gestionnaire-idees')).toBeTruthy()
+  })
+
+  it('should_offer_to_map_a_linked_project', async () => {
+    const { api } = renderChat(view({ folder: 'gestionnaire-idees' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Cartographier ce projet' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: MAP_MESSAGE })
+  })
+
+  it('should_present_an_element_conversation_without_folder_controls', async () => {
+    renderChat(view({ role: 'element', elementType: 'composant', folder: 'gestionnaire-idees' }))
+    expect(await screen.findByText(/composant du projet/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lier un dossier de projet…' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Cartographier ce projet' })).toBeNull()
+  })
+
+  it('should_render_claude_answers_as_safe_markdown', async () => {
+    const answer = [
+      '**Checklist du test :**',
+      '',
+      '- [ ] Lisibilité',
+      '- [x] Annulation',
+      '',
+      '| Lot | Statut |',
+      '|-----|--------|',
+      '| P1 | livré |',
+      '',
+      '<script>alert(1)</script><b>brut</b>',
+      '',
+      '[piège](javascript:alert(1)) et [doc](https://example.com)'
+    ].join('\n')
+    const { container } = renderChatWithContainer(
+      view({ messages: [{ id: 'a', role: 'assistant', text: answer, createdAt: '' }] })
+    )
+    expect(await screen.findByText('Checklist du test :')).toBeTruthy()
+    expect(screen.getByText('Checklist du test :').tagName).toBe('STRONG')
+    const boxes = container.querySelectorAll('input[type="checkbox"]')
+    expect([...boxes].map((box) => (box as HTMLInputElement).checked)).toEqual([false, true])
+    expect(screen.getByRole('table')).toBeTruthy()
+    expect(container.querySelector('script')).toBeNull()
+    expect(container.querySelector('b')).toBeNull()
+    expect(screen.getByText('piège').getAttribute('href') ?? '').not.toContain('javascript')
+    expect(screen.getByText('doc').getAttribute('href')).toBe('https://example.com')
   })
 })

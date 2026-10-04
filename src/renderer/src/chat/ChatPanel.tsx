@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { ChatMessageView, ChatSheetView } from '@shared/ipc/chat'
 import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
 import { Button } from '../components/atoms/Button'
+import { Markdown } from './Markdown'
 import { UsageMeter } from './UsageMeter'
 import { useChat } from './useChat'
 
@@ -10,6 +11,13 @@ const MATURITY_LABELS: Readonly<Record<string, string>> = {
   sufficient: 'suffisant',
   complete: 'complet'
 }
+
+/** Demande de cartographie d'un projet lié (spec 009) : Claude lit le projet et dessine sa carte de structure. */
+export const MAP_MESSAGE =
+  'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code, puis dessine ' +
+  'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
+  'fichiers, données, interfaces, tâches, décisions) et les liens typés entre eux. Si une carte existe déjà, relis-la ' +
+  'avec structure_lire et mets-la à jour avec les mêmes clés. Ensuite, résume-moi la structure en quelques lignes.'
 
 /** Premier message proposé quand la conversation est vide : Claude ouvre le cadrage. */
 export const OPENING_MESSAGE = 'Commençons le brainstorm de cette idée.'
@@ -68,12 +76,13 @@ function Message({ message }: { readonly message: ChatMessageView }): React.JSX.
   const mine = message.role === 'user'
   return (
     <div
-      className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-        mine ? 'self-end bg-accent text-surface' : 'self-start bg-surface-raised text-content'
+      className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+        mine ? 'self-end bg-accent whitespace-pre-wrap text-surface' : 'self-start bg-surface-raised text-content'
       }`}
     >
       <span className="sr-only">{mine ? 'Toi : ' : 'Claude : '}</span>
-      {message.text}
+      {/* Ce que tu écris reste du texte ; les réponses de Claude sont mises en forme (Markdown sûr). */}
+      {mine ? message.text : <Markdown text={message.text} />}
     </div>
   )
 }
@@ -81,7 +90,7 @@ function Message({ message }: { readonly message: ChatMessageView }): React.JSX.
 /**
  * Chat d'un neurone (spec 008 lot A) : une vraie conversation Claude Code. La réponse s'écrit au fil de l'eau, les
  * actions de Claude apparaissent en pastilles, la fiche du neurone se met à jour au-dessus. Entrée envoie,
- * Maj+Entrée va à la ligne. Tout est affiché comme du texte.
+ * Maj+Entrée va à la ligne. Les réponses sont mises en forme en Markdown, sans jamais interpréter de HTML.
  */
 export function ChatPanel({
   neuronId,
@@ -112,11 +121,16 @@ export function ChatPanel({
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
           <p className="text-xs text-content-muted">
-            Genesis · conversation Claude Code
+            {chat.role === 'element'
+              ? `${chat.elementType ?? 'Élément'} du projet`
+              : chat.folder === null
+                ? 'Genesis'
+                : 'Projet'}{' '}
+            · conversation Claude Code
             {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-            {chat.folder === null ? (
+            {chat.role === 'element' ? null : chat.folder === null ? (
               <button
                 type="button"
                 onClick={() => void chat.linkFolder()}
@@ -149,6 +163,14 @@ export function ChatPanel({
                 >
                   Délier
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void chat.send(MAP_MESSAGE)}
+                  disabled={chat.busy}
+                  className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
+                >
+                  Cartographier ce projet
+                </button>
               </>
             )}
           </div>
@@ -177,8 +199,12 @@ export function ChatPanel({
             <Message key={message.id} message={message} />
           ))}
           {chat.busy ? (
-            <div className="max-w-[85%] self-start rounded-2xl bg-surface-raised px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
-              {chat.partial === '' ? <span className="text-content-muted">Claude réfléchit…</span> : chat.partial}
+            <div className="max-w-[85%] self-start rounded-2xl bg-surface-raised px-3 py-2 text-sm leading-relaxed">
+              {chat.partial === '' ? (
+                <span className="text-content-muted">Claude réfléchit…</span>
+              ) : (
+                <Markdown text={chat.partial} />
+              )}
             </div>
           ) : null}
         </div>

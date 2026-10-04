@@ -63,6 +63,9 @@ import { ConversationRepository } from './infrastructure/db/repositories/Convers
 import { resolveClaudePath } from './infrastructure/claude/claudePath'
 import { spawnClaudeConversation } from './infrastructure/claude/CliConversation'
 import { createChatRoutes } from './ipc/chatHandlers'
+import { createStructureRoutes } from './ipc/structureHandlers'
+import { StructureService } from './application/structure/StructureService'
+import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
 import { mkdirSync } from 'node:fs'
 import { SelectionStore } from './application/mcp/SelectionStore'
 import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
@@ -243,6 +246,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     exists: (blockId) => widgetRepository.widget(blockId) !== undefined
   })
   const mapLinkRepository = new MapLinkRepository(database.db)
+  const elementRepository = new ElementRepository(database.db)
   const conversationRepository = new ConversationRepository(database.db)
   const canvas = new CanvasService({
     neurons: neuronRepository,
@@ -251,7 +255,26 @@ export function bootstrap(shell: ShellPort): AppContext {
     steps: hatchedRepository,
     io: widgetIo,
     mapLinks: mapLinkRepository,
-    sheetSummaries: () => conversationRepository.sheetSummaries()
+    sheetSummaries: () => conversationRepository.sheetSummaries(),
+    elements: elementRepository
+  })
+
+  // Cartes de structure des projets liés (spec 009) : un élément appartient au projet de son genesis.
+  const genesisOf = (neuronId: string): string | undefined => {
+    const neuron = conversationRepository.neuron(neuronId)
+    if (neuron === undefined) return undefined
+    if (neuron.kind === 'root') return neuron.id
+    return neuron.genesisId ?? undefined
+  }
+  const structure = new StructureService({
+    elements: elementRepository,
+    links: mapLinkRepository,
+    genesisOf,
+    genesisTitle: (genesisId) => {
+      const root = neuronRepository.root(genesisId)
+      return root === undefined || root.state === 'archived' ? undefined : root.title
+    },
+    emit: (event) => broadcast('map:changed', event)
   })
 
   // Pont MCP (spec 007) : Claude Code lit et écrit la carte par un relais, via le canal nommé de ce profil.
@@ -279,7 +302,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         conversations: conversationRepository,
         insertAssessment: (input) => growthRepository.insertAssessment(input),
         onChanged: (neuronId) => broadcast('chat:sheet', { neuronId })
-      })
+      }),
+      structure
     ),
     logger
   })
@@ -342,6 +366,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWidgetRoutes(widgets, toolGeneration),
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations),
+      ...createStructureRoutes(structure),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

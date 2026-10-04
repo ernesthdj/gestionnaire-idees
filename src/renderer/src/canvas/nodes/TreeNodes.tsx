@@ -15,7 +15,8 @@ const KIND_LABELS: Record<NeuronKind, string> = {
   opportunity: 'opportunité',
   investigation: 'à trouver',
   user_branch: 'ma branche',
-  idea: 'idée suggérée'
+  idea: 'idée suggérée',
+  element: 'élément de projet'
 }
 
 export type TreeNodeData = {

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ELEMENT_RELATIONS, ELEMENT_STATUSES, ELEMENT_TYPES } from '../ipc/canvas'
 import { IDEA_PARTS } from '../ipc/widgetIo'
 
 /**
@@ -112,6 +113,45 @@ export const MaturiteEvaluerInput = z.strictObject({
 })
 export type MaturiteEvaluerInput = z.infer<typeof MaturiteEvaluerInput>
 
+/** Carte de structure d'un projet (spec 009) : éléments typés à clé stable, liens typés. */
+export const STRUCTURE_LIMITS = { elements: 300, links: 600, paths: 20 } as const
+const ElementKey = z
+  .string()
+  .regex(/^[A-Za-z0-9_\-./:]{1,200}$/, 'clé : 1 à 200 caractères parmi lettres, chiffres, _ - . / :')
+/** Chemin relatif au dossier du projet : ni absolu, ni lecteur, ni remontée. */
+export const ProjectPath = z
+  .string()
+  .min(1)
+  .max(300)
+  .refine((path) => !/^([A-Za-z]:|[\\/])/.test(path) && !/(^|[\\/])\.\.([\\/]|$)/.test(path), {
+    message: 'chemin relatif au projet, sans « .. » ni chemin absolu'
+  })
+export const StructureElement = z.strictObject({
+  cle: ElementKey,
+  type: z.enum(ELEMENT_TYPES),
+  titre: Title,
+  resume: z.string().trim().max(600).optional(),
+  statut: z.enum(ELEMENT_STATUSES).optional(),
+  chemins: z.array(ProjectPath).max(STRUCTURE_LIMITS.paths).optional(),
+  parent: ElementKey.optional()
+})
+export type StructureElement = z.infer<typeof StructureElement>
+export const StructureLink = z.strictObject({
+  de: ElementKey,
+  vers: ElementKey,
+  relation: z.enum(ELEMENT_RELATIONS),
+  libelle: Label.optional()
+})
+export type StructureLink = z.infer<typeof StructureLink>
+export const StructureDessinerInput = z.strictObject({
+  projet: Id.optional(),
+  elements: z.array(StructureElement).min(1).max(STRUCTURE_LIMITS.elements * 5),
+  liens: z.array(StructureLink).max(STRUCTURE_LIMITS.links * 5).optional(),
+  retirer_absents: z.boolean().optional()
+})
+export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
+export const StructureLireInput = z.strictObject({ projet: Id.optional() })
+
 export interface McpToolDefinition {
   readonly description: string
   readonly input: z.ZodType
@@ -188,6 +228,21 @@ export const MCP_TOOLS = {
       'Évalue la maturité du neurone (insuffisant, suffisant, complet) et ce qui manque encore. Sa taille sur la carte suit.',
     input: MaturiteEvaluerInput,
     writes: true
+  },
+  structure_dessiner: {
+    description:
+      'Dessine ou met à jour la carte de structure d’un projet lié : éléments typés (module, fonctionnalite, composant, ' +
+      'donnee, interface, tache, decision) à CLÉ STABLE (ex. « module:main », « composant:src/main/x.ts ») — une clé ' +
+      'existante est mise à jour, jamais dupliquée —, parent par clé (absent = niveau 1), chemins relatifs, liens typés ' +
+      '(depend_de, appelle, lit_ecrit, implemente, teste, bloque). Tout ou rien ; 300 éléments et 600 liens par appel. ' +
+      'Reste lisible : 12 enfants au plus par élément, regroupe sinon.',
+    input: StructureDessinerInput,
+    writes: true
+  },
+  structure_lire: {
+    description: 'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
+    input: StructureLireInput,
+    writes: false
   }
 } as const satisfies Record<string, McpToolDefinition>
 

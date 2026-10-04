@@ -251,6 +251,32 @@ export class HistoryRepository {
           .get()
         return row === undefined ? null : { title: row.title, text: row.text }
       }
+      case 'element': {
+        const row = this.db
+          .select({
+            state: neurons.state,
+            title: neurons.title,
+            content: neurons.content,
+            type: neurons.elementType,
+            status: neurons.elementStatus,
+            paths: neurons.pathsJson,
+            parentId: neurons.parentId,
+            depth: neurons.depth
+          })
+          .from(neurons)
+          .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+          .get()
+        if (row === undefined || row.state === 'archived') return null
+        return {
+          title: row.title,
+          content: row.content,
+          type: row.type,
+          status: row.status,
+          paths: row.paths,
+          parentId: row.parentId,
+          depth: row.depth
+        }
+      }
       case 'neuron_sheet': {
         const row = this.db.select({ sheetJson: neurons.sheetJson }).from(neurons).where(eq(neurons.id, id)).get()
         return row === undefined ? null : { sheet: row.sheetJson }
@@ -416,6 +442,38 @@ export class HistoryRepository {
           .where(eq(canvasBlocks.id, id))
           .run()
         return
+      case 'element': {
+        // Élément de carte de structure (spec 009) : retiré = archivé ; rétabli = ses champs et visible.
+        const now = new Date().toISOString()
+        if (target === null) {
+          this.db
+            .update(neurons)
+            .set({ state: 'archived', archivedAt: now, updatedAt: now })
+            .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+            .run()
+          return
+        }
+        const text = (key: string): string | null => (typeof target[key] === 'string' ? (target[key] as string) : null)
+        this.db
+          .update(neurons)
+          .set({
+            state: 'raw',
+            archivedAt: null,
+            updatedAt: now,
+            ...(text('title') === null ? {} : { title: text('title') as string }),
+            content: text('content'),
+            elementStatus: text('status'),
+            pathsJson: text('paths'),
+            ...(text('parentId') === null ? {} : { parentId: text('parentId') }),
+            ...(typeof target['depth'] === 'number' ? { depth: target['depth'] } : {}),
+            ...(text('type') === null
+              ? {}
+              : { elementType: text('type') as (typeof neurons.$inferInsert)['elementType'] })
+          })
+          .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+          .run()
+        return
+      }
       case 'neuron_sheet':
         if (target === null) return
         this.db

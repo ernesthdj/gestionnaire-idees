@@ -34,7 +34,7 @@ export const neurons = sqliteTable(
     parentId: text('parent_id').references((): AnySQLiteColumn => neurons.id),
     depth: integer('depth').notNull().default(0),
     kind: text('kind', {
-      enum: ['root', 'answer', 'condition', 'branch', 'opportunity', 'investigation', 'user_branch', 'idea']
+      enum: ['root', 'answer', 'condition', 'branch', 'opportunity', 'investigation', 'user_branch', 'idea', 'element']
     }).notNull(),
     title: text('title').notNull(),
     content: text('content'),
@@ -72,6 +72,18 @@ export const neurons = sqliteTable(
     sheetJson: text('sheet_json'),
     /** Dossier de projet lié (spec 008) : la conversation du neurone s'y ouvre et lit ses fichiers. */
     projectDir: text('project_dir'),
+    /**
+     * Élément de la carte de structure d'un projet (spec 009) : genesis auquel il appartient, type, clé stable dans le
+     * projet, statut, chemins des fichiers (JSON), repli de ses enfants sur la carte.
+     */
+    genesisId: text('genesis_id'),
+    elementType: text('element_type', {
+      enum: ['module', 'fonctionnalite', 'composant', 'donnee', 'interface', 'tache', 'decision', 'operation']
+    }),
+    elementKey: text('element_key'),
+    elementStatus: text('element_status'),
+    pathsJson: text('paths_json'),
+    collapsed: integer('collapsed', { mode: 'boolean' }).notNull().default(true),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -83,7 +95,9 @@ export const neurons = sqliteTable(
     index('neurons_parent_idx').on(t.parentId),
     index('neurons_state_idx').on(t.state),
     index('neurons_nature_idx').on(t.nature),
-    index('neurons_category_idx').on(t.categoryId)
+    index('neurons_category_idx').on(t.categoryId),
+    uniqueIndex('neurons_element_key_idx').on(t.genesisId, t.elementKey),
+    index('neurons_genesis_idx').on(t.genesisId)
   ]
 )
 
@@ -350,11 +364,13 @@ export const mapLinks = sqliteTable(
   'map_links',
   {
     id: text('id').primaryKey(),
-    fromKind: text('from_kind', { enum: ['block', 'idea'] }).notNull(),
+    fromKind: text('from_kind', { enum: ['block', 'idea', 'element'] }).notNull(),
     fromId: text('from_id').notNull(),
-    toKind: text('to_kind', { enum: ['block', 'idea'] }).notNull(),
+    toKind: text('to_kind', { enum: ['block', 'idea', 'element'] }).notNull(),
     toId: text('to_id').notNull(),
     label: text('label'),
+    /** Relation typée d'une carte de structure (spec 009) : depend_de, appelle, lit_ecrit, implemente, teste, bloque. */
+    relation: text('relation'),
     origin: text('origin', { enum: ['user', 'claude'] }).notNull(),
     createdAt: createdAt(),
     deletedAt: text('deleted_at')

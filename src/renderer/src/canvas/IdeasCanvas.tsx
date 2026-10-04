@@ -33,6 +33,7 @@ import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
+import { ElementNode } from './nodes/ElementNode'
 import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
 import { MapNoteNode } from './nodes/MapNoteNode'
@@ -60,6 +61,7 @@ const NODE_TYPES: NodeTypes = {
   label: LabelNode,
   mapNote: MapNoteNode,
   frame: FrameNode,
+  element: ElementNode,
   widget: WidgetNode,
   result: ResultNode,
   step: StepNode,
@@ -501,6 +503,8 @@ function CanvasInner(): React.JSX.Element {
               onNodeClick={(_event, node) => {
                 if (node.type === 'tree') activateTreeItem(node.id)
                 else if (node.type === 'note') toggleNote(node.id.slice('note-'.length))
+                // Élément d'une carte de structure (spec 009) : sa conversation, centrée sur lui.
+                else if (node.type === 'element') openChat(node.id)
                 else if (node.type !== 'neuron') return
                 else if (node.id === openRootId) focusIdea(null)
                 else if (node.id !== chatNeuronId) openChat(node.id)

@@ -27,6 +27,11 @@ export interface ConversationNeuron {
   readonly sheetJson: string | null
   /** Dossier de projet lié ; `null` : dossier de travail de l'app. */
   readonly projectDir: string | null
+  /** Élément d'une carte de structure (spec 009) : son genesis ; `null` pour une idée. */
+  readonly genesisId: string | null
+  readonly elementType: string | null
+  readonly pathsJson: string | null
+  readonly parentId: string | null
 }
 
 export interface TurnRecord {
@@ -73,7 +78,11 @@ export class ConversationRepository {
         sessionId: neurons.sessionId,
         sessionStarted: neurons.sessionStarted,
         sheetJson: neurons.sheetJson,
-        projectDir: neurons.projectDir
+        projectDir: neurons.projectDir,
+        genesisId: neurons.genesisId,
+        elementType: neurons.elementType,
+        pathsJson: neurons.pathsJson,
+        parentId: neurons.parentId
       })
       .from(neurons)
       .where(eq(neurons.id, id))

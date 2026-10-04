@@ -26,6 +26,8 @@ export interface ChatState {
   readonly usage: ChatUsageView | null
   /** Dossier de projet lié (nom) ; `null` : aucun. */
   readonly folder: string | null
+  readonly role: 'genesis' | 'element'
+  readonly elementType: string | null
   readonly problem: string | null
 }
 
@@ -57,6 +59,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     partial: '',
     usage: null,
     folder: null,
+    role: 'genesis',
+    elementType: null,
     problem: null
   })
 
@@ -84,7 +88,9 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           busy: view.busy,
           partial: view.partial,
           usage: view.usage ?? null,
-          folder: view.folder ?? null
+          folder: view.folder ?? null,
+          role: view.role ?? 'genesis',
+          elementType: view.elementType ?? null
         }))
       })
       .catch((error: unknown) => {

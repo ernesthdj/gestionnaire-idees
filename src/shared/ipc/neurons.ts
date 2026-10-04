@@ -9,7 +9,7 @@ export type Source = 'ai' | 'user'
 export type NeuronOrigin = Source | 'claude'
 /** `idea` : suggestion de l'IA acceptée — une idée à creuser, avec ses conseils et ses sources. */
 export type NeuronKind =
-  'root' | 'answer' | 'condition' | 'branch' | 'opportunity' | 'investigation' | 'user_branch' | 'idea'
+  'root' | 'answer' | 'condition' | 'branch' | 'opportunity' | 'investigation' | 'user_branch' | 'idea' | 'element'
 export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
 
 export interface CategoryView {
