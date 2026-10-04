@@ -15,7 +15,9 @@ export const MAX_CLIENTS = 8
 
 export const HelloFrame = z.strictObject({
   hello: z.literal(PROTOCOL_VERSION),
-  token: z.string().regex(/^[0-9a-f]{64}$/)
+  token: z.string().regex(/^[0-9a-f]{64}$/),
+  /** Neurone de la conversation qui a lancé ce relais (spec 008) ; absent pour un CLI externe. */
+  neuron: z.uuid().optional()
 })
 export type HelloFrame = z.infer<typeof HelloFrame>
 

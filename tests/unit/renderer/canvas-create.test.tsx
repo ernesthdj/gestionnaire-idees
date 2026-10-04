@@ -8,7 +8,6 @@ import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import { canvasView, emptyCanvasView, HATCHED_A_ID, RAW_ID } from '../../fixtures/ui/canvas'
-import type { TreeView } from '../../../src/shared/ipc/neurons'
 import { FakeIpcError, installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
@@ -102,30 +101,37 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     expect(api.invoke).not.toHaveBeenCalledWith('neuron:create', expect.anything())
   })
 
-  it('should_open_an_idea_in_the_side_panel_with_one_click_and_close_it_with_a_click_in_the_void', async () => {
+  it('should_open_the_claude_conversation_of_an_idea_with_a_click_and_close_it_with_a_click_in_the_void', async () => {
     const idea = canvasView().ideas[0]
     if (idea === undefined) throw new Error('fixture')
-    const tree: TreeView = { root: idea, neurons: [], extensions: [], suggestions: [], gauge: null }
-    const { container } = renderCanvas(canvasView(), {
-      'neuron:getTree': () => tree,
-      'growth:develop': () => ({ tree }),
-      'fusion:getProposed': () => null
+    const chat = {
+      neuronId: RAW_ID,
+      title: idea.title,
+      messages: [],
+      sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
+      maturity: null,
+      busy: false,
+      partial: '',
+      usage: null,
+      folder: null
+    }
+    const { container, api } = renderCanvas(canvasView(), {
+      'chat:open': () => chat,
+      'chat:close': () => ({ ok: true })
     })
     const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
-    // Le double-clic est réservé à la future vue « deep » : il n'ouvre rien.
-    fireEvent.doubleClick(node)
-    expect(useUiStore.getState().openRootId).toBeNull()
-
     fireEvent.click(node)
-    expect(useUiStore.getState().openRootId).toBe(RAW_ID)
-    const panel = await screen.findByRole('complementary', { name: 'Volet de l’idée' })
-    expect(await within(panel).findByRole('navigation', { name: 'Fil d’Ariane' })).toBeDefined()
+    expect(useUiStore.getState()).toMatchObject({ chatNeuronId: RAW_ID, openRootId: null })
+    const panel = await screen.findByRole('complementary', { name: 'Conversation du neurone' })
+    expect(await within(panel).findByRole('button', { name: 'Commencer le brainstorm' })).toBeDefined()
+    // Spec 008 : ouvrir une idée ne fait plus jamais brainstormer l'IA locale.
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:develop', expect.anything())
     // La carte reste affichée à côté du volet.
     expect(screen.getByRole('group', { name: /Mission mariage/ })).toBeDefined()
 
     fireEvent.click(await pane(container))
-    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Volet de l’idée' })).toBeNull())
-    expect(useUiStore.getState().openRootId).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Conversation du neurone' })).toBeNull())
+    expect(useUiStore.getState().chatNeuronId).toBeNull()
   })
 
   it('should_warn_before_removing_an_idea_and_offer_to_undo', async () => {

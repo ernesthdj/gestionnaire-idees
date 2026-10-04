@@ -27,6 +27,7 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   map_link: 'Ce lien a changé depuis.',
   block_text: 'Cette note a été modifiée depuis.',
   neuron_text: 'Cette idée a été modifiée depuis.',
+  neuron_sheet: 'La fiche a été modifiée depuis.',
   widget_input: 'Ce branchement a changé depuis.'
 }
 
@@ -61,6 +62,7 @@ function mcpSummary(entries: readonly ChangeRow[], undo: boolean): string {
     [(e) => e.entity === 'neuron' && created(e), 'idée', 'idées'],
     [(e) => e.entity === 'map_link' && created(e), 'lien', 'liens'],
     [(e) => e.entity === 'block_text' || e.entity === 'neuron_text', 'modification', 'modifications'],
+    [(e) => e.entity === 'neuron_sheet', 'fiche', 'fiches'],
     [(e) => (block(e) || e.entity === 'neuron' || e.entity === 'map_link') && removed(e), 'retrait', 'retraits']
   ]
   const parts = counted.flatMap(([test, one, many]) => {

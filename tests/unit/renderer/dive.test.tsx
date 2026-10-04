@@ -34,11 +34,10 @@ describe('idée ouverte sur la carte (volet + arbre)', () => {
   // ResizeObserver n'existe pas dans jsdom.
   beforeAll(() => installReactFlowMocks())
 
-  it('should_start_developing_a_raw_idea_as_soon_as_it_is_opened', async () => {
+  it('should_never_start_developing_a_raw_idea_by_itself_since_the_brainstorm_is_a_claude_conversation', async () => {
     const { api } = renderDive(rawTree(), { 'growth:develop': () => ({ tree: developingTree() }) })
-    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('growth:develop', { rootId: ROOT_ID }))
-    expect(await within(panel()).findByRole('heading', { name: 'Pour quand ?' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Question : Quelle taille ?' })).toBeDefined()
+    await loaded()
+    expect(api.invoke).not.toHaveBeenCalledWith('growth:develop', expect.anything())
   })
 
   it('should_answer_with_a_quick_reply_and_show_the_sub_neuron_before_the_ai_finishes', async () => {

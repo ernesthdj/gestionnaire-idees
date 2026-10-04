@@ -64,6 +64,14 @@ export const neurons = sqliteTable(
      */
     summary: text('summary'),
     summaryVersion: integer('summary_version'),
+    /** Conversation Claude Code du neurone (spec 008) : session reprise à chaque ouverture. */
+    sessionId: text('session_id').unique(),
+    /** Vrai après le premier tour réussi : on reprend la session au lieu de la créer. */
+    sessionStarted: integer('session_started', { mode: 'boolean' }).notNull().default(false),
+    /** Fiche tenue par Claude : résumé, points clés, décisions, questions ouvertes, manques (JSON). */
+    sheetJson: text('sheet_json'),
+    /** Dossier de projet lié (spec 008) : la conversation du neurone s'y ouvre et lit ses fichiers. */
+    projectDir: text('project_dir'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -253,6 +261,21 @@ export const linkSeeds = sqliteTable('link_seeds', {
   createdAt: createdAt(),
   decidedAt: text('decided_at')
 })
+
+/** Messages affichés de la conversation d'un neurone (spec 008) ; le CLI garde sa propre transcription. */
+export const neuronMessages = sqliteTable(
+  'neuron_messages',
+  {
+    id: text('id').primaryKey(),
+    neuronId: text('neuron_id')
+      .notNull()
+      .references(() => neurons.id),
+    role: text('role', { enum: ['user', 'assistant', 'tool', 'error'] }).notNull(),
+    text: text('text').notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [index('neuron_messages_neuron_idx').on(t.neuronId)]
+)
 
 /** Historique append-only, groupé par lot (annulation, spec 003). */
 export const changeLog = sqliteTable(

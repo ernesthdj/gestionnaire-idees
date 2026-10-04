@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, ipcMain, safeStorage } from 'electron'
+import { app, dialog, ipcMain, safeStorage } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { CaptureService } from './application/capture/CaptureService'
 import { CanvasService } from './application/canvas/CanvasService'
@@ -55,6 +55,15 @@ import { ToolGeneration } from './application/widgets/ToolGeneration'
 import { toolSurroundings } from './application/widgets/toolSurroundings'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 import { MapService } from './application/mcp/MapService'
+import { NeuronTools } from './application/mcp/NeuronTools'
+import { createToolHandler } from './application/mcp/toolHandler'
+import { ConversationService } from './application/conversation/ConversationService'
+import { BRAINSTORMER_FRAME } from './application/conversation/frame'
+import { ConversationRepository } from './infrastructure/db/repositories/ConversationRepository'
+import { resolveClaudePath } from './infrastructure/claude/claudePath'
+import { spawnClaudeConversation } from './infrastructure/claude/CliConversation'
+import { createChatRoutes } from './ipc/chatHandlers'
+import { mkdirSync } from 'node:fs'
 import { SelectionStore } from './application/mcp/SelectionStore'
 import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
 import { pipeNameFor, tokenPathFor } from './infrastructure/mcp/endpoint'
@@ -234,13 +243,15 @@ export function bootstrap(shell: ShellPort): AppContext {
     exists: (blockId) => widgetRepository.widget(blockId) !== undefined
   })
   const mapLinkRepository = new MapLinkRepository(database.db)
+  const conversationRepository = new ConversationRepository(database.db)
   const canvas = new CanvasService({
     neurons: neuronRepository,
     links: linkRepository,
     blocks: blockRepository,
     steps: hatchedRepository,
     io: widgetIo,
-    mapLinks: mapLinkRepository
+    mapLinks: mapLinkRepository,
+    sheetSummaries: () => conversationRepository.sheetSummaries()
   })
 
   // Pont MCP (spec 007) : Claude Code lit et écrit la carte par un relais, via le canal nommé de ce profil.
@@ -262,14 +273,44 @@ export function bootstrap(shell: ShellPort): AppContext {
   const pipe = new PipeServer({
     pipeName: pipeNameFor(dataDir),
     matchesToken: (candidate) => mcpToken.matches(candidate),
-    handle: (tool, args) => mapService.handle(tool, args),
+    handle: createToolHandler(
+      mapService,
+      new NeuronTools({
+        conversations: conversationRepository,
+        insertAssessment: (input) => growthRepository.insertAssessment(input),
+        onChanged: (neuronId) => broadcast('chat:sheet', { neuronId })
+      })
+    ),
     logger
   })
   pipe.start().catch(() => logger.error('mcp.listen_failed', {}))
-  const command = registrationCommand({
-    electronPath: process.execPath,
-    relayPath: join(import.meta.dirname, 'mcp-relay.js'),
-    profileDir: dataDir
+  const relayPath = join(import.meta.dirname, 'mcp-relay.js')
+  const command = registrationCommand({ electronPath: process.execPath, relayPath, profileDir: dataDir })
+
+  // Conversations Claude Code des neurones (spec 008) : le vrai CLI, dans le dossier de travail de l'app.
+  const workspace = join(dataDir, 'workspace')
+  mkdirSync(workspace, { recursive: true })
+  const conversations = new ConversationService({
+    repository: conversationRepository,
+    spawn: spawnClaudeConversation,
+    claudePath: resolveClaudePath,
+    settings: () => ({
+      cwd: workspace,
+      model: ai.config.get().claudeModel,
+      electronPath: process.execPath,
+      relayPath,
+      profileDir: dataDir
+    }),
+    frame: BRAINSTORMER_FRAME,
+    emit: (event) => broadcast(event.type, event.payload),
+    // Le chemin d'un dossier de projet vient uniquement du sélecteur natif, jamais de l'interface (constitution I).
+    pickFolder: async () => {
+      const result = await dialog.showOpenDialog({
+        title: 'Lier un dossier de projet au neurone',
+        properties: ['openDirectory']
+      })
+      return result.canceled ? undefined : result.filePaths[0]
+    }
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -300,6 +341,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createHatchedRoutes(hatchedRepository),
       ...createWidgetRoutes(widgets, toolGeneration),
       ...createWidgetIoRoutes(widgetIo),
+      ...createChatRoutes(conversations),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -325,6 +367,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     stop: () => {
       stopWatching()
       ai.stop()
+      conversations.stopAll()
       void pipe.stop()
     }
   }

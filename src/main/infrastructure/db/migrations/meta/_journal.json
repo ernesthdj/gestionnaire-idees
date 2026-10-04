@@ -127,6 +127,20 @@
       "when": 1791109545884,
       "tag": "0017_map_primitives",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1791114115680,
+      "tag": "0018_neuron_conversations",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1791115894671,
+      "tag": "0019_neuron_project_dir",
+      "breakpoints": true
     }
   ]
 }

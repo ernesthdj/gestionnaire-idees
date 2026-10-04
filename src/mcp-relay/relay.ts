@@ -45,7 +45,9 @@ class PipeClient {
 
   constructor(
     private readonly pipeName: string,
-    private readonly tokenFile: string
+    private readonly tokenFile: string,
+    /** Neurone de la conversation de l'app qui a lancé ce relais (spec 008) ; absent pour un CLI externe. */
+    private readonly neuron: string | undefined
   ) {}
 
   async call(tool: string, args: unknown): Promise<ToolResult> {
@@ -86,7 +88,8 @@ class PipeClient {
         this.failAll(new RelayFailure('APP_FERMEE', APP_CLOSED))
         if (this.socket === socket) this.socket = undefined
       })
-      socket.on('connect', () => socket.write(`${JSON.stringify({ hello: PROTOCOL_VERSION, token })}\n`))
+      const hello = { hello: PROTOCOL_VERSION, token, ...(this.neuron === undefined ? {} : { neuron: this.neuron }) }
+      socket.on('connect', () => socket.write(`${JSON.stringify(hello)}\n`))
       socket.on('data', (chunk: string) => {
         const { lines, overflow } = splitter.push(chunk)
         if (overflow) {
@@ -144,7 +147,12 @@ function profileDir(): string {
 
 async function main(): Promise<void> {
   const profile = profileDir()
-  const client = new PipeClient(pipeNameFor(profile), tokenPathFor(profile))
+  const neuron = process.env['GI_NEURON_ID']
+  const client = new PipeClient(
+    pipeNameFor(profile),
+    tokenPathFor(profile),
+    neuron !== undefined && /^[0-9a-f-]{36}$/i.test(neuron) ? neuron : undefined
+  )
   const server = new McpServer({ name: 'brainstormer', version: '1.0.0' }, { instructions: MCP_INSTRUCTIONS })
 
   for (const name of MCP_TOOL_NAMES) {

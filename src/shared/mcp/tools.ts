@@ -82,6 +82,36 @@ export const WidgetPoserInput = z.strictObject({
 })
 export type WidgetPoserInput = z.infer<typeof WidgetPoserInput>
 
+/** Outils du neurone de la conversation (spec 008) : `id` facultatif = neurone de la conversation. */
+const SheetItem = z.string().trim().min(1).max(500)
+const SheetItems = z.array(SheetItem).max(30)
+export const NeuroneContexteInput = z.strictObject({ id: Id.optional() })
+export const FicheEcrireInput = z
+  .strictObject({
+    id: Id.optional(),
+    resume: z.string().trim().max(1000).optional(),
+    points_cles: SheetItems.optional(),
+    decisions: SheetItems.optional(),
+    questions_ouvertes: SheetItems.optional(),
+    manques: SheetItems.optional()
+  })
+  .refine(
+    (input) =>
+      input.resume !== undefined ||
+      input.points_cles !== undefined ||
+      input.decisions !== undefined ||
+      input.questions_ouvertes !== undefined ||
+      input.manques !== undefined,
+    'au moins une section de la fiche'
+  )
+export type FicheEcrireInput = z.infer<typeof FicheEcrireInput>
+export const MaturiteEvaluerInput = z.strictObject({
+  id: Id.optional(),
+  niveau: z.enum(['insuffisant', 'suffisant', 'complet']),
+  manques: z.array(SheetItem).max(12)
+})
+export type MaturiteEvaluerInput = z.infer<typeof MaturiteEvaluerInput>
+
 export interface McpToolDefinition {
   readonly description: string
   readonly input: z.ZodType
@@ -138,6 +168,25 @@ export const MCP_TOOLS = {
       'Pose un widget dont tu fournis le code (html, css, ts ; API `gi`), relié éventuellement à une idée. ' +
       "Il arrive « À revoir » : il ne reçoit aucune donnée avant l'autorisation de mentalyas.",
     input: WidgetPoserInput,
+    writes: true
+  },
+  neurone_contexte: {
+    description:
+      'Relit le contexte du neurone de cette conversation (ou d’un autre neurone de son arbre) : titre, couche, fiche, maturité.',
+    input: NeuroneContexteInput,
+    writes: false
+  },
+  fiche_ecrire: {
+    description:
+      'Met à jour la fiche du neurone : résumé, points clés, décisions, questions ouvertes, manques. Chaque section ' +
+      'fournie remplace l’ancienne (renvoie la liste complète). À appeler dès que la conversation établit quelque chose.',
+    input: FicheEcrireInput,
+    writes: true
+  },
+  maturite_evaluer: {
+    description:
+      'Évalue la maturité du neurone (insuffisant, suffisant, complet) et ce qui manque encore. Sa taille sur la carte suit.',
+    input: MaturiteEvaluerInput,
     writes: true
   }
 } as const satisfies Record<string, McpToolDefinition>

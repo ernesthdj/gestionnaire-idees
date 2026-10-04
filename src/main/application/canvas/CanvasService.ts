@@ -30,6 +30,8 @@ export interface CanvasDeps {
   readonly io: { links(): IoLinkView[] }
   /** Liens libres de la carte (spec 007). */
   readonly mapLinks?: { list(): MapLinkView[] }
+  /** Résumés des fiches des neurones (spec 008). */
+  readonly sheetSummaries?: () => Map<string, string>
   /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
   readonly steps: {
     result(rootId: string): HatchedResultView | null
@@ -48,12 +50,17 @@ export class CanvasService {
       roots.filter((root) => root.state === 'developing').map((root) => root.id)
     )
     const levels = this.deps.neurons.latestGaugeLevels()
-    const ideas = roots.map((root): CanvasNeuronView => ({
-      ...root,
-      subNeurons: previews.get(root.id)?.items ?? [],
-      subCount: previews.get(root.id)?.count ?? 0,
-      contextLevel: levels.get(root.id) ?? null
-    }))
+    const summaries = this.deps.sheetSummaries?.() ?? new Map<string, string>()
+    const ideas = roots.map((root): CanvasNeuronView => {
+      const summary = summaries.get(root.id)
+      return {
+        ...root,
+        subNeurons: previews.get(root.id)?.items ?? [],
+        subCount: previews.get(root.id)?.count ?? 0,
+        contextLevel: levels.get(root.id) ?? null,
+        ...(summary === undefined ? {} : { sheetSummary: summary })
+      }
+    })
     const visible = new Set(roots.map((root) => root.id))
     // Un lien vers une idée archivée n'a plus de sens sur la carte.
     const links = this.deps.links.list().filter((link) => visible.has(link.a.id) && visible.has(link.b.id))

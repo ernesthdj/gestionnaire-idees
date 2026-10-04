@@ -52,6 +52,7 @@ import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
+import { ChatPanel } from '../chat/ChatPanel'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
@@ -158,6 +159,9 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const openRootId = useUiStore((state) => state.openRootId)
+  const chatNeuronId = useUiStore((state) => state.chatNeuronId)
+  const openChat = useUiStore((state) => state.openChat)
+  const closeChat = useUiStore((state) => state.closeChat)
   const openIdea = useUiStore((state) => state.openIdea)
   const focusIdea = useUiStore((state) => state.focus)
   const closeIdea = useUiStore((state) => state.closeIdea)
@@ -425,7 +429,7 @@ function CanvasInner(): React.JSX.Element {
     const id = target.id
     if (event.key === 'Enter') {
       event.preventDefault()
-      openIdea(id)
+      openChat(id)
     } else if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
       event.preventDefault()
       const box = (event.target as HTMLElement).getBoundingClientRect()
@@ -491,23 +495,29 @@ function CanvasInner(): React.JSX.Element {
               onNodeMouseLeave={() => setHoveredNode(null)}
               onMoveStart={() => setInteracting(true)}
               onMoveEnd={() => setInteracting(false)}
-              // Un clic ouvre l'idée dans le volet (ou recible l'idée elle-même) ; le double-clic est réservé à la
-              // future vue « deep ». Un clic dans le vide referme le volet.
+              // Un clic (ou un double-clic) sur une idée ouvre sa conversation Claude Code (spec 008) : l'ancien
+              // panneau de questions, qui lançait Ollama à l'ouverture, ne s'ouvre plus que par le menu de l'idée.
+              // Un clic dans le vide referme le volet.
               onNodeClick={(_event, node) => {
                 if (node.type === 'tree') activateTreeItem(node.id)
                 else if (node.type === 'note') toggleNote(node.id.slice('note-'.length))
                 else if (node.type !== 'neuron') return
                 else if (node.id === openRootId) focusIdea(null)
-                else openIdea(node.id)
+                else if (node.id !== chatNeuronId) openChat(node.id)
               }}
               // Double-clic sur une idée suggérée acceptée : sa fiche s'ouvre à côté d'elle (FR-032).
               onNodeDoubleClick={(_event, node) => {
+                // Double-clic sur une idée : sa conversation Claude Code s'ouvre dans le volet (spec 008).
+                if (node.type === 'neuron') {
+                  openChat(node.id)
+                  return
+                }
                 if (node.type !== 'tree') return
                 const placed = tree?.items.find((entry) => entry.item.id === node.id)
                 if (placed?.item.type === 'neuron' && placed.item.kind === 'idea') openDoc(placed.item.id)
               }}
               onPaneClick={() => {
-                if (openRootId !== null) closeIdea()
+                if (openRootId !== null || chatNeuronId !== null) closeIdea()
               }}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
@@ -615,6 +625,19 @@ function CanvasInner(): React.JSX.Element {
                 setMenu(null)
                 openIdea(menuNeuron.id)
               }}
+              onChat={() => {
+                setMenu(null)
+                openChat(menuNeuron.id)
+              }}
+              onLinkFolder={() => {
+                const id = menuNeuron.id
+                setMenu(null)
+                call('chat:linkFolder', { neuronId: id, unlink: false })
+                  .then(() => openChat(id))
+                  .catch((error: unknown) =>
+                    showToast(error instanceof IpcFailure ? error.message : 'Le dossier n’a pas pu être lié.')
+                  )
+              }}
               onClose={() => setMenu(null)}
               others={view.ideas
                 .filter((neuron) => neuron.id !== menuNeuron.id)
@@ -632,7 +655,14 @@ function CanvasInner(): React.JSX.Element {
             />
           )}
         </div>
-        {openRootId === null ? null : (
+        {chatNeuronId !== null ? (
+          <aside
+            aria-label="Conversation du neurone"
+            className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface"
+          >
+            <ChatPanel key={chatNeuronId} neuronId={chatNeuronId} onClose={closeChat} />
+          </aside>
+        ) : openRootId === null ? null : (
           <aside
             ref={setPanelHost}
             aria-label="Volet de l’idée"

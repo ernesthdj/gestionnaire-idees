@@ -1,0 +1,1 @@
+ALTER TABLE `neurons` ADD `project_dir` text;

@@ -72,6 +72,8 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > Pont MCP (spec 007) : Reglages › Claude Code affiche la commande `claude mcp add brainstormer …` a lancer une fois.
 > Le relais (`out/main/mcp-relay.js`) existe apres `npm run dev` ou `npm run build` ; canal nomme par profil, secret
 > dans `<profil>/mcp.token` (jamais dans `~/.claude.json`).
+> Chat des neurones (spec 008) : double-clic sur une idee = conversation `claude -p` (stream-json) dans
+> `<profil>/workspace`, session reprise ; hooks utilisateur coupes (`--setting-sources project`), outils restreints.
 > Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
 > `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
 > serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.

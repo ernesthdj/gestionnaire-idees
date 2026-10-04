@@ -56,6 +56,12 @@ describe('point de rendez-vous', () => {
     expect(pipeNameFor('C:\\Users\\x\\AppData\\Roaming\\gestionnaire-idees-demo')).not.toBe(real)
     expect(real).toMatch(/^\\\\\.\\pipe\\gestionnaire-idees-mcp-[0-9a-f]{8}$/)
   })
+
+  it('should_give_the_same_pipe_whatever_the_separators_or_case_of_the_profile_path', () => {
+    expect(pipeNameFor('C:/Users/x/AppData/Roaming/gestionnaire-idees-demo')).toBe(
+      pipeNameFor('c:\\users\\x\\appdata\\roaming\\gestionnaire-idees-demo')
+    )
+  })
 })
 
 describe('secret du pont', () => {

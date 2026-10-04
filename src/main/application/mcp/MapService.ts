@@ -53,6 +53,9 @@ export interface MapServiceDeps {
   readonly emit: (event: MapChangedEvent) => void
 }
 
+/** Outils de la carte (spec 007) ; ceux du neurone d'une conversation (spec 008) sont dans `NeuronTools`. */
+export type MapToolName = Exclude<McpToolName, 'neurone_contexte' | 'fiche_ecrire' | 'maturite_evaluer'>
+
 const IDEA_SIZE = 120
 const ELEMENT_KINDS = {
   empty: 'bloc',
@@ -87,7 +90,7 @@ function bounded(text: string): string {
 export class MapService {
   constructor(private readonly deps: MapServiceDeps) {}
 
-  handle(tool: McpToolName, args: unknown): ToolResult {
+  handle(tool: MapToolName, args: unknown): ToolResult {
     switch (tool) {
       case 'etat':
         return this.state()

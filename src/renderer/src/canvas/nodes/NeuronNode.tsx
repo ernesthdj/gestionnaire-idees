@@ -96,6 +96,8 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
         </span>
       ) : null}
       <p className="neuron-title">{neuron.title}</p>
+      {/* Fiche tenue par Claude dans la conversation du neurone (spec 008) : son résumé sous le titre. */}
+      {neuron.sheetSummary === undefined ? null : <p className="neuron-sheet">{neuron.sheetSummary}</p>}
     </div>
   )
 }

@@ -12,6 +12,10 @@ interface NeuronMenuProps {
   /** Position à l'écran (clic droit) ; le menu reste dans la fenêtre. */
   readonly at: { readonly x: number; readonly y: number }
   readonly onOpen: () => void
+  /** Ouvre la conversation Claude Code de l'idée (spec 008). */
+  readonly onChat: () => void
+  /** Lie un dossier de projet à la conversation de l'idée (sélecteur natif), puis l'ouvre. */
+  readonly onLinkFolder: () => void
   readonly onClose: () => void
   /** Autres idées de la carte, cibles possibles d'un lien (FR-031, alternative clavier au lien tiré). */
   readonly others: readonly { readonly id: string; readonly title: string }[]
@@ -33,6 +37,8 @@ export function NeuronMenu({
   categories,
   at,
   onOpen,
+  onChat,
+  onLinkFolder,
   onClose,
   others,
   onLink,
@@ -101,8 +107,14 @@ export function NeuronMenu({
       <p id={ids.title} className="truncate font-semibold">
         {neuron.title}
       </p>
-      <Button variant="primary" className="w-full" onClick={onOpen}>
-        Ouvrir l’idée
+      <Button variant="primary" className="w-full" onClick={onChat}>
+        Conversation avec Claude
+      </Button>
+      <Button className="w-full" onClick={onLinkFolder}>
+        Lier à un dossier de projet…
+      </Button>
+      <Button className="w-full" onClick={onOpen}>
+        Ancien panneau (arbre et document)
       </Button>
       {linking ? (
         <form onSubmit={(event) => void link(event)} className="space-y-2">

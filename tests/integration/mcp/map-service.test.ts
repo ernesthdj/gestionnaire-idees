@@ -16,7 +16,8 @@ import { WidgetIoRepository } from '../../../src/main/infrastructure/db/reposito
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import type { ToolResult } from '../../../src/shared/mcp/protocol'
-import { MCP_TOOLS, type McpToolName } from '../../../src/shared/mcp/tools'
+import { MCP_TOOLS } from '../../../src/shared/mcp/tools'
+import type { MapToolName } from '../../../src/main/application/mcp/MapService'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 
 describe('pont MCP — service de la carte', () => {
@@ -30,11 +31,11 @@ describe('pont MCP — service de la carte', () => {
   let ideaId: string
 
   /** Appel tel que le canal le fait : entrée validée par le schéma de l'outil, puis exécution. */
-  const call = (tool: McpToolName, args: unknown): ToolResult => {
+  const call = (tool: MapToolName, args: unknown): ToolResult => {
     const parsed = MCP_TOOLS[tool].input.parse(args)
     return map.handle(tool, parsed)
   }
-  const failure = (tool: McpToolName, args: unknown): McpToolError => {
+  const failure = (tool: MapToolName, args: unknown): McpToolError => {
     try {
       call(tool, args)
     } catch (error) {

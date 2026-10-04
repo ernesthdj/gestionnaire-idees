@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { MainWindowChannel } from '@shared/ipc/channels'
 import type { GrowthResultView, TreeView } from '@shared/ipc/neurons'
 import { call, IpcFailure } from '../lib/ipc'
@@ -81,7 +81,6 @@ export function useDive(rootId: string): DiveActions {
   const [pending, setPending] = useState<readonly PendingChild[]>([])
   const [message, setMessage] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
-  const developed = useRef(false)
 
   const refresh = useCallback(async (): Promise<void> => {
     await Promise.all([
@@ -140,13 +139,8 @@ export function useDive(rootId: string): DiveActions {
     [client, rootId, refresh]
   )
 
-  // Idée brute à l'ouverture : le développement se lance (US3 scénario 1).
-  const state = tree.data?.root.state
-  useEffect(() => {
-    if (state !== 'raw' || developed.current) return
-    developed.current = true
-    void run('growth:develop', { rootId })
-  }, [state, rootId, run])
+  // Spec 008 : plus de développement automatique à l'ouverture (il faisait brainstormer Ollama) ; le brainstorm
+  // se fait dans la conversation Claude Code du neurone. Ce panneau ne sert plus qu'à consulter l'arbre et le document.
 
   return {
     tree,

@@ -9,6 +9,8 @@ export interface CanvasNeuronView extends RootView {
   readonly subCount: number
   /** Dernier niveau de contexte évalué ; `null` tant que l'idée n'a pas été travaillée (taille du neurone). */
   readonly contextLevel: GaugeLevel | null
+  /** Résumé de la fiche tenue par Claude dans la conversation du neurone (spec 008) ; absent sans fiche. */
+  readonly sheetSummary?: string
 }
 
 export interface IdeasCanvasView {

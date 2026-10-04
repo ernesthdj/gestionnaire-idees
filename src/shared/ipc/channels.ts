@@ -75,7 +75,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'widget:generate',
   'map:selection',
   'mcp:status',
-  'mcp:rotateToken'
+  'mcp:rotateToken',
+  'chat:open',
+  'chat:send',
+  'chat:stop',
+  'chat:close',
+  'chat:linkFolder'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -96,7 +101,13 @@ export const MAIN_WINDOW_EVENTS = [
   'seeds:suggested',
   'widget:thinking',
   'widget:thought',
-  'map:changed'
+  'map:changed',
+  'chat:delta',
+  'chat:tool',
+  'chat:turnEnd',
+  'chat:error',
+  'chat:usage',
+  'chat:sheet'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

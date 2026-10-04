@@ -10,12 +10,13 @@ import {
   type ToolResult
 } from '@shared/mcp/protocol'
 import { isMcpToolName, MCP_TOOLS, type McpErrorCode, type McpToolName } from '@shared/mcp/tools'
+import type { McpCaller } from '../../domain/mcp/caller'
 import { McpToolError } from '../../domain/mcp/errors'
 import type { Logger } from '../logging/logger'
 import { LineSplitter } from './lineSplitter'
 
 /** Exécute un outil dont l'entrée a déjà été validée par son schéma. */
-export type McpToolHandler = (tool: McpToolName, args: unknown) => ToolResult
+export type McpToolHandler = (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult
 
 export interface PipeServerOptions {
   readonly pipeName: string
@@ -91,6 +92,7 @@ export class PipeServer {
     socket.on('error', () => socket.destroy())
 
     let authenticated = false
+    let caller: McpCaller = { neuronId: null }
     const splitter = new LineSplitter()
     const timer = setTimeout(() => {
       if (!authenticated) socket.destroy()
@@ -114,6 +116,7 @@ export class PipeServer {
             return
           }
           authenticated = true
+          caller = { neuronId: hello.data.neuron ?? null }
           socket.write(`${JSON.stringify({ ok: true } satisfies HelloReply)}\n`)
           continue
         }
@@ -122,12 +125,12 @@ export class PipeServer {
           socket.destroy()
           return
         }
-        socket.write(`${JSON.stringify(this.run(request.data.id, request.data.tool, request.data.args))}\n`)
+        socket.write(`${JSON.stringify(this.run(request.data.id, request.data.tool, request.data.args, caller))}\n`)
       }
     })
   }
 
-  private run(id: number, tool: string, args: unknown): ResponseFrame {
+  private run(id: number, tool: string, args: unknown, caller: McpCaller): ResponseFrame {
     const started = Date.now()
     const fail = (code: McpErrorCode, message: string): ResponseFrame => {
       this.options.logger.info('mcp.call', { kind: tool, status: code, durationMs: Date.now() - started })
@@ -137,7 +140,7 @@ export class PipeServer {
     const parsed = MCP_TOOLS[tool].input.safeParse(args)
     if (!parsed.success) return fail('ENTREE_INVALIDE', describeIssues(parsed.error))
     try {
-      const result = this.options.handle(tool, parsed.data)
+      const result = this.options.handle(tool, parsed.data, caller)
       this.options.logger.info('mcp.call', { kind: tool, status: 'ok', durationMs: Date.now() - started })
       return { id, ok: true, result }
     } catch (error) {

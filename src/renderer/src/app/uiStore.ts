@@ -19,6 +19,10 @@ interface UiState {
   readonly openRootId: string | null
   /** Neurone ciblé dans l'idée ouverte (`null` : l'idée elle-même). */
   readonly focusId: string | null
+  /** Neurone dont la conversation Claude Code est ouverte dans le volet (spec 008) ; prime sur l'idée ouverte. */
+  readonly chatNeuronId: string | null
+  openChat(neuronId: string): void
+  closeChat(): void
   show(view: View): void
   navigate(event: NavigateEvent): void
   /** Notification brève (FR-019). */
@@ -46,13 +50,16 @@ export const useUiStore = create<UiState>()((set) => ({
   view: 'ideas',
   openRootId: null,
   focusId: null,
+  chatNeuronId: null,
   toast: null,
   bornId: null,
-  show: (view) => set({ view, openRootId: null, focusId: null }),
+  show: (view) => set({ view, openRootId: null, focusId: null, chatNeuronId: null }),
   navigate: ({ section, diveRootId }) => set({ view: section, openRootId: diveRootId ?? null, focusId: null }),
-  openIdea: (rootId) => set({ view: 'ideas', openRootId: rootId, focusId: null }),
+  openIdea: (rootId) => set({ view: 'ideas', openRootId: rootId, focusId: null, chatNeuronId: null }),
+  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, openRootId: null, focusId: null }),
+  closeChat: () => set({ chatNeuronId: null }),
   focus: (neuronId) => set({ focusId: neuronId }),
-  closeIdea: () => set({ openRootId: null, focusId: null }),
+  closeIdea: () => set({ openRootId: null, focusId: null, chatNeuronId: null }),
   hatch: (text, undoBatchId) =>
     set((state) => ({
       toast: nextToast(state.toast, {

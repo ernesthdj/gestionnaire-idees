@@ -56,13 +56,13 @@ describe('écran Idées', () => {
     expect(idea(/^Idée éclose : Mission mariage, Réflexion \(proposée par l’IA\)/)).toBeDefined()
   })
 
-  it('should_dive_into_an_idea_when_enter_is_pressed_on_it', async () => {
+  it('should_open_the_conversation_of_an_idea_when_enter_is_pressed_on_it', async () => {
     const user = userEvent.setup()
     renderCanvas()
     const node = await waitFor(() => idea(/Deuxième écran/))
     node.focus()
     await user.keyboard('{Enter}')
-    expect(useUiStore.getState().openRootId).toBe(DEVELOPING_ID)
+    expect(useUiStore.getState().chatNeuronId).toBe(DEVELOPING_ID)
   })
 
   it('should_reach_ideas_with_tab_from_the_toolbar', async () => {

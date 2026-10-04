@@ -251,6 +251,10 @@ export class HistoryRepository {
           .get()
         return row === undefined ? null : { title: row.title, text: row.text }
       }
+      case 'neuron_sheet': {
+        const row = this.db.select({ sheetJson: neurons.sheetJson }).from(neurons).where(eq(neurons.id, id)).get()
+        return row === undefined ? null : { sheet: row.sheetJson }
+      }
       case 'neuron_text': {
         const row = this.db
           .select({ title: neurons.title, content: neurons.content })
@@ -410,6 +414,14 @@ export class HistoryRepository {
             text: typeof target['text'] === 'string' ? target['text'] : null
           })
           .where(eq(canvasBlocks.id, id))
+          .run()
+        return
+      case 'neuron_sheet':
+        if (target === null) return
+        this.db
+          .update(neurons)
+          .set({ sheetJson: typeof target['sheet'] === 'string' ? target['sheet'] : null })
+          .where(eq(neurons.id, id))
           .run()
         return
       case 'neuron_text':
