@@ -1,8 +1,43 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b (Brainstormer) et L4b (neurones) du 2026-09-28
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md
+> Statut : Niveaux 1+2+3+4 + amendements L1b (Brainstormer) et L4b (neurones) du 2026-09-28 + **amendement L1c (Pont Claude Code) du 2026-10-04**
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md**
+
+---
+
+## 00. Amendement du 2026-10-04 — Pont Claude Code — PRIORITAIRE SUR TOUT LE RESTE (§0 compris)
+
+> Détail complet : `docs/brainstorm/L1c-pont-claude-code.md` (vision, arbitrages), `L2-{pont-mcp, moteur-cli,
+> terminal-espaces}.md` (cas d'usage, règles, critères), `L3-{pont-mcp, moteur-cli, terminal-espaces}.md` (contrats,
+> données, sécurité). En cas de conflit avec §0 à §12, **ces fichiers priment**.
+
+### 00.1 Vision
+**Le Brainstormer est l'interface visuelle de Claude Code** : la carte est l'espace partagé entre mentalyas et Claude.
+Générique par conception (brainstorm, planning, structure de projet ou de code, analyse de document, parsing…), sans
+page blanche : primitives visuelles (nœud, lien, cadre, document, tableau, widget) + recettes réutilisables +
+bibliothèque de widgets persistants. Les neurones (croissance, jauge, éclosion) deviennent la recette « Brainstorm ».
+
+### 00.2 Arbitrages
+| # | Sujet | Décision |
+|---|-------|----------|
+| 1 | Écritures de Claude sur la carte | Directes, marquées « par Claude », annulables (Historique, `Ctrl+Z`) |
+| 2 | Anonymisation | Supprimée sur le chemin Claude (CLI de mentalyas) |
+| 3 | API Anthropic | Supprimée à terme : plus de clé API ni de budget en euros |
+| 4 | Dossier du terminal | Espaces, éventuellement liés à un vrai dossier |
+| 5 | Fonctions IA automatiques | Conservées, via `claude -p` ; Ollama pour les tâches simples |
+| 6 | Cadre de l'IA (`out_of_scope`, rôle imposé) | Supprimé ; garde-fous techniques seulement (bac à sable, Zod, annulation) |
+
+### 00.3 Fonctionnalités et lots
+| # | Fonctionnalité | Lot |
+|---|----------------|-----|
+| F10 | Pont MCP — relais stdio + canal nommé + jeton ; 9 outils (`etat`, `carte_lire`, `selection_lire`, `noeud_lire`, `dessiner`, `noeud_modifier`, `relier`, `retirer`, `widget_poser`) | 1 |
+| F11 | Moteur CLI — `ClaudeCliProvider` (`claude -p --json-schema --tools ""`), retrait SDK/budget/anonymisation/cadre | 2 |
+| F12 | Terminal intégré (xterm + node-pty) & espaces liés | 3 |
+| F13 | Skill `brainstormer` + installation de l'intégration | 3 |
+| F14 | Recettes & bibliothèque de widgets | 4 (à détailler) |
+
+Spec 006 gelée (T016 rejoué après le lot 2). Nettoyage du code après le lot 2. Constitution amendée (II, III, IV).
 
 ---
 

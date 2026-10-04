@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
-- Version change: 1.1.0 → 1.2.0 (2026-09-29, validé par mentalyas)
+- Version change: 1.2.0 → 2.0.0 (2026-10-04, arbitrages validés par mentalyas — FOUNDATION §00, L1c)
+- Modified principles: I (secret : jeton MCP au lieu de la clé API ; canal MCP authentifié), II (écritures de Claude
+  par MCP : directes, marquées, annulables), III (cadre de l'IA et refus hors périmètre supprimés ; validation par
+  schéma conservée ; code de widget aussi écrit par Claude Code via MCP), IV (anonymisation et plafond en euros
+  supprimés ; Claude uniquement via le CLI officiel), VI (lots du Pont Claude Code)
+- Motif : le Brainstormer devient l'interface visuelle de Claude Code ; suppression de l'API Anthropic (coût)
+- Impact : spec 001 (anonymisation, budget), 002 (cadre, `out_of_scope`), 004/006 (génération de widget), specs 007+
+- Historique : 1.1.0 → 1.2.0 (2026-09-29, validé par mentalyas)
 - Modified principles: III (exception unique au refus de produire du code : tâche `widget`, bac à sable)
 - Motif : mini-widgets générés par Claude sur la carte (FOUNDATION §0.3, spec 004)
 - Impact : spec 004 (cadre système `WidgetFrame`, protocole isolé `gi-widget://`), spec 005 (capacités)
@@ -27,11 +34,15 @@ Sync Impact Report
 - Electron MUST être durci : `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, CSP
   stricte, API `contextBridge` minimale ; **chaque** payload IPC MUST être validé par un schéma Zod
   dans le processus principal.
-- Secrets (clé API Claude, jetons Microsoft, clé de base) MUST être chiffrés via `safeStorage`/DPAPI,
+- Secrets (jeton du canal MCP, jetons Microsoft, clé de base ; clé API Claude tant qu'elle existe) MUST être chiffrés via `safeStorage`/DPAPI,
   jamais dans le code, la base, les logs, le renderer ni le dépôt.
 - Le dépôt est **public** : il MUST NOT contenir de données réelles, de secret ni d'adresse e-mail ;
   uniquement des exemples fictifs (`*.example.*`).
 - Les logs MUST NOT contenir de contenu d'idée, de montant, de jeton ni de PII.
+- Le seul point d'entrée externe de l'app est le **canal MCP** : canal nommé local (aucun port réseau),
+  authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
+- L'app ne lance aucun programme choisi par le renderer : seul le CLI `claude`, résolu par le main, avec des
+  arguments fixes, sans interpréteur intermédiaire ; les données passent par stdin, jamais en argument.
 Rationale : l'app manipule des idées personnelles, des données financières et des accès à un compte
 Microsoft, dans un dépôt visible de tous.
 
@@ -40,39 +51,47 @@ Microsoft, dans un dépôt visible de tous.
   réservation de budget) MUST être appliquée sans acceptation explicite de l'utilisateur.
 - L'application d'une proposition MUST être atomique (transaction tout-ou-rien), historisée et annulable.
 - Toute action destructive externe (suppression d'un événement Outlook) MUST être confirmée.
-Rationale : une IA peut se tromper ; l'utilisateur reste maître de son agenda (décision L1, option A).
+- Exception : les écritures de Claude Code **par le canal MCP** sont appliquées directement, sans validation
+  préalable, MUST être marquées « par Claude » (origine `claude`), historisées en une opération par appel
+  d'outil et annulables ; elles MUST NOT supprimer définitivement (archivage seulement).
+Rationale : une IA peut se tromper ; l'utilisateur reste maître de ses données — par validation préalable
+pour les propositions de l'app, par annulation pour le travail conversationnel avec Claude Code (L1c n°1).
 
 ### III. IA cadrée et vérifiable
-- Tout appel IA MUST passer par l'unique `AIGateway` (routage, contexte, budget, validation, journal) ;
-  aucun appel direct à Ollama ou à l'API Anthropic ailleurs.
+- Tout appel IA **lancé par l'app** MUST passer par l'unique `AIGateway` (routage, contexte, validation,
+  journal) ; aucun appel direct à Ollama ou au CLI `claude` ailleurs.
 - Toute réponse IA MUST être validée par un schéma avant usage ; une réponse invalide est rejetée.
 - L'agent MUST NOT écrire de lui-même un prix, une date ou un montant dans les données : il demande,
   crée une tâche d'investigation, ou le PROPOSE comme suggestion clairement signalée (neurone fantôme),
   sourcée quand elle vient du web ; la valeur n'entre dans les données qu'après acceptation de
-  l'utilisateur. Les demandes hors périmètre sont refusées et recentrées.
-- Le texte utilisateur MUST être transmis comme donnée délimitée, jamais comme instruction ; le cadre
-  système est figé dans le code et ne peut pas être remplacé par un import de contexte.
+  l'utilisateur. Cette règle vaut pour les tâches automatiques de l'app ; en conversation par MCP,
+  Claude écrit ce que mentalyas lui demande (II, exception).
+- Aucun rôle imposé ni refus « hors périmètre » : la consigne de chaque tâche décrit seulement ce qu'elle
+  produit (cadre supprimé, L1c n°6).
+- Le texte utilisateur MUST être transmis comme donnée délimitée, jamais comme instruction ; les consignes
+  de tâche sont figées dans le code et ne peuvent pas être remplacées par un import de contexte.
 - Le contexte importé (profil, règles, exemples) MUST passer par un aperçu validé par l'utilisateur,
   versionné et réversible.
-- Exception unique au refus de produire du code : la tâche `widget` dispose de son propre cadre système
+- Code de widget (tâche `widget`, ou écrit par Claude Code et posé par l'outil MCP `widget_poser`) : format
   figé (fichier unique HTML/CSS/TypeScript effaçable, aucune ressource externe, aucune API de l'app hors
   pont de capacités). Le code généré MUST s'exécuter uniquement dans le bac à sable `gi-widget://`
   (iframe sans `allow-same-origin`, CSP sans réseau, requêtes sortantes filtrées) ; il n'est jamais évalué
   ni injecté dans l'app. Un widget sans capacité peut s'exécuter sans revue préalable ; toute demande de
   capacité MUST imposer la revue du code et des capacités avant exécution.
-Rationale : limiter hallucinations et injections de prompt, garder l'agent dans son rôle de secrétaire.
+Rationale : limiter hallucinations et injections de prompt ; les garde-fous sont techniques (schémas, bac à
+sable, annulation), pas un rôle imposé à l'IA.
 
 ### IV. Local d'abord & minimisation des données
 - Les données MUST rester sur la machine (SQLite chiffré dans `%APPDATA%/gestionnaire-idees/`).
 - L'IA locale MUST traiter par défaut les tâches simples ; Claude n'est appelé que pour le raisonnement
   profond.
-- Avant tout envoi à Claude, les données MUST être minimisées et anonymisées (alias ; noms de personnes,
-  lieux, adresses, e-mails, téléphones et IBAN retirés) ; en cas d'échec de l'anonymisation, rien n'est
-  envoyé en brut. Les montants sont transmis exacts par défaut (calculs) ; leur remplacement par des
-  fourchettes est un réglage utilisateur.
+- Claude est joint **uniquement par le CLI officiel `claude`** de mentalyas (abonnement), jamais par l'API
+  Anthropic une fois le lot 2 livré ; les tâches automatiques tournent sans outil (sauf recherche web) et
+  sans serveur MCP. Plus d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
+  nécessaire à la tâche).
 - La capture d'une idée MUST fonctionner sans aucune IA disponible (aucune idée perdue).
-- Le coût API MUST être journalisé et plafonné (plafond mensuel configurable, 10 € par défaut).
-Rationale : confidentialité, fonctionnement hors ligne, maîtrise du coût.
+- L'usage de Claude MUST être journalisé (tâche, durée, statut, modèle — jamais le contenu).
+Rationale : confidentialité, fonctionnement hors ligne, coût nul hors abonnement.
 
 ### V. Qualité & tests
 - TypeScript `strict: true` ; `any` interdit (utiliser `unknown` + type guards) ; types explicites sur les
@@ -86,8 +105,9 @@ Rationale : confidentialité, fonctionnement hors ligne, maîtrise du coût.
 Rationale : l'app est pilotée par des règles fines ; les régressions doivent être détectées sans coût.
 
 ### VI. Simplicité (YAGNI · DRY · KISS)
-- Livraison incrémentale : **MVP-1** (F1 Capture, F2 Structuration, F3 Validation, F4 Organigramme,
-  F9 Moteur IA) avant **MVP-2** (F5 Planning, F6 Outlook, F7 Conseiller, F8 Compagnon).
+- Livraison incrémentale : après le MVP-1 et les widgets (specs 001–006), le **Pont Claude Code** prime
+  (FOUNDATION §00) : lot 1 F10 Pont MCP, lot 2 F11 Moteur CLI, lot 3 F12 Terminal & espaces + F13 skill,
+  lot 4 F14 Recettes ; MVP-2 (F5–F8) devient des recettes ou vues, à replanifier.
 - Pas d'abstraction sans deuxième usage réel ; pas de fonctionnalité hors cahier des charges
   (`docs/FOUNDATION.md`) sans décision explicite.
 - Les données déclaratives (arbre d'évolution, catégories, routage IA) vivent dans des fichiers de
@@ -98,10 +118,11 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
 
 - **Stack** : Electron · React + TypeScript + Tailwind · React Flow · Zod · SQLite chiffré via
   **Drizzle ORM** + `better-sqlite3-multiple-ciphers` (exception validée au standard Prisma : moteur
-  binaire non empaquetable proprement, SQLite chiffré non supporté) · Ollama · `@anthropic-ai/sdk`
-  (modèle par défaut `claude-opus-5`, configurable) · Microsoft Graph + MSAL Node (autorité `consumers`,
+  binaire non empaquetable proprement, SQLite chiffré non supporté) · Ollama · CLI Claude Code (`claude -p`,
+  modèle configurable ; `@anthropic-ai/sdk` retiré au lot 2) · `@modelcontextprotocol/sdk` · `@xterm/xterm` +
+  `node-pty` (lot 3) · Microsoft Graph + MSAL Node (autorité `consumers`,
   PKCE, scope `Calendars.ReadWrite` uniquement).
-- **Architecture** : pas d'API HTTP ; le contrat est l'IPC renderer ↔ main, format uniforme
+- **Architecture** : pas d'API HTTP ni de port réseau (le canal MCP est un canal nommé local) ; le contrat est l'IPC renderer ↔ main, format uniforme
   `{ success, data } | { success: false, error: { code, message } }`. Le renderer n'accède jamais
   directement à la base, au disque ni au réseau.
 - **Données** : requêtes typées et paramétrées uniquement ; migrations versionnées avec `down` ;
@@ -134,4 +155,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29
+**Version**: 2.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-04
