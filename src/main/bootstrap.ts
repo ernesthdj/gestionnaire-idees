@@ -54,6 +54,13 @@ import { WidgetRequestRepository } from './infrastructure/db/repositories/Widget
 import { ToolGeneration } from './application/widgets/ToolGeneration'
 import { toolSurroundings } from './application/widgets/toolSurroundings'
 import type { MainWindowEvent } from '@shared/ipc/channels'
+import { MapService } from './application/mcp/MapService'
+import { SelectionStore } from './application/mcp/SelectionStore'
+import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
+import { pipeNameFor, tokenPathFor } from './infrastructure/mcp/endpoint'
+import { PipeServer } from './infrastructure/mcp/PipeServer'
+import { McpToken } from './infrastructure/mcp/token'
+import { createMcpRoutes, registrationCommand } from './ipc/mcpHandlers'
 
 export interface AppContext {
   readonly logger: Logger
@@ -226,12 +233,43 @@ export function bootstrap(shell: ShellPort): AppContext {
     widgets,
     exists: (blockId) => widgetRepository.widget(blockId) !== undefined
   })
+  const mapLinkRepository = new MapLinkRepository(database.db)
   const canvas = new CanvasService({
     neurons: neuronRepository,
     links: linkRepository,
     blocks: blockRepository,
     steps: hatchedRepository,
-    io: widgetIo
+    io: widgetIo,
+    mapLinks: mapLinkRepository
+  })
+
+  // Pont MCP (spec 007) : Claude Code lit et écrit la carte par un relais, via le canal nommé de ce profil.
+  const selection = new SelectionStore()
+  const mapService = new MapService({
+    canvas: () => canvas.get(),
+    tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
+    blocks: blockRepository,
+    mapLinks: mapLinkRepository,
+    neurons: neuronRepository,
+    selection,
+    widgetFromCode: (blockId, code) => widgets.createFromCode(blockId, code),
+    connectIdea: (blockId, rootId, parts) =>
+      widgetIoRepository.insertInput({ blockId, sourceKind: 'idea', sourceId: rootId, parts }).id,
+    categorize: (rootId) => neurons.categorizeInBackground(rootId),
+    emit: (event) => broadcast('map:changed', event)
+  })
+  const mcpToken = new McpToken(tokenPathFor(dataDir))
+  const pipe = new PipeServer({
+    pipeName: pipeNameFor(dataDir),
+    matchesToken: (candidate) => mcpToken.matches(candidate),
+    handle: (tool, args) => mapService.handle(tool, args),
+    logger
+  })
+  pipe.start().catch(() => logger.error('mcp.listen_failed', {}))
+  const command = registrationCommand({
+    electronPath: process.execPath,
+    relayPath: join(import.meta.dirname, 'mcp-relay.js'),
+    profileDir: dataDir
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -261,7 +299,15 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
       ...createHatchedRoutes(hatchedRepository),
       ...createWidgetRoutes(widgets, toolGeneration),
-      ...createWidgetIoRoutes(widgetIo)
+      ...createWidgetIoRoutes(widgetIo),
+      ...createMcpRoutes({
+        selection,
+        status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
+        rotateToken: () => {
+          mcpToken.rotate()
+          pipe.disconnectAll()
+        }
+      })
     ],
     logger,
     rendererFileUrl
@@ -279,6 +325,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     stop: () => {
       stopWatching()
       ai.stop()
+      void pipe.stop()
     }
   }
 }

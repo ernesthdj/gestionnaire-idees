@@ -27,7 +27,11 @@ const block: BlockView = {
   height: 440,
   text: null,
   versionId: VERSION_ID,
-  sourceBlockId: null
+  sourceBlockId: null,
+  title: null,
+  parentBlockId: null,
+  frameId: null,
+  origin: 'user'
 }
 
 const widget: WidgetView = {

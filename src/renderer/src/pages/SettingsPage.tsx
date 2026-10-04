@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { AiSettingsPage } from './settings/ai/AiSettingsPage'
 import { ContextPage } from './settings/ai/ContextPage'
+import { ClaudeCodeSettings } from './settings/claude/ClaudeCodeSettings'
 
 const TABS = [
   { id: 'ai', label: 'IA' },
-  { id: 'context', label: 'Contexte IA' }
+  { id: 'context', label: 'Contexte IA' },
+  { id: 'claude-code', label: 'Claude Code' }
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
-/** Réglages (⚙) : IA et contexte (feature 001) ; les réglages généraux de l'app arrivent avec T043. */
+/** Réglages (⚙) : IA et contexte (feature 001), pont Claude Code (spec 007) ; réglages généraux avec T043. */
 export function SettingsPage(): React.JSX.Element {
   const [tab, setTab] = useState<TabId>('ai')
   return (
@@ -26,7 +28,7 @@ export function SettingsPage(): React.JSX.Element {
           </button>
         ))}
       </nav>
-      {tab === 'ai' ? <AiSettingsPage /> : <ContextPage />}
+      {tab === 'ai' ? <AiSettingsPage /> : tab === 'context' ? <ContextPage /> : <ClaudeCodeSettings />}
     </div>
   )
 }

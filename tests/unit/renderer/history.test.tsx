@@ -20,6 +20,7 @@ function entry(id: number, patch: Partial<HistoryEntryView> = {}): HistoryEntryV
     at: '2026-09-28T20:30:00.000Z',
     undoable: true,
     undone: false,
+    actor: 'user',
     ...patch
   }
 }

@@ -346,3 +346,9 @@
   border: 2px solid var(--color-accent);
   background: var(--color-surface);
 }
+
+/* Lien libre de la carte (spec 007) : trait fin, discret, sous les nœuds. */
+.react-flow__edge .map-link-line {
+  stroke: var(--color-content-muted);
+  stroke-width: 1.5;
+}

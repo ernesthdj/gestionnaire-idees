@@ -141,6 +141,45 @@ export class WidgetService {
     }
   }
 
+  /**
+   * Widget écrit par Claude Code et posé par le pont MCP (spec 007 FR-015) : mêmes validations et transpilation que
+   * la génération (spec 004), sans appel IA. Aucune autorisation n'est créée : le widget arrive « À revoir ».
+   * Lève `VALIDATION` si le code est refusé (l'appelant annule alors toute l'opération).
+   */
+  createFromCode(
+    blockId: string,
+    code: {
+      readonly titre: string
+      readonly html: string
+      readonly css: string
+      readonly ts: string
+      readonly resume: string
+    }
+  ): void {
+    const { repository } = this.deps
+    if (repository.widget(blockId) === undefined) throw new AppError('NOT_FOUND', 'Widget introuvable')
+    const out = WidgetOut.safeParse({
+      title: code.titre.slice(0, 80),
+      html: code.html,
+      css: code.css,
+      ts: code.ts,
+      summary: code.resume
+    })
+    if (!out.success) throw new AppError('VALIDATION', 'Code de widget refusé : une partie dépasse la taille permise.')
+    const js = transpileWidget(out.data.ts)
+    if (!js.ok) throw new AppError('VALIDATION', `Code de widget refusé : ${js.error}`)
+    repository.transaction(() => {
+      const version = repository.insertVersion({
+        blockId,
+        ...out.data,
+        js: js.value,
+        model: 'claude-code'
+      })
+      repository.setCurrent(blockId, version.id)
+      repository.insertMessage({ blockId, role: 'assistant', text: out.data.summary, versionId: version.id })
+    })
+  }
+
   /** Revenir à une version précédente : elle redevient affichée, rien n'est supprimé. */
   restore(input: { readonly blockId: string; readonly versionId: string }): WidgetView {
     const { repository } = this.deps

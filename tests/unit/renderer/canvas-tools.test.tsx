@@ -24,6 +24,10 @@ const block = (patch: Partial<BlockView>): BlockView => ({
   text: 'Zone mariage',
   versionId: null,
   sourceBlockId: null,
+  title: null,
+  parentBlockId: null,
+  frameId: null,
+  origin: 'user',
   ...patch
 })
 

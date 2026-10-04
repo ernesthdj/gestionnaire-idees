@@ -6,6 +6,7 @@
 > **Cree le :** 2026-09-28
 > **Description :** Mini app desktop pour noter vite fait à la main les idées du quotidien (idées générales, achats, projets, sorties — tout ce qui vient sur le moment et qu'on oublie ensuite), les structurer en tâches et recevoir un rappel chaque jour.
 > **Vision (2026-09-28) :** « Brainstormer » — réfléchir à n'importe quoi avec Claude via une carte de neurones (Action / Réflexion) qui poussent, fusionnent et se relient. Voir `docs/FOUNDATION.md` §0.
+> **Vision (2026-10-04, prioritaire) :** le Brainstormer devient l'**interface visuelle de Claude Code** (pont MCP, moteur `claude -p`, terminal intégré). Voir `docs/FOUNDATION.md` §00 et `docs/brainstorm/L1c-pont-claude-code.md`.
 
 ---
 
@@ -35,6 +36,8 @@ gestionnaire-idees/
   et ne supporte pas SQLite chiffre. Garanties conservees : requetes typees et parametrees, migrations versionnees avec `down`.
 - **Repo public** : aucune donnee reelle, aucun secret, aucune adresse e-mail. Donnees utilisateur dans `%APPDATA%/gestionnaire-idees/`.
 - **Modele Claude par defaut** : `claude-opus-5` (configurable dans l'app).
+- **Constitution 2.0.0 (2026-10-04)** : ecritures de Claude par MCP directes, marquees « par Claude », annulables ;
+  plus de cadre IA ni d'anonymisation sur le chemin Claude Code.
 
 ## Suivi academique
 
@@ -47,7 +50,8 @@ Derniere mise a jour : 2026-09-30
 ## Stack
 
 Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiffre (Drizzle + better-sqlite3-multiple-ciphers)
-· Ollama (IA locale) + Claude API (`@anthropic-ai/sdk`) · Microsoft Graph + MSAL Node · Zod. Detail : `docs/FOUNDATION.md` §5.
+· Ollama (IA locale) + Claude API (`@anthropic-ai/sdk`, retiree au lot 2 du Pont Claude Code) · pont MCP
+(`@modelcontextprotocol/sdk`, relais `src/mcp-relay/`) · Microsoft Graph + MSAL Node · Zod. Detail : `docs/FOUNDATION.md` §5 et §00.
 
 ## Commandes
 
@@ -65,6 +69,9 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > du binaire Electron non effectue a l'installation).
 > `better-sqlite3` est un **alias npm** de `better-sqlite3-multiple-ciphers` (Drizzle importe `better-sqlite3`) ;
 > ses types sont pointes dans `tsconfig.base.json` (`paths`).
+> Pont MCP (spec 007) : Reglages › Claude Code affiche la commande `claude mcp add brainstormer …` a lancer une fois.
+> Le relais (`out/main/mcp-relay.js`) existe apres `npm run dev` ou `npm run build` ; canal nomme par profil, secret
+> dans `<profil>/mcp.token` (jamais dans `~/.claude.json`).
 > Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
 > `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
 > serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.

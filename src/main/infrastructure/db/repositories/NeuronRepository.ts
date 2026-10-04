@@ -70,6 +70,7 @@ function toRootView(row: RootRow): RootView {
     version: row.version,
     position: row.posX === null || row.posY === null ? null : { x: row.posX, y: row.posY },
     pinned: row.pinned,
+    origin: row.origin,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   }
@@ -99,6 +100,9 @@ export class NeuronRepository {
     nature: Nature
     natureSource: Source | null
     position?: { readonly x: number; readonly y: number } | null
+    /** Idée posée par Claude Code par le pont MCP (spec 007) : placée et épinglée dans son lot. */
+    origin?: 'user' | 'claude'
+    pinned?: boolean
   }): void {
     this.db
       .insert(neurons)
@@ -108,12 +112,13 @@ export class NeuronRepository {
         kind: 'root',
         title: input.title,
         content: input.content,
-        origin: 'user',
+        origin: input.origin ?? 'user',
         nature: input.nature,
         natureSource: input.natureSource,
         state: 'raw',
         posX: input.position?.x ?? null,
-        posY: input.position?.y ?? null
+        posY: input.position?.y ?? null,
+        pinned: input.pinned ?? false
       })
       .run()
   }

@@ -139,7 +139,11 @@ describe('écran Idées', () => {
       height: 160,
       text: null,
       versionId: null,
-      sourceBlockId: null
+      sourceBlockId: null,
+      title: null,
+      parentBlockId: null,
+      frameId: null,
+      origin: 'user' as const
     }
     const { api } = renderCanvas({ ...canvasView(), blocks: [block] })
     await user.click(await screen.findByRole('button', { name: '+ Bloc' }))

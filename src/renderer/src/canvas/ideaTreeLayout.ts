@@ -1,4 +1,11 @@
-import type { ExtensionView, NeuronKind, Source, SuggestionView, TreeView, WebSourceView } from '@shared/ipc/neurons'
+import type {
+  ExtensionView,
+  NeuronKind,
+  NeuronOrigin,
+  SuggestionView,
+  TreeView,
+  WebSourceView
+} from '@shared/ipc/neurons'
 
 /**
  * Arbre d'une idée ouverte, dessiné sur la carte autour d'elle (FR-013 révisée) : disposition radiale — chaque
@@ -17,7 +24,7 @@ export type TreeItem =
       readonly id: string
       readonly title: string
       readonly kind: NeuronKind
-      readonly origin: Source
+      readonly origin: NeuronOrigin
       readonly descendants: number
       /** Texte complet (conseils d'une idée suggérée) et sources web vérifiées. */
       readonly content: string | null

@@ -40,7 +40,7 @@ export const neurons = sqliteTable(
     content: text('content'),
     amountCents: integer('amount_cents'),
     dueDate: text('due_date'),
-    origin: text('origin', { enum: ['ai', 'user'] }).notNull(),
+    origin: text('origin', { enum: ['ai', 'user', 'claude'] }).notNull(),
     /** Extension à laquelle ce sous-neurone répond : unique, donc une réponse rejouée ne crée rien. */
     fromExtensionId: text('from_extension_id').unique(),
     nature: text('nature', { enum: ['action', 'reflection'] }),
@@ -261,8 +261,12 @@ export const changeLog = sqliteTable(
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
     kind: text('kind', {
-      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo']
+      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write']
     }).notNull(),
+    /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
+    actor: text('actor', { enum: ['user', 'claude'] })
+      .notNull()
+      .default('user'),
     entity: text('entity').notNull(),
     entityId: text('entity_id').notNull(),
     beforeJson: text('before_json'),
@@ -277,26 +281,63 @@ export const changeLog = sqliteTable(
  * Blocs libres de l'écran Idées (spec 003 FR-026) : conteneurs vides placés par l'utilisateur, supports des
  * mini-widgets de la v2. Aucun contenu ni code en MVP-1 : seulement position et taille.
  */
-export const canvasBlocks = sqliteTable('canvas_blocks', {
-  id: text('id').primaryKey(),
-  /** Bloc vide (003), note (étiquette de texte), widget généré par Claude (spec 004) ou cadre résultat (spec 005). */
-  kind: text('kind', { enum: ['empty', 'label', 'widget', 'result'] })
-    .notNull()
-    .default('empty'),
-  x: real('x').notNull(),
-  y: real('y').notNull(),
-  width: real('width').notNull(),
-  height: real('height').notNull(),
-  /** Texte d'une note. */
-  text: text('text'),
-  /** Version affichée d'un widget (restaurer une version = changer ce pointeur). */
-  currentVersionId: text('current_version_id'),
-  /** Cadre résultat (spec 005) : widget dont il affiche le résultat. */
-  sourceBlockId: text('source_block_id'),
-  /** Suppression annulable : le bloc (et les versions d'un widget) reste en base jusqu'à la purge. */
-  deletedAt: text('deleted_at'),
-  createdAt: createdAt()
-})
+export const canvasBlocks = sqliteTable(
+  'canvas_blocks',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * Bloc vide (003), note (étiquette de texte), widget généré par Claude (spec 004), cadre résultat (spec 005),
+     * note titrée et cadre de regroupement (spec 007).
+     */
+    kind: text('kind', { enum: ['empty', 'label', 'widget', 'result', 'note', 'frame'] })
+      .notNull()
+      .default('empty'),
+    x: real('x').notNull(),
+    y: real('y').notNull(),
+    width: real('width').notNull(),
+    height: real('height').notNull(),
+    /** Texte d'une note. */
+    text: text('text'),
+    /** Titre d'une note titrée ou d'un cadre (spec 007). */
+    title: text('title'),
+    /** Note parente (arbre de notes dessiné par Claude). */
+    parentBlockId: text('parent_block_id').references((): AnySQLiteColumn => canvasBlocks.id),
+    /** Cadre qui regroupe ce bloc. */
+    frameId: text('frame_id').references((): AnySQLiteColumn => canvasBlocks.id),
+    /** Posé par mentalyas ou par Claude Code (pont MCP). */
+    origin: text('origin', { enum: ['user', 'claude'] })
+      .notNull()
+      .default('user'),
+    /** Version affichée d'un widget (restaurer une version = changer ce pointeur). */
+    currentVersionId: text('current_version_id'),
+    /** Cadre résultat (spec 005) : widget dont il affiche le résultat. */
+    sourceBlockId: text('source_block_id'),
+    /** Suppression annulable : le bloc (et les versions d'un widget) reste en base jusqu'à la purge. */
+    deletedAt: text('deleted_at'),
+    createdAt: createdAt()
+  },
+  (t) => [index('canvas_blocks_parent_idx').on(t.parentBlockId), index('canvas_blocks_frame_idx').on(t.frameId)]
+)
+
+/**
+ * Liens libres de la carte (spec 007) : entre blocs et idées, libellés, sans statut ni empreinte ; retrait annulable.
+ * Les liens suggérés entre idées restent dans `neuron_links`.
+ */
+export const mapLinks = sqliteTable(
+  'map_links',
+  {
+    id: text('id').primaryKey(),
+    fromKind: text('from_kind', { enum: ['block', 'idea'] }).notNull(),
+    fromId: text('from_id').notNull(),
+    toKind: text('to_kind', { enum: ['block', 'idea'] }).notNull(),
+    toId: text('to_id').notNull(),
+    label: text('label'),
+    origin: text('origin', { enum: ['user', 'claude'] }).notNull(),
+    createdAt: createdAt(),
+    deletedAt: text('deleted_at')
+  },
+  (t) => [index('map_links_from_idx').on(t.fromKind, t.fromId), index('map_links_to_idx').on(t.toKind, t.toId)]
+)
 
 /**
  * Branchements d'entrée des widgets (spec 005) : une idée ou une prochaine étape reliée à un widget, avec les

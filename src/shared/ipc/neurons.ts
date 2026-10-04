@@ -5,6 +5,8 @@ import type { ActionPlanOut, ReflectionSummaryOut } from '../ai/neurons'
 export type Nature = 'action' | 'reflection'
 export type RootState = 'raw' | 'developing' | 'hatched' | 'archived'
 export type Source = 'ai' | 'user'
+/** Origine d'un neurone : s'y ajoute Claude Code, par le pont MCP (spec 007). */
+export type NeuronOrigin = Source | 'claude'
 /** `idea` : suggestion de l'IA acceptée — une idée à creuser, avec ses conseils et ses sources. */
 export type NeuronKind =
   'root' | 'answer' | 'condition' | 'branch' | 'opportunity' | 'investigation' | 'user_branch' | 'idea'
@@ -30,6 +32,8 @@ export interface RootView {
   readonly position: { readonly x: number; readonly y: number } | null
   /** Glissée à la main : la physique de la carte la garde à sa place. */
   readonly pinned: boolean
+  /** Saisie par mentalyas, née d'une suggestion de l'IA, ou posée par Claude Code (spec 007). */
+  readonly origin?: NeuronOrigin
   readonly createdAt: string
   readonly updatedAt: string
 }
@@ -43,7 +47,7 @@ export interface NeuronView {
   readonly content: string | null
   readonly amountCents: number | null
   readonly dueDate: string | null
-  readonly origin: Source
+  readonly origin: NeuronOrigin
   /** Sources web vérifiées d'une idée née d'une suggestion (vide sinon). */
   readonly sources?: readonly WebSourceView[]
   /** Place mémorisée sur la carte et épinglage (sous-neurone glissé à la main). */

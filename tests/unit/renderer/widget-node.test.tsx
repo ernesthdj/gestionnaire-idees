@@ -25,7 +25,11 @@ const block: BlockView = {
   height: 440,
   text: null,
   versionId: null,
-  sourceBlockId: null
+  sourceBlockId: null,
+  title: null,
+  parentBlockId: null,
+  frameId: null,
+  origin: 'user'
 }
 
 const version = (id: string, number: number, title: string) => ({

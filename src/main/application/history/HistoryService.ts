@@ -9,7 +9,7 @@ import type {
 } from '../../infrastructure/db/repositories/HistoryRepository'
 
 /** Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, et une annulation (qui se rétablit). */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo'])
+const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
 const UNCHECKED = new Set(['plan_dependency', 'example', 'extension', 'suggestion'])
@@ -24,6 +24,9 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   neuron_placement: 'L’idée éclose à part a changé depuis (elle a été développée ou déplacée).',
   neuron_absorb: 'Une réponse rangée dans le document a changé depuis (supprimée ou reprise).',
   canvas_block: 'Ce bloc a changé depuis.',
+  map_link: 'Ce lien a changé depuis.',
+  block_text: 'Cette note a été modifiée depuis.',
+  neuron_text: 'Cette idée a été modifiée depuis.',
   widget_input: 'Ce branchement a changé depuis.'
 }
 
@@ -40,6 +43,32 @@ function blockSummary(entry: ChangeRow): string {
   const name = BLOCK_NAMES[typeof kind === 'string' ? kind : 'empty'] ?? 'un bloc'
   if (entry.kind === 'delete') return `Suppression d’${name}`
   return entry.after === null ? `Suppression d’${name} rétablie` : `Restauration d’${name}`
+}
+
+/**
+ * Lot d'écritures de Claude Code par le pont MCP (spec 007) ou son annulation : « Claude : 12 notes, 1 cadre, 9 liens ».
+ */
+function mcpSummary(entries: readonly ChangeRow[], undo: boolean): string {
+  const kindOf = (entry: ChangeRow): unknown => entry.after?.['kind'] ?? entry.before?.['kind']
+  // Dans un lot d'annulation, avant et après sont inversés : un élément « créé » est celui qui disparaît.
+  const created = (entry: ChangeRow): boolean => (undo ? entry.after === null : entry.before === null)
+  const removed = (entry: ChangeRow): boolean => (undo ? entry.before === null : entry.after === null)
+  const block = (entry: ChangeRow): boolean => entry.entity === 'canvas_block'
+  const counted: ReadonlyArray<readonly [(entry: ChangeRow) => boolean, string, string]> = [
+    [(e) => block(e) && created(e) && kindOf(e) === 'note', 'note', 'notes'],
+    [(e) => block(e) && created(e) && kindOf(e) === 'frame', 'cadre', 'cadres'],
+    [(e) => block(e) && created(e) && kindOf(e) === 'widget', 'widget', 'widgets'],
+    [(e) => e.entity === 'neuron' && created(e), 'idée', 'idées'],
+    [(e) => e.entity === 'map_link' && created(e), 'lien', 'liens'],
+    [(e) => e.entity === 'block_text' || e.entity === 'neuron_text', 'modification', 'modifications'],
+    [(e) => (block(e) || e.entity === 'neuron' || e.entity === 'map_link') && removed(e), 'retrait', 'retraits']
+  ]
+  const parts = counted.flatMap(([test, one, many]) => {
+    const n = entries.filter(test).length
+    return n === 0 ? [] : [`${n} ${n === 1 ? one : many}`]
+  })
+  const detail = parts.length === 0 ? 'carte' : parts.join(', ')
+  return undo ? `Annulation — Claude : ${detail}` : `Claude : ${detail}`
 }
 
 /** Débranchement d'une source d'un widget (spec 005), ou son annulation. */
@@ -130,6 +159,7 @@ export class HistoryService {
     return {
       batchId: batch.batchId,
       kind: head.kind,
+      actor: head.actor,
       rootId: this.rootOf(batch.entries),
       summary: this.summarize(batch.entries),
       at: head.createdAt,
@@ -153,6 +183,9 @@ export class HistoryService {
 
   private summarize(entries: readonly ChangeRow[]): string {
     const head = entries[0] as ChangeRow
+    if (head.kind === 'mcp_write') return mcpSummary(entries, false)
+    if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
+      return mcpSummary(entries, true)
     if (head.entity === 'canvas_block') return blockSummary(head)
     if (head.entity === 'widget_input') return inputSummary(head)
     const title = (): string => {

@@ -98,3 +98,21 @@ Nettoyage du code existant : **après le lot 2**, sur ce qui reste.
   repli Ollama si trop lent.
 - [ ] Hook `UserPromptSubmit` (résumé de la sélection joint à chaque message) : utile ou trop coûteux en jetons ?
 - [ ] Nom de l'app (« Brainstormer » ?) — toujours ouvert depuis L1b.
+
+## 9. Amendement du 2026-10-04 (après la livraison de F10) — le brainstorm passe dans un chat Claude Code
+Constat de mentalyas : les questions de croissance viennent encore d'Ollama, trop faible pour brainstormer.
+
+| # | Sujet | Décision |
+|---|-------|----------|
+| 7 | Rôle d'Ollama | **Tâches passives de fond uniquement** (classer, résumer, détecter des liens, proposer des structures), lancées par l'app d'elle-même ; plus jamais dans le brainstorm. |
+| 8 | Interface du brainstorm | **Panneau de chat** dans l'app : visuellement un chat, en réalité une conversation Claude Code (`claude -p --input-format stream-json --output-format stream-json`, `--resume`), dans le dossier de travail de l'app, pont MCP branché d'office (`--mcp-config`). |
+| 9 | Questions de croissance | **Posées par Claude dans le chat** ; les réponses deviennent des sous-neurones par le pont ; jauge et verrouillage conservés. L'actuel panneau de questions disparaît ou devient un raccourci. |
+| 10 | Permissions du chat | Outils du pont + lecture de fichiers du dossier de l'espace + recherche web ; tout le reste refusé d'office (`--permission-prompts none`). Demandes de permission en direct : plus tard. |
+| 11 | Conversations | **Une par idée** (le brainstorm de F11 reste avec F11) **+ une générale** pour la carte. |
+
+**Plan de livraison révisé** (remplace §7 pour les lots 2 et 3) :
+- **Lot 2 — Chat Claude Code** : panneau de chat (flux stream-json), conversations par idée + générale, contexte joint (idée ouverte, sélection), outils MCP de croissance (questions, réponses → sous-neurones, jauge), Ollama limité aux tâches de fond.
+- **Lot 3 — Moteur CLI et espaces** : tâches restantes de l'API (synthèse, révision, widgets, recherche) vers `claude -p`, retrait de `@anthropic-ai/sdk`, du budget, du cadre et de l'anonymisation ; espaces liés à un dossier ; skill `brainstormer` ; terminal brut éventuel.
+- **Lot 4 — Recettes et bibliothèque de widgets** (inchangé).
+
+> **Révisé le même jour par `L1d-neurone-conversation.md`** : un neurone = une conversation Claude Code + une fiche, dans un entonnoir en couches (remplace les décisions 9 et 11 ; le lot 2 devient la spec 008 « Neurone conversationnel »).

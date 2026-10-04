@@ -1,10 +1,15 @@
 /** Vues de l'historique (spec 003 data-model `HistoryEntryView`). */
 
-export type HistoryKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
+export type HistoryKind =
+  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write'
+
+/** Auteur d'un lot : mentalyas, ou Claude Code par le pont MCP (spec 007). */
+export type HistoryActor = 'user' | 'claude'
 
 export interface HistoryEntryView {
   readonly batchId: string
   readonly kind: HistoryKind
+  readonly actor: HistoryActor
   /** Idée concernée (pour y aller depuis l'historique), si connue. */
   readonly rootId: string | null
   /** Phrase lisible, ex. « Éclosion de « Deuxième écran » ». */

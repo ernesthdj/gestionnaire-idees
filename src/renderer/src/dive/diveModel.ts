@@ -3,7 +3,7 @@ import type {
   GaugeView,
   NeuronKind,
   RootView,
-  Source,
+  NeuronOrigin,
   SuggestionView,
   TreeView
 } from '@shared/ipc/neurons'
@@ -15,7 +15,7 @@ export interface DiveNeuron {
   readonly content: string | null
   readonly kind: NeuronKind
   readonly depth: number
-  readonly origin: Source
+  readonly origin: NeuronOrigin
   /** Nombre de descendants (suppression : confirmation s'il y en a). */
   readonly descendants: number
 }
@@ -44,7 +44,7 @@ interface RawNode {
   readonly content: string | null
   readonly kind: NeuronKind
   readonly depth: number
-  readonly origin: Source
+  readonly origin: NeuronOrigin
 }
 
 /** Construit la vue de plongée ; un neurone ciblé introuvable (supprimé entre-temps) ramène à la racine. */

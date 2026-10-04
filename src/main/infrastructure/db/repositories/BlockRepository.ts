@@ -14,8 +14,19 @@ const COLUMNS = {
   height: canvasBlocks.height,
   text: canvasBlocks.text,
   versionId: canvasBlocks.currentVersionId,
-  sourceBlockId: canvasBlocks.sourceBlockId
+  sourceBlockId: canvasBlocks.sourceBlockId,
+  title: canvasBlocks.title,
+  parentBlockId: canvasBlocks.parentBlockId,
+  frameId: canvasBlocks.frameId,
+  origin: canvasBlocks.origin
 }
+
+/** Nouveau bloc : les champs propres aux cadres résultat (005) et aux primitives du pont (007) sont facultatifs. */
+export type NewBlock = Omit<
+  BlockView,
+  'id' | 'versionId' | 'sourceBlockId' | 'title' | 'parentBlockId' | 'frameId' | 'origin'
+> &
+  Partial<Pick<BlockView, 'sourceBlockId' | 'title' | 'parentBlockId' | 'frameId' | 'origin'>>
 
 export interface BlockPatch {
   readonly id: string
@@ -53,10 +64,16 @@ export class BlockRepository {
       .get()
   }
 
-  insert(
-    block: Omit<BlockView, 'id' | 'versionId' | 'sourceBlockId'> & { readonly sourceBlockId?: string }
-  ): BlockView {
-    const created = { id: randomUUID(), ...block, sourceBlockId: block.sourceBlockId ?? null }
+  insert(block: NewBlock): BlockView {
+    const created = {
+      id: randomUUID(),
+      ...block,
+      sourceBlockId: block.sourceBlockId ?? null,
+      title: block.title ?? null,
+      parentBlockId: block.parentBlockId ?? null,
+      frameId: block.frameId ?? null,
+      origin: block.origin ?? 'user'
+    }
     this.db.insert(canvasBlocks).values(created).run()
     return { ...created, versionId: null }
   }
@@ -99,7 +116,21 @@ export class BlockRepository {
     )
   }
 
-  log(batchId: string, entries: readonly ChangeEntry[]): void {
-    writeChanges(this.db, batchId, entries)
+  /** Titre et texte d'une note ou d'un cadre (spec 007, `noeud_modifier`). */
+  updateText(id: string, patch: { readonly title?: string | null; readonly text?: string | null }): boolean {
+    return (
+      this.db
+        .update(canvasBlocks)
+        .set({
+          ...(patch.title === undefined ? {} : { title: patch.title }),
+          ...(patch.text === undefined ? {} : { text: patch.text })
+        })
+        .where(and(eq(canvasBlocks.id, id), isNull(canvasBlocks.deletedAt)))
+        .run().changes > 0
+    )
+  }
+
+  log(batchId: string, entries: readonly ChangeEntry[], actor: 'user' | 'claude' = 'user'): void {
+    writeChanges(this.db, batchId, entries, actor)
   }
 }

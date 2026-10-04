@@ -27,12 +27,15 @@ import { bornFrom, buildGraph, computeLayout, stepRootId, type CanvasNode, type 
 import { useCanvasHover } from './hoverStore'
 import { CanvasToolbar } from './CanvasToolbar'
 import { BranchEdge, type BranchEdgeType } from './edges/BranchEdge'
+import { MapLinkEdge, type MapLinkEdgeType } from './edges/MapLinkEdge'
 import { LinkEdge } from './edges/LinkEdge'
 import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
+import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
+import { MapNoteNode } from './nodes/MapNoteNode'
 import { StepNode } from './nodes/StepNode'
 import { WidgetReview } from '../widgets/WidgetReview'
 import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
@@ -48,11 +51,14 @@ import { useOpenTree, type OpenTree } from './treeStore'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
+import { useSelectionSync } from './useSelectionSync'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
   block: BlockNode,
   label: LabelNode,
+  mapNote: MapNoteNode,
+  frame: FrameNode,
   widget: WidgetNode,
   result: ResultNode,
   step: StepNode,
@@ -62,12 +68,12 @@ const NODE_TYPES: NodeTypes = {
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
-const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget', 'result'])
-const EDGE_TYPES: EdgeTypes = { link: LinkEdge, branch: BranchEdge }
+const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget', 'result', 'mapNote', 'frame'])
+const EDGE_TYPES: EdgeTypes = { link: LinkEdge, branch: BranchEdge, mapLink: MapLinkEdge }
 
 /** Tout objet de la carte : idées, blocs, et arbre de l'idée ouverte (éléments, textes, fiche). */
 type MapNode = CanvasNode | TreeNodeType | NoteNodeType | DocNodeType
-type MapEdge = LinkEdgeType | BranchEdgeType
+type MapEdge = LinkEdgeType | BranchEdgeType | MapLinkEdgeType
 const PAN_STEP = 64
 /** Marge du cadrage autour des idées. */
 const FIT_MARGIN = 128
@@ -198,6 +204,8 @@ function CanvasInner(): React.JSX.Element {
 
   // Physique de la carte (FR-034) : tous les objets se repoussent, stabilisés à chaque changement de contenu.
   const { positions, physics } = useCanvasPhysics({ view, seed: layout, tree, openRootId })
+  // La sélection est connue du pont MCP : « regarde ma sélection » (spec 007).
+  useSelectionSync()
 
   // Mémorise les places trouvées (idées et sous-neurones) pour retrouver la même carte à la prochaine ouverture.
   const persist = useCallback(
@@ -217,7 +225,7 @@ function CanvasInner(): React.JSX.Element {
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
     const built = buildGraph(view, { area: layout.area, positions: live }, bornId, openRootId)
-    const base = { nodes: built.nodes, edges: [...built.edges, ...built.stepEdges] }
+    const base = { nodes: built.nodes, edges: [...built.edges, ...built.stepEdges, ...built.mapEdges] }
     const root = tree === null ? undefined : live.get(tree.rootId)
     if (tree === null || root === undefined || tree.rootId !== openRootId) return base
     const branch = treeGraph({ tree, positions: live, root, docId, expanded, closeDoc: () => openDoc(null) })

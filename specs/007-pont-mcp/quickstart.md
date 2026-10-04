@@ -33,5 +33,6 @@
 2. Revue → autoriser. **Attendu** : il lit l'idée.
 
 ## 6. Sécurité
-1. Réglages › Régénérer le secret. Dans le CLI déjà ouvert : nouvel appel → « Le secret du pont a changé… ».
+1. Réglages › Régénérer le secret. **Attendu** : le compteur de clients retombe à 0 ; dans le CLI déjà ouvert, l'appel suivant
+   marche quand même (le relais relit le nouveau secret dans le profil) — un programme qui n'aurait que l'ancien secret est refusé (tests).
 2. `npm test` : suites `mcp-*` vertes (lots tout-ou-rien, bornes, jeton, annulation, « À revoir »).

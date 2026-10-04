@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SECTIONS, type NavigateEvent } from '@shared/ipc/app'
 import type { MainWindowEvent } from '@shared/ipc/channels'
+import type { MapChangedPayload } from '@shared/ipc/mcp'
 import { useUiStore } from './uiStore'
 
 /**
@@ -14,8 +15,16 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   ['synthesis:stale', [['dive'], ['pending']]],
   ['suggestion:updated', [['dive']]],
   ['links:suggested', [['canvas'], ['pending'], ['history']]],
-  ['seeds:suggested', [['canvas'], ['seeds']]]
+  ['seeds:suggested', [['canvas'], ['seeds']]],
+  // Écriture de Claude Code par le pont MCP (spec 007) : la carte et l'Historique changent.
+  ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs']]]
 ]
+
+function isMapChanged(payload: unknown): payload is MapChangedPayload {
+  if (typeof payload !== 'object' || payload === null) return false
+  const { batchId, summary } = payload as Record<string, unknown>
+  return typeof batchId === 'string' && typeof summary === 'string'
+}
 
 function isNavigateEvent(payload: unknown): payload is NavigateEvent {
   if (typeof payload !== 'object' || payload === null || !('section' in payload)) return false
@@ -32,6 +41,7 @@ function isNavigateEvent(payload: unknown): payload is NavigateEvent {
 export function useMainEvents(): void {
   const client = useQueryClient()
   const navigate = useUiStore((state) => state.navigate)
+  const showToast = useUiStore((state) => state.showToast)
 
   useEffect(() => {
     const unsubscribes = INVALIDATIONS.map(([event, keys]) =>
@@ -44,6 +54,17 @@ export function useMainEvents(): void {
         if (isNavigateEvent(payload)) navigate(payload)
       })
     )
+    // Toute écriture de Claude se signale et s'annule d'un geste (FR-014).
+    unsubscribes.push(
+      window.api.on('map:changed', (payload) => {
+        if (isMapChanged(payload)) {
+          showToast(payload.summary, {
+            batchId: payload.batchId,
+            undoneText: 'Annulé : la carte revient à l’état d’avant.'
+          })
+        }
+      })
+    )
     return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
-  }, [client, navigate])
+  }, [client, navigate, showToast])
 }

@@ -32,7 +32,11 @@ const widgetBlock: BlockView = {
   height: 440,
   text: null,
   versionId: VERSION_ID,
-  sourceBlockId: null
+  sourceBlockId: null,
+  title: null,
+  parentBlockId: null,
+  frameId: null,
+  origin: 'user'
 }
 const resultBlock: BlockView = {
   id: RESULT_ID,
@@ -43,7 +47,11 @@ const resultBlock: BlockView = {
   height: 320,
   text: null,
   versionId: null,
-  sourceBlockId: WIDGET_ID
+  sourceBlockId: WIDGET_ID,
+  title: null,
+  parentBlockId: null,
+  frameId: null,
+  origin: 'user'
 }
 
 const widget: WidgetView = {

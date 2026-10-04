@@ -9,6 +9,7 @@
     "electron.vite.config.ts",
     "vitest.config.ts",
     "src/main/**/*",
+    "src/mcp-relay/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
     "tests/**/*",

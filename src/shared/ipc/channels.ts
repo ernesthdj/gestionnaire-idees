@@ -72,7 +72,10 @@ export const MAIN_WINDOW_CHANNELS = [
   'widget:get',
   'widget:prompt',
   'widget:restore',
-  'widget:generate'
+  'widget:generate',
+  'map:selection',
+  'mcp:status',
+  'mcp:rotateToken'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -92,7 +95,8 @@ export const MAIN_WINDOW_EVENTS = [
   'links:suggested',
   'seeds:suggested',
   'widget:thinking',
-  'widget:thought'
+  'widget:thought',
+  'map:changed'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

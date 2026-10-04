@@ -9,6 +9,7 @@ import {
   changeLog,
   extensions,
   linkSeeds,
+  mapLinks,
   neuronLinks,
   neurons,
   planNodes,
@@ -18,12 +19,14 @@ import {
   widgetInputs
 } from '../schemaNeurons'
 
-export type ChangeKind = 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo'
+export type ChangeKind =
+  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write'
 
 export interface ChangeRow {
   readonly id: string
   readonly batchId: string
   readonly kind: ChangeKind
+  readonly actor: 'user' | 'claude'
   readonly entity: string
   readonly entityId: string
   readonly before: Record<string, unknown> | null
@@ -48,6 +51,7 @@ const toRow = (row: typeof changeLog.$inferSelect): ChangeRow => ({
   id: row.id,
   batchId: row.batchId,
   kind: row.kind,
+  actor: row.actor,
   entity: row.entity,
   entityId: row.entityId,
   before: parse(row.beforeJson),
@@ -115,7 +119,10 @@ export class HistoryRepository {
       .run()
   }
 
-  write(batchId: string, entries: readonly Omit<ChangeRow, 'id' | 'batchId' | 'createdAt' | 'undoneByBatch'>[]): void {
+  write(
+    batchId: string,
+    entries: readonly Omit<ChangeRow, 'id' | 'batchId' | 'createdAt' | 'undoneByBatch' | 'actor'>[]
+  ): void {
     if (entries.length === 0) return
     this.db
       .insert(changeLog)
@@ -131,6 +138,15 @@ export class HistoryRepository {
         }))
       )
       .run()
+  }
+
+  /** Type du lot qu'une annulation a défait (pour la résumer, ex. un lot « Claude »). */
+  undoneKind(undoBatchId: string): ChangeKind | undefined {
+    return this.db
+      .select({ kind: changeLog.kind })
+      .from(changeLog)
+      .where(eq(changeLog.undoneByBatch, undoBatchId))
+      .get()?.kind
   }
 
   rootTitle(rootId: string): string | undefined {
@@ -222,6 +238,26 @@ export class HistoryRepository {
         return row === undefined
           ? null
           : { polarity: row.polarity, taskKind: row.taskKind, contentJson: row.contentJson, source: row.source }
+      }
+      case 'map_link': {
+        const row = this.db.select().from(mapLinks).where(eq(mapLinks.id, id)).get()
+        return row === undefined || row.deletedAt !== null ? null : { label: row.label }
+      }
+      case 'block_text': {
+        const row = this.db
+          .select({ title: canvasBlocks.title, text: canvasBlocks.text })
+          .from(canvasBlocks)
+          .where(eq(canvasBlocks.id, id))
+          .get()
+        return row === undefined ? null : { title: row.title, text: row.text }
+      }
+      case 'neuron_text': {
+        const row = this.db
+          .select({ title: neurons.title, content: neurons.content })
+          .from(neurons)
+          .where(eq(neurons.id, id))
+          .get()
+        return row === undefined ? null : { title: row.title, content: row.content }
       }
       case 'neuron_link': {
         const row = this.db.select().from(neuronLinks).where(eq(neuronLinks.id, id)).get()
@@ -357,6 +393,36 @@ export class HistoryRepository {
         return
       case 'neuron_link':
         this.applyLink(id, target)
+        return
+      case 'map_link':
+        this.db
+          .update(mapLinks)
+          .set({ deletedAt: target === null ? new Date().toISOString() : null })
+          .where(eq(mapLinks.id, id))
+          .run()
+        return
+      case 'block_text':
+        if (target === null) return
+        this.db
+          .update(canvasBlocks)
+          .set({
+            title: typeof target['title'] === 'string' ? target['title'] : null,
+            text: typeof target['text'] === 'string' ? target['text'] : null
+          })
+          .where(eq(canvasBlocks.id, id))
+          .run()
+        return
+      case 'neuron_text':
+        if (target === null || typeof target['title'] !== 'string') return
+        this.db
+          .update(neurons)
+          .set({
+            title: target['title'],
+            content: typeof target['content'] === 'string' ? target['content'] : null,
+            updatedAt: new Date().toISOString()
+          })
+          .where(eq(neurons.id, id))
+          .run()
         return
       default:
         return

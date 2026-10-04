@@ -13,6 +13,7 @@ import {
 } from '@shared/ipc/canvas'
 import type { HatchedResultView, LinkView, SeedView } from '@shared/ipc/neurons'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
+import type { MapLinkView } from '@shared/ipc/canvas'
 import { AppError } from '../../domain/errors'
 import { nextStepOf } from '../../domain/neurons/nextStep'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
@@ -27,6 +28,8 @@ export interface CanvasDeps {
   readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
   /** Branchements d'entrée des widgets (spec 005). */
   readonly io: { links(): IoLinkView[] }
+  /** Liens libres de la carte (spec 007). */
+  readonly mapLinks?: { list(): MapLinkView[] }
   /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
   readonly steps: {
     result(rootId: string): HatchedResultView | null
@@ -66,6 +69,8 @@ export class CanvasService {
       const text = root.state === 'raw' ? null : nextStepOf(this.deps.steps.result(root.id))
       return text === null ? [] : [{ rootId: root.id, text, position: places.get(root.id) ?? null }]
     })
+    const blocks = this.visibleBlocks()
+    const present = new Set([...visible, ...blocks.map((block) => block.id)])
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -78,14 +83,17 @@ export class CanvasService {
       seeds,
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
-      blocks: this.visibleBlocks(),
+      blocks,
       steps,
       // Un trait n'a de sens que si sa source est encore sur la carte (idée visible, étape présente).
       io: this.deps.io
         .links()
         .filter((link) =>
           link.sourceKind === 'idea' ? visible.has(link.sourceId) : steps.some((step) => step.rootId === link.sourceId)
-        )
+        ),
+      mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
+        (link) => present.has(link.from.id) && present.has(link.to.id)
+      )
     }
   }
 
@@ -138,11 +146,21 @@ export class CanvasService {
     const current = blocks.get(id)
     if (current === undefined) throw new AppError('NOT_FOUND', 'Bloc introuvable')
     const batchId = randomUUID()
+    // Un cadre (spec 007) part avec les blocs qu'il regroupe, dans le même lot annulable ; les idées restent.
+    const removed =
+      current.kind === 'frame' ? [current, ...blocks.list().filter((block) => block.frameId === id)] : [current]
     blocks.transaction(() => {
-      blocks.softDelete(id)
-      blocks.log(batchId, [
-        { kind: 'delete', entity: 'canvas_block', entityId: id, before: { kind: current.kind }, after: null }
-      ])
+      for (const block of removed) blocks.softDelete(block.id)
+      blocks.log(
+        batchId,
+        removed.map((block) => ({
+          kind: 'delete' as const,
+          entity: 'canvas_block',
+          entityId: block.id,
+          before: { kind: block.kind },
+          after: null
+        }))
+      )
     })
     return { batchId }
   }

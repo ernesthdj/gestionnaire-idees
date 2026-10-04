@@ -8,7 +8,16 @@ const shared = resolve(import.meta.dirname, 'src/shared')
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    resolve: { alias: { '@shared': shared } }
+    resolve: { alias: { '@shared': shared } },
+    build: {
+      rollupOptions: {
+        // Deux points d'entrée : le processus principal et le relais du pont MCP (spec 007), lancé par Claude Code.
+        input: {
+          index: resolve(import.meta.dirname, 'src/main/index.ts'),
+          'mcp-relay': resolve(import.meta.dirname, 'src/mcp-relay/relay.ts')
+        }
+      }
+    }
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

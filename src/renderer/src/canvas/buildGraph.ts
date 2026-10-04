@@ -8,6 +8,7 @@ import {
 } from '@shared/ipc/canvas'
 import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import type { BranchEdgeType } from './edges/BranchEdge'
+import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
 /**
@@ -50,12 +51,23 @@ export type LabelNodeType = Node<BlockNodeData, 'label'>
 export type WidgetNodeType = Node<BlockNodeData, 'widget'>
 /** Cadre résultat d'un widget (spec 005). */
 export type ResultNodeType = Node<BlockNodeData, 'result'>
+/** Note titrée et cadre de regroupement (spec 007, pont MCP). « mapNote » : « note » désigne le texte d'un sous-neurone. */
+export type MapNoteNodeType = Node<BlockNodeData, 'mapNote'>
+export type FrameNodeType = Node<BlockNodeData, 'frame'>
 
 /** « Prochaine étape » d'une idée (FR-037) : non modifiable, reliée à son idée. */
 export type StepNodeData = { readonly step: StepView; readonly dimmed: boolean }
 export type StepNodeType = Node<StepNodeData, 'step'>
 
-export type CanvasNode = NeuronNodeType | BlockNodeType | LabelNodeType | WidgetNodeType | ResultNodeType | StepNodeType
+export type CanvasNode =
+  | NeuronNodeType
+  | BlockNodeType
+  | LabelNodeType
+  | WidgetNodeType
+  | ResultNodeType
+  | MapNoteNodeType
+  | FrameNodeType
+  | StepNodeType
 
 /** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
 export const stepNodeId = (rootId: string): string => `step-${rootId}`
@@ -67,11 +79,21 @@ export const STEP_LINK_LABEL = 'prochaine étape'
 /** Place de départ d'une étape jamais glissée : en bas à droite de son idée (partagée avec le main). */
 export const STEP_OFFSET = STEP_START_OFFSET
 
-const BLOCK_NODE_TYPES = { empty: 'block', label: 'label', widget: 'widget', result: 'result' } as const
+const BLOCK_NODE_TYPES = {
+  empty: 'block',
+  label: 'label',
+  widget: 'widget',
+  result: 'result',
+  note: 'mapNote',
+  frame: 'frame'
+} as const
 
 function blockAriaLabel(block: BlockView): string {
   if (block.kind === 'label') return block.text === '' || block.text === null ? 'Note vide' : `Note : ${block.text}`
   if (block.kind === 'result') return 'Résultat d’un widget'
+  const byClaude = block.origin === 'claude' ? ', par Claude' : ''
+  if (block.kind === 'note') return `Note « ${block.title ?? 'Note'} »${byClaude}`
+  if (block.kind === 'frame') return `Cadre « ${block.title ?? 'Cadre'} »${byClaude}`
   return block.kind === 'widget' ? 'Widget IA' : 'Bloc vide'
 }
 
@@ -173,7 +195,7 @@ export function buildGraph(
   bornId: string | null = null,
   /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
   openRootId: string | null = null
-): { nodes: CanvasNode[]; edges: LinkEdgeType[]; stepEdges: BranchEdgeType[] } {
+): { nodes: CanvasNode[]; edges: LinkEdgeType[]; stepEdges: BranchEdgeType[]; mapEdges: MapLinkEdgeType[] } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean =>
     (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
@@ -219,9 +241,11 @@ export function buildGraph(
     deletable: false,
     selectable: false
   }))
-  const blockNodes = view.blocks.map((block): BlockNodeType | LabelNodeType | WidgetNodeType | ResultNodeType => ({
+  const blockNodes = view.blocks.map((block): CanvasNode => ({
     id: block.id,
     type: BLOCK_NODE_TYPES[block.kind],
+    // Un cadre se dessine sous ce qu'il regroupe.
+    ...(block.kind === 'frame' ? { zIndex: -1 } : {}),
     position: { x: block.x, y: block.y },
     width: block.width,
     height: block.height,
@@ -279,9 +303,41 @@ export function buildGraph(
           }
         ]
   )
+  // Arbre de notes dessiné par Claude (spec 007) : trait plein du parent à l'enfant.
+  const visibleBlocks = new Set(view.blocks.map((block) => block.id))
+  const noteEdges = view.blocks.flatMap((block): BranchEdgeType[] =>
+    block.parentBlockId === null || !visibleBlocks.has(block.parentBlockId)
+      ? []
+      : [
+          {
+            id: `note-line-${block.id}`,
+            type: 'branch',
+            source: block.parentBlockId,
+            target: block.id,
+            data: { style: 'solid' },
+            deletable: false,
+            selectable: false,
+            focusable: false
+          }
+        ]
+  )
+  const visible = new Set([...visibleBlocks, ...view.ideas.map((neuron) => neuron.id)])
+  const mapEdges = view.mapLinks
+    .filter((link) => visible.has(link.from.id) && visible.has(link.to.id))
+    .map((link): MapLinkEdgeType => ({
+      id: `map-${link.id}`,
+      type: 'mapLink',
+      source: link.from.id,
+      target: link.to.id,
+      data: { label: link.label },
+      deletable: false,
+      selectable: false,
+      focusable: false
+    }))
   return {
     nodes: [...neuronNodes, ...blockNodes, ...stepNodes],
     edges,
-    stepEdges: [...stepEdges, ...ioEdges, ...resultEdges]
+    stepEdges: [...stepEdges, ...ioEdges, ...resultEdges, ...noteEdges],
+    mapEdges
   }
 }

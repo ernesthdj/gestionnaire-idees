@@ -22,7 +22,9 @@ const NAMES: Readonly<Record<BlockKind, { readonly removed: string; readonly res
   empty: { removed: 'Bloc supprimé.', restored: 'Bloc restauré.' },
   label: { removed: 'Note supprimée.', restored: 'Note restaurée.' },
   widget: { removed: 'Widget supprimé.', restored: 'Widget restauré, avec ses versions.' },
-  result: { removed: 'Cadre résultat supprimé.', restored: 'Cadre résultat restauré.' }
+  result: { removed: 'Cadre résultat supprimé.', restored: 'Cadre résultat restauré.' },
+  note: { removed: 'Note supprimée.', restored: 'Note restaurée.' },
+  frame: { removed: 'Cadre supprimé.', restored: 'Cadre restauré.' }
 }
 
 /** Actions communes aux blocs de la carte : bloc vide, note, widget (spec 004), cadre résultat (spec 005). */
