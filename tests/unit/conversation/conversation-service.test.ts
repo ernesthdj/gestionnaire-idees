@@ -60,6 +60,7 @@ describe('conversations Claude Code des neurones', () => {
     elementType: null,
     pathsJson: null,
     parentId: null,
+    chatModel: null,
     ...extra
   })
 
@@ -88,6 +89,10 @@ describe('conversations Claude Code des neurones', () => {
         setProjectDir: (id, projectDir, sessionId) => {
           const current = neurons.get(id)
           if (current !== undefined) neurons.set(id, { ...current, projectDir, sessionId, sessionStarted: false })
+        },
+        setChatModel: (id, chatModel) => {
+          const current = neurons.get(id)
+          if (current !== undefined) neurons.set(id, { ...current, chatModel })
         },
         recordTurn: (neuronId, turn) => turns.push({ neuronId, ...turn }),
         usageSince: (_since, neuronId) => {
@@ -126,6 +131,7 @@ describe('conversations Claude Code des neurones', () => {
       settings: () => ({
         cwd: 'C:\\ws',
         model: 'claude-sonnet-5-5',
+        elementModel: 'claude-haiku-4-5',
         electronPath: 'C:\\e.exe',
         relayPath: 'C:\\relay.js',
         profileDir: 'C:\\profil'
@@ -178,9 +184,7 @@ describe('conversations Claude Code des neurones', () => {
     expect(options.command).toBe('C:\\claude.exe')
     expect(options.cwd).toBe('C:\\ws')
     const args = options.args
-    expect(args).toEqual(
-      expect.arrayContaining(['-p', '--input-format', 'stream-json', '--setting-sources', ''])
-    )
+    expect(args).toEqual(expect.arrayContaining(['-p', '--input-format', 'stream-json', '--setting-sources', '']))
     expect(args[args.indexOf('--session-id') + 1]).toBe(neurons.get(N1)?.sessionId)
     expect(args).not.toContain('--resume')
     expect(args[args.indexOf('--allowedTools') + 1]).toBe(CHAT_ALLOWED_TOOLS)
@@ -332,7 +336,13 @@ describe('conversations Claude Code des neurones', () => {
       fiveHour: { utilization: 0.37, resetsAt: 1 },
       sevenDay: { utilization: 0.89, resetsAt: 2 }
     })
-    expect(usage.app).toMatchObject({ weekTokens: 135, weekTurns: 1, totalTokens: 135, neuronTokens: 135, neuronTurns: 1 })
+    expect(usage.app).toMatchObject({
+      weekTokens: 135,
+      weekTurns: 1,
+      totalTokens: 135,
+      neuronTokens: 135,
+      neuronTurns: 1
+    })
     expect(events.filter((event) => event.type === 'chat:usage').length).toBeGreaterThanOrEqual(2)
   })
 
@@ -366,5 +376,24 @@ describe('conversations Claude Code des neurones', () => {
     await service.send(N1, 'Salut')
     expect(processes).toHaveLength(0)
     expect(events.at(-1)).toMatchObject({ type: 'chat:error', payload: { code: 'FOLDER_MISSING' } })
+  })
+
+  it('should_use_the_model_of_its_use_and_switch_when_a_model_is_chosen_for_the_conversation', async () => {
+    neurons.set(N2, neuron(N2, { genesisId: N1, elementType: 'composant', parentId: N1 }))
+    await service.send(N1, 'Genesis')
+    const genesisArgs = (processes[0] as FakeProcess).options.args
+    expect(genesisArgs[genesisArgs.indexOf('--model') + 1]).toBe('claude-sonnet-5-5')
+    await service.send(N2, 'Élément')
+    const elementArgs = (processes[1] as FakeProcess).options.args
+    expect(elementArgs[elementArgs.indexOf('--model') + 1]).toBe('claude-haiku-4-5')
+    finish(processes[0] as FakeProcess, 'ok')
+    const view = service.setModel(N1, 'claude-opus-5-5')
+    expect(view).toMatchObject({ model: 'claude-opus-5-5', modelChoice: 'claude-opus-5-5' })
+    expect((processes[0] as FakeProcess).killed).toBe(true)
+    await service.send(N1, 'Suite')
+    const args = (processes[2] as FakeProcess).options.args
+    expect(args[args.indexOf('--model') + 1]).toBe('claude-opus-5-5')
+    expect(args).toContain('--resume')
+    expect(() => service.setModel(N2, null)).toThrow(/répond encore/)
   })
 })

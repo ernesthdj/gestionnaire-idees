@@ -23,6 +23,8 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   folder: null,
   role: 'genesis',
   elementType: null,
+  model: 'claude-opus-5-5',
+  modelChoice: null,
   ...extra
 })
 
@@ -42,7 +44,12 @@ function renderChat(initial: ChatView = view()) {
     'chat:send': () => ({ ok: true }),
     'chat:stop': () => ({ ok: true }),
     'chat:close': () => ({ ok: true }),
-    'chat:linkFolder': () => ({ folder: 'gestionnaire-idees' })
+    'chat:linkFolder': () => ({ folder: 'gestionnaire-idees' }),
+    'chat:setModel': (payload) => ({
+      ...current,
+      model: 'claude-haiku-4-5',
+      modelChoice: (payload as { model: string | null }).model
+    })
   })
   const onClose = vi.fn()
   render(
@@ -207,5 +214,13 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(container.querySelector('b')).toBeNull()
     expect(screen.getByText('piège').getAttribute('href') ?? '').not.toContain('javascript')
     expect(screen.getByText('doc').getAttribute('href')).toBe('https://example.com')
+  })
+
+  it('should_choose_the_model_of_this_conversation', async () => {
+    const { api } = renderChat()
+    const select = await screen.findByLabelText('Modèle de cette conversation')
+    expect(screen.getByRole('option', { name: 'Défaut (Opus 5.5)' })).toBeTruthy()
+    await userEvent.selectOptions(select, 'claude-haiku-4-5')
+    expect(api.invoke).toHaveBeenCalledWith('chat:setModel', { neuronId: ID, model: 'claude-haiku-4-5' })
   })
 })

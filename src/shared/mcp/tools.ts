@@ -145,8 +145,14 @@ export const StructureLink = z.strictObject({
 export type StructureLink = z.infer<typeof StructureLink>
 export const StructureDessinerInput = z.strictObject({
   projet: Id.optional(),
-  elements: z.array(StructureElement).min(1).max(STRUCTURE_LIMITS.elements * 5),
-  liens: z.array(StructureLink).max(STRUCTURE_LIMITS.links * 5).optional(),
+  elements: z
+    .array(StructureElement)
+    .min(1)
+    .max(STRUCTURE_LIMITS.elements * 5),
+  liens: z
+    .array(StructureLink)
+    .max(STRUCTURE_LIMITS.links * 5)
+    .optional(),
   retirer_absents: z.boolean().optional()
 })
 export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
@@ -240,7 +246,8 @@ export const MCP_TOOLS = {
     writes: true
   },
   structure_lire: {
-    description: 'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
+    description:
+      'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
     input: StructureLireInput,
     writes: false
   }

@@ -54,9 +54,13 @@ export interface GatewayDependencies {
   readonly config: () => GatewayConfig
   /** Profil, règles et exemples actifs pour ce type de tâche (US5). */
   readonly context: (kind: TaskKind) => Promise<AgentContext | undefined>
-  readonly anonymizer: Anonymizer
-  readonly budget: BudgetGuard
-  readonly costOf: (engine: Engine, model: string, usage: Usage) => number
+  /**
+   * Spec 010 : facultatifs. Claude passe désormais par le CLI de mentalyas (abonnement) : plus d'anonymisation, de
+   * budget ni de coût dans l'app. Seuls les tests de l'ancien moteur (retiré en C2) les branchent encore.
+   */
+  readonly anonymizer?: Anonymizer
+  readonly budget?: BudgetGuard
+  readonly costOf?: (engine: Engine, model: string, usage: Usage) => number
   readonly callLog: CallLog
   readonly localQueue: LocalQueuePort
 }
@@ -131,7 +135,8 @@ export class AIGateway {
 
     if (engine === 'claude') {
       const claudeUp = (await this.deps.providers.claude.isAvailable()).up
-      const budgetOk = claudeUp && (await this.deps.budget.check(request.kind)).allowed
+      const budgetOk =
+        claudeUp && (this.deps.budget === undefined || (await this.deps.budget.check(request.kind)).allowed)
       if (!claudeUp || !budgetOk) {
         if (request.allowDegraded === true && (await this.deps.providers.ollama.isAvailable()).up) {
           engine = 'ollama'
@@ -175,7 +180,7 @@ export class AIGateway {
     if (research === undefined || !(await provider.isAvailable()).up) {
       return failure('AI_UNAVAILABLE', 'La recherche web nécessite Claude', true)
     }
-    if (!(await this.deps.budget.check(kind)).allowed) {
+    if (this.deps.budget !== undefined && !(await this.deps.budget.check(kind)).allowed) {
       await this.log(requestId, kind, 'claude', '', undefined, 'blocked_budget', 0, 'BUDGET_EXCEEDED')
       return failure('BUDGET_EXCEEDED', 'Le plafond mensuel de dépense IA est atteint')
     }
@@ -196,10 +201,10 @@ export class AIGateway {
         const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'
         await this.log(requestId, kind, 'claude', '', undefined, 'error', Date.now() - started, code)
         return code === 'AUTH_FAILED'
-          ? failure('AUTH_FAILED', 'La clé API a été refusée')
+          ? failure('AUTH_FAILED', 'Claude Code n’est pas connecté : lance `claude` pour te connecter')
           : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
       }
-      const cost = this.deps.costOf('claude', response.model, response.usage)
+      const cost = this.deps.costOf?.('claude', response.model, response.usage) ?? 0
       const refused = response.stopReason === 'refusal'
       const empty = !refused && response.text === ''
       const status: CallStatus = refused ? 'refusal' : empty ? 'invalid' : 'ok'
@@ -215,7 +220,7 @@ export class AIGateway {
         code,
         cost
       )
-      await this.deps.budget.record()
+      await this.deps.budget?.record()
       if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
       if (empty) return failure('AI_INVALID_OUTPUT', "La recherche n'a rien donné d'exploitable")
       return {
@@ -232,9 +237,10 @@ export class AIGateway {
     engine: Engine
   ): Promise<Result<{ system: readonly SystemBlock[]; user: string }, AIError>> {
     let input = rawInput
-    if (engine === 'claude') {
+    const anonymizer = this.deps.anonymizer
+    if (engine === 'claude' && anonymizer !== undefined) {
       try {
-        input = await this.deps.anonymizer.anonymize(rawInput)
+        input = await anonymizer.anonymize(rawInput)
       } catch {
         return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
       }
@@ -242,13 +248,13 @@ export class AIGateway {
 
     const assembled = assembleContext({ kind, input, context: await this.deps.context(kind) })
     let system = assembled.system
-    if (engine === 'claude') {
+    if (engine === 'claude' && anonymizer !== undefined) {
       // Les exemples proviennent d'idées réelles (propositions acceptées/refusées) : ils sont anonymisés
       // comme l'entrée. Le profil et les règles sont vérifiés à l'import (aucune donnée personnelle).
       try {
         system = await Promise.all(
           system.map(async (block) =>
-            block.role === 'examples' ? { ...block, text: await this.deps.anonymizer.anonymize(block.text) } : block
+            block.role === 'examples' ? { ...block, text: await anonymizer.anonymize(block.text) } : block
           )
         )
       } catch {
@@ -284,11 +290,11 @@ export class AIGateway {
         const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'
         await this.log(requestId, request.kind, engine, '', undefined, 'error', Date.now() - started, code)
         return code === 'AUTH_FAILED'
-          ? failure('AUTH_FAILED', 'La clé API a été refusée')
+          ? failure('AUTH_FAILED', 'Claude Code n’est pas connecté : lance `claude` pour te connecter')
           : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
       }
 
-      const cost = this.deps.costOf(engine, response.model, response.usage)
+      const cost = this.deps.costOf?.(engine, response.model, response.usage) ?? 0
       const refused = response.stopReason === 'refusal'
       const status: CallStatus = refused ? 'refusal' : response.parsed === null ? 'invalid' : 'ok'
       const errorCode = refused ? 'AI_REFUSAL' : status === 'invalid' ? 'AI_INVALID_OUTPUT' : undefined
@@ -304,7 +310,7 @@ export class AIGateway {
         errorCode,
         cost
       )
-      if (engine === 'claude') await this.deps.budget.record()
+      if (engine === 'claude') await this.deps.budget?.record()
 
       if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
       if (response.parsed !== null) {

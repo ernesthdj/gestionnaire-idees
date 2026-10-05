@@ -1,10 +1,8 @@
-/** Vues et constantes partagées des réglages IA (contracts/ipc-ai.md). Aucun secret n'y figure. */
+/** Vues et constantes partagées des réglages IA (spec 010). Aucun secret : plus de clé API. */
 
-/** Modèles proposés dans Réglages › IA (génération actuelle ; Opus 5 gardé pour les réglages existants). */
+/** Modèles proposés dans Réglages › IA et dans le chat (Opus 5 gardé pour les réglages existants). */
 export const CLAUDE_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-4-5', 'claude-opus-5'] as const
 export type ClaudeModel = (typeof CLAUDE_MODELS)[number]
-
-export type BudgetStateView = 'normal' | 'alert' | 'blocked' | 'unlocked'
 
 export interface AiStatusView {
   readonly ollama: {
@@ -14,28 +12,22 @@ export interface AiStatusView {
     /** Étapes à suivre pour rendre l'IA locale disponible (vide si tout va bien). */
     readonly guidance: readonly string[]
   }
+  /** Claude Code (CLI officiel, abonnement de mentalyas). */
   readonly claude: {
-    readonly configured: boolean
-    readonly model: string
-    readonly maskedKey?: string
-  }
-  readonly budget: {
-    readonly spentCents: number
-    readonly capCents: number
-    readonly state: BudgetStateView
+    readonly ready: boolean
+    readonly reason?: string
   }
 }
 
 export interface AiConfigView {
-  readonly capCents: number
-  readonly alertRatio: number
-  readonly usdEurRate: number
+  /** Modèle des conversations des genesis (idées, projets). */
   readonly claudeModel: string
-  /** Modèle Claude des widgets (spec 004). */
+  /** Modèle des conversations des éléments d'une carte de structure (spec 009). */
+  readonly elementModel: string
+  /** Modèle de la génération de widgets (spec 004). */
   readonly widgetModel: string
   readonly localModel: string
   readonly allowClaudeFallback: boolean
-  readonly maskAmounts: boolean
 }
 
 export interface AiTestView {

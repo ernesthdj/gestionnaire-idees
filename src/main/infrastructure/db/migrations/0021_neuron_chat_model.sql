@@ -1,0 +1,1 @@
+ALTER TABLE `neurons` ADD `chat_model` text;

@@ -33,6 +33,9 @@ export interface ChatView {
   /** Genesis (idée ou projet) ou élément d'une carte de structure (spec 009), avec son type. */
   readonly role: 'genesis' | 'element'
   readonly elementType: string | null
+  /** Modèle utilisé par cette conversation ; `modelChoice` : celui choisi pour elle (`null` : défaut de son usage). */
+  readonly model: string
+  readonly modelChoice: string | null
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */
@@ -66,12 +69,7 @@ export interface ChatUsageView {
 }
 
 export type ChatErrorCode =
-  | 'CLAUDE_NOT_FOUND'
-  | 'NOT_LOGGED_IN'
-  | 'LIMIT_REACHED'
-  | 'PROCESS_FAILED'
-  | 'SESSION_RESET'
-  | 'FOLDER_MISSING'
+  'CLAUDE_NOT_FOUND' | 'NOT_LOGGED_IN' | 'LIMIT_REACHED' | 'PROCESS_FAILED' | 'SESSION_RESET' | 'FOLDER_MISSING'
 
 /** Événements du main (charge commune : `neuronId`). */
 export interface ChatDeltaEvent {

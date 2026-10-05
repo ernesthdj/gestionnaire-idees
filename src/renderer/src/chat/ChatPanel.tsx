@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ChatMessageView, ChatSheetView } from '@shared/ipc/chat'
 import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
+import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
 import { Markdown } from './Markdown'
 import { UsageMeter } from './UsageMeter'
@@ -10,6 +11,14 @@ const MATURITY_LABELS: Readonly<Record<string, string>> = {
   insufficient: 'insuffisant',
   sufficient: 'suffisant',
   complete: 'complet'
+}
+
+/** Noms courts des modèles dans le chat (spec 010). */
+const SHORT_MODEL_NAMES: Readonly<Record<string, string>> = {
+  'claude-opus-5-5': 'Opus 5.5',
+  'claude-sonnet-5-5': 'Sonnet 5.5',
+  'claude-haiku-4-5': 'Haiku 4.5',
+  'claude-opus-5': 'Opus 5'
 }
 
 /** Demande de cartographie d'un projet lié (spec 009) : Claude lit le projet et dessine sa carte de structure. */
@@ -175,6 +184,24 @@ export function ChatPanel({
             )}
           </div>
         </div>
+        <label className="sr-only" htmlFor={`${fieldId}-model`}>
+          Modèle de cette conversation
+        </label>
+        <select
+          id={`${fieldId}-model`}
+          value={chat.modelChoice ?? ''}
+          disabled={chat.busy || chat.loading}
+          onChange={(event) => void chat.setModel(event.target.value === '' ? null : event.target.value)}
+          title="Modèle de cette conversation"
+          className="h-8 max-w-44 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
+        >
+          <option value="">Défaut ({SHORT_MODEL_NAMES[chat.model] ?? chat.model})</option>
+          {CLAUDE_MODELS.map((model) => (
+            <option key={model} value={model}>
+              {SHORT_MODEL_NAMES[model] ?? model}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           aria-label="Fermer la conversation"

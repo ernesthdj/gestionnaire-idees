@@ -1,9 +1,6 @@
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import type { ProviderStatus } from '../../src/main/application/ai/AIProvider'
 import { AiConfigSchema, type AiConfig } from '../../src/main/infrastructure/db/repositories/AiConfigRepository'
-import { SecretStore, type SafeStorageLike } from '../../src/main/infrastructure/secrets/SecretStore'
+import type { SafeStorageLike } from '../../src/main/infrastructure/secrets/SecretStore'
 import { createAiRoutes, type AiRoutesDependencies } from '../../src/main/ipc/aiHandlers'
 import { createDispatcher } from '../../src/main/ipc/registry'
 
@@ -13,13 +10,11 @@ export const fakeSafeStorage: SafeStorageLike = {
   decryptString: (data) => Buffer.from(data.subarray(4)).reverse().toString('utf8')
 }
 
+/** Canaux `ai:*` câblés sur des doubles (spec 010) : état d'Ollama et de Claude Code, configuration en mémoire. */
 export function createAiRoutesHarness(overrides: Partial<AiRoutesDependencies> = {}) {
-  const dir = mkdtempSync(join(tmpdir(), 'gi-ai-routes-'))
   let config: AiConfig = AiConfigSchema.parse({})
   let ollamaStatus: ProviderStatus = { up: true, model: 'qwen3.5:9b' }
-  let claudePing: () => Promise<void> = async () => undefined
-  let spent = 0
-  const secrets = new SecretStore(join(dir, 'secrets'), fakeSafeStorage)
+  let claudeStatus: ProviderStatus = { up: true, model: 'claude-opus-5-5' }
   const deps: AiRoutesDependencies = {
     config: {
       get: () => config,
@@ -28,21 +23,15 @@ export function createAiRoutesHarness(overrides: Partial<AiRoutesDependencies> =
         return config
       }
     },
-    secrets,
     ollamaStatus: async () => ollamaStatus,
-    claudePing: () => claudePing(),
-    spentMillicentsThisMonth: () => spent,
-    now: () => new Date(2026, 8, 28),
+    claudeStatus: async () => claudeStatus,
     ...overrides
   }
   const dispatch = createDispatcher(createAiRoutes(deps))
   return {
-    dir,
     dispatch,
-    secrets,
     setOllama: (status: ProviderStatus) => (ollamaStatus = status),
-    setClaudePing: (ping: () => Promise<void>) => (claudePing = ping),
-    setSpent: (value: number) => (spent = value),
+    setClaude: (status: ProviderStatus) => (claudeStatus = status),
     config: () => config
   }
 }

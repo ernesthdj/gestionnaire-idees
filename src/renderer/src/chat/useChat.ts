@@ -28,6 +28,9 @@ export interface ChatState {
   readonly folder: string | null
   readonly role: 'genesis' | 'element'
   readonly elementType: string | null
+  /** Modèle utilisé ; `modelChoice` : celui choisi pour cette conversation (`null` : défaut de son usage). */
+  readonly model: string
+  readonly modelChoice: string | null
   readonly problem: string | null
 }
 
@@ -36,6 +39,8 @@ export interface ChatActions {
   stop(): void
   /** Lie un dossier de projet (sélecteur natif du main) ; `unlink` le délie. */
   linkFolder(unlink?: boolean): Promise<void>
+  /** Modèle de cette conversation (`null` : défaut de son usage). */
+  setModel(model: string | null): Promise<void>
 }
 
 const forNeuron = <T extends { readonly neuronId: string }>(neuronId: string, payload: unknown): T | null =>
@@ -61,6 +66,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     folder: null,
     role: 'genesis',
     elementType: null,
+    model: '',
+    modelChoice: null,
     problem: null
   })
 
@@ -90,7 +97,9 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           usage: view.usage ?? null,
           folder: view.folder ?? null,
           role: view.role ?? 'genesis',
-          elementType: view.elementType ?? null
+          elementType: view.elementType ?? null,
+          model: view.model ?? '',
+          modelChoice: view.modelChoice ?? null
         }))
       })
       .catch((error: unknown) => {
@@ -193,5 +202,23 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     [neuronId]
   )
 
-  return { ...state, send, stop, linkFolder }
+  const setModel = useCallback(
+    async (model: string | null): Promise<void> => {
+      try {
+        const view = await call<ChatView>('chat:setModel', { neuronId, model })
+        setState((current) => ({ ...current, model: view.model, modelChoice: view.modelChoice }))
+      } catch (error) {
+        const message: ChatMessageView = {
+          id: `local-error-${Date.now()}`,
+          role: 'error',
+          text: error instanceof IpcFailure ? error.message : 'Le modèle n’a pas pu être changé.',
+          createdAt: ''
+        }
+        setState((current) => ({ ...current, messages: [...current.messages, message] }))
+      }
+    },
+    [neuronId]
+  )
+
+  return { ...state, send, stop, linkFolder, setModel }
 }

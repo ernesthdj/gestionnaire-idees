@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
+import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import type { ConversationService } from '../application/conversation/ConversationService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -33,6 +34,11 @@ export function createChatRoutes(conversations: ConversationService): IpcRoute[]
       channel: 'chat:linkFolder',
       input: z.strictObject({ neuronId: z.uuid(), unlink: z.boolean().optional() }),
       handler: async ({ neuronId, unlink }) => conversations.linkFolder(neuronId, unlink === true)
+    }),
+    defineRoute({
+      channel: 'chat:setModel',
+      input: z.strictObject({ neuronId: z.uuid(), model: z.enum(CLAUDE_MODELS).nullable() }),
+      handler: async ({ neuronId, model }) => conversations.setModel(neuronId, model)
     }),
     defineRoute({
       channel: 'chat:close',

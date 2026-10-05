@@ -28,7 +28,7 @@ import { HatchedRepository } from './infrastructure/db/repositories/HatchedRepos
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
-import { createAiRoutes } from './ipc/aiHandlers'
+import { createAiRoutes, LEGACY_CLAUDE_SECRET } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
 import { createCaptureRoutes } from './ipc/captureHandlers'
 import { createCanvasRoutes } from './ipc/canvasHandlers'
@@ -145,24 +145,22 @@ export function bootstrap(shell: ShellPort): AppContext {
   const ollama = resolveOllamaUrl(process.env['OLLAMA_URL'])
   if (ollama.rejected) logger.warn('ai.ollama_url_rejected', {})
 
+  // Spec 010 : plus de clé API Anthropic ; l'ancien secret est effacé s'il existe encore.
+  secrets.delete(LEGACY_CLAUDE_SECRET)
   const ai = createAiEngine({
     db: database.db,
-    secrets,
     logger,
     ollamaUrl: ollama.url,
+    cliSandbox: join(dataDir, 'cli-sandbox'),
     contextSource: (kind) => contextService.activeContext(kind),
-    onBudgetAlert: (spentCents, capCents) => broadcast('ai:budgetAlert', { spentCents, capCents }),
     // Rejeu de la file locale (ex. catégorisation d'une idée capturée pendant qu'Ollama était arrêté).
     onQueuedCompleted: (requestId, data) => neuronsRef.current?.applyQueuedResult(requestId, data)
   })
 
   const aiRoutes = createAiRoutes({
     config: ai.config,
-    secrets,
     ollamaStatus: () => ai.ollama.isAvailable(),
-    claudePing: () => ai.claude.ping(),
-    spentMillicentsThisMonth: () => ai.spentMillicentsThisMonth(),
-    now: () => new Date()
+    claudeStatus: () => ai.claude.isAvailable()
   })
   const neuronRepository = new NeuronRepository(database.db)
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
@@ -321,6 +319,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     settings: () => ({
       cwd: workspace,
       model: ai.config.get().claudeModel,
+      elementModel: ai.config.get().elementModel,
       electronPath: process.execPath,
       relayPath,
       profileDir: dataDir

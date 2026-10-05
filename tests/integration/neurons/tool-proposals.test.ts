@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ActionPlanOut, ReflectionSummaryOut } from '../../../src/shared/ai/neurons'
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod'
 import { ALREADY_CONNECTED_NOTE, keepNewTools, settleTools } from '../../../src/main/domain/widgets/toolProposals'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
@@ -27,14 +26,6 @@ describe('outils proposés dans la sortie de synthèse (spec 006 FR-001 à FR-00
   it('should_accept_a_synthesis_without_tools_as_no_tool_and_no_verdict', () => {
     expect(ActionPlanOut.parse(plan)).toMatchObject({ tools: [], toolsNote: '' })
     expect(ReflectionSummaryOut.parse(reflectionSummary.raw)).toMatchObject({ tools: [], toolsNote: '' })
-  })
-
-  it('should_require_the_tools_and_their_verdict_in_the_format_imposed_on_claude', () => {
-    // Facultatifs, Claude les omettait : ils sont obligatoires dans le format de sortie (tools peut être vide).
-    for (const schema of [ActionPlanOut, ReflectionSummaryOut]) {
-      const format = betaZodOutputFormat(schema) as unknown as { schema: { required: string[] } }
-      expect(format.schema.required).toEqual(expect.arrayContaining(['tools', 'toolsNote']))
-    }
   })
 
   it('should_keep_the_verdict_of_claude', () => {

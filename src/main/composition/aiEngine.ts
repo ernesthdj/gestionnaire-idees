@@ -1,24 +1,19 @@
+import { mkdirSync } from 'node:fs'
 import { AIGateway } from '../application/ai/AIGateway'
-import { Anonymizer, sensitiveDetectorFrom } from '../application/ai/Anonymizer'
-import { BudgetGuard } from '../application/ai/BudgetGuard'
 import { LocalQueue } from '../application/ai/LocalQueue'
-import type { AgentContext, Anonymizer as AnonymizerPort } from '../application/ai/ports'
-import { costMillicents, estimateMaxMillicents, pricingFor, startOfMonth } from '../domain/ai/cost'
-import { MAX_WEB_SEARCHES, maxTokensFor, type RoutingTable } from '../domain/ai/routing'
+import type { AgentContext } from '../application/ai/ports'
+import type { RoutingTable } from '../domain/ai/routing'
 import type { TaskKind } from '../domain/ai/types'
-import { ClaudeProvider } from '../infrastructure/ai/ClaudeProvider'
+import { resolveClaudePath } from '../infrastructure/claude/claudePath'
+import { ClaudeCliProvider } from '../infrastructure/ai/ClaudeCliProvider'
 import { OllamaProvider } from '../infrastructure/ai/OllamaProvider'
 import type { AppDatabase } from '../infrastructure/db/client'
 import { AiCallRepository } from '../infrastructure/db/repositories/AiCallRepository'
 import { AiConfigRepository } from '../infrastructure/db/repositories/AiConfigRepository'
 import { PendingRequestRepository } from '../infrastructure/db/repositories/PendingRequestRepository'
 import type { Logger } from '../infrastructure/logging/logger'
-import type { SecretStore } from '../infrastructure/secrets/SecretStore'
-import { CLAUDE_SECRET } from '../ipc/aiHandlers'
 import { CategoryOut, SensitiveOut } from '@shared/ai/schemas'
 
-/** Estimation prudente de la taille d'entrée d'un appel (cadre + profil + données), avant envoi. */
-const ESTIMATED_INPUT_TOKENS = 8000
 const LOCAL_QUEUE_PROBE_MS = 30_000
 
 export interface AiEngine {
@@ -26,62 +21,39 @@ export interface AiEngine {
   readonly config: AiConfigRepository
   readonly localQueue: LocalQueue
   readonly ollama: OllamaProvider
-  readonly claude: ClaudeProvider
-  /** Dépense Claude du mois local en cours (millicentimes). */
-  spentMillicentsThisMonth(): number
+  readonly claude: ClaudeCliProvider
   stop(): void
 }
 
 export interface AiEngineOptions {
   readonly db: AppDatabase
-  readonly secrets: SecretStore
   readonly logger: Logger
   readonly ollamaUrl: string
+  /** Dossier vide où tournent les tâches `claude -p` (aucun projet, aucun réglage). */
+  readonly cliSandbox: string
   /** Profil, règles et exemples actifs (import de contexte, US5). */
   readonly contextSource: (kind: TaskKind) => AgentContext | undefined
-  readonly onBudgetAlert: (spentCents: number, capCents: number) => void
   /** Demande locale rejouée avec succès : identifiant et données validées. */
   readonly onQueuedCompleted: (requestId: string, data: unknown) => void
 }
 
-/** Racine de composition du moteur IA : relie passerelle, moteurs, anonymisation, budget et file locale. */
+/**
+ * Racine de composition du moteur IA (spec 010) : Ollama pour les tâches locales, Claude par le CLI officiel de
+ * mentalyas (`claude -p`, abonnement) pour le reste. Plus d'API Anthropic, de clé, de budget ni d'anonymisation.
+ */
 export function createAiEngine(options: AiEngineOptions): AiEngine {
   const config = new AiConfigRepository(options.db)
   const calls = new AiCallRepository(options.db)
-  const spentThisMonth = (): number => calls.claudeSpentSince(startOfMonth(new Date()))
+  mkdirSync(options.cliSandbox, { recursive: true })
 
   const ollama = new OllamaProvider({ baseUrl: options.ollamaUrl, model: () => config.get().localModel })
-  const claude = new ClaudeProvider({
-    apiKey: () => options.secrets.get(CLAUDE_SECRET),
-    model: () => config.get().claudeModel
+  const claude = new ClaudeCliProvider({
+    claudePath: resolveClaudePath,
+    model: () => config.get().claudeModel,
+    cwd: () => options.cliSandbox
   })
 
-  const budget = new BudgetGuard({
-    spentMillicentsThisMonth: async () => spentThisMonth(),
-    settings: async () => config.get(),
-    estimateMillicents: (kind, rate) => {
-      const model = config.get().claudeModel
-      return estimateMaxMillicents(
-        {
-          inputTokens: ESTIMATED_INPUT_TOKENS,
-          maxOutputTokens: maxTokensFor(kind),
-          webSearches: kind === 'rechercher' ? MAX_WEB_SEARCHES : 0
-        },
-        pricingFor(model, model),
-        rate
-      )
-    },
-    now: () => new Date(),
-    onAlert: (spentCents, capCents) => {
-      options.logger.warn('ai.budget_alert', { count: spentCents })
-      options.onBudgetAlert(spentCents, capCents)
-    }
-  })
-
-  // L'anonymiseur a besoin de la passerelle (détection locale des noms) : référence résolue après construction.
-  const anonymizerRef: { current?: AnonymizerPort } = {}
   const localQueueRef: { current?: LocalQueue } = {}
-
   const gateway = new AIGateway({
     providers: { ollama, claude },
     config: () => {
@@ -93,17 +65,6 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       }
     },
     context: async (kind) => options.contextSource(kind),
-    anonymizer: {
-      anonymize: (text) => {
-        if (anonymizerRef.current === undefined) throw new Error('Anonymiseur non initialisé')
-        return anonymizerRef.current.anonymize(text)
-      }
-    },
-    budget,
-    costOf: (engine, model, usage) =>
-      engine === 'claude'
-        ? costMillicents(usage, pricingFor(model, config.get().claudeModel), config.get().usdEurRate)
-        : 0,
     callLog: calls,
     localQueue: {
       enqueue: async (request) => {
@@ -111,11 +72,6 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
         await localQueueRef.current.enqueue(request)
       }
     }
-  })
-
-  anonymizerRef.current = new Anonymizer({
-    detectSensitive: sensitiveDetectorFrom(gateway),
-    maskAmounts: () => config.get().maskAmounts
   })
 
   const localQueue = new LocalQueue({
@@ -131,13 +87,5 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   const timer = setInterval(() => void localQueue.tick(), LOCAL_QUEUE_PROBE_MS)
   void localQueue.tick()
 
-  return {
-    gateway,
-    config,
-    localQueue,
-    ollama,
-    claude,
-    spentMillicentsThisMonth: spentThisMonth,
-    stop: () => clearInterval(timer)
-  }
+  return { gateway, config, localQueue, ollama, claude, stop: () => clearInterval(timer) }
 }

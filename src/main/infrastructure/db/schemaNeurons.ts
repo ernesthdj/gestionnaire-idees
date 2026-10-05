@@ -72,6 +72,8 @@ export const neurons = sqliteTable(
     sheetJson: text('sheet_json'),
     /** Dossier de projet lié (spec 008) : la conversation du neurone s'y ouvre et lit ses fichiers. */
     projectDir: text('project_dir'),
+    /** Modèle choisi pour la conversation de ce neurone (spec 010) ; `null` : le modèle par défaut de son usage. */
+    chatModel: text('chat_model'),
     /**
      * Élément de la carte de structure d'un projet (spec 009) : genesis auquel il appartient, type, clé stable dans le
      * projet, statut, chemins des fichiers (JSON), repli de ses enfants sur la carte.

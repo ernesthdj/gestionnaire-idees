@@ -9,12 +9,9 @@ export const MAIN_WINDOW_CHANNELS = [
   'app:setSettings',
   'app:completeOnboarding',
   'ai:status',
-  'ai:setClaudeKey',
-  'ai:clearClaudeKey',
   'ai:getConfig',
   'ai:setConfig',
   'ai:test',
-  'ai:unlockBudget',
   'context:list',
   'context:pending',
   'context:apply',
@@ -81,6 +78,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:stop',
   'chat:close',
   'chat:linkFolder',
+  'chat:setModel',
   'element:setCollapsed'
 ] as const
 
@@ -91,7 +89,6 @@ export const MAIN_WINDOW_EVENTS = [
   'app:navigate',
   'app:settingsChanged',
   'shortcut:unavailable',
-  'ai:budgetAlert',
   'context:newImport',
   'neuron:created',
   'neuron:thinking',

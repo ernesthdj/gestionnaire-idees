@@ -35,7 +35,8 @@ gestionnaire-idees/
   (standard global Node). Raison : Prisma embarque un moteur binaire separe, fragile a empaqueter dans Electron,
   et ne supporte pas SQLite chiffre. Garanties conservees : requetes typees et parametrees, migrations versionnees avec `down`.
 - **Repo public** : aucune donnee reelle, aucun secret, aucune adresse e-mail. Donnees utilisateur dans `%APPDATA%/gestionnaire-idees/`.
-- **Modele Claude par defaut** : `claude-opus-5` (configurable dans l'app).
+- **Modeles Claude par defaut** (spec 010) : Opus 5.5 pour les genesis, Sonnet 5.5 pour les elements de projet et les
+  widgets ; configurables dans Reglages › IA et par conversation.
 - **Constitution 2.0.0 (2026-10-04)** : ecritures de Claude par MCP directes, marquees « par Claude », annulables ;
   plus de cadre IA ni d'anonymisation sur le chemin Claude Code.
 
@@ -50,7 +51,7 @@ Derniere mise a jour : 2026-09-30
 ## Stack
 
 Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiffre (Drizzle + better-sqlite3-multiple-ciphers)
-· Ollama (IA locale) + Claude API (`@anthropic-ai/sdk`, retiree au lot 2 du Pont Claude Code) · pont MCP
+· Ollama (IA locale) + Claude Code (`claude -p`, abonnement — plus d'API Anthropic depuis la spec 010) · pont MCP
 (`@modelcontextprotocol/sdk`, relais `src/mcp-relay/`) · Microsoft Graph + MSAL Node · Zod. Detail : `docs/FOUNDATION.md` §5 et §00.
 
 ## Commandes

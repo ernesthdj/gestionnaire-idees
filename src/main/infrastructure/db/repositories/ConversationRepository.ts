@@ -32,6 +32,8 @@ export interface ConversationNeuron {
   readonly elementType: string | null
   readonly pathsJson: string | null
   readonly parentId: string | null
+  /** Modèle choisi pour cette conversation ; `null` : défaut de son usage. */
+  readonly chatModel: string | null
 }
 
 export interface TurnRecord {
@@ -82,7 +84,8 @@ export class ConversationRepository {
         genesisId: neurons.genesisId,
         elementType: neurons.elementType,
         pathsJson: neurons.pathsJson,
-        parentId: neurons.parentId
+        parentId: neurons.parentId,
+        chatModel: neurons.chatModel
       })
       .from(neurons)
       .where(eq(neurons.id, id))
@@ -163,6 +166,10 @@ export class ConversationRepository {
     } catch {
       return null
     }
+  }
+
+  setChatModel(id: string, model: string | null): void {
+    this.db.update(neurons).set({ chatModel: model }).where(eq(neurons.id, id)).run()
   }
 
   setSheet(id: string, sheetJson: string): void {

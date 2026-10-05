@@ -33,7 +33,10 @@ export type ChatEvent =
 export interface ConversationSettings {
   /** Dossier de travail des conversations sans dossier de projet (`%APPDATA%/<profil>/workspace`). */
   readonly cwd: string
+  /** Modèle par défaut des genesis (idées, projets). */
   readonly model: string
+  /** Modèle par défaut des éléments d'une carte de structure ; absent : celui des genesis. */
+  readonly elementModel?: string
   /** Lancement du relais du pont MCP (spec 007) pour cette conversation. */
   readonly electronPath: string
   readonly relayPath: string
@@ -46,6 +49,7 @@ export interface ConversationDeps {
     | 'neuron'
     | 'setSession'
     | 'setProjectDir'
+    | 'setChatModel'
     | 'messages'
     | 'addMessage'
     | 'maturity'
@@ -200,7 +204,9 @@ export class ConversationService {
       usage: this.usage(neuronId),
       folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
       role: neuron.genesisId === null ? 'genesis' : 'element',
-      elementType: neuron.elementType
+      elementType: neuron.elementType,
+      model: this.modelOf(neuron, this.deps.settings()),
+      modelChoice: neuron.chatModel
     }
   }
 
@@ -266,6 +272,19 @@ export class ConversationService {
     live.process.write(JSON.stringify({ type: 'user', message: { role: 'user', content } }))
   }
 
+  /**
+   * Modèle de cette conversation (spec 010) ; `null` revient au défaut de son usage. Le processus est arrêté : l'échange
+   * suivant reprend la même session avec le nouveau modèle.
+   */
+  setModel(neuronId: string, model: string | null): ChatView {
+    this.neuronOrThrow(neuronId)
+    if (this.live.get(neuronId)?.busy === true)
+      throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
+    this.deps.repository.setChatModel(neuronId, model)
+    this.dispose(neuronId)
+    return this.open(neuronId)
+  }
+
   /** Interrompt le tour en cours : ce qui a été reçu est gardé ; la session reprendra au message suivant. */
   stop(neuronId: string): void {
     const live = this.live.get(neuronId)
@@ -312,7 +331,14 @@ export class ConversationService {
       this.deps.repository.setSession(neuron.id, sessionId, false)
     }
     const resume = neuron.sessionStarted
-    const args = conversationArgs({ sessionId, resume, neuronId: neuron.id, frame: this.deps.frame, settings })
+    const model = this.modelOf(neuron, settings)
+    const args = conversationArgs({
+      sessionId,
+      resume,
+      neuronId: neuron.id,
+      frame: this.deps.frame,
+      settings: { ...settings, model }
+    })
     const neuronId = neuron.id
     const process = this.deps.spawn({
       command,
@@ -331,7 +357,7 @@ export class ConversationService {
       contextSent: false,
       started: resume,
       partial: '',
-      model: settings.model,
+      model,
       turnStarted: Date.now(),
       quotaRejected: null,
       timer: undefined,
@@ -484,6 +510,12 @@ export class ConversationService {
         projectSheet: readSheet(genesis?.sheetJson ?? null)
       }
     }
+  }
+
+  /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */
+  private modelOf(neuron: ConversationNeuron, settings: ConversationSettings): string {
+    if (neuron.chatModel !== null) return neuron.chatModel
+    return neuron.genesisId === null ? settings.model : (settings.elementModel ?? settings.model)
   }
 
   /** Dossier de travail d'un neurone : le sien, ou celui du projet de son genesis (élément de structure). */
