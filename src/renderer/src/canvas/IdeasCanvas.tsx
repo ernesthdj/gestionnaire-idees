@@ -42,11 +42,13 @@ import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
 import { NeuronNode } from './nodes/NeuronNode'
+import { PlanBarNode, PlanNode } from './nodes/PlanNode'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
 import { ChatPanel } from '../chat/ChatPanel'
+import { GhostPanel } from './GhostPanel'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
@@ -56,7 +58,9 @@ const NODE_TYPES: NodeTypes = {
   frame: FrameNode,
   element: ElementNode,
   widget: WidgetNode,
-  result: ResultNode
+  result: ResultNode,
+  plan: PlanNode,
+  planBar: PlanBarNode
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -144,6 +148,9 @@ function CanvasInner(): React.JSX.Element {
   const chatNeuronId = useUiStore((state) => state.chatNeuronId)
   const openChat = useUiStore((state) => state.openChat)
   const closeChat = useUiStore((state) => state.closeChat)
+  const ghostId = useUiStore((state) => state.ghostId)
+  const openGhost = useUiStore((state) => state.openGhost)
+  const closeGhost = useUiStore((state) => state.closeGhost)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -417,13 +424,21 @@ function CanvasInner(): React.JSX.Element {
               // Un clic (ou un double-clic) sur une idée, ou sur un élément d'une carte de structure (spec 009), ouvre
               // sa conversation Claude Code (spec 008). Un clic dans le vide referme le volet.
               onNodeClick={(_event, node) => {
-                if ((node.type === 'neuron' || node.type === 'element') && node.id !== chatNeuronId) openChat(node.id)
+                // Une étape (spec 011) aussi ; un fantôme se décide par ses boutons ✓ / ✗.
+                const conversational =
+                  node.type === 'neuron' ||
+                  node.type === 'element' ||
+                  (node.type === 'plan' && node.data.item.kind === 'step')
+                if (conversational && node.id !== chatNeuronId) openChat(node.id)
+                // Un fantôme se consulte avant d'être décidé : son détail s'ouvre dans le volet.
+                if (node.type === 'plan' && node.data.item.kind === 'ghost') openGhost(node.data.item.ghost.id)
               }}
               onNodeDoubleClick={(_event, node) => {
                 if (node.type === 'neuron') openChat(node.id)
               }}
               onPaneClick={() => {
                 if (chatNeuronId !== null) closeChat()
+                if (ghostId !== null) closeGhost()
               }}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
@@ -532,6 +547,13 @@ function CanvasInner(): React.JSX.Element {
             className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface"
           >
             <ChatPanel key={chatNeuronId} neuronId={chatNeuronId} onClose={closeChat} />
+          </aside>
+        ) : ghostId !== null && view !== undefined ? (
+          <aside
+            aria-label="Étape proposée par Claude"
+            className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
+          >
+            <GhostPanel key={ghostId} view={view} ghostId={ghostId} onClose={closeGhost} />
           </aside>
         ) : null}
       </div>

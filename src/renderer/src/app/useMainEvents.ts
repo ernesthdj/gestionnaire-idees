@@ -11,7 +11,9 @@ import { useUiStore } from './uiStore'
  */
 const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly string[])[]]> = [
   // Écriture de Claude Code par le pont MCP (spec 007) : la carte et l'Historique changent.
-  ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs']]]
+  ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs']]],
+  // Couche proposée par Claude (spec 011) : les fantômes apparaissent sur la carte.
+  ['plan:proposed', [['canvas']]]
 ]
 
 function isMapChanged(payload: unknown): payload is MapChangedPayload {
@@ -56,6 +58,19 @@ export function useMainEvents(): void {
             batchId: payload.batchId,
             undoneText: 'Annulé : la carte revient à l’état d’avant.'
           })
+        }
+      })
+    )
+    // Une proposition n'écrit rien : la notification l'annonce, sans « Annuler ».
+    unsubscribes.push(
+      window.api.on('plan:proposed', (payload) => {
+        if (
+          typeof payload === 'object' &&
+          payload !== null &&
+          'summary' in payload &&
+          typeof payload.summary === 'string'
+        ) {
+          showToast(payload.summary)
         }
       })
     )

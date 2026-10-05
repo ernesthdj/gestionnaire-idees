@@ -9,6 +9,8 @@ import type {
   ConversationRepository
 } from '../../infrastructure/db/repositories/ConversationRepository'
 import type { McpCaller } from '../../domain/mcp/caller'
+import { conversationTarget } from './target'
+import type { PlanRepository, StepStatus } from '../../infrastructure/db/repositories/PlanRepository'
 
 export interface NeuronToolsDeps {
   readonly conversations: Pick<ConversationRepository, 'neuron' | 'setSheet' | 'maturity' | 'log' | 'transaction'>
@@ -22,6 +24,15 @@ export interface NeuronToolsDeps {
   }) => void
   /** Fiche ou maturité changée : la carte et le panneau de chat se rafraîchissent (sans notification). */
   readonly onChanged: (neuronId: string) => void
+  /** Étapes d'un nœud (spec 011) : son plan d'attaque, montré par `neurone_contexte`. */
+  readonly plan?: Pick<PlanRepository, 'children'>
+}
+
+const STATUS_NAMES: Readonly<Record<StepStatus, string>> = {
+  a_faire: 'à faire',
+  en_cours: 'en cours',
+  fait: 'fait',
+  bloque: 'bloqué'
 }
 
 const LEVELS: Readonly<Record<MaturiteEvaluerInput['niveau'], GaugeLevel>> = {
@@ -44,12 +55,31 @@ export class NeuronTools {
 
   context(id: string | undefined, caller: McpCaller): ToolResult {
     const neuron = this.target(id, caller)
-    const maturity = this.deps.conversations.maturity(neuron.rootId)
+    const maturity = this.deps.conversations.maturity(neuron.id)
+    const kind =
+      neuron.kind === 'root'
+        ? 'genesis, couche 1'
+        : neuron.kind === 'step'
+          ? `étape de rang ${neuron.rank ?? '?'}`
+          : 'sous-neurone'
+    const children = this.deps.plan?.children(neuron.id) ?? []
+    const rankOf = new Map(children.map((child) => [child.id, child.rank] as const))
+    const plan =
+      children.length === 0
+        ? null
+        : `Plan d’attaque (étapes filles, dans l’ordre) :\n${children
+            .map((child) => {
+              const waits = child.waitsFor.map((id) => rankOf.get(id) ?? id).join(', ')
+              return `- ${child.rank}. ${child.title} [${child.id}] — ${STATUS_NAMES[child.status]}${waits === '' ? '' : ` — attend ${waits}`}`
+            })
+            .join('\n')}`
     const text = [
-      `Neurone ${neuron.id} — « ${neuron.title} » (${neuron.kind === 'root' ? 'genesis, couche 1' : 'sous-neurone'})`,
+      `Neurone ${neuron.id} — « ${neuron.title} » (${kind})`,
       neuron.content === null ? null : `Description : ${neuron.content}`,
       `Maturité : ${maturity === null ? 'non évaluée' : (LEVEL_NAMES[maturity] ?? maturity)}`,
-      `Fiche :\n${sheetMarkdown(readSheet(neuron.sheetJson))}`
+      neuron.lockedAt === null ? null : 'Verrouillé : sa fiche, son titre et sa description ne s’écrivent plus.',
+      `Fiche :\n${sheetMarkdown(readSheet(neuron.sheetJson))}`,
+      plan
     ]
       .filter((line) => line !== null)
       .join('\n\n')
@@ -96,7 +126,7 @@ export class NeuronTools {
     const neuron = this.target(input.id, caller, true)
     const level = LEVELS[input.niveau]
     this.deps.insertAssessment({
-      rootId: neuron.rootId,
+      rootId: neuron.id,
       level,
       aiLevel: level,
       covered: [],
@@ -109,27 +139,6 @@ export class NeuronTools {
 
   /** Neurone visé : `id` fourni, sinon celui de la conversation ; toujours dans l'arbre de la conversation. */
   private target(id: string | undefined, caller: McpCaller, writing = false): ConversationNeuron {
-    const targetId = id ?? caller.neuronId
-    if (targetId === null) {
-      throw new McpToolError('ENTREE_INVALIDE', 'id requis : cette session n’est pas la conversation d’un neurone.')
-    }
-    const neuron = this.deps.conversations.neuron(targetId)
-    if (neuron === undefined || neuron.state === 'archived') {
-      throw new McpToolError('INTROUVABLE', `Neurone ${targetId} introuvable (retiré ou annulé ?)`)
-    }
-    if (caller.neuronId !== null && id !== undefined) {
-      const own = this.deps.conversations.neuron(caller.neuronId)
-      // Un projet = un genesis et ses éléments de structure (spec 009) ; une idée = sa racine et son arbre.
-      const treeOf = (row: ConversationNeuron): string => row.genesisId ?? row.rootId
-      if (own === undefined || treeOf(own) !== treeOf(neuron)) {
-        throw new McpToolError(
-          'NON_MODIFIABLE',
-          'Ce neurone appartient à un autre arbre que celui de cette conversation.'
-        )
-      }
-    }
-    if (writing && neuron.absorbed)
-      throw new McpToolError('NON_MODIFIABLE', 'Ce neurone a été absorbé par une éclosion.')
-    return neuron
+    return conversationTarget(this.deps.conversations, id, caller, writing)
   }
 }

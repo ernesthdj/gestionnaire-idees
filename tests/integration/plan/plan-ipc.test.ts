@@ -1,0 +1,102 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { CanvasService } from '../../../src/main/application/canvas/CanvasService'
+import { PlanService } from '../../../src/main/application/plan/PlanService'
+import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
+import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
+import { PlanRepository } from '../../../src/main/infrastructure/db/repositories/PlanRepository'
+import { createCanvasRoutes } from '../../../src/main/ipc/canvasHandlers'
+import { createNeuronRoutes } from '../../../src/main/ipc/neuronHandlers'
+import { createPlanRoutes } from '../../../src/main/ipc/planHandlers'
+import { createDispatcher } from '../../../src/main/ipc/registry'
+import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
+import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
+
+describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
+  let t: NeuronHarness
+  let plan: PlanService
+  let dispatch: ReturnType<typeof createDispatcher>
+  let genesis: string
+
+  beforeEach(async () => {
+    t = createNeuronHarness()
+    const repository = new PlanRepository(t.handle.db)
+    plan = new PlanService({ repository })
+    const canvas = new CanvasService({
+      neurons: new NeuronRepository(t.handle.db),
+      blocks: new BlockRepository(t.handle.db),
+      io: { links: () => [] },
+      plan: repository
+    })
+    dispatch = createDispatcher([
+      ...createCanvasRoutes(canvas),
+      ...createPlanRoutes(plan),
+      ...createNeuronRoutes(t.neurons, plan)
+    ])
+    genesis = (await t.neurons.create({ text: 'Ouvrir un studio photo' })).id
+  })
+  afterEach(() => t.dispose())
+
+  const view = async (): Promise<IdeasCanvasView> => {
+    const result = await dispatch('canvas:get', {})
+    if (!result.success) throw new Error(result.error.code)
+    return result.data as IdeasCanvasView
+  }
+
+  const propose = () =>
+    plan.propose({
+      parentId: genesis,
+      steps: [
+        { key: 'budget', title: 'Valider le budget', why: 'Tout en dépend' },
+        { key: 'lieu', title: 'Choisir le lieu', why: 'Après le budget', waitsFor: ['budget'] }
+      ]
+    })
+
+  it('should_show_the_ghosts_with_their_dependencies_as_ghost_ids', async () => {
+    const { proposalId } = propose()
+    const [proposal] = (await view()).proposals
+    expect(proposal).toMatchObject({ id: proposalId, parentId: genesis })
+    const [budget, lieu] = proposal?.items ?? []
+    expect([budget?.rank, budget?.title, lieu?.rank, lieu?.waitsFor]).toEqual([1, 'Valider le budget', 2, [budget?.id]])
+    expect((await view()).steps).toEqual([])
+  })
+
+  it('should_show_the_born_steps_and_the_locked_genesis_after_the_decision', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    const decided = await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    expect(decided.success).toBe(true)
+    const after = await view()
+    expect(after.proposals).toEqual([])
+    expect(after.ideas.find((idea) => idea.id === genesis)).toMatchObject({ locked: true, lockProposed: false })
+    expect(after.steps.map((step) => [step.rank, step.title, step.depth, step.status, step.parentId])).toEqual([
+      [1, 'Valider le budget', 1, 'a_faire', genesis],
+      [2, 'Choisir le lieu', 1, 'a_faire', genesis]
+    ])
+    expect(after.steps[1]?.waitsFor).toEqual([after.steps[0]?.id])
+  })
+
+  it('should_refuse_a_step_both_accepted_and_refused', async () => {
+    const { proposalId } = propose()
+    const [first] = (await view()).proposals[0]?.items ?? []
+    const result = await dispatch('plan:decide', { proposalId, accept: [first?.id], reject: [first?.id] })
+    expect(result).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
+  })
+
+  it('should_remove_a_step_through_neuron_remove', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    const [budget] = (await view()).steps
+    expect((await dispatch('neuron:remove', { rootId: budget?.id })).success).toBe(true)
+    expect((await view()).steps.map((step) => [step.rank, step.title])).toEqual([[1, 'Choisir le lieu']])
+    expect((await view()).ideas.some((idea) => idea.id === genesis)).toBe(true)
+  })
+
+  it('should_hide_the_plan_of_an_archived_genesis', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    await t.neurons.archive(genesis)
+    expect((await view()).steps).toEqual([])
+  })
+})

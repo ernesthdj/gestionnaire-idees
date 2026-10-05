@@ -34,7 +34,18 @@ export const neurons = sqliteTable(
     parentId: text('parent_id').references((): AnySQLiteColumn => neurons.id),
     depth: integer('depth').notNull().default(0),
     kind: text('kind', {
-      enum: ['root', 'answer', 'condition', 'branch', 'opportunity', 'investigation', 'user_branch', 'idea', 'element']
+      enum: [
+        'root',
+        'answer',
+        'condition',
+        'branch',
+        'opportunity',
+        'investigation',
+        'user_branch',
+        'idea',
+        'element',
+        'step'
+      ]
     }).notNull(),
     title: text('title').notNull(),
     content: text('content'),
@@ -86,6 +97,13 @@ export const neurons = sqliteTable(
     elementStatus: text('element_status'),
     pathsJson: text('paths_json'),
     collapsed: integer('collapsed', { mode: 'boolean' }).notNull().default(true),
+    /** Étape d'un plan d'attaque (spec 011) : rang parmi ses sœurs (①②③) et statut d'avancement. */
+    rank: integer('rank'),
+    stepStatus: text('step_status', { enum: ['a_faire', 'en_cours', 'fait', 'bloque'] }),
+    /** Verrou (spec 011) : fiche, titre et description figés ; ses sous-nœuds s'appuient sur ce contexte. */
+    lockedAt: text('locked_at'),
+    /** Verrou proposé par Claude, en attente de la décision de mentalyas. */
+    lockProposedAt: text('lock_proposed_at'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -99,7 +117,8 @@ export const neurons = sqliteTable(
     index('neurons_nature_idx').on(t.nature),
     index('neurons_category_idx').on(t.categoryId),
     uniqueIndex('neurons_element_key_idx').on(t.genesisId, t.elementKey),
-    index('neurons_genesis_idx').on(t.genesisId)
+    index('neurons_genesis_idx').on(t.genesisId),
+    index('neurons_parent_rank_idx').on(t.parentId, t.rank)
   ]
 )
 
@@ -300,7 +319,18 @@ export const changeLog = sqliteTable(
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
     kind: text('kind', {
-      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write', 'convert']
+      enum: [
+        'confirm_synthesis',
+        'manual_edit',
+        'link',
+        'seed',
+        'delete',
+        'promote',
+        'undo',
+        'mcp_write',
+        'convert',
+        'plan'
+      ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
     actor: text('actor', { enum: ['user', 'claude'] })
@@ -491,6 +521,56 @@ export const widgetMessages = sqliteTable(
     createdAt: createdAt()
   },
   (t) => [index('widget_messages_block_idx').on(t.blockId)]
+)
+
+/** Dépendance entre deux étapes sœurs d'un plan d'attaque (spec 011) : `stepId` attend `waitsForId`. */
+export const stepDependencies = sqliteTable(
+  'step_dependencies',
+  {
+    stepId: text('step_id')
+      .notNull()
+      .references(() => neurons.id),
+    waitsForId: text('waits_for_id')
+      .notNull()
+      .references(() => neurons.id)
+  },
+  (t) => [primaryKey({ columns: [t.stepId, t.waitsForId] }), index('step_dependencies_waits_idx').on(t.waitsForId)]
+)
+
+/**
+ * Couche d'étapes proposée par Claude pour un nœud (spec 011) : rien n'est écrit dans les nœuds de mentalyas avant
+ * sa décision. Une seule proposition `en_attente` par parent.
+ */
+export const planProposals = sqliteTable(
+  'plan_proposals',
+  {
+    id: text('id').primaryKey(),
+    parentId: text('parent_id')
+      .notNull()
+      .references(() => neurons.id),
+    status: text('status', { enum: ['en_attente', 'decidee', 'remplacee'] }).notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [index('plan_proposals_parent_idx').on(t.parentId, t.status)]
+)
+
+/** Étape proposée (fantôme) ; un item refusé sert de mémoire pour ne pas reproposer le même titre au même parent. */
+export const planProposalItems = sqliteTable(
+  'plan_proposal_items',
+  {
+    id: text('id').primaryKey(),
+    proposalId: text('proposal_id')
+      .notNull()
+      .references(() => planProposals.id),
+    key: text('key').notNull(),
+    title: text('title').notNull(),
+    why: text('why').notNull(),
+    rank: integer('rank').notNull(),
+    waitsForJson: text('waits_for_json').notNull().default('[]'),
+    status: text('status', { enum: ['en_attente', 'valide', 'refuse'] }).notNull(),
+    bornId: text('born_id')
+  },
+  (t) => [index('plan_proposal_items_proposal_idx').on(t.proposalId)]
 )
 
 /** Réglages génériques clé/valeur (JSON validé à la lecture). */

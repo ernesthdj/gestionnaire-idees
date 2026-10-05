@@ -2,14 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { IDEA_PARTS, type IdeaPart, type InputSourceKind } from '@shared/ipc/widgetIo'
 import type { AppDatabase } from '../client'
-import {
-  canvasBlocks,
-  extensions,
-  neurons,
-  widgetApprovals,
-  widgetInputs,
-  widgetResults
-} from '../schemaNeurons'
+import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs, widgetResults } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export interface WidgetInputRow {

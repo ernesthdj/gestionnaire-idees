@@ -7,18 +7,18 @@
 
 ## Phase 1 — Setup
 
-- [ ] T001 Migration `src/main/infrastructure/db/migrations/0022_plan_attaque.sql` (`npm run db:generate` après T003) : colonnes `neurons.rank`, `step_status`, `locked_at`, `lock_proposed_at`, index `(parent_id, rank)`, tables `step_dependencies`, `plan_proposals`, `plan_proposal_items` ; écrire à la main `migrations/down/0022_plan_attaque.down.sql`
-- [ ] T002 [P] Test de migration aller-retour dans `tests/integration/neurons/migrations.test.ts` (tables et colonnes créées, puis retirées par le down)
+- [x] T001 Migration `src/main/infrastructure/db/migrations/0022_plan_attaque.sql` (`npm run db:generate` après T003) : colonnes `neurons.rank`, `step_status`, `locked_at`, `lock_proposed_at`, index `(parent_id, rank)`, tables `step_dependencies`, `plan_proposals`, `plan_proposal_items` ; écrire à la main `migrations/down/0022_plan_attaque.down.sql`
+- [x] T002 [P] Test de migration aller-retour dans `tests/integration/neurons/migrations.test.ts` (tables et colonnes créées, puis retirées par le down)
 
 ## Phase 2 — Fondations (bloquant)
 
-- [ ] T003 `src/main/infrastructure/db/schemaNeurons.ts` : `kind` + `'step'`, colonnes et 3 tables de [data-model.md](data-model.md) ; `ChangeKind` + `'plan'` dans `changeLog.ts`, `HistoryRepository.ts`, `src/shared/ipc/history.ts`
-- [ ] T004 Un élément de structure se reconnaît à `kind = 'element'` (plus à `genesis_id`) : `ElementRepository.list/views` filtrent `kind = 'element'` ; `ConversationService` (rôle, `contextOf`, `modelOf`, `folderOf`) distingue genesis / élément / étape ; tests existants verts (`tests/integration/structure`, `tests/unit/conversation`)
-- [ ] T005 [P] Tests purs `tests/unit/plan/dependencies.test.ts` : cycle refusé, dépendance hors fratrie refusée, `respectsDependencies` (rang de l'attendu < rang de l'étape), renumérotation après retrait / déplacement
-- [ ] T006 [P] `src/main/domain/plan/dependencies.ts` : `hasCycle`, `respectsDependencies`, `renumber`, `moveRank` (purs) — fait passer T005
-- [ ] T007 [P] Tests `tests/unit/plan/lock.test.ts` + `src/main/domain/plan/lock.ts` : `assertUnlocked(neuron)` lève `AppError('LOCKED', …)` avec le message de [contracts/ipc.md](contracts/ipc.md)
-- [ ] T008 `src/main/infrastructure/db/repositories/PlanRepository.ts` : étapes d'un arbre (`steps(genesisId?)`), enfants d'un nœud, insertion d'étape, rang, statut, dépendances, propositions (création, remplacement, items, décision, refus mémorisés par titre normalisé), verrou (`lock`, `proposeLock`, `clearLockProposal`) ; `transaction`, `log`
-- [ ] T009 `HistoryRepository` : `snapshot` / `apply` des entités `step`, `step_rank`, `step_status`, `step_dependency`, `neuron_lock` ; `HistoryService` : `plan` annulable, résumés (« Plan de « X » : 3 étapes », « Verrouillage de « X » », « Statut de « ② … » »), garde D6 (annulation refusée si elle déverrouille un nœud qui garde des enfants vivants hors du lot)
+- [x] T003 `src/main/infrastructure/db/schemaNeurons.ts` : `kind` + `'step'`, colonnes et 3 tables de [data-model.md](data-model.md) ; `ChangeKind` + `'plan'` dans `changeLog.ts`, `HistoryRepository.ts`, `src/shared/ipc/history.ts`
+- [x] T004 Un élément de structure se reconnaît à `kind = 'element'` (plus à `genesis_id`) : `ElementRepository.list/views` filtrent `kind = 'element'` ; `ConversationService` (rôle, `contextOf`, `modelOf`, `folderOf`) distingue genesis / élément / étape ; tests existants verts (`tests/integration/structure`, `tests/unit/conversation`)
+- [x] T005 [P] Tests purs `tests/unit/plan/dependencies.test.ts` : cycle refusé, dépendance hors fratrie refusée, `respectsDependencies` (rang de l'attendu < rang de l'étape), renumérotation après retrait / déplacement
+- [x] T006 [P] `src/main/domain/plan/dependencies.ts` : `hasCycle`, `respectsDependencies`, `renumber`, `moveRank` (purs) — fait passer T005
+- [x] T007 [P] Tests `tests/unit/plan/lock.test.ts` + `src/main/domain/plan/lock.ts` : `assertUnlocked(neuron)` lève `AppError('LOCKED', …)` avec le message de [contracts/ipc.md](contracts/ipc.md)
+- [x] T008 `src/main/infrastructure/db/repositories/PlanRepository.ts` : étapes d'un arbre (`steps(genesisId?)`), enfants d'un nœud, insertion d'étape, rang, statut, dépendances, propositions (création, remplacement, items, décision, refus mémorisés par titre normalisé), verrou (`lock`, `proposeLock`, `clearLockProposal`) ; `transaction`, `log`
+- [x] T009 `HistoryRepository` : `snapshot` / `apply` des entités `step`, `step_rank`, `step_status`, `step_dependency`, `neuron_lock` ; `HistoryService` : `plan` annulable, résumés (« Plan de « X » : 3 étapes », « Verrouillage de « X » », « Statut de « ② … » »), garde D6 (annulation refusée si elle déverrouille un nœud qui garde des enfants vivants hors du lot)
 
 **Checkpoint** : `npm test` vert ; aucun changement visible.
 
@@ -26,14 +26,14 @@
 
 **Test indépendant** : genesis mûr → `plan_proposer` (3 étapes) → 3 fantômes → « Tout valider » → 3 étapes + genesis verrouillé, un seul lot annulable ; ouvrir ② → la fiche du genesis est dans le contexte.
 
-- [ ] T010 [P] [US1] Tests d'intégration `tests/integration/plan/plan-service.test.ts` : proposer (bornes 1..12, profondeur ≤ 4, cycle, refus mémorisés), remplacer une proposition en attente, décider (tout / partiel / refus), D6 (parent verrouillé dans le même lot), annuler le lot (étapes et verrou retirés), retirer une étape (descendants, renumérotation, dépendances)
-- [ ] T011 [US1] `src/main/application/plan/PlanService.ts` : `propose`, `decide`, `remove` (étape + descendants) — fait passer T010
-- [ ] T012 [P] [US1] Contrats `src/shared/ipc/plan.ts` (entrées Zod, `StepView`, `ProposalView`) et `src/shared/ipc/canvas.ts` (`steps`, `proposals`, `locked`, `lockProposed`) ; canaux dans `src/shared/ipc/channels.ts`
-- [ ] T013 [US1] `src/main/ipc/planHandlers.ts` (`plan:decide`) + `CanvasService.get` (étapes, propositions en attente, verrous) + branchement `bootstrap.ts` ; `neuron:remove` accepte une étape ; tests `tests/integration/plan/plan-ipc.test.ts`
-- [ ] T014 [P] [US1] Outil MCP `plan_proposer` : schéma dans `src/shared/mcp/tools.ts`, branchement `toolHandler.ts` / `NeuronTools` ou `PlanTools`, émission `map:changed` ; ligne `MCP_INSTRUCTIONS` ; tests `tests/integration/mcp/plan-tools.test.ts` (arbre de la conversation seulement, refus motivés)
-- [ ] T015 [US1] Contexte hérité : `contextBlock` reçoit `path` (genesis → parent, fiches, troncature des plus anciennes), rôle « étape ② de « X » » ; `neurone_contexte` ajoute chemin, rang, statut, enfants ; modèle par défaut d'une étape = `elementModel` ; tests `tests/unit/conversation/context-block.test.ts`, `tests/unit/conversation/conversation-service.test.ts`
-- [ ] T016 [US1] Affichage minimal : fantômes et étapes sur la carte (nœud provisoire, placement simple à droite du genesis), ✓ / ✗ par fantôme et « Tout valider » → `plan:decide` ; clic sur une étape = sa conversation ; tests `tests/unit/renderer/plan-ghosts.test.tsx`
-- [ ] T017 [US1] Test guidé US1 — **validation mentalyas**
+- [x] T010 [P] [US1] Tests d'intégration `tests/integration/plan/plan-service.test.ts` : proposer (bornes 1..12, profondeur ≤ 4, cycle, refus mémorisés), remplacer une proposition en attente, décider (tout / partiel / refus), D6 (parent verrouillé dans le même lot), annuler le lot (étapes et verrou retirés), retirer une étape (descendants, renumérotation, dépendances)
+- [x] T011 [US1] `src/main/application/plan/PlanService.ts` : `propose`, `decide`, `remove` (étape + descendants) — fait passer T010
+- [x] T012 [P] [US1] Contrats `src/shared/ipc/plan.ts` (entrées Zod, `StepView`, `ProposalView`) et `src/shared/ipc/canvas.ts` (`steps`, `proposals`, `locked`, `lockProposed`) ; canaux dans `src/shared/ipc/channels.ts`
+- [x] T013 [US1] `src/main/ipc/planHandlers.ts` (`plan:decide`) + `CanvasService.get` (étapes, propositions en attente, verrous) + branchement `bootstrap.ts` ; `neuron:remove` accepte une étape ; tests `tests/integration/plan/plan-ipc.test.ts`
+- [x] T014 [P] [US1] Outil MCP `plan_proposer` : schéma dans `src/shared/mcp/tools.ts`, branchement `toolHandler.ts` / `NeuronTools` ou `PlanTools`, émission `map:changed` ; ligne `MCP_INSTRUCTIONS` ; tests `tests/integration/mcp/plan-tools.test.ts` (arbre de la conversation seulement, refus motivés)
+- [x] T015 [US1] Contexte hérité : `contextBlock` reçoit `path` (genesis → parent, fiches, troncature des plus anciennes), rôle « étape ② de « X » » ; `neurone_contexte` ajoute chemin, rang, statut, enfants ; modèle par défaut d'une étape = `elementModel` ; tests `tests/unit/conversation/context-block.test.ts`, `tests/unit/conversation/conversation-service.test.ts`
+- [x] T016 [US1] Affichage minimal : fantômes et étapes sur la carte (nœud provisoire, placement simple à droite du genesis), ✓ / ✗ par fantôme et « Tout valider » → `plan:decide` ; clic sur une étape = sa conversation ; tests `tests/unit/renderer/plan-ghosts.test.tsx`
+- [x] T017 [US1] Test guidé US1 — **validation mentalyas**
 
 ## Phase 4 — US4 : Verrouiller un nœud mûr (P1)
 

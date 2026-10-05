@@ -16,11 +16,21 @@ import {
   reflectionSummaries,
   suggestions,
   syntheses,
+  stepDependencies,
   widgetInputs
 } from '../schemaNeurons'
 
 export type ChangeKind =
-  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write' | 'convert'
+  | 'confirm_synthesis'
+  | 'manual_edit'
+  | 'link'
+  | 'seed'
+  | 'delete'
+  | 'promote'
+  | 'undo'
+  | 'mcp_write'
+  | 'convert'
+  | 'plan'
 
 export interface ChangeRow {
   readonly id: string
@@ -302,10 +312,50 @@ export class HistoryRepository {
               justification: row.justification
             }
       }
+      case 'step': {
+        const row = this.db
+          .select({ title: neurons.title, parentId: neurons.parentId, state: neurons.state })
+          .from(neurons)
+          .where(and(eq(neurons.id, id), eq(neurons.kind, 'step')))
+          .get()
+        return row === undefined || row.state === 'archived' ? null : { title: row.title, parentId: row.parentId }
+      }
+      case 'step_rank': {
+        const row = this.db.select({ rank: neurons.rank }).from(neurons).where(eq(neurons.id, id)).get()
+        return row === undefined ? null : { rank: row.rank }
+      }
+      case 'step_status': {
+        const row = this.db.select({ status: neurons.stepStatus }).from(neurons).where(eq(neurons.id, id)).get()
+        return row === undefined ? null : { status: row.status }
+      }
+      case 'step_dependency': {
+        const [stepId = '', waitsForId = ''] = id.split('>')
+        const row = this.db
+          .select()
+          .from(stepDependencies)
+          .where(and(eq(stepDependencies.stepId, stepId), eq(stepDependencies.waitsForId, waitsForId)))
+          .get()
+        return row === undefined ? null : { waitsFor: row.waitsForId }
+      }
+      case 'neuron_lock': {
+        const row = this.db.select({ lockedAt: neurons.lockedAt }).from(neurons).where(eq(neurons.id, id)).get()
+        return row === undefined ? null : { locked: row.lockedAt !== null }
+      }
       default:
         // Élément sans état restaurable (ex. dépendance de plan, liée à ses tâches).
         return null
     }
+  }
+
+  /** Étapes vivantes dont ce nœud est le parent (garde D6 de la spec 011). */
+  livingChildren(parentId: string): string[] {
+    return this.db
+      .select({ id: neurons.id, state: neurons.state })
+      .from(neurons)
+      .where(and(eq(neurons.parentId, parentId), eq(neurons.kind, 'step')))
+      .all()
+      .filter((row) => row.state !== 'archived')
+      .map((row) => row.id)
   }
 
   /** Amène l'élément à l'état `target` (partiel : seules les clés présentes changent ; `null` : retrait). */
@@ -491,6 +541,46 @@ export class HistoryRepository {
             content: typeof target['content'] === 'string' ? target['content'] : null,
             updatedAt: new Date().toISOString()
           })
+          .where(eq(neurons.id, id))
+          .run()
+        return
+      case 'step':
+        this.db
+          .update(neurons)
+          .set({
+            state: target === null ? 'archived' : 'raw',
+            archivedAt: target === null ? new Date().toISOString() : null
+          })
+          .where(and(eq(neurons.id, id), eq(neurons.kind, 'step')))
+          .run()
+        return
+      case 'step_rank':
+        if (target === null || typeof target['rank'] !== 'number') return
+        this.db.update(neurons).set({ rank: target['rank'] }).where(eq(neurons.id, id)).run()
+        return
+      case 'step_status': {
+        const status = target?.['status']
+        if (status !== 'a_faire' && status !== 'en_cours' && status !== 'fait' && status !== 'bloque') return
+        this.db.update(neurons).set({ stepStatus: status }).where(eq(neurons.id, id)).run()
+        return
+      }
+      case 'step_dependency': {
+        const [stepId = '', waitsForId = ''] = id.split('>')
+        if (target === null) {
+          this.db
+            .delete(stepDependencies)
+            .where(and(eq(stepDependencies.stepId, stepId), eq(stepDependencies.waitsForId, waitsForId)))
+            .run()
+        } else {
+          this.db.insert(stepDependencies).values({ stepId, waitsForId }).onConflictDoNothing().run()
+        }
+        return
+      }
+      case 'neuron_lock':
+        if (target === null) return
+        this.db
+          .update(neurons)
+          .set({ lockedAt: target['locked'] === true ? new Date().toISOString() : null, lockProposedAt: null })
           .where(eq(neurons.id, id))
           .run()
         return

@@ -8,6 +8,47 @@ export interface CanvasNeuronView extends RootView {
   readonly contextLevel: GaugeLevel | null
   /** Résumé de la fiche tenue par Claude dans la conversation du neurone (spec 008) ; absent sans fiche. */
   readonly sheetSummary?: string
+  /** Verrouillé (spec 011) : fiche, titre et description figés. */
+  readonly locked: boolean
+  /** Claude propose de le verrouiller ; en attente de la décision de mentalyas. */
+  readonly lockProposed: boolean
+}
+
+/** Statuts d'avancement d'une étape (spec 011 FR-009). */
+export const STEP_STATUSES = ['a_faire', 'en_cours', 'fait', 'bloque'] as const
+export type StepStatus = (typeof STEP_STATUSES)[number]
+
+/** Étape d'un plan d'attaque (spec 011) : un neurone de l'arbre d'un genesis, rangé parmi ses sœurs. */
+export interface StepView {
+  readonly id: string
+  readonly genesisId: string
+  /** Genesis ou étape parente. */
+  readonly parentId: string
+  /** 1 : enfant du genesis ; jusqu'à 4. */
+  readonly depth: number
+  /** Rang parmi ses sœurs, à partir de 1. */
+  readonly rank: number
+  readonly title: string
+  readonly status: StepStatus
+  readonly locked: boolean
+  readonly lockProposed: boolean
+  /** Étapes sœurs attendues. */
+  readonly waitsFor: readonly string[]
+  readonly sheetSummary?: string
+}
+
+/** Couche proposée par Claude (fantômes), en attente de la décision de mentalyas. */
+export interface ProposalView {
+  readonly id: string
+  readonly parentId: string
+  readonly items: readonly {
+    readonly id: string
+    readonly title: string
+    readonly why: string
+    readonly rank: number
+    /** Autres fantômes de la proposition ou étapes sœurs existantes attendus. */
+    readonly waitsFor: readonly string[]
+  }[]
 }
 
 export interface IdeasCanvasView {
@@ -25,6 +66,10 @@ export interface IdeasCanvasView {
   readonly mapLinks: readonly MapLinkView[]
   /** Éléments des cartes de structure des projets liés (spec 009). */
   readonly elements: readonly ElementView[]
+  /** Étapes des plans d'attaque des genesis visibles (spec 011). */
+  readonly steps: readonly StepView[]
+  /** Couches proposées par Claude, en attente (fantômes). */
+  readonly proposals: readonly ProposalView[]
 }
 
 /** Libellé court d'un lien entre deux idées (1 à 3 mots en pratique). */

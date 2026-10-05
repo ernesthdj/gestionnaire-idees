@@ -22,6 +22,13 @@ const SHORT_MODEL_NAMES: Readonly<Record<string, string>> = {
 }
 
 /** Demande de cartographie d'un projet lié (spec 009) : Claude lit le projet et dessine sa carte de structure. */
+/** Demande sans ambiguïté du plan d'attaque du neurone ouvert (spec 011) : l'outil est nommé, l'ordre exigé. */
+export const PLAN_MESSAGE =
+  'Propose le plan d’attaque de ce neurone : appelle l’outil plan_proposer (sans id) avec 1 à 12 étapes, dans l’ordre ' +
+  'où les attaquer, chacune avec un titre court, une phrase « pourquoi » et ce qu’elle attend. N’utilise pas dessiner ' +
+  'et ne crée aucune idée : je validerai les étapes sur la carte. Si ce neurone n’est pas assez mûr, dis-moi plutôt ce ' +
+  'qui manque.'
+
 export const MAP_MESSAGE =
   'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code, puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
@@ -132,14 +139,16 @@ export function ChatPanel({
           <p className="text-xs text-content-muted">
             {chat.role === 'element'
               ? `${chat.elementType ?? 'Élément'} du projet`
-              : chat.folder === null
-                ? 'Genesis'
-                : 'Projet'}{' '}
+              : chat.role === 'step'
+                ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
+                : chat.folder === null
+                  ? 'Genesis'
+                  : 'Projet'}{' '}
             · conversation Claude Code
             {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-            {chat.role === 'element' ? null : chat.folder === null ? (
+            {chat.role !== 'genesis' ? null : chat.folder === null ? (
               <button
                 type="button"
                 onClick={() => void chat.linkFolder()}
@@ -181,6 +190,16 @@ export function ChatPanel({
                   Cartographier ce projet
                 </button>
               </>
+            )}
+            {chat.role === 'element' ? null : (
+              <button
+                type="button"
+                onClick={() => void chat.send(PLAN_MESSAGE)}
+                disabled={chat.busy}
+                className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
+              >
+                Proposer un plan d’attaque
+              </button>
             )}
           </div>
         </div>

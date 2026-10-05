@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { ChatPanel, MAP_MESSAGE, OPENING_MESSAGE } from '../../../src/renderer/src/chat/ChatPanel'
+import { ChatPanel, MAP_MESSAGE, OPENING_MESSAGE, PLAN_MESSAGE } from '../../../src/renderer/src/chat/ChatPanel'
 import type { ChatView } from '../../../src/shared/ipc/chat'
 import { installFakeApi } from './support/fakeApi'
 
@@ -23,6 +23,7 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   folder: null,
   role: 'genesis',
   elementType: null,
+  stepLabel: null,
   model: 'claude-opus-5-5',
   modelChoice: null,
   ...extra
@@ -178,6 +179,15 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     const { api } = renderChat(view({ folder: 'gestionnaire-idees' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Cartographier ce projet' }))
     expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: MAP_MESSAGE })
+  })
+
+  it('should_ask_claude_for_the_plan_of_a_step_with_the_plan_tool_named', async () => {
+    const { api } = renderChat(view({ role: 'step', stepLabel: '①.1', title: 'Initialiser le projet' }))
+    expect(await screen.findByText(/Étape ①\.1 du plan d’attaque/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lier un dossier de projet…' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Proposer un plan d’attaque' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: PLAN_MESSAGE })
+    expect(PLAN_MESSAGE).toContain('plan_proposer')
   })
 
   it('should_present_an_element_conversation_without_folder_controls', async () => {

@@ -63,6 +63,17 @@
   --color-con: var(--color-con);
 }
 
+/*
+ * La fenêtre ne défile jamais : seuls les volets internes (chat, listes) ont leur barre. Sans cela, un focus ou un
+ * contenu hors champ faisait glisser toute la page sur du vide (double barre de défilement).
+ */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

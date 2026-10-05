@@ -10,6 +10,8 @@ import { BlockRepository } from '../../../src/main/infrastructure/db/repositorie
 import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
+import { PlanRepository } from '../../../src/main/infrastructure/db/repositories/PlanRepository'
+import { PlanService } from '../../../src/main/application/plan/PlanService'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
@@ -23,6 +25,7 @@ describe('pont MCP — service de la carte', () => {
   let t: NeuronHarness
   let map: MapService
   let canvas: CanvasService
+  let plans: PlanRepository
   let history: HistoryService
   let selection: SelectionStore
   let io: WidgetIoService
@@ -62,11 +65,13 @@ describe('pont MCP — service de la carte', () => {
       document: (id) => hatched.result(id)
     })
     const widgets = new WidgetService({ repository: widgetRepository, gateway: t.h.gateway, emit: () => undefined })
+    plans = new PlanRepository(db)
     canvas = new CanvasService({
       neurons: neuronRepository,
       blocks,
       io,
-      mapLinks
+      mapLinks,
+      plan: plans
     })
     history = new HistoryService(new HistoryRepository(db))
     selection = new SelectionStore()
@@ -182,6 +187,31 @@ describe('pont MCP — service de la carte', () => {
     it('should_refuse_a_batch_over_200_nodes', () => {
       const noeuds = Array.from({ length: 201 }, (_, index) => ({ cle: `n${index}`, titre: `N${index}` }))
       expect(failure('dessiner', { noeuds }).code).toBe('LOT_TROP_GROS')
+      expect(view().blocks).toHaveLength(0)
+    })
+
+    it('should_refuse_detached_ideas_drawn_from_a_neuron_conversation_but_allow_notes', () => {
+      const args = MCP_TOOLS.dessiner.input.parse({ noeuds: [{ cle: 'x', titre: 'Règles', type: 'idee' }] })
+      expect(() => map.handle('dessiner', args, { neuronId: ideaId })).toThrow(
+        expect.objectContaining({ code: 'LOT_INVALIDE', message: expect.stringContaining('plan_proposer') })
+      )
+      expect(view().ideas).toHaveLength(1)
+      const notes = MCP_TOOLS.dessiner.input.parse({ noeuds: [{ cle: 'x', titre: 'Règles' }] })
+      map.handle('dessiner', notes, { neuronId: ideaId })
+      expect(view().blocks).toHaveLength(1)
+    })
+
+    it('should_tell_claude_to_use_plan_proposer_when_it_anchors_a_drawing_on_a_plan_step', () => {
+      const plan = new PlanService({ repository: plans })
+      const { proposalId } = plan.propose({
+        parentId: ideaId,
+        steps: [{ key: 'a', title: 'Valider le budget', why: 'x' }]
+      })
+      plan.decide({ proposalId, accept: plans.proposal(proposalId)?.items.map((item) => item.id) ?? [], reject: [] })
+      const stepId = plans.children(ideaId)[0]?.id ?? ''
+      const error = failure('dessiner', { ancre: stepId, noeuds: [{ cle: 'x', titre: 'Sous-étape' }] })
+      expect(error.code).toBe('LOT_INVALIDE')
+      expect(error.message).toContain('plan_proposer')
       expect(view().blocks).toHaveLength(0)
     })
 

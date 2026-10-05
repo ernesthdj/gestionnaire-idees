@@ -8,7 +8,9 @@ import {
   type CanvasFilterInput,
   type CanvasNeuronView,
   type CanvasPosition,
-  type IdeasCanvasView
+  type IdeasCanvasView,
+  type ProposalView,
+  type StepView
 } from '@shared/ipc/canvas'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
 import type { ElementView, MapLinkView } from '@shared/ipc/canvas'
@@ -16,6 +18,7 @@ import { AppError } from '../../domain/errors'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
+import type { PlanRepository, ProposalRow } from '../../infrastructure/db/repositories/PlanRepository'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
@@ -31,6 +34,35 @@ export interface CanvasDeps {
   readonly sheetSummaries?: () => Map<string, string>
   /** Éléments des cartes de structure (spec 009). */
   readonly elements?: { views(): ElementView[] }
+  /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
+  readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
+}
+
+/** Résumé d'une fiche (affiché sous le nœud) ; absent sans fiche lisible. */
+function resumeOf(sheetJson: string | null): string | undefined {
+  try {
+    const resume = (JSON.parse(sheetJson ?? '{}') as { resume?: unknown }).resume
+    return typeof resume === 'string' && resume.trim() !== '' ? resume.trim() : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Vue d'une proposition : les dépendances par clé locale deviennent des identifiants de fantômes. */
+function proposalView(proposal: ProposalRow): ProposalView {
+  const pending = proposal.items.filter((item) => item.status === 'en_attente')
+  const byKey = new Map(proposal.items.map((item) => [item.key, item.id] as const))
+  return {
+    id: proposal.id,
+    parentId: proposal.parentId,
+    items: pending.map((item) => ({
+      id: item.id,
+      title: item.title,
+      why: item.why,
+      rank: item.rank,
+      waitsFor: item.waitsFor.map((id) => byKey.get(id) ?? id)
+    }))
+  }
 }
 
 /** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens, blocs et éléments. */
@@ -41,15 +73,42 @@ export class CanvasService {
     const roots = this.deps.neurons.canvasRoots()
     const levels = this.deps.neurons.latestGaugeLevels()
     const summaries = this.deps.sheetSummaries?.() ?? new Map<string, string>()
+    const locks = this.deps.plan?.rootLocks() ?? new Map<string, { locked: boolean; lockProposed: boolean }>()
     const ideas = roots.map((root): CanvasNeuronView => {
       const summary = summaries.get(root.id)
       return {
         ...root,
         contextLevel: levels.get(root.id) ?? null,
-        ...(summary === undefined ? {} : { sheetSummary: summary })
+        ...(summary === undefined ? {} : { sheetSummary: summary }),
+        locked: locks.get(root.id)?.locked ?? false,
+        lockProposed: locks.get(root.id)?.lockProposed ?? false
       }
     })
     const visible = new Set(roots.map((root) => root.id))
+    // Un plan d'attaque n'apparaît que si son genesis est sur la carte.
+    const steps = (this.deps.plan?.steps() ?? [])
+      .filter((step) => visible.has(step.genesisId))
+      .map((step): StepView => {
+        const summary = resumeOf(step.sheetJson)
+        return {
+          id: step.id,
+          genesisId: step.genesisId,
+          parentId: step.parentId,
+          depth: step.depth,
+          rank: step.rank,
+          title: step.title,
+          status: step.status,
+          locked: step.lockedAt !== null,
+          lockProposed: step.lockProposedAt !== null,
+          waitsFor: step.waitsFor,
+          ...(summary === undefined ? {} : { sheetSummary: summary })
+        }
+      })
+    const nodes = new Set([...visible, ...steps.map((step) => step.id)])
+    const proposals = (this.deps.plan?.pendingProposals() ?? [])
+      .filter((proposal) => nodes.has(proposal.parentId))
+      .map(proposalView)
+      .filter((proposal) => proposal.items.length > 0)
     const blocks = this.visibleBlocks()
     // Un élément de structure n'apparaît que si son genesis est sur la carte.
     const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
@@ -70,7 +129,9 @@ export class CanvasService {
       mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
         (link) => present.has(link.from.id) && present.has(link.to.id)
       ),
-      elements
+      elements,
+      steps,
+      proposals
     }
   }
 

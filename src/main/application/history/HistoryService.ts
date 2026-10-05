@@ -12,7 +12,17 @@ import type {
  * Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, écritures de Claude, conversion de
  * l'ancien moteur, et une annulation (qui se rétablit).
  */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write', 'convert'])
+const UNDOABLE = new Set([
+  'confirm_synthesis',
+  'link',
+  'seed',
+  'delete',
+  'promote',
+  'undo',
+  'mcp_write',
+  'convert',
+  'plan'
+])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
 const UNCHECKED = new Set(['plan_dependency', 'example', 'extension', 'suggestion'])
@@ -31,6 +41,11 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   block_text: 'Cette note a été modifiée depuis.',
   neuron_text: 'Cette idée a été modifiée depuis.',
   neuron_sheet: 'La fiche a été modifiée depuis.',
+  step: 'Une étape du plan a changé depuis.',
+  step_rank: 'L’ordre du plan a changé depuis.',
+  step_status: 'Le statut d’une étape a changé depuis.',
+  step_dependency: 'Une dépendance du plan a changé depuis.',
+  neuron_lock: 'Le verrou a changé depuis.',
   element: 'Un élément de la carte a changé depuis.',
   widget_input: 'Ce branchement a changé depuis.'
 }
@@ -155,6 +170,7 @@ export class HistoryService {
       if (conflicts.length > 0) {
         throw new AppError('UNDO_CONFLICT', 'Annulation impossible : la situation a changé depuis.', { conflicts })
       }
+      this.assertNoOrphanedChildren(entries)
 
       const undoBatchId = randomUUID()
       const inverse = [...entries].reverse().map((entry) => {
@@ -217,6 +233,21 @@ export class HistoryService {
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
+    // Étape retirée (spec 011) : l'étape elle-même suit ses descendants (ordre inversé dans une annulation).
+    const isStep = (entry: ChangeRow): boolean => entry.entity === 'step'
+    const removedStep = head.kind === 'undo' ? entries.find(isStep) : entries.findLast(isStep)
+    const stepTitle = removedStep?.before?.['title'] ?? removedStep?.after?.['title']
+    if (
+      removedStep !== undefined &&
+      (head.kind === 'delete' || head.kind === 'undo') &&
+      typeof stepTitle === 'string'
+    ) {
+      if (head.kind === 'delete') return `Suppression de l’étape « ${stepTitle} »`
+      if (this.repository.undoneKind(head.batchId) === 'delete') return `Étape restaurée : « ${stepTitle} »`
+    }
+    if (head.kind === 'plan') return this.planSummary(entries, false)
+    if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'plan')
+      return this.planSummary(entries, true)
     if (head.kind === 'convert') return `Conversion de l’ancien moteur : ${conversionCounts(entries, false)}`
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'convert')
       return `Conversion de l’ancien moteur annulée : ${conversionCounts(entries, true)}`
@@ -266,6 +297,44 @@ export class HistoryService {
           : `Annulation : ${this.linkSummary({ ...link, before: link.after, after: link.before })}`
       }
     }
+  }
+
+  /**
+   * Garde D6 (spec 011) : une annulation ne déverrouille jamais un nœud dont des sous-nœuds, nés hors de ce lot,
+   * s'appuient encore sur le contexte figé.
+   */
+  private assertNoOrphanedChildren(entries: readonly ChangeRow[]): void {
+    const bornHere = new Set(
+      entries.filter((entry) => entry.entity === 'step' && entry.before === null).map((entry) => entry.entityId)
+    )
+    for (const entry of entries) {
+      if (entry.entity !== 'neuron_lock' || entry.before?.['locked'] !== false) continue
+      const remaining = this.repository.livingChildren(entry.entityId).filter((id) => !bornHere.has(id))
+      if (remaining.length > 0) {
+        throw new AppError(
+          'UNDO_CONFLICT',
+          'Annulation impossible : ses sous-nœuds s’appuient sur ce contexte. Annule d’abord leur naissance.',
+          { conflicts: ['Des sous-nœuds dépendent de ce verrou.'] }
+        )
+      }
+    }
+  }
+
+  /** « Plan de « X » : 3 étapes », « Verrouillage de « X » », et leurs annulations. */
+  private planSummary(entries: readonly ChangeRow[], undo: boolean): string {
+    // Dans un lot d'annulation, avant et après sont inversés.
+    const born = entries.filter(
+      (entry) => entry.entity === 'step' && (undo ? entry.after === null : entry.before === null)
+    )
+    const parentId = (undo ? born[0]?.before : born[0]?.after)?.['parentId']
+    const lock = entries.find((entry) => entry.entity === 'neuron_lock')
+    const titled = (id: unknown): string =>
+      typeof id === 'string' ? `« ${this.repository.rootTitle(id) ?? 'nœud supprimé'} »` : 'un nœud'
+    const text =
+      born.length > 0
+        ? `Plan de ${titled(parentId)} : ${born.length} étape${born.length > 1 ? 's' : ''}`
+        : `Verrouillage de ${titled(lock?.entityId)}`
+    return undo ? `Annulé — ${text}` : text
   }
 
   private linkSummary(entry: ChangeRow): string {

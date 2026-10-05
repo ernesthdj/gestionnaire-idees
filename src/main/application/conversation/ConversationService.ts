@@ -13,6 +13,7 @@ import type {
   ChatView
 } from '@shared/ipc/chat'
 import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
+import { rankLabel } from '@shared/plan/rankLabel'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolLabel, type StreamEvent } from '../../domain/conversation/streamEvents'
 import { AppError } from '../../domain/errors'
@@ -198,13 +199,14 @@ export class ConversationService {
       title: neuron.title,
       messages: this.deps.repository.messages(neuronId),
       sheet: readSheet(neuron.sheetJson),
-      maturity: this.deps.repository.maturity(neuron.rootId),
+      maturity: this.deps.repository.maturity(neuron.id),
       busy: live?.busy ?? false,
       partial: live?.partial ?? '',
       usage: this.usage(neuronId),
       folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
-      role: neuron.genesisId === null ? 'genesis' : 'element',
+      role: neuron.kind === 'element' ? 'element' : neuron.kind === 'step' ? 'step' : 'genesis',
       elementType: neuron.elementType,
+      stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
       modelChoice: neuron.chatModel
     }
@@ -478,11 +480,27 @@ export class ConversationService {
       title: neuron.title,
       content: neuron.content,
       sheet: readSheet(neuron.sheetJson),
-      maturity: this.deps.repository.maturity(neuron.rootId),
+      maturity: this.deps.repository.maturity(neuron.id),
       resumed: live.started,
-      folder: folder === null ? null : basename(folder)
+      folder: folder === null ? null : basename(folder),
+      locked: neuron.lockedAt !== null
     }
-    if (neuron.genesisId === null) return base
+    if (neuron.kind === 'step') {
+      const { ranks, ancestors } = this.pathOf(neuron)
+      return {
+        ...base,
+        step: {
+          label: rankLabel(ranks),
+          // Libellé de chaque ancêtre : `null` pour le genesis, puis ①, ①.2… (préfixes du rang de l'étape).
+          path: ancestors.map((ancestor, index) => ({
+            title: ancestor.title,
+            label: index === 0 ? null : rankLabel(ranks.slice(0, index)),
+            sheet: readSheet(ancestor.sheetJson)
+          }))
+        }
+      }
+    }
+    if (neuron.genesisId === null || neuron.kind !== 'element') return base
     // Élément d'une carte de structure (spec 009) : son type, ses fichiers, son chemin d'ancêtres, la fiche du projet.
     const genesis = this.deps.repository.neuron(neuron.genesisId)
     const chain: string[] = []
@@ -510,6 +528,24 @@ export class ConversationService {
         projectSheet: readSheet(genesis?.sheetJson ?? null)
       }
     }
+  }
+
+  /** Ancêtres d'une étape (du genesis au parent) et rangs du chemin (de l'étape de niveau 1 à elle-même). */
+  private pathOf(neuron: ConversationNeuron): {
+    readonly ancestors: ConversationNeuron[]
+    readonly ranks: number[]
+  } {
+    const ancestors: ConversationNeuron[] = []
+    const ranks = [neuron.rank ?? 0]
+    let parentId = neuron.parentId
+    for (let guard = 0; parentId !== null && guard < 10; guard++) {
+      const parent = this.deps.repository.neuron(parentId)
+      if (parent === undefined) break
+      ancestors.unshift(parent)
+      if (parent.kind === 'step') ranks.unshift(parent.rank ?? 0)
+      parentId = parent.parentId
+    }
+    return { ancestors, ranks }
   }
 
   /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */

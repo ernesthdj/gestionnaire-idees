@@ -7,8 +7,14 @@ const Nature = z.enum(['action', 'reflection'])
 const CategorySlug = z.enum(['general', 'achat', 'projet', 'sortie', 'photo', 'it'])
 const Id = z.uuid()
 
+/** Retrait d'une étape d'un plan d'attaque (spec 011) : `neuron:remove` sert aussi aux étapes. */
+export interface StepRemoval {
+  isStep(id: string): boolean
+  remove(id: string): { readonly batchId: string }
+}
+
 /** Canaux `neuron:*` (spec 002 contracts/ipc-neurons.md) — chaque charge utile est validée. */
-export function createNeuronRoutes(service: NeuronService): IpcRoute[] {
+export function createNeuronRoutes(service: NeuronService, steps?: StepRemoval): IpcRoute[] {
   return [
     defineRoute({
       channel: 'neuron:create',
@@ -73,7 +79,7 @@ export function createNeuronRoutes(service: NeuronService): IpcRoute[] {
     defineRoute({
       channel: 'neuron:remove',
       input: z.object({ rootId: Id }).strict(),
-      handler: async ({ rootId }) => service.remove(rootId)
+      handler: async ({ rootId }) => (steps?.isStep(rootId) === true ? steps.remove(rootId) : service.remove(rootId))
     }),
     defineRoute({
       channel: 'neuron:archive',

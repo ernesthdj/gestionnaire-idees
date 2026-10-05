@@ -206,8 +206,6 @@
   transition: opacity 150ms;
 }
 .react-flow__node-neuron:hover .neuron-connector.react-flow__handle,
-.react-flow__node-step:hover .neuron-connector.react-flow__handle,
-.react-flow__node-step.selected .neuron-connector.react-flow__handle,
 .react-flow__node-neuron:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron.selected .neuron-connector.react-flow__handle,
 .neuron-connector.react-flow__handle.connectingfrom {
@@ -254,85 +252,15 @@
   pointer-events: none;
 }
 
-/* « Prochaine étape » d'une idée (FR-037) : étiquette en flèche, non modifiable. */
-.step {
-  position: relative;
-  transition: opacity 150ms;
-}
-.step-dimmed {
-  opacity: 0.35;
-}
-.step-tag,
-.step-tag-inner {
-  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 50%, calc(100% - 24px) 100%, 0 100%);
-}
-.step-tag {
-  position: absolute;
-  inset: 0;
-  padding: 2px;
-  background: var(--color-accent);
-  cursor: grab;
-}
-.step-tag-inner {
-  height: 100%;
-  padding: 6px 32px 6px 10px;
-  background: color-mix(in oklab, var(--color-accent) 14%, var(--color-surface));
-  color: var(--color-content);
-}
-.step-heading {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-.step-text {
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 16px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-/* Action visible au survol, quand l'étape est sélectionnée ou a le focus clavier. */
-.step-action {
-  position: absolute;
-  /* Collée à l'étiquette : le pointeur passe de l'une à l'autre sans perdre le survol. */
-  top: 100%;
-  left: 0;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 6px;
-  background: var(--color-accent);
-  color: var(--color-surface);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms;
-}
-.react-flow__node-step:hover .step-action,
-.react-flow__node-step.selected .step-action,
-.react-flow__node-step:focus-visible .step-action,
-.step-action:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-.step-action:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-.react-flow__node-step:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 4px;
-}
-.react-flow__edge .step-line {
-  stroke: var(--color-accent);
+/* Traits d'arbre (notes, carte de structure, plan d'attaque) : discrets, sous les nœuds ; pointillés vers un fantôme. */
+.react-flow__edge .branch-line {
+  stroke: var(--color-content-muted);
   stroke-width: 2;
-  stroke-dasharray: 2 5;
-  stroke-linecap: round;
+  opacity: 0.6;
+}
+.react-flow__edge .branch-line-dashed {
+  stroke-dasharray: 6 6;
+  opacity: 0.4;
 }
 
 /* Entrées d'un widget (spec 005) : trait source → widget, et point d'arrivée sur le bord gauche du widget. */
@@ -388,4 +316,126 @@
 .react-flow__edge .relation-teste {
   stroke: #059669;
   stroke-dasharray: 2 3;
+}
+
+/*
+ * Plan d'attaque (spec 011) : étape = carte arrondie teintée par la catégorie du genesis (atténuée), sous-étape plus
+ * compacte et plus pâle, fantôme en pointillés. L'anneau gauche dit le statut d'avancement.
+ */
+.plan-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklab, var(--cat) 55%, var(--color-surface));
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--cat) 14%, var(--color-surface));
+  color: var(--color-content);
+  font-size: 13px;
+  line-height: 1.25;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  transition: opacity 150ms;
+}
+.plan-card-compact {
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--cat) 8%, var(--color-surface));
+  font-size: 12px;
+}
+.plan-rank {
+  flex-shrink: 0;
+  min-width: 24px;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--cat) 70%, var(--color-content));
+}
+.plan-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-weight: 600;
+}
+.plan-card-compact .plan-title {
+  -webkit-line-clamp: 1;
+}
+.plan-status {
+  display: block;
+  font-size: 11px;
+  color: var(--color-content-muted);
+}
+.plan-status-a_faire {
+  border-left-color: var(--color-content-muted);
+}
+.plan-status-en_cours {
+  border-left-color: var(--color-accent);
+}
+.plan-status-fait {
+  border-left-color: var(--color-pro);
+}
+.plan-status-bloque {
+  border-left-color: var(--color-con);
+}
+.plan-ghost {
+  border-style: dashed;
+  border-left-width: 1px;
+  background: color-mix(in oklab, var(--color-surface) 70%, transparent);
+  box-shadow: none;
+}
+.plan-ghost .plan-title,
+.plan-ghost .plan-rank {
+  opacity: 0.7;
+}
+.plan-dimmed {
+  opacity: 0.35;
+}
+.plan-decide {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-content-muted);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-weight: 700;
+}
+.plan-decide:hover {
+  background: var(--color-surface-raised);
+}
+.plan-decide:disabled,
+.plan-bar-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.plan-bar {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--color-content-muted);
+}
+.plan-bar-action {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--color-content-muted);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-content);
+  white-space: nowrap;
+}
+.plan-bar-primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-surface);
+  font-weight: 600;
+}
+.react-flow__node-plan:focus-visible > div,
+.react-flow__node-planBar:focus-visible > div {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
 }

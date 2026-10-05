@@ -11,7 +11,7 @@ import {
 } from '@shared/mcp/protocol'
 import { isMcpToolName, MCP_TOOLS, type McpErrorCode, type McpToolName } from '@shared/mcp/tools'
 import type { McpCaller } from '../../domain/mcp/caller'
-import { McpToolError } from '../../domain/mcp/errors'
+import { toMcpError } from '../../domain/mcp/errors'
 import type { Logger } from '../logging/logger'
 import { LineSplitter } from './lineSplitter'
 
@@ -144,7 +144,8 @@ export class PipeServer {
       this.options.logger.info('mcp.call', { kind: tool, status: 'ok', durationMs: Date.now() - started })
       return { id, ok: true, result }
     } catch (error) {
-      if (error instanceof McpToolError) return fail(error.code, error.message)
+      const expected = toMcpError(error)
+      if (expected !== undefined) return fail(expected.code, expected.message)
       this.options.logger.error('mcp.call_failed', { kind: tool })
       return fail('ERREUR_INTERNE', 'Erreur interne du Brainstormer.')
     }

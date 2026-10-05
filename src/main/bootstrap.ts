@@ -18,6 +18,9 @@ import { BlockRepository } from './infrastructure/db/repositories/BlockRepositor
 import { HistoryRepository } from './infrastructure/db/repositories/HistoryRepository'
 import { HatchedRepository } from './infrastructure/db/repositories/HatchedRepository'
 import { LegacyRepository } from './infrastructure/db/repositories/LegacyRepository'
+import { PlanRepository } from './infrastructure/db/repositories/PlanRepository'
+import { PlanService } from './application/plan/PlanService'
+import { createPlanRoutes } from './ipc/planHandlers'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
@@ -39,6 +42,7 @@ import { WidgetRepository } from './infrastructure/db/repositories/WidgetReposit
 import type { MainWindowEvent } from '@shared/ipc/channels'
 import { MapService } from './application/mcp/MapService'
 import { NeuronTools } from './application/mcp/NeuronTools'
+import { PlanTools } from './application/mcp/PlanTools'
 import { createToolHandler } from './application/mcp/toolHandler'
 import { ConversationService } from './application/conversation/ConversationService'
 import { BRAINSTORMER_FRAME } from './application/conversation/frame'
@@ -180,7 +184,10 @@ export function bootstrap(shell: ShellPort): AppContext {
   const mapLinkRepository = new MapLinkRepository(database.db)
   const elementRepository = new ElementRepository(database.db)
   const conversationRepository = new ConversationRepository(database.db)
+  const planRepository = new PlanRepository(database.db)
+  const plan = new PlanService({ repository: planRepository })
   const canvas = new CanvasService({
+    plan: planRepository,
     neurons: neuronRepository,
     blocks: blockRepository,
     io: widgetIo,
@@ -231,9 +238,15 @@ export function bootstrap(shell: ShellPort): AppContext {
       new NeuronTools({
         conversations: conversationRepository,
         insertAssessment: (input) => conversationRepository.insertAssessment(input),
-        onChanged: (neuronId) => broadcast('chat:sheet', { neuronId })
+        onChanged: (neuronId) => broadcast('chat:sheet', { neuronId }),
+        plan: planRepository
       }),
-      structure
+      structure,
+      new PlanTools({
+        plan,
+        conversations: conversationRepository,
+        onProposed: (summary) => broadcast('plan:proposed', { summary })
+      })
     ),
     logger
   })
@@ -285,7 +298,8 @@ export function bootstrap(shell: ShellPort): AppContext {
       ),
       ...aiRoutes,
       ...contextRoutes,
-      ...createNeuronRoutes(neurons),
+      ...createNeuronRoutes(neurons, plan),
+      ...createPlanRoutes(plan),
       ...createCanvasRoutes(canvas),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
       ...createWidgetRoutes(widgets),

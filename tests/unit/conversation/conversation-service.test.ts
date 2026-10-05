@@ -61,6 +61,8 @@ describe('conversations Claude Code des neurones', () => {
     pathsJson: null,
     parentId: null,
     chatModel: null,
+    rank: null,
+    lockedAt: null,
     ...extra
   })
 
@@ -376,6 +378,23 @@ describe('conversations Claude Code des neurones', () => {
     await service.send(N1, 'Salut')
     expect(processes).toHaveLength(0)
     expect(events.at(-1)).toMatchObject({ type: 'chat:error', payload: { code: 'FOLDER_MISSING' } })
+  })
+
+  it('should_open_a_step_with_the_sheets_of_its_path_and_the_model_of_the_elements', async () => {
+    neurons.set(N2, neuron(N2, { kind: 'step', title: 'Choisir le lieu', genesisId: N1, parentId: N1, rank: 2 }))
+    neurons.set(
+      N3,
+      neuron(N3, { kind: 'step', title: 'Visiter trois locaux', genesisId: N1, parentId: N2, rank: 1, lockedAt: 'x' })
+    )
+    expect(service.open(N3)).toMatchObject({ role: 'step', stepLabel: '②.1' })
+    await service.send(N3, 'On commence ?')
+    const process = processes[0] as FakeProcess
+    expect(process.options.args[process.options.args.indexOf('--model') + 1]).toBe('claude-haiku-4-5')
+    const context = sent(process)
+    expect(context).toContain('étape ②.1 « Visiter trois locaux »')
+    expect(context).toContain(`Chemin : Idée c1 › ② Choisir le lieu › ②.1 Visiter trois locaux.`)
+    expect(context).toContain('Fiche de l’étape ② « Choisir le lieu »')
+    expect(context).toContain('Nœud VERROUILLÉ')
   })
 
   it('should_use_the_model_of_its_use_and_switch_when_a_model_is_chosen_for_the_conversation', async () => {

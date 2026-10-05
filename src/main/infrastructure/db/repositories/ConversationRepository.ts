@@ -35,6 +35,10 @@ export interface ConversationNeuron {
   readonly parentId: string | null
   /** Modèle choisi pour cette conversation ; `null` : défaut de son usage. */
   readonly chatModel: string | null
+  /** Étape d'un plan d'attaque (spec 011) : rang parmi ses sœurs ; `null` sinon. */
+  readonly rank: number | null
+  /** Verrou (spec 011) ; `null` : modifiable. */
+  readonly lockedAt: string | null
 }
 
 export interface TurnRecord {
@@ -86,7 +90,9 @@ export class ConversationRepository {
         elementType: neurons.elementType,
         pathsJson: neurons.pathsJson,
         parentId: neurons.parentId,
-        chatModel: neurons.chatModel
+        chatModel: neurons.chatModel,
+        rank: neurons.rank,
+        lockedAt: neurons.lockedAt
       })
       .from(neurons)
       .where(eq(neurons.id, id))

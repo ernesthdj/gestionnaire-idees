@@ -26,8 +26,9 @@ export interface ChatState {
   readonly usage: ChatUsageView | null
   /** Dossier de projet lié (nom) ; `null` : aucun. */
   readonly folder: string | null
-  readonly role: 'genesis' | 'element'
+  readonly role: 'genesis' | 'element' | 'step'
   readonly elementType: string | null
+  readonly stepLabel: string | null
   /** Modèle utilisé ; `modelChoice` : celui choisi pour cette conversation (`null` : défaut de son usage). */
   readonly model: string
   readonly modelChoice: string | null
@@ -66,6 +67,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     folder: null,
     role: 'genesis',
     elementType: null,
+    stepLabel: null,
     model: '',
     modelChoice: null,
     problem: null
@@ -98,6 +100,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           folder: view.folder ?? null,
           role: view.role ?? 'genesis',
           elementType: view.elementType ?? null,
+          stepLabel: view.stepLabel ?? null,
           model: view.model ?? '',
           modelChoice: view.modelChoice ?? null
         }))

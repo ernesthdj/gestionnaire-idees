@@ -5,11 +5,14 @@ import type {
   ElementView,
   CanvasNeuronView,
   IdeasCanvasView,
-  MapLinkView
+  MapLinkView,
+  ProposalView
 } from '@shared/ipc/canvas'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { structureGraph } from './structureGraph'
+import { PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
+import { STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
 /**
@@ -47,8 +50,22 @@ export type FrameNodeType = Node<BlockNodeData, 'frame'>
 /** Élément d'une carte de structure de projet (spec 009). */
 export type ElementNodeType = Node<{ readonly element: ElementView }, 'element'>
 
+/** Étape d'un plan d'attaque ou fantôme proposé par Claude (spec 011), teinté par la catégorie de son genesis. */
+export type PlanNodeType = Node<
+  {
+    readonly item: Extract<PlacedPlanItem, { kind: 'step' | 'ghost' }>
+    readonly color: string
+    readonly dimmed: boolean
+  },
+  'plan'
+>
+/** Barre « Tout valider / Tout refuser » d'une couche proposée. */
+export type PlanBarNodeType = Node<{ readonly proposal: ProposalView }, 'planBar'>
+
 export type CanvasNode =
   | NeuronNodeType
+  | PlanNodeType
+  | PlanBarNodeType
   | BlockNodeType
   | LabelNodeType
   | WidgetNodeType
@@ -271,6 +288,63 @@ export function buildGraph(
     }))
   // Cartes de structure des projets liés (spec 009) : éléments dépliés autour de leur genesis, liens typés regroupés.
   const genesisCenters = new Map(neuronNodes.map((node) => [node.id, node.position] as const))
+  // Plans d'attaque (spec 011) : arbre gauche → droite à partir de chaque genesis.
+  const planNodes: CanvasNode[] = []
+  const planEdges: BranchEdgeType[] = []
+  for (const genesis of view.ideas) {
+    const steps = view.steps.filter((step) => step.genesisId === genesis.id)
+    const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
+    const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
+    const center = genesisCenters.get(genesis.id)
+    if (center === undefined || (steps.length === 0 && proposals.length === 0)) continue
+    const color = genesis.category?.color ?? '#71717a'
+    const dimmed = isDimmed(genesis.id)
+    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals })
+    for (const placed of plan.items) {
+      if (placed.kind === 'bar') {
+        planNodes.push({
+          id: `plan-bar-${placed.proposal.id}`,
+          type: 'planBar',
+          width: PLAN_SIZES.bar.width,
+          height: PLAN_SIZES.bar.height,
+          position: { x: placed.x, y: placed.y },
+          data: { proposal: placed.proposal },
+          draggable: false,
+          selectable: false,
+          ariaLabel: `Couche proposée par Claude pour « ${genesis.title} »`,
+          deletable: false
+        })
+        continue
+      }
+      const id = placed.kind === 'step' ? placed.step.id : `ghost-${placed.ghost.id}`
+      planNodes.push({
+        id,
+        type: 'plan',
+        width: planSize(placed.kind === 'step' ? placed.step.depth : placed.depth).width,
+        height: planSize(placed.kind === 'step' ? placed.step.depth : placed.depth).height,
+        position: { x: placed.x, y: placed.y },
+        data: { item: placed, color, dimmed },
+        draggable: false,
+        ariaLabel:
+          placed.kind === 'step'
+            ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}`
+            : `Étape proposée ${placed.label} : ${placed.ghost.title}`,
+        deletable: false
+      })
+    }
+    for (const edge of plan.edges) {
+      planEdges.push({
+        id: edge.id,
+        type: 'branch',
+        source: edge.source,
+        target: edge.target,
+        data: { style: edge.ghost ? 'dashed' : 'solid' },
+        deletable: false,
+        selectable: false,
+        focusable: false
+      })
+    }
+  }
   const structure = structureGraph(view.elements, genesisCenters, view.mapLinks)
   const elementNodes = structure.placed.map((entry): ElementNodeType => ({
     id: entry.element.id,
@@ -314,8 +388,8 @@ export function buildGraph(
         }
   )
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...elementNodes],
-    edges: [...ioEdges, ...resultEdges, ...noteEdges],
+    nodes: [...neuronNodes, ...blockNodes, ...elementNodes, ...planNodes],
+    edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges],
     mapEdges: [...mapEdges, ...structureEdges]
   }
 }

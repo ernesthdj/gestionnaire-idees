@@ -17,6 +17,10 @@ interface UiState {
   readonly view: View
   /** Neurone dont la conversation Claude Code est ouverte dans le volet (spec 008). */
   readonly chatNeuronId: string | null
+  /** Étape proposée par Claude (fantôme, spec 011) consultée dans le volet avant d'être décidée. */
+  readonly ghostId: string | null
+  openGhost(ghostId: string): void
+  closeGhost(): void
   openChat(neuronId: string): void
   closeChat(): void
   show(view: View): void
@@ -37,13 +41,16 @@ const nextToast = (current: Toast | null, toast: Omit<Toast, 'id'>): Toast => ({
 export const useUiStore = create<UiState>()((set) => ({
   view: 'ideas',
   chatNeuronId: null,
+  ghostId: null,
   toast: null,
   bornId: null,
-  show: (view) => set({ view, chatNeuronId: null }),
+  show: (view) => set({ view, chatNeuronId: null, ghostId: null }),
   // Une idée capturée s'ouvre directement sur sa conversation (spec 010 US2).
   navigate: ({ section, diveRootId }) => set({ view: section, chatNeuronId: diveRootId ?? null }),
-  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId }),
+  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null }),
   closeChat: () => set({ chatNeuronId: null }),
+  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null }),
+  closeGhost: () => set({ ghostId: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

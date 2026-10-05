@@ -21,6 +21,7 @@ import {
 import { AppError } from '../../domain/errors'
 import { resolveBatch, type ExistingKind, type ResolvedRef } from '../../domain/mcp/batch'
 import { McpToolError } from '../../domain/mcp/errors'
+import type { McpCaller } from '../../domain/mcp/caller'
 import { layoutBatch, NOTE_WIDTH, noteHeight, type LayoutItem, type Rect } from '../../domain/mcp/layout'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
@@ -56,7 +57,7 @@ export interface MapServiceDeps {
 /** Outils de la carte (spec 007) ; ceux du neurone d'une conversation (spec 008) sont dans `NeuronTools`. */
 export type MapToolName = Exclude<
   McpToolName,
-  'neurone_contexte' | 'fiche_ecrire' | 'maturite_evaluer' | 'structure_dessiner' | 'structure_lire'
+  'neurone_contexte' | 'fiche_ecrire' | 'maturite_evaluer' | 'structure_dessiner' | 'structure_lire' | 'plan_proposer'
 >
 
 const IDEA_SIZE = 120
@@ -93,7 +94,7 @@ function bounded(text: string): string {
 export class MapService {
   constructor(private readonly deps: MapServiceDeps) {}
 
-  handle(tool: MapToolName, args: unknown): ToolResult {
+  handle(tool: MapToolName, args: unknown, caller?: McpCaller): ToolResult {
     switch (tool) {
       case 'etat':
         return this.state()
@@ -106,7 +107,7 @@ export class MapService {
         return this.readNode(input.id, input.profondeur ?? 1)
       }
       case 'dessiner':
-        return this.draw(args as DessinerInput)
+        return this.draw(args as DessinerInput, caller)
       case 'noeud_modifier':
         return this.modify(args as NoeudModifierInput)
       case 'relier':
@@ -272,13 +273,30 @@ export class MapService {
 
   private require(universe: Universe, id: string): Element {
     const element = universe.byId.get(id)
-    if (element === undefined) throw new McpToolError('INTROUVABLE', `Élément ${id} introuvable (retiré ou annulé ?)`)
-    return element
+    if (element !== undefined) return element
+    // Une étape d'un plan d'attaque (spec 011) est disposée par l'app : elle ne sert pas d'ancre à un dessin libre.
+    if (universe.view.steps.some((step) => step.id === id)) {
+      throw new McpToolError(
+        'LOT_INVALIDE',
+        `${id} est une étape du plan d’attaque : pour la découper, appelle plan_proposer (sans id depuis sa ` +
+          'conversation) ; pour un schéma libre, dessine sans ancre.'
+      )
+    }
+    throw new McpToolError('INTROUVABLE', `Élément ${id} introuvable (retiré ou annulé ?)`)
   }
 
   // ── Écritures ────────────────────────────────────────────────────────────────────────────────────────────────
 
-  private draw(input: DessinerInput): ToolResult {
+  private draw(input: DessinerInput, caller?: McpCaller): ToolResult {
+    // Depuis la conversation d'un neurone, une « idée » dessinée deviendrait un genesis détaché du sujet (spec 011) :
+    // le plan d'attaque passe par plan_proposer, un schéma par des notes. mentalyas, lui, crée ses idées à la main.
+    if (caller !== undefined && caller.neuronId !== null && input.noeuds.some((node) => node.type === 'idee')) {
+      throw new McpToolError(
+        'LOT_INVALIDE',
+        'Depuis la conversation d’un neurone, dessiner ne crée pas d’idée détachée : pour des étapes ou un plan, ' +
+          'appelle plan_proposer (sans id) ; pour un schéma, utilise des notes (type « note »).'
+      )
+    }
     const universe = this.universe()
     const existingKind = (id: string): ExistingKind | undefined => {
       const element = universe.byId.get(id)

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { sql } from 'drizzle-orm'
@@ -75,5 +75,25 @@ describe('migrations du modèle de neurones', () => {
     })
     handle.db.insert(neurons).values(answer('s1')).run()
     expect(() => handle.db.insert(neurons).values(answer('s2')).run()).toThrow()
+  })
+
+  const tables = (): string[] =>
+    handle.db.all<{ name: string }>(sql`SELECT name FROM sqlite_master WHERE type = 'table'`).map((row) => row.name)
+  const columns = (table: string): string[] =>
+    handle.db.all<{ name: string }>(sql.raw(`PRAGMA table_info(${table})`)).map((row) => row.name)
+
+  it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {
+    expect(tables()).toEqual(expect.arrayContaining(['step_dependencies', 'plan_proposals', 'plan_proposal_items']))
+    expect(columns('neurons')).toEqual(expect.arrayContaining(['rank', 'step_status', 'locked_at', 'lock_proposed_at']))
+
+    const down = readFileSync(resolve(MIGRATIONS, 'down/0022_plan_attaque.down.sql'), 'utf8')
+    for (const statement of down.split(';').filter((part) => part.replace(/--.*$/gm, '').trim() !== '')) {
+      handle.db.run(sql.raw(statement))
+    }
+    expect(tables()).not.toEqual(expect.arrayContaining(['step_dependencies']))
+    expect(tables().some((name) => name.startsWith('plan_proposal'))).toBe(false)
+    expect(
+      columns('neurons').some((name) => ['rank', 'step_status', 'locked_at', 'lock_proposed_at'].includes(name))
+    ).toBe(false)
   })
 })

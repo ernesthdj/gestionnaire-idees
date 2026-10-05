@@ -23,6 +23,8 @@ function neuron(id: string, title: string, patch: Partial<CanvasNeuronView> = {}
     createdAt: '2026-09-28T10:00:00.000Z',
     updatedAt: '2026-09-28T10:00:00.000Z',
     contextLevel: null,
+    locked: false,
+    lockProposed: false,
     ...patch
   }
 }
@@ -62,7 +64,9 @@ export function canvasView(): IdeasCanvasView {
         relation: null
       }
     ],
-    elements: []
+    elements: [],
+    steps: [],
+    proposals: []
   }
 }
 
@@ -75,6 +79,8 @@ export function emptyCanvasView(): IdeasCanvasView {
     blocks: [],
     io: [],
     mapLinks: [],
-    elements: []
+    elements: [],
+    steps: [],
+    proposals: []
   }
 }
