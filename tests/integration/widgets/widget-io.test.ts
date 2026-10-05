@@ -7,7 +7,8 @@ import { HistoryRepository } from '../../../src/main/infrastructure/db/repositor
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
-import { createNeuronHarness, etendreReply, type NeuronHarness } from '../../support/neurons'
+import { extensions, neurons } from '../../../src/main/infrastructure/db/schemaNeurons'
+import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 
 describe('entrées des widgets (spec 005 lot 1)', () => {
   let t: NeuronHarness
@@ -48,10 +49,31 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
 
     const root = await t.neurons.create({ text: 'Acheter un 2e écran', nature: 'action' })
     rootId = root.id
-    t.h.claude.enqueue(etendreReply(['Quel budget ?', 'Pour quand ?', 'Quel modèle ?']))
-    const tree = (await t.growth.develop(rootId)).tree
-    t.h.claude.enqueue(etendreReply([]))
-    await t.growth.answer({ extensionId: tree.extensions[0]?.id ?? '', answer: { text: '300 € maximum' } })
+    // Une question répondue dans l'ancien moteur (archive, spec 010) : toujours transmise aux widgets branchés.
+    db.insert(extensions)
+      .values({
+        id: 'q1',
+        rootId,
+        neuronId: rootId,
+        question: 'Quel budget ?',
+        dimension: 'budget',
+        status: 'answered',
+        origin: 'ai'
+      })
+      .run()
+    db.insert(neurons)
+      .values({
+        id: 'a1',
+        rootId,
+        parentId: rootId,
+        depth: 1,
+        kind: 'answer',
+        title: 'budget : 300 € maximum',
+        content: '300 € maximum',
+        origin: 'user',
+        fromExtensionId: 'q1'
+      })
+      .run()
   })
   afterEach(() => t.dispose())
 
@@ -93,7 +115,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
       title: 'Acheter un 2e écran',
       nature: 'action',
       category: null,
-      state: 'developing'
+      state: 'raw'
     })
   })
 

@@ -1,11 +1,45 @@
+import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm'
+import { IDEA_PARTS } from '@shared/ipc/widgetIo'
 import type { LegacyAnswer, LegacyDocument, LegacyIdea, LegacyPoint } from '../../../domain/conversation/legacySheet'
 import type { AppDatabase } from '../client'
-import { writeChanges } from './changeLog'
-import { extensions, neurons, planNodes, reflectionSummaries, settings } from '../schemaNeurons'
+import { writeChanges, type ChangeEntry } from './changeLog'
+import {
+  extensions,
+  mapLinks,
+  neuronLinks,
+  neurons,
+  planNodes,
+  reflectionSummaries,
+  settings,
+  widgetInputs
+} from '../schemaNeurons'
 
 /** Marqueur de la conversion unique (spec 010 FR-004). */
 export const LEGACY_CONVERSION_KEY = 'migration.legacySheets'
+
+/** Lien accepté entre deux idées dans l'ancien moteur, repris en lien libre de la carte. */
+export interface LegacyLink {
+  readonly aRootId: string
+  readonly bRootId: string
+  readonly label: string | null
+}
+
+/** Branchement « prochaine étape → widget » ; `duplicate` : le widget reçoit déjà l'idée elle-même. */
+export interface LegacyStepInput {
+  readonly id: string
+  readonly blockId: string
+  readonly rootId: string
+  readonly duplicate: boolean
+}
+
+export interface ConversionPlan {
+  readonly sheets: ReadonlyMap<string, string>
+  readonly links: readonly LegacyLink[]
+  readonly stepInputs: readonly LegacyStepInput[]
+}
+
+const pairKey = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`)
 
 /** Points enregistrés `{ headline?, text }` ; une ancienne forme (texte seul) reste lisible ; une valeur abîmée : rien. */
 function parsePoints(json: string): LegacyPoint[] {
@@ -49,27 +83,108 @@ export class LegacyRepository {
       .map((row) => ({ id: row.id, answers: this.answers(row.id), document: this.document(row.id) }))
   }
 
+  /** Liens acceptés de l'ancien moteur qui n'ont pas encore d'équivalent en lien libre entre les deux idées. */
+  linksToConvert(): LegacyLink[] {
+    const existing = new Set(
+      this.db
+        .select({ from: mapLinks.fromId, to: mapLinks.toId })
+        .from(mapLinks)
+        .where(and(eq(mapLinks.fromKind, 'idea'), eq(mapLinks.toKind, 'idea'), isNull(mapLinks.deletedAt)))
+        .all()
+        .map((row) => pairKey(row.from, row.to))
+    )
+    return this.db
+      .select({ aRootId: neuronLinks.aRootId, bRootId: neuronLinks.bRootId, label: neuronLinks.label })
+      .from(neuronLinks)
+      .where(eq(neuronLinks.status, 'accepted'))
+      .orderBy(asc(sql`${neuronLinks}.rowid`))
+      .all()
+      .filter((link) => !existing.has(pairKey(link.aRootId, link.bRootId)))
+      .map((link) => ({ ...link, label: link.label.trim() === '' ? null : link.label }))
+  }
+
+  /** Branchements actifs d'une prochaine étape vers un widget. */
+  stepInputs(): LegacyStepInput[] {
+    const active = this.db
+      .select({
+        id: widgetInputs.id,
+        blockId: widgetInputs.blockId,
+        kind: widgetInputs.sourceKind,
+        sourceId: widgetInputs.sourceId
+      })
+      .from(widgetInputs)
+      .where(isNull(widgetInputs.deletedAt))
+      .orderBy(asc(sql`${widgetInputs}.rowid`))
+      .all()
+    const ideaInputs = new Set(
+      active.filter((input) => input.kind === 'idea').map((input) => `${input.blockId}|${input.sourceId}`)
+    )
+    return active
+      .filter((input) => input.kind === 'step')
+      .map((input) => ({
+        id: input.id,
+        blockId: input.blockId,
+        rootId: input.sourceId,
+        duplicate: ideaInputs.has(`${input.blockId}|${input.sourceId}`)
+      }))
+  }
+
   /**
-   * Écrit les fiches et pose le marqueur dans une seule transaction, journalisées en un lot d'Historique annulable.
-   * Le marqueur est posé même sans fiche : la conversion n'a lieu qu'une fois.
+   * Applique la conversion et pose le marqueur dans une seule transaction, journalisée en un lot d'Historique
+   * annulable. Le marqueur est posé même sans rien à convertir : la conversion n'a lieu qu'une fois.
    */
-  saveConversion(batchId: string, sheets: ReadonlyMap<string, string>): void {
+  saveConversion(batchId: string, plan: ConversionPlan): void {
     this.db.transaction(() => {
-      for (const [id, sheetJson] of sheets) {
-        this.db.update(neurons).set({ sheetJson }).where(eq(neurons.id, id)).run()
+      const entries: ChangeEntry[] = []
+      const entry = (entity: string, entityId: string, before: unknown, after: unknown): void => {
+        entries.push({ kind: 'convert', entity, entityId, before, after })
       }
-      writeChanges(
-        this.db,
-        batchId,
-        [...sheets].map(([id, sheetJson]) => ({
-          kind: 'convert' as const,
-          entity: 'neuron_sheet',
-          entityId: id,
-          before: { sheet: null },
-          after: { sheet: sheetJson }
-        }))
-      )
-      const valueJson = JSON.stringify({ at: new Date().toISOString(), converted: sheets.size })
+      for (const [id, sheetJson] of plan.sheets) {
+        this.db.update(neurons).set({ sheetJson }).where(eq(neurons.id, id)).run()
+        entry('neuron_sheet', id, { sheet: null }, { sheet: sheetJson })
+      }
+      for (const link of plan.links) {
+        const id = randomUUID()
+        this.db
+          .insert(mapLinks)
+          .values({
+            id,
+            fromKind: 'idea',
+            fromId: link.aRootId,
+            toKind: 'idea',
+            toId: link.bRootId,
+            label: link.label,
+            origin: 'user'
+          })
+          .run()
+        entry('map_link', id, null, { label: link.label })
+      }
+      const now = new Date().toISOString()
+      for (const input of plan.stepInputs) {
+        // L'étape disparaît de la carte : le widget reçoit l'idée elle-même (sa revue se redemande).
+        this.db.update(widgetInputs).set({ deletedAt: now }).where(eq(widgetInputs.id, input.id)).run()
+        entry('widget_input', input.id, { sourceKind: 'step' }, null)
+        if (input.duplicate) continue
+        const id = randomUUID()
+        this.db
+          .insert(widgetInputs)
+          .values({
+            id,
+            blockId: input.blockId,
+            sourceKind: 'idea',
+            sourceId: input.rootId,
+            partsJson: JSON.stringify(IDEA_PARTS)
+          })
+          .run()
+        entry('widget_input', id, null, { sourceKind: 'idea' })
+      }
+      writeChanges(this.db, batchId, entries)
+      const valueJson = JSON.stringify({
+        at: now,
+        sheets: plan.sheets.size,
+        links: plan.links.length,
+        stepInputs: plan.stepInputs.length
+      })
       this.db
         .insert(settings)
         .values({ key: LEGACY_CONVERSION_KEY, valueJson })

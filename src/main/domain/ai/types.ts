@@ -1,16 +1,9 @@
-/** Types de demande IA (spec 001 data-model, révision « Brainstormer »). */
-export const LOCAL_TASK_KINDS = ['categoriser', 'resumer', 'anonymiser', 'briefing_texte'] as const
-export const REMOTE_TASK_KINDS = [
-  'etendre',
-  'synthetiser',
-  'reviser',
-  'suggerer_liens',
-  'germer',
-  'suggerer',
-  'rechercher',
-  // Mini-widget généré par Claude (spec 004) : seule tâche qui produit du code.
-  'widget'
-] as const
+/**
+ * Types de demande IA passant par la passerelle (spec 010) : la catégorisation d'une idée capturée, en local, et la
+ * génération d'un widget, par `claude -p`. Les conversations des neurones passent par le CLI en direct (spec 008).
+ */
+export const LOCAL_TASK_KINDS = ['categoriser'] as const
+export const REMOTE_TASK_KINDS = ['widget'] as const
 
 export type TaskKind = (typeof LOCAL_TASK_KINDS)[number] | (typeof REMOTE_TASK_KINDS)[number]
 
@@ -18,14 +11,7 @@ export type Engine = 'ollama' | 'claude'
 
 export type Effort = 'low' | 'medium' | 'high'
 
-export type AIErrorCode =
-  | 'AI_UNAVAILABLE'
-  | 'AI_INVALID_OUTPUT'
-  | 'AI_REFUSAL'
-  | 'BUDGET_EXCEEDED'
-  | 'AUTH_FAILED'
-  | 'ANONYMIZATION_FAILED'
-  | 'QUEUED'
+export type AIErrorCode = 'AI_UNAVAILABLE' | 'AI_INVALID_OUTPUT' | 'AI_REFUSAL' | 'AUTH_FAILED' | 'QUEUED'
 
 export interface AIError {
   readonly code: AIErrorCode

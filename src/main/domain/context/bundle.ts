@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { applyDeterministicRules } from '../ai/anonymizationRules'
-import { LOCAL_TASK_KINDS, REMOTE_TASK_KINDS, type Result } from '../ai/types'
+import type { Result } from '../ai/types'
 
 /** Seuls fichiers reconnus dans le dossier d'import (contracts/ipc-ai.md § Contrat fichier). */
 export const CONTEXT_FILES = ['profile.md', 'rules.md', 'examples.json'] as const
@@ -19,7 +19,9 @@ const Manifest = z.object({
 
 export const ImportedExample = z
   .object({
-    taskKind: z.enum([...LOCAL_TASK_KINDS, ...REMOTE_TASK_KINDS]),
+    // Type de tâche libre : un paquet écrit pour une version précédente reste importable ; ses exemples d'une
+    // tâche retirée ne sont simplement jamais utilisés.
+    taskKind: z.string().regex(/^[a-z_]{1,40}$/),
     polarity: z.enum(['positive', 'negative']),
     input: z.string().min(1).max(2000),
     output: z.unknown(),

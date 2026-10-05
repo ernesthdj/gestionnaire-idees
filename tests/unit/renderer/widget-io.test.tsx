@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
-import { buildGraph, computeLayout, stepNodeId } from '../../../src/renderer/src/canvas/buildGraph'
+import { buildGraph, computeLayout } from '../../../src/renderer/src/canvas/buildGraph'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { useWidgetReview } from '../../../src/renderer/src/widgets/useWidgetIo'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
@@ -36,7 +36,6 @@ const block: BlockView = {
 
 const widget: WidgetView = {
   blockId: BLOCK_ID,
-  request: null,
   current: {
     id: VERSION_ID,
     number: 1,
@@ -105,22 +104,14 @@ const node = (): Promise<HTMLElement> => screen.findByRole('region', { name: /^W
 describe('entrées d’un widget sur la carte (spec 005 lot 1)', () => {
   beforeAll(() => installReactFlowMocks())
   beforeEach(() => {
-    useUiStore.setState({ toast: null, bornId: null, openRootId: null })
+    useUiStore.setState({ toast: null, bornId: null })
     useWidgetReview.setState({ blockId: null })
   })
 
-  it('should_draw_a_line_from_the_idea_or_the_step_to_the_widget', () => {
+  it('should_draw_a_line_from_the_idea_to_the_widget', () => {
     const base = view()
-    const withStep: IdeasCanvasView = {
-      ...base,
-      steps: [{ rootId: HATCHED_A_ID, text: 'Comparer', position: null }],
-      io: [...base.io, { id: 'io-2', blockId: BLOCK_ID, sourceKind: 'step', sourceId: HATCHED_A_ID }]
-    }
-    const lines = buildGraph(withStep, computeLayout(withStep)).stepEdges.filter((edge) => edge.data?.style === 'io')
-    expect(lines.map((edge) => [edge.source, edge.target])).toEqual([
-      [HATCHED_A_ID, BLOCK_ID],
-      [stepNodeId(HATCHED_A_ID), BLOCK_ID]
-    ])
+    const lines = buildGraph(base, computeLayout(base)).edges.filter((edge) => edge.data?.style === 'io')
+    expect(lines.map((edge) => [edge.source, edge.target])).toEqual([[HATCHED_A_ID, BLOCK_ID]])
   })
 
   it('should_warn_that_nothing_is_transmitted_until_the_version_is_reviewed', async () => {

@@ -25,11 +25,11 @@ describe('journal des appels IA (base chiffrée)', () => {
   it('should_store_metadata_without_any_content_when_gateway_calls_claude', async () => {
     const h = createGatewayHarness({ callLog: new AiCallRepository(handle.db) })
     h.claude.enqueue({ raw: { answer: 'réponse confidentielle' } })
-    await h.gateway.run({ kind: 'synthetiser', input: 'idée confidentielle', schema: z.object({ answer: z.string() }) })
+    await h.gateway.run({ kind: 'widget', input: 'idée confidentielle', schema: z.object({ answer: z.string() }) })
 
     const rows = handle.db.select().from(aiCalls).all()
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ kind: 'synthetiser', engine: 'claude', status: 'ok', inputTokens: 100 })
+    expect(rows[0]).toMatchObject({ kind: 'widget', engine: 'claude', status: 'ok', inputTokens: 100 })
     expect(JSON.stringify(rows)).not.toMatch(/confidentielle/)
   })
 })

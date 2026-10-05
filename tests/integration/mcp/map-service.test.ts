@@ -9,7 +9,6 @@ import { McpToolError } from '../../../src/main/domain/mcp/errors'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
-import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
 import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
@@ -65,9 +64,7 @@ describe('pont MCP — service de la carte', () => {
     const widgets = new WidgetService({ repository: widgetRepository, gateway: t.h.gateway, emit: () => undefined })
     canvas = new CanvasService({
       neurons: neuronRepository,
-      links: new LinkRepository(db),
       blocks,
-      steps: hatched,
       io,
       mapLinks
     })

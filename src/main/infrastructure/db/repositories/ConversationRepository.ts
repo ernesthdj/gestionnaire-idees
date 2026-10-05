@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, desc, eq, gte, sql } from 'drizzle-orm'
+import type { GaugeLevel } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
 import { aiCalls } from '../schema'
@@ -174,6 +175,29 @@ export class ConversationRepository {
 
   setSheet(id: string, sheetJson: string): void {
     this.db.update(neurons).set({ sheetJson }).where(eq(neurons.id, id)).run()
+  }
+
+  /** Maturité évaluée par Claude (outil MCP `maturite_evaluer`). */
+  insertAssessment(input: {
+    readonly rootId: string
+    readonly level: GaugeLevel
+    readonly aiLevel: GaugeLevel
+    readonly covered: readonly string[]
+    readonly missing: readonly string[]
+    readonly answered: number
+  }): void {
+    this.db
+      .insert(contextAssessments)
+      .values({
+        id: randomUUID(),
+        rootId: input.rootId,
+        level: input.level,
+        aiLevel: input.aiLevel,
+        coveredJson: JSON.stringify(input.covered),
+        missingJson: JSON.stringify(input.missing),
+        answeredCount: input.answered
+      })
+      .run()
   }
 
   /** Dernière maturité évaluée d'une idée ; `null` : jamais évaluée. */

@@ -19,7 +19,7 @@ function renderCanvas(view: IdeasCanvasView = canvasView(), handlers: Parameters
     'canvas:savePositions': () => ({ ok: true }),
     'app:getSettings': () => DEFAULT_APP_SETTINGS,
     'neuron:create': () => ({ id: NEW_ID }),
-    'links:create': () => ({}),
+    'canvas:createLink': () => ({}),
     ...handlers
   })
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -41,7 +41,7 @@ async function pane(container: HTMLElement): Promise<Element> {
 
 describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null, focusId: null, toast: null, bornId: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', toast: null, bornId: null }))
 
   it('should_grow_with_the_context_level_from_raw_to_hatched', () => {
     const [raw, developing, hatched] = canvasView().ideas
@@ -121,7 +121,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     })
     const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
     fireEvent.click(node)
-    expect(useUiStore.getState()).toMatchObject({ chatNeuronId: RAW_ID, openRootId: null })
+    expect(useUiStore.getState()).toMatchObject({ chatNeuronId: RAW_ID })
     const panel = await screen.findByRole('complementary', { name: 'Conversation du neurone' })
     expect(await within(panel).findByRole('button', { name: 'Commencer le brainstorm' })).toBeDefined()
     // Spec 008 : ouvrir une idée ne fait plus jamais brainstormer l'IA locale.
@@ -165,7 +165,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     await user.type(within(menu).getByLabelText('Libellé du lien (facultatif)'), 'éclairage')
     await user.click(within(menu).getByRole('button', { name: 'Relier' }))
     await waitFor(() =>
-      expect(api.invoke).toHaveBeenCalledWith('links:create', {
+      expect(api.invoke).toHaveBeenCalledWith('canvas:createLink', {
         aRootId: RAW_ID,
         bRootId: HATCHED_A_ID,
         label: 'éclairage'
@@ -177,7 +177,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
   it('should_say_when_the_link_already_exists', async () => {
     const user = userEvent.setup()
     renderCanvas(canvasView(), {
-      'links:create': () => {
+      'canvas:createLink': () => {
         throw new FakeIpcError('DUPLICATE')
       }
     })

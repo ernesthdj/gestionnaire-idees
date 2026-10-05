@@ -8,76 +8,48 @@ import {
   type CanvasFilterInput,
   type CanvasNeuronView,
   type CanvasPosition,
-  type IdeasCanvasView,
-  type StepView
+  type IdeasCanvasView
 } from '@shared/ipc/canvas'
-import type { HatchedResultView, LinkView, SeedView } from '@shared/ipc/neurons'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
 import type { ElementView, MapLinkView } from '@shared/ipc/canvas'
 import { AppError } from '../../domain/errors'
-import { nextStepOf } from '../../domain/neurons/nextStep'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
+import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
     NeuronRepository,
-    'canvasRoots' | 'matchingRootIds' | 'subNeuronPreviews' | 'categories' | 'savePositions' | 'latestGaugeLevels'
+    'canvasRoots' | 'matchingRootIds' | 'categories' | 'savePositions' | 'latestGaugeLevels'
   >
-  readonly links: { list(): LinkView[]; seeds(): SeedView[] }
   readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
   /** Branchements d'entrée des widgets (spec 005). */
   readonly io: { links(): IoLinkView[] }
-  /** Liens libres de la carte (spec 007). */
-  readonly mapLinks?: { list(): MapLinkView[] }
+  /** Liens libres de la carte (spec 007) ; mentalyas en trace entre deux idées (spec 010). */
+  readonly mapLinks?: Pick<MapLinkRepository, 'list' | 'insert'>
   /** Résumés des fiches des neurones (spec 008). */
   readonly sheetSummaries?: () => Map<string, string>
   /** Éléments des cartes de structure (spec 009). */
   readonly elements?: { views(): ElementView[] }
-  /** Documents en cours des idées (prochaine étape) et places mémorisées des étapes. */
-  readonly steps: {
-    result(rootId: string): HatchedResultView | null
-    stepPlaces(): Map<string, { readonly x: number; readonly y: number }>
-    saveStepPlace(rootId: string, place: { readonly x: number; readonly y: number }): void
-  }
 }
 
-/** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens et leurs graines. */
+/** Écran Idées (spec 003 US2, FR-029) : toutes les idées dans un seul espace, leurs liens, blocs et éléments. */
 export class CanvasService {
   constructor(private readonly deps: CanvasDeps) {}
 
   get(filter: CanvasFilterInput = {}): IdeasCanvasView {
     const roots = this.deps.neurons.canvasRoots()
-    const previews = this.deps.neurons.subNeuronPreviews(
-      roots.filter((root) => root.state === 'developing').map((root) => root.id)
-    )
     const levels = this.deps.neurons.latestGaugeLevels()
     const summaries = this.deps.sheetSummaries?.() ?? new Map<string, string>()
     const ideas = roots.map((root): CanvasNeuronView => {
       const summary = summaries.get(root.id)
       return {
         ...root,
-        subNeurons: previews.get(root.id)?.items ?? [],
-        subCount: previews.get(root.id)?.count ?? 0,
         contextLevel: levels.get(root.id) ?? null,
         ...(summary === undefined ? {} : { sheetSummary: summary })
       }
     })
     const visible = new Set(roots.map((root) => root.id))
-    // Un lien vers une idée archivée n'a plus de sens sur la carte.
-    const links = this.deps.links.list().filter((link) => visible.has(link.a.id) && visible.has(link.b.id))
-    const linkIds = new Set(links.map((link) => link.id))
-    const seeds = this.deps.links
-      .seeds()
-      .filter((seed) =>
-        seed.status === 'accepted' ? seed.bornRootId !== null && visible.has(seed.bornRootId) : linkIds.has(seed.linkId)
-      )
-    // Une idée brute n'a jamais eu de document ; les autres portent la prochaine étape de leur document en cours.
-    const places = this.deps.steps.stepPlaces()
-    const steps = roots.flatMap((root): StepView[] => {
-      const text = root.state === 'raw' ? null : nextStepOf(this.deps.steps.result(root.id))
-      return text === null ? [] : [{ rootId: root.id, text, position: places.get(root.id) ?? null }]
-    })
     const blocks = this.visibleBlocks()
     // Un élément de structure n'apparaît que si son genesis est sur la carte.
     const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
@@ -90,18 +62,11 @@ export class CanvasService {
         hatched: roots.filter((root) => root.state === 'hatched').length
       },
       ideas,
-      links,
-      seeds,
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
       blocks,
-      steps,
-      // Un trait n'a de sens que si sa source est encore sur la carte (idée visible, étape présente).
-      io: this.deps.io
-        .links()
-        .filter((link) =>
-          link.sourceKind === 'idea' ? visible.has(link.sourceId) : steps.some((step) => step.rootId === link.sourceId)
-        ),
+      // Un trait n'a de sens que si son idée est encore sur la carte.
+      io: this.deps.io.links().filter((link) => link.sourceKind === 'idea' && visible.has(link.sourceId)),
       mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
         (link) => present.has(link.from.id) && present.has(link.to.id)
       ),
@@ -120,12 +85,37 @@ export class CanvasService {
     this.deps.neurons.savePositions(positions)
   }
 
-  /** Étape glissée à la main : elle reste épinglée à cette place. */
-  saveStepPosition(input: { readonly rootId: string; readonly x: number; readonly y: number }): void {
-    if (nextStepOf(this.deps.steps.result(input.rootId)) === null) {
-      throw new AppError('NOT_FOUND', 'Cette idée n’a pas de prochaine étape')
-    }
-    this.deps.steps.saveStepPlace(input.rootId, { x: input.x, y: input.y })
+  /**
+   * Lien tracé par mentalyas entre deux idées (spec 010) : un lien libre de la carte, libellé facultatif, annulable.
+   * Refusé s'il relie déjà ces deux idées, dans un sens ou dans l'autre.
+   */
+  createLink(input: { readonly aRootId: string; readonly bRootId: string; readonly label: string }): MapLinkView {
+    const { mapLinks } = this.deps
+    if (mapLinks === undefined) throw new AppError('INTERNAL', 'Liens de la carte indisponibles')
+    if (input.aRootId === input.bRootId) throw new AppError('VALIDATION', 'Une idée ne se relie pas à elle-même')
+    const ideas = new Set(this.deps.neurons.canvasRoots().map((root) => root.id))
+    if (!ideas.has(input.aRootId) || !ideas.has(input.bRootId)) throw new AppError('NOT_FOUND', 'Idée introuvable')
+    const pair = new Set([input.aRootId, input.bRootId])
+    const exists = mapLinks
+      .list()
+      .some(
+        (link) => link.from.kind === 'idea' && link.to.kind === 'idea' && pair.has(link.from.id) && pair.has(link.to.id)
+      )
+    if (exists) throw new AppError('DUPLICATE', 'Ces deux idées sont déjà reliées')
+    const label = input.label.trim() === '' ? null : input.label.trim()
+    const { blocks } = this.deps
+    return blocks.transaction(() => {
+      const link = mapLinks.insert({
+        from: { kind: 'idea', id: input.aRootId },
+        to: { kind: 'idea', id: input.bRootId },
+        label,
+        origin: 'user'
+      })
+      blocks.log(randomUUID(), [
+        { kind: 'link', entity: 'map_link', entityId: link.id, before: null, after: { label } }
+      ])
+      return link
+    })
   }
 
   /** Nouveau bloc au point voulu, à la taille par défaut de son type (spec 004 FR-001). */

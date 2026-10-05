@@ -6,7 +6,6 @@ import { LocalQueue } from '../../../src/main/application/ai/LocalQueue'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
 import { PendingRequestRepository } from '../../../src/main/infrastructure/db/repositories/PendingRequestRepository'
 import { CategoryOut } from '../../../src/shared/ai/schemas'
-import { DEFAULT_ROUTING } from '../../../src/main/domain/ai/routing'
 import { createGatewayHarness } from '../../support/gateway'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
@@ -29,7 +28,7 @@ describe('LocalQueue', () => {
     const failed: string[] = []
     const queueRef: { current?: LocalQueue } = {}
     const h = createGatewayHarness({
-      config: () => ({ routing: DEFAULT_ROUTING, allowClaudeFallback }),
+      config: () => ({ allowClaudeFallback }),
       localQueue: {
         enqueue: (request) => {
           if (queueRef.current === undefined) throw new Error('file non initialisée')

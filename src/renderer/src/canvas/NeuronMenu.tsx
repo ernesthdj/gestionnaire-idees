@@ -4,14 +4,13 @@ import type { CanvasNeuronView } from '@shared/ipc/canvas'
 import type { CategoryView } from '@shared/ipc/neurons'
 import { Button } from '../components/atoms/Button'
 import { call } from '../lib/ipc'
-import { LINK_LABEL_MAX } from './useCreateLink'
+import { LINK_LABEL_MAX } from '@shared/ipc/canvas'
 
 interface NeuronMenuProps {
   readonly neuron: CanvasNeuronView
   readonly categories: readonly CategoryView[]
   /** Position à l'écran (clic droit) ; le menu reste dans la fenêtre. */
   readonly at: { readonly x: number; readonly y: number }
-  readonly onOpen: () => void
   /** Ouvre la conversation Claude Code de l'idée (spec 008). */
   readonly onChat: () => void
   /** Lie un dossier de projet à la conversation de l'idée (sélecteur natif), puis l'ouvre. */
@@ -29,14 +28,13 @@ interface NeuronMenuProps {
 }
 
 /**
- * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : ouvrir, relier à une autre idée, corriger en un geste
+ * Menu d'une idée (clic droit, ou touche Menu / Maj+F10) : ouvrir sa conversation, relier à une autre idée, corriger en un geste
  * la nature ou la catégorie proposées par l'IA (FR-008), libérer une idée épinglée, supprimer (avec avertissement). Le choix de l'utilisateur ne sera plus jamais écrasé par l'IA.
  */
 export function NeuronMenu({
   neuron,
   categories,
   at,
-  onOpen,
   onChat,
   onLinkFolder,
   onClose,
@@ -112,9 +110,6 @@ export function NeuronMenu({
       </Button>
       <Button className="w-full" onClick={onLinkFolder}>
         Lier à un dossier de projet…
-      </Button>
-      <Button className="w-full" onClick={onOpen}>
-        Ancien panneau (arbre et document)
       </Button>
       {linking ? (
         <form onSubmit={(event) => void link(event)} className="space-y-2">

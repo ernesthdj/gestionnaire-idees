@@ -82,7 +82,7 @@ describe('primitives du pont MCP sur la carte (spec 007)', () => {
   it('should_draw_the_note_tree_and_only_the_free_links_whose_ends_are_visible', () => {
     const view = drawn()
     const graph = buildGraph(view, computeLayout(view))
-    expect(graph.stepEdges).toContainEqual(expect.objectContaining({ source: NOTE, target: CHILD }))
+    expect(graph.edges).toContainEqual(expect.objectContaining({ source: NOTE, target: CHILD }))
     expect(graph.mapEdges).toEqual([
       expect.objectContaining({ id: 'map-l1', source: RAW_ID, target: NOTE, data: { label: 'budget' } })
     ])

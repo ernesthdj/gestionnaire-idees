@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
@@ -7,16 +7,7 @@ import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import { expectNoAxeViolations } from '../../support/axe'
-import {
-  canvasView,
-  DEVELOPING_ID,
-  emptyCanvasView,
-  HATCHED_A_ID,
-  HATCHED_B_ID,
-  LINK_ID,
-  RAW_ID
-} from '../../fixtures/ui/canvas'
-import { useCanvasHover } from '../../../src/renderer/src/canvas/hoverStore'
+import { canvasView, DEVELOPING_ID, emptyCanvasView, RAW_ID } from '../../fixtures/ui/canvas'
 import { installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
@@ -25,7 +16,6 @@ function renderCanvas(view: IdeasCanvasView = canvasView()) {
     'canvas:get': () => view,
     'canvas:savePositions': () => ({ ok: true }),
     'app:getSettings': () => DEFAULT_APP_SETTINGS,
-    'links:decide': () => ({}),
     'neuron:update': () => ({}),
     'neuron:create': () => ({}),
     'canvas:createBlock': () => ({}),
@@ -44,14 +34,14 @@ const idea = (name: RegExp): HTMLElement => screen.getByRole('group', { name })
 
 describe('écran Idées', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas' }))
 
   it('should_show_counts_and_every_idea_with_a_spoken_description', async () => {
     renderCanvas()
     expect(await screen.findByText('1 brute · 1 en dév. · 2 écloses')).toBeDefined()
     await waitFor(() => expect(idea(/^Idée brute : Acheter un flash cobra/)).toBeDefined())
     expect(
-      idea(/^En développement, contexte insuffisant : Deuxième écran, Action, catégorie Achat, 1 sous-neurone$/)
+      idea(/^En développement, contexte insuffisant : Deuxième écran, Action, catégorie Achat$/)
     ).toBeDefined()
     expect(idea(/^Idée éclose : Mission mariage, Réflexion \(proposée par l’IA\)/)).toBeDefined()
   })
@@ -103,13 +93,6 @@ describe('écran Idées', () => {
     expect(api.invoke).toHaveBeenCalledWith('neuron:update', { id: RAW_ID, categorySlug: 'photo' })
   })
 
-  it('should_accept_a_suggested_link_in_place', async () => {
-    const user = userEvent.setup()
-    const { api } = renderCanvas()
-    await user.click(await screen.findByRole('button', { name: /^Accepter le lien « financement »/ }))
-    expect(api.invoke).toHaveBeenCalledWith('links:decide', { linkId: LINK_ID, accept: true })
-  })
-
   it('should_ask_again_with_the_nature_filter_when_it_is_chosen', async () => {
     const user = userEvent.setup()
     const { api } = renderCanvas()
@@ -152,26 +135,8 @@ describe('écran Idées', () => {
     expect(api.invoke).toHaveBeenCalledWith('canvas:deleteBlock', { id: block.id })
   })
 
-  it('should_keep_an_accepted_link_discreet_and_show_its_label_on_hover_or_focus_of_one_of_its_ideas', async () => {
-    useCanvasHover.setState({ edgeId: null, nodeId: null })
-    const view = canvasView()
-    const accepted = { ...view.links[0], status: 'accepted' as const, label: 'même budget' }
-    renderCanvas({ ...view, links: [accepted as (typeof view.links)[number]] })
-    const idea = await waitFor(() => screen.getByRole('group', { name: /^Idée éclose : Mission mariage/ }))
-    expect(screen.queryByText('même budget')).toBeNull()
-    fireEvent.mouseEnter(idea)
-    expect(await screen.findByText('même budget')).toBeDefined()
-    fireEvent.mouseLeave(idea)
-    await waitFor(() => expect(screen.queryByText('même budget')).toBeNull())
-    act(() => screen.getByRole('group', { name: /^Idée éclose : Portfolio photo/ }).focus())
-    expect(await screen.findByText('même budget')).toBeDefined()
-    expect([HATCHED_A_ID, HATCHED_B_ID]).toContain(useCanvasHover.getState().nodeId)
-  })
-
-  it('should_always_show_a_suggested_link_with_its_decision_buttons', async () => {
-    useCanvasHover.setState({ edgeId: null, nodeId: null })
+  it('should_show_the_label_of_a_free_link_between_two_ideas', async () => {
     renderCanvas()
     expect(await screen.findByText('financement')).toBeDefined()
-    expect(screen.getByRole('button', { name: /^Refuser le lien « financement »/ })).toBeDefined()
   })
 })

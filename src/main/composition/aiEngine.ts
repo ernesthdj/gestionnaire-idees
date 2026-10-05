@@ -2,7 +2,6 @@ import { mkdirSync } from 'node:fs'
 import { AIGateway } from '../application/ai/AIGateway'
 import { LocalQueue } from '../application/ai/LocalQueue'
 import type { AgentContext } from '../application/ai/ports'
-import type { RoutingTable } from '../domain/ai/routing'
 import type { TaskKind } from '../domain/ai/types'
 import { resolveClaudePath } from '../infrastructure/claude/claudePath'
 import { ClaudeCliProvider } from '../infrastructure/ai/ClaudeCliProvider'
@@ -12,7 +11,7 @@ import { AiCallRepository } from '../infrastructure/db/repositories/AiCallReposi
 import { AiConfigRepository } from '../infrastructure/db/repositories/AiConfigRepository'
 import { PendingRequestRepository } from '../infrastructure/db/repositories/PendingRequestRepository'
 import type { Logger } from '../infrastructure/logging/logger'
-import { CategoryOut, SensitiveOut } from '@shared/ai/schemas'
+import { CategoryOut } from '@shared/ai/schemas'
 
 const LOCAL_QUEUE_PROBE_MS = 30_000
 
@@ -59,7 +58,6 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     config: () => {
       const current = config.get()
       return {
-        routing: current.routing as RoutingTable,
         allowClaudeFallback: current.allowClaudeFallback,
         claudeModelFor: (kind) => (kind === 'widget' ? current.widgetModel : undefined)
       }
@@ -78,7 +76,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     repository: new PendingRequestRepository(options.db),
     gateway,
     isLocalAvailable: async () => (await ollama.isAvailable()).up,
-    schemas: { CategoryOut, SensitiveOut },
+    schemas: { CategoryOut },
     onCompleted: (requestId, result) => options.onQueuedCompleted(requestId, result.data),
     onFailed: () => options.logger.warn('ai.queue_abandoned', {})
   })

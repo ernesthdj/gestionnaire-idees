@@ -28,20 +28,8 @@ export interface WidgetMessageView {
   readonly failed: boolean
 }
 
-/**
- * Outil coché à l'éclosion, pas encore généré (spec 006) : `queued` / `running` — Claude le prépare ; `idle` — la
- * génération a échoué ou a été interrompue (redémarrage) : « Réessayer ».
- */
-export interface WidgetRequestView {
-  readonly title: string
-  readonly description: string
-  readonly state: 'queued' | 'running' | 'idle'
-}
-
 export interface WidgetView {
   readonly blockId: string
-  /** Demande en attente d'une première version ; `null` pour un widget créé à la main ou déjà généré. */
-  readonly request: WidgetRequestView | null
   readonly current: WidgetCodeView | null
   readonly versions: readonly WidgetVersionView[]
   readonly messages: readonly WidgetMessageView[]

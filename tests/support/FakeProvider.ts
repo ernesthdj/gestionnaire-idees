@@ -2,10 +2,7 @@ import type {
   AIProvider,
   CompletionRequest,
   CompletionResponse,
-  ProviderStatus,
-  ResearchRequest,
-  ResearchResponse,
-  WebSource
+  ProviderStatus
 } from '../../src/main/application/ai/AIProvider'
 import type { Engine, Usage } from '../../src/main/domain/ai/types'
 
@@ -16,19 +13,9 @@ export interface ScriptedReply {
   readonly usage?: Partial<Usage>
 }
 
-/** Résultat de recherche web scripté. */
-export interface ScriptedResearch {
-  readonly text: string
-  readonly sources?: readonly WebSource[]
-  readonly webSearches?: number
-  readonly stopReason?: string
-}
-
 /** Moteur IA simulé : réponses scriptées dans l'ordre, requêtes enregistrées, aucun réseau. */
 export class FakeProvider implements AIProvider {
   readonly requests: CompletionRequest<unknown>[] = []
-  readonly researchRequests: ResearchRequest[] = []
-  private readonly researches: ScriptedResearch[] = []
   private readonly replies: ScriptedReply[]
   private status: ProviderStatus = { up: true, model: 'fake-model' }
 
@@ -51,10 +38,6 @@ export class FakeProvider implements AIProvider {
     this.replies.push(...replies)
   }
 
-  enqueueResearch(...replies: readonly ScriptedResearch[]): void {
-    this.researches.push(...replies)
-  }
-
   async isAvailable(): Promise<ProviderStatus> {
     return this.status
   }
@@ -70,26 +53,6 @@ export class FakeProvider implements AIProvider {
       stopReason: reply.stopReason ?? 'end_turn',
       model: 'fake-model',
       usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0, ...reply.usage }
-    }
-  }
-
-  async research(request: ResearchRequest): Promise<ResearchResponse> {
-    this.researchRequests.push(request)
-    if (!this.status.up) throw new Error('FakeProvider indisponible')
-    const reply = this.researches.shift()
-    if (reply === undefined) throw new Error('FakeProvider : aucune recherche scriptée restante')
-    return {
-      text: reply.text,
-      sources: reply.sources ?? [],
-      stopReason: reply.stopReason ?? 'end_turn',
-      model: 'fake-model',
-      usage: {
-        inputTokens: 3000,
-        outputTokens: 100,
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        webSearches: reply.webSearches ?? 1
-      }
     }
   }
 }

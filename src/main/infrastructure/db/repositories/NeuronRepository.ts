@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, lt, ne, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, lt, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CategoryView,
   ExtensionView,
@@ -28,18 +28,11 @@ export interface RootFilter {
 }
 
 const DEFAULT_LIMIT = 50
-/** Nombre de sous-neurones montrés autour d'une idée en développement sur la carte. */
-const PREVIEW_COUNT = 3
 
 export interface CanvasFilter {
   readonly nature?: Nature
   readonly categoryId?: string
   readonly search?: string
-}
-
-export interface SubNeuronPreview {
-  readonly items: readonly { readonly id: string; readonly title: string }[]
-  readonly count: number
 }
 
 /**
@@ -305,25 +298,6 @@ export class NeuronRepository {
       .where(and(...conditions))
       .all()
       .map((row) => row.id)
-  }
-
-  /** Premiers sous-neurones directs de chaque idée (aperçu autour du neurone en développement). */
-  subNeuronPreviews(rootIds: readonly string[]): Map<string, SubNeuronPreview> {
-    const previews = new Map<string, { items: { id: string; title: string }[]; count: number }>()
-    if (rootIds.length === 0) return previews
-    const rows = this.db
-      .select({ id: neurons.id, rootId: neurons.rootId, title: neurons.title })
-      .from(neurons)
-      .where(and(inArray(neurons.rootId, [...rootIds]), eq(neurons.depth, 1), isNull(neurons.absorbedIn)))
-      .orderBy(asc(sql`${neurons}.rowid`))
-      .all()
-    for (const row of rows) {
-      const preview = previews.get(row.rootId) ?? { items: [], count: 0 }
-      if (preview.items.length < PREVIEW_COUNT) preview.items.push({ id: row.id, title: row.title })
-      preview.count++
-      previews.set(row.rootId, preview)
-    }
-    return previews
   }
 
   categories(): CategoryView[] {

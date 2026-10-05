@@ -41,10 +41,9 @@ const version = (id: string, number: number, title: string) => ({
   createdAt: '2026-09-30T00:00:00.000Z'
 })
 
-const empty: WidgetView = { blockId: BLOCK_ID, request: null, current: null, versions: [], messages: [] }
+const empty: WidgetView = { blockId: BLOCK_ID, current: null, versions: [], messages: [] }
 const generated: WidgetView = {
   blockId: BLOCK_ID,
-  request: null,
   current: { ...version(V2, 2, 'Compte à rebours'), html: '<main></main>', css: 'main{}', ts: 'const x: number = 1' },
   versions: [version(V1, 1, 'Minuteur'), version(V2, 2, 'Compte à rebours')],
   messages: [
@@ -75,7 +74,7 @@ const widget = (): Promise<HTMLElement> => screen.findByRole('region', { name: /
 
 describe('widget IA sur la carte (spec 004 US3)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null, bornId: null, toast: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', bornId: null, toast: null }))
 
   it('should_send_the_request_to_claude_and_show_the_generated_widget_in_an_isolated_frame', async () => {
     const user = userEvent.setup()
@@ -144,42 +143,5 @@ describe('widget IA sur la carte (spec 004 US3)', () => {
     await within(await widget()).findByTitle('Compte à rebours')
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull())
     await expectNoAxeViolations(container)
-  })
-
-  describe('outil coché à l’éclosion (spec 006)', () => {
-    const request = (state: 'queued' | 'running' | 'idle'): WidgetView => ({
-      ...empty,
-      request: { title: 'Tableau des dépenses', description: 'Additionne les achats prévus.', state }
-    })
-
-    it('should_show_that_claude_is_preparing_the_tool_and_lock_the_chat', async () => {
-      renderWidget({ 'widget:get': () => request('running') })
-      const node = await screen.findByRole('region', { name: 'Widget IA : Tableau des dépenses' })
-      expect(await within(node).findByText('Claude prépare cet outil…')).toBeDefined()
-      expect(within(node).getByText('Additionne les achats prévus.')).toBeDefined()
-      expect((within(node).getByLabelText('Demande à Claude pour ce widget') as HTMLTextAreaElement).readOnly).toBe(
-        true
-      )
-      expect(within(node).queryByRole('button', { name: 'Réessayer' })).toBeNull()
-    })
-
-    it('should_offer_to_retry_when_the_generation_did_not_succeed', async () => {
-      const user = userEvent.setup()
-      const { api } = renderWidget({ 'widget:get': () => request('idle'), 'widget:generate': () => generated })
-      const node = await screen.findByRole('region', { name: 'Widget IA : Tableau des dépenses' })
-      expect(await within(node).findByText('La fabrication de cet outil n’a pas abouti.')).toBeDefined()
-      await user.click(within(node).getByRole('button', { name: 'Réessayer' }))
-      await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('widget:generate', { blockId: BLOCK_ID }))
-      expect(await screen.findByRole('region', { name: 'Widget IA : Compte à rebours' })).toBeDefined()
-    })
-
-    it('should_refresh_when_the_main_process_finishes_a_background_generation', async () => {
-      let view = request('running')
-      const { api } = renderWidget({ 'widget:get': () => view })
-      await screen.findByText('Claude prépare cet outil…')
-      view = generated
-      act(() => api.emit('widget:thought', { type: 'widget:thought', blockId: BLOCK_ID }))
-      expect(await screen.findByRole('region', { name: 'Widget IA : Compte à rebours' })).toBeDefined()
-    })
   })
 })

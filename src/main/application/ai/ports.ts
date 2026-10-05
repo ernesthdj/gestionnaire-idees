@@ -1,4 +1,3 @@
-import type { RoutingTable } from '../../domain/ai/routing'
 import type { Engine, TaskKind, Usage } from '../../domain/ai/types'
 
 /** Contexte injecté après le cadre système : profil, règles et exemples actifs (US5). */
@@ -16,25 +15,13 @@ export interface ContextExample {
 }
 
 export interface GatewayConfig {
-  readonly routing: RoutingTable
+  /** Une tâche locale part vers Claude quand Ollama est arrêté, au lieu d'attendre dans la file. */
   readonly allowClaudeFallback: boolean
   /** Modèle Claude propre à une tâche (ex. `widget`) ; `undefined` : le modèle général. */
   readonly claudeModelFor?: (kind: TaskKind) => string | undefined
 }
 
-/** Réduit une donnée au strict nécessaire avant tout envoi externe (US2). Lève une erreur en cas d'échec. */
-export interface Anonymizer {
-  anonymize(text: string): Promise<string>
-}
-
-/** Plafond de dépense de l'IA externe (US3). */
-export interface BudgetGuard {
-  check(kind: TaskKind): Promise<{ readonly allowed: boolean }>
-  /** Appelé après journalisation d'un appel Claude : réévalue le total du mois (alerte). */
-  record(): Promise<void>
-}
-
-export type CallStatus = 'ok' | 'invalid' | 'error' | 'refusal' | 'blocked_budget'
+export type CallStatus = 'ok' | 'invalid' | 'error' | 'refusal'
 
 /** Métadonnées d'un appel — jamais de contenu. */
 export interface CallRecord {

@@ -22,13 +22,10 @@ import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
-import { OpenIdea } from '../dive/OpenIdea'
-import { bornFrom, buildGraph, computeLayout, stepRootId, type CanvasNode, type LinkEdgeType } from './buildGraph'
-import { useCanvasHover } from './hoverStore'
+import { buildGraph, computeLayout, ideaLinks, type CanvasNode } from './buildGraph'
 import { CanvasToolbar } from './CanvasToolbar'
 import { BranchEdge, type BranchEdgeType } from './edges/BranchEdge'
 import { MapLinkEdge, type MapLinkEdgeType } from './edges/MapLinkEdge'
-import { LinkEdge } from './edges/LinkEdge'
 import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
@@ -37,7 +34,6 @@ import { ElementNode } from './nodes/ElementNode'
 import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
 import { MapNoteNode } from './nodes/MapNoteNode'
-import { StepNode } from './nodes/StepNode'
 import { WidgetReview } from '../widgets/WidgetReview'
 import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
 import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
@@ -46,9 +42,6 @@ import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
 import { NeuronNode } from './nodes/NeuronNode'
-import { DocNode, NoteNode, TreeNode, type DocNodeType, type NoteNodeType, type TreeNodeType } from './nodes/TreeNodes'
-import { treeGraph } from './treeGraph'
-import { useOpenTree, type OpenTree } from './treeStore'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
@@ -63,20 +56,16 @@ const NODE_TYPES: NodeTypes = {
   frame: FrameNode,
   element: ElementNode,
   widget: WidgetNode,
-  result: ResultNode,
-  step: StepNode,
-  tree: TreeNode,
-  note: NoteNode,
-  doc: DocNode
+  result: ResultNode
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
 const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget', 'result', 'mapNote', 'frame'])
-const EDGE_TYPES: EdgeTypes = { link: LinkEdge, branch: BranchEdge, mapLink: MapLinkEdge }
+const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge }
 
-/** Tout objet de la carte : idées, blocs, et arbre de l'idée ouverte (éléments, textes, fiche). */
-type MapNode = CanvasNode | TreeNodeType | NoteNodeType | DocNodeType
-type MapEdge = LinkEdgeType | BranchEdgeType | MapLinkEdgeType
+/** Tout objet de la carte : idées, blocs, éléments de structure. */
+type MapNode = CanvasNode
+type MapEdge = BranchEdgeType | MapLinkEdgeType
 const PAN_STEP = 64
 /** Marge du cadrage autour des idées. */
 const FIT_MARGIN = 128
@@ -89,8 +78,8 @@ const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
 
 /** Textes d'aide de React Flow, en français. */
 const ARIA_LABELS = {
-  'node.a11yDescription.default': 'Entrée pour plonger dans l’idée, touche Menu pour la modifier.',
-  'node.a11yDescription.keyboardDisabled': 'Entrée pour plonger dans l’idée.',
+  'node.a11yDescription.default': 'Entrée pour ouvrir la conversation de l’idée, touche Menu pour la modifier.',
+  'node.a11yDescription.keyboardDisabled': 'Entrée pour ouvrir la conversation de l’idée.',
   'edge.a11yDescription.default': 'Lien entre deux idées.',
   'controls.ariaLabel': 'Zoom',
   'controls.zoomIn.ariaLabel': 'Zoomer',
@@ -102,19 +91,17 @@ const ARIA_LABELS = {
 /** Signature de ce qui change la disposition (idées, tailles, liens) — pas les filtres ni les titres. */
 function layoutSignature(view: IdeasCanvasView): string {
   const ideas = view.ideas.map((root) => `${root.id}:${root.state}:${root.contextLevel ?? ''}`).join(',')
-  return `${ideas}|${view.links.map((link) => `${link.a.id}-${link.b.id}`).join(',')}`
+  return `${ideas}|${ideaLinks(view)
+    .map((link) => `${link.from.id}-${link.to.id}`)
+    .join(',')}`
 }
 
-/** Idées et sous-neurones dont la place a changé de plus d'un pixel depuis la dernière fois qu'elle a été mémorisée. */
+/** Idées dont la place a changé de plus d'un pixel depuis la dernière fois qu'elle a été mémorisée. */
 function placesToSave(
   view: IdeasCanvasView,
-  tree: OpenTree | null,
   live: ReadonlyMap<string, Point>
 ): { neuronId: string; x: number; y: number }[] {
   const saved = new Map<string, Point | null>(view.ideas.map((neuron) => [neuron.id, neuron.position]))
-  for (const placed of tree?.items ?? []) {
-    if (placed.item.type === 'neuron') saved.set(placed.item.id, placed.item.position)
-  }
   return [...saved].flatMap(([neuronId, before]) => {
     const now = live.get(neuronId)
     if (now === undefined) return []
@@ -137,12 +124,6 @@ function isEditable(target: EventTarget): boolean {
   return target instanceof HTMLElement && target.closest('input, select, textarea, button, [role="dialog"]') !== null
 }
 
-function neuronIdOf(target: EventTarget): string | null {
-  if (!(target instanceof HTMLElement)) return null
-  const node = target.closest('.react-flow__node-neuron')
-  return node?.getAttribute('data-id') ?? null
-}
-
 /** Nœud de la carte (quel que soit son type) qui contient l'élément, et son type. */
 function mapNodeOf(target: EventTarget): { readonly id: string; readonly type: string } | null {
   if (!(target instanceof HTMLElement)) return null
@@ -160,15 +141,9 @@ function CanvasInner(): React.JSX.Element {
   const client = useQueryClient()
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
-  const openRootId = useUiStore((state) => state.openRootId)
   const chatNeuronId = useUiStore((state) => state.chatNeuronId)
   const openChat = useUiStore((state) => state.openChat)
   const closeChat = useUiStore((state) => state.closeChat)
-  const openIdea = useUiStore((state) => state.openIdea)
-  const focusIdea = useUiStore((state) => state.focus)
-  const closeIdea = useUiStore((state) => state.closeIdea)
-  /** Colonne de droite où l'idée ouverte affiche son volet. */
-  const [panelHost, setPanelHost] = useState<HTMLElement | null>(null)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -184,13 +159,6 @@ function CanvasInner(): React.JSX.Element {
   const closeTools = useCallback(() => setTools(null), [])
   const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
-  const tree = useOpenTree((state) => state.tree)
-  const docId = useOpenTree((state) => state.docId)
-  const expanded = useOpenTree((state) => state.expanded)
-  const openDoc = useOpenTree((state) => state.openDoc)
-  const toggleNote = useOpenTree((state) => state.toggleNote)
-  const setHoveredEdge = useCanvasHover((state) => state.setEdge)
-  const setHoveredNode = useCanvasHover((state) => state.setNode)
 
   const query = useQuery({
     queryKey: ['canvas', filter],
@@ -209,16 +177,16 @@ function CanvasInner(): React.JSX.Element {
   }, [signature])
 
   // Physique de la carte (FR-034) : tous les objets se repoussent, stabilisés à chaque changement de contenu.
-  const { positions, physics } = useCanvasPhysics({ view, seed: layout, tree, openRootId })
+  const { positions, physics } = useCanvasPhysics({ view, seed: layout })
   // La sélection est connue du pont MCP : « regarde ma sélection » (spec 007).
   useSelectionSync()
 
-  // Mémorise les places trouvées (idées et sous-neurones) pour retrouver la même carte à la prochaine ouverture.
+  // Mémorise les places trouvées des idées pour retrouver la même carte à la prochaine ouverture.
   const persist = useCallback(
     (extra: readonly { neuronId: string; x: number; y: number; pinned: boolean }[] = []): void => {
       const current = viewRef.current
       if (current === undefined) return
-      const moved = placesToSave(current, useOpenTree.getState().tree, physics.positions())
+      const moved = placesToSave(current, physics.positions())
       const byId = new Map([...moved, ...extra].map((entry) => [entry.neuronId, entry]))
       if (byId.size > 0) void call('canvas:savePositions', { positions: [...byId.values()] }).catch(() => undefined)
     },
@@ -230,13 +198,9 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
-    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, openRootId)
-    const base = { nodes: built.nodes, edges: [...built.edges, ...built.stepEdges, ...built.mapEdges] }
-    const root = tree === null ? undefined : live.get(tree.rootId)
-    if (tree === null || root === undefined || tree.rootId !== openRootId) return base
-    const branch = treeGraph({ tree, positions: live, root, docId, expanded, closeDoc: () => openDoc(null) })
-    return { nodes: [...base.nodes, ...branch.nodes], edges: [...base.edges, ...branch.edges] }
-  }, [view, layout, positions, physics, bornId, openRootId, tree, docId, expanded, openDoc])
+    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, chatNeuronId)
+    return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
+  }, [view, layout, positions, physics, bornId, chatNeuronId])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])
@@ -264,15 +228,6 @@ function CanvasInner(): React.JSX.Element {
     }
     frame.current = requestAnimationFrame(loop)
   }, [physics, setNodes, persist])
-
-  // Idée ouverte : sa place et sa taille sur la carte (son arbre se déploie autour).
-  const openNeuron = openRootId === null ? undefined : view?.ideas.find((neuron) => neuron.id === openRootId)
-  // Position en direct (les nœuds de React Flow bougent pendant un glisser) : l'arbre suit l'idée.
-  const openCenter = nodes.find((node) => node.id === openRootId)?.position
-  // Une idée ouverte qui disparaît (archivée, annulée) referme le volet.
-  useEffect(() => {
-    if (openRootId !== null && view !== undefined && openNeuron === undefined) closeIdea()
-  }, [openRootId, view, openNeuron, closeIdea])
 
   // Cadrage sur les idées et les blocs, connus par calcul : React Flow ne mesure que les éléments visibles
   // (`onlyRenderVisibleElements`), son cadrage automatique serait faux. Carte vide : l'espace de départ.
@@ -320,7 +275,7 @@ function CanvasInner(): React.JSX.Element {
   )
 
   // Double-clic dans le vide : une idée à cet endroit (FR-030). Jamais sur un objet de la carte (nœud, lien, texte,
-  // graine, fiche, zoom) : dans React Flow, ils sont tous à l'intérieur du fond de carte.
+  // zoom) : dans React Flow, ils sont tous à l'intérieur du fond de carte.
   const onDoubleClick = (event: React.MouseEvent): void => {
     if (!(event.target instanceof Element) || !isEmptyMap(event.target)) return
     const position = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
@@ -359,17 +314,12 @@ function CanvasInner(): React.JSX.Element {
     }
   }
 
-  // Lien tiré d'une idée vers une autre (FR-031) : créé tout de suite, sans libellé ; la graine germe ensuite.
-  // Vers un widget (spec 005 FR-001) : la source (idée ou prochaine étape) devient une entrée, et la revue s'ouvre.
+  // Lien tiré d'une idée vers une autre (FR-031) : un lien libre, créé tout de suite, sans libellé.
+  // Vers un widget (spec 005 FR-001) : l'idée devient une entrée, et la revue s'ouvre.
   const openReview = useWidgetReview((state) => state.open)
   const connectInput = async (blockId: string, source: string): Promise<void> => {
-    const stepOf = stepRootId(source)
     try {
-      const next = await call<WidgetIoStateView>('widgetIo:connect', {
-        blockId,
-        sourceKind: stepOf === null ? 'idea' : 'step',
-        sourceId: stepOf ?? source
-      })
+      const next = await call<WidgetIoStateView>('widgetIo:connect', { blockId, sourceKind: 'idea', sourceId: source })
       client.setQueryData(widgetIoKey(blockId), next)
       await client.invalidateQueries({ queryKey: ['canvas'] })
       openReview(blockId)
@@ -385,8 +335,7 @@ function CanvasInner(): React.JSX.Element {
       void connectInput(target, source)
       return
     }
-    // Une prochaine étape ne se relie pas à une idée : elle se « brainstorme » (bouton de l'étape).
-    if (stepRootId(source) === null) void createLink({ aRootId: source, bRootId: target, label: '' })
+    void createLink({ aRootId: source, bRootId: target, label: '' })
   }
 
   const onKeyDownCapture = (event: React.KeyboardEvent): void => {
@@ -399,34 +348,9 @@ function CanvasInner(): React.JSX.Element {
     void flow.setViewport({ ...viewport, x: viewport.x + delta[0], y: viewport.y + delta[1] })
   }
 
-  /** Clic (ou `Entrée`) sur un élément de l'arbre ouvert : cibler, choisir une question, accepter une idée. */
-  const activateTreeItem = (id: string): void => {
-    const placed = tree?.items.find((entry) => entry.item.id === id)
-    if (tree === null || placed === undefined) return
-    const { item } = placed
-    if (item.type === 'neuron') tree.actions.focus(item.id)
-    else if (item.type === 'slot') tree.actions.selectExtension(item.extension.id)
-    else if (item.type === 'ghost') tree.actions.acceptSuggestion(item.suggestion.id)
-  }
-
   const onKeyDown = (event: React.KeyboardEvent): void => {
     const target = mapNodeOf(event.target)
     if (target === null || isEditable(event.target)) return
-    if (target.type === 'tree' || target.type === 'note') {
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        if (target.type === 'note') toggleNote(target.id.slice('note-'.length))
-        else activateTreeItem(target.id)
-      } else if (event.key === 'Escape') {
-        // Échap sur une idée suggérée : l'ignorer (sans refermer le volet).
-        const placed = tree?.items.find((entry) => entry.item.id === target.id)
-        if (placed?.item.type !== 'ghost' || tree === null) return
-        event.preventDefault()
-        event.stopPropagation()
-        tree.actions.dismissSuggestion(placed.item.suggestion.id)
-      }
-      return
-    }
     if (target.type !== 'neuron') return
     const id = target.id
     if (event.key === 'Enter') {
@@ -458,9 +382,6 @@ function CanvasInner(): React.JSX.Element {
           data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
           onKeyDownCapture={onKeyDownCapture}
           onKeyDown={onKeyDown}
-          // Au clavier aussi, l'idée qui a le focus montre les libellés de ses liens.
-          onFocusCapture={(event) => setHoveredNode(neuronIdOf(event.target))}
-          onBlurCapture={() => setHoveredNode(null)}
           onPointerDown={() => setInteracting(true)}
           onPointerUp={() => setInteracting(false)}
           onPointerLeave={() => setInteracting(false)}
@@ -485,43 +406,24 @@ function CanvasInner(): React.JSX.Element {
               connectionRadius={64}
               onConnect={onConnect}
               zoomOnDoubleClick={false}
-              // Tab va d'idée en idée ; les liens suggérés restent décidables au clavier par leurs boutons ✓ / ✗.
+              // Tab va d'idée en idée.
               edgesFocusable={false}
               deleteKeyCode={null}
               ariaLabelConfig={ARIA_LABELS}
               colorMode={settings.theme}
               proOptions={{ hideAttribution: true }}
-              onEdgeMouseEnter={(_event, edge) => setHoveredEdge(edge.id)}
-              onEdgeMouseLeave={() => setHoveredEdge(null)}
-              onNodeMouseEnter={(_event, node) => setHoveredNode(node.type === 'neuron' ? node.id : null)}
-              onNodeMouseLeave={() => setHoveredNode(null)}
               onMoveStart={() => setInteracting(true)}
               onMoveEnd={() => setInteracting(false)}
-              // Un clic (ou un double-clic) sur une idée ouvre sa conversation Claude Code (spec 008) : l'ancien
-              // panneau de questions, qui lançait Ollama à l'ouverture, ne s'ouvre plus que par le menu de l'idée.
-              // Un clic dans le vide referme le volet.
+              // Un clic (ou un double-clic) sur une idée, ou sur un élément d'une carte de structure (spec 009), ouvre
+              // sa conversation Claude Code (spec 008). Un clic dans le vide referme le volet.
               onNodeClick={(_event, node) => {
-                if (node.type === 'tree') activateTreeItem(node.id)
-                else if (node.type === 'note') toggleNote(node.id.slice('note-'.length))
-                // Élément d'une carte de structure (spec 009) : sa conversation, centrée sur lui.
-                else if (node.type === 'element') openChat(node.id)
-                else if (node.type !== 'neuron') return
-                else if (node.id === openRootId) focusIdea(null)
-                else if (node.id !== chatNeuronId) openChat(node.id)
+                if ((node.type === 'neuron' || node.type === 'element') && node.id !== chatNeuronId) openChat(node.id)
               }}
-              // Double-clic sur une idée suggérée acceptée : sa fiche s'ouvre à côté d'elle (FR-032).
               onNodeDoubleClick={(_event, node) => {
-                // Double-clic sur une idée : sa conversation Claude Code s'ouvre dans le volet (spec 008).
-                if (node.type === 'neuron') {
-                  openChat(node.id)
-                  return
-                }
-                if (node.type !== 'tree') return
-                const placed = tree?.items.find((entry) => entry.item.id === node.id)
-                if (placed?.item.type === 'neuron' && placed.item.kind === 'idea') openDoc(placed.item.id)
+                if (node.type === 'neuron') openChat(node.id)
               }}
               onPaneClick={() => {
-                if (openRootId !== null || chatNeuronId !== null) closeIdea()
+                if (chatNeuronId !== null) closeChat()
               }}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
@@ -533,19 +435,11 @@ function CanvasInner(): React.JSX.Element {
                 })
               }}
               onNodeContextMenu={(event, node) => {
-                // Clic droit sur un sous-neurone : il est ciblé, le volet propose de le modifier ou de le supprimer.
-                if (node.type === 'tree') {
-                  event.preventDefault()
-                  const placed = tree?.items.find((entry) => entry.item.id === node.id)
-                  if (placed?.item.type === 'neuron') tree?.actions.focus(placed.item.id)
-                  return
-                }
                 if (node.type !== 'neuron') return
                 event.preventDefault()
                 setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
               }}
               onNodeDragStart={(_event, node) => {
-                if (node.type === 'doc') return
                 drag.current = { id: node.id, at: node.position }
                 physics.wake()
                 runLive()
@@ -554,7 +448,6 @@ function CanvasInner(): React.JSX.Element {
                 if (drag.current?.id === node.id) drag.current = { id: node.id, at: node.position }
               }}
               onNodeDragStop={(_event, node) => {
-                if (node.type === 'doc') return
                 // Lâché : il reste épinglé à cette place ; la physique se repose autour de lui.
                 physics.pin(node.id, node.position)
                 drag.current = null
@@ -566,36 +459,12 @@ function CanvasInner(): React.JSX.Element {
                   })
                   return
                 }
-                if (node.type === 'step') {
-                  void call('canvas:saveStepPosition', {
-                    rootId: node.data.step.rootId,
-                    x: Math.round(node.position.x),
-                    y: Math.round(node.position.y)
-                  }).catch(() => undefined)
-                  return
-                }
-                const isNeuron =
-                  node.type === 'neuron' ||
-                  tree?.items.some((entry) => entry.item.id === node.id && entry.item.type === 'neuron') === true
-                if (isNeuron) persist([{ neuronId: node.id, x: node.position.x, y: node.position.y, pinned: true }])
+                if (node.type === 'neuron')
+                  persist([{ neuronId: node.id, x: node.position.x, y: node.position.y, pinned: true }])
               }}
             >
               <Background gap={32} size={1} />
               <Controls showInteractive={false} />
-              {openRootId === null ||
-              openNeuron === undefined ||
-              openCenter === undefined ||
-              view === undefined ? null : (
-                <OpenIdea
-                  key={openRootId}
-                  rootId={openRootId}
-                  center={openCenter}
-                  panelHost={panelHost}
-                  categories={view.categories}
-                  bornFrom={bornFrom(view).get(openRootId)}
-                  reduced={reduced}
-                />
-              )}
             </ReactFlow>
           )}
           {empty && draft === null ? (
@@ -625,10 +494,6 @@ function CanvasInner(): React.JSX.Element {
               neuron={menuNeuron}
               categories={view.categories}
               at={menu.at}
-              onOpen={() => {
-                setMenu(null)
-                openIdea(menuNeuron.id)
-              }}
               onChat={() => {
                 setMenu(null)
                 openChat(menuNeuron.id)
@@ -647,7 +512,9 @@ function CanvasInner(): React.JSX.Element {
                 .filter((neuron) => neuron.id !== menuNeuron.id)
                 .map((neuron) => ({ id: neuron.id, title: neuron.title }))}
               onLink={(targetId, label) => createLink({ aRootId: menuNeuron.id, bRootId: targetId, label })}
-              linkCount={view.links.filter((link) => link.a.id === menuNeuron.id || link.b.id === menuNeuron.id).length}
+              linkCount={
+                ideaLinks(view).filter((link) => link.from.id === menuNeuron.id || link.to.id === menuNeuron.id).length
+              }
               onRemove={() => removeIdea(menuNeuron)}
               onRelease={() => {
                 const at = physics.positions().get(menuNeuron.id)
@@ -666,13 +533,7 @@ function CanvasInner(): React.JSX.Element {
           >
             <ChatPanel key={chatNeuronId} neuronId={chatNeuronId} onClose={closeChat} />
           </aside>
-        ) : openRootId === null ? null : (
-          <aside
-            ref={setPanelHost}
-            aria-label="Volet de l’idée"
-            className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface"
-          />
-        )}
+        ) : null}
       </div>
       <WidgetReview />
     </div>
@@ -681,7 +542,7 @@ function CanvasInner(): React.JSX.Element {
 
 /**
  * Écran Idées (spec 003 US2/US3, FR-029 à FR-031) : toutes les idées dans un seul espace, reliées par leurs liens ;
- * une idée s'ouvre d'un clic, son arbre sur la carte et son volet à droite (62/38).
+ * une idée s'ouvre d'un clic sur sa conversation, dans le volet à droite (62/38).
  */
 export function IdeasCanvas(): React.JSX.Element {
   return (

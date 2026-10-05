@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { HatchedResultView, PlanDependencyView, PlanNodeView, SourcedPointView } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
-import { ideaSteps, neurons, planDependencies, planNodes, reflectionSummaries } from '../schemaNeurons'
+import { neurons, planDependencies, planNodes, reflectionSummaries } from '../schemaNeurons'
 
 interface StoredPoint {
   readonly headline?: string
@@ -22,28 +22,12 @@ function parsePoints(json: string): StoredPoint[] {
   })
 }
 
-/** Lecture du résultat en cours d'une idée éclose (spec 003 US5). */
+/**
+ * Lecture du document en cours d'une idée éclose par l'ancien moteur (archive, spec 010 D1) : partie « document »
+ * d'une idée branchée sur un widget.
+ */
 export class HatchedRepository {
   constructor(private readonly db: AppDatabase) {}
-
-  /** Places mémorisées des « prochaines étapes » glissées à la main, par idée. */
-  stepPlaces(): Map<string, { readonly x: number; readonly y: number }> {
-    return new Map(
-      this.db
-        .select()
-        .from(ideaSteps)
-        .all()
-        .map((row) => [row.rootId, { x: row.x, y: row.y }] as const)
-    )
-  }
-
-  saveStepPlace(rootId: string, place: { readonly x: number; readonly y: number }): void {
-    this.db
-      .insert(ideaSteps)
-      .values({ rootId, ...place })
-      .onConflictDoUpdate({ target: ideaSteps.rootId, set: place })
-      .run()
-  }
 
   result(rootId: string): HatchedResultView | null {
     const nodes = this.db

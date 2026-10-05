@@ -1,8 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Toast } from '../../../src/renderer/src/app/Toast'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { HistoryPage } from '../../../src/renderer/src/pages/HistoryPage'
 import type { HistoryEntryView, HistoryPageView } from '../../../src/shared/ipc/history'
@@ -33,7 +32,7 @@ function renderWith(ui: React.ReactNode, handlers: Parameters<typeof installFake
 }
 
 describe('historique', () => {
-  beforeEach(() => useUiStore.setState({ view: 'history', openRootId: null, toast: null }))
+  beforeEach(() => useUiStore.setState({ view: 'history', toast: null }))
 
   it('should_list_changes_and_undo_one_of_them', async () => {
     const user = userEvent.setup()
@@ -81,7 +80,7 @@ describe('historique', () => {
     expect(api.invoke).toHaveBeenCalledWith('history:list', { limit: 30, cursor: '42' })
     expect(await screen.findByText('Éclosion de « Idée 1 »')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Ouvrir l’idée : Éclosion de « Idée 3 »' }))
-    expect(useUiStore.getState()).toMatchObject({ view: 'ideas', openRootId: ROOT })
+    expect(useUiStore.getState()).toMatchObject({ view: 'ideas', chatNeuronId: ROOT })
   })
 
   it('should_explain_that_nothing_happened_yet_when_the_history_is_empty', async () => {
@@ -99,19 +98,5 @@ describe('historique', () => {
     )
     await screen.findByText('Éclosion de « Idée 1 »')
     await expectNoAxeViolations(document.body)
-  })
-})
-
-describe('notification d’éclosion', () => {
-  beforeEach(() => useUiStore.setState({ toast: null }))
-
-  it('should_undo_the_hatching_from_the_notification', async () => {
-    const user = userEvent.setup()
-    const api = renderWith(<Toast />, { 'history:undo': () => ({ undoBatchId: 'x' }) })
-    act(() => useUiStore.getState().hatch('« Idée » a éclos.', entry(7).batchId))
-    const toast = await screen.findByRole('status')
-    await user.click(within(toast).getByRole('button', { name: 'Annuler' }))
-    expect(api.invoke).toHaveBeenCalledWith('history:undo', { batchId: entry(7).batchId })
-    expect((await screen.findByRole('status')).textContent).toMatch(/Éclosion annulée/)
   })
 })

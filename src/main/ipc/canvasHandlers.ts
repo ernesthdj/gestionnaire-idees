@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BLOCK_LIMITS, CREATABLE_BLOCK_KINDS, LABEL_MAX_CHARS } from '@shared/ipc/canvas'
+import { BLOCK_LIMITS, CREATABLE_BLOCK_KINDS, LABEL_MAX_CHARS, LINK_LABEL_MAX } from '@shared/ipc/canvas'
 import type { CanvasService } from '../application/canvas/CanvasService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -32,12 +32,11 @@ export function createCanvasRoutes(canvas: CanvasService): IpcRoute[] {
         })
     }),
     defineRoute({
-      channel: 'canvas:saveStepPosition',
-      input: z.object({ rootId: z.uuid(), x: Coordinate, y: Coordinate }).strict(),
-      handler: async (input) => {
-        canvas.saveStepPosition(input)
-        return { ok: true }
-      }
+      channel: 'canvas:createLink',
+      input: z
+        .object({ aRootId: z.uuid(), bRootId: z.uuid(), label: z.string().max(LINK_LABEL_MAX).default('') })
+        .strict(),
+      handler: async (input) => canvas.createLink(input)
     }),
     defineRoute({
       channel: 'canvas:savePositions',

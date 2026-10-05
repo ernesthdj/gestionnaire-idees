@@ -1,0 +1,79 @@
+/*
+ * « L'IA réfléchit » (génération d'un widget) : un influx parcourt la synapse et allume les neurones tour à tour.
+ * L'étiquette du moteur garde le texte en couleur de contenu (contraste AA) ; seule la pastille est colorée.
+ */
+.ai-thinking {
+  --ai-ink: var(--color-accent);
+  overflow: visible;
+}
+.ai-thinking-synapse {
+  fill: none;
+  stroke: var(--ai-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 6 40;
+  opacity: 0.8;
+  animation: ai-influx 1.2s linear infinite;
+}
+.ai-thinking-neuron {
+  fill: var(--ai-ink);
+  opacity: 0.3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ai-fire 1.2s ease-in-out infinite;
+}
+.ai-thinking-neuron:nth-of-type(2) {
+  animation-delay: 0.4s;
+}
+.ai-thinking-neuron:nth-of-type(3) {
+  animation-delay: 0.8s;
+}
+@keyframes ai-influx {
+  to {
+    stroke-dashoffset: -46;
+  }
+}
+@keyframes ai-fire {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+.ai-engine {
+  --engine: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in oklab, var(--engine) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--engine) 12%, var(--color-surface));
+  color: var(--color-content);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ai-engine::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--engine);
+}
+.ai-engine[data-engine='claude'] {
+  --engine: #d97757;
+}
+.ai-engine[data-engine='ollama'] {
+  --engine: #16a34a;
+}
+
+[data-reduced-motion='true'] .ai-thinking-synapse,
+[data-reduced-motion='true'] .ai-thinking-neuron {
+  animation: none;
+  opacity: 1;
+}

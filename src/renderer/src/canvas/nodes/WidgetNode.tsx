@@ -3,7 +3,7 @@ import { useId, useRef, useState } from 'react'
 import { BLOCK_LIMITS } from '@shared/ipc/canvas'
 import { WIDGET_PROMPT_MAX_CHARS, type WidgetView } from '@shared/ipc/widgets'
 import { useEffectiveSettings } from '../../app/useAppSettings'
-import { AiThinking } from '../../dive/AiThinking'
+import { AiThinking } from '../../widgets/AiThinking'
 import { CodeView } from '../../widgets/CodeView'
 import { useWidget, type WidgetActions } from '../../widgets/useWidget'
 import { useWidgetBridge } from '../../widgets/useWidgetBridge'
@@ -113,11 +113,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   const inputCount = io.state.data?.inputs.length ?? 0
   // Un outil sans code n'a encore rien à revoir : la revue vient avec sa première version.
   const toReview = current !== null && inputCount > 0 && io.state.data?.approved === false
-  // Outil coché à l'éclosion (spec 006) : Claude le prépare, ou sa fabrication est à relancer.
-  const request = current === null ? (view?.request ?? null) : null
-  const generating = actions.busy || (request !== null && request.state !== 'idle')
-  const chatActions: WidgetActions = generating === actions.busy ? actions : { ...actions, busy: generating }
-  const title = current?.title ?? request?.title ?? 'Widget IA'
+  const title = current?.title ?? 'Widget IA'
 
   return (
     <>
@@ -197,29 +193,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             ×
           </button>
         </header>
-        {current === null && request !== null ? (
-          <div className="nodrag flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs">
-            <p className="max-w-80 text-content-muted">{request.description}</p>
-            {generating ? (
-              <p role="status" className="font-medium">
-                Claude prépare cet outil…
-              </p>
-            ) : (
-              <>
-                <p role="status" className="font-medium">
-                  La fabrication de cet outil n’a pas abouti.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void actions.retry()}
-                  className="h-8 rounded-md bg-accent px-3 font-semibold text-surface"
-                >
-                  Réessayer
-                </button>
-              </>
-            )}
-          </div>
-        ) : current === null ? (
+        {current === null ? (
           <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-content-muted">
             {actions.widget.isError
               ? 'Ce widget n’a pas pu être chargé.'
@@ -256,7 +230,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             </button>
           </div>
         ) : null}
-        <Chat view={view} actions={chatActions} />
+        <Chat view={view} actions={actions} />
         {/* Point d'arrivée d'un lien tiré depuis une idée ou une prochaine étape (spec 005 FR-001). */}
         <Handle
           type="target"

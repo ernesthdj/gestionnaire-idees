@@ -22,8 +22,6 @@ function neuron(id: string, title: string, patch: Partial<CanvasNeuronView> = {}
     pinned: false,
     createdAt: '2026-09-28T10:00:00.000Z',
     updatedAt: '2026-09-28T10:00:00.000Z',
-    subNeurons: [],
-    subCount: 0,
     contextLevel: null,
     ...patch
   }
@@ -45,33 +43,26 @@ export function canvasView(): IdeasCanvasView {
         nature: 'action',
         natureSource: 'user',
         categorySource: 'user',
-        subNeurons: [{ id: 'sub-1', title: 'Budget à définir' }],
-        subCount: 1,
         contextLevel: 'insufficient'
       }),
       neuron(HATCHED_A_ID, 'Mission mariage', { state: 'hatched', category: CATEGORIES[1] ?? null }),
       neuron(HATCHED_B_ID, 'Portfolio photo', { state: 'hatched', category: CATEGORIES[1] ?? null })
     ],
-    links: [
-      {
-        id: LINK_ID,
-        a: { id: HATCHED_A_ID, title: 'Mission mariage' },
-        b: { id: HATCHED_B_ID, title: 'Portfolio photo' },
-        label: 'financement',
-        justification: 'La mission finance le portfolio',
-        origin: 'ai',
-        status: 'suggested',
-        createdAt: '2026-09-28T10:00:00.000Z'
-      }
-    ],
     categories: CATEGORIES,
     highlighted: null,
     blocks: [],
-    steps: [],
     io: [],
-    mapLinks: [],
-    elements: [],
-    seeds: []
+    mapLinks: [
+      {
+        id: LINK_ID,
+        from: { kind: 'idea', id: HATCHED_A_ID },
+        to: { kind: 'idea', id: HATCHED_B_ID },
+        label: 'financement',
+        origin: 'user',
+        relation: null
+      }
+    ],
+    elements: []
   }
 }
 
@@ -79,14 +70,11 @@ export function emptyCanvasView(): IdeasCanvasView {
   return {
     counts: { raw: 0, developing: 0, hatched: 0 },
     ideas: [],
-    links: [],
     categories: CATEGORIES,
     highlighted: null,
     blocks: [],
-    steps: [],
     io: [],
     mapLinks: [],
-    elements: [],
-    seeds: []
+    elements: []
   }
 }

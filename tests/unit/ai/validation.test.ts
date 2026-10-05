@@ -30,7 +30,7 @@ describe('AIGateway — validation des sorties', () => {
   it('should_return_refusal_without_retry_when_model_refuses', async () => {
     const h = createGatewayHarness()
     h.claude.enqueue({ raw: null, stopReason: 'refusal' })
-    const result = await h.gateway.run({ kind: 'synthetiser', input: 'x', schema: CategoryOut })
+    const result = await h.gateway.run({ kind: 'widget', input: 'x', schema: CategoryOut })
     expect(result).toMatchObject({ ok: false, error: { code: 'AI_REFUSAL' } })
     expect(h.claude.requests).toHaveLength(1)
   })

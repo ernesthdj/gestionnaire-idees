@@ -6,10 +6,7 @@ import { McpToolError } from '../../../src/main/domain/mcp/errors'
 import { readSheet } from '../../../src/main/domain/conversation/sheet'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { ConversationRepository } from '../../../src/main/infrastructure/db/repositories/ConversationRepository'
-import { GrowthRepository } from '../../../src/main/infrastructure/db/repositories/GrowthRepository'
-import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
-import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { FicheEcrireInput, MaturiteEvaluerInput } from '../../../src/shared/mcp/tools'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
@@ -28,19 +25,16 @@ describe('outils du neurone d’une conversation (spec 008)', () => {
     t = createNeuronHarness()
     const db = t.handle.db
     conversations = new ConversationRepository(db)
-    const growth = new GrowthRepository(db)
     changed = []
     tools = new NeuronTools({
       conversations,
-      insertAssessment: (input) => growth.insertAssessment(input),
+      insertAssessment: (input) => conversations.insertAssessment(input),
       onChanged: (id) => changed.push(id)
     })
     history = new HistoryService(new HistoryRepository(db))
     canvas = new CanvasService({
       neurons: new NeuronRepository(db),
-      links: new LinkRepository(db),
       blocks: new BlockRepository(db),
-      steps: new HatchedRepository(db),
       io: { links: () => [] },
       sheetSummaries: () => conversations.sheetSummaries()
     })

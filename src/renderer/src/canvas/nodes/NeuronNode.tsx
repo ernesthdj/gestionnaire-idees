@@ -1,9 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { canvasState, SATELLITE_MARGIN, TIER_SIZE, tierOf, type NeuronNodeType } from '../buildGraph'
-
-/** Satellites (premiers sous-neurones) répartis sur un arc à droite du neurone en développement. */
-const SATELLITE_ANGLES = [-50, 0, 50]
+import { canvasState, TIER_SIZE, tierOf, type NeuronNodeType } from '../buildGraph'
 
 /** Hexagone pointe en haut, inscrit dans le carré du neurone (repère 0–100). */
 const HEXAGON = '50,2 92,26 92,74 50,98 8,74 8,26'
@@ -26,13 +23,12 @@ function driftDelay(id: string): string {
 
 /**
  * Idée de départ (« graine ») de l'écran Idées : hexagone à la couleur réservée `--color-seed`, taille selon le niveau de contexte (FR-029, 5 paliers), aspect selon l'état (FR-009) :
- * brute (pointillés), en développement (plein + satellites), éclose (double contour + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
+ * brute (pointillés), en développement (plein), éclose (double contour + halo). Le texte lu par les lecteurs d'écran est porté par le nœud React Flow (`ariaLabel`).
  */
 export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Element {
   const { neuron, dimmed } = data
   const state = canvasState(neuron)
   const size = TIER_SIZE[tierOf(neuron)]
-  const satelliteDistance = size / 2 + SATELLITE_MARGIN - 8
   const aiProposed = neuron.natureSource === 'ai' || neuron.categorySource === 'ai'
   const style = {
     width: size,
@@ -49,22 +45,6 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
         <polygon className="seed-ring" points={HEXAGON} />
         <polygon className="seed-shape" points={HEXAGON} />
       </svg>
-      {state === 'developing'
-        ? neuron.subNeurons.map((sub, index) => {
-            const angle = ((SATELLITE_ANGLES[index] ?? 0) * Math.PI) / 180
-            return (
-              <span
-                key={sub.id}
-                className="neuron-satellite"
-                title={sub.title}
-                style={{
-                  left: size / 2 + satelliteDistance * Math.cos(angle),
-                  top: size / 2 + satelliteDistance * Math.sin(angle)
-                }}
-              />
-            )
-          })
-        : null}
       <span className="absolute inset-0 flex items-center justify-center text-content">
         <NatureIcon nature={neuron.nature} />
       </span>

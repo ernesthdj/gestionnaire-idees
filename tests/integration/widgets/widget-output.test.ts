@@ -8,7 +8,6 @@ import { WidgetIoService } from '../../../src/main/application/widgets/WidgetIoS
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
-import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
@@ -58,9 +57,7 @@ describe('sortie d’un widget dans un cadre résultat (spec 005 lot 2)', () => 
     })
     canvas = new CanvasService({
       neurons: neuronRepository,
-      links: new LinkRepository(db),
       blocks,
-      steps: hatched,
       io
     })
     blockId = blocks.insert({ kind: 'widget', x: 100, y: 50, width: 520, height: 440, text: null }).id

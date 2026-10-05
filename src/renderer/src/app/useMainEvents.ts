@@ -6,16 +6,10 @@ import type { MapChangedPayload } from '@shared/ipc/mcp'
 import { useUiStore } from './uiStore'
 
 /**
- * Données à rafraîchir quand le moteur de neurones (002) annonce un changement. Les clés correspondent aux
- * requêtes des écrans (Idées, plongée, À valider) ; une clé sans requête active est simplement ignorée.
+ * Données à rafraîchir quand le main annonce un changement. Les clés correspondent aux requêtes des écrans ; une
+ * clé sans requête active est simplement ignorée.
  */
 const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly string[])[]]> = [
-  ['neuron:created', [['canvas'], ['dive'], ['history']]],
-  ['neuron:thought', [['canvas'], ['dive']]],
-  ['synthesis:stale', [['dive'], ['pending']]],
-  ['suggestion:updated', [['dive']]],
-  ['links:suggested', [['canvas'], ['pending'], ['history']]],
-  ['seeds:suggested', [['canvas'], ['seeds']]],
   // Écriture de Claude Code par le pont MCP (spec 007) : la carte et l'Historique changent.
   ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs']]]
 ]

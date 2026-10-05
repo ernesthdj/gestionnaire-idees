@@ -6,7 +6,7 @@ import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastruct
 import { z } from 'zod'
 import { seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
-import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
+import { linkSeeds, neuronLinks } from '../../../src/main/infrastructure/db/schemaNeurons'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 
@@ -32,17 +32,18 @@ describe('jeu de démonstration', () => {
       roots.listRoots({ state, limit: 100 }).items.length
     expect([count('raw'), count('developing'), count('hatched')]).toEqual([2, 7, 3])
 
-    const links = new LinkRepository(handle.db)
-    expect(links.list('accepted')).toHaveLength(6)
-    expect(links.list('suggested')).toHaveLength(2)
-    const pairs = links.list().map((link) => [link.a.id, link.b.id].sort().join('|'))
+    // Liens de l'ancien moteur (archive, spec 010) : repris en liens libres par la conversion au démarrage.
+    const links = handle.db.select().from(neuronLinks).all()
+    expect(links.filter((link) => link.status === 'accepted')).toHaveLength(6)
+    expect(links.filter((link) => link.status === 'suggested')).toHaveLength(2)
+    const pairs = links.map((link) => [link.aRootId, link.bRootId].sort().join('|'))
     expect(new Set(pairs).size).toBe(8)
     // Des liens entre idées d'états différents (espace unique).
     const stateOf = new Map(roots.canvasRoots().map((root) => [root.id, root.state]))
-    expect(links.list().some((link) => stateOf.get(link.a.id) !== stateOf.get(link.b.id))).toBe(true)
+    expect(links.some((link) => stateOf.get(link.aRootId) !== stateOf.get(link.bRootId))).toBe(true)
     expect(new Set(roots.latestGaugeLevels().values())).toEqual(new Set(['insufficient', 'sufficient', 'complete']))
     // Graines fictives en attente sur des liens acceptés (FR-028).
-    expect(links.seeds()).toEqual(
+    expect(handle.db.select().from(linkSeeds).all()).toEqual(
       Array.from({ length: 2 }, () => expect.objectContaining({ status: 'suggested', bornRootId: null }))
     )
   })
@@ -71,7 +72,11 @@ describe('jeu de démonstration', () => {
     const ids = [
       ...roots.map((root) => root.id),
       ...roots.flatMap((root) => repository.neuronsOf(root.id).map((neuron) => neuron.id)),
-      ...new LinkRepository(handle.db).list().map((link) => link.id)
+      ...handle.db
+        .select()
+        .from(neuronLinks)
+        .all()
+        .map((link) => link.id)
     ]
     expect(ids.filter((id) => !z.uuid().safeParse(id).success)).toEqual([])
   })

@@ -1,14 +1,12 @@
-import type { Edge, Node } from '@xyflow/react'
-import {
-  STEP_START_OFFSET,
-  type BlockView,
-  type ElementRelation,
-  type ElementView,
-  type CanvasNeuronView,
-  type IdeasCanvasView,
-  type StepView
+import type { Node } from '@xyflow/react'
+import type {
+  BlockView,
+  ElementRelation,
+  ElementView,
+  CanvasNeuronView,
+  IdeasCanvasView,
+  MapLinkView
 } from '@shared/ipc/canvas'
-import type { LinkView, SeedView } from '@shared/ipc/neurons'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { structureGraph } from './structureGraph'
@@ -26,9 +24,6 @@ export const TIER_SIZE: Readonly<Record<Tier, number>> = {
   complete: 88,
   hatched: 104
 }
-/** Place réservée autour d'une idée en développement pour ses satellites (premiers sous-neurones). */
-export const SATELLITE_MARGIN = 24
-
 /** Aspect selon l'état : pointillés (brute), plein (en développement), double anneau + halo (éclose). */
 type CanvasState = 'raw' | 'developing' | 'hatched'
 
@@ -38,14 +33,6 @@ export type NeuronNodeData = {
   readonly dimmed: boolean
 }
 export type NeuronNodeType = Node<NeuronNodeData, 'neuron'>
-
-export type LinkEdgeData = {
-  readonly link: LinkView
-  readonly dimmed: boolean
-  /** Graine en attente sur ce lien accepté (FR-028). */
-  readonly seed: SeedView | null
-}
-export type LinkEdgeType = Edge<LinkEdgeData, 'link'>
 
 export type BlockNodeData = { readonly block: BlockView }
 export type BlockNodeType = Node<BlockNodeData, 'block'>
@@ -60,10 +47,6 @@ export type FrameNodeType = Node<BlockNodeData, 'frame'>
 /** Élément d'une carte de structure de projet (spec 009). */
 export type ElementNodeType = Node<{ readonly element: ElementView }, 'element'>
 
-/** « Prochaine étape » d'une idée (FR-037) : non modifiable, reliée à son idée. */
-export type StepNodeData = { readonly step: StepView; readonly dimmed: boolean }
-export type StepNodeType = Node<StepNodeData, 'step'>
-
 export type CanvasNode =
   | NeuronNodeType
   | BlockNodeType
@@ -73,17 +56,6 @@ export type CanvasNode =
   | MapNoteNodeType
   | FrameNodeType
   | ElementNodeType
-  | StepNodeType
-
-/** Identifiant du nœud (et du corps physique) de la prochaine étape d'une idée. */
-export const stepNodeId = (rootId: string): string => `step-${rootId}`
-/** Idée dont ce nœud est la prochaine étape ; `null` si ce n'est pas un nœud d'étape. */
-export const stepRootId = (nodeId: string): string | null =>
-  nodeId.startsWith('step-') ? nodeId.slice('step-'.length) : null
-/** Libellé du lien entre une idée et celle née de sa prochaine étape (« Brainstormer cette étape »). */
-export const STEP_LINK_LABEL = 'prochaine étape'
-/** Place de départ d'une étape jamais glissée : en bas à droite de son idée (partagée avec le main). */
-export const STEP_OFFSET = STEP_START_OFFSET
 
 const BLOCK_NODE_TYPES = {
   empty: 'block',
@@ -130,32 +102,27 @@ export function tierOf(neuron: CanvasNeuronView): Tier {
   return neuron.contextLevel ?? 'raw'
 }
 
-/** Rayon occupé pour la disposition : le cercle, et ses satellites s'il en a. */
+/** Rayon occupé pour la disposition : le cercle. */
 function layoutRadius(neuron: CanvasNeuronView): number {
-  const satellites = canvasState(neuron) === 'developing' && neuron.subNeurons.length > 0
-  return TIER_SIZE[tierOf(neuron)] / 2 + (satellites ? SATELLITE_MARGIN : 0)
+  return TIER_SIZE[tierOf(neuron)] / 2
 }
 
-/** Parents d'une idée née d'une graine, par identifiant de l'idée née. */
-export function bornFrom(view: IdeasCanvasView): Map<string, SeedView['parents']> {
-  return new Map(
-    view.seeds.flatMap((seed) => (seed.bornRootId === null ? [] : [[seed.bornRootId, seed.parents] as const]))
-  )
+/** Liens libres entre deux idées (les autres relient des blocs ou des éléments). */
+export function ideaLinks(view: IdeasCanvasView): MapLinkView[] {
+  return view.mapLinks.filter((link) => link.from.kind === 'idea' && link.to.kind === 'idea')
 }
 
-/** Texte lu par les lecteurs d'écran (état, contexte, titre, nature, catégorie, origine IA, parents). */
-export function neuronAriaLabel(neuron: CanvasNeuronView, parents?: SeedView['parents']): string {
+/** Texte lu par les lecteurs d'écran (état, contexte, titre, nature, catégorie, origine IA). */
+export function neuronAriaLabel(neuron: CanvasNeuronView): string {
   const level =
     neuron.state === 'hatched' || neuron.contextLevel === null ? '' : `, contexte ${LEVEL_LABELS[neuron.contextLevel]}`
   const parts = [`${STATE_LABELS[canvasState(neuron)]}${level} : ${neuron.title}`]
-  if (parents !== undefined) parts.push(`née de ${parents[0].title} × ${parents[1].title}`)
   parts.push(`${NATURE_LABELS[neuron.nature]}${neuron.natureSource === 'ai' ? ' (proposée par l’IA)' : ''}`)
   parts.push(
     neuron.category === null
       ? 'à classer'
       : `catégorie ${neuron.category.label}${neuron.categorySource === 'ai' ? ' (proposée par l’IA)' : ''}`
   )
-  if (neuron.subCount > 0) parts.push(`${neuron.subCount} sous-neurone${neuron.subCount > 1 ? 's' : ''}`)
   return parts.join(', ')
 }
 
@@ -185,7 +152,7 @@ function areaOf(view: IdeasCanvasView): Rect {
 
 export function computeLayout(view: IdeasCanvasView): CanvasLayout {
   const area = areaOf(view)
-  const links = view.links.map((link) => ({ source: link.a.id, target: link.b.id }))
+  const links = ideaLinks(view).map((link) => ({ source: link.from.id, target: link.to.id }))
   return { area, positions: forceLayout(layoutInput(view), links, area) }
 }
 
@@ -207,23 +174,18 @@ export function movedPositions(
 export function buildGraph(
   view: IdeasCanvasView,
   layout: CanvasLayout,
-  /** Idée qui vient de naître (graine ou double-clic) : elle pousse (250 ms). */
+  /** Idée qui vient de naître (double-clic, capture) : elle pousse (250 ms). */
   bornId: string | null = null,
   /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
   openRootId: string | null = null
 ): {
   nodes: CanvasNode[]
-  edges: LinkEdgeType[]
-  stepEdges: BranchEdgeType[]
+  edges: BranchEdgeType[]
   mapEdges: (MapLinkEdgeType | BranchEdgeType)[]
 } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean =>
     (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
-  const parentsOf = bornFrom(view)
-  const pendingSeeds = new Map(
-    view.seeds.filter((seed) => seed.status === 'suggested').map((seed) => [seed.linkId, seed] as const)
-  )
   const neuronNodes = view.ideas.map((neuron): NeuronNodeType => ({
     id: neuron.id,
     type: 'neuron',
@@ -234,33 +196,8 @@ export function buildGraph(
       : neuron.id === openRootId
         ? { className: 'neuron-open' }
         : {}),
-    ariaLabel: neuronAriaLabel(neuron, parentsOf.get(neuron.id)),
+    ariaLabel: neuronAriaLabel(neuron),
     deletable: false
-  }))
-  const stepOf = new Set(view.steps.map((step) => step.rootId))
-  const created = new Map(view.ideas.map((neuron) => [neuron.id, neuron.createdAt] as const))
-  /**
-   * Une idée née d'une prochaine étape sort de l'étape, pas de l'idée : le trait part de l'étiquette tant qu'elle est
-   * sur la carte. L'idée d'origine est la plus ancienne des deux (la nouvelle peut avoir sa propre étape plus tard).
-   */
-  const endpoints = (link: LinkView): { source: string; target: string } => {
-    if (link.label !== STEP_LINK_LABEL) return { source: link.a.id, target: link.b.id }
-    const aFirst = (created.get(link.a.id) ?? '') <= (created.get(link.b.id) ?? '')
-    const [origin, born] = aFirst ? [link.a.id, link.b.id] : [link.b.id, link.a.id]
-    return { source: stepOf.has(origin) ? stepNodeId(origin) : origin, target: born }
-  }
-  const edges = view.links.map((link): LinkEdgeType => ({
-    id: link.id,
-    type: 'link',
-    ...endpoints(link),
-    data: {
-      link,
-      dimmed: isDimmed(link.a.id) && isDimmed(link.b.id),
-      seed: link.status === 'accepted' ? (pendingSeeds.get(link.id) ?? null) : null
-    },
-    ariaLabel: `Lien${link.label === '' ? '' : ` « ${link.label} »`} entre ${link.a.title} et ${link.b.title}${link.status === 'suggested' ? ', suggéré par l’IA' : ''}`,
-    deletable: false,
-    selectable: false
   }))
   const blockNodes = view.blocks.map((block): CanvasNode => ({
     id: block.id,
@@ -274,33 +211,10 @@ export function buildGraph(
     ariaLabel: blockAriaLabel(block),
     deletable: false
   }))
-  const titles = new Map(view.ideas.map((neuron) => [neuron.id, neuron.title] as const))
-  const stepNodes = view.steps.map((step): StepNodeType => {
-    const root = layout.positions.get(step.rootId) ?? { x: 0, y: 0 }
-    return {
-      id: stepNodeId(step.rootId),
-      type: 'step',
-      position: layout.positions.get(stepNodeId(step.rootId)) ??
-        step.position ?? { x: root.x + STEP_OFFSET.x, y: root.y + STEP_OFFSET.y },
-      data: { step, dimmed: isDimmed(step.rootId) },
-      ariaLabel: `Prochaine étape de « ${titles.get(step.rootId) ?? 'l’idée'} », non modifiable : ${step.text}`,
-      deletable: false
-    }
-  })
-  const stepEdges = view.steps.map((step): BranchEdgeType => ({
-    id: `step-line-${step.rootId}`,
-    type: 'branch',
-    source: step.rootId,
-    target: stepNodeId(step.rootId),
-    data: { style: 'step' },
-    deletable: false,
-    selectable: false,
-    focusable: false
-  }))
   const ioEdges = view.io.map((link): BranchEdgeType => ({
     id: `io-${link.id}`,
     type: 'branch',
-    source: link.sourceKind === 'idea' ? link.sourceId : stepNodeId(link.sourceId),
+    source: link.sourceId,
     target: link.blockId,
     data: { style: 'io' },
     deletable: false,
@@ -400,9 +314,8 @@ export function buildGraph(
         }
   )
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...stepNodes, ...elementNodes],
-    edges,
-    stepEdges: [...stepEdges, ...ioEdges, ...resultEdges, ...noteEdges],
+    nodes: [...neuronNodes, ...blockNodes, ...elementNodes],
+    edges: [...ioEdges, ...resultEdges, ...noteEdges],
     mapEdges: [...mapEdges, ...structureEdges]
   }
 }

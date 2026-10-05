@@ -1,11 +1,10 @@
 import { z } from 'zod'
 import { WIDGET_PROMPT_MAX_CHARS } from '@shared/ipc/widgets'
-import type { ToolGeneration } from '../application/widgets/ToolGeneration'
 import type { WidgetService } from '../application/widgets/WidgetService'
 import { defineRoute, type IpcRoute } from './registry'
 
-/** Canaux `widget:*` (spec 004) : lecture, demande à Claude, restauration d'une version ; outil proposé (spec 006). */
-export function createWidgetRoutes(widgets: WidgetService, tools?: Pick<ToolGeneration, 'retry'>): IpcRoute[] {
+/** Canaux `widget:*` (spec 004) : lecture, demande à Claude, restauration d'une version. */
+export function createWidgetRoutes(widgets: WidgetService): IpcRoute[] {
   return [
     defineRoute({
       channel: 'widget:get',
@@ -21,15 +20,6 @@ export function createWidgetRoutes(widgets: WidgetService, tools?: Pick<ToolGene
       channel: 'widget:restore',
       input: z.object({ blockId: z.uuid(), versionId: z.uuid() }).strict(),
       handler: async (input) => widgets.restore(input)
-    }),
-    ...(tools === undefined
-      ? []
-      : [
-          defineRoute({
-            channel: 'widget:generate',
-            input: z.object({ blockId: z.uuid() }).strict(),
-            handler: async ({ blockId }) => tools.retry(blockId)
-          })
-        ])
+    })
   ]
 }

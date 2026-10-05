@@ -9,10 +9,7 @@ import type { SpawnOptions } from '../../../src/main/infrastructure/claude/CliCo
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { ConversationRepository } from '../../../src/main/infrastructure/db/repositories/ConversationRepository'
 import { ElementRepository } from '../../../src/main/infrastructure/db/repositories/ElementRepository'
-import { GrowthRepository } from '../../../src/main/infrastructure/db/repositories/GrowthRepository'
-import { HatchedRepository } from '../../../src/main/infrastructure/db/repositories/HatchedRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
-import { LinkRepository } from '../../../src/main/infrastructure/db/repositories/LinkRepository'
 import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
@@ -70,9 +67,7 @@ describe('carte de structure d’un projet (spec 009)', () => {
     })
     canvas = new CanvasService({
       neurons: neuronRepository,
-      links: new LinkRepository(db),
       blocks: new BlockRepository(db),
-      steps: new HatchedRepository(db),
       io: { links: () => [] },
       mapLinks: links,
       elements
@@ -109,7 +104,10 @@ describe('carte de structure d’un projet (spec 009)', () => {
     draw({ elements: [{ cle: 'fonctionnalite:chat', type: 'fonctionnalite', titre: 'Chat', statut: 'livree' }] })
     const drawn = view().elements
     expect(drawn).toHaveLength(4)
-    expect(drawn.find((element) => element.key === 'fonctionnalite:chat')).toMatchObject({ title: 'Chat', status: 'livree' })
+    expect(drawn.find((element) => element.key === 'fonctionnalite:chat')).toMatchObject({
+      title: 'Chat',
+      status: 'livree'
+    })
     expect(view().mapLinks).toHaveLength(1)
   })
 
@@ -149,7 +147,7 @@ describe('carte de structure d’un projet (spec 009)', () => {
     const element = view().elements.find((row) => row.key === 'composant:conversation')
     const tools = new NeuronTools({
       conversations,
-      insertAssessment: (input) => new GrowthRepository(t.handle.db).insertAssessment(input),
+      insertAssessment: (input) => conversations.insertAssessment(input),
       onChanged: () => undefined
     })
     const caller = { neuronId: element?.id ?? null }

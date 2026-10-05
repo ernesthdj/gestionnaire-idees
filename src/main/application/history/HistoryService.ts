@@ -42,7 +42,24 @@ const BLOCK_NAMES: Readonly<Record<string, string>> = {
   empty: 'un bloc'
 }
 
-const sheetCount = (count: number): string => (count > 1 ? `${count} fiches` : '1 fiche')
+/** Contenu d'un lot de conversion (spec 010) : « 3 fiches, 2 liens, 1 branchement ». */
+function conversionCounts(entries: readonly ChangeRow[], undo: boolean): string {
+  // Dans un lot d'annulation, avant et après sont inversés.
+  const original = (entry: ChangeRow): Snapshot => (undo ? entry.after : entry.before)
+  const counts: ReadonlyArray<readonly [number, string, string]> = [
+    [entries.filter((entry) => entry.entity === 'neuron_sheet').length, 'fiche', 'fiches'],
+    [entries.filter((entry) => entry.entity === 'map_link').length, 'lien', 'liens'],
+    [
+      entries.filter((entry) => entry.entity === 'widget_input' && original(entry)?.['sourceKind'] === 'step').length,
+      'branchement',
+      'branchements'
+    ]
+  ]
+  return counts
+    .filter(([count]) => count > 0)
+    .map(([count, one, many]) => `${count} ${count > 1 ? many : one}`)
+    .join(', ')
+}
 
 /** Suppression d'un bloc de la carte (spec 004), ou son annulation. */
 function blockSummary(entry: ChangeRow): string {
@@ -200,9 +217,9 @@ export class HistoryService {
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
-    if (head.kind === 'convert') return `Conversion de l’ancien moteur : ${sheetCount(entries.length)}`
+    if (head.kind === 'convert') return `Conversion de l’ancien moteur : ${conversionCounts(entries, false)}`
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'convert')
-      return `Conversion de l’ancien moteur annulée : ${sheetCount(entries.length)} retirée${entries.length > 1 ? 's' : ''}`
+      return `Conversion de l’ancien moteur annulée : ${conversionCounts(entries, true)}`
     if (head.entity === 'canvas_block') return blockSummary(head)
     if (head.entity === 'widget_input') return inputSummary(head)
     const title = (): string => {

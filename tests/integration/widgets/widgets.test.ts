@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { WidgetService, type WidgetEvent } from '../../../src/main/application/widgets/WidgetService'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
-import { createGatewayHarness, TEST_ROUTING, type GatewayHarness } from '../../support/gateway'
+import { createGatewayHarness, type GatewayHarness } from '../../support/gateway'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 
 const widget = (patch: Record<string, string> = {}) => ({
@@ -28,8 +28,6 @@ describe('widgets générés par Claude (spec 004 US3)', () => {
     t = createNeuronHarness()
     h = createGatewayHarness({
       config: () => ({
-        // Même si la table de routage envoie les widgets en local, ils restent sur Claude.
-        routing: { ...TEST_ROUTING, widget: 'ollama' },
         allowClaudeFallback: false,
         claudeModelFor: (kind) => (kind === 'widget' ? 'claude-sonnet-5-5' : undefined)
       })
@@ -65,16 +63,15 @@ describe('widgets générés par Claude (spec 004 US3)', () => {
     expect(events[1]).toMatchObject({ engine: 'claude', model: 'claude-sonnet-5-5' })
   })
 
-  it('should_send_the_current_code_untouched_but_the_request_anonymized_when_evolving', async () => {
+  it('should_send_the_current_code_untouched_with_the_new_request_when_evolving', async () => {
     h.claude.enqueue(widget(), widget({ title: 'Compte à rebours 2', summary: 'Ajout d’un graphique.' }))
     await widgets.prompt({ blockId, text: 'Un compte à rebours' })
     const view = await widgets.prompt({ blockId, text: 'Ajoute un graphique pour Marc' })
     const sent = h.claude.requests[1]?.user ?? ''
-    // Le code (sortie de Claude) repart tel quel : l'anonymiseur l'aurait abîmé.
+    // Le code (sortie de Claude) repart tel quel, après la demande.
     expect(sent).toContain('const left: HTMLOutputElement | null')
     expect(sent).toContain('Code actuel du widget « Compte à rebours » (version 1)')
-    expect(h.anonymized.at(-1)).toContain('Ajoute un graphique pour Marc')
-    expect(h.anonymized.at(-1)).not.toContain('HTMLOutputElement')
+    expect(sent.indexOf('Ajoute un graphique pour Marc')).toBeLessThan(sent.indexOf('Code actuel du widget'))
     expect(view.current?.number).toBe(2)
     expect(view.versions.map((version) => version.number)).toEqual([1, 2])
   })

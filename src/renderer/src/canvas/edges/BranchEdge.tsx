@@ -1,5 +1,5 @@
 import { BaseEdge, getStraightPath, type Edge, type EdgeProps } from '@xyflow/react'
-import { useCenter } from './LinkEdge'
+import { useCenter } from './useCenter'
 
 export type BranchEdgeData = {
   /** Trait plein (sous-neurone), pointillé (suggestion, question), ambre (vers une idée), bleu (prochaine étape). */

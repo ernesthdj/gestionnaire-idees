@@ -149,10 +149,7 @@ export class MapService {
     return [
       ...view.mapLinks
         .filter((link) => keep(link.from.id, link.to.id))
-        .map((link) => `- ${link.from.id} → ${link.to.id}${link.label === null ? '' : ` « ${link.label} »`}`),
-      ...view.links
-        .filter((link) => link.status === 'accepted' && keep(link.a.id, link.b.id))
-        .map((link) => `- ${link.a.id} ↔ ${link.b.id} « ${link.label} » (lien entre idées)`)
+        .map((link) => `- ${link.from.id} → ${link.to.id}${link.label === null ? '' : ` « ${link.label} »`}`)
     ]
   }
 

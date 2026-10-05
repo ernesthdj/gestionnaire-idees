@@ -8,9 +8,7 @@ import {
   neurons,
   widgetApprovals,
   widgetInputs,
-  widgetRequests,
-  widgetResults,
-  widgetVersions
+  widgetResults
 } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
@@ -129,33 +127,6 @@ export class WidgetIoRepository {
 
   approve(blockId: string, fingerprint: string): void {
     this.db.insert(widgetApprovals).values({ blockId, fingerprint }).onConflictDoNothing().run()
-  }
-
-  /**
-   * Widgets visibles branchés sur une idée (spec 006) : titre et résumé de leur version affichée, ou de la demande
-   * d'un outil pas encore généré.
-   */
-  toolsOf(rootId: string): { readonly title: string; readonly summary: string }[] {
-    return this.db
-      .selectDistinct({
-        blockId: canvasBlocks.id,
-        title: sql<string | null>`coalesce(${widgetVersions.title}, ${widgetRequests.title})`,
-        summary: sql<string | null>`coalesce(${widgetVersions.summary}, ${widgetRequests.description})`
-      })
-      .from(widgetInputs)
-      .innerJoin(canvasBlocks, eq(canvasBlocks.id, widgetInputs.blockId))
-      .leftJoin(widgetVersions, eq(widgetVersions.id, canvasBlocks.currentVersionId))
-      .leftJoin(widgetRequests, eq(widgetRequests.blockId, canvasBlocks.id))
-      .where(
-        and(
-          eq(widgetInputs.sourceId, rootId),
-          isNull(widgetInputs.deletedAt),
-          eq(canvasBlocks.kind, 'widget'),
-          isNull(canvasBlocks.deletedAt)
-        )
-      )
-      .all()
-      .flatMap(({ title, summary }) => (title === null ? [] : [{ title, summary: summary ?? '' }]))
   }
 
   /** Dernier résultat d'un widget : remplace le précédent. */

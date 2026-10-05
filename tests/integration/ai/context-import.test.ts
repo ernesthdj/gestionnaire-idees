@@ -73,7 +73,7 @@ describe('import de contexte', () => {
     writeInbox(inbox, { 'profile.md': FICTIVE_PROFILE })
     service.scan()
     service.apply(service.pending()[0]?.id ?? '')
-    expect(service.activeContext('etendre')?.rules).toBe('Tutoiement, phrases courtes.')
+    expect(service.activeContext('widget')?.rules).toBe('Tutoiement, phrases courtes.')
   })
 
   it.each([
@@ -85,7 +85,7 @@ describe('import de contexte', () => {
     service.scan()
     expect(service.pending()).toEqual([])
     expect(service.history().imports[0]).toMatchObject({ status: 'invalid', error: expect.stringMatching(error) })
-    expect(service.activeContext('etendre')?.profile ?? '').toBe('')
+    expect(service.activeContext('widget')?.profile ?? '').toBe('')
   })
 
   it('should_reject_file_larger_than_50_kb', () => {
@@ -105,7 +105,7 @@ describe('import de contexte', () => {
 
   it('should_reject_examples_containing_personal_data', () => {
     const examples = JSON.stringify([
-      { taskKind: 'etendre', polarity: 'positive', input: 'Écrire à jean@exemple.test', output: {} }
+      { taskKind: 'widget', polarity: 'positive', input: 'Écrire à jean@exemple.test', output: {} }
     ])
     writeInbox(inbox, { 'examples.json': examples })
     service.scan()
@@ -132,7 +132,7 @@ describe('import de contexte', () => {
     service.scan()
     service.reject(service.pending()[0]?.id ?? '')
     expect(service.pending()).toEqual([])
-    expect(service.activeContext('etendre')?.profile ?? '').toBe('')
+    expect(service.activeContext('widget')?.profile ?? '').toBe('')
   })
 
   it('should_restore_previous_version_and_its_examples_when_rolling_back', () => {
@@ -177,16 +177,16 @@ describe('ExampleStore', () => {
 
   it('should_keep_at_most_20_learned_examples_per_task_kind', () => {
     for (let i = 0; i < 25; i += 1) {
-      store.record({ polarity: 'positive', taskKind: 'etendre', input: `idée ${i}`, output: {} })
+      store.record({ polarity: 'positive', taskKind: 'widget', input: `idée ${i}`, output: {} })
     }
-    expect(store.count('etendre')).toBe(20)
+    expect(store.count('widget')).toBe(20)
   })
 
   it('should_select_three_most_recent_examples_of_the_requested_kind_only', () => {
     for (let i = 0; i < 5; i += 1)
-      store.record({ polarity: 'positive', taskKind: 'etendre', input: `e${i}`, output: {} })
-    store.record({ polarity: 'negative', taskKind: 'synthetiser', input: 's', output: {}, reason: 'trop long' })
-    const selected = store.select('etendre', null)
+      store.record({ polarity: 'positive', taskKind: 'widget', input: `e${i}`, output: {} })
+    store.record({ polarity: 'negative', taskKind: 'categoriser', input: 's', output: {}, reason: 'trop long' })
+    const selected = store.select('widget', null)
     expect(selected.map((example) => example.input)).toEqual(['e4', 'e3', 'e2'])
   })
 })

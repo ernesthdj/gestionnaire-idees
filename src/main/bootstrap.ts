@@ -6,20 +6,12 @@ import { CaptureService } from './application/capture/CaptureService'
 import { CanvasService } from './application/canvas/CanvasService'
 import { HistoryService } from './application/history/HistoryService'
 import { ExampleStore } from './application/ai/ExampleStore'
-import { FusionService } from './application/neurons/FusionService'
-import { GrowthService } from './application/neurons/GrowthService'
-import { LinkService } from './application/neurons/LinkService'
-import { SeedService } from './application/neurons/SeedService'
 import { NeuronService } from './application/neurons/NeuronService'
-import { SynthesisApplier } from './application/neurons/SynthesisApplier'
 import { createAiEngine, type AiEngine } from './composition/aiEngine'
 import { resolveOllamaUrl } from './infrastructure/ai/OllamaProvider'
 import { InboxFolder } from './infrastructure/context-inbox/InboxFolder'
 import { watchInbox } from './infrastructure/context-inbox/InboxWatcher'
 import { ContextRepository } from './infrastructure/db/repositories/ContextRepository'
-import { FusionRepository } from './infrastructure/db/repositories/FusionRepository'
-import { GrowthRepository } from './infrastructure/db/repositories/GrowthRepository'
-import { LinkRepository } from './infrastructure/db/repositories/LinkRepository'
 import { NeuronRepository } from './infrastructure/db/repositories/NeuronRepository'
 import { AppSettingsRepository } from './infrastructure/db/repositories/AppSettingsRepository'
 import { BlockRepository } from './infrastructure/db/repositories/BlockRepository'
@@ -35,14 +27,7 @@ import { createAppRoutes } from './ipc/appHandlers'
 import { createCaptureRoutes } from './ipc/captureHandlers'
 import { createCanvasRoutes } from './ipc/canvasHandlers'
 import { createHistoryRoutes } from './ipc/historyHandlers'
-import { createHatchedRoutes } from './ipc/hatchedHandlers'
 import { createContextRoutes } from './ipc/contextHandlers'
-import { createFusionRoutes } from './ipc/fusionHandlers'
-import { createGrowthRoutes } from './ipc/growthHandlers'
-import { createSummaryRoutes } from './ipc/summaryHandlers'
-import { IdeaSummaryService } from './application/neurons/IdeaSummaryService'
-import { createLinkRoutes } from './ipc/linkHandlers'
-import { createSeedRoutes } from './ipc/seedHandlers'
 import { createNeuronRoutes } from './ipc/neuronHandlers'
 import { registerRoutes } from './ipc/registry'
 import { createWidgetRoutes } from './ipc/widgetHandlers'
@@ -51,10 +36,6 @@ import { WidgetIoService } from './application/widgets/WidgetIoService'
 import { WidgetIoRepository } from './infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetService } from './application/widgets/WidgetService'
 import { WidgetRepository } from './infrastructure/db/repositories/WidgetRepository'
-import type { WidgetRequestView } from '@shared/ipc/widgets'
-import { WidgetRequestRepository } from './infrastructure/db/repositories/WidgetRequestRepository'
-import { ToolGeneration } from './application/widgets/ToolGeneration'
-import { toolSurroundings } from './application/widgets/toolSurroundings'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 import { MapService } from './application/mcp/MapService'
 import { NeuronTools } from './application/mcp/NeuronTools'
@@ -122,7 +103,13 @@ export function bootstrap(shell: ShellPort): AppContext {
 
   // Spec 010 US3 : les idées de l'ancien moteur reçoivent une fiche, une seule fois (annulable dans l'Historique).
   const conversion = convertLegacyIdeas(new LegacyRepository(database.db))
-  if (conversion.converted > 0) logger.info('legacy.converted', { count: conversion.converted })
+  if (conversion.batchId !== null) {
+    logger.info('legacy.converted', {
+      sheets: conversion.sheets,
+      links: conversion.links,
+      stepInputs: conversion.stepInputs
+    })
+  }
 
   // Import de contexte (US5) : Claude Code dépose profil, règles et exemples dans ce dossier.
   const contextRepository = new ContextRepository(database.db)
@@ -171,62 +158,9 @@ export function bootstrap(shell: ShellPort): AppContext {
   const neuronRepository = new NeuronRepository(database.db)
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
-  const growthRepository = new GrowthRepository(database.db)
   const hatchedRepository = new HatchedRepository(database.db)
-  const growth = new GrowthService({
-    repository: growthRepository,
-    neurons,
-    gateway: ai.gateway,
-    emit: (event) => broadcast(event.type, event),
-    document: (rootId) => hatchedRepository.result(rootId)
-  })
-  const summaries = new IdeaSummaryService({
-    repository: growthRepository,
-    gateway: ai.gateway,
-    document: (rootId) => hatchedRepository.result(rootId)
-  })
-  const linkRepository = new LinkRepository(database.db)
-  const seeds = new SeedService({
-    repository: linkRepository,
-    neurons,
-    gateway: ai.gateway,
-    examples,
-    emit: (event) => broadcast(event.type, event)
-  })
-  const links = new LinkService({
-    repository: linkRepository,
-    gateway: ai.gateway,
-    examples,
-    seeds,
-    emit: (event) => broadcast(event.type, event)
-  })
   const widgetIoRepository = new WidgetIoRepository(database.db)
-  const widgetRequestRepository = new WidgetRequestRepository(database.db)
   const blockRepository = new BlockRepository(database.db)
-  const fusionRepository = new FusionRepository(database.db)
-  const fusion = new FusionService({
-    repository: fusionRepository,
-    tree: growthRepository,
-    neurons,
-    gateway: ai.gateway,
-    applier: new SynthesisApplier({
-      repository: fusionRepository,
-      tree: growthRepository,
-      neurons,
-      examples,
-      onStale: (row) => broadcast('synthesis:stale', { rootId: row.rootId, synthesisId: row.id }),
-      tools: {
-        blocks: blockRepository,
-        inputs: widgetIoRepository,
-        requests: widgetRequestRepository,
-        surroundings: (rootId) => toolSurroundings(canvas.get(), rootId)
-      }
-    }),
-    links,
-    emit: (event) => broadcast(event.type, event),
-    existingTools: (rootId) => widgetIoRepository.toolsOf(rootId),
-    onToolsCreated: (blockIds) => toolGeneration.start(blockIds)
-  })
 
   const appSettings = new AppSettingsRepository(database.db)
   const widgetRepository = new WidgetRepository(database.db)
@@ -241,22 +175,14 @@ export function bootstrap(shell: ShellPort): AppContext {
     repository: widgetRepository,
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event),
-    inputShape: (blockId) => widgetIo.inputShape(blockId),
-    request: (blockId): WidgetRequestView | null => toolGeneration.view(blockId)
-  })
-  const toolGeneration = new ToolGeneration({
-    requests: widgetRequestRepository,
-    widgets,
-    exists: (blockId) => widgetRepository.widget(blockId) !== undefined
+    inputShape: (blockId) => widgetIo.inputShape(blockId)
   })
   const mapLinkRepository = new MapLinkRepository(database.db)
   const elementRepository = new ElementRepository(database.db)
   const conversationRepository = new ConversationRepository(database.db)
   const canvas = new CanvasService({
     neurons: neuronRepository,
-    links: linkRepository,
     blocks: blockRepository,
-    steps: hatchedRepository,
     io: widgetIo,
     mapLinks: mapLinkRepository,
     sheetSummaries: () => conversationRepository.sheetSummaries(),
@@ -304,7 +230,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       mapService,
       new NeuronTools({
         conversations: conversationRepository,
-        insertAssessment: (input) => growthRepository.insertAssessment(input),
+        insertAssessment: (input) => conversationRepository.insertAssessment(input),
         onChanged: (neuronId) => broadcast('chat:sheet', { neuronId })
       }),
       structure
@@ -360,15 +286,9 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...aiRoutes,
       ...contextRoutes,
       ...createNeuronRoutes(neurons),
-      ...createGrowthRoutes(growth),
-      ...createSummaryRoutes(summaries),
-      ...createFusionRoutes(fusion),
-      ...createLinkRoutes(links),
-      ...createSeedRoutes(seeds),
       ...createCanvasRoutes(canvas),
       ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
-      ...createHatchedRoutes(hatchedRepository),
-      ...createWidgetRoutes(widgets, toolGeneration),
+      ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations),
       ...createStructureRoutes(structure),

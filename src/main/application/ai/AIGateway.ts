@@ -1,17 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
-import { effortFor, isLocalOnly, maxTokensFor, resolveEngine } from '../../domain/ai/routing'
+import { effortFor, engineFor, maxTokensFor } from '../../domain/ai/routing'
 import type { AIError, AIErrorCode, Engine, Result, TaskKind, Usage } from '../../domain/ai/types'
-import {
-  ProviderError,
-  type AIProvider,
-  type CompletionResponse,
-  type ResearchResponse,
-  type SystemBlock,
-  type WebSource
-} from './AIProvider'
+import { ProviderError, type AIProvider, type CompletionResponse } from './AIProvider'
 import { assembleContext } from './ContextAssembler'
-import type { AgentContext, Anonymizer, BudgetGuard, CallLog, CallStatus, GatewayConfig, LocalQueuePort } from './ports'
+import type { AgentContext, CallLog, CallStatus, GatewayConfig, LocalQueuePort } from './ports'
 
 export interface GatewayRequest<T> {
   readonly kind: TaskKind
@@ -20,15 +13,9 @@ export interface GatewayRequest<T> {
   /** Nom du schéma, requis pour pouvoir rejouer la demande depuis la file locale persistante. */
   readonly schemaName?: string
   readonly requestId?: string
-  /** Accepter une version locale de moindre qualité si Claude est indisponible ou bloqué. */
-  readonly allowDegraded?: boolean
   /** Usage interne (rejeu par la file locale) : ne jamais remettre la demande en file. */
   readonly noQueue?: boolean
-  /**
-   * Texte renvoyé tel quel après l'entrée anonymisée : UNIQUEMENT une sortie antérieure de Claude que l'utilisateur
-   * ne peut pas modifier (code courant d'un widget, spec 004). L'anonymiseur la casserait, et rien de nouveau ne
-   * quitte la machine.
-   */
+  /** Texte ajouté tel quel après l'entrée : une sortie antérieure de Claude (code courant d'un widget, spec 004). */
   readonly verbatim?: string
   /** Appelé quand un moteur commence réellement à travailler (repli compris) : l'interface peut dire qui réfléchit. */
   readonly onEngine?: (engine: Engine, model: string) => void
@@ -38,15 +25,6 @@ export interface AIResult<T> {
   readonly data: T
   readonly engine: Engine
   readonly model: string
-  readonly degraded: boolean
-  readonly costMillicents: number
-}
-
-export interface ResearchResult {
-  readonly text: string
-  readonly sources: readonly WebSource[]
-  readonly model: string
-  readonly costMillicents: number
 }
 
 export interface GatewayDependencies {
@@ -54,13 +32,6 @@ export interface GatewayDependencies {
   readonly config: () => GatewayConfig
   /** Profil, règles et exemples actifs pour ce type de tâche (US5). */
   readonly context: (kind: TaskKind) => Promise<AgentContext | undefined>
-  /**
-   * Spec 010 : facultatifs. Claude passe désormais par le CLI de mentalyas (abonnement) : plus d'anonymisation, de
-   * budget ni de coût dans l'app. Seuls les tests de l'ancien moteur (retiré en C2) les branchent encore.
-   */
-  readonly anonymizer?: Anonymizer
-  readonly budget?: BudgetGuard
-  readonly costOf?: (engine: Engine, model: string, usage: Usage) => number
   readonly callLog: CallLog
   readonly localQueue: LocalQueuePort
 }
@@ -92,7 +63,10 @@ function failure(code: AIErrorCode, message: string, retryable = false): { ok: f
   return { ok: false, error: { code, message, retryable } }
 }
 
-/** Seul point d'accès à l'IA (constitution III, contracts/ai-gateway.md). */
+/**
+ * Seul point d'accès à l'IA hors conversations (constitution III, contracts/ai-gateway.md) : Ollama pour la
+ * catégorisation (mise en file s'il est arrêté), `claude -p` pour les widgets (spec 010).
+ */
 export class AIGateway {
   private readonly semaphores: Record<Engine, Semaphore> = {
     ollama: new Semaphore(CONCURRENCY.ollama),
@@ -110,11 +84,10 @@ export class AIGateway {
     }
 
     const config = this.deps.config()
-    let engine = resolveEngine(request.kind, config.routing)
-    let degraded = false
+    let engine = engineFor(request.kind)
 
     if (engine === 'ollama' && !(await this.deps.providers.ollama.isAvailable()).up) {
-      if (config.allowClaudeFallback && !isLocalOnly(request.kind)) {
+      if (config.allowClaudeFallback) {
         engine = 'claude'
       } else if (request.noQueue === true) {
         return failure('AI_UNAVAILABLE', "L'IA locale est indisponible", true)
@@ -133,135 +106,24 @@ export class AIGateway {
       }
     }
 
-    if (engine === 'claude') {
-      const claudeUp = (await this.deps.providers.claude.isAvailable()).up
-      const budgetOk =
-        claudeUp && (this.deps.budget === undefined || (await this.deps.budget.check(request.kind)).allowed)
-      if (!claudeUp || !budgetOk) {
-        if (request.allowDegraded === true && (await this.deps.providers.ollama.isAvailable()).up) {
-          engine = 'ollama'
-          degraded = true
-        } else if (!claudeUp) {
-          return failure('AI_UNAVAILABLE', 'Claude est indisponible', true)
-        } else {
-          await this.log(requestId, request.kind, 'claude', '', undefined, 'blocked_budget', 0, 'BUDGET_EXCEEDED')
-          return failure('BUDGET_EXCEEDED', 'Le plafond mensuel de dépense IA est atteint')
-        }
-      }
+    if (engine === 'claude' && !(await this.deps.providers.claude.isAvailable()).up) {
+      return failure('AI_UNAVAILABLE', 'Claude est indisponible', true)
     }
 
-    const prepared = await this.prepare(request.kind, request.input, engine)
-    if (!prepared.ok) return prepared
-    const { system } = prepared.value
-    const user = request.verbatim === undefined ? prepared.value.user : `${prepared.value.user}\n\n${request.verbatim}`
+    const assembled = assembleContext({
+      kind: request.kind,
+      input: request.input,
+      context: await this.deps.context(request.kind)
+    })
+    const user = request.verbatim === undefined ? assembled.user : `${assembled.user}\n\n${request.verbatim}`
     const model = engine === 'claude' ? config.claudeModelFor?.(request.kind) : undefined
     const chosen = engine
     const result = await this.semaphores[chosen].use(() => {
       request.onEngine?.(chosen, model ?? this.deps.providers[chosen].currentModel?.() ?? '')
-      return this.callWithRetry(request, requestId, chosen, system, user, degraded, model)
+      return this.callWithRetry(request, requestId, chosen, assembled.system, user, model)
     })
     if (result.ok) this.remember(requestId, result.value)
     return result
-  }
-
-  /**
-   * Recherche web (tâche `rechercher`) : uniquement avec Claude, jamais de repli local ni de file d'attente.
-   * Mêmes garanties que `run` : budget vérifié avant, entrée et exemples anonymisés, appel journalisé.
-   */
-  async research(request: {
-    readonly input: string
-    readonly maxSearches: number
-    readonly requestId?: string
-  }): Promise<Result<ResearchResult, AIError>> {
-    const kind = 'rechercher'
-    const requestId = request.requestId ?? randomUUID()
-    const provider = this.deps.providers.claude
-    const research = provider.research?.bind(provider)
-    if (research === undefined || !(await provider.isAvailable()).up) {
-      return failure('AI_UNAVAILABLE', 'La recherche web nécessite Claude', true)
-    }
-    if (this.deps.budget !== undefined && !(await this.deps.budget.check(kind)).allowed) {
-      await this.log(requestId, kind, 'claude', '', undefined, 'blocked_budget', 0, 'BUDGET_EXCEEDED')
-      return failure('BUDGET_EXCEEDED', 'Le plafond mensuel de dépense IA est atteint')
-    }
-    const prepared = await this.prepare(kind, request.input, 'claude')
-    if (!prepared.ok) return prepared
-
-    return this.semaphores.claude.use(async () => {
-      const started = Date.now()
-      let response: ResearchResponse
-      try {
-        response = await research({
-          ...prepared.value,
-          effort: effortFor(kind),
-          maxTokens: maxTokensFor(kind),
-          maxSearches: request.maxSearches
-        })
-      } catch (error) {
-        const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'
-        await this.log(requestId, kind, 'claude', '', undefined, 'error', Date.now() - started, code)
-        return code === 'AUTH_FAILED'
-          ? failure('AUTH_FAILED', 'Claude Code n’est pas connecté : lance `claude` pour te connecter')
-          : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
-      }
-      const cost = this.deps.costOf?.('claude', response.model, response.usage) ?? 0
-      const refused = response.stopReason === 'refusal'
-      const empty = !refused && response.text === ''
-      const status: CallStatus = refused ? 'refusal' : empty ? 'invalid' : 'ok'
-      const code = refused ? 'AI_REFUSAL' : empty ? 'AI_INVALID_OUTPUT' : undefined
-      await this.log(
-        requestId,
-        kind,
-        'claude',
-        response.model,
-        response.usage,
-        status,
-        Date.now() - started,
-        code,
-        cost
-      )
-      await this.deps.budget?.record()
-      if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
-      if (empty) return failure('AI_INVALID_OUTPUT', "La recherche n'a rien donné d'exploitable")
-      return {
-        ok: true,
-        value: { text: response.text, sources: response.sources, model: response.model, costMillicents: cost }
-      }
-    })
-  }
-
-  /** Entrée et exemples anonymisés si la demande part vers Claude, puis assemblage du contexte. */
-  private async prepare(
-    kind: TaskKind,
-    rawInput: string,
-    engine: Engine
-  ): Promise<Result<{ system: readonly SystemBlock[]; user: string }, AIError>> {
-    let input = rawInput
-    const anonymizer = this.deps.anonymizer
-    if (engine === 'claude' && anonymizer !== undefined) {
-      try {
-        input = await anonymizer.anonymize(rawInput)
-      } catch {
-        return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
-      }
-    }
-
-    const assembled = assembleContext({ kind, input, context: await this.deps.context(kind) })
-    let system = assembled.system
-    if (engine === 'claude' && anonymizer !== undefined) {
-      // Les exemples proviennent d'idées réelles (propositions acceptées/refusées) : ils sont anonymisés
-      // comme l'entrée. Le profil et les règles sont vérifiés à l'import (aucune donnée personnelle).
-      try {
-        system = await Promise.all(
-          system.map(async (block) =>
-            block.role === 'examples' ? { ...block, text: await anonymizer.anonymize(block.text) } : block
-          )
-        )
-      } catch {
-        return failure('ANONYMIZATION_FAILED', "Les données n'ont pas pu être anonymisées : rien n'a été envoyé")
-      }
-    }
-    return { ok: true, value: { system, user: assembled.user } }
   }
 
   private async callWithRetry<T>(
@@ -270,7 +132,6 @@ export class AIGateway {
     engine: Engine,
     system: Parameters<AIProvider['complete']>[0]['system'],
     user: string,
-    degraded: boolean,
     model: string | undefined
   ): Promise<Result<AIResult<T>, AIError>> {
     const provider = this.deps.providers[engine]
@@ -294,11 +155,9 @@ export class AIGateway {
           : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
       }
 
-      const cost = this.deps.costOf?.(engine, response.model, response.usage) ?? 0
       const refused = response.stopReason === 'refusal'
       const status: CallStatus = refused ? 'refusal' : response.parsed === null ? 'invalid' : 'ok'
       const errorCode = refused ? 'AI_REFUSAL' : status === 'invalid' ? 'AI_INVALID_OUTPUT' : undefined
-      // Journaliser d'abord : le total du mois utilisé par le budget inclut alors cet appel.
       await this.log(
         requestId,
         request.kind,
@@ -307,18 +166,11 @@ export class AIGateway {
         response.usage,
         status,
         Date.now() - started,
-        errorCode,
-        cost
+        errorCode
       )
-      if (engine === 'claude') await this.deps.budget?.record()
 
       if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
-      if (response.parsed !== null) {
-        return {
-          ok: true,
-          value: { data: response.parsed, engine, model: response.model, degraded, costMillicents: cost }
-        }
-      }
+      if (response.parsed !== null) return { ok: true, value: { data: response.parsed, engine, model: response.model } }
     }
     return failure('AI_INVALID_OUTPUT', "La réponse de l'IA ne respectait pas le format attendu")
   }
@@ -337,8 +189,7 @@ export class AIGateway {
     usage: Usage | undefined,
     status: CallStatus,
     durationMs: number,
-    errorCode?: string,
-    costMillicents = 0
+    errorCode?: string
   ): Promise<void> {
     return this.deps.callLog.record({
       requestId,
@@ -346,7 +197,7 @@ export class AIGateway {
       engine,
       model,
       usage: usage ?? { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
-      costMillicents,
+      costMillicents: 0,
       status,
       durationMs,
       ...(errorCode === undefined ? {} : { errorCode })

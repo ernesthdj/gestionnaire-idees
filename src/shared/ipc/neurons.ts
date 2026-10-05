@@ -1,6 +1,7 @@
-import type { ActionPlanOut, ReflectionSummaryOut } from '../ai/neurons'
-
-/** Vues et entrées IPC du moteur de neurones (spec 002 contracts/ipc-neurons.md). */
+/**
+ * Vues IPC des idées (spec 002 contracts/ipc-neurons.md). L'arbre, les questions et le document éclos sont ceux de
+ * l'ancien moteur, gardés en archive (spec 010) : lus par les widgets branchés et par le pont MCP.
+ */
 
 export type Nature = 'action' | 'reflection'
 export type RootState = 'raw' | 'developing' | 'hatched' | 'archived'
@@ -90,13 +91,6 @@ export interface GaugeView {
   readonly answered: number
 }
 
-/** Résumé de l'idée de départ par l'IA ; `null` tant qu'il n'y a rien à résumer ou que l'IA n'a pas répondu. */
-export interface IdeaSummaryView {
-  readonly summary: string | null
-  /** L'idée a changé depuis ce résumé et l'IA n'a pas pu le refaire. */
-  readonly stale: boolean
-}
-
 export interface TreeView {
   readonly root: RootView
   readonly neurons: readonly NeuronView[]
@@ -108,86 +102,6 @@ export interface TreeView {
 export interface RootListView {
   readonly items: readonly RootView[]
   readonly nextCursor: string | null
-}
-
-export type SynthesisStatus = 'proposed' | 'confirmed' | 'rejected' | 'superseded' | 'stale'
-
-export type SynthesisContent =
-  | { readonly type: 'action_plan'; readonly plan: ActionPlanOut }
-  | { readonly type: 'reflection_summary'; readonly summary: ReflectionSummaryOut }
-
-/** Synthèse proposée au verrouillage : rien n'est appliqué avant `fusion:confirm`. */
-export type SynthesisView = SynthesisContent & {
-  readonly id: string
-  readonly rootId: string
-  readonly status: SynthesisStatus
-  readonly baseVersion: number
-  readonly instruction: string | null
-  /** Verrouillage demandé avant que le contexte soit suffisant : résultat possiblement non optimal. */
-  readonly forced: boolean
-  /** Produite par l'IA locale faute de Claude : qualité moindre. */
-  readonly degraded: boolean
-  /** Alias `sN` cités dans `sourceRefs` → identifiant du sous-neurone. */
-  readonly sources: Readonly<Record<string, string>>
-  readonly createdAt: string
-}
-
-export interface ConfirmView {
-  readonly batchId: string
-  readonly root: RootView
-  /** Widgets créés pour les outils cochés (spec 006) ; Claude les génère ensuite en arrière-plan. */
-  readonly toolBlockIds: readonly string[]
-}
-
-/** `superseded` : lien remplacé par l'idée née de sa graine (A — idée — B), masqué, restauré par l'annulation. */
-export type LinkStatus = 'suggested' | 'accepted' | 'rejected' | 'superseded'
-
-/** Lien libellé entre deux idées (réseau des neurones éclos). */
-export interface LinkView {
-  readonly id: string
-  readonly a: { readonly id: string; readonly title: string }
-  readonly b: { readonly id: string; readonly title: string }
-  readonly label: string
-  readonly justification: string | null
-  readonly origin: Source
-  readonly status: LinkStatus
-  readonly createdAt: string
-}
-
-export type SeedStatus = 'suggested' | 'accepted' | 'rejected'
-
-/** Graine d'un lien (spec 003 FR-028) : en attente sur un lien accepté, ou acceptée (`bornRootId`). */
-export interface SeedView {
-  readonly id: string
-  readonly linkId: string
-  readonly title: string
-  readonly why: string
-  readonly status: SeedStatus
-  readonly bornRootId: string | null
-  /** Les deux idées reliées : l'idée née est « née de A × B ». */
-  readonly parents: readonly [
-    { readonly id: string; readonly title: string },
-    { readonly id: string; readonly title: string }
-  ]
-}
-
-/** Réponse des canaux `growth:*` : l'arbre à jour et, éventuellement, un avertissement à montrer. */
-export interface GrowthResultView {
-  readonly tree: TreeView
-  /** Ex. `FEW_EXTENSIONS`, `OUT_OF_SCOPE`, `DEPTH_LIMIT`, `AI_UNAVAILABLE`, `BUDGET_EXCEEDED`. */
-  readonly notice?: { readonly code: string; readonly message: string }
-}
-
-/**
- * Correction d'un élément d'une synthèse proposée (`fusion:editProposed`) : `ref` d'un nœud de plan (titre,
- * montant, date ; `null` efface) ou `section.index` d'un point de synthèse de réflexion (texte).
- */
-export interface SynthesisPatch {
-  readonly ref: string
-  readonly title?: string
-  readonly amountCents?: number | null
-  readonly dueDate?: string | null
-  readonly text?: string
 }
 
 /** Tâche, condition ou opportunité du plan en cours d'une idée éclose Action. */

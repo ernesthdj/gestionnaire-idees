@@ -56,7 +56,6 @@ const resultBlock: BlockView = {
 
 const widget: WidgetView = {
   blockId: WIDGET_ID,
-  request: null,
   current: {
     id: VERSION_ID,
     number: 1,
@@ -163,7 +162,7 @@ describe('regroupement des résultats émis en rafale (spec 005)', () => {
 
 describe('sortie d’un widget sur la carte (spec 005 lot 2)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ toast: null, bornId: null, openRootId: null }))
+  beforeEach(() => useUiStore.setState({ toast: null, bornId: null }))
 
   it('should_link_the_result_frame_to_its_widget', () => {
     const canvas = view([widgetBlock, resultBlock])
@@ -172,9 +171,9 @@ describe('sortie d’un widget sur la carte (spec 005 lot 2)', () => {
       type: 'result',
       ariaLabel: 'Résultat d’un widget'
     })
-    expect(
-      graph.stepEdges.filter((edge) => edge.data?.style === 'io').map((edge) => [edge.source, edge.target])
-    ).toEqual([[WIDGET_ID, RESULT_ID]])
+    expect(graph.edges.filter((edge) => edge.data?.style === 'io').map((edge) => [edge.source, edge.target])).toEqual([
+      [WIDGET_ID, RESULT_ID]
+    ])
   })
 
   it('should_relay_a_result_of_its_own_frame_to_the_main_process_and_refresh_the_map', async () => {

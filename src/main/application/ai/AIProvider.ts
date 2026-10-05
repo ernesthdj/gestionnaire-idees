@@ -27,28 +27,6 @@ export interface CompletionResponse<T> {
 }
 
 /** Recherche web (texte libre + sources) : incompatible avec la sortie structurée, d'où un appel à part. */
-export interface ResearchRequest {
-  readonly system: readonly SystemBlock[]
-  readonly user: string
-  readonly maxTokens: number
-  readonly effort?: Effort
-  /** Nombre maximal de recherches web pour cette demande. */
-  readonly maxSearches: number
-}
-
-export interface WebSource {
-  readonly url: string
-  readonly title: string
-}
-
-export interface ResearchResponse {
-  readonly text: string
-  readonly sources: readonly WebSource[]
-  readonly usage: Usage
-  readonly stopReason: string
-  readonly model: string
-}
-
 export type ProviderProblem = 'not_running' | 'model_missing' | 'unexpected' | 'not_configured'
 
 export interface ProviderStatus {
@@ -66,8 +44,6 @@ export interface AIProvider {
   currentModel?(): string
   isAvailable(): Promise<ProviderStatus>
   complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>>
-  /** Seul Claude sait chercher sur le web (outil exécuté par Anthropic). */
-  research?(request: ResearchRequest): Promise<ResearchResponse>
 }
 
 /** Erreur typée d'un moteur : permet à la passerelle de distinguer une clé refusée d'une panne. */

@@ -9,7 +9,16 @@ import { readSheet } from '../../../src/main/domain/conversation/sheet'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { LegacyRepository } from '../../../src/main/infrastructure/db/repositories/LegacyRepository'
-import { extensions, neurons, planNodes, reflectionSummaries } from '../../../src/main/infrastructure/db/schemaNeurons'
+import {
+  canvasBlocks,
+  extensions,
+  mapLinks,
+  neuronLinks,
+  neurons,
+  planNodes,
+  reflectionSummaries,
+  widgetInputs
+} from '../../../src/main/infrastructure/db/schemaNeurons'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 
@@ -93,7 +102,7 @@ describe('conversion des idées de l’ancien moteur au démarrage (spec 010 US3
   it('should_give_a_sheet_built_from_the_document_and_answers_when_an_old_idea_was_hatched', () => {
     hatchedReflection('studio')
     const result = convert()
-    expect(result.converted).toBe(1)
+    expect(result.sheets).toBe(1)
     expect(readSheet(sheetOf('studio'))).toEqual({
       resume: 'Un studio à Liège',
       points_cles: ['Prochaine étape : Visiter trois locaux', 'Clientèle : Mariages', 'Quelle ville ? → Liège'],
@@ -136,25 +145,25 @@ describe('conversion des idées de l’ancien moteur au démarrage (spec 010 US3
 
   it('should_leave_no_sheet_when_the_old_idea_had_neither_answers_nor_document', () => {
     root('brute', 'Idée brute')
-    expect(convert()).toEqual({ converted: 0, batchId: null })
+    expect(convert()).toEqual({ sheets: 0, links: 0, stepInputs: 0, batchId: null })
     expect(sheetOf('brute')).toBeNull()
   })
 
   it('should_convert_only_once_even_after_a_restart', () => {
     hatchedReflection('studio')
-    expect(convert().converted).toBe(1)
+    expect(convert().sheets).toBe(1)
     // Une idée apparue ensuite (ou une fiche effacée) n'est plus convertie : le marqueur est posé.
     hatchedReflection('autre')
     handle.close()
     open()
-    expect(convert()).toEqual({ converted: 0, batchId: null })
+    expect(convert()).toEqual({ sheets: 0, links: 0, stepInputs: 0, batchId: null })
     expect(sheetOf('autre')).toBeNull()
   })
 
   it('should_mark_the_conversion_as_done_even_when_there_was_nothing_to_convert', () => {
-    expect(convert().converted).toBe(0)
+    expect(convert().sheets).toBe(0)
     hatchedReflection('studio')
-    expect(convert().converted).toBe(0)
+    expect(convert().sheets).toBe(0)
   })
 
   it('should_record_one_undoable_history_batch_and_remove_the_sheets_when_undone', () => {
@@ -172,9 +181,9 @@ describe('conversion des idées de l’ancien moteur au démarrage (spec 010 US3
     history.undo(batchId ?? '')
     expect(sheetOf('studio')).toBeNull()
     expect(sheetOf('voyage')).toBeNull()
-    expect(history.list().items[0]?.summary).toBe('Conversion de l’ancien moteur annulée : 2 fiches retirées')
+    expect(history.list().items[0]?.summary).toBe('Conversion de l’ancien moteur annulée : 2 fiches')
     // L'annulation est définitive pour la conversion : elle ne repart pas au démarrage suivant.
-    expect(convert().converted).toBe(0)
+    expect(convert().sheets).toBe(0)
   })
 
   it('should_refuse_to_undo_when_a_converted_sheet_was_changed_since', () => {
@@ -186,6 +195,113 @@ describe('conversion des idées de l’ancien moteur au démarrage (spec 010 US3
       .where(eq(neurons.id, 'studio'))
       .run()
     expect(() => history.undo(batchId ?? '')).toThrow(/la situation a changé/)
+  })
+
+  function link(id: string, a: string, b: string, status: 'accepted' | 'suggested', label = ''): void {
+    handle.db
+      .insert(neuronLinks)
+      .values({ id, aRootId: a, bRootId: b, label, origin: 'user', status, fingerprint: id })
+      .run()
+  }
+
+  const activeMapLinks = () =>
+    handle.db
+      .select()
+      .from(mapLinks)
+      .all()
+      .filter((row) => row.deletedAt === null)
+
+  it('should_turn_accepted_links_between_ideas_into_free_map_links_and_drop_suggestions', () => {
+    root('a', 'Studio')
+    root('b', 'Objectif')
+    root('c', 'Voyage')
+    link('l1', 'a', 'b', 'accepted', 'finance')
+    link('l2', 'a', 'c', 'accepted')
+    link('l3', 'b', 'c', 'suggested', 'proposé par l’IA')
+    expect(convert()).toMatchObject({ sheets: 0, links: 2, stepInputs: 0 })
+    expect(
+      activeMapLinks().map((row) => ({
+        from: row.fromId,
+        to: row.toId,
+        label: row.label,
+        kinds: [row.fromKind, row.toKind]
+      }))
+    ).toEqual([
+      { from: 'a', to: 'b', label: 'finance', kinds: ['idea', 'idea'] },
+      { from: 'a', to: 'c', label: null, kinds: ['idea', 'idea'] }
+    ])
+  })
+
+  it('should_not_duplicate_a_link_already_drawn_as_a_free_link_in_either_direction', () => {
+    root('a', 'Studio')
+    root('b', 'Objectif')
+    link('l1', 'a', 'b', 'accepted')
+    handle.db
+      .insert(mapLinks)
+      .values({ id: 'm1', fromKind: 'idea', fromId: 'b', toKind: 'idea', toId: 'a', origin: 'claude' })
+      .run()
+    expect(convert().links).toBe(0)
+    expect(activeMapLinks()).toHaveLength(1)
+  })
+
+  function widget(id: string): void {
+    handle.db.insert(canvasBlocks).values({ id, kind: 'widget', x: 0, y: 0, width: 520, height: 440 }).run()
+  }
+
+  it('should_plug_the_idea_itself_instead_of_its_next_step_into_the_widget', () => {
+    root('a', 'Studio')
+    widget('w1')
+    handle.db.insert(widgetInputs).values({ id: 'in1', blockId: 'w1', sourceKind: 'step', sourceId: 'a' }).run()
+    expect(convert()).toMatchObject({ stepInputs: 1 })
+    const rows = handle.db.select().from(widgetInputs).all()
+    expect(rows.filter((row) => row.deletedAt === null).map((row) => [row.sourceKind, row.sourceId])).toEqual([
+      ['idea', 'a']
+    ])
+    expect(JSON.parse(rows.find((row) => row.sourceKind === 'idea')?.partsJson ?? '[]')).toContain('document')
+  })
+
+  it('should_only_unplug_the_step_when_the_widget_already_receives_the_idea', () => {
+    root('a', 'Studio')
+    widget('w1')
+    handle.db
+      .insert(widgetInputs)
+      .values([
+        { id: 'in1', blockId: 'w1', sourceKind: 'idea', sourceId: 'a' },
+        { id: 'in2', blockId: 'w1', sourceKind: 'step', sourceId: 'a' }
+      ])
+      .run()
+    convert()
+    const active = handle.db
+      .select()
+      .from(widgetInputs)
+      .all()
+      .filter((row) => row.deletedAt === null)
+    expect(active.map((row) => row.id)).toEqual(['in1'])
+    // Rien de nouveau n'est branché : seule l'étape est débranchée.
+    expect(handle.db.select().from(widgetInputs).all()).toHaveLength(2)
+  })
+
+  it('should_undo_links_and_plugs_with_the_sheets_in_one_go', () => {
+    hatchedReflection('studio')
+    root('b', 'Objectif')
+    link('l1', 'studio', 'b', 'accepted')
+    widget('w1')
+    handle.db.insert(widgetInputs).values({ id: 'in1', blockId: 'w1', sourceKind: 'step', sourceId: 'studio' }).run()
+    const { batchId } = convert()
+    expect(history.list().items[0]?.summary).toBe('Conversion de l’ancien moteur : 1 fiche, 1 lien, 1 branchement')
+
+    history.undo(batchId ?? '')
+    expect(sheetOf('studio')).toBeNull()
+    expect(activeMapLinks()).toHaveLength(0)
+    const active = handle.db
+      .select()
+      .from(widgetInputs)
+      .all()
+      .filter((row) => row.deletedAt === null)
+    expect(active.map((row) => [row.id, row.sourceKind])).toEqual([['in1', 'step']])
+    expect(history.list().items[0]?.summary).toBe(
+      'Conversion de l’ancien moteur annulée : 1 fiche, 1 lien, 1 branchement'
+    )
   })
 
   it('should_keep_the_old_tables_untouched', () => {

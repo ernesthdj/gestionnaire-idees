@@ -1,12 +1,9 @@
-import type { CategoryView, GaugeLevel, LinkView, Nature, RootView, SeedView } from './neurons'
+import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
 export interface CanvasNeuronView extends RootView {
-  /** Premiers sous-neurones directs (aperçu autour d'une idée en développement). */
-  readonly subNeurons: readonly { readonly id: string; readonly title: string }[]
-  readonly subCount: number
   /** Dernier niveau de contexte évalué ; `null` tant que l'idée n'a pas été travaillée (taille du neurone). */
   readonly contextLevel: GaugeLevel | null
   /** Résumé de la fiche tenue par Claude dans la conversation du neurone (spec 008) ; absent sans fiche. */
@@ -17,37 +14,21 @@ export interface IdeasCanvasView {
   readonly counts: { readonly raw: number; readonly developing: number; readonly hatched: number }
   /** Toutes les idées, quel que soit leur état, dans un seul espace (FR-029). */
   readonly ideas: readonly CanvasNeuronView[]
-  /** Liens acceptés et suggérés entre idées visibles. */
-  readonly links: readonly LinkView[]
-  /** Graines en attente sur les liens visibles, et graines acceptées (« née de A × B ») des idées visibles. */
-  readonly seeds: readonly SeedView[]
   readonly categories: readonly CategoryView[]
   /** Idées correspondant au filtre ; `null` sans filtre (toutes normales). */
   readonly highlighted: readonly string[] | null
   /** Blocs posés sur la carte : vides, notes, widgets (spec 004) et cadres résultat (spec 005). */
   readonly blocks: readonly BlockView[]
-  /** Prochaine étape de chaque idée qui en a une (document en cours). */
-  readonly steps: readonly StepView[]
-  /** Branchements d'entrée des widgets (spec 005) : idée ou prochaine étape → widget. */
+  /** Branchements d'entrée des widgets (spec 005) : idée → widget. */
   readonly io: readonly IoLinkView[]
-  /** Liens libres entre blocs et idées (spec 007), et liens typés des cartes de structure (spec 009). */
+  /** Liens libres entre blocs et idées (spec 007, 010), et liens typés des cartes de structure (spec 009). */
   readonly mapLinks: readonly MapLinkView[]
   /** Éléments des cartes de structure des projets liés (spec 009). */
   readonly elements: readonly ElementView[]
 }
 
-/**
- * « Prochaine étape » d'une idée, posée sur la carte à côté d'elle (FR-037) : tirée du document, non modifiable ;
- * point de départ d'un nouveau brainstorming. `position` : place mémorisée si elle a été glissée (épinglée).
- */
-/** Place de départ d'une étape jamais glissée, par rapport au centre de son idée : en bas à droite. */
-export const STEP_START_OFFSET = { x: 190, y: 130 } as const
-
-export interface StepView {
-  readonly rootId: string
-  readonly text: string
-  readonly position: { readonly x: number; readonly y: number } | null
-}
+/** Libellé court d'un lien entre deux idées (1 à 3 mots en pratique). */
+export const LINK_LABEL_MAX = 40
 
 /** Blocs que l'utilisateur pose lui-même : bloc vide (003), note = étiquette de texte, widget (spec 004). */
 export const CREATABLE_BLOCK_KINDS = ['empty', 'label', 'widget'] as const

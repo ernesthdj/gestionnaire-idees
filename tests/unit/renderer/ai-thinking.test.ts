@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { workerLabel } from '../../../src/renderer/src/dive/AiThinking'
+import { workerLabel } from '../../../src/renderer/src/widgets/AiThinking'
 
 describe('étiquette du moteur qui réfléchit', () => {
   it('should_name_the_claude_model_when_claude_works', () => {

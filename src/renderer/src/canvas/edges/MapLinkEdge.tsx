@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getStraightPath, type Edge, type EdgeProps } from '@xyflow/react'
-import { useCenter } from './LinkEdge'
+import { useCenter } from './useCenter'
 
 import type { ElementRelation } from '@shared/ipc/canvas'
 

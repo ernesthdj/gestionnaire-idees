@@ -59,7 +59,7 @@ const pane = async (): Promise<Element> => {
 
 describe('boîte à outils de la carte (spec 004)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', openRootId: null, bornId: null, toast: null }))
+  beforeEach(() => useUiStore.setState({ view: 'ideas', bornId: null, toast: null }))
 
   it('should_open_the_tools_at_the_right_click_with_the_first_tool_focused_and_close_on_escape', async () => {
     const user = userEvent.setup()

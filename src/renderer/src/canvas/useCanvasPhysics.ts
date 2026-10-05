@@ -1,16 +1,11 @@
 import { useMemo, useRef } from 'react'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
 import { MIN_FOOTPRINT } from './forceLayout'
-import { STEP_OFFSET, stepNodeId, TIER_SIZE, tierOf, type CanvasLayout } from './buildGraph'
-import { STEP_RADIUS } from './nodes/StepNode'
+import { ideaLinks, TIER_SIZE, tierOf, type CanvasLayout } from './buildGraph'
 import { CanvasPhysics, type Body, type Point, type Spring } from './physics'
-import { treeBodies } from './treeGraph'
-import type { OpenTree } from './treeStore'
 
 /** Ressort d'un lien entre idées : souple, il garde la disposition sans croisement du départ. */
 const IDEA_LINK = { distance: 240, strength: 0.08 } as const
-/** Ressort qui garde une prochaine étape près de son idée. */
-const STEP_LINK = { distance: 230, strength: 0.2 } as const
 
 /** Encombrement d'une idée : son cercle, et son titre de 160 px sous le cercle. */
 function ideaRadius(neuron: IdeasCanvasView['ideas'][number]): number {
@@ -21,13 +16,11 @@ interface PhysicsInput {
   readonly view: IdeasCanvasView | undefined
   /** Disposition de départ (sans croisement) des idées sans place mémorisée. */
   readonly seed: CanvasLayout | null
-  readonly tree: OpenTree | null
-  readonly openRootId: string | null
 }
 
 /**
- * Relie la carte à sa physique (FR-034) : à chaque changement de contenu, tous les objets (idées, blocs, arbre de
- * l'idée ouverte, textes d'idées) sont mis à jour puis stabilisés d'un coup. Renvoie les positions et le moteur
+ * Relie la carte à sa physique (FR-034) : à chaque changement de contenu, tous les objets (idées, blocs) sont mis à
+ * jour puis stabilisés d'un coup. Renvoie les positions et le moteur
  * (pour le glisser en direct).
  */
 export function useCanvasPhysics(input: PhysicsInput): {
@@ -38,7 +31,7 @@ export function useCanvasPhysics(input: PhysicsInput): {
   physicsRef.current ??= new CanvasPhysics()
   const physics = physicsRef.current
 
-  const { view, seed, tree, openRootId } = input
+  const { view, seed } = input
   const bodies: Body[] = []
   const springs: Spring[] = []
   if (view !== undefined && seed !== null) {
@@ -49,8 +42,7 @@ export function useCanvasPhysics(input: PhysicsInput): {
         radius: ideaRadius(neuron),
         x: start.x,
         y: start.y,
-        // L'idée ouverte reste en place : son arbre se déploie autour, le volet ne saute pas.
-        pinned: neuron.pinned || neuron.id === openRootId,
+        pinned: neuron.pinned,
         gravity: true
       })
     }
@@ -64,27 +56,7 @@ export function useCanvasPhysics(input: PhysicsInput): {
         gravity: false
       })
     }
-    // Prochaines étapes (FR-037) : près de leur idée ; glissées à la main, elles restent à leur place.
-    for (const step of view.steps) {
-      const root = seed.positions.get(step.rootId) ?? { x: 0, y: 0 }
-      const start = step.position ?? { x: root.x + STEP_OFFSET.x, y: root.y + STEP_OFFSET.y }
-      bodies.push({
-        id: stepNodeId(step.rootId),
-        radius: STEP_RADIUS,
-        x: start.x,
-        y: start.y,
-        pinned: step.position !== null,
-        gravity: false
-      })
-      springs.push({ source: step.rootId, target: stepNodeId(step.rootId), ...STEP_LINK })
-    }
-    for (const link of view.links) springs.push({ source: link.a.id, target: link.b.id, ...IDEA_LINK })
-    if (tree !== null) {
-      const root = physics.positions().get(tree.rootId) ?? seed.positions.get(tree.rootId) ?? { x: 0, y: 0 }
-      const branch = treeBodies(tree, root)
-      bodies.push(...branch.bodies)
-      springs.push(...branch.springs)
-    }
+    for (const link of ideaLinks(view)) springs.push({ source: link.from.id, target: link.to.id, ...IDEA_LINK })
   }
   // Seul un changement de contenu relance la stabilisation (pas un simple nouveau rendu).
   const signature = [

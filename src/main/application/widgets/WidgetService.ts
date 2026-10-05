@@ -1,5 +1,5 @@
 import { WidgetOut } from '@shared/ai/widgets'
-import type { WidgetRequestView, WidgetView } from '@shared/ipc/widgets'
+import type { WidgetView } from '@shared/ipc/widgets'
 import type { Engine } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
 import type { WidgetRepository, WidgetVersionRow } from '../../infrastructure/db/repositories/WidgetRepository'
@@ -22,8 +22,6 @@ export interface WidgetDependencies {
   readonly emit: (event: WidgetEvent) => void
   /** Structure (sans valeur) des entrées branchées sur un widget ; `null` s'il n'en a pas (spec 005). */
   readonly inputShape?: (blockId: string) => string | null
-  /** Demande d'un outil coché à l'éclosion, pas encore généré (spec 006). */
-  readonly request?: (blockId: string) => WidgetRequestView | null
 }
 
 /** Demandes précédentes rappelées à Claude (le code actuel porte le reste) : borne le contexte envoyé. */
@@ -66,7 +64,6 @@ export class WidgetService {
     })
     return {
       blockId,
-      request: this.deps.request?.(blockId) ?? null,
       current:
         current === undefined ? null : { ...summary(current), html: current.html, css: current.css, ts: current.ts },
       versions: versions.map(summary),
