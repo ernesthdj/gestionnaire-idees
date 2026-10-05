@@ -2,15 +2,18 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
 import { z } from 'zod'
+import { isEmptySheet, readSheet } from '../../../src/main/domain/conversation/sheet'
+import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
 import { seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
+import { ElementRepository } from '../../../src/main/infrastructure/db/repositories/ElementRepository'
+import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
-import { linkSeeds, neuronLinks } from '../../../src/main/infrastructure/db/schemaNeurons'
+import { neuronLinks, neurons, planNodes, reflectionSummaries } from '../../../src/main/infrastructure/db/schemaNeurons'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 
-describe('jeu de démonstration', () => {
+describe('jeu de démonstration (spec 010 C3)', () => {
   let dir: string
   let handle: DatabaseHandle
 
@@ -24,59 +27,56 @@ describe('jeu de démonstration', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('should_create_12_roots_covering_every_context_level_and_8_links_when_the_base_is_empty', () => {
+  it('should_create_12_genesis_covering_every_maturity_level_with_their_sheets_when_the_base_is_empty', () => {
     expect(seedDemo(handle.db)).toEqual({ seeded: true })
-
     const roots = new NeuronRepository(handle.db)
-    const count = (state: 'raw' | 'developing' | 'hatched'): number =>
-      roots.listRoots({ state, limit: 100 }).items.length
-    expect([count('raw'), count('developing'), count('hatched')]).toEqual([2, 7, 3])
-
-    // Liens de l'ancien moteur (archive, spec 010) : repris en liens libres par la conversion au démarrage.
-    const links = handle.db.select().from(neuronLinks).all()
-    expect(links.filter((link) => link.status === 'accepted')).toHaveLength(6)
-    expect(links.filter((link) => link.status === 'suggested')).toHaveLength(2)
-    const pairs = links.map((link) => [link.aRootId, link.bRootId].sort().join('|'))
-    expect(new Set(pairs).size).toBe(8)
-    // Des liens entre idées d'états différents (espace unique).
-    const stateOf = new Map(roots.canvasRoots().map((root) => [root.id, root.state]))
-    expect(links.some((link) => stateOf.get(link.aRootId) !== stateOf.get(link.bRootId))).toBe(true)
+    expect(roots.canvasRoots()).toHaveLength(12)
     expect(new Set(roots.latestGaugeLevels().values())).toEqual(new Set(['insufficient', 'sufficient', 'complete']))
-    // Graines fictives en attente sur des liens acceptés (FR-028).
-    expect(handle.db.select().from(linkSeeds).all()).toEqual(
-      Array.from({ length: 2 }, () => expect.objectContaining({ status: 'suggested', bornRootId: null }))
-    )
+    // Une idée travaillée (maturité évaluée) a une fiche ; une idée brute n'en a pas.
+    const rows = handle.db
+      .select({ kind: neurons.kind, state: neurons.state, sheet: neurons.sheetJson })
+      .from(neurons)
+      .all()
+      .filter((row) => row.kind === 'root')
+    expect(rows.filter((row) => row.state === 'raw').every((row) => row.sheet === null)).toBe(true)
+    const worked = rows.filter((row) => row.state === 'developing' || row.state === 'hatched')
+    expect(worked.every((row) => !isEmptySheet(readSheet(row.sheet)))).toBe(true)
   })
 
-  it('should_give_developing_roots_a_tree_and_a_gauge_when_seeded', () => {
+  it('should_link_ideas_with_free_links_and_draw_a_structure_map', () => {
     seedDemo(handle.db)
-    const repository = new NeuronRepository(handle.db)
-    const developing = repository.listRoots({ state: 'developing', limit: 1 }).items[0]
-    expect(developing).toBeDefined()
-    const rootId = developing?.id ?? ''
-    expect(repository.neuronsOf(rootId)).toHaveLength(2)
-    expect(repository.proposedExtensions(rootId)).toHaveLength(1)
-    expect(repository.latestGauge(rootId)?.level).toBeDefined()
+    const links = new MapLinkRepository(handle.db).list()
+    const ideaLinks = links.filter((link) => link.from.kind === 'idea' && link.to.kind === 'idea')
+    expect(ideaLinks).toHaveLength(8)
+    expect(new Set(ideaLinks.map((link) => [link.from.id, link.to.id].sort().join('|'))).size).toBe(8)
+    const elements = new ElementRepository(handle.db).views()
+    expect(elements).toHaveLength(6)
+    expect(new Set(elements.map((element) => element.genesisId)).size).toBe(1)
+    expect(links.filter((link) => link.relation !== null)).toHaveLength(2)
+  })
+
+  it('should_write_nothing_in_the_old_engine_tables', () => {
+    seedDemo(handle.db)
+    expect(handle.db.select().from(neuronLinks).all()).toEqual([])
+    expect(handle.db.select().from(planNodes).all()).toEqual([])
+    expect(handle.db.select().from(reflectionSummaries).all()).toEqual([])
   })
 
   it('should_do_nothing_when_demo_data_already_exists', () => {
     seedDemo(handle.db)
     expect(seedDemo(handle.db)).toEqual({ seeded: false })
-    expect(new NeuronRepository(handle.db).listRoots({ limit: 200 }).items).toHaveLength(12)
+    expect(new NeuronRepository(handle.db).canvasRoots()).toHaveLength(12)
   })
 
   it('should_use_uuid_ids_when_seeded_so_that_ipc_channels_accept_them', () => {
     seedDemo(handle.db)
-    const repository = new NeuronRepository(handle.db)
-    const roots = repository.listRoots({ limit: 200 }).items
     const ids = [
-      ...roots.map((root) => root.id),
-      ...roots.flatMap((root) => repository.neuronsOf(root.id).map((neuron) => neuron.id)),
       ...handle.db
-        .select()
-        .from(neuronLinks)
+        .select({ id: neurons.id })
+        .from(neurons)
         .all()
-        .map((link) => link.id)
+        .map((row) => row.id),
+      ...new MapLinkRepository(handle.db).list().map((link) => link.id)
     ]
     expect(ids.filter((id) => !z.uuid().safeParse(id).success)).toEqual([])
   })

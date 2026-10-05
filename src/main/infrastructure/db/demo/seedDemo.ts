@@ -1,59 +1,25 @@
 import { like } from 'drizzle-orm'
-import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
+import type { Sheet } from '../../../domain/conversation/sheet'
 import type { AppDatabase } from '../client'
-import {
-  contextAssessments,
-  extensions,
-  linkSeeds,
-  neuronLinks,
-  neurons,
-  planDependencies,
-  planNodes,
-  reflectionSummaries,
-  syntheses
-} from '../schemaNeurons'
+import { contextAssessments, mapLinks, neurons } from '../schemaNeurons'
 
 /**
- * Jeu de démonstration FICTIF (spec 003 T002) : 12 idées couvrant tous les niveaux de contexte, 8 liens et
- * 2 graines — lisible d'un coup d'œil (révisé le 2026-09-29 ; la fluidité à 100 idées est mesurée par les tests). Déterministe (graine fixe) et inséré une seule fois, uniquement dans le profil démo.
+ * Jeu de démonstration FICTIF (spec 003 T002, réécrit par la spec 010 C3) : des genesis à tous les niveaux de
+ * maturité, avec leur fiche, des liens libres entre idées et une carte de structure de projet. Déterministe (graine
+ * fixe), inséré une seule fois, uniquement dans le profil démo. Aucune donnée de l'ancien moteur.
  */
 
 /** Identifiants au format UUID (exigé par les canaux IPC), reconnaissables à leur préfixe `dea00000-`. */
 export const DEMO_PREFIX = 'dea00000-'
 
-const KIND = {
-  root: 1,
-  sub: 2,
-  extension: 3,
-  gauge: 4,
-  synthesis: 5,
-  task: 6,
-  dependency: 7,
-  summary: 8,
-  link: 9,
-  batch: 0xa,
-  seed: 0xb
-} as const
+const KIND = { root: 1, gauge: 4, link: 9, element: 0xc } as const
 
 export function demoId(kind: keyof typeof KIND, n: number): string {
   return `${DEMO_PREFIX}000${KIND[kind].toString(16)}-4000-8000-${String(n).padStart(12, '0')}`
 }
 
-const DEMO_SEEDS = [
-  { title: 'Graine fictive : regrouper les deux achats', why: 'Les deux idées visent le même budget (démo).' },
-  { title: 'Graine fictive : un seul déplacement pour les deux', why: 'Même période, même lieu (démo).' }
-] as const
-
-/** Niveaux de contexte des idées en développement : tous les paliers de taille sont représentés. */
-const DEVELOPING_LEVELS = [
-  'insufficient',
-  'sufficient',
-  'complete',
-  'insufficient',
-  'sufficient',
-  'complete',
-  'sufficient'
-] as const
+/** Maturités des idées travaillées : tous les paliers de taille sont représentés. */
+const LEVELS = ['insufficient', 'sufficient', 'complete'] as const
 
 export interface DemoSize {
   readonly raw: number
@@ -80,6 +46,32 @@ const SUBJECTS = [
   'un tableau de bord budget'
 ] as const
 const VERBS = ['Acheter', 'Organiser', 'Explorer', 'Préparer', 'Tester', 'Planifier', 'Comparer', 'Imaginer'] as const
+
+/** Fiche fictive d'une idée travaillée : plus elle est mûre, plus elle est remplie. */
+function demoSheet(level: (typeof LEVELS)[number]): Sheet {
+  const complete = level === 'complete'
+  return {
+    resume: 'Idée fictive de démonstration : on veut avancer sans trop dépenser.',
+    points_cles: ['Budget fictif : 250 €', ...(level === 'insufficient' ? [] : ['Échéance : ce mois-ci'])],
+    decisions: complete ? ['Essayer d’abord en petit'] : [],
+    questions_ouvertes: complete ? [] : ['Quel budget exact ?'],
+    manques: level === 'insufficient' ? ['L’échéance', 'Le budget exact'] : []
+  }
+}
+
+/** Carte de structure fictive du dernier genesis (spec 009) : modules, composants, tâche et liens typés. */
+const DEMO_STRUCTURE = [
+  { key: 'module:app', type: 'module', title: 'Application', parent: null, status: 'en_cours' },
+  { key: 'module:donnees', type: 'module', title: 'Données', parent: null, status: 'livree' },
+  { key: 'composant:ecran', type: 'composant', title: 'Écran principal', parent: 'module:app', status: 'en_cours' },
+  { key: 'composant:reglages', type: 'composant', title: 'Réglages', parent: 'module:app', status: 'idee' },
+  { key: 'donnee:base', type: 'donnee', title: 'Base locale', parent: 'module:donnees', status: 'livree' },
+  { key: 'tache:sauvegarde', type: 'tache', title: 'Sauvegarde nocturne', parent: 'module:donnees', status: 'a_faire' }
+] as const
+const DEMO_RELATIONS = [
+  { from: 'composant:ecran', to: 'donnee:base', relation: 'lit_ecrit' },
+  { from: 'tache:sauvegarde', to: 'donnee:base', relation: 'depend_de' }
+] as const
 
 /** Générateur pseudo-aléatoire à graine (mulberry32) : même jeu de données à chaque exécution. */
 function seededRandom(seed: number): () => number {
@@ -109,12 +101,9 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
   const allIds: string[] = []
 
   db.transaction((tx) => {
-    const insertRoot = (
-      index: number,
-      state: 'raw' | 'developing' | 'hatched',
-      nature: 'action' | 'reflection'
-    ): string => {
+    const insertRoot = (index: number, state: 'raw' | 'developing' | 'hatched'): string => {
       const id = demoId('root', index)
+      const level = state === 'raw' ? null : state === 'hatched' ? 'complete' : (LEVELS[index % LEVELS.length] ?? null)
       tx.insert(neurons)
         .values({
           id,
@@ -123,179 +112,95 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
           title: `${pick(VERBS, random)} ${pick(SUBJECTS, random)}`,
           content: null,
           origin: 'user',
-          nature,
+          nature: random() < 0.5 ? 'action' : 'reflection',
           natureSource: 'ai',
           categoryId: pick(CATEGORIES, random),
           categorySource: 'ai',
           state,
-          version: state === 'raw' ? 0 : 2
+          version: state === 'raw' ? 0 : 2,
+          sheetJson: level === null ? null : JSON.stringify(demoSheet(level))
         })
         .run()
+      if (level !== null) {
+        tx.insert(contextAssessments)
+          .values({
+            id: demoId('gauge', index),
+            rootId: id,
+            level,
+            aiLevel: level,
+            coveredJson: '[]',
+            missingJson: JSON.stringify(demoSheet(level).manques),
+            answeredCount: 0
+          })
+          .run()
+      }
       allIds.push(id)
       return id
     }
 
     let index = 0
-    for (let i = 0; i < size.raw; i++) insertRoot(++index, 'raw', random() < 0.5 ? 'action' : 'reflection')
+    for (let i = 0; i < size.raw; i++) insertRoot(++index, 'raw')
+    for (let i = 0; i < size.developing; i++) insertRoot(++index, 'developing')
+    for (let i = 0; i < size.hatched; i++) insertRoot(++index, 'hatched')
 
-    for (let i = 0; i < size.developing; i++) {
-      const rootId = insertRoot(++index, 'developing', random() < 0.5 ? 'action' : 'reflection')
-      for (const [n, title] of ['Oui, dès que possible', 'Budget à définir'].entries()) {
-        tx.insert(neurons)
-          .values({
-            id: demoId('sub', index * 10 + n),
-            rootId,
-            parentId: rootId,
-            depth: 1,
-            kind: 'answer',
-            title,
-            origin: 'user'
-          })
-          .run()
-      }
-      tx.insert(extensions)
-        .values({
-          id: demoId('extension', index),
-          rootId,
-          neuronId: rootId,
-          question: 'Quelle échéance vises-tu ?',
-          quickRepliesJson: JSON.stringify(['Ce mois-ci', 'Plus tard']),
-          dimension: 'quand',
-          status: 'proposed',
-          origin: 'ai'
-        })
-        .run()
-      tx.insert(contextAssessments)
-        .values({
-          id: demoId('gauge', index),
-          rootId,
-          level: DEVELOPING_LEVELS[i % DEVELOPING_LEVELS.length] ?? 'insufficient',
-          aiLevel: DEVELOPING_LEVELS[i % DEVELOPING_LEVELS.length] ?? 'insufficient',
-          coveredJson: JSON.stringify(['quoi', 'budget']),
-          missingJson: JSON.stringify(['quand']),
-          answeredCount: 2
-        })
-        .run()
-    }
-
-    for (let i = 0; i < size.hatched; i++) {
-      const nature = i % 2 === 0 ? 'action' : 'reflection'
-      const rootId = insertRoot(++index, 'hatched', nature)
-      const synthesisId = demoId('synthesis', index)
-      tx.insert(syntheses)
-        .values({
-          id: synthesisId,
-          rootId,
-          type: nature === 'action' ? 'action_plan' : 'reflection_summary',
-          payloadJson: '{}',
-          baseVersion: 1,
-          status: 'confirmed',
-          batchId: demoId('batch', index)
-        })
-        .run()
-      // Sous-neurones de l'idée (sources des points de synthèse, visibles en plongée).
-      const subs = ['budget : 250 €', 'échéance : ce mois-ci'].map((title, n) => {
-        const id = demoId('sub', index * 10 + n)
-        tx.insert(neurons)
-          .values({ id, rootId, parentId: rootId, depth: 1, kind: 'answer', title, origin: 'user' })
-          .run()
-        return id
-      })
-      const task = (n: number): string => demoId('task', index * 10 + n)
-      const node = (n: number, values: Omit<typeof planNodes.$inferInsert, 'id' | 'rootId' | 'synthesisId'>): void => {
-        tx.insert(planNodes)
-          .values({ id: task(n), rootId, synthesisId, ...values })
-          .run()
-      }
-      const dependency = (
-        n: number,
-        from: number,
-        to: number,
-        kind: 'after_done' | 'on_trigger',
-        triggerLabel: string | null = null
-      ): void => {
-        tx.insert(planDependencies)
-          .values({
-            id: demoId('dependency', index * 10 + n),
-            fromNodeId: task(from),
-            toNodeId: task(to),
-            kind,
-            triggerLabel
-          })
-          .run()
-      }
-      if (nature === 'action' && i % 4 === 0) {
-        // Plan complet : condition à deux branches, dépendance, déclencheur et opportunité.
-        node(0, { type: 'condition', title: 'J’ai le budget ?', question: 'Budget disponible ?', status: 'ready' })
-        node(1, {
-          type: 'task',
-          title: 'Commander maintenant',
-          parentId: task(0),
-          branchLabel: 'Oui',
-          amountCents: 25000,
-          status: 'blocked'
-        })
-        node(2, {
-          type: 'task',
-          title: 'Attendre la mission payée',
-          parentId: task(0),
-          branchLabel: 'Non',
-          status: 'blocked'
-        })
-        node(3, { type: 'task', title: 'Installer et tester', dueDate: '2026-10-31', status: 'blocked' })
-        node(4, { type: 'task', title: 'Commander après la mission', status: 'blocked' })
-        node(5, { type: 'opportunity', title: 'Revendre l’ancien matériel', amountCents: 8000, status: 'ready' })
-        dependency(1, 1, 3, 'after_done')
-        dependency(2, 2, 4, 'on_trigger', 'mission payée')
-      } else if (nature === 'action') {
-        const tasks = ['Comparer trois options', 'Réserver ou commander', 'Faire le point'] as const
-        tasks.forEach((title, n) => node(n, { type: 'task', title, status: n === 0 ? 'ready' : 'blocked' }))
-        for (let n = 1; n < tasks.length; n++) dependency(n, n - 1, n, 'after_done')
-      } else {
-        tx.insert(reflectionSummaries)
-          .values({
-            id: demoId('summary', index),
-            rootId,
-            synthesisId,
-            keyPointsJson: JSON.stringify([{ text: 'Idée fictive de démonstration', sourceIds: [subs[0]] }]),
-            decisionsJson: JSON.stringify([{ text: 'Essayer d’abord en petit', sourceIds: [subs[1]] }]),
-            prosJson: JSON.stringify([{ text: 'Simple à essayer', sourceIds: subs }]),
-            consJson: JSON.stringify([{ text: 'Demande un peu de temps', sourceIds: [] }]),
-            openQuestionsJson: JSON.stringify([{ text: 'Quel budget ?' }])
-          })
-          .run()
-      }
-    }
-
-    // Liens entre idées de tous états (espace unique, FR-029) : de petites chaînes qui mêlent brutes, en
-    // développement et écloses (idées prises de 3 en 3). Les 20 % derniers restent suggérés.
+    // Liens libres entre idées de tous états (espace unique, FR-029) : de petites chaînes (idées prises de 3 en 3).
     const pairs: [string, string][] = []
     for (let offset = 0; offset < 3; offset++) {
       const chain = allIds.filter((_, k) => k % 3 === offset)
       for (let k = 0; k + 1 < chain.length; k++) pairs.push([chain[k] as string, chain[k + 1] as string])
     }
-    const kept = pairs.slice(0, size.links)
-    kept.forEach(([first, second], index) => {
-      const [a, b] = orderedPair(first, second)
-      const label = pick(['même budget', 'même période', 'complémentaire', 'même lieu'], random)
-      const suggested = index >= Math.floor(kept.length * 0.8)
-      tx.insert(neuronLinks)
+    pairs.slice(0, size.links).forEach(([from, to], n) => {
+      tx.insert(mapLinks)
         .values({
-          id: demoId('link', index + 1),
-          aRootId: a,
-          bRootId: b,
-          label,
-          justification: suggested ? 'Suggestion fictive de démonstration' : null,
-          origin: suggested ? 'ai' : 'user',
-          status: suggested ? 'suggested' : 'accepted',
-          fingerprint: linkFingerprint(a, b, label)
+          id: demoId('link', n + 1),
+          fromKind: 'idea',
+          fromId: from,
+          toKind: 'idea',
+          toId: to,
+          label: pick(['même budget', 'même période', 'complémentaire', 'même lieu'], random),
+          origin: 'user'
         })
         .run()
     })
-    // Graines en attente sur les 3 premiers liens acceptés (FR-028) : pour essayer « Faire naître » sans IA.
-    DEMO_SEEDS.slice(0, Math.min(DEMO_SEEDS.length, Math.floor(kept.length * 0.8))).forEach((seed, index) => {
-      tx.insert(linkSeeds)
-        .values({ id: demoId('seed', index + 1), linkId: demoId('link', index + 1), ...seed, status: 'suggested' })
+
+    // Carte de structure du dernier genesis.
+    const genesisId = allIds.at(-1)
+    if (genesisId === undefined) return
+    const elementIds = new Map(DEMO_STRUCTURE.map((element, n) => [element.key, demoId('element', n + 1)] as const))
+    DEMO_STRUCTURE.forEach((element) => {
+      const parentId = element.parent === null ? genesisId : (elementIds.get(element.parent) ?? genesisId)
+      const id = elementIds.get(element.key) ?? ''
+      tx.insert(neurons)
+        .values({
+          id,
+          rootId: genesisId,
+          parentId,
+          depth: element.parent === null ? 1 : 2,
+          kind: 'element',
+          state: 'raw',
+          title: element.title,
+          origin: 'claude',
+          genesisId,
+          elementType: element.type,
+          elementKey: element.key,
+          elementStatus: element.status,
+          pathsJson: '[]',
+          collapsed: false
+        })
+        .run()
+    })
+    DEMO_RELATIONS.forEach((link, n) => {
+      tx.insert(mapLinks)
+        .values({
+          id: demoId('link', 1000 + n),
+          fromKind: 'element',
+          fromId: elementIds.get(link.from) ?? '',
+          toKind: 'element',
+          toId: elementIds.get(link.to) ?? '',
+          label: null,
+          relation: link.relation,
+          origin: 'claude'
+        })
         .run()
     })
   })

@@ -478,3 +478,22 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 
 ### [2026-10-05] TEST — spec 010 C2 validé par mentalyas (T009)
 **Quoi :** test guidé C2 vert : conversion au démarrage (fiches, liens, branchements) et son annulation, plus aucune trace de l'ancien moteur, liens libres entre idées, chat, widgets et capture inchangés.
+
+### [2026-10-05 12:30] DOCS — spec 011 « Plan d'attaque » rédigée (à valider)
+**Fichiers :** `specs/011-plan-attaque/spec.md`, `checklists/requirements.md`, `.specify/feature.json`.
+**Quoi :** reprise du lot B de la spec 008 : couche suivante proposée par Claude en fantômes (validation en bloc ou un par un), rang ①②③ + dépendances, auto-layout déterministe et incrémental en arbre gauche → droite, différenciation visuelle genesis / étape / sous-étape / fantôme / verrouillé, statut d'avancement, verrouillage proposé par Claude.
+**Pourquoi ainsi :** décisions de mentalyas (D1–D6), dont D5 (nœud verrouillé : dialogue sans écriture) et D6 (verrou obligatoire avant la couche suivante : modifier un parent après ses enfants casse la logique en cascade). Hors périmètre : type d'entonnoir, remontée, export `/brainstorm`.
+
+### [2026-10-05 12:50] DOCS — spec 011 : plan technique (Spec Kit)
+**Fichiers :** `specs/011-plan-attaque/plan.md`, `research.md`, `data-model.md`, `contracts/mcp-tools.md`, `contracts/ipc.md`, `quickstart.md`.
+**Quoi :** étape = neurone `kind = 'step'` (rang, statut, verrou) ; propositions de couche et de verrou stockées hors des données de mentalyas ; dépendances entre sœurs sans cycle ; disposition pure déterministe et incrémentale (arbre tidy gauche → droite, plan au-dessus de la carte de structure, corps physique unique attaché au genesis) ; garde de verrou unique sur tous les chemins d'écriture ; 3 outils MCP (`plan_proposer`, `verrou_proposer`, `etape_modifier`) et 4 canaux IPC. Trois lots : données et règles, Claude, carte.
+**Pourquoi ainsi :** réutiliser conversation, fiche et Historique des neurones (aucune duplication) ; `genesis_id` ne désigne plus seulement un élément de structure : l'élément se reconnaît désormais à `kind = 'element'`.
+
+### [2026-10-05 13:05] DOCS — spec 011 : tâches (Spec Kit)
+**Fichiers :** `specs/011-plan-attaque/tasks.md`.
+**Quoi :** 35 tâches : setup (migration), fondations (schéma, élément = `kind element`, domaine pur des dépendances et du verrou, dépôt, Historique + garde D6), puis US1 (MVP : proposition, décision, contexte hérité, fantômes), US4 (verrou), US2 (disposition, physique, flèches, réordonnancement), US3 (identité visuelle), finitions. Un test guidé validé par mentalyas à la fin de chaque user story.
+
+### [2026-10-05 13:40] DOCS/FEAT — spec 010 C3 : démo, constitution 3.0.0, FOUNDATION (T010–T012) — spec 010 terminée
+**Fichiers :** `infrastructure/db/demo/seedDemo.ts` (réécrit), tests `db/seed-demo`, `hatched/result` (archive insérée par le test), `canvas` ; `.specify/memory/constitution.md` (3.0.0) ; `docs/FOUNDATION.md` (« État actuel » en tête) ; `CLAUDE.md`.
+**Quoi :** profil démo du nouveau modèle : 12 genesis fictifs aux trois maturités avec leur fiche, 8 liens libres, une carte de structure (6 éléments, 2 liens typés) ; plus rien dans les tables de l'ancien moteur. Constitution : plus de clé API, de recherche web, de SDK Anthropic ; logique à tester = conversion, verrous, dépendances, disposition ; une couche ou un verrou proposés par Claude restent des propositions (II). 615 tests ; typecheck, lint, build verts.
+**Pourquoi ainsi :** la FOUNDATION (≈ 2 000 lignes, historique utile) est résumée par une section « État actuel » plutôt que réécrite.

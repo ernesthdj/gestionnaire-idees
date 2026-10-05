@@ -135,19 +135,16 @@ describe('écran Idées', () => {
     expect(root?.version).toBe(version)
   })
 
-  it('should_pin_an_idea_or_a_sub_neuron_dragged_by_hand_and_release_it', async () => {
-    const rootId = demoId('root', 31) // idée en développement : elle a des sous-neurones
-    const subId = demoId('sub', 31 * 10)
+  it('should_pin_an_idea_dragged_by_hand_and_release_it', async () => {
+    const rootId = demoId('root', 31)
     const pinned = await dispatch('canvas:savePositions', {
-      positions: [
-        { neuronId: rootId, x: 10, y: 20, pinned: true },
-        { neuronId: subId, x: 200, y: 40, pinned: true }
-      ]
+      positions: [{ neuronId: rootId, x: 10, y: 20, pinned: true }]
     })
     expect(pinned).toEqual({ success: true, data: { ok: true } })
-    expect((await get()).ideas.find((root) => root.id === rootId)?.pinned).toBe(true)
-    const sub = new NeuronRepository(harness.handle.db).neuronsOf(rootId).find((neuron) => neuron.id === subId)
-    expect(sub).toMatchObject({ position: { x: 200, y: 40 }, pinned: true })
+    expect((await get()).ideas.find((root) => root.id === rootId)).toMatchObject({
+      position: { x: 10, y: 20 },
+      pinned: true
+    })
 
     await dispatch('canvas:savePositions', { positions: [{ neuronId: rootId, x: 10, y: 20, pinned: false }] })
     expect((await get()).ideas.find((root) => root.id === rootId)?.pinned).toBe(false)

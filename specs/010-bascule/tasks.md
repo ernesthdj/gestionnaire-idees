@@ -16,6 +16,6 @@
 - [x] T009 Test guidé C2 — **validation mentalyas**
 
 ## C3 — Finitions
-- [ ] T010 Profil démo réécrit
-- [ ] T011 Constitution 3.0.0, FOUNDATION résumée, CLAUDE.md, JOURNAL
-- [ ] T012 typecheck, lint, tests, build ; mesure des lignes retirées
+- [x] T010 Profil démo réécrit
+- [x] T011 Constitution 3.0.0, FOUNDATION résumée, CLAUDE.md, JOURNAL
+- [x] T012 typecheck, lint, tests, build ; mesure des lignes retirées

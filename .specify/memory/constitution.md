@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
-- Version change: 1.2.0 → 2.0.0 (2026-10-04, arbitrages validés par mentalyas — FOUNDATION §00, L1c)
+- Version change: 2.0.0 → 3.0.0 (2026-10-05, spec 010 FR-008 — bascule validée par mentalyas)
+- Modified principles: I (plus de clé API Claude), III (plus de suggestion sourcée du web : la recherche web est
+  retirée), IV (l'IA locale ne fait plus que les tâches de fond ; aucun SDK ni API Anthropic ; plus de recherche web),
+  V (logique à tester : conversion, verrous, dépendances — plus de budget ni d'anonymisation)
+- Removed: toute mention du plafond de dépense, de l'anonymisation, de `@anthropic-ai/sdk` et de la recherche web
+- Motif : un seul moteur (conversations `claude -p` et pont MCP) ; l'ancien moteur de neurones est retiré (spec 010)
+- Impact : specs 001–003 et 006 historiques (leurs exigences retirées ne s'appliquent plus) ; spec 011 conforme
+- Historique : 1.2.0 → 2.0.0 (2026-10-04, arbitrages validés par mentalyas — FOUNDATION §00, L1c)
 - Modified principles: I (secret : jeton MCP au lieu de la clé API ; canal MCP authentifié), II (écritures de Claude
   par MCP : directes, marquées, annulables), III (cadre de l'IA et refus hors périmètre supprimés ; validation par
   schéma conservée ; code de widget aussi écrit par Claude Code via MCP), IV (anonymisation et plafond en euros
@@ -34,7 +41,7 @@ Sync Impact Report
 - Electron MUST être durci : `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, CSP
   stricte, API `contextBridge` minimale ; **chaque** payload IPC MUST être validé par un schéma Zod
   dans le processus principal.
-- Secrets (jeton du canal MCP, jetons Microsoft, clé de base ; clé API Claude tant qu'elle existe) MUST être chiffrés via `safeStorage`/DPAPI,
+- Secrets (jeton du canal MCP, jetons Microsoft, clé de base) MUST être chiffrés via `safeStorage`/DPAPI,
   jamais dans le code, la base, les logs, le renderer ni le dépôt.
 - Le dépôt est **public** : il MUST NOT contenir de données réelles, de secret ni d'adresse e-mail ;
   uniquement des exemples fictifs (`*.example.*`).
@@ -61,11 +68,9 @@ pour les propositions de l'app, par annulation pour le travail conversationnel a
 - Tout appel IA **lancé par l'app** MUST passer par l'unique `AIGateway` (routage, contexte, validation,
   journal) ; aucun appel direct à Ollama ou au CLI `claude` ailleurs.
 - Toute réponse IA MUST être validée par un schéma avant usage ; une réponse invalide est rejetée.
-- L'agent MUST NOT écrire de lui-même un prix, une date ou un montant dans les données : il demande,
-  crée une tâche d'investigation, ou le PROPOSE comme suggestion clairement signalée (neurone fantôme),
-  sourcée quand elle vient du web ; la valeur n'entre dans les données qu'après acceptation de
-  l'utilisateur. Cette règle vaut pour les tâches automatiques de l'app ; en conversation par MCP,
-  Claude écrit ce que mentalyas lui demande (II, exception).
+- Une tâche automatique de l'app MUST NOT écrire d'elle-même un prix, une date ou un montant dans les
+  données. En conversation par MCP, Claude écrit ce que mentalyas lui demande (II, exception) ; ce qui
+  structure le travail de mentalyas (couche de sous-nœuds, verrou) reste une proposition à accepter (II).
 - Aucun rôle imposé ni refus « hors périmètre » : la consigne de chaque tâche décrit seulement ce qu'elle
   produit (cadre supprimé, L1c n°6).
 - Le texte utilisateur MUST être transmis comme donnée délimitée, jamais comme instruction ; les consignes
@@ -83,11 +88,11 @@ sable, annulation), pas un rôle imposé à l'IA.
 
 ### IV. Local d'abord & minimisation des données
 - Les données MUST rester sur la machine (SQLite chiffré dans `%APPDATA%/gestionnaire-idees/`).
-- L'IA locale MUST traiter par défaut les tâches simples ; Claude n'est appelé que pour le raisonnement
-  profond.
+- L'IA locale (Ollama) fait les tâches de fond (catégorisation d'une idée capturée) ; le raisonnement passe
+  par Claude.
 - Claude est joint **uniquement par le CLI officiel `claude`** de mentalyas (abonnement), jamais par l'API
-  Anthropic une fois le lot 2 livré ; les tâches automatiques tournent sans outil (sauf recherche web) et
-  sans serveur MCP. Plus d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
+  Anthropic ni un SDK ; les tâches automatiques (`claude -p`) tournent sans outil, sans serveur MCP et sans
+  réglage utilisateur. Pas d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
   nécessaire à la tâche).
 - La capture d'une idée MUST fonctionner sans aucune IA disponible (aucune idée perdue).
 - L'usage de Claude MUST être journalisé (tâche, durée, statut, modèle — jamais le contenu).
@@ -96,8 +101,8 @@ Rationale : confidentialité, fonctionnement hors ligne, coût nul hors abonneme
 ### V. Qualité & tests
 - TypeScript `strict: true` ; `any` interdit (utiliser `unknown` + type guards) ; types explicites sur les
   API publiques ; `interface` pour les contrats d'objets, `type` pour les unions.
-- Toute logique métier (statuts, dépendances, cycles, routage IA, budget, anonymisation, tirage du
-  compagnon) MUST être couverte par des tests unitaires rapides et déterministes, cas limites et chemins
+- Toute logique métier (statuts, dépendances, cycles, verrous, routage IA, conversion de données, disposition
+  de la carte, tirage du compagnon) MUST être couverte par des tests unitaires rapides et déterministes, cas limites et chemins
   d'erreur inclus ; nommage `should_<comportement>_when_<condition>`.
 - Les tests MUST NOT appeler de service externe réel (Claude, Ollama, Graph) : moteurs et clients mockés
   derrière leurs interfaces ; RNG injectable pour les tests.
@@ -119,7 +124,7 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
 - **Stack** : Electron · React + TypeScript + Tailwind · React Flow · Zod · SQLite chiffré via
   **Drizzle ORM** + `better-sqlite3-multiple-ciphers` (exception validée au standard Prisma : moteur
   binaire non empaquetable proprement, SQLite chiffré non supporté) · Ollama · CLI Claude Code (`claude -p`,
-  modèle configurable ; `@anthropic-ai/sdk` retiré au lot 2) · `@modelcontextprotocol/sdk` · `@xterm/xterm` +
+  modèles configurables par usage ; aucun SDK Anthropic) · `@modelcontextprotocol/sdk` · `@xterm/xterm` +
   `node-pty` (lot 3) · Microsoft Graph + MSAL Node (autorité `consumers`,
   PKCE, scope `Calendars.ReadWrite` uniquement).
 - **Architecture** : pas d'API HTTP ni de port réseau (le canal MCP est un canal nommé local) ; le contrat est l'IPC renderer ↔ main, format uniforme
@@ -155,4 +160,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-04
+**Version**: 3.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-05

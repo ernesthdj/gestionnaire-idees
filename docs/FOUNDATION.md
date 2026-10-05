@@ -1,8 +1,29 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b (Brainstormer) et L4b (neurones) du 2026-09-28 + **amendement L1c (Pont Claude Code) du 2026-10-04**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** — voir « État actuel »
 > Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md**
+
+---
+
+## État actuel (2026-10-05) — à lire d'abord
+
+> Résumé de ce que fait l'app aujourd'hui, après les specs 007 à 010. Le détail historique suit (§00, §0…§12) ; en cas
+> de conflit, ce résumé et les specs récentes priment.
+
+- **Carte** : idées (genesis, hexagones), blocs (notes, cadres, widgets, cadres résultat), liens libres annulables,
+  cartes de structure des projets liés (spec 009). Disposition physique ; mentalyas épingle ce qu'il glisse.
+- **Un neurone = une conversation Claude Code** (spec 008) : clic sur une idée → chat `claude -p` (session reprise,
+  modèle par usage : Opus 5.5 pour un genesis, Sonnet 5.5 pour un élément ; choix par conversation). Claude tient la
+  **fiche** (résumé, points clés, décisions, questions ouvertes, manques) et évalue la **maturité** par le pont MCP.
+- **Pont MCP** (spec 007) : Claude Code lit et dessine la carte (outils `etat`, `dessiner`, `fiche_ecrire`,
+  `structure_dessiner`…) ; toute écriture est marquée « par Claude » et annulable dans l'Historique.
+- **IA de l'app** (spec 010) : plus d'API Anthropic, de clé, de budget ni d'anonymisation. Ollama catégorise une idée
+  capturée ; `claude -p` génère les widgets. L'ancien moteur (questions, jauge, éclosion, document, graines, liens
+  suggérés, outils proposés) est retiré ; ses données restent en archive et ont été converties en fiches et liens
+  libres au premier démarrage (annulable).
+- **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
+  dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
 
 ---
 

@@ -37,8 +37,12 @@ gestionnaire-idees/
 - **Repo public** : aucune donnee reelle, aucun secret, aucune adresse e-mail. Donnees utilisateur dans `%APPDATA%/gestionnaire-idees/`.
 - **Modeles Claude par defaut** (spec 010) : Opus 5.5 pour les genesis, Sonnet 5.5 pour les elements de projet et les
   widgets ; configurables dans Reglages › IA et par conversation.
-- **Constitution 2.0.0 (2026-10-04)** : ecritures de Claude par MCP directes, marquees « par Claude », annulables ;
-  plus de cadre IA ni d'anonymisation sur le chemin Claude Code.
+- **Constitution 3.0.0 (2026-10-05)** : ecritures de Claude par MCP directes, marquees « par Claude », annulables ;
+  plus d'API ni de SDK Anthropic, de budget, d'anonymisation ni de cadre IA (spec 010).
+- **Ancien moteur de neurones retire (spec 010)** : ses tables (`extensions`, `suggestions`, `syntheses`, `plan_nodes`,
+  `reflection_summaries`, `neuron_links`, `link_seeds`…) restent en **archive**, lues seulement par l'Historique et les
+  entrees des widgets ; converties en fiches et liens libres au premier demarrage (marqueur `migration.legacySheets`).
+  Un element de structure se reconnait a `kind = 'element'`.
 
 ## Suivi academique
 
@@ -59,7 +63,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 | Commande | Effet |
 |----------|-------|
 | `npm run dev` | Lance l'app en developpement (rechargement a chaud) |
-| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo`, 100 idees / 50 liens fictifs) |
+| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 12 genesis fictifs avec fiches, 8 liens libres, 1 carte de structure) |
 | `npm run seed:demo:reset` | Idem en recreant le profil demo de zero (efface uniquement ce dossier fictif) |
 | `npm test` | Tests Vitest |
 | `npm run typecheck` | Verification TypeScript (main/preload + renderer) |
@@ -83,6 +87,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [ ] Spec Kit — initialise (`.specify/`, skills `.claude/skills/speckit-*`), specs a produire par feature
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 011
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`
