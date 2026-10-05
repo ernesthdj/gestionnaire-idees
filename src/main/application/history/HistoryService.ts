@@ -8,8 +8,11 @@ import type {
   Snapshot
 } from '../../infrastructure/db/repositories/HistoryRepository'
 
-/** Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, et une annulation (qui se rétablit). */
-const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write'])
+/**
+ * Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, écritures de Claude, conversion de
+ * l'ancien moteur, et une annulation (qui se rétablit).
+ */
+const UNDOABLE = new Set(['confirm_synthesis', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write', 'convert'])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
 const UNCHECKED = new Set(['plan_dependency', 'example', 'extension', 'suggestion'])
@@ -38,6 +41,8 @@ const BLOCK_NAMES: Readonly<Record<string, string>> = {
   result: 'un cadre résultat',
   empty: 'un bloc'
 }
+
+const sheetCount = (count: number): string => (count > 1 ? `${count} fiches` : '1 fiche')
 
 /** Suppression d'un bloc de la carte (spec 004), ou son annulation. */
 function blockSummary(entry: ChangeRow): string {
@@ -195,6 +200,9 @@ export class HistoryService {
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
+    if (head.kind === 'convert') return `Conversion de l’ancien moteur : ${sheetCount(entries.length)}`
+    if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'convert')
+      return `Conversion de l’ancien moteur annulée : ${sheetCount(entries.length)} retirée${entries.length > 1 ? 's' : ''}`
     if (head.entity === 'canvas_block') return blockSummary(head)
     if (head.entity === 'widget_input') return inputSummary(head)
     const title = (): string => {

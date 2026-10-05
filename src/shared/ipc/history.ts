@@ -1,7 +1,7 @@
 /** Vues de l'historique (spec 003 data-model `HistoryEntryView`). */
 
 export type HistoryKind =
-  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write'
+  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write' | 'convert'
 
 /** Auteur d'un lot : mentalyas, ou Claude Code par le pont MCP (spec 007). */
 export type HistoryActor = 'user' | 'claude'

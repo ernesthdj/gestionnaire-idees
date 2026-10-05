@@ -300,7 +300,7 @@ export const changeLog = sqliteTable(
     id: text('id').primaryKey(),
     batchId: text('batch_id').notNull(),
     kind: text('kind', {
-      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write']
+      enum: ['confirm_synthesis', 'manual_edit', 'link', 'seed', 'delete', 'promote', 'undo', 'mcp_write', 'convert']
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
     actor: text('actor', { enum: ['user', 'claude'] })

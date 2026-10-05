@@ -25,7 +25,9 @@ import { AppSettingsRepository } from './infrastructure/db/repositories/AppSetti
 import { BlockRepository } from './infrastructure/db/repositories/BlockRepository'
 import { HistoryRepository } from './infrastructure/db/repositories/HistoryRepository'
 import { HatchedRepository } from './infrastructure/db/repositories/HatchedRepository'
+import { LegacyRepository } from './infrastructure/db/repositories/LegacyRepository'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
+import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes, LEGACY_CLAUDE_SECRET } from './ipc/aiHandlers'
@@ -117,6 +119,10 @@ export function bootstrap(shell: ShellPort): AppContext {
     key: secrets.getOrCreateRandomKey('db'),
     migrationsFolder: migrationsFolder()
   })
+
+  // Spec 010 US3 : les idées de l'ancien moteur reçoivent une fiche, une seule fois (annulable dans l'Historique).
+  const conversion = convertLegacyIdeas(new LegacyRepository(database.db))
+  if (conversion.converted > 0) logger.info('legacy.converted', { count: conversion.converted })
 
   // Import de contexte (US5) : Claude Code dépose profil, règles et exemples dans ce dossier.
   const contextRepository = new ContextRepository(database.db)

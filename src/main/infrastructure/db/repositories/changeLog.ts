@@ -4,7 +4,7 @@ import { changeLog } from '../schemaNeurons'
 
 /** Entrée de l'historique append-only, regroupée par lot (annulation, spec 003). */
 export interface ChangeEntry {
-  readonly kind: 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'mcp_write'
+  readonly kind: 'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'mcp_write' | 'convert'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown

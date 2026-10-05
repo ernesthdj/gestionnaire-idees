@@ -10,8 +10,8 @@
 - [x] T005 Test guidé C1 — **validation mentalyas**
 
 ## C2 — Conversion et retrait de l'ancien moteur
-- [ ] T006 [P] Tests : conversion (réponses, document de réflexion, plan d'action, prochaine étape → fiche ; idempotente ; annulable)
-- [ ] T007 Conversion au démarrage
+- [x] T006 [P] Tests : conversion (réponses, document de réflexion, plan d'action, prochaine étape → fiche ; idempotente ; annulable)
+- [x] T007 Conversion au démarrage
 - [ ] T008 Retrait de l'ancien moteur (main, IPC, interface, tests)
 - [ ] T009 Test guidé C2 — **validation mentalyas**
 

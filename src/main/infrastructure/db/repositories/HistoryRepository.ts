@@ -20,7 +20,7 @@ import {
 } from '../schemaNeurons'
 
 export type ChangeKind =
-  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write'
+  'confirm_synthesis' | 'manual_edit' | 'link' | 'seed' | 'delete' | 'promote' | 'undo' | 'mcp_write' | 'convert'
 
 export interface ChangeRow {
   readonly id: string
