@@ -66,7 +66,8 @@ export function canvasView(): IdeasCanvasView {
     ],
     elements: [],
     steps: [],
-    proposals: []
+    proposals: [],
+    documents: []
   }
 }
 
@@ -81,6 +82,7 @@ export function emptyCanvasView(): IdeasCanvasView {
     mapLinks: [],
     elements: [],
     steps: [],
-    proposals: []
+    proposals: [],
+    documents: []
   }
 }

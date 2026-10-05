@@ -11,7 +11,8 @@ import type {
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { structureGraph } from './structureGraph'
-import { PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
+import { documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
+import type { DocumentView } from '@shared/ipc/documents'
 import { STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
@@ -61,11 +62,14 @@ export type PlanNodeType = Node<
 >
 /** Barre « Tout valider / Tout refuser » d'une couche proposée. */
 export type PlanBarNodeType = Node<{ readonly proposal: ProposalView }, 'planBar'>
+/** Document Markdown rattaché à un neurone (spec 012), dans la colonne de ses enfants. */
+export type DocumentNodeType = Node<{ readonly document: DocumentView; readonly dimmed: boolean }, 'document'>
 
 export type CanvasNode =
   | NeuronNodeType
   | PlanNodeType
   | PlanBarNodeType
+  | DocumentNodeType
   | BlockNodeType
   | LabelNodeType
   | WidgetNodeType
@@ -295,11 +299,12 @@ export function buildGraph(
     const steps = view.steps.filter((step) => step.genesisId === genesis.id)
     const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
     const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
+    const documents = view.documents.filter((document) => ids.has(document.neuronId))
     const center = genesisCenters.get(genesis.id)
-    if (center === undefined || (steps.length === 0 && proposals.length === 0)) continue
+    if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) continue
     const color = genesis.category?.color ?? '#71717a'
     const dimmed = isDimmed(genesis.id)
-    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals })
+    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals, documents })
     for (const placed of plan.items) {
       if (placed.kind === 'bar') {
         planNodes.push({
@@ -316,6 +321,21 @@ export function buildGraph(
         })
         continue
       }
+      if (placed.kind === 'document') {
+        planNodes.push({
+          id: documentNodeId(placed.document.id),
+          type: 'document',
+          width: placed.document.width,
+          height: placed.document.height,
+          position: { x: placed.x, y: placed.y },
+          data: { document: placed.document, dimmed },
+          // Glissable : sa place devient un décalage par rapport à sa place d'annexe (spec 012 D4).
+          draggable: true,
+          ariaLabel: `Document « ${placed.document.title} » (${placed.document.fileLabel})${placed.document.origin === 'claude' ? ', par Claude' : ''}`,
+          deletable: false
+        })
+        continue
+      }
       const id = placed.kind === 'step' ? placed.step.id : `ghost-${placed.ghost.id}`
       planNodes.push({
         id,
@@ -324,7 +344,8 @@ export function buildGraph(
         height: planSize(placed.kind === 'step' ? placed.step.depth : placed.depth).height,
         position: { x: placed.x, y: placed.y },
         data: { item: placed, color, dimmed },
-        draggable: false,
+        // Une étape se glisse et entraîne sa branche (spec 011 D7) ; un fantôme reste à sa place proposée.
+        draggable: placed.kind === 'step',
         ariaLabel:
           placed.kind === 'step'
             ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}`

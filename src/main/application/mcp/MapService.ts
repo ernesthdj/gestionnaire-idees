@@ -57,7 +57,14 @@ export interface MapServiceDeps {
 /** Outils de la carte (spec 007) ; ceux du neurone d'une conversation (spec 008) sont dans `NeuronTools`. */
 export type MapToolName = Exclude<
   McpToolName,
-  'neurone_contexte' | 'fiche_ecrire' | 'maturite_evaluer' | 'structure_dessiner' | 'structure_lire' | 'plan_proposer'
+  | 'neurone_contexte'
+  | 'fiche_ecrire'
+  | 'maturite_evaluer'
+  | 'structure_dessiner'
+  | 'structure_lire'
+  | 'plan_proposer'
+  | 'document_ecrire'
+  | 'document_lire'
 >
 
 const IDEA_SIZE = 120

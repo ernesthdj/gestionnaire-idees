@@ -329,7 +329,8 @@ export const changeLog = sqliteTable(
         'undo',
         'mcp_write',
         'convert',
-        'plan'
+        'plan',
+        'document'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
@@ -521,6 +522,52 @@ export const widgetMessages = sqliteTable(
     createdAt: createdAt()
   },
   (t) => [index('widget_messages_block_idx').on(t.blockId)]
+)
+
+/**
+ * Document Markdown rattaché à un neurone (spec 012) : son contenu vit dans un vrai fichier `.md` (dossier du projet
+ * lié au genesis, sinon du profil), choisi par l'app ; la base garde ses versions (annulation, recréation).
+ */
+export const documents = sqliteTable(
+  'documents',
+  {
+    id: text('id').primaryKey(),
+    neuronId: text('neuron_id')
+      .notNull()
+      .references(() => neurons.id),
+    genesisId: text('genesis_id')
+      .notNull()
+      .references(() => neurons.id),
+    title: text('title').notNull(),
+    folder: text('folder', { enum: ['project', 'profile'] }).notNull(),
+    fileName: text('file_name').notNull(),
+    width: real('width').notNull(),
+    height: real('height').notNull(),
+    origin: text('origin', { enum: ['user', 'claude'] }).notNull(),
+    currentVersionId: text('current_version_id'),
+    /** Décalage manuel (glissé par mentalyas) par rapport à sa place d'annexe sous son neurone. */
+    offsetX: real('offset_x').notNull().default(0),
+    offsetY: real('offset_y').notNull().default(0),
+    createdAt: createdAt(),
+    deletedAt: text('deleted_at')
+  },
+  (t) => [index('documents_neuron_idx').on(t.neuronId), index('documents_genesis_idx').on(t.genesisId)]
+)
+
+/** Version complète d'un document : écrite par mentalyas, par Claude, ou constatée sur le disque (`externe`). */
+export const documentVersions = sqliteTable(
+  'document_versions',
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => documents.id),
+    content: text('content').notNull(),
+    hash: text('hash').notNull(),
+    author: text('author', { enum: ['user', 'claude', 'externe'] }).notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [index('document_versions_document_idx').on(t.documentId)]
 )
 
 /** Dépendance entre deux étapes sœurs d'un plan d'attaque (spec 011) : `stepId` attend `waitsForId`. */

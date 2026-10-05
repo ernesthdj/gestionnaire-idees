@@ -31,6 +31,7 @@ export type ChangeKind =
   | 'mcp_write'
   | 'convert'
   | 'plan'
+  | 'document'
 
 export interface ChangeRow {
   readonly id: string

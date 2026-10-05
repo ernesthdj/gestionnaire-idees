@@ -15,6 +15,7 @@ ordonnée et incrémentale, verrouillage d'un nœud mûr.
 | D4 | Verrouillage | Claude **propose** de verrouiller un nœud dont il a tout ce qu'il lui faut ; verrouillé, sa fiche et son contexte sont figés. |
 | D5 | Conversation d'un nœud verrouillé | **Dialogue sans écriture** : mentalyas peut encore questionner Claude ; rien ne s'écrit dans le nœud. |
 | D6 | Verrou et couche suivante | **Verrou obligatoire** : faire naître la couche suivante verrouille d'abord le parent, dans la même opération annulable. |
+| D7 | Glisser (2026-10-05) | **Tous les nœuds se glissent** : une étape glissée garde un décalage par rapport à sa place calculée et **entraîne sa branche** (sous-étapes, annexes) ; un fantôme reste à sa place proposée. |
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -29,6 +29,12 @@ export const PLAN_MESSAGE =
   'et ne crée aucune idée : je validerai les étapes sur la carte. Si ce neurone n’est pas assez mûr, dis-moi plutôt ce ' +
   'qui manque.'
 
+/** Demande sans ambiguïté d'un document détaillant le neurone ouvert (spec 012) : l'outil est nommé. */
+export const DOC_MESSAGE =
+  'Rédige un document qui détaille ce neurone : appelle l’outil document_ecrire (sans id). Fais-en un livrable ' +
+  'explicite et complet — objectif, contexte, décisions et leurs raisons, étapes, points de vigilance, questions ' +
+  'ouvertes — structuré en titres Markdown, sans recopier notre conversation et sans HTML. N’utilise pas dessiner.'
+
 export const MAP_MESSAGE =
   'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code, puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
@@ -199,6 +205,16 @@ export function ChatPanel({
                 className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
               >
                 Proposer un plan d’attaque
+              </button>
+            )}
+            {chat.role === 'element' ? null : (
+              <button
+                type="button"
+                onClick={() => void chat.send(DOC_MESSAGE)}
+                disabled={chat.busy}
+                className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+              >
+                Rédiger un document
               </button>
             )}
           </div>

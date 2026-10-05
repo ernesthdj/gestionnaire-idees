@@ -26,8 +26,11 @@ export function LockIcon({ className = '' }: { readonly className?: string }): R
 function PlanHandles(): React.JSX.Element {
   return (
     <>
-      <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
-      <Handle type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
+      <Handle id="left" type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
+      <Handle id="right" type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
+      {/* Haut et bas : connectiques des annexes (documents) placées au-dessus ou en dessous (spec 012 D4). */}
+      <Handle id="top" type="target" position={Position.Top} isConnectable={false} className="neuron-handle" />
+      <Handle id="bottom" type="source" position={Position.Bottom} isConnectable={false} className="neuron-handle" />
     </>
   )
 }

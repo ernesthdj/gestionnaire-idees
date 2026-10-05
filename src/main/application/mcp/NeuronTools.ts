@@ -10,6 +10,8 @@ import type {
 } from '../../infrastructure/db/repositories/ConversationRepository'
 import type { McpCaller } from '../../domain/mcp/caller'
 import { conversationTarget } from './target'
+import { fileLabel } from './DocumentTools'
+import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
 import type { PlanRepository, StepStatus } from '../../infrastructure/db/repositories/PlanRepository'
 
 export interface NeuronToolsDeps {
@@ -26,6 +28,8 @@ export interface NeuronToolsDeps {
   readonly onChanged: (neuronId: string) => void
   /** Étapes d'un nœud (spec 011) : son plan d'attaque, montré par `neurone_contexte`. */
   readonly plan?: Pick<PlanRepository, 'children'>
+  /** Documents du nœud (spec 012), listés par `neurone_contexte`. */
+  readonly documents?: Pick<DocumentRepository, 'ofNeuron'>
 }
 
 const STATUS_NAMES: Readonly<Record<StepStatus, string>> = {
@@ -63,6 +67,7 @@ export class NeuronTools {
           ? `étape de rang ${neuron.rank ?? '?'}`
           : 'sous-neurone'
     const children = this.deps.plan?.children(neuron.id) ?? []
+    const docs = this.deps.documents?.ofNeuron(neuron.id) ?? []
     const rankOf = new Map(children.map((child) => [child.id, child.rank] as const))
     const plan =
       children.length === 0
@@ -79,7 +84,10 @@ export class NeuronTools {
       `Maturité : ${maturity === null ? 'non évaluée' : (LEVEL_NAMES[maturity] ?? maturity)}`,
       neuron.lockedAt === null ? null : 'Verrouillé : sa fiche, son titre et sa description ne s’écrivent plus.',
       `Fiche :\n${sheetMarkdown(readSheet(neuron.sheetJson))}`,
-      plan
+      plan,
+      docs.length === 0
+        ? null
+        : `Documents :\n${docs.map((doc) => `- « ${doc.title} » [${doc.id}] (${fileLabel(doc)})`).join('\n')}`
     ]
       .filter((line) => line !== null)
       .join('\n\n')

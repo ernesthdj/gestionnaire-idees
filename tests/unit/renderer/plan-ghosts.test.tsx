@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
@@ -32,7 +32,8 @@ function planView(): IdeasCanvasView {
         status: 'en_cours',
         locked: false,
         lockProposed: false,
-        waitsFor: []
+        waitsFor: [],
+        offset: { x: 0, y: 0 }
       }
     ],
     proposals: [
@@ -112,9 +113,8 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   })
 
   it('should_open_the_conversation_of_a_step_when_it_is_clicked', async () => {
-    const user = userEvent.setup()
     renderCanvas()
-    await user.click(await screen.findByText('Valider le budget'))
+    fireEvent.click(await screen.findByText('Valider le budget'))
     expect(useUiStore.getState().chatNeuronId).toBe(STEP_1)
   })
 

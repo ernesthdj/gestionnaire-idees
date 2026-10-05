@@ -11,6 +11,7 @@ export type HistoryKind =
   | 'mcp_write'
   | 'convert'
   | 'plan'
+  | 'document'
 
 /** Auteur d'un lot : mentalyas, ou Claude Code par le pont MCP (spec 007). */
 export type HistoryActor = 'user' | 'claude'

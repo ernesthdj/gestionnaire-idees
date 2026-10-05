@@ -82,6 +82,19 @@ describe('migrations du modèle de neurones', () => {
   const columns = (table: string): string[] =>
     handle.db.all<{ name: string }>(sql.raw(`PRAGMA table_info(${table})`)).map((row) => row.name)
 
+  const runDown = (name: string): void => {
+    const down = readFileSync(resolve(MIGRATIONS, `down/${name}.down.sql`), 'utf8')
+    for (const statement of down.split(';').filter((part) => part.replace(/--.*$/gm, '').trim() !== '')) {
+      handle.db.run(sql.raw(statement))
+    }
+  }
+
+  it('should_add_the_document_tables_then_remove_them_with_the_down_migration', () => {
+    expect(tables()).toEqual(expect.arrayContaining(['documents', 'document_versions']))
+    runDown('0023_documents')
+    expect(tables().some((name) => name.startsWith('document'))).toBe(false)
+  })
+
   it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {
     expect(tables()).toEqual(expect.arrayContaining(['step_dependencies', 'plan_proposals', 'plan_proposal_items']))
     expect(columns('neurons')).toEqual(expect.arrayContaining(['rank', 'step_status', 'locked_at', 'lock_proposed_at']))

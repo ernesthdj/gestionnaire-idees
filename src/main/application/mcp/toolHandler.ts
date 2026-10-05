@@ -2,6 +2,7 @@ import type { ToolResult } from '@shared/mcp/protocol'
 import type {
   FicheEcrireInput,
   MaturiteEvaluerInput,
+  DocumentEcrireInput,
   McpToolName,
   PlanProposerInput,
   StructureDessinerInput
@@ -10,6 +11,7 @@ import type { McpCaller } from '../../domain/mcp/caller'
 import type { MapService } from './MapService'
 import type { NeuronTools } from './NeuronTools'
 import type { PlanTools } from './PlanTools'
+import type { DocumentTools } from './DocumentTools'
 import type { StructureService } from '../structure/StructureService'
 
 /** Aiguillage des outils du pont : carte (spec 007) ou neurone de la conversation (spec 008). */
@@ -17,7 +19,8 @@ export function createToolHandler(
   map: Pick<MapService, 'handle'>,
   neurons: NeuronTools,
   structure: Pick<StructureService, 'draw' | 'read'>,
-  plan: Pick<PlanTools, 'propose'>
+  plan: Pick<PlanTools, 'propose'>,
+  documents: Pick<DocumentTools, 'write' | 'read'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult {
   return (tool, args, caller) => {
     switch (tool) {
@@ -29,6 +32,10 @@ export function createToolHandler(
         return neurons.evaluate(args as MaturiteEvaluerInput, caller)
       case 'structure_dessiner':
         return structure.draw(args as StructureDessinerInput, caller)
+      case 'document_ecrire':
+        return documents.write(args as DocumentEcrireInput, caller)
+      case 'document_lire':
+        return documents.read((args as { document: string }).document, caller)
       case 'plan_proposer':
         return plan.propose(args as PlanProposerInput, caller)
       case 'structure_lire':

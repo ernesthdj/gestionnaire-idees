@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, dialog, ipcMain, safeStorage } from 'electron'
+import { app, dialog, ipcMain, safeStorage, shell as electronShell } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { CaptureService } from './application/capture/CaptureService'
 import { CanvasService } from './application/canvas/CanvasService'
@@ -21,6 +21,7 @@ import { LegacyRepository } from './infrastructure/db/repositories/LegacyReposit
 import { PlanRepository } from './infrastructure/db/repositories/PlanRepository'
 import { PlanService } from './application/plan/PlanService'
 import { createPlanRoutes } from './ipc/planHandlers'
+import { createDocumentRoutes } from './ipc/documentHandlers'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
 import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
@@ -43,6 +44,10 @@ import type { MainWindowEvent } from '@shared/ipc/channels'
 import { MapService } from './application/mcp/MapService'
 import { NeuronTools } from './application/mcp/NeuronTools'
 import { PlanTools } from './application/mcp/PlanTools'
+import { DocumentTools } from './application/mcp/DocumentTools'
+import { DocumentService } from './application/documents/DocumentService'
+import { DocumentRepository } from './infrastructure/db/repositories/DocumentRepository'
+import { DocumentFiles } from './infrastructure/documents/DocumentFiles'
 import { createToolHandler } from './application/mcp/toolHandler'
 import { ConversationService } from './application/conversation/ConversationService'
 import { BRAINSTORMER_FRAME } from './application/conversation/frame'
@@ -185,9 +190,18 @@ export function bootstrap(shell: ShellPort): AppContext {
   const elementRepository = new ElementRepository(database.db)
   const conversationRepository = new ConversationRepository(database.db)
   const planRepository = new PlanRepository(database.db)
+  // Documents Markdown des neurones (spec 012) : vrais fichiers, dossier choisi ici, jamais par Claude ni l'interface.
+  const documentRepository = new DocumentRepository(database.db)
+  const documents = new DocumentService({
+    repository: documentRepository,
+    files: new DocumentFiles({ profileDir: dataDir }),
+    nodes: planRepository,
+    projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir ?? null
+  })
   const plan = new PlanService({ repository: planRepository })
   const canvas = new CanvasService({
     plan: planRepository,
+    documents: documentRepository,
     neurons: neuronRepository,
     blocks: blockRepository,
     io: widgetIo,
@@ -239,13 +253,20 @@ export function bootstrap(shell: ShellPort): AppContext {
         conversations: conversationRepository,
         insertAssessment: (input) => conversationRepository.insertAssessment(input),
         onChanged: (neuronId) => broadcast('chat:sheet', { neuronId }),
-        plan: planRepository
+        plan: planRepository,
+        documents: documentRepository
       }),
       structure,
       new PlanTools({
         plan,
         conversations: conversationRepository,
         onProposed: (summary) => broadcast('plan:proposed', { summary })
+      }),
+      new DocumentTools({
+        documents,
+        repository: documentRepository,
+        conversations: conversationRepository,
+        onWritten: (event) => broadcast('map:changed', event)
       })
     ),
     logger
@@ -300,8 +321,9 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...contextRoutes,
       ...createNeuronRoutes(neurons, plan),
       ...createPlanRoutes(plan),
+      ...createDocumentRoutes({ documents, reveal: (path) => electronShell.showItemInFolder(path) }),
       ...createCanvasRoutes(canvas),
-      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db))),
+      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db), documents.historyHandlers())),
       ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations),

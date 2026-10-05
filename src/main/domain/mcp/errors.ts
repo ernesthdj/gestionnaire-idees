@@ -18,7 +18,10 @@ const APP_TO_MCP: Readonly<Record<string, McpErrorCode>> = {
   VALIDATION: 'LOT_INVALIDE',
   LOCKED: 'NON_MODIFIABLE',
   INVALID_STATE: 'NON_MODIFIABLE',
-  DUPLICATE: 'DEJA_RELIES'
+  DUPLICATE: 'DEJA_RELIES',
+  TOO_LARGE: 'LOT_TROP_GROS',
+  FOLDER_MISSING: 'NON_MODIFIABLE',
+  FOLDER_REFUSED: 'NON_MODIFIABLE'
 }
 
 /** Erreur d'un service appelé par un outil du pont → erreur MCP avec son message, si elle est attendue. */

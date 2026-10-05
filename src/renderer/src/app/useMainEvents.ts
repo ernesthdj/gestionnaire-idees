@@ -11,7 +11,7 @@ import { useUiStore } from './uiStore'
  */
 const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly string[])[]]> = [
   // Écriture de Claude Code par le pont MCP (spec 007) : la carte et l'Historique changent.
-  ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs']]],
+  ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs'], ['document']]],
   // Couche proposée par Claude (spec 011) : les fantômes apparaissent sur la carte.
   ['plan:proposed', [['canvas']]]
 ]

@@ -1,5 +1,6 @@
 import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
+import type { DocumentView } from './documents'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
@@ -34,6 +35,8 @@ export interface StepView {
   readonly lockProposed: boolean
   /** Étapes sœurs attendues. */
   readonly waitsFor: readonly string[]
+  /** Décalage manuel (glissé) de l'étape et de sa branche par rapport à sa place calculée. */
+  readonly offset: { readonly x: number; readonly y: number }
   readonly sheetSummary?: string
 }
 
@@ -70,6 +73,8 @@ export interface IdeasCanvasView {
   readonly steps: readonly StepView[]
   /** Couches proposées par Claude, en attente (fantômes). */
   readonly proposals: readonly ProposalView[]
+  /** Documents Markdown rattachés aux neurones visibles (spec 012). */
+  readonly documents: readonly DocumentView[]
 }
 
 /** Libellé court d'un lien entre deux idées (1 à 3 mots en pratique). */

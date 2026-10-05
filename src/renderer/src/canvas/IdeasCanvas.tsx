@@ -43,6 +43,7 @@ import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
 import { NeuronNode } from './nodes/NeuronNode'
 import { PlanBarNode, PlanNode } from './nodes/PlanNode'
+import { DocumentNode } from './nodes/DocumentNode'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
@@ -60,7 +61,8 @@ const NODE_TYPES: NodeTypes = {
   widget: WidgetNode,
   result: ResultNode,
   plan: PlanNode,
-  planBar: PlanBarNode
+  planBar: PlanBarNode,
+  document: DocumentNode
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -210,6 +212,33 @@ function CanvasInner(): React.JSX.Element {
   }, [view, layout, positions, physics, bornId, chatNeuronId])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
+
+  // Glisser une étape ou un document (spec 011 D7, 012 D4) : le déplacement s'ajoute à son décalage mémorisé ;
+  // la disposition le réapplique (une étape entraîne sa branche et ses annexes).
+  const planDrag = useRef<{ id: string; at: Point } | null>(null)
+  const savePlanDrag = useCallback(
+    async (node: MapNode): Promise<void> => {
+      const start = planDrag.current
+      planDrag.current = null
+      if (start === null || start.id !== node.id) return
+      const dx = node.position.x - start.at.x
+      const dy = node.position.y - start.at.y
+      if (Math.hypot(dx, dy) < 1) return
+      try {
+        if (node.type === 'document') {
+          const { id, offset } = node.data.document
+          await call('document:move', { id, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
+        } else if (node.type === 'plan' && node.data.item.kind === 'step') {
+          const { id, offset } = node.data.item.step
+          await call('plan:move', { stepId: id, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
+        }
+      } catch (error) {
+        showToast(error instanceof IpcFailure ? error.message : 'La nouvelle place n’a pas pu être enregistrée.')
+      }
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+    },
+    [client, showToast]
+  )
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])
 
   // Glisser (FR-034) : l'objet saisi est épinglé sous le pointeur, les autres réagissent en direct ; lâché, il reste
@@ -455,6 +484,11 @@ function CanvasInner(): React.JSX.Element {
                 setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
               }}
               onNodeDragStart={(_event, node) => {
+                // Étape ou document : placés par la disposition du plan, hors de la physique.
+                if (node.type === 'plan' || node.type === 'document') {
+                  planDrag.current = { id: node.id, at: node.position }
+                  return
+                }
                 drag.current = { id: node.id, at: node.position }
                 physics.wake()
                 runLive()
@@ -463,6 +497,10 @@ function CanvasInner(): React.JSX.Element {
                 if (drag.current?.id === node.id) drag.current = { id: node.id, at: node.position }
               }}
               onNodeDragStop={(_event, node) => {
+                if (node.type === 'plan' || node.type === 'document') {
+                  void savePlanDrag(node)
+                  return
+                }
                 // Lâché : il reste épinglé à cette place ; la physique se repose autour de lui.
                 physics.pin(node.id, node.position)
                 drag.current = null

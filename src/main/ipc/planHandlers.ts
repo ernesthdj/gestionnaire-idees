@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import type { PlanService } from '../application/plan/PlanService'
+import { Coordinate } from './canvasHandlers'
 import { defineRoute, type IpcRoute } from './registry'
 
 /** Fantômes d'une couche décidés d'un coup : au plus la taille d'une couche, sans doublon. */
 const ItemIds = z.array(z.uuid()).max(12)
 
 /** Canaux `plan:*` (spec 011 contracts/ipc.md) — chaque charge utile est validée. */
-export function createPlanRoutes(plan: Pick<PlanService, 'decide'>): IpcRoute[] {
+export function createPlanRoutes(plan: Pick<PlanService, 'decide' | 'move'>): IpcRoute[] {
   return [
     defineRoute({
       channel: 'plan:decide',
@@ -20,6 +21,14 @@ export function createPlanRoutes(plan: Pick<PlanService, 'decide'>): IpcRoute[] 
           }
         ),
       handler: async (input) => plan.decide(input)
+    }),
+    defineRoute({
+      channel: 'plan:move',
+      input: z.object({ stepId: z.uuid(), x: Coordinate, y: Coordinate }).strict(),
+      handler: async ({ stepId, x, y }) => {
+        plan.move(stepId, x, y)
+        return { ok: true }
+      }
     })
   ]
 }

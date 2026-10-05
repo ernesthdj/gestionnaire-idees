@@ -19,6 +19,9 @@ import type { BlockPatch, BlockRepository } from '../../infrastructure/db/reposi
 import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
 import type { PlanRepository, ProposalRow } from '../../infrastructure/db/repositories/PlanRepository'
+import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
+import type { DocumentView } from '@shared/ipc/documents'
+import { fileLabel } from '../mcp/DocumentTools'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
@@ -36,6 +39,8 @@ export interface CanvasDeps {
   readonly elements?: { views(): ElementView[] }
   /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
   readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
+  /** Documents des neurones (spec 012). */
+  readonly documents?: Pick<DocumentRepository, 'list'>
 }
 
 /** Résumé d'une fiche (affiché sous le nœud) ; absent sans fiche lisible. */
@@ -101,6 +106,7 @@ export class CanvasService {
           locked: step.lockedAt !== null,
           lockProposed: step.lockProposedAt !== null,
           waitsFor: step.waitsFor,
+          offset: step.offset,
           ...(summary === undefined ? {} : { sheetSummary: summary })
         }
       })
@@ -109,6 +115,20 @@ export class CanvasService {
       .filter((proposal) => nodes.has(proposal.parentId))
       .map(proposalView)
       .filter((proposal) => proposal.items.length > 0)
+    // Un document n'apparaît que si son neurone est sur la carte.
+    const documents = (this.deps.documents?.list() ?? [])
+      .filter((document) => nodes.has(document.neuronId))
+      .map((document): DocumentView => ({
+        id: document.id,
+        neuronId: document.neuronId,
+        genesisId: document.genesisId,
+        title: document.title,
+        fileLabel: fileLabel(document),
+        width: document.width,
+        height: document.height,
+        origin: document.origin,
+        offset: { x: document.offsetX, y: document.offsetY }
+      }))
     const blocks = this.visibleBlocks()
     // Un élément de structure n'apparaît que si son genesis est sur la carte.
     const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
@@ -131,7 +151,8 @@ export class CanvasService {
       ),
       elements,
       steps,
-      proposals
+      proposals,
+      documents
     }
   }
 

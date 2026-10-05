@@ -22,6 +22,8 @@ export interface PlanNodeRow {
 export interface StepRow extends PlanNodeRow {
   readonly parentId: string
   readonly rank: number
+  /** Décalage manuel de l'étape (et de sa branche) par rapport à sa place calculée ; 0 sans glisser. */
+  readonly offset: { readonly x: number; readonly y: number }
   readonly status: StepStatus
   readonly waitsFor: readonly string[]
   readonly sheetJson: string | null
@@ -100,6 +102,8 @@ const NODE_COLUMNS = {
   lockedAt: neurons.lockedAt,
   lockProposedAt: neurons.lockProposedAt,
   rank: neurons.rank,
+  posX: neurons.posX,
+  posY: neurons.posY,
   stepStatus: neurons.stepStatus,
   sheetJson: neurons.sheetJson
 } as const
@@ -163,6 +167,7 @@ export class PlanRepository {
               lockedAt: row.lockedAt,
               lockProposedAt: row.lockProposedAt,
               rank: row.rank ?? 0,
+              offset: { x: row.posX ?? 0, y: row.posY ?? 0 },
               status: statusOf(row.stepStatus),
               waitsFor: waits.get(row.id) ?? [],
               sheetJson: row.sheetJson
@@ -208,6 +213,15 @@ export class PlanRepository {
 
   setRank(id: string, rank: number): void {
     this.db.update(neurons).set({ rank }).where(eq(neurons.id, id)).run()
+  }
+
+  /** Une étape n'a pas de place libre : ses colonnes de position portent son décalage manuel (spec 011 D7). */
+  setOffset(id: string, x: number, y: number): void {
+    this.db
+      .update(neurons)
+      .set({ posX: x, posY: y })
+      .where(and(eq(neurons.id, id), eq(neurons.kind, 'step')))
+      .run()
   }
 
   setStatus(id: string, status: StepStatus): void {

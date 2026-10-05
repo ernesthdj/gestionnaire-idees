@@ -23,7 +23,14 @@ const COMPONENTS: Components = {
   ol: ({ children }) => <ol className="my-1.5 list-decimal pl-5">{children}</ol>,
   li: ({ children }) => <li className="my-0.5">{children}</li>,
   input: ({ checked }) => (
-    <input type="checkbox" checked={checked === true} disabled readOnly className="mr-1.5 align-middle" />
+    <input
+      type="checkbox"
+      checked={checked === true}
+      disabled
+      readOnly
+      aria-label={checked === true ? 'Fait' : 'À faire'}
+      className="mr-1.5 align-middle"
+    />
   ),
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   blockquote: ({ children }) => (

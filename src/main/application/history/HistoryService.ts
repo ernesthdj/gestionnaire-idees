@@ -21,7 +21,8 @@ const UNDOABLE = new Set([
   'undo',
   'mcp_write',
   'convert',
-  'plan'
+  'plan',
+  'document'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -55,6 +56,20 @@ const BLOCK_NAMES: Readonly<Record<string, string>> = {
   widget: 'un widget',
   result: 'un cadre résultat',
   empty: 'un bloc'
+}
+
+/**
+ * Lot d'un document (spec 012) : « Document « X » », « Modification de « X » », « Retrait du document « X » ». Le titre
+ * voyage dans l'entrée (avant ou après) ; `null` si le lot ne concerne pas un document.
+ */
+function documentSummary(entries: readonly ChangeRow[]): string | null {
+  const entry = entries.find((row) => row.entity.startsWith('document'))
+  if (entry === undefined) return null
+  const raw = entry.after?.['title'] ?? entry.before?.['title']
+  const title = typeof raw === 'string' ? `« ${raw} »` : 'un document'
+  if (entry.entity === 'document_version') return `Modification de ${title}`
+  if (entry.entity === 'document_placement') return `Retrait du document ${title}`
+  return `Document ${title}`
 }
 
 /** Contenu d'un lot de conversion (spec 010) : « 3 fiches, 2 liens, 1 branchement ». */
@@ -129,12 +144,32 @@ function matches(current: Snapshot, expected: Snapshot): boolean {
   return Object.keys(current).every((key) => !(key in expected) || current[key] === expected[key])
 }
 
+/** Lecture et restauration d'un type d'élément géré hors de `HistoryRepository`. */
+export interface EntityHandler {
+  snapshot(id: string): Snapshot
+  apply(id: string, target: Snapshot): void
+}
+
 /**
  * Historique et annulation par lot (spec 003 US6, FR-024, research R6). Une annulation écrit un lot inverse
  * (état réel capturé avant restauration) : annuler une annulation rétablit donc exactement l'état défait.
  */
 export class HistoryService {
-  constructor(private readonly repository: HistoryRepository) {}
+  constructor(
+    private readonly repository: HistoryRepository,
+    /** Éléments dont l'état vit aussi hors de la base (fichiers des documents, spec 012). */
+    private readonly handlers: Readonly<Record<string, EntityHandler>> = {}
+  ) {}
+
+  private snapshot(entity: string, id: string): Snapshot {
+    return this.handlers[entity]?.snapshot(id) ?? this.repository.snapshot(entity, id)
+  }
+
+  private apply(entity: string, id: string, target: Snapshot): void {
+    const handler = this.handlers[entity]
+    if (handler === undefined) this.repository.apply(entity, id, target)
+    else handler.apply(id, target)
+  }
 
   list(input: { readonly cursor?: string; readonly limit?: number } = {}): HistoryPageView {
     const limit = Math.min(Math.max(input.limit ?? 30, 1), 100)
@@ -163,7 +198,7 @@ export class HistoryService {
         ...new Set(
           entries
             .filter((entry) => !UNCHECKED.has(entry.entity))
-            .filter((entry) => !matches(repository.snapshot(entry.entity, entry.entityId), entry.after))
+            .filter((entry) => !matches(this.snapshot(entry.entity, entry.entityId), entry.after))
             .map((entry) => CONFLICT_MESSAGES[entry.entity] ?? 'Un élément a changé depuis.')
         )
       ]
@@ -174,8 +209,8 @@ export class HistoryService {
 
       const undoBatchId = randomUUID()
       const inverse = [...entries].reverse().map((entry) => {
-        const current = repository.snapshot(entry.entity, entry.entityId)
-        repository.apply(entry.entity, entry.entityId, entry.before)
+        const current = this.snapshot(entry.entity, entry.entityId)
+        this.apply(entry.entity, entry.entityId, entry.before)
         return {
           kind: 'undo' as const,
           entity: entry.entity,
@@ -230,6 +265,8 @@ export class HistoryService {
 
   private summarize(entries: readonly ChangeRow[]): string {
     const head = entries[0] as ChangeRow
+    const document = documentSummary(entries)
+    if (document !== null) return head.kind === 'undo' ? `Annulé — ${document}` : document
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
@@ -270,6 +307,8 @@ export class HistoryService {
         return `Suppression de ${title()}`
       case 'promote':
         return `Idée éclose à part : ${title()}`
+      case 'document':
+        return 'Document'
       case 'undo': {
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')
         if (placed !== undefined) {

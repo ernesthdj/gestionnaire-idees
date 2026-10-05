@@ -26,6 +26,7 @@ export interface PlanDeps {
     | 'insertStep'
     | 'setArchived'
     | 'setRank'
+    | 'setOffset'
     | 'addDependency'
     | 'removeDependency'
     | 'dependenciesTouching'
@@ -170,6 +171,12 @@ export class PlanService {
       repository.log(batchId, entries)
     })
     return { batchId: born.length > 0 ? batchId : null, born }
+  }
+
+  /** Étape glissée par mentalyas : sa branche suit (décalage relatif à sa place calculée, non historisé). */
+  move(stepId: string, x: number, y: number): void {
+    if (!this.isStep(stepId)) throw new AppError('NOT_FOUND', 'Étape introuvable')
+    this.deps.repository.setOffset(stepId, x, y)
   }
 
   isStep(id: string): boolean {
