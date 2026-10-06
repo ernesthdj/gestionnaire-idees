@@ -98,3 +98,6 @@ async anonymize(text: string): Promise<string> {
 - [[Passerelle IA hybride — un seul point d'accès à l'IA]] — où l'anonymisation est appelée.
 - [[Synthèse vérifiée — contrôles déterministes et provenance]] — comment un montant masqué est restauré au retour.
 - [[Import de contexte — paquet vérifié, versionné, réversible]] — les mêmes règles servent à refuser un profil contenant une donnée personnelle.
+
+## Évolution du 05/10 — couche retirée
+> ⚠️ **Correction du 05/10** — L'anonymisation a été **retirée** (amendement L1c du 04/10, spec 010, constitution 3.0.0) : Claude Code travaille sur l'abonnement de mentalyas et lit directement ses projets, l'anonymisation n'avait plus d'objet. Le code (`Anonymizer`) et ses tests sont supprimés. La note reste un bon cours sur les **expressions régulières** et la combinaison déterministe + IA locale ; la protection s'est déplacée vers le **contrôle de ce que Claude peut faire** : [[Permissions relayées — l'humain dans la boucle d'un agent]].

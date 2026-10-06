@@ -135,3 +135,6 @@ for (let ring = 0; ring < RINGS && spot === undefined; ring++)
 - [[Annuler par lot — journal avant-après, conflit et lot inverse]] — une seule annulation pour éclosion + outils.
 - [[Carte des idées — simulation de forces et croisements de liens]] — autre géométrie de la carte ; ici, pas de simulation : un balayage déterministe.
 - [[Budget IA — convertir des tokens en euros]] — proposer coûte quelques dizaines de tokens ; chaque case cochée, une génération (~3 à 6 centimes selon le plan).
+
+## Évolution du 05/10 — retirés avec l'éclosion
+> ⚠️ **Correction du 05/10** — `ToolGeneration`, `toolSurroundings`, `placeTools` et `toolProposals` sont **retirés** avec l'ancien moteur (spec 010 C2). Un widget naît désormais posé par Claude (`widget_poser`, arrive « À revoir ») ou à la main, et sa génération passe par `claude -p --json-schema`. Le principe de la note — **rapide et annulable dans la transaction, lent et faillible après** — reste la bonne règle, et la spec 015 (06/10) branche les widgets sur les **étapes du plan**.

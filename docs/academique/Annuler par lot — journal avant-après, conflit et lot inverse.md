@@ -113,3 +113,8 @@ Le journal avant/après s'est élargi sans changer de principe (`HistoryKind` : 
 - L'éclosion consigne désormais aussi l'**absorption** des sous-neurones (`neuron_absorb`) et les questions closes : annuler une éclosion les fait revenir.
 
 Suite côté éclosion (« Approfondir ») : bloc du 30/09 de [[Éclosion atomique — transaction, version et historique]].
+
+## Évolution du 04→06/10 — de nouveaux lots, et le disque
+- **Lots « par Claude »** (`mcp_write`, spec 007) : chaque appel d'outil d'écriture du pont = un lot marqué, annulable d'un clic.
+- **Lots `convert`** (spec 010) et **`plan`** (spec 011) ; ce dernier porte la **garde D6** : une annulation qui déverrouillerait un parent est refusée si des sous-nœuds nés hors du lot existent.
+- **Gestionnaires d'entités externes** (spec 012) : un document se restaure **en base ET sur le disque**, sans mettre d'accès fichier dans `HistoryRepository` (le service du document fournit `snapshot` et `apply`). Voir [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]].

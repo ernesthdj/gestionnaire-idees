@@ -1,529 +1,77 @@
 {
-  "nodes": [
-    {
-      "id": "moc",
-      "type": "file",
-      "file": "academique/MOC — Gestionnaire idées.md",
-      "x": 0,
-      "y": -500,
-      "width": 380,
-      "height": 260,
-      "color": "1"
-    },
-    {
-      "id": "label_ordre",
-      "type": "text",
-      "text": "Sens de lecture : haut -> bas\nColonne centrale = charpente (spec 001)\nColonne droite = moteur IA\nColonne basse = moteur de neurones (spec 002)\nNuméros sur les flèches = ordre d'apprentissage (0 à 13)",
-      "x": -560,
-      "y": -500,
-      "width": 320,
-      "height": 200
-    },
-    {
-      "id": "glossaire",
-      "type": "text",
-      "text": "Glossaire : 10 notes (IPC, CSP, LLM, Token, Transaction ACID, Idempotence, SHA-256, Kahn, Regex, FTS5) — voir MOC",
-      "x": -560,
-      "y": -200,
-      "width": 320,
-      "height": 160
-    },
-    {
-      "id": "c_spec",
-      "type": "file",
-      "file": "academique/Du brainstorm au code — spécifications et constitution.md",
-      "x": 0,
-      "y": -100,
-      "width": 380,
-      "height": 300,
-      "color": "4"
-    },
-    {
-      "id": "c_electron",
-      "type": "file",
-      "file": "academique/Architecture Electron — trois processus cloisonnés.md",
-      "x": 0,
-      "y": 300,
-      "width": 380,
-      "height": 300,
-      "color": "4"
-    },
-    {
-      "id": "c_ipc",
-      "type": "file",
-      "file": "academique/IPC typé — le guichet unique entre interface et moteur.md",
-      "x": 0,
-      "y": 700,
-      "width": 380,
-      "height": 300,
-      "color": "4"
-    },
-    {
-      "id": "c_clean",
-      "type": "file",
-      "file": "academique/Clean Architecture — domaine, application, infrastructure.md",
-      "x": 0,
-      "y": 1100,
-      "width": 380,
-      "height": 300,
-      "color": "4"
-    },
-    {
-      "id": "c_stockage",
-      "type": "file",
-      "file": "academique/Stockage local chiffré — SQLite, SQLCipher et DPAPI.md",
-      "x": -450,
-      "y": 1500,
-      "width": 380,
-      "height": 300,
-      "color": "3"
-    },
-    {
-      "id": "p_drizzle",
-      "type": "file",
-      "file": "academique/Drizzle ORM ↔ SQL paramétré et migrations.md",
-      "x": -450,
-      "y": 1900,
-      "width": 380,
-      "height": 300,
-      "color": "5"
-    },
-    {
-      "id": "c_gateway",
-      "type": "file",
-      "file": "academique/Passerelle IA hybride — un seul point d'accès à l'IA.md",
-      "x": 450,
-      "y": 1500,
-      "width": 380,
-      "height": 300,
-      "color": "3"
-    },
-    {
-      "id": "p_zod",
-      "type": "file",
-      "file": "academique/Zod ↔ type guards et sortie structurée.md",
-      "x": 900,
-      "y": 1500,
-      "width": 380,
-      "height": 300,
-      "color": "5"
-    },
-    {
-      "id": "c_anonym",
-      "type": "file",
-      "file": "academique/Anonymisation en deux couches.md",
-      "x": 450,
-      "y": 1900,
-      "width": 380,
-      "height": 300,
-      "color": "3"
-    },
-    {
-      "id": "c_injection",
-      "type": "file",
-      "file": "academique/Injection de prompt — cadre figé et données balisées.md",
-      "x": 450,
-      "y": 2300,
-      "width": 380,
-      "height": 300,
-      "color": "3"
-    },
-    {
-      "id": "c_import",
-      "type": "file",
-      "file": "academique/Import de contexte — paquet vérifié, versionné, réversible.md",
-      "x": 900,
-      "y": 2300,
-      "width": 380,
-      "height": 300,
-      "color": "6"
-    },
-    {
-      "id": "c_budget",
-      "type": "file",
-      "file": "academique/Budget IA — convertir des tokens en euros.md",
-      "x": 450,
-      "y": 2700,
-      "width": 380,
-      "height": 300,
-      "color": "3"
-    },
-    {
-      "id": "c_croissance",
-      "type": "file",
-      "file": "academique/Croissance d'un neurone — arbre, garde-fous et jauge.md",
-      "x": 0,
-      "y": 3100,
-      "width": 380,
-      "height": 320,
-      "color": "6"
-    },
-    {
-      "id": "c_synthese",
-      "type": "file",
-      "file": "academique/Synthèse vérifiée — contrôles déterministes et provenance.md",
-      "x": 0,
-      "y": 3500,
-      "width": 380,
-      "height": 320,
-      "color": "6"
-    },
-    {
-      "id": "c_eclosion",
-      "type": "file",
-      "file": "academique/Éclosion atomique — transaction, version et historique.md",
-      "x": 0,
-      "y": 3900,
-      "width": 380,
-      "height": 320,
-      "color": "6"
-    },
-    {
-      "id": "c_liens",
-      "type": "file",
-      "file": "academique/Liens entre idées — graphe local de mots-clés.md",
-      "x": 0,
-      "y": 4300,
-      "width": 380,
-      "height": 320,
-      "color": "6"
-    },
-    {
-      "id": "label_003",
-      "type": "text",
-      "text": "Spec 003 — interface MVP-1 (session du 28→29/09)\nColonne centrale = parcours 14 → 18\nÀ droite = pont TanStack Query / Zustand\nGlossaire ajouté : PRNG à graine, Mise à jour optimiste",
-      "x": -560,
-      "y": 4700,
-      "width": 320,
-      "height": 180
-    },
-    {
-      "id": "c_coquille",
-      "type": "file",
-      "file": "academique/Coquille de bureau — zone de notification, instance unique et fenêtres cachées.md",
-      "x": 0,
-      "y": 4700,
-      "width": 380,
-      "height": 320,
-      "color": "2"
-    },
-    {
-      "id": "p_query",
-      "type": "file",
-      "file": "academique/TanStack Query et Zustand ↔ cache de données et état d'interface.md",
-      "x": 450,
-      "y": 5100,
-      "width": 380,
-      "height": 300,
-      "color": "5"
-    },
-    {
-      "id": "c_carte",
-      "type": "file",
-      "file": "academique/Carte des idées — simulation de forces et croisements de liens.md",
-      "x": 0,
-      "y": 5100,
-      "width": 380,
-      "height": 320,
-      "color": "2"
-    },
-    {
-      "id": "c_plongee",
-      "type": "file",
-      "file": "academique/Plongée radiale — couronne sur un arc et affichage optimiste.md",
-      "x": 0,
-      "y": 5500,
-      "width": 380,
-      "height": 320,
-      "color": "2"
-    },
-    {
-      "id": "c_annuler",
-      "type": "file",
-      "file": "academique/Annuler par lot — journal avant-après, conflit et lot inverse.md",
-      "x": 0,
-      "y": 5900,
-      "width": 380,
-      "height": 320,
-      "color": "2"
-    },
-    {
-      "id": "label_004",
-      "type": "text",
-      "text": "Spec 004 — widgets (session du 29→30/09)\nColonne centrale = parcours 19 à 20\nNouveaux glossaires : Origine web et origine opaque, Suppression douce — voir MOC\nBlocs « Évolution du 30/09 » dans 10 notes existantes",
-      "x": -560,
-      "y": 6300,
-      "width": 320,
-      "height": 200
-    },
-    {
-      "id": "c_sandbox",
-      "type": "file",
-      "file": "academique/Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget.md",
-      "x": 0,
-      "y": 6300,
-      "width": 380,
-      "height": 320,
-      "color": "1"
-    },
-    {
-      "id": "c_widget",
-      "type": "file",
-      "file": "academique/Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât.md",
-      "x": 0,
-      "y": 6700,
-      "width": 380,
-      "height": 320,
-      "color": "1"
-    },
-    {
-      "id": "label_005",
-      "type": "text",
-      "text": "Specs 005-006 — widgets branchés et proposés (soir du 30/09)\nColonne centrale = parcours 21 à 23\nNouveaux glossaires : Donnée dérivée, Parcours en profondeur (DFS), Throttle et debounce — voir MOC\nBlocs « Évolution du 30/09 » dans 7 notes existantes",
-      "x": -560,
-      "y": 7100,
-      "width": 320,
-      "height": 220
-    },
-    {
-      "id": "c_branche",
-      "type": "file",
-      "file": "academique/Widget branché — autorisation par empreinte et pont postMessage.md",
-      "x": 0,
-      "y": 7100,
-      "width": 380,
-      "height": 320,
-      "color": "1"
-    },
-    {
-      "id": "c_resultat",
-      "type": "file",
-      "file": "academique/Cadre résultat — sortie bornée, vue figée et rafales regroupées.md",
-      "x": 0,
-      "y": 7500,
-      "width": 380,
-      "height": 320,
-      "color": "1"
-    },
-    {
-      "id": "c_outils",
-      "type": "file",
-      "file": "academique/Outils proposés au verrouillage — créer dans la transaction, générer hors transaction.md",
-      "x": 0,
-      "y": 7900,
-      "width": 380,
-      "height": 320,
-      "color": "1"
-    }
-  ],
-  "edges": [
-    {
-      "id": "e_moc_spec",
-      "fromNode": "moc",
-      "toNode": "c_spec",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "0"
-    },
-    {
-      "id": "e_spec_electron",
-      "fromNode": "c_spec",
-      "toNode": "c_electron",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "1 la constitution exige un Electron durci"
-    },
-    {
-      "id": "e_electron_ipc",
-      "fromNode": "c_electron",
-      "toNode": "c_ipc",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "2 le guichet entre processus"
-    },
-    {
-      "id": "e_ipc_clean",
-      "fromNode": "c_ipc",
-      "toNode": "c_clean",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "3 où va la logique"
-    },
-    {
-      "id": "e_clean_stockage",
-      "fromNode": "c_clean",
-      "toNode": "c_stockage",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "4 adaptateur disque"
-    },
-    {
-      "id": "e_stockage_drizzle",
-      "fromNode": "c_stockage",
-      "toNode": "p_drizzle",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "pont ORM ↔ SQL"
-    },
-    {
-      "id": "e_clean_gateway",
-      "fromNode": "c_clean",
-      "toNode": "c_gateway",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "5 adaptateur IA"
-    },
-    {
-      "id": "e_gateway_zod",
-      "fromNode": "c_gateway",
-      "toNode": "p_zod",
-      "fromSide": "right",
-      "toSide": "left",
-      "label": "pont schémas"
-    },
-    {
-      "id": "e_gateway_anonym",
-      "fromNode": "c_gateway",
-      "toNode": "c_anonym",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "6 avant tout envoi à Claude"
-    },
-    {
-      "id": "e_anonym_injection",
-      "fromNode": "c_anonym",
-      "toNode": "c_injection",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "7 données ≠ consignes"
-    },
-    {
-      "id": "e_injection_import",
-      "fromNode": "c_injection",
-      "toNode": "c_import",
-      "fromSide": "right",
-      "toSide": "left",
-      "label": "13 d'où vient le profil"
-    },
-    {
-      "id": "e_injection_budget",
-      "fromNode": "c_injection",
-      "toNode": "c_budget",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "8 chaque token se paie"
-    },
-    {
-      "id": "e_budget_croissance",
-      "fromNode": "c_budget",
-      "toNode": "c_croissance",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "9 le moteur de neurones"
-    },
-    {
-      "id": "e_croissance_synthese",
-      "fromNode": "c_croissance",
-      "toNode": "c_synthese",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "10 verrouiller"
-    },
-    {
-      "id": "e_synthese_eclosion",
-      "fromNode": "c_synthese",
-      "toNode": "c_eclosion",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "11 confirmer"
-    },
-    {
-      "id": "e_eclosion_liens",
-      "fromNode": "c_eclosion",
-      "toNode": "c_liens",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "12 relier après éclosion"
-    },
-    {
-      "id": "e_liens_coquille",
-      "fromNode": "c_liens",
-      "toNode": "c_coquille",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "14 l'app prend corps sur le bureau"
-    },
-    {
-      "id": "e_coquille_carte",
-      "fromNode": "c_coquille",
-      "toNode": "c_carte",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "16 l'écran Idées"
-    },
-    {
-      "id": "e_carte_query",
-      "fromNode": "c_carte",
-      "toNode": "p_query",
-      "fromSide": "right",
-      "toSide": "left",
-      "label": "15 quand redessiner"
-    },
-    {
-      "id": "e_carte_plongee",
-      "fromNode": "c_carte",
-      "toNode": "c_plongee",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "17 double-clic = plonger"
-    },
-    {
-      "id": "e_plongee_annuler",
-      "fromNode": "c_plongee",
-      "toNode": "c_annuler",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "18 éclore puis annuler"
-    },
-    {
-      "id": "e_annuler_sandbox",
-      "fromNode": "c_annuler",
-      "toNode": "c_sandbox",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "19 du code d'IA sur la carte : l'enfermer"
-    },
-    {
-      "id": "e_sandbox_widget",
-      "fromNode": "c_sandbox",
-      "toNode": "c_widget",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "20 le fabriquer et le versionner"
-    },
-    {
-      "id": "e_widget_branche",
-      "fromNode": "c_widget",
-      "toNode": "c_branche",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "21 lui donner des données, après revue"
-    },
-    {
-      "id": "e_branche_resultat",
-      "fromNode": "c_branche",
-      "toNode": "c_resultat",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "22 recevoir ce qu'il publie"
-    },
-    {
-      "id": "e_resultat_outils",
-      "fromNode": "c_resultat",
-      "toNode": "c_outils",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "label": "23 le faire naître à l'éclosion"
-    }
-  ]
+	"nodes":[
+		{"id":"label_ordre","type":"text","text":"Sens de lecture : haut -> bas\nColonne centrale = charpente (spec 001)\nColonne droite = moteur IA\nColonne basse = moteur de neurones (spec 002)\nNuméros sur les flèches = ordre d'apprentissage (0 à 13)","x":-560,"y":-500,"width":320,"height":200},
+		{"id":"glossaire","type":"text","text":"Glossaire : 10 notes (IPC, CSP, LLM, Token, Transaction ACID, Idempotence, SHA-256, Kahn, Regex, FTS5) — voir MOC","x":-560,"y":-200,"width":320,"height":160},
+		{"id":"c_spec","type":"file","file":"academique/Du brainstorm au code — spécifications et constitution.md","x":0,"y":-100,"width":380,"height":300,"color":"4"},
+		{"id":"c_electron","type":"file","file":"academique/Architecture Electron — trois processus cloisonnés.md","x":0,"y":300,"width":380,"height":300,"color":"4"},
+		{"id":"c_ipc","type":"file","file":"academique/IPC typé — le guichet unique entre interface et moteur.md","x":0,"y":700,"width":380,"height":300,"color":"4"},
+		{"id":"c_clean","type":"file","file":"academique/Clean Architecture — domaine, application, infrastructure.md","x":0,"y":1100,"width":380,"height":300,"color":"4"},
+		{"id":"c_stockage","type":"file","file":"academique/Stockage local chiffré — SQLite, SQLCipher et DPAPI.md","x":-450,"y":1500,"width":380,"height":300,"color":"3"},
+		{"id":"p_drizzle","type":"file","file":"academique/Drizzle ORM ↔ SQL paramétré et migrations.md","x":-450,"y":1900,"width":380,"height":300,"color":"5"},
+		{"id":"c_gateway","type":"file","file":"academique/Passerelle IA hybride — un seul point d'accès à l'IA.md","x":450,"y":1500,"width":380,"height":300,"color":"3"},
+		{"id":"p_zod","type":"file","file":"academique/Zod ↔ type guards et sortie structurée.md","x":900,"y":1500,"width":380,"height":300,"color":"5"},
+		{"id":"c_anonym","type":"file","file":"academique/Anonymisation en deux couches.md","x":450,"y":1900,"width":380,"height":300,"color":"3"},
+		{"id":"c_injection","type":"file","file":"academique/Injection de prompt — cadre figé et données balisées.md","x":450,"y":2300,"width":380,"height":300,"color":"3"},
+		{"id":"c_import","type":"file","file":"academique/Import de contexte — paquet vérifié, versionné, réversible.md","x":900,"y":2300,"width":380,"height":300,"color":"6"},
+		{"id":"c_budget","type":"file","file":"academique/Budget IA — convertir des tokens en euros.md","x":450,"y":2700,"width":380,"height":300,"color":"3"},
+		{"id":"c_croissance","type":"file","file":"academique/Croissance d'un neurone — arbre, garde-fous et jauge.md","x":0,"y":3100,"width":380,"height":320,"color":"6"},
+		{"id":"c_synthese","type":"file","file":"academique/Synthèse vérifiée — contrôles déterministes et provenance.md","x":0,"y":3500,"width":380,"height":320,"color":"6"},
+		{"id":"c_eclosion","type":"file","file":"academique/Éclosion atomique — transaction, version et historique.md","x":0,"y":3900,"width":380,"height":320,"color":"6"},
+		{"id":"c_liens","type":"file","file":"academique/Liens entre idées — graphe local de mots-clés.md","x":0,"y":4300,"width":380,"height":320,"color":"6"},
+		{"id":"label_003","type":"text","text":"Spec 003 — interface MVP-1 (session du 28→29/09)\nColonne centrale = parcours 14 → 18\nÀ droite = pont TanStack Query / Zustand\nGlossaire ajouté : PRNG à graine, Mise à jour optimiste","x":-560,"y":4700,"width":320,"height":180},
+		{"id":"c_coquille","type":"file","file":"academique/Coquille de bureau — zone de notification, instance unique et fenêtres cachées.md","x":0,"y":4700,"width":380,"height":320,"color":"2"},
+		{"id":"p_query","type":"file","file":"academique/TanStack Query et Zustand ↔ cache de données et état d'interface.md","x":450,"y":5100,"width":380,"height":300,"color":"5"},
+		{"id":"c_carte","type":"file","file":"academique/Carte des idées — simulation de forces et croisements de liens.md","x":0,"y":5100,"width":380,"height":320,"color":"2"},
+		{"id":"c_plongee","type":"file","file":"academique/Plongée radiale — couronne sur un arc et affichage optimiste.md","x":0,"y":5500,"width":380,"height":320,"color":"2"},
+		{"id":"c_annuler","type":"file","file":"academique/Annuler par lot — journal avant-après, conflit et lot inverse.md","x":0,"y":5900,"width":380,"height":320,"color":"2"},
+		{"id":"label_004","type":"text","text":"Spec 004 — widgets (session du 29→30/09)\nColonne centrale = parcours 19 à 20\nNouveaux glossaires : Origine web et origine opaque, Suppression douce — voir MOC\nBlocs « Évolution du 30/09 » dans 10 notes existantes","x":-560,"y":6300,"width":320,"height":200},
+		{"id":"c_sandbox","type":"file","file":"academique/Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget.md","x":0,"y":6300,"width":380,"height":320,"color":"1"},
+		{"id":"c_widget","type":"file","file":"academique/Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât.md","x":0,"y":6700,"width":380,"height":320,"color":"1"},
+		{"id":"label_005","type":"text","text":"Specs 005-006 — widgets branchés et proposés (soir du 30/09)\nColonne centrale = parcours 21 à 23\nNouveaux glossaires : Donnée dérivée, Parcours en profondeur (DFS), Throttle et debounce — voir MOC\nBlocs « Évolution du 30/09 » dans 7 notes existantes","x":-560,"y":7100,"width":320,"height":220},
+		{"id":"c_branche","type":"file","file":"academique/Widget branché — autorisation par empreinte et pont postMessage.md","x":0,"y":7100,"width":380,"height":320,"color":"1"},
+		{"id":"c_resultat","type":"file","file":"academique/Cadre résultat — sortie bornée, vue figée et rafales regroupées.md","x":0,"y":7500,"width":380,"height":320,"color":"1"},
+		{"id":"c_outils","type":"file","file":"academique/Outils proposés au verrouillage — créer dans la transaction, générer hors transaction.md","x":0,"y":7900,"width":380,"height":320,"color":"1"},
+		{"id":"moc","type":"file","file":"docs/academique/MOC — Gestionnaire idées.md","x":0,"y":-1200,"width":1440,"height":780,"color":"1"},
+		{"id":"label_007","type":"text","text":"Specs 007-016 — interface visuelle de Claude Code (04→06/10)\nColonne centrale = du pont MCP aux lanceurs de programmes. Les notes des modules retirés (anonymisation, budget, croissance, synthèse, liens, plongée, outils) gardent leur place : un bloc « Correction du 05/10 » y explique ce qui a disparu.","x":-560,"y":8300,"width":320,"height":240},
+		{"id":"c_pont","type":"file","file":"academique/Pont MCP — relais stdio, canal nommé et secret partagé.md","x":0,"y":8300,"width":380,"height":320,"color":"4"},
+		{"id":"c_piloter","type":"file","file":"academique/Piloter Claude Code — processus enfant, flux stream-json et session reprise.md","x":0,"y":8700,"width":380,"height":320,"color":"4"},
+		{"id":"c_permissions","type":"file","file":"academique/Permissions relayées — l'humain dans la boucle d'un agent.md","x":0,"y":9100,"width":380,"height":320,"color":"4"},
+		{"id":"c_plan","type":"file","file":"academique/Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou.md","x":0,"y":9500,"width":380,"height":320,"color":"4"},
+		{"id":"c_fichiers","type":"file","file":"academique/Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille.md","x":0,"y":9900,"width":380,"height":320,"color":"4"},
+		{"id":"c_lancer","type":"file","file":"academique/Lancer un programme sans shell — chemin absolu, arguments séparés, listes blanches.md","x":0,"y":10300,"width":380,"height":320,"color":"4"}
+	],
+	"edges":[
+		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
+		{"id":"e_spec_electron","fromNode":"c_spec","fromSide":"bottom","toNode":"c_electron","toSide":"top","label":"1 la constitution exige un Electron durci"},
+		{"id":"e_electron_ipc","fromNode":"c_electron","fromSide":"bottom","toNode":"c_ipc","toSide":"top","label":"2 le guichet entre processus"},
+		{"id":"e_ipc_clean","fromNode":"c_ipc","fromSide":"bottom","toNode":"c_clean","toSide":"top","label":"3 où va la logique"},
+		{"id":"e_clean_stockage","fromNode":"c_clean","fromSide":"bottom","toNode":"c_stockage","toSide":"top","label":"4 adaptateur disque"},
+		{"id":"e_stockage_drizzle","fromNode":"c_stockage","fromSide":"bottom","toNode":"p_drizzle","toSide":"top","label":"pont ORM ↔ SQL"},
+		{"id":"e_clean_gateway","fromNode":"c_clean","fromSide":"bottom","toNode":"c_gateway","toSide":"top","label":"5 adaptateur IA"},
+		{"id":"e_gateway_zod","fromNode":"c_gateway","fromSide":"right","toNode":"p_zod","toSide":"left","label":"pont schémas"},
+		{"id":"e_gateway_anonym","fromNode":"c_gateway","fromSide":"bottom","toNode":"c_anonym","toSide":"top","label":"6 avant tout envoi à Claude"},
+		{"id":"e_anonym_injection","fromNode":"c_anonym","fromSide":"bottom","toNode":"c_injection","toSide":"top","label":"7 données ≠ consignes"},
+		{"id":"e_injection_import","fromNode":"c_injection","fromSide":"right","toNode":"c_import","toSide":"left","label":"13 d'où vient le profil"},
+		{"id":"e_injection_budget","fromNode":"c_injection","fromSide":"bottom","toNode":"c_budget","toSide":"top","label":"8 chaque token se paie"},
+		{"id":"e_budget_croissance","fromNode":"c_budget","fromSide":"bottom","toNode":"c_croissance","toSide":"top","label":"9 le moteur de neurones"},
+		{"id":"e_croissance_synthese","fromNode":"c_croissance","fromSide":"bottom","toNode":"c_synthese","toSide":"top","label":"10 verrouiller"},
+		{"id":"e_synthese_eclosion","fromNode":"c_synthese","fromSide":"bottom","toNode":"c_eclosion","toSide":"top","label":"11 confirmer"},
+		{"id":"e_eclosion_liens","fromNode":"c_eclosion","fromSide":"bottom","toNode":"c_liens","toSide":"top","label":"12 relier après éclosion"},
+		{"id":"e_liens_coquille","fromNode":"c_liens","fromSide":"bottom","toNode":"c_coquille","toSide":"top","label":"14 l'app prend corps sur le bureau"},
+		{"id":"e_coquille_carte","fromNode":"c_coquille","fromSide":"bottom","toNode":"c_carte","toSide":"top","label":"16 l'écran Idées"},
+		{"id":"e_carte_query","fromNode":"c_carte","fromSide":"right","toNode":"p_query","toSide":"left","label":"15 quand redessiner"},
+		{"id":"e_carte_plongee","fromNode":"c_carte","fromSide":"bottom","toNode":"c_plongee","toSide":"top","label":"17 double-clic = plonger"},
+		{"id":"e_plongee_annuler","fromNode":"c_plongee","fromSide":"bottom","toNode":"c_annuler","toSide":"top","label":"18 éclore puis annuler"},
+		{"id":"e_annuler_sandbox","fromNode":"c_annuler","fromSide":"bottom","toNode":"c_sandbox","toSide":"top","label":"19 du code d'IA sur la carte : l'enfermer"},
+		{"id":"e_sandbox_widget","fromNode":"c_sandbox","fromSide":"bottom","toNode":"c_widget","toSide":"top","label":"20 le fabriquer et le versionner"},
+		{"id":"e_widget_branche","fromNode":"c_widget","fromSide":"bottom","toNode":"c_branche","toSide":"top","label":"21 lui donner des données, après revue"},
+		{"id":"e_branche_resultat","fromNode":"c_branche","fromSide":"bottom","toNode":"c_resultat","toSide":"top","label":"22 recevoir ce qu'il publie"},
+		{"id":"e_resultat_outils","fromNode":"c_resultat","fromSide":"bottom","toNode":"c_outils","toSide":"top","label":"23 le faire naître à l'éclosion"},
+		{"id":"e_c_outils_c_pont","fromNode":"c_outils","toNode":"c_pont","fromSide":"bottom","toSide":"top","label":"24 un agent extérieur reçoit des mains"},
+		{"id":"e_c_pont_c_piloter","fromNode":"c_pont","toNode":"c_piloter","fromSide":"bottom","toSide":"top","label":"25 le CLI devient le moteur"},
+		{"id":"e_c_piloter_c_permissions","fromNode":"c_piloter","toNode":"c_permissions","fromSide":"bottom","toSide":"top","label":"26 qui décide quand il agit"},
+		{"id":"e_c_permissions_c_plan","fromNode":"c_permissions","toNode":"c_plan","fromSide":"bottom","toSide":"top","label":"27 découper le travail"},
+		{"id":"e_c_plan_c_fichiers","fromNode":"c_plan","toNode":"c_fichiers","fromSide":"bottom","toSide":"top","label":"28 écrire de vrais fichiers"},
+		{"id":"e_c_fichiers_c_lancer","fromNode":"c_fichiers","toNode":"c_lancer","fromSide":"bottom","toSide":"top","label":"29 lancer des programmes"}
+	]
 }

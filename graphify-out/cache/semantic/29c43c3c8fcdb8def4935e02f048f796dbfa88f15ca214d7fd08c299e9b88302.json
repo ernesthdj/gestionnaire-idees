@@ -1,0 +1,1 @@
+{"nodes": [], "edges": [{"source": "down_migrations", "target": "mig_0025_final_actions", "relation": "rationale_for", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "src/main/infrastructure/db/migrations/down/0025_final_actions.down.sql", "source_location": null, "weight": 1.0}], "hyperedges": []}

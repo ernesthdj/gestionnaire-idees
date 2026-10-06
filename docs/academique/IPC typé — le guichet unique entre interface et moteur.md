@@ -104,3 +104,6 @@ catch (error) {
 **Connexions**
 - [[Zod ↔ type guards et sortie structurée]] — ce que Zod automatise.
 - [[Architecture Electron — trois processus cloisonnés]] — pourquoi il faut un guichet.
+
+## Évolution du 04/10 — un deuxième guichet
+Le main a désormais **deux** entrées : l'IPC (l'interface) et le **canal nommé** du pont MCP (Claude Code, via un relais). Même doctrine : schéma Zod à la frontière, appelant identifié, erreurs métier traduites en codes lisibles. Voir [[Pont MCP — relais stdio, canal nommé et secret partagé]].

@@ -1,8 +1,8 @@
 ---
 type: MOC
-subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés)
-tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets]
-date: 2026-09-30
+subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés ; session du 04→06/10 : interface visuelle de Claude Code, specs 007 à 016)
+tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets, #mcp, #claude-code, #processus, #fichiers]
+date: 2026-10-06
 ---
 
 # Gestionnaire idées — Map of Content
@@ -44,7 +44,15 @@ flowchart TD
     R --> S
     T --> U
     L --> W
+    subgraph "Specs 007-016 — interface visuelle de Claude Code (04→06/10)"
+        X1["Pont MCP<br/>relais + canal nommé"] --> X2["Piloter Claude Code<br/>stream-json + session"] --> X3["Permissions relayées<br/>l'humain décide"]
+        X2 --> X4["Plan d'attaque<br/>DAG + verrou"] --> X5["Fichiers écrits<br/>atomique + realpath"] --> X6["Lancer sans shell<br/>chemin absolu"]
+    end
+    C --> X1
+    W --> X4
 ```
+
+> 🆕 **Session du 04→06/10 (specs 007 à 016)** : virage de la vision — le Brainstormer devient **l'interface visuelle de Claude Code**. Claude lit et dessine la carte par un **pont MCP**, chaque idée est une **conversation `claude -p`**, l'API Anthropic disparaît, l'ancien moteur de neurones est **retiré** (≈ 13 400 lignes). Puis : plan d'attaque, documents Markdown, actions finales qui écrivent dans un vrai projet, permissions relayées en cartes, genesis → projet avec git. Nouvelles notes : 6 concepts, 5 glossaires ; blocs « Évolution » ajoutés dans 21 notes existantes. ⚠️ **Huit d’entre eux sont des corrections** : passerelle, anonymisation, budget, croissance, synthèse, liens, plongée, outils au verrouillage — ces modules **n'existent plus dans le code** (tables gardées en archive). Les notes restent des cours valables sur leurs techniques.
 
 > 🆕 **Session du 28→29/09 (spec 003)** : l'app devient **visible et utilisable** — icône de notification, capture rapide au raccourci, carte des idées sans croisements, plongée en couronne, aperçu éditable, éclosion animée, historique avec « Annuler ». Nouvelles notes : 4 concepts, 1 pont, 2 glossaires ; blocs « Évolution du 29/09 » ajoutés dans 4 notes existantes (Electron, Éclosion, Liens, Zod).
 
@@ -77,6 +85,11 @@ flowchart TD
 - [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]] — une seule source de vérité *(30/09 soir)*
 - [[Glossaire — Parcours en profondeur (DFS)]] — parent puis ses enfants, et la pile d'appels *(30/09 soir)*
 - [[Glossaire — Throttle et debounce (regrouper des événements)]] — débit maximal ou attente du calme *(30/09 soir)*
+- [[Glossaire — MCP (Model Context Protocol)]] — la prise standard des outils d'un agent IA *(06/10)*
+- [[Glossaire — Canal nommé et flux standard]] — stdin/stdout, tuyau nommé, JSON par ligne *(06/10)*
+- [[Glossaire — Écriture atomique (temporaire puis renommage)]] — ancien ou nouveau, jamais à moitié *(06/10)*
+- [[Glossaire — Traversée de chemin et lien symbolique]] — rester dans son dossier, vérifié sur le chemin réel *(06/10)*
+- [[Glossaire — Clé stable et upsert]] — recevoir deux fois la même chose sans doublon *(06/10)*
 
 ## Concepts fondamentaux
 *À maîtriser en premier — la charpente*
@@ -119,6 +132,15 @@ flowchart TD
 - [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]] — *avancé* — ce qui sort : bornes dans le main, `textContent`, throttle
 - [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]] — *avancé* — rapide et annulable dedans, lent et faillible après
 
+## Interface visuelle de Claude Code (specs 007-016 — 04→06/10)
+*Donner des mains à un agent extérieur, et garder la décision*
+- [[Pont MCP — relais stdio, canal nommé et secret partagé]] — *avancé* — un deuxième guichet vers le main, sans port réseau
+- [[Piloter Claude Code — processus enfant, flux stream-json et session reprise]] — *avancé* — le CLI comme moteur, sans hériter de ses réglages
+- [[Permissions relayées — l'humain dans la boucle d'un agent]] — *avancé* — attendre un humain sans bloquer, refuser par défaut
+- [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]] — *avancé* — DAG, DFS trois couleurs, garde D6, disposition pure
+- [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — *intermédiaire* — documents, dossier de projet, registre
+- [[Lancer un programme sans shell — chemin absolu, arguments séparés, listes blanches]] — *avancé* — git, npm, éditeur, sans injection
+
 ## Ponts outil ↔ mécanisme
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que l'ORM fait à ta place (et pourquoi pas Prisma)
 - [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier (+ sortie tolérante, 29/09)
@@ -149,8 +171,14 @@ flowchart TD
 21. [[Widget branché — autorisation par empreinte et pont postMessage]] — relire avant [[Glossaire — Empreinte SHA-256]] ; avec [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]]
 22. [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]] — avec [[Glossaire — Throttle et debounce (regrouper des événements)]] et [[Glossaire — Parcours en profondeur (DFS)]]
 23. [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]] — relire avant le bloc « Évolution du 30/09 (soir) » de [[Zod ↔ type guards et sortie structurée]]
+24. [[Pont MCP — relais stdio, canal nommé et secret partagé]] — avec [[Glossaire — MCP (Model Context Protocol)]] et [[Glossaire — Canal nommé et flux standard]] ; relire avant [[IPC typé — le guichet unique entre interface et moteur]]
+25. [[Piloter Claude Code — processus enfant, flux stream-json et session reprise]] — puis les blocs « Évolution du 05/10 » de la Passerelle, de l'Anonymisation et du Budget (ce qui a disparu, et pourquoi)
+26. [[Permissions relayées — l'humain dans la boucle d'un agent]] — puis le bloc « Évolution du 06/10 » de [[Injection de prompt — cadre figé et données balisées]]
+27. [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]] — avec [[Glossaire — Parcours en profondeur (DFS)]] (bloc des trois couleurs) et [[Glossaire — Clé stable et upsert]]
+28. [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — avec [[Glossaire — Écriture atomique (temporaire puis renommage)]] et [[Glossaire — Traversée de chemin et lien symbolique]]
+29. [[Lancer un programme sans shell — chemin absolu, arguments séparés, listes blanches]] — la synthèse sécurité de la session
 
-> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion.
+> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion. Notes 24 à 29 → **revoir dans 2 jours** : dessine de mémoire les quatre processus (Claude Code, relais, main, renderer) et le trajet d'une demande de permission, avec les trois délais ; puis déroule à la main le DFS gris/noir sur A→B→C→A ; enfin, cite les trois règles pour lancer un programme.
 
 ## Questions de révision globale
 > **Q :** Suis une réponse de l'utilisateur, de son clic jusqu'au disque puis jusqu'à Claude : quelles barrières traverse-t-elle ?
@@ -180,6 +208,15 @@ flowchart TD
 > **Q :** Donne trois « doubles verrous » (consigne + code) ajoutés le 30/09.
 > **R :** Pas d'idée suggérée avant 3 réponses (`suggestionsAllowed`) ; pas d'outil déjà branché reproposé (`keepNewTools`) ; champ `tools` obligatoire dans le contrat mais tolérant au parseur (`.catch([])`).
 
+> **Q :** Claude, dans le chat d'une étape, veut corriger un fichier du projet lié. Suis la demande jusqu'au disque.
+> **R :** `tool_use` Edit → Claude Code appelle `permission_demander` (pont MCP : relais → canal nommé, secret vérifié) → `PermissionService` : règle « Toujours » du projet ? sinon promesse en attente + carte dans le chat → mentalyas autorise → `allow` → Claude Code écrit → `tool_result` dans le flux → le fil affiche « fait ». Sans réponse en 30 min ou chat fermé : `deny`.
+
+> **Q :** Donne trois endroits où l'app consent à un **contenu précis** plutôt qu'à un nom.
+> **R :** Empreinte d'un widget (code + entrées) ; script npm approuvé **avec son texte** ; règle de commande « Toujours » au **texte exact**.
+
+> **Q :** Qu'ont en commun `--setting-sources ""`, `resolveGit()` et `realpath` ?
+> **R :** Tous trois empêchent un **dossier de projet non fiable** d'agir à notre place : hooks cachés, `git.exe` piégé dans le dossier courant, lien symbolique vers ailleurs.
+
 ## Ressources complémentaires
 - Cadrage : `docs/FOUNDATION.md` (§0 amendements Brainstormer prioritaires), `docs/brainstorm/L1-…L4c-*.md`, `.specify/memory/constitution.md` (v1.1.0)
 - Specs : `specs/001-moteur-ia-hybride/`, `specs/002-structuration-ia/`, `specs/003-interface-mvp1/` (spec, plan, research, data-model, contracts, tasks, analysis-report)
@@ -190,4 +227,5 @@ flowchart TD
 - *Mise à jour du 29/09* — Graphe : 2 071 nœuds, 140 communautés ; nouveaux nœuds centraux côté interface : `useUiStore` (19 liens), communautés « Croisements de liens », « Plongée — scène & fantômes », « Canaux IPC par fenêtre ». Code clé spec 003 : `src/main/shell/*.ts`, `src/renderer/src/canvas/{forceLayout,crossings}.ts`, `src/renderer/src/dive/{radialLayout,useDive}.ts`, `src/main/application/history/HistoryService.ts`, `src/main/infrastructure/db/repositories/HistoryRepository.ts`, `src/renderer/src/app/{uiStore,useMainEvents,useUndo}.ts`, `src/shared/ai/neurons.ts` (tolérance). Décisions : `specs/003-interface-mvp1/research.md` (R1–R8). 500 tests en fin de session (lus, non exécutés ici).
 - *Mise à jour du 30/09* — Graphe : 2 558 nœuds, 177 communautés ; nouvelles communautés « Spec 004 — Boîte à outils de la carte et mini-widgets », « WidgetRepository », « WidgetNode.tsx », hyper-arête « Bac à sable des widgets : isolation en couches gi-widget:// ». Cadrage : `specs/004-widgets/` (spec, plan § Isolation, tasks, quickstart § 4 « Évasion du bac à sable »), `.specify/memory/constitution.md` (v1.2.0), `docs/brainstorm/L4c-widgets.md`. Code clé spec 004 : `src/main/application/widgets/{WidgetDocument,transpile,widgetUrl,WidgetService}.ts`, `src/main/shell/{widgetProtocol,hardening}.ts`, `src/main/infrastructure/ai/WidgetFrame.ts`, `src/main/infrastructure/db/repositories/{WidgetRepository,BlockRepository}.ts`, `src/main/infrastructure/db/migrations/0009…0011` (+ `down/`), `src/renderer/src/canvas/{ToolMenu.tsx,useBlockActions.ts,nodes/WidgetNode.tsx,nodes/LabelNode.tsx}`, `src/shared/ai/widgets.ts`. Tests : `tests/unit/widgets/{widget-document,widget-escape}.test.ts`, `tests/integration/widgets/widgets.test.ts`. 634 tests en fin de session selon le journal (lus, non exécutés ici).
 - *Mise à jour du 30/09 (soir)* — Graphe : 3 082 nœuds, 191 communautés ; nouvelles communautés « WidgetIoService », « WidgetIoRepository » (24 liens), « Spec 005 — Widgets branchés », « Spec 006 — Widgets proposés au verrouillage », « tool-hatching.test.ts » ; hyper-arêtes « Pont d'entrées d'un widget » et « Outils à l'éclosion ». Cadrage : `specs/005-widgets-entrees-sorties/` (plan § Pont, § Revue et empreinte, § Signature de structure, § Cadre résultat), `specs/006-widgets-au-verrouillage/` (plan, décisions R1–R8). Code clé : `src/main/application/widgets/{WidgetIoService,InputAssembler,ToolGeneration,toolSurroundings,GenericResultView}.ts`, `src/main/domain/widgets/{shape,resultLimits,placeTools,toolProposals}.ts`, `src/shared/widgets/genericResultView.ts`, `src/renderer/src/widgets/{useWidgetBridge,emitThrottle}.ts`, `src/main/application/neurons/{SynthesisApplier,SynthesisContextBuilder}.ts`, `src/main/domain/neurons/nextStep.ts`, `src/shared/ai/neurons.ts`, migrations `0012…0016` (+ `down/`). 788 tests en fin de session selon le journal (lus, non exécutés ici).
+- *Mise à jour du 06/10* — Graphe : 3 907 nœuds, 244 communautés ; nouvelles communautés « Outils MCP de la carte », « Permissions et flux du CLI », « Processus Claude Code », « Plan d'attaque », « Disposition du plan », « Commandes approuvées (spec 013) », « Actions finales et livrables », « Genesis → projet (spec 016) », « Conversion de l'ancien moteur ». Cadrage : `docs/brainstorm/L1c-pont-claude-code.md`, `L2-`/`L3-` (pont MCP, moteur CLI, terminal, neurone conversationnel, carte de structure), `specs/007-…` à `specs/016-…`, `.specify/memory/constitution.md` (3.0.0, 4.0.0 proposée). Code clé : `src/mcp-relay/relay.ts`, `src/main/infrastructure/mcp/{PipeServer,token,endpoint,lineSplitter}.ts`, `src/shared/mcp/{protocol,tools}.ts`, `src/main/infrastructure/claude/{CliConversation,claudePath}.ts`, `src/main/domain/conversation/{streamEvents,permissions}.ts`, `src/main/application/conversation/{ConversationService,PermissionService,LegacyConversion}.ts`, `src/main/infrastructure/ai/ClaudeCliProvider.ts`, `src/main/domain/plan/{dependencies,lock}.ts`, `src/renderer/src/canvas/planLayout.ts`, `src/main/infrastructure/documents/DocumentFiles.ts`, `src/main/domain/documents/fileName.ts`, `src/main/domain/finals/{projectPath,commands,editor}.ts`, `src/main/infrastructure/{finals/CommandRunner,editor/EditorLauncher,projects/GitCli,projects/ProjectFolder,projects/HubRegistry}.ts`, migrations `0017…0027` (+ `down/`). 994 tests en fin de session selon le journal (lus, non exécutés ici).
 - 💡 Glisse ces notes dans NotebookLM / Gemini si tu veux un *study guide* ou un quiz audio.

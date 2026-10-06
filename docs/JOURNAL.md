@@ -601,3 +601,8 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 
 ### [2026-10-06 17:30] DOCS — tests guidés validés : spec 016 T006 et spec 014 T008
 **Quoi :** mentalyas valide le test de « Faire de ce genesis un projet » / « Initialiser git » (spec 016, livrée) et celui des cartes de permission (spec 014 §1, §3). Suite : spec 014 Phase 2 (modes, T009).
+
+### [2026-10-06 17:15] SESSION — End
+**Resume :** session ouverte le 2026-10-04. Specs 007 à 013 livrées ou avancées (pont MCP, chat des neurones, carte de structure, bascule sur Claude Code, plan d'attaque, documents, actions finales), spec 015 US1–US2 (widgets branchés sur les étapes), consommation Claude dans l'en-tête ; spec 014 « Claude libre » T001–T008 (permissions relayées en cartes, fil fidèle) ; spec 016 « Genesis → projet » livrée (dossier de projet après le brainstorm, git à la demande, inscription au registre ProjectMaster) ; dépôt préparé pour un collègue (README, `docs/claude/`, skills `/journal` `/selfdoubt`) ; graphe graphify mis à jour (3 907 nœuds). Suite : spec 014 Phase 2 (modes de permission, T009).
+**Branche :** main
+**Commits pushes :** 21

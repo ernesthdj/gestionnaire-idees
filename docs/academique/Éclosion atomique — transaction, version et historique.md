@@ -131,3 +131,6 @@ confirm(synthesisId: string): ConfirmView {
 - **Ordre du journal** : les entrées « outil » sont écrites **en dernier**, parce que l'Historique résume un lot par sa **première** entrée (« Éclosion de … »).
 - **Ce qui reste dehors** : la génération par Claude, lancée **après** le commit — un échec ne remet jamais l'éclosion en cause → [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]].
 - Le choix arrive sous forme d'**index** dans la proposition stockée ; le main refuse un index absent ou répété, et ignore les outils si la synthèse vient de l'IA locale (mode dégradé).
+
+## Évolution du 05/10 — de l'éclosion à la couche validée
+L'éclosion (synthèse confirmée d'un bloc) disparaît avec l'ancien moteur. Son mécanisme se retrouve dans **la validation d'une couche du plan d'attaque** : verrou du parent + naissance des étapes + dépendances, dans **une transaction** et **un lot d'Historique** annulable — avec une garde nouvelle (D6) : on ne déverrouille pas un parent dont des enfants nés ailleurs dépendent. Voir [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]].

@@ -97,3 +97,8 @@ Extrait réel de `.specify/memory/constitution.md` (en-tête « Sync Impact Repo
 
 ## Évolution du 30/09 — amendement 1.2.0 : une exception écrite avant le code
 La spec 004 voulait que Claude **génère du code** (les widgets), ce que le principe III interdisait. Même démarche qu'en 1.1.0 : la tâche T001 de `specs/004-widgets/tasks.md` est l'**amendement** (`MINOR`, validé), avant toute ligne de code. L'exception est bornée par des `MUST` vérifiables : cadre système dédié, exécution **uniquement** dans le bac à sable `gi-widget://`, et revue obligatoire dès qu'un widget demandera une capacité (spec 005). Ce que ça donne en code → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]].
+
+## Évolution du 04→06/10 — la vision bascule, la méthode tient
+- **Amendement L1c (04/10)** : le Brainstormer devient l'**interface visuelle de Claude Code** (pont MCP, moteur `claude -p`). Constitution **2.0.0** puis **3.0.0** (05/10 : plus d'API, de budget, d'anonymisation ; écritures de Claude directes, marquées et annulables), **4.0.0 proposée** (06/10, « Claude libre », permissions relayées).
+- **Dix specs en trois jours** (007 à 016), chacune avec plan, tâches et **test guidé validé par mentalyas** avant de continuer.
+- **Règles apprises** : une capacité ajoutée au pont MCP ne sert à rien tant que le cadre ne dit pas **quand** l'utiliser ; quand un modèle confond deux outils voisins, un **déclencheur explicite** (bouton) et un **refus motivé** valent mieux qu'une consigne de plus.

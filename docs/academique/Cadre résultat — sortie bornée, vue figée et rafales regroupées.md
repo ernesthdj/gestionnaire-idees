@@ -120,3 +120,6 @@ push(value) {
 - [[Widget branché — autorisation par empreinte et pont postMessage]] — même pont, sens inverse ; le cadre résultat hérite de l'autorisation de son widget.
 - [[Zod ↔ type guards et sortie structurée]] — même idée (valider une donnée étrangère), écrite ici à la main car il faut borner la **profondeur** et les **octets**.
 - [[Annuler par lot — journal avant-après, conflit et lot inverse]] — supprimer un cadre résultat est annulable.
+
+## Évolution du 04/10 — le même réflexe pour le chat
+Les réponses de Claude dans le chat sont rendues en Markdown (`react-markdown` + `remark-gfm`) **sûr par construction** : `skipHtml` (aucun HTML brut interprété), filtre d'URL (`javascript:` neutralisé), liens ouverts hors de l'app (https seulement), images jamais chargées. Les aperçus des cartes de permission et la visionneuse de fichiers (coloration `highlight.js`, sans `innerHTML`) suivent la même règle que `textContent` ici : **afficher, jamais interpréter**.

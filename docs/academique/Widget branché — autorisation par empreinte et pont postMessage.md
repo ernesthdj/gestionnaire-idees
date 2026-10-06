@@ -137,3 +137,6 @@ const onMessage = (event: MessageEvent) => {
 - [[Glossaire — Empreinte SHA-256]] — troisième usage dans le projet : sceller une autorisation.
 - [[IPC typé — le guichet unique entre interface et moteur]] — `widgetIo:inputs` est un canal validé par Zod comme les autres.
 - [[Glossaire — Suppression douce (soft delete)]] — un débranchement est un `deleted_at`, annulable depuis l'Historique.
+
+## Évolution du 06/10 — brancher une étape du plan
+Spec 015 : une **étape** (ou une action finale) peut être tirée vers un widget. Après autorisation, le widget reçoit son contexte complet : rang (« 1.2 »), statut, raison, fiche, chemin depuis le genesis, sous-étapes, documents annexés, fichiers du livrable — assemblé par `PlanFacts` et `InputAssembler` (borne 200 Ko). Pas de migration : les anciennes « parties » sont **converties à la lecture**, ce qui change l'empreinte → une réautorisation, une fois. La règle « Claude ne voit que la **forme** des entrées » venait de l'anonymisation retirée (constitution 3.0) : la spec 015 amendée (D5–D7, US4–US5, à coder) prévoit que le lien serve à **construire** le widget le plus utile à partir du contexte réel.

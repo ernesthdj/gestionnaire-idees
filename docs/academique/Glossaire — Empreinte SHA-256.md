@@ -37,3 +37,7 @@ createHash('sha256').update(`${a}|${b}|${normalizeLabel(label)}`).digest('hex')
 > **Q :** Pourquoi normaliser le libellé avant de hacher l'empreinte d'un lien ? **R :** Pour que « Même budget » et « même  budget ! » donnent la même empreinte et soient reconnus comme le même lien.
 
 **Pièges** : ⚠️ hacher des mots de passe avec SHA-256 seul — trop rapide à attaquer par force brute.
+
+## Évolution du 04→06/10
+- [[Pont MCP — relais stdio, canal nommé et secret partagé]] — le **nom** du canal est tiré d'une empreinte du chemin du profil (un canal par profil).
+- [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — l'empreinte du dernier contenu connu révèle qu'un document a été modifié hors de l'app.

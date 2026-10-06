@@ -1,221 +1,268 @@
-# Graph Report - .  (2026-09-30)
+# Graph Report - .  (2026-10-06)
 
 ## Corpus Check
-- 451 files · ~275,293 words
+- 394 files · ~404,916 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3082 nodes · 5241 edges · 191 communities (160 shown, 31 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 159 edges (avg confidence: 0.87)
-- Token cost: 290,509 input · 0 output
+- 3907 nodes · 6475 edges · 244 communities (191 shown, 53 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.82)
+- Token cost: 578,713 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_GrowthService.ts|GrowthService.ts]]
-- [[_COMMUNITY_MOC — Gestionnaire idées|MOC — Gestionnaire idées]]
-- [[_COMMUNITY_widgetProtocol.ts|widgetProtocol.ts]]
-- [[_COMMUNITY_FusionService.ts|FusionService.ts]]
-- [[_COMMUNITY_tool-hatching.test.ts|tool-hatching.test.ts]]
-- [[_COMMUNITY_widget-output.test.tsx|widget-output.test.tsx]]
-- [[_COMMUNITY_Règles apprises (table du JOURNAL)|Règles apprises (table du JOURNAL)]]
-- [[_COMMUNITY_schemaNeurons.ts|schemaNeurons.ts]]
-- [[_COMMUNITY_Spec 004 — Boîte à outils de la carte et|Spec 004 — Boîte à outils de la carte et]]
-- [[_COMMUNITY_layout.test.ts|layout.test.ts]]
-- [[_COMMUNITY_canvas.test.ts|canvas.test.ts]]
-- [[_COMMUNITY_Constitution Gestionnaire_idées v1.2.0|Constitution Gestionnaire_idées v1.2.0]]
-- [[_COMMUNITY_IdeasCanvas.tsx|IdeasCanvas.tsx]]
-- [[_COMMUNITY_useUiStore|useUiStore]]
-- [[_COMMUNITY_WidgetNode.tsx|WidgetNode.tsx]]
-- [[_COMMUNITY_bootstrap.ts|bootstrap.ts]]
-- [[_COMMUNITY_suggestions.test.ts|suggestions.test.ts]]
-- [[_COMMUNITY_Annuler par lot — journal avant-après, c|Annuler par lot — journal avant-après, c]]
-- [[_COMMUNITY_Spec 003 — Interface MVP-1 « Brainstorme|Spec 003 — Interface MVP-1 « Brainstorme]]
-- [[_COMMUNITY_widget-output.test.ts|widget-output.test.ts]]
-- [[_COMMUNITY_providers.test.ts|providers.test.ts]]
-- [[_COMMUNITY_WidgetRepository|WidgetRepository]]
-- [[_COMMUNITY_routing.ts|routing.ts]]
-- [[_COMMUNITY_ClaudeProvider.ts|ClaudeProvider.ts]]
-- [[_COMMUNITY_useCanvasPhysics.ts|useCanvasPhysics.ts]]
-- [[_COMMUNITY_neurons.ts|neurons.ts]]
-- [[_COMMUNITY_buildGraph.ts|buildGraph.ts]]
-- [[_COMMUNITY_GrowthRepository|GrowthRepository]]
-- [[_COMMUNITY_shell.test.ts|shell.test.ts]]
-- [[_COMMUNITY_WidgetIoService|WidgetIoService]]
-- [[_COMMUNITY_canvas.ts|canvas.ts]]
-- [[_COMMUNITY_HistoryService.ts|HistoryService.ts]]
-- [[_COMMUNITY_widget-node.test.tsx|widget-node.test.tsx]]
-- [[_COMMUNITY_dive.test.tsx|dive.test.tsx]]
-- [[_COMMUNITY_treeGraph.ts|treeGraph.ts]]
-- [[_COMMUNITY_AIGateway.ts|AIGateway.ts]]
-- [[_COMMUNITY_Coquille de bureau — zone de notificatio|Coquille de bureau — zone de notificatio]]
-- [[_COMMUNITY_OpenIdea.tsx|OpenIdea.tsx]]
-- [[_COMMUNITY_devDependencies|devDependencies]]
-- [[_COMMUNITY_ContextImportService.ts|ContextImportService.ts]]
-- [[_COMMUNITY_NeuronRepository|NeuronRepository]]
-- [[_COMMUNITY_neurons.ts|neurons.ts]]
-- [[_COMMUNITY_plan-checks.test.ts|plan-checks.test.ts]]
-- [[_COMMUNITY_local-queue.test.ts|local-queue.test.ts]]
-- [[_COMMUNITY_context-import.test.ts|context-import.test.ts]]
-- [[_COMMUNITY_LinkRepository|LinkRepository]]
+- [[_COMMUNITY_Schéma et dépôts SQLite|Schéma et dépôts SQLite]]
+- [[_COMMUNITY_Fondation et brainstorm initial|Fondation et brainstorm initial]]
+- [[_COMMUNITY_Outils MCP de la carte|Outils MCP de la carte]]
+- [[_COMMUNITY_Entrées des widgets (étapes)|Entrées des widgets (étapes)]]
+- [[_COMMUNITY_Démarrage et profil démo|Démarrage et profil démo]]
+- [[_COMMUNITY_Genesis → projet (spec 016)|Genesis → projet (spec 016)]]
+- [[_COMMUNITY_Contrats IPC des blocs|Contrats IPC des blocs]]
+- [[_COMMUNITY_Coquille de l’app et toasts|Coquille de l’app et toasts]]
+- [[_COMMUNITY_Parties d’entrée des widgets|Parties d’entrée des widgets]]
+- [[_COMMUNITY_Fenêtre de capture et thème|Fenêtre de capture et thème]]
+- [[_COMMUNITY_Contrats des outils MCP|Contrats des outils MCP]]
+- [[_COMMUNITY_Carte de structure|Carte de structure]]
+- [[_COMMUNITY_Notes académiques (glossaire)|Notes académiques (glossaire)]]
+- [[_COMMUNITY_Permissions et flux du CLI|Permissions et flux du CLI]]
+- [[_COMMUNITY_Physique de la carte|Physique de la carte]]
+- [[_COMMUNITY_Nœuds et liens de la carte|Nœuds et liens de la carte]]
+- [[_COMMUNITY_Plan d’attaque|Plan d’attaque]]
+- [[_COMMUNITY_Éditeur et visionneuse|Éditeur et visionneuse]]
+- [[_COMMUNITY_Specs 011–013 (plan, documents, actions)|Specs 011–013 (plan, documents, actions)]]
+- [[_COMMUNITY_Canevas des idées (tests)|Canevas des idées (tests)]]
+- [[_COMMUNITY_Annulation par lot (notes)|Annulation par lot (notes)]]
+- [[_COMMUNITY_Routes IPC et cadre de Claude|Routes IPC et cadre de Claude]]
+- [[_COMMUNITY_Blocs de la carte|Blocs de la carte]]
+- [[_COMMUNITY_Disposition du plan|Disposition du plan]]
+- [[_COMMUNITY_Historique et propositions|Historique et propositions]]
+- [[_COMMUNITY_Capture rapide|Capture rapide]]
+- [[_COMMUNITY_Moteur physique (CanvasPhysics)|Moteur physique (CanvasPhysics)]]
+- [[_COMMUNITY_Ouverture de la base chiffrée|Ouverture de la base chiffrée]]
+- [[_COMMUNITY_Spec 004 widgets|Spec 004 widgets]]
+- [[_COMMUNITY_ConversationService|ConversationService]]
+- [[_COMMUNITY_Commandes approuvées (spec 013)|Commandes approuvées (spec 013)]]
+- [[_COMMUNITY_Migrations 0017–0027|Migrations 0017–0027]]
+- [[_COMMUNITY_Actions finales et livrables|Actions finales et livrables]]
+- [[_COMMUNITY_Spec 003 interface MVP-1|Spec 003 interface MVP-1]]
+- [[_COMMUNITY_Specs 014–015 (Claude libre)|Specs 014–015 (Claude libre)]]
+- [[_COMMUNITY_Profil démo et canevas (tests)|Profil démo et canevas (tests)]]
+- [[_COMMUNITY_Tests d’intégration MCP|Tests d’intégration MCP]]
+- [[_COMMUNITY_Outils documents MCP|Outils documents MCP]]
+- [[_COMMUNITY_Conversion de l’ancien moteur|Conversion de l’ancien moteur]]
+- [[_COMMUNITY_CanvasService|CanvasService]]
+- [[_COMMUNITY_Processus Claude Code|Processus Claude Code]]
+- [[_COMMUNITY_Contrats du livrable|Contrats du livrable]]
+- [[_COMMUNITY_Tests d’intégration divers|Tests d’intégration divers]]
+- [[_COMMUNITY_Réglages de l’app|Réglages de l’app]]
 - [[_COMMUNITY_WidgetIoRepository|WidgetIoRepository]]
-- [[_COMMUNITY_seeds.test.ts|seeds.test.ts]]
-- [[_COMMUNITY_neurons.ts|neurons.ts]]
-- [[_COMMUNITY_F3 - Apercu & validation|F3 - Apercu & validation]]
-- [[_COMMUNITY_aiEngine.ts|aiEngine.ts]]
-- [[_COMMUNITY_Human-in-the-loop (validation humaine ob|Human-in-the-loop (validation humaine ob]]
-- [[_COMMUNITY_anonymizationRules.ts|anonymizationRules.ts]]
-- [[_COMMUNITY_ContextRepository|ContextRepository]]
-- [[_COMMUNITY_ContextRepository.ts|ContextRepository.ts]]
-- [[_COMMUNITY_app-handlers.test.ts|app-handlers.test.ts]]
-- [[_COMMUNITY_Spec 005 — Widgets branchés|Spec 005 — Widgets branchés]]
-- [[_COMMUNITY_AiConfigRepository.ts|AiConfigRepository.ts]]
-- [[_COMMUNITY_client.ts|client.ts]]
-- [[_COMMUNITY_FusionRepository|FusionRepository]]
-- [[_COMMUNITY_docsFOUNDATION|docs/FOUNDATION.md]]
-- [[_COMMUNITY_Button.tsx|Button.tsx]]
-- [[_COMMUNITY_widget-io.test.ts|widget-io.test.ts]]
-- [[_COMMUNITY_extractValues.ts|extractValues.ts]]
-- [[_COMMUNITY_crossings.ts|crossings.ts]]
-- [[_COMMUNITY_2b Plongee (zoom into a neuron)|2b Plongee (zoom into a neuron)]]
-- [[_COMMUNITY_SynthesisPreview.tsx|SynthesisPreview.tsx]]
-- [[_COMMUNITY_Spec 003 — Interface MVP-1 « Brainstorme|Spec 003 — Interface MVP-1 « Brainstorme]]
-- [[_COMMUNITY_SecretStore|SecretStore]]
-- [[_COMMUNITY_registry.ts|registry.ts]]
-- [[_COMMUNITY_links.ts|links.ts]]
-- [[_COMMUNITY_HatchedPanel.tsx|HatchedPanel.tsx]]
-- [[_COMMUNITY_Anonymizer.ts|Anonymizer.ts]]
-- [[_COMMUNITY_Carte des idées — simulation de forces e|Carte des idées — simulation de forces e]]
-- [[_COMMUNITY_Clean Architecture — domaine, applicatio|Clean Architecture — domaine, applicatio]]
-- [[_COMMUNITY_capture.test.ts|capture.test.ts]]
-- [[_COMMUNITY_defineRoute()|defineRoute()]]
-- [[_COMMUNITY_SeedService|SeedService]]
-- [[_COMMUNITY_dependencies|dependencies]]
-- [[_COMMUNITY_GrowthService|GrowthService]]
-- [[_COMMUNITY_F9 — Moteur IA hybride & contexte|F9 — Moteur IA hybride & contexte]]
-- [[_COMMUNITY_SynthesisApplier.confirm|SynthesisApplier.confirm]]
-- [[_COMMUNITY_fusion.test.ts|fusion.test.ts]]
-- [[_COMMUNITY_HistoryRepository|HistoryRepository]]
-- [[_COMMUNITY_logger.ts|logger.ts]]
-- [[_COMMUNITY_LinkService|LinkService]]
-- [[_COMMUNITY_WidgetReview.tsx|WidgetReview.tsx]]
-- [[_COMMUNITY_scripts|scripts]]
-- [[_COMMUNITY_AIGateway (facade, seul point d'acces IA|AIGateway (facade, seul point d'acces IA]]
-- [[_COMMUNITY_QuestionPanel.tsx|QuestionPanel.tsx]]
-- [[_COMMUNITY_IdeaPanel.tsx|IdeaPanel.tsx]]
-- [[_COMMUNITY_useAppSettings.ts|useAppSettings.ts]]
-- [[_COMMUNITY_durations.ts|durations.ts]]
-- [[_COMMUNITY_app-api.ts|app-api.ts]]
-- [[_COMMUNITY_App.tsx|App.tsx]]
-- [[_COMMUNITY_channels.ts|channels.ts]]
-- [[_COMMUNITY_AIGateway|AIGateway]]
-- [[_COMMUNITY_ClaudeProvider|ClaudeProvider]]
-- [[_COMMUNITY_ContextImportService|ContextImportService]]
-- [[_COMMUNITY_app.ts|app.ts]]
-- [[_COMMUNITY_Agent context update procedure (Claude C|Agent context update procedure (Claude C]]
-- [[_COMMUNITY_F2 - AI structuring (questionnaire + dec|F2 - AI structuring (questionnaire + dec]]
-- [[_COMMUNITY_preview.test.tsx|preview.test.tsx]]
-- [[_COMMUNITY_Widget généré par Claude — effacement de|Widget généré par Claude — effacement de]]
-- [[_COMMUNITY_provenance.test.ts|provenance.test.ts]]
-- [[_COMMUNITY_context-assembler.test.ts|context-assembler.test.ts]]
-- [[_COMMUNITY_AIGateway.run()|AIGateway.run()]]
-- [[_COMMUNITY_AppSettingsRepository|AppSettingsRepository]]
-- [[_COMMUNITY_step-node.test.tsx|step-node.test.tsx]]
-- [[_COMMUNITY_Delivery split MVP-1 (F1-F4, F9)  MVP-2|Delivery split MVP-1 (F1-F4, F9) / MVP-2]]
-- [[_COMMUNITY_L4b - Mecanique neurones|L4b - Mecanique neurones]]
-- [[_COMMUNITY_Cadre systeme v2 Brainstormer (fige)|Cadre systeme v2 Brainstormer (fige)]]
-- [[_COMMUNITY_CaptureApp.tsx|CaptureApp.tsx]]
-- [[_COMMUNITY_canvas-create.test.tsx|canvas-create.test.tsx]]
-- [[_COMMUNITY_canvas-keyboard.test.tsx|canvas-keyboard.test.tsx]]
-- [[_COMMUNITY_Anonymisation en deux couches|Anonymisation en deux couches]]
-- [[_COMMUNITY_Data Model 002 (modele central)|Data Model 002 (modele central)]]
-- [[_COMMUNITY_AppShell.tsx|AppShell.tsx]]
-- [[_COMMUNITY_ResizeObserverMock|ResizeObserverMock]]
-- [[_COMMUNITY_Spec 006 — Widgets proposés au verrouill|Spec 006 — Widgets proposés au verrouill]]
-- [[_COMMUNITY_BudgetGuard|BudgetGuard]]
-- [[_COMMUNITY_FakeProvider|FakeProvider]]
-- [[_COMMUNITY_Croissance d'un neurone — arbre, garde-f|Croissance d'un neurone — arbre, garde-f]]
-- [[_COMMUNITY_Research — 003 Interface MVP-1 (v2)|Research — 003 Interface MVP-1 (v2)]]
-- [[_COMMUNITY_Synthèse vérifiée — contrôles déterminis|Synthèse vérifiée — contrôles déterminis]]
-- [[_COMMUNITY_edit-proposed.test.ts|edit-proposed.test.ts]]
-- [[_COMMUNITY_package.json|package.json]]
-- [[_COMMUNITY_CompanionService|CompanionService]]
-- [[_COMMUNITY_client.test.ts|client.test.ts]]
-- [[_COMMUNITY_compilerOptions|compilerOptions]]
-- [[_COMMUNITY_compilerOptions|compilerOptions]]
-- [[_COMMUNITY_Plan 002 Moteur de neurones|Plan 002 Moteur de neurones]]
-- [[_COMMUNITY_Verrouillage, synthese et eclosion|Verrouillage, synthese et eclosion]]
-- [[_COMMUNITY_LinkService|LinkService]]
-- [[_COMMUNITY_Plan 006 — Widgets proposés au verrouill|Plan 006 — Widgets proposés au verrouill]]
-- [[_COMMUNITY_WidgetService (prompt, restore)|WidgetService (prompt, restore)]]
-- [[_COMMUNITY_ai.ts|ai.ts]]
-- [[_COMMUNITY_neurons table|neurons table]]
-- [[_COMMUNITY_F8 - Tamagotchi companion & daily briefi|F8 - Tamagotchi companion & daily briefi]]
-- [[_COMMUNITY_gestionnaire-idees package|gestionnaire-idees package]]
-- [[_COMMUNITY_Security review spec 001 (T053)|Security review spec 001 (T053)]]
-- [[_COMMUNITY_Garde-fous deterministes E1-E4  P1-P5|Garde-fous deterministes E1-E4 / P1-P5 /]]
-- [[_COMMUNITY_Nature Action  Reflexion|Nature Action / Reflexion]]
-- [[_COMMUNITY_diveModel.ts|diveModel.ts]]
-- [[_COMMUNITY_theme-switch.test.tsx|theme-switch.test.tsx]]
-- [[_COMMUNITY_OllamaProvider|OllamaProvider]]
-- [[_COMMUNITY_accelerator.ts|accelerator.ts]]
-- [[_COMMUNITY_cost.test.ts|cost.test.ts]]
-- [[_COMMUNITY_IPC typé — le guichet unique entre inter|IPC typé — le guichet unique entre inter]]
-- [[_COMMUNITY_synthesisPatch.ts|synthesisPatch.ts]]
-- [[_COMMUNITY_F1 - Capture rapide|F1 - Capture rapide]]
-- [[_COMMUNITY_Spec 002 Moteur de neurones (F2 v2)|Spec 002 Moteur de neurones (F2 v2)]]
-- [[_COMMUNITY_context.ts|context.ts]]
-- [[_COMMUNITY_lenient-outputs.test.ts|lenient-outputs.test.ts]]
-- [[_COMMUNITY_format.ts|format.ts]]
-- [[_COMMUNITY_validateContextBundle (bundle.ts)|validateContextBundle (bundle.ts)]]
-- [[_COMMUNITY_Two neuron natures Action  Reflexion|Two neuron natures: Action / Reflexion]]
-- [[_COMMUNITY_AiThinking.tsx|AiThinking.tsx]]
-- [[_COMMUNITY_context_versions table|context_versions table]]
-- [[_COMMUNITY_AIGateway — seul point d'entrée IA|AIGateway — seul point d'entrée IA]]
-- [[_COMMUNITY_Modèle de sécurité des widgets (iframe s|Modèle de sécurité des widgets (iframe s]]
-- [[_COMMUNITY_index.ts|index.ts]]
-- [[_COMMUNITY_fake-provider.test.ts|fake-provider.test.ts]]
-- [[_COMMUNITY_widgets.ts|widgets.ts]]
-- [[_COMMUNITY_hoverStore.ts|hoverStore.ts]]
-- [[_COMMUNITY_degraded.test.ts|degraded.test.ts]]
-- [[_COMMUNITY_Gauge.tsx|Gauge.tsx]]
-- [[_COMMUNITY_local-only.test.ts|local-only.test.ts]]
-- [[_COMMUNITY_ai_calls table|ai_calls table]]
-- [[_COMMUNITY_settings table|settings table]]
-- [[_COMMUNITY_CSP stricte de la fenêtre capture|CSP stricte de la fenêtre capture]]
-- [[_COMMUNITY_electron.vite.config.ts|electron.vite.config.ts]]
-- [[_COMMUNITY_{ container }|{ container }]]
-- [[_COMMUNITY_steps|steps]]
-- [[_COMMUNITY_ai_config table|ai_config table]]
-- [[_COMMUNITY_ai_pending_requests table|ai_pending_requests table]]
-- [[_COMMUNITY_Electron hardening (contextIsolation, sa|Electron hardening (contextIsolation, sa]]
-- [[_COMMUNITY_Requirements Checklist 003|Requirements Checklist 003]]
-- [[_COMMUNITY_Export Markdown (renderNeuronMarkdown)|Export Markdown (renderNeuronMarkdown)]]
-- [[_COMMUNITY_React Flow (@xyflowreact)|React Flow (@xyflow/react)]]
-- [[_COMMUNITY_CanvasService (IdeasCanvasView, DiveView|CanvasService (IdeasCanvasView, DiveView]]
-- [[_COMMUNITY_Animations et mode réduit (prefers-reduc|Animations et mode réduit (prefers-reduc]]
+- [[_COMMUNITY_applicationai (45)|application/ai (45)]]
+- [[_COMMUNITY_srccanvas (46)|src/canvas (46)]]
+- [[_COMMUNITY_dbrepositories (47)|db/repositories (47)]]
+- [[_COMMUNITY_applicationai (48)|application/ai (48)]]
+- [[_COMMUNITY_infrastructuremcp (49)|infrastructure/mcp (49)]]
+- [[_COMMUNITY_dbrepositories (50)|db/repositories (50)]]
+- [[_COMMUNITY_applicationai (51)|application/ai (51)]]
+- [[_COMMUNITY_domainconversation (52)|domain/conversation (52)]]
+- [[_COMMUNITY_srcwidgets (53)|src/widgets (53)]]
+- [[_COMMUNITY_divers (54)|divers (54)]]
+- [[_COMMUNITY_unitai (55)|unit/ai (55)]]
+- [[_COMMUNITY_unitmcp (56)|unit/mcp (56)]]
+- [[_COMMUNITY_unitrenderer (57)|unit/renderer (57)]]
+- [[_COMMUNITY_domainai (58)|domain/ai (58)]]
+- [[_COMMUNITY_domainconversation (59)|domain/conversation (59)]]
+- [[_COMMUNITY_srccanvas (60)|src/canvas (60)]]
+- [[_COMMUNITY_specs006-widgets-au-verrouillage (61)|specs/006-widgets-au-verrouillage (61)]]
+- [[_COMMUNITY_applicationdocuments (62)|application/documents (62)]]
+- [[_COMMUNITY_dbrepositories (63)|db/repositories (63)]]
+- [[_COMMUNITY_integrationdocuments (64)|integration/documents (64)]]
+- [[_COMMUNITY_dbrepositories (65)|db/repositories (65)]]
+- [[_COMMUNITY_applicationstructure (66)|application/structure (66)]]
+- [[_COMMUNITY_srcchat (67)|src/chat (67)]]
+- [[_COMMUNITY_docsbrainstorm (68)|docs/brainstorm (68)]]
+- [[_COMMUNITY_dbrepositories (69)|db/repositories (69)]]
+- [[_COMMUNITY_sharedipc (70)|shared/ipc (70)]]
+- [[_COMMUNITY_docsbrainstorm (71)|docs/brainstorm (71)]]
+- [[_COMMUNITY_applicationai (72)|application/ai (72)]]
+- [[_COMMUNITY_applicationneurons (73)|application/neurons (73)]]
+- [[_COMMUNITY_sharedipc (74)|shared/ipc (74)]]
+- [[_COMMUNITY_docsacademique (75)|docs/academique (75)]]
+- [[_COMMUNITY_dbrepositories (76)|db/repositories (76)]]
+- [[_COMMUNITY_infrastructuredocuments (77)|infrastructure/documents (77)]]
+- [[_COMMUNITY_specs007-pont-mcp (78)|specs/007-pont-mcp (78)]]
+- [[_COMMUNITY_divers (79)|divers (79)]]
+- [[_COMMUNITY_divers (80)|divers (80)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (81)|specs/003-interface-mvp1 (81)]]
+- [[_COMMUNITY_dbrepositories (82)|db/repositories (82)]]
+- [[_COMMUNITY_applicationfinals (83)|application/finals (83)]]
+- [[_COMMUNITY_docsdesign (84)|docs/design (84)]]
+- [[_COMMUNITY_specs006-widgets-au-verrouillage (85)|specs/006-widgets-au-verrouillage (85)]]
+- [[_COMMUNITY_007-pont-mcpcontracts (86)|007-pont-mcp/contracts (86)]]
+- [[_COMMUNITY_srccanvas (87)|src/canvas (87)]]
+- [[_COMMUNITY_applicationfinals (88)|application/finals (88)]]
+- [[_COMMUNITY_docsbrainstorm (89)|docs/brainstorm (89)]]
+- [[_COMMUNITY_docsbrainstorm (90)|docs/brainstorm (90)]]
+- [[_COMMUNITY_srcwidgets (91)|src/widgets (91)]]
+- [[_COMMUNITY_dbrepositories (92)|db/repositories (92)]]
+- [[_COMMUNITY_unitrenderer (93)|unit/renderer (93)]]
+- [[_COMMUNITY_specs002-structuration-ia (94)|specs/002-structuration-ia (94)]]
+- [[_COMMUNITY_integrationconversation (95)|integration/conversation (95)]]
+- [[_COMMUNITY_integrationmcp (96)|integration/mcp (96)]]
+- [[_COMMUNITY_infrastructureai (97)|infrastructure/ai (97)]]
+- [[_COMMUNITY_infrastructurefinals (98)|infrastructure/finals (98)]]
+- [[_COMMUNITY_specs007-pont-mcp (99)|specs/007-pont-mcp (99)]]
+- [[_COMMUNITY_docsbrainstorm (100)|docs/brainstorm (100)]]
+- [[_COMMUNITY_divers (101)|divers (101)]]
+- [[_COMMUNITY_docsacademique (102)|docs/academique (102)]]
+- [[_COMMUNITY_specs011-plan-attaque (103)|specs/011-plan-attaque (103)]]
+- [[_COMMUNITY_renderersrc (104)|renderer/src (104)]]
+- [[_COMMUNITY_srcmotion (105)|src/motion (105)]]
+- [[_COMMUNITY_applicationai (106)|application/ai (106)]]
+- [[_COMMUNITY_infrastructurelogging (107)|infrastructure/logging (107)]]
+- [[_COMMUNITY_unitwidgets (108)|unit/widgets (108)]]
+- [[_COMMUNITY_srcapp (109)|src/app (109)]]
+- [[_COMMUNITY_docsclaude (110)|docs/claude (110)]]
+- [[_COMMUNITY_dbrepositories (111)|db/repositories (111)]]
+- [[_COMMUNITY_docsbrainstorm (112)|docs/brainstorm (112)]]
+- [[_COMMUNITY_docsbrainstorm (113)|docs/brainstorm (113)]]
+- [[_COMMUNITY_docsbrainstorm (114)|docs/brainstorm (114)]]
+- [[_COMMUNITY_sharedipc (115)|shared/ipc (115)]]
+- [[_COMMUNITY_specs008-neurone-conversationnel (116)|specs/008-neurone-conversationnel (116)]]
+- [[_COMMUNITY_srcapp (117)|src/app (117)]]
+- [[_COMMUNITY_applicationai (118)|application/ai (118)]]
+- [[_COMMUNITY_applicationwidgets (119)|application/widgets (119)]]
+- [[_COMMUNITY_dbrepositories (120)|db/repositories (120)]]
+- [[_COMMUNITY_dbmigrations (121)|db/migrations (121)]]
+- [[_COMMUNITY_docsbrainstorm (122)|docs/brainstorm (122)]]
+- [[_COMMUNITY_specs007-pont-mcp (123)|specs/007-pont-mcp (123)]]
+- [[_COMMUNITY_domainfinals (124)|domain/finals (124)]]
+- [[_COMMUNITY_srcpages (125)|src/pages (125)]]
+- [[_COMMUNITY_specs004-widgets (126)|specs/004-widgets (126)]]
+- [[_COMMUNITY_dbrepositories (127)|db/repositories (127)]]
+- [[_COMMUNITY_dbrepositories (128)|db/repositories (128)]]
+- [[_COMMUNITY_specs002-structuration-ia (129)|specs/002-structuration-ia (129)]]
+- [[_COMMUNITY_domaincontext (130)|domain/context (130)]]
+- [[_COMMUNITY_integrationmcp (131)|integration/mcp (131)]]
+- [[_COMMUNITY_renderersupport (132)|renderer/support (132)]]
+- [[_COMMUNITY_docsacademique (133)|docs/academique (133)]]
+- [[_COMMUNITY_docsacademique (134)|docs/academique (134)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (135)|specs/003-interface-mvp1 (135)]]
+- [[_COMMUNITY_componentsatoms (136)|components/atoms (136)]]
+- [[_COMMUNITY_unitconversation (137)|unit/conversation (137)]]
+- [[_COMMUNITY_docsacademique (138)|docs/academique (138)]]
+- [[_COMMUNITY_specs009-carte-structure (139)|specs/009-carte-structure (139)]]
+- [[_COMMUNITY_integrationai (140)|integration/ai (140)]]
+- [[_COMMUNITY_domainplan (141)|domain/plan (141)]]
+- [[_COMMUNITY_unitrenderer (142)|unit/renderer (142)]]
+- [[_COMMUNITY_unitrenderer (143)|unit/renderer (143)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (144)|specs/003-interface-mvp1 (144)]]
+- [[_COMMUNITY_specs002-structuration-ia (145)|specs/002-structuration-ia (145)]]
+- [[_COMMUNITY_specs002-structuration-ia (146)|specs/002-structuration-ia (146)]]
+- [[_COMMUNITY_applicationmcp (147)|application/mcp (147)]]
+- [[_COMMUNITY_divers (148)|divers (148)]]
+- [[_COMMUNITY_divers (149)|divers (149)]]
+- [[_COMMUNITY_sharedipc (150)|shared/ipc (150)]]
+- [[_COMMUNITY_docsbrainstorm (151)|docs/brainstorm (151)]]
+- [[_COMMUNITY_docs (152)|docs (152)]]
+- [[_COMMUNITY_docsacademique (153)|docs/academique (153)]]
+- [[_COMMUNITY_settingsai (154)|settings/ai (154)]]
+- [[_COMMUNITY_unitrenderer (155)|unit/renderer (155)]]
+- [[_COMMUNITY_specs011-plan-attaque (156)|specs/011-plan-attaque (156)]]
+- [[_COMMUNITY_specs008-neurone-conversationnel (157)|specs/008-neurone-conversationnel (157)]]
+- [[_COMMUNITY_008-neurone-conversationnelcontracts (158)|008-neurone-conversationnel/contracts (158)]]
+- [[_COMMUNITY_002-structuration-iacontracts (159)|002-structuration-ia/contracts (159)]]
+- [[_COMMUNITY_specs002-structuration-ia (160)|specs/002-structuration-ia (160)]]
+- [[_COMMUNITY_unitneurons (161)|unit/neurons (161)]]
+- [[_COMMUNITY_infrastructuresecrets (162)|infrastructure/secrets (162)]]
+- [[_COMMUNITY_integrationai (163)|integration/ai (163)]]
+- [[_COMMUNITY_unitai (164)|unit/ai (164)]]
+- [[_COMMUNITY_testssupport (165)|tests/support (165)]]
+- [[_COMMUNITY_docsacademique (166)|docs/academique (166)]]
+- [[_COMMUNITY_docsacademique (167)|docs/academique (167)]]
+- [[_COMMUNITY_sharedapp (168)|shared/app (168)]]
+- [[_COMMUNITY_docsbrainstorm (169)|docs/brainstorm (169)]]
+- [[_COMMUNITY_specs010-bascule (170)|specs/010-bascule (170)]]
+- [[_COMMUNITY_specs002-structuration-ia (171)|specs/002-structuration-ia (171)]]
+- [[_COMMUNITY_sharedipc (172)|shared/ipc (172)]]
+- [[_COMMUNITY_srcmcp-relay (173)|src/mcp-relay (173)]]
+- [[_COMMUNITY_docsacademique (174)|docs/academique (174)]]
+- [[_COMMUNITY_applicationfinals (175)|application/finals (175)]]
+- [[_COMMUNITY_docsbrainstorm (176)|docs/brainstorm (176)]]
+- [[_COMMUNITY_sharedprojects (177)|shared/projects (177)]]
+- [[_COMMUNITY_specs012-documents (178)|specs/012-documents (178)]]
+- [[_COMMUNITY_srccanvas (179)|src/canvas (179)]]
+- [[_COMMUNITY_testssupport (180)|tests/support (180)]]
+- [[_COMMUNITY_infrastructureai (181)|infrastructure/ai (181)]]
+- [[_COMMUNITY_unitai (182)|unit/ai (182)]]
+- [[_COMMUNITY_infrastructureai (183)|infrastructure/ai (183)]]
+- [[_COMMUNITY_domainneurons (184)|domain/neurons (184)]]
+- [[_COMMUNITY_docsacademique (185)|docs/academique (185)]]
+- [[_COMMUNITY_dbmigrations (186)|db/migrations (186)]]
+- [[_COMMUNITY_docsacademique (187)|docs/academique (187)]]
+- [[_COMMUNITY_dbrepositories (188)|db/repositories (188)]]
+- [[_COMMUNITY_specs011-plan-attaque (189)|specs/011-plan-attaque (189)]]
+- [[_COMMUNITY_scripts (190)|scripts (190)]]
+- [[_COMMUNITY_specs011-plan-attaque (191)|specs/011-plan-attaque (191)]]
+- [[_COMMUNITY_domainwidgets (192)|domain/widgets (192)]]
+- [[_COMMUNITY_srcpreload (194)|src/preload (194)]]
+- [[_COMMUNITY_unitai (195)|unit/ai (195)]]
+- [[_COMMUNITY_applicationai (196)|application/ai (196)]]
+- [[_COMMUNITY_sharedai (197)|shared/ai (197)]]
+- [[_COMMUNITY_sharedipc (198)|shared/ipc (198)]]
+- [[_COMMUNITY_domainplan (199)|domain/plan (199)]]
+- [[_COMMUNITY_specs014-claude-libre (200)|specs/014-claude-libre (200)]]
+- [[_COMMUNITY_specs015-widgets-etapes (201)|specs/015-widgets-etapes (201)]]
+- [[_COMMUNITY_srccanvas (202)|src/canvas (202)]]
+- [[_COMMUNITY_srcwidgets (203)|src/widgets (203)]]
+- [[_COMMUNITY_dbmigrations (204)|db/migrations (204)]]
+- [[_COMMUNITY_dbmigrations (205)|db/migrations (205)]]
+- [[_COMMUNITY_docsacademique (206)|docs/academique (206)]]
+- [[_COMMUNITY_srcrenderer (207)|src/renderer (207)]]
+- [[_COMMUNITY_divers (208)|divers (208)]]
+- [[_COMMUNITY_docsacademique (209)|docs/academique (209)]]
+- [[_COMMUNITY_infrastructureai (211)|infrastructure/ai (211)]]
+- [[_COMMUNITY_unitipc (218)|unit/ipc (218)]]
+- [[_COMMUNITY_unitrenderer (219)|unit/renderer (219)]]
+- [[_COMMUNITY_dbmigrations (225)|db/migrations (225)]]
+- [[_COMMUNITY_dbmigrations (226)|db/migrations (226)]]
+- [[_COMMUNITY_docs (227)|docs (227)]]
+- [[_COMMUNITY_003-interface-mvp1checklists (228)|003-interface-mvp1/checklists (228)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (229)|specs/003-interface-mvp1 (229)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (230)|specs/003-interface-mvp1 (230)]]
+- [[_COMMUNITY_specs003-interface-mvp1 (231)|specs/003-interface-mvp1 (231)]]
+- [[_COMMUNITY_docsacademique (233)|docs/academique (233)]]
+- [[_COMMUNITY_docsacademique (235)|docs/academique (235)]]
+- [[_COMMUNITY_specs005-widgets-entrees-sorties (236)|specs/005-widgets-entrees-sorties (236)]]
+- [[_COMMUNITY_specs011-plan-attaque (237)|specs/011-plan-attaque (237)]]
+- [[_COMMUNITY_011-plan-attaquecontracts (238)|011-plan-attaque/contracts (238)]]
+- [[_COMMUNITY_012-documentscontracts (239)|012-documents/contracts (239)]]
+- [[_COMMUNITY_specs013-actions-finales (240)|specs/013-actions-finales (240)]]
+- [[_COMMUNITY_specs013-actions-finales (241)|specs/013-actions-finales (241)]]
+- [[_COMMUNITY_specs013-actions-finales (242)|specs/013-actions-finales (242)]]
+- [[_COMMUNITY_013-actions-finalescontracts (243)|013-actions-finales/contracts (243)]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `GrowthRepository` - 37 edges
-2. `MOC — Gestionnaire idées` - 36 edges
-3. `useUiStore` - 33 edges
-4. `NeuronRepository` - 29 edges
-5. `LinkRepository` - 27 edges
-6. `devDependencies` - 25 edges
-7. `GrowthService` - 24 edges
-8. `Spec 003 — Interface MVP-1 « Brainstormer »` - 24 edges
-9. `WidgetIoRepository` - 24 edges
-10. `HistoryRepository` - 23 edges
+1. `PlanRepository` - 47 edges
+2. `useUiStore` - 44 edges
+3. `FinalRepository` - 39 edges
+4. `NeuronRepository` - 37 edges
+5. `ConversationRepository` - 34 edges
+6. `ConversationService` - 32 edges
+7. `HistoryRepository` - 30 edges
+8. `BlockRepository` - 27 edges
+9. `devDependencies` - 25 edges
+10. `HistoryService` - 25 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `neurons table` --rationale_for--> `Amounts stored in integer cents`  [INFERRED]
   src/main/infrastructure/db/migrations/0003_neurons_model.sql → docs/brainstorm/L2-structuration-ia.md
 - `Défense en profondeur` --semantically_similar_to--> `Isolation en 6 couches (sandbox, CSP, filtre webRequest, WebRTC, pas de preload, jamais dans le DOM)`  [INFERRED] [semantically similar]
   docs/academique/Architecture Electron — trois processus cloisonnés.md → specs/004-widgets/plan.md
-- `better-sqlite3 npm alias to better-sqlite3-multiple-ciphers` --references--> `Encrypted SQLite (SQLCipher) with strict hex key`  [INFERRED]
-  package.json → docs/SECURITY-REVIEW-001.md
+- `Migration down 0027 claude_libre` --implements--> `Modes de permission Demander/Accepter/Libre`  [INFERRED]
+  src/main/infrastructure/db/migrations/down/0027_claude_libre.down.sql → .specify/memory/constitution.md
 - `neurons table` --rationale_for--> `Two neuron natures: Action / Reflexion`  [INFERRED]
   src/main/infrastructure/db/migrations/0003_neurons_model.sql → docs/brainstorm/L1b-brainstormer.md
-- `plan_dependencies table` --conceptually_related_to--> `Task status propagation (blocked/ready/in progress/done/abandoned)`  [INFERRED]
-  src/main/infrastructure/db/migrations/0003_neurons_model.sql → docs/brainstorm/L2-organigramme.md
+- `change_log table` --rationale_for--> `All-or-nothing transactional apply, historized and undoable`  [INFERRED]
+  src/main/infrastructure/db/migrations/0003_neurons_model.sql → docs/brainstorm/L2-validation.md
 
 ## Hyperedges (group relationships)
 - **Bac à sable des widgets : cinq barrières indépendantes du modèle** — bac_a_sable_widgets_iframe_sandbox, bac_a_sable_widgets_widget_csp, bac_a_sable_widgets_leaves_sandbox, architecture_electron_hardening, bac_a_sable_widgets_gi_widget_protocol [EXTRACTED 1.00]
@@ -224,642 +271,753 @@
 - **Flux de génération d'un widget : demande → passerelle IA → validation Zod → effacement de types → version + pointeur** — widget_genere_widget_service, widget_genere_ai_gateway, widget_genere_widget_out, widget_genere_transpile_widget, widget_genere_widget_versions [EXTRACTED 1.00]
 - **Pont d'entrées d'un widget : revue/empreinte → assemblage des parties → postMessage → prélude gi** — plan005_widget_review, plan005_widget_io_service, plan005_input_assembler, plan005_widget_bridge, plan005_gi_prelude [EXTRACTED 1.00]
 - **Outils à l'éclosion : proposition → confirmation atomique → placement → génération en arrière-plan** — plan006_tool_proposal, plan006_fusion_service, eclosion_atomique_synthesis_applier, plan006_place_tools, plan006_tool_generation, plan006_widget_requests [EXTRACTED 1.00]
+- **Plan d'attaque tables (spec 011)** — table_plan_proposals, table_plan_proposal_items, table_step_dependencies [EXTRACTED 0.95]
+- **Final action execution tables** — table_final_actions, table_executions, table_execution_events, table_deliverable_files, table_command_runs [INFERRED 0.85]
+- **Permission system tables (spec 014)** — table_permission_log, table_permission_rules, table_trusted_projects [EXTRACTED 0.95]
+- **Chaîne de sécurité des widgets** — acad_widget_sandbox, acad_wired_widget, acad_result_frame, acad_sha256 [INFERRED 0.85]
+- **Tables de permission de la migration 0027** — mig0027_table_permission_rules, mig0027_table_permission_log, mig0027_table_trusted_projects [EXTRACTED 1.00]
+- **Chaîne du pont MCP: relais, canal nommé, services du main** — plan_relais, plan_pipe_server, plan_map_service, l3_pont_mcp_jeton [EXTRACTED 0.95]
+- **Conversation de neurone: service, processus claude stream-json, outils MCP, fiche** — l3_neurone_conv_conversation_service, l3_neurone_conv_stream_json, l3_neurone_conv_outils_mcp, l1d_fiche [INFERRED 0.85]
+- **Pipeline moteur CLI: AIGateway, CliQueue, ClaudeCliProvider, claude -p** — l3_moteur_cli_aigateway, l3_moteur_cli_cli_queue, l3_moteur_cli_claude_cli_provider, l1c_claude_p [EXTRACTED 0.95]
+- **Chaine du pont MCP (relais, canal, jeton)** — tasks_007_mcp_relay, tasks_007_pipe_server, tasks_007_mcp_token [EXTRACTED 0.95]
+- **Pile de conversation d'un neurone** — plan_008_conversation_service, plan_008_cli_conversation, plan_008_stream_events, plan_008_context_block [EXTRACTED 0.90]
+- **Tables du plan d'attaque** — data_model_011_step_dependencies, data_model_011_plan_proposals, data_model_011_plan_proposal_items [EXTRACTED 0.95]
+- **Plan d'attaque: proposition, validation, verrou** — spec011_plan_proposer_tool, spec011_plan_decide_channel, spec011_node_lock [EXTRACTED 0.95]
+- **Stockage des documents (table, versions, fichier)** — spec012_documents_table, spec012_document_versions_table, spec012_file_source_of_truth [EXTRACTED 0.95]
+- **Modele de donnees des actions finales** — spec013_final_actions_table, spec013_executions_table, spec013_execution_events_table, spec013_deliverable_files_table [EXTRACTED 0.95]
+- **Gouvernance des permissions de Claude libre** — spec014_permission_modes, spec014_permission_prompt_tool, spec014_always_rules, spec014_pretooluse_hook [INFERRED 0.85]
 
-## Communities (191 total, 31 thin omitted)
+## Communities (244 total, 53 thin omitted)
 
-### Community 0 - "GrowthService.ts"
-Cohesion: 0.05
-Nodes (33): carried, label, node, kept, tree, buildGrowthInput(), carriedQuestions(), dimensionOf() (+25 more)
-
-### Community 1 - "MOC — Gestionnaire idées"
+### Community 0 - "Schéma et dépôts SQLite"
 Cohesion: 0.04
-Nodes (71): change_log (journal avant/après par batch_id, append-only), Annuler par lot — journal avant-après, conflit et lot inverse, HistoryKind : seed, delete, promote, confirm_synthesis, link, undo, HistoryService / HistoryRepository, Lot inverse (annuler l'annulation = rétablir), Architecture Electron — trois processus cloisonnés, Défense en profondeur, hardening.ts (will-frame-navigate, WebRTC disable_non_proxied_udp) (+63 more)
+Nodes (55): canvasBlocks, categories, changeLog, extensions, ideaSteps, neuronLinks, neurons, planDependencies (+47 more)
 
-### Community 2 - "widgetProtocol.ts"
+### Community 1 - "Fondation et brainstorm initial"
 Cohesion: 0.05
-Nodes (52): Result, WIDGET_FRAME, IDEA_PARTS, AppContext, demoData, resetDemoProfile(), start(), Listener (+44 more)
+Nodes (74): docs/FOUNDATION.md, CompanionService, Fenetre compagnon transparente always-on-top, L3 - Compagnon (conception technique), Arbre d'evolution evolution.json, Score de maturite (score_events), Tirage pondere par roulette (evolution), AdvisorService (run quotidien) (+66 more)
 
-### Community 3 - "FusionService.ts"
+### Community 2 - "Outils MCP de la carte"
 Cohesion: 0.05
-Nodes (31): createdAt(), createWidgetRoutes(), FusionDependencies, FusionEvent, FusionService, Synthesized, GrowthEvent, deep (+23 more)
+Nodes (40): BatchProblem, ExistingKind, a, [a, b, c], anchor, { centers }, { centers, frame }, f (+32 more)
 
-### Community 4 - "tool-hatching.test.ts"
-Cohesion: 0.04
-Nodes (35): widgetRequests, SynthesisApplier, SynthesisApplierDependencies, ToolWriters, DependencyInsert, PlanNodeInsert, SynthesisRow, COLUMNS (+27 more)
-
-### Community 5 - "widget-output.test.tsx"
-Cohesion: 0.04
-Nodes (41): Nature, NeuronKind, RootState, IDEA_PART_LABELS, IdeaPart, InputSourceKind, IoLinkView, ResultFrameInput (+33 more)
-
-### Community 6 - "Règles apprises (table du JOURNAL)"
-Cohesion: 0.07
-Nodes (47): Preload en CommonJS, sans dépendance npm, Fenêtre cachée / pré-chargée (hide ≠ destroy), Évolution 29/09 : aperçu éditable (synthesisPatch), P6 non appliquée aux corrections, CaptureService / CaptureApp (capture rapide E1), ClaudeProvider (beta.messages.parse, zodOutputFormat, cache de prompt, recherche web), Jauge de contexte (insuffisant / suffisant / complet), Cycle 2 après éclosion : sous-neurones absorbés, « Approfondir », document lisible (T064), Plongée (DiveView, radialLayout, QuestionPanel, Gauge, Breadcrumb) (+39 more)
-
-### Community 7 - "schemaNeurons.ts"
-Cohesion: 0.1
-Nodes (37): canvasBlocks, categories, changeLog, contextAssessments, extensions, ideaSteps, linkSeeds, neuronLinks (+29 more)
-
-### Community 8 - "Spec 004 — Boîte à outils de la carte et"
-Cohesion: 0.1
-Nodes (46): Minimisation et anonymisation avant envoi à Claude, Exception `widget` au refus de produire du code (amendement 1.2.0), AIGateway (routage, anonymisation, budget, validation Zod, idempotence, file locale), Indicateur « l'IA réfléchit » + étiquette du moteur (AiThinking, onEngine), Anonymisation en deux couches (regex déterministe + IA locale qui liste), ESLint réparé (tsconfigRootDir explicite, .kilo/ ignoré), Spec 004 lot 1 : boîte à outils au clic droit, notes (T001–T007), Spec 004 lots 2 et 3 : widget isolé généré par Claude (T008–T018) (+38 more)
-
-### Community 9 - "layout.test.ts"
+### Community 3 - "Entrées des widgets (étapes)"
 Cohesion: 0.05
-Nodes (34): clampInto(), footprint(), LayoutLink, LayoutNode, layoutOnce(), lcg(), Point, Rect (+26 more)
+Nodes (37): readSheet(), IDEA_PARTS, STEP_PARTS, PlanNodeRow, StepRow, WidgetInputRow, assembleIdea(), assembleLegacyStep() (+29 more)
 
-### Community 10 - "canvas.test.ts"
+### Community 4 - "Démarrage et profil démo"
 Cohesion: 0.05
-Nodes (32): batchId, developing, down, history, id, moved, neurons, raw (+24 more)
+Nodes (44): demoData, resetDemoProfile(), start(), Listener, more, mount(), root, { root, give } (+36 more)
 
-### Community 11 - "Constitution Gestionnaire_idées v1.2.0"
-Cohesion: 0.07
-Nodes (41): Développement piloté par la spécification (SDD), Traçabilité exigence → tâche → code (US, FR, SC, T0xx), Alias npm better-sqlite3 → better-sqlite3-multiple-ciphers, Vision « Brainstormer » (carte de neurones Action / Réflexion), Modèle Claude par défaut (claude-opus-5, configurable), Exception ORM : Drizzle + better-sqlite3-multiple-ciphers, docs/FOUNDATION.md (cahier des charges consolidé), Gestionnaire_idées (projet) (+33 more)
-
-### Community 12 - "IdeasCanvas.tsx"
-Cohesion: 0.07
-Nodes (30): bornFrom(), buildGraph(), LinkEdgeType, StepNodeType, driftActive(), ARIA_LABELS, ARROWS, BLOCK_TYPES (+22 more)
-
-### Community 13 - "useUiStore"
-Cohesion: 0.08
-Nodes (25): Toast(), Toast, UiState, useUiStore, View, INVALIDATIONS, useMainEvents(), useCreateLink() (+17 more)
-
-### Community 14 - "WidgetNode.tsx"
-Cohesion: 0.1
-Nodes (26): BlockNodeType, LabelNodeType, ResultNodeType, WidgetNodeType, BlockActions, Box, NAMES, useBlockActions() (+18 more)
-
-### Community 15 - "bootstrap.ts"
-Cohesion: 0.09
-Nodes (26): createAiEngine(), createAiRoutes(), Coordinate, createCanvasRoutes(), Size, AnswerInput, createGrowthRoutes(), Id (+18 more)
-
-### Community 16 - "suggestions.test.ts"
+### Community 5 - "Genesis → projet (spec 016)"
 Cohesion: 0.06
-Nodes (34): added, afterDelete, afterDismiss, branch, createdIndex, developed(), edited, { growth } (+26 more)
+Nodes (39): bin, GitResult, resolveGit(), runGit(), HubRegistry, cleanText(), CODE_TYPES, firstCommitMessage() (+31 more)
 
-### Community 17 - "Annuler par lot — journal avant-après, c"
-Cohesion: 0.09
-Nodes (36): Analogie : cahier de service et bon d'annulation, Journal change_log avant/après par lot (batch_id), HistoryRepository (snapshot / apply / entries / markUndone), HistoryService.undo(batchId), Lot inverse (annuler l'annulation = rétablir), Annuler par lot — journal avant-après, conflit et lot inverse (note), Contrôle de conflit UNDO_CONFLICT (état actuel = « après »), Principe II — Humain dans la boucle (+28 more)
+### Community 6 - "Contrats IPC des blocs"
+Cohesion: 0.04
+Nodes (49): ConnectionIntent, BLOCK_KINDS, BLOCK_LIMITS, BlockKind, BlockOrigin, BlockView, CanvasFilterInput, CanvasNeuronView (+41 more)
 
-### Community 18 - "Spec 003 — Interface MVP-1 « Brainstorme"
-Cohesion: 0.1
-Nodes (36): Disposition dirigée par les forces (d3-force : répulsion, ressorts, collision, zone), Physique de toute la carte (d3-force unique, épinglage, useCanvasPhysics), Passe crossings.ts (liens sans croisement), IdeasCanvas (carte React Flow, forceLayout, crossings, buildGraph), Idée ouverte sur la carte : volet latéral IdeaPanel + arbre déployé (OpenIdea), Règle : un état dérivé d'une liste rafraîchie ne doit pas piloter une action destructive, Décision : carte unique, taille selon le contexte (plus d'incubateur / réseau), Spec 003 — Interface MVP-1 « Brainstormer » (+28 more)
+### Community 7 - "Coquille de l’app et toasts"
+Cohesion: 0.06
+Nodes (39): AppShell(), NAVIGATION, TITLES, Toast, UiState, useUiStore, View, INVALIDATIONS (+31 more)
 
-### Community 19 - "widget-output.test.ts"
-Cohesion: 0.08
-Nodes (22): CanvasDeps, CanvasService, nextStepOf(), BlockPatch, WidgetInputRow, assembleIdea(), assembleStep(), IdeaFacts (+14 more)
+### Community 8 - "Parties d’entrée des widgets"
+Cohesion: 0.04
+Nodes (45): StepStatus, CONNECTABLE_SOURCES, DocumentData, IDEA_PART_LABELS, IdeaPart, InputPart, InputSourceKind, IoLinkView (+37 more)
 
-### Community 20 - "providers.test.ts"
+### Community 9 - "Fenêtre de capture et thème"
+Cohesion: 0.05
+Nodes (25): useApplyTheme(), CaptureApp(), Status, root, IpcError, IpcResult, Window, installCaptureApi() (+17 more)
+
+### Community 10 - "Contrats des outils MCP"
+Cohesion: 0.04
+Nodes (51): conversations, plan, { proposalId }, result, service, writer, HelloFrame, HelloReply (+43 more)
+
+### Community 11 - "Carte de structure"
+Cohesion: 0.05
+Nodes (28): CanvasDeps, mapLinks, { batchId }, created, older, page, undo, { undoBatchId } (+20 more)
+
+### Community 12 - "Notes académiques (glossaire)"
+Cohesion: 0.06
+Nodes (50): Donnée dérivée, Parcours en profondeur (DFS), Carte des idées (d3-force, croisements), MOC Gestionnaire idées, Croissance d'un neurone (arbre, garde-fous, jauge), Origine web et origine opaque, Outils proposés au verrouillage (transaction vs génération), Cadre résultat (gi.output borné) (+42 more)
+
+### Community 13 - "Permissions et flux du CLI"
 Cohesion: 0.07
-Nodes (27): base, body, calls, { client }, { client, create }, { client, parse }, done, fetch() (+19 more)
+Nodes (29): a, answer, b, first, clip(), COMMAND_TOOLS, commandOf(), describeRequest() (+21 more)
 
-### Community 21 - "WidgetRepository"
-Cohesion: 0.08
-Nodes (15): widgetMessages, widgetVersions, WidgetMessageRow, WidgetRepository, WidgetVersionRow, createGatewayHarness(), GatewayHarness, createNeuronHarness() (+7 more)
+### Community 14 - "Physique de la carte"
+Cohesion: 0.06
+Nodes (37): areaFor(), clampInto(), driftActive(), footprint(), forceLayout(), LayoutLink, LayoutNode, layoutOnce() (+29 more)
 
-### Community 22 - "routing.ts"
+### Community 15 - "Nœuds et liens de la carte"
+Cohesion: 0.07
+Nodes (29): DocumentNodeType, FrameNodeType, MapNoteNodeType, ARIA_LABELS, ARROWS, BLOCK_TYPES, EDGE_TYPES, MapEdge (+21 more)
+
+### Community 16 - "Plan d’attaque"
+Cohesion: 0.05
+Nodes (29): planProposalItems, planProposals, stepDependencies, DependencyProblem, again, { batchId }, [budget], [budget, lieu, com] (+21 more)
+
+### Community 17 - "Éditeur et visionneuse"
 Cohesion: 0.09
-Nodes (27): GatewayDependencies, announced, Echo, h, order, original, GermerOut, SuggererLiensOut (+19 more)
+Nodes (26): CANDIDATES, DetectedEditor, detectEditors(), isProgram(), launchEditor(), BY_EXTENSION, languageOf(), VIEWER_LANGUAGES (+18 more)
 
-### Community 23 - "ClaudeProvider.ts"
+### Community 18 - "Specs 011–013 (plan, documents, actions)"
+Cohesion: 0.05
+Nodes (41): Spec 011 Requirements Checklist, Claude propose, mentalyas valide (fantomes), Outil MCP etape_modifier, Spec 011 IPC Contract, Verrouillage d'un noeud mur, Canal IPC plan:decide, Outil MCP plan_proposer, Rang et dependances d'etapes (+33 more)
+
+### Community 19 - "Canevas des idées (tests)"
+Cohesion: 0.06
+Nodes (31): IdeasCanvas(), render(), IdeasCanvasView, DOCUMENT_SIZE_LIMITS, DocumentContentView, DocumentView, renderCanvas(), { api } (+23 more)
+
+### Community 20 - "Annulation par lot (notes)"
+Cohesion: 0.07
+Nodes (40): Analogie : cahier de service et bon d'annulation, change_log (journal avant/après par batch_id, append-only), Journal change_log avant/après par lot (batch_id), Annuler par lot — journal avant-après, conflit et lot inverse, HistoryKind : seed, delete, promote, confirm_synthesis, link, undo, HistoryRepository (snapshot / apply / entries / markUndone), HistoryService / HistoryRepository, HistoryService.undo(batchId) (+32 more)
+
+### Community 21 - "Routes IPC et cadre de Claude"
+Cohesion: 0.08
+Nodes (27): createAiEngine(), BRAINSTORMER_FRAME, createChatRoutes(), NeuronInput, createMcpRoutes(), McpRouteDeps, registrationCommand(), CategorySlug (+19 more)
+
+### Community 22 - "Blocs de la carte"
+Cohesion: 0.07
+Nodes (32): areaOf(), BLOCK_NODE_TYPES, BlockNodeData, BlockNodeType, CanvasNode, CanvasState, computeLayout(), ideaLinks() (+24 more)
+
+### Community 23 - "Disposition du plan"
+Cohesion: 0.07
+Nodes (29): buildGraph(), add(), Annex, annexNodeId(), Child, deliverableNodeId(), documentNodeId(), PlacedPlanItem (+21 more)
+
+### Community 24 - "Historique et propositions"
+Cohesion: 0.08
+Nodes (22): linkSeeds, syntheses, planRepository, proposal, { proposalId }, BLOCK_NAMES, blockSummary(), CONFLICT_MESSAGES (+14 more)
+
+### Community 25 - "Capture rapide"
+Cohesion: 0.09
+Nodes (24): gate, MIGRATIONS, originalRun, CaptureDeps, CaptureService, createCaptureRoutes(), createContextRoutes(), Id (+16 more)
+
+### Community 26 - "Moteur physique (CanvasPhysics)"
+Cohesion: 0.07
+Nodes (24): CanvasLayout, Body, CanvasPhysics, lcg(), PhysicsLink, PhysicsNode, Point, Spring (+16 more)
+
+### Community 27 - "Ouverture de la base chiffrée"
+Cohesion: 0.08
+Nodes (28): AppDatabase, DatabaseHandle, openDatabase(), OpenDatabaseOptions, schema, first, handle, KEY (+20 more)
+
+### Community 28 - "Spec 004 widgets"
 Cohesion: 0.11
-Nodes (25): AIProvider, CompletionRequest, CompletionResponse, ProviderError, ProviderProblem, ProviderStatus, ResearchRequest, ResearchResponse (+17 more)
+Nodes (34): Constitution Check — amendement 1.2.0 (MINOR), Modèle de données : migration 0011 (canvas_blocks.kind, widget_versions, widget_messages), Plan 004 — Boîte à outils de la carte et mini-widgets, ToolMenu (clic droit : idée, note, widget), transpile.ts — stripTypeScriptTypes de node:module (aucune dépendance ajoutée), Code courant envoyé en `verbatim` (non anonymisé), WidgetFrame (cadre système figé de la tâche widget), Réglage widgetModel (claude-sonnet-5-5 par défaut, pas de repli local) (+26 more)
 
-### Community 24 - "useCanvasPhysics.ts"
-Cohesion: 0.08
-Nodes (20): CanvasLayout, stepNodeId(), Body, CanvasPhysics, lcg(), PhysicsLink, PhysicsNode, Point (+12 more)
-
-### Community 25 - "neurons.ts"
-Cohesion: 0.07
-Nodes (24): ConfirmView, ExtensionView, GaugeView, GrowthResultView, HatchedResultView, IdeaSummaryView, LinkStatus, NeuronView (+16 more)
-
-### Community 26 - "buildGraph.ts"
-Cohesion: 0.09
-Nodes (26): areaOf(), BLOCK_NODE_TYPES, BlockNodeData, CanvasNode, CanvasState, computeLayout(), layoutInput(), layoutRadius() (+18 more)
-
-### Community 28 - "shell.test.ts"
-Cohesion: 0.1
-Nodes (12): LoginItemSettings, startsHidden(), CAPTURE_SIZE, captureBounds(), Rect, bounds, pixels, ICON_COLOR (+4 more)
-
-### Community 29 - "WidgetIoService"
+### Community 29 - "ConversationService"
 Cohesion: 0.12
-Nodes (12): accents, big, data, line, loop, checkResult(), isPlainObject(), refusal() (+4 more)
+Nodes (6): conversationArgs(), ConversationService, isRefusal(), MESSAGES, messageView(), readAccount()
 
-### Community 30 - "canvas.ts"
+### Community 30 - "Commandes approuvées (spec 013)"
+Cohesion: 0.11
+Nodes (16): npm, first, mcpCode(), CommandResult, resolveNpm(), runCommand(), COMMAND_LIMITS, PackageScripts (+8 more)
+
+### Community 31 - "Migrations 0017–0027"
+Cohesion: 0.09
+Nodes (33): Down migrations 0017-0025 (constitution: down obligatoire), Migration 0017 map_primitives (spec 007), Migration 0018 neuron_conversations (spec 008), Migration 0019 neuron_project_dir, Migration 0020 project_elements (spec 009), neurons element_type/element_key/genesis_id (structure elements), Migration 0021 neuron_chat_model (spec 010), Migration 0022 plan_attaque (spec 011) (+25 more)
+
+### Community 32 - "Actions finales et livrables"
+Cohesion: 0.09
+Nodes (23): deliverableFiles, executionEvents, finalActions, [execution], [neuronId, text, brief], { proposalId }, service, EXECUTION_LIMITS (+15 more)
+
+### Community 33 - "Spec 003 interface MVP-1"
+Cohesion: 0.1
+Nodes (32): Spec 003 — Interface MVP-1 « Brainstormer », FR-010 — liens libellés sans croisement quand le réseau est planaire, FR-024 — historique et annulation d'un lot, FR-025 — durées d'animation et mode animations réduites, FR-026 — nœud générique « bloc » (support des mini-widgets v2), FR-027 — neurones fantômes (suggestions de l'IA), FR-028 — graine d'idée sur un lien accepté, FR-029 — taille du neurone en 5 paliers selon le contexte (+24 more)
+
+### Community 34 - "Specs 014–015 (Claude libre)"
+Cohesion: 0.06
+Nodes (32): Spec 005 widgets (entrees ancien moteur), Spec 010 moteur Claude Code (retrait ancien moteur), Spec 013 outils confines et actions finales, Spec 014 Claude libre (parite terminal), Commiter l'etape (action finale), Retrait de l'outillage confine (spec 013), Constitution 4.0.0 (proposee), Fil fidele (tool_result refuse/echoue) (+24 more)
+
+### Community 35 - "Profil démo et canevas (tests)"
 Cohesion: 0.07
-Nodes (27): BLOCK_DEFAULT_SIZES, BLOCK_KINDS, BLOCK_LIMITS, BlockKind, CanvasFilterInput, CanvasNeuronView, CanvasPosition, CREATABLE_BLOCK_KINDS (+19 more)
+Nodes (25): a, [a, b], archived, batchId, down, history, id, moved (+17 more)
 
-### Community 31 - "HistoryService.ts"
-Cohesion: 0.08
-Nodes (18): BLOCK_NAMES, blockSummary(), CONFLICT_MESSAGES, HistoryService, inputSummary(), UNCHECKED, UNDOABLE, { batchId } (+10 more)
+### Community 36 - "Tests d’intégration MCP"
+Cohesion: 0.06
+Nodes (30): after, album, args, blocks, budget, call(), error, failure() (+22 more)
 
-### Community 32 - "widget-node.test.tsx"
-Cohesion: 0.08
-Nodes (16): IdeasCanvas(), BlockView, { api }, { container }, found, items, user, { api } (+8 more)
-
-### Community 33 - "dive.test.tsx"
-Cohesion: 0.08
-Nodes (22): IdeasCanvasView, TreeView, { api }, base, button, crumbs, field, idea (+14 more)
-
-### Community 34 - "treeGraph.ts"
-Cohesion: 0.13
-Nodes (23): PlacedItem, BRANCH, edgeStyle(), noteId(), noteOf(), startOf(), treeBodies(), treeGraph() (+15 more)
-
-### Community 35 - "AIGateway.ts"
+### Community 37 - "Outils documents MCP"
 Cohesion: 0.14
-Nodes (22): AIResult, CONCURRENCY, GatewayRequest, ResearchResult, assembleContext(), AssembledContext, AgentContext, Anonymizer (+14 more)
+Nodes (17): McpCaller, DocumentTools, DocumentToolsDeps, fileLabel(), APP_TO_MCP, McpToolError, FinalToolsDeps, FINAL_STATE_NAMES (+9 more)
 
-### Community 36 - "Coquille de bureau — zone de notificatio"
+### Community 38 - "Conversion de l’ancien moteur"
 Cohesion: 0.1
-Nodes (27): bootstrap() — racine de composition, Défense en profondeur, Les quatre verrous (contextIsolation, sandbox, nodeIntegration:false, CSP), Processus main (Node : disque, SQLite, IA, secrets), Architecture Electron — trois processus cloisonnés (note), Analogie openspace (bureau de direction / accueil / guichet), Preload (liste blanche, contextBridge, .cjs), Processus renderer (React, sandbox, aucun accès Node) (+19 more)
+Nodes (24): convert(), document, long, sheet, convertLegacyIdeas(), LegacyConversionPort, LegacyConversionResult, answerItems() (+16 more)
 
-### Community 37 - "OpenIdea.tsx"
-Cohesion: 0.1
-Nodes (20): Branch, IdeaTreeLayout, Point, TreeItem, OpenTree, OpenTreeActions, OpenTreeState, useOpenTree (+12 more)
+### Community 39 - "CanvasService"
+Cohesion: 0.09
+Nodes (15): CanvasService, canvas, { document }, plans, repository, Coordinate, createCanvasRoutes(), Size (+7 more)
 
-### Community 38 - "devDependencies"
+### Community 40 - "Processus Claude Code"
+Cohesion: 0.09
+Nodes (23): ConversationProcess, spawnClaudeConversation(), SpawnConversation, SpawnOptions, cancelled, context, FakeProcess, mcp (+15 more)
+
+### Community 41 - "Contrats du livrable"
+Cohesion: 0.07
+Nodes (27): DELIVERABLE_SIZE_LIMITS, DeliverableFileDetailView, DeliverableFileView, DeliverableRunView, DeliverableView, EDITOR_CHOICES, EditorChoice, EditorSettingsView (+19 more)
+
+### Community 42 - "Tests d’intégration divers"
+Cohesion: 0.09
+Nodes (17): [row], rules, permissionLog, canvas, plan, { proposalId }, repository, service (+9 more)
+
+### Community 43 - "Réglages de l’app"
+Cohesion: 0.08
+Nodes (22): MIGRATIONS, AppSettingsPatch, AppSettingsView, DEFAULT_APP_SETTINGS, { dispatch, applyLaunchAtLogin }, { dispatch, shortcut, registry }, { dispatch, shortcut, stored }, { dispatch, stored } (+14 more)
+
+### Community 44 - "WidgetIoRepository"
+Cohesion: 0.07
+Nodes (15): BLOCK_DEFAULT_SIZES, WidgetIoRepository, again, { batchId }, budget, dispatch, down, first (+7 more)
+
+### Community 45 - "application/ai (45)"
+Cohesion: 0.12
+Nodes (20): AIResult, CONCURRENCY, GatewayRequest, AgentContext, CallLog, CallRecord, CallStatus, ContextExample (+12 more)
+
+### Community 46 - "src/canvas (46)"
+Cohesion: 0.11
+Nodes (20): DiffView(), FileViewer(), firstChangedLine(), SourceView(), Tab, unreadable(), viewerKey(), diff (+12 more)
+
+### Community 48 - "application/ai (48)"
+Cohesion: 0.09
+Nodes (12): ContextHistory, ContextImportDependencies, ImportDiff, PendingImport, StoredPayload, TextDiff, Content, ExampleStore (+4 more)
+
+### Community 49 - "infrastructure/mcp (49)"
+Cohesion: 0.09
+Nodes (11): authenticated(), call, calls, open(), TestClient, TOKEN, describeIssues(), McpToolHandler (+3 more)
+
+### Community 51 - "application/ai (51)"
+Cohesion: 0.12
+Nodes (18): AIProvider, CompletionRequest, CompletionResponse, ProviderError, ProviderProblem, ProviderStatus, SystemBlock, { args, stdin } (+10 more)
+
+### Community 52 - "domain/conversation (52)"
+Cohesion: 0.12
+Nodes (21): contextBlock(), elementLines(), NeuronContext, stepLines(), withContext(), Item, Items, mergeSheet() (+13 more)
+
+### Community 53 - "src/widgets (53)"
+Cohesion: 0.15
+Nodes (17): WidgetNodeType, WidgetNode(), AiThinking(), AiThinkingProps, workerLabel(), AiWorker, useWidget(), WidgetActions (+9 more)
+
+### Community 54 - "divers (54)"
 Cohesion: 0.08
 Nodes (25): devDependencies, axe-core, drizzle-kit, electron, electron-builder, electron-vite, eslint, @eslint/js (+17 more)
 
-### Community 39 - "ContextImportService.ts"
-Cohesion: 0.11
-Nodes (16): ContextHistory, ContextImportDependencies, ImportDiff, PendingImport, StoredPayload, TextDiff, read, CONTEXT_FILES (+8 more)
+### Community 55 - "unit/ai (55)"
+Cohesion: 0.12
+Nodes (18): GatewayDependencies, announced, Echo, h, original, { h, queue, repository }, { h, queue, repository, completed }, { h, queue, repository, failed } (+10 more)
 
-### Community 40 - "NeuronRepository"
+### Community 56 - "unit/mcp (56)"
 Cohesion: 0.11
+Nodes (18): pipeNameFor(), tokenPathFor(), file, first, fresh, old, parsed, real (+10 more)
+
+### Community 57 - "unit/renderer (57)"
+Cohesion: 0.1
+Nodes (18): ElementNodeType, ELEMENT_SIZE, PlacedElement, StructureEdge, StructureGraph, ElementView, MapLinkView, ELEMENT_STYLES (+10 more)
+
+### Community 58 - "domain/ai (58)"
+Cohesion: 0.12
+Nodes (19): ADDRESS_PATTERN, AMOUNT_PATTERN, amountBand(), applyDeterministicRules(), COMMON_CAPITALIZED, escapeRegExp(), maskCapitalizedWords(), NUMBER (+11 more)
+
+### Community 59 - "domain/conversation (59)"
+Cohesion: 0.13
+Nodes (18): denied, [event], failed, message, ok, excerpt(), isObject(), Json (+10 more)
+
+### Community 60 - "src/canvas (60)"
+Cohesion: 0.16
+Nodes (14): DeliverableNodeType, PlanBarNodeType, PlanNodeType, FinalPanel(), GhostPanel(), ranksOf(), useFinalDecide(), usePlanDecide() (+6 more)
+
+### Community 61 - "specs/006-widgets-au-verrouillage (61)"
+Cohesion: 0.13
+Nodes (22): scripts/ai-usage.cjs (mesure du coût IA), Amendement constitution 1.2.0 (exception widget au principe III), Revue et empreinte SHA-256 (widget_approvals), Plan 005 — Widgets branchés : entrées, sorties, cadre résultat, Signature de structure shapeOf (sans valeurs), WidgetReview (revue avant exécution), ToolGeneration (file de générations en arrière-plan, Réessayer), Table widget_requests (migration 0016) (+14 more)
+
+### Community 62 - "application/documents (62)"
+Cohesion: 0.16
+Nodes (5): DocumentService, name, none, documentFileName(), slugify()
+
+### Community 63 - "db/repositories (63)"
+Cohesion: 0.12
 Nodes (3): NeuronRepository, toFtsQuery(), toRootView()
 
-### Community 41 - "neurons.ts"
+### Community 64 - "integration/documents (64)"
 Cohesion: 0.1
-Nodes (18): created, hatched(), [link], locked(), reply, [suggested], LinkDependencies, LinkEvent (+10 more)
+Nodes (17): documents, documentVersions, { batchId }, { document }, { document, batchId }, plan, { proposalId }, { undoBatchId } (+9 more)
 
-### Community 42 - "plan-checks.test.ts"
+### Community 66 - "application/structure (66)"
 Cohesion: 0.12
-Nodes (16): base, condition, ids, KNOWN, loop, nodes, PlanNode, SCREEN_PLAN (+8 more)
+Nodes (11): StructureDessinerInput, ElementRow, ResolvedElement, ResolvedStructureLink, resolveStructure(), StructureProblem, elements, empty (+3 more)
 
-### Community 43 - "local-queue.test.ts"
-Cohesion: 0.1
-Nodes (11): { h, queue, repository }, { h, queue, repository, completed }, { h, queue, repository, failed }, { h, repository }, MIGRATIONS, LocalQueue, LocalQueueDependencies, PayloadSchema (+3 more)
+### Community 67 - "src/chat (67)"
+Cohesion: 0.12
+Nodes (11): ChatPanel(), DECISION_LABELS, MATURITY_LABELS, SECTIONS, SHORT_MODEL_NAMES, TOOL_STATUS, COMPONENTS, Markdown() (+3 more)
 
-### Community 44 - "context-import.test.ts"
+### Community 68 - "docs/brainstorm (68)"
+Cohesion: 0.14
+Nodes (20): Plan de livraison F10-F14, L1c Le Brainstormer, interface visuelle de Claude Code, Vision: la carte est l'écran de Claude Code, Fiche de contexte, L1d Le neurone devient une conversation Claude Code, Neurone = conversation + fiche, dans un entonnoir, L2 F11 Moteur CLI, L2 F15 Neurone conversationnel (+12 more)
+
+### Community 69 - "db/repositories (69)"
+Cohesion: 0.13
+Nodes (4): linkFingerprint(), normalizeLabel(), orderedPair(), HistoryRepository
+
+### Community 70 - "shared/ipc (70)"
 Cohesion: 0.11
-Nodes (15): context, examples, MIGRATIONS, pending, repository, seed, selected, version (+7 more)
+Nodes (18): ChatDeltaEvent, ChatErrorCode, ChatErrorEvent, ChatMessageView, ChatPermissionResolvedEvent, ChatRole, ChatSheetEvent, ChatSheetView (+10 more)
 
-### Community 46 - "WidgetIoRepository"
-Cohesion: 0.1
-Nodes (6): widgetApprovals, widgetResults, COLUMNS, parseParts(), toRow(), WidgetIoRepository
-
-### Community 47 - "seeds.test.ts"
-Cohesion: 0.1
-Nodes (12): BlockRepository, canvas, hatched(), lineage, link, [pending], { rootId }, seed (+4 more)
-
-### Community 48 - "neurons.ts"
-Cohesion: 0.1
-Nodes (15): EtendreOut, Extension, IsoDate, Level, optionalSeed, Point, Ref, ReflectionSummaryOut (+7 more)
-
-### Community 49 - "F3 - Apercu & validation"
-Cohesion: 0.14
-Nodes (20): Arbre de taches conditionnel (modele de structuration), F1 - Capture rapide, F2 - Structuration IA, F3 - Apercu & validation, F5 — Interface complète / planning, F6 - Synchro Outlook, Detection de cycle (tri topologique de Kahn), Opportunite / rentree (+12 more)
-
-### Community 50 - "aiEngine.ts"
-Cohesion: 0.15
-Nodes (12): BudgetState, costMillicents(), DEFAULT_PRICING, estimateMaxMillicents(), ModelPricing, monthKey(), pricingFor(), startOfMonth() (+4 more)
-
-### Community 51 - "Human-in-the-loop (validation humaine ob"
-Cohesion: 0.15
-Nodes (19): Human-in-the-loop (validation humaine obligatoire), Rapport d'analyse speckit 001, Table ai_pending_requests (file locale persistante), Tables context_versions / context_imports, Data model 001, Table examples (positifs/negatifs, max 20 par kind), TaskKind (categoriser, etendre, synthetiser, suggerer...), Unites de cout (millicentimes stockes, centimes exposes) (+11 more)
-
-### Community 52 - "anonymizationRules.ts"
-Cohesion: 0.16
-Nodes (16): ADDRESS_PATTERN, AMOUNT_PATTERN, amountBand(), COMMON_CAPITALIZED, escapeRegExp(), parseAmount(), POSTCODE_PATTERN, PROPER_WORDS (+8 more)
-
-### Community 54 - "ContextRepository.ts"
-Cohesion: 0.16
-Nodes (12): h, MIGRATIONS, rows, AppDatabase, aiCalls, contextImports, contextVersions, examples (+4 more)
-
-### Community 55 - "app-handlers.test.ts"
-Cohesion: 0.14
-Nodes (12): AppSettingsView, { dispatch, applyLaunchAtLogin }, { dispatch, shortcut, registry }, { dispatch, shortcut, stored }, { dispatch, stored }, setup(), appRoutes, AppRoutesDeps (+4 more)
-
-### Community 56 - "Spec 005 — Widgets branchés"
-Cohesion: 0.14
-Nodes (18): Revue et empreinte SHA-256 (widget_approvals), Prélude window.gi (inputs, onInputs, output), InputAssembler (parties cochées seulement), Plan 005 — Widgets branchés : entrées, sorties, cadre résultat, Pont postMessage (source vérifiée par event.source), WidgetBridge (postMessage ↔ IPC), Table widget_inputs (migration 0014), WidgetIoService (connect, approve, inputs, emit, propose) (+10 more)
-
-### Community 57 - "AiConfigRepository.ts"
-Cohesion: 0.15
-Nodes (12): calls, config, MIGRATIONS, oldRouting, usage, AiConfig, AiConfigRepository, AiConfigSchema (+4 more)
-
-### Community 58 - "client.ts"
-Cohesion: 0.15
-Nodes (12): DatabaseHandle, openDatabase(), OpenDatabaseOptions, schema, hits, MIGRATIONS, firstPage, MIGRATIONS (+4 more)
-
-### Community 60 - "docs/FOUNDATION.md"
-Cohesion: 0.16
-Nodes (17): docs/FOUNDATION.md, L3 - Conseiller proactif (conception technique), L3 - Moteur IA hybride (conception technique), Prompt caching du cadre + profil, AIProvider (pattern Strategy), ClaudeProvider, FakeProvider (tests sans reseau), OllamaProvider (+9 more)
-
-### Community 61 - "Button.tsx"
-Cohesion: 0.14
-Nodes (10): LOCAL_MODEL_SUGGESTIONS, MODEL_LABELS, Button(), ButtonProps, Variant, VARIANTS, CanvasToolbar(), CanvasToolbarProps (+2 more)
-
-### Community 62 - "widget-io.test.ts"
+### Community 71 - "docs/brainstorm (71)"
 Cohesion: 0.12
-Nodes (11): HatchedRepository, parsePoints(), { batchId }, first, given, hatched, history, neuronRepository (+3 more)
+Nodes (19): Annulation par lot de l'éclosion, change_log par lot (batchId, avant/après), Skill brainstormer (F13), Clé stable par élément, Élément = neurone (kind = 'element'), ElementNode et buildGraph, Migration 0020_project_elements, Outil MCP structure_dessiner (+11 more)
 
-### Community 63 - "extractValues.ts"
-Cohesion: 0.2
-Nodes (13): amountsIn(), NUMBER, numbersIn(), addDate(), extractValues(), isUserDate(), MONTHS, pad() (+5 more)
+### Community 72 - "application/ai (72)"
+Cohesion: 0.15
+Nodes (10): AIGateway, failure(), Semaphore, EFFORT, effortFor(), engineFor(), ENGINES, MAX_TOKENS (+2 more)
 
-### Community 64 - "crossings.ts"
-Cohesion: 0.21
-Nodes (15): buildGraph(), crosses(), crossingCost(), CrossingLink, Graph, hits(), localCost(), Obstacle (+7 more)
+### Community 73 - "application/neurons (73)"
+Cohesion: 0.17
+Nodes (4): CreateNeuronInput, NeuronService, titleOf(), UpdateNeuronInput
 
-### Community 65 - "2b Plongee (zoom into a neuron)"
+### Community 74 - "shared/ipc (74)"
+Cohesion: 0.14
+Nodes (14): AiConfigView, AiStatusView, AiTestView, CLAUDE_MODELS, ClaudeModel, channels, config, harness (+6 more)
+
+### Community 75 - "docs/academique (75)"
+Cohesion: 0.13
+Nodes (18): bootstrap() — racine de composition, Défense en profondeur, Les quatre verrous (contextIsolation, sandbox, nodeIntegration:false, CSP), Processus main (Node : disque, SQLite, IA, secrets), Architecture Electron — trois processus cloisonnés (note), Analogie openspace (bureau de direction / accueil / guichet), Preload (liste blanche, contextBridge, .cjs), Processus renderer (React, sandbox, aucun accès Node) (+10 more)
+
+### Community 77 - "infrastructure/documents (77)"
+Cohesion: 0.16
+Nodes (9): DocumentFiles, hashOf(), isInside(), dir, hash, [kept], outside, trash (+1 more)
+
+### Community 78 - "specs/007-pont-mcp (78)"
+Cohesion: 0.15
+Nodes (17): Widgets: bac à sable inchangé, Widget posé par Claude arrive « À revoir », Méthode de travail — Brainstormer, Journal et selfdoubt, Ne jamais simuler de touches sur le poste, Une fonctionnalité = une spec (Spec Kit), Test manuel guidé à chaque étape, Quickstart — validation guidée spec 007 (+9 more)
+
+### Community 79 - "divers (79)"
+Cohesion: 0.12
+Nodes (17): dependencies, better-sqlite3, d3-force, drizzle-orm, highlight.js, @hookform/resolvers, @modelcontextprotocol/sdk, motion (+9 more)
+
+### Community 80 - "divers (80)"
+Cohesion: 0.12
+Nodes (15): description, engines, node, main, name, private, type, version (+7 more)
+
+### Community 81 - "specs/003-interface-mvp1 (81)"
+Cohesion: 0.12
+Nodes (17): Table canvas_blocks (kind empty|note|widget|result), Cadre résultat (ResultNode, kind result), GenericResultView (vue générique, code figé de l'app), Animations réduites (FR-025), Nœud « bloc » générique (FR-026, support des widgets), Capture rapide (raccourci global, US1), Carte unique de neurones (FR-029, 5 paliers de contexte), Graine d'idée sur un lien (FR-028/FR-033) (+9 more)
+
+### Community 82 - "db/repositories (82)"
+Cohesion: 0.18
+Nodes (9): AiRoutesDependencies, ConfigPatch, createAiRoutes(), AiConfig, AiConfigRepository, AiConfigSchema, RETIRED_MODELS, createAiRoutesHarness() (+1 more)
+
+### Community 84 - "docs/design (84)"
 Cohesion: 0.18
 Nodes (16): 2a Champ libre (single canvas network), 2b Plongee (zoom into a neuron), 2c Deux zones (Incubateur + Reseau), AI link suggestion with accept/reject, AI Question Panel (quick answers + free text), Each AI answer = a sub-neuron that grows, Breadcrumb + depth badge, faded parent click-to-go-up, Raw ideas drift slowly, unlinked (dashed circles) (+8 more)
 
-### Community 66 - "SynthesisPreview.tsx"
+### Community 85 - "specs/006-widgets-au-verrouillage (85)"
 Cohesion: 0.15
-Nodes (10): centsToInput(), EditorProps, NODE_ICONS, NODE_LABELS, PlanItem(), PlanNode, SECTIONS, noToolReason() (+2 more)
+Nodes (16): InputAssembler (parties cochées seulement), WidgetBridge (postMessage ↔ IPC), Table widget_inputs (migration 0014), WidgetIoService (connect, approve, inputs, emit, propose), Anti-doublon des outils (R8, double verrou), FusionService (lock / confirm étendus), Outils ignorés en mode dégradé (R7), Widgets et branchements créés dans la transaction et le lot d'éclosion (R4) (+8 more)
 
-### Community 67 - "Spec 003 — Interface MVP-1 « Brainstorme"
-Cohesion: 0.14
-Nodes (16): Annuler par lot — journal avant-après, conflit et lot inverse, change_log (historique append-only par batchId), Propositions résultat → idée (widget_proposals, neuron_data), Animations réduites (FR-025), Capture rapide (raccourci global, US1), Carte unique de neurones (FR-029, 5 paliers de contexte), Graine d'idée sur un lien (FR-028/FR-033), Historique avec annulation par lot (FR-024) (+8 more)
+### Community 86 - "007-pont-mcp/contracts (86)"
+Cohesion: 0.16
+Nodes (16): Outil carte_lire, Contrat outils MCP du Brainstormer, Codes d'erreur MCP, Outil etat, Instructions du serveur MCP, Outil widget_poser, Contrat canal nomme et IPC, Poignee de main gi-mcp/1 (+8 more)
 
-### Community 68 - "SecretStore"
+### Community 87 - "src/canvas (87)"
 Cohesion: 0.21
-Nodes (5): AppError, SafeStorageLike, SecretStore, createAiRoutesHarness(), fakeSafeStorage
+Nodes (15): buildGraph(), crosses(), crossingCost(), CrossingLink, Graph, hits(), localCost(), Obstacle (+7 more)
 
-### Community 69 - "registry.ts"
-Cohesion: 0.19
-Nodes (12): createDispatcher(), Dispatcher, isTrustedSender(), PAGES, registerRoutes(), RouteDefinition, SenderPage, echo (+4 more)
+### Community 89 - "docs/brainstorm (89)"
+Cohesion: 0.13
+Nodes (15): Absorption des sous-neurones (migration 0009), Entonnoir en couches (1 à 4) et type d'entonnoir, Neurone genesis, Neurones fantômes (validation en bloc), Remontée de contexte vers le genesis, Carte de structure (recette pour genesis lié), L1e Le Brainstormer, outil de chirurgie de projet, Niveaux qui se déplient (zoom sémantique) (+7 more)
 
-### Community 70 - "links.ts"
-Cohesion: 0.21
-Nodes (11): Fiche, keywords(), linkFingerprint(), normalizeLabel(), orderedPair(), rankCandidates(), RankedCandidate, STOPWORDS (+3 more)
+### Community 90 - "docs/brainstorm (90)"
+Cohesion: 0.13
+Nodes (15): Panneau de chat = conversation Claude Code, claude -p (mode non interactif), Ollama limité aux tâches de fond, Suppression de l'API Anthropic (coût), Cadre de l'IA et anonymisation supprimés, Construire avec validation (permissions dans le chat), Fournisseur CLI derrière la passerelle IA, Repli Ollama ou file d'attente (+7 more)
 
-### Community 71 - "HatchedPanel.tsx"
-Cohesion: 0.15
-Nodes (10): HatchedPanelProps, ICONS, Origins(), originsOf(), Plan, PlanItem(), STATUS_LABELS, Summary (+2 more)
+### Community 91 - "src/widgets (91)"
+Cohesion: 0.25
+Nodes (11): ResultNode(), createThrottle(), Throttle, useFrameChannel(), useWidgetBridge(), widgetResultKey(), resolvedScheme(), resultFrameUrl() (+3 more)
 
-### Community 72 - "Anonymizer.ts"
-Cohesion: 0.18
-Nodes (9): applyDeterministicRules(), maskCapitalizedWords(), Anonymizer, SensitiveDetector, SensitiveNames, anonymizer, Cases, seen (+1 more)
-
-### Community 73 - "Carte des idées — simulation de forces e"
-Cohesion: 0.18
-Nodes (14): Disposition déterministe (générateur à graine lcg(42)), Limite : graphe non planaire → minimum trouvé, pas zéro, Carte des idées — simulation de forces et croisements de liens (note), React Flow (@xyflow/react), reduceCrossings (produit vectoriel + recherche locale gloutonne), Analogie Satisfactory (tapis roulants qui ne se croisent pas), segmentsCross / orientation (produit vectoriel 2D), Commandes npm (dev, seed:demo, seed:demo:reset, test, typecheck, lint, build) (+6 more)
-
-### Community 74 - "Clean Architecture — domaine, applicatio"
-Cohesion: 0.18
-Nodes (14): Clean Architecture — domaine, application, infrastructure, Drizzle ORM ↔ SQL paramétré et migrations, Du brainstorm au code — spécifications et constitution, FOUNDATION — Cahier des charges Gestionnaire_idées, Glossaire — FTS5 (recherche plein texte), Glossaire — Transaction ACID, HistoryService (annulation par lot), openDatabase() (db/client.ts) (+6 more)
-
-### Community 75 - "capture.test.ts"
-Cohesion: 0.2
-Nodes (6): gate, MIGRATIONS, originalRun, CaptureDeps, CaptureService, createCaptureRoutes()
-
-### Community 76 - "defineRoute()"
-Cohesion: 0.22
-Nodes (10): createContextRoutes(), Id, createFusionRoutes(), Id, IsoDate, Patch, createHatchedRoutes(), createHistoryRoutes() (+2 more)
-
-### Community 78 - "dependencies"
+### Community 93 - "unit/renderer (93)"
 Cohesion: 0.14
-Nodes (14): dependencies, @anthropic-ai/sdk, better-sqlite3, d3-force, drizzle-orm, @hookform/resolvers, motion, react (+6 more)
+Nodes (12): ChatPermissionRequest, ChatView, answer, { api }, { api, onClose }, { api, setView }, boxes, command (+4 more)
 
-### Community 79 - "GrowthService"
+### Community 94 - "specs/002-structuration-ia (94)"
 Cohesion: 0.19
 Nodes (14): AIGateway / moteur IA 001, Canal fusion:editProposed, Jauge de contexte, EtendreOut, Neurones fantomes (suggestions IA, US6), GrowthService, Contrat IPC Moteur de neurones, Tables extensions / context_assessments (+6 more)
 
-### Community 80 - "F9 — Moteur IA hybride & contexte"
+### Community 95 - "integration/conversation (95)"
+Cohesion: 0.15
+Nodes (8): active, { batchId }, claudeSheet, hatchedReflection(), MIGRATIONS, result, root(), rows
+
+### Community 96 - "integration/mcp (96)"
 Cohesion: 0.18
-Nodes (14): Exemple de référence « Acheter un 2e écran », F1 — Capture rapide, F2 — Structuration IA, F3 — Aperçu & validation, F4 — Organigramme, F6 — Synchro Outlook, F7 — Conseiller proactif, F8 — Compagnon tamagotchi & briefing quotidien (+6 more)
+Nodes (6): conversations, { data }, neuronTools, result, NeuronTools, DocumentEcrireInput
 
-### Community 81 - "SynthesisApplier.confirm"
-Cohesion: 0.16
-Nodes (14): Drizzle ORM ↔ SQL paramétré et migrations, Alias sN → UUID (idOf), Approfondir (cycle 2 sans perdre le document), Concurrence optimiste (base_version → STALE), Éclosion atomique — transaction, version et historique, SynthesisApplier.confirm, Aperçu éditable (synthesisPatch.ts, P1–P5), Transaction SQLite tout-ou-rien (APPLY_FAILED) (+6 more)
+### Community 97 - "infrastructure/ai (97)"
+Cohesion: 0.17
+Nodes (7): ChatResponse, FetchLike, LOOPBACK_HOSTS, OllamaOptions, OllamaProvider, parseJson(), TagsResponse
 
-### Community 82 - "fusion.test.ts"
-Cohesion: 0.14
-Nodes (12): after, { batchId, root }, condition, entities, firstCycle, invalid, looping, order (+4 more)
+### Community 98 - "infrastructure/finals (98)"
+Cohesion: 0.24
+Nodes (4): hash, trashed, isWithin(), ProjectFiles
 
-### Community 84 - "logger.ts"
-Cohesion: 0.18
-Nodes (8): ALLOWED_FIELDS, createLogger(), LogFields, Logger, LogLevel, LogRecord, LogValue, { records, sink }
+### Community 99 - "specs/007-pont-mcp (99)"
+Cohesion: 0.19
+Nodes (13): canvas_blocks (modifiée), change_log (actor, mcp_write), Data Model — Spec 007 Pont MCP, map_links (nouvelle), Migration 0017_map_primitives, neurons (origin claude), SelectionStore (mémoire), layoutBatch (placement pur) (+5 more)
 
-### Community 86 - "WidgetReview.tsx"
-Cohesion: 0.27
-Nodes (10): CODE_TABS, CodeView(), useWidgetIo(), useWidgetReview, WidgetIoActions, widgetIoKey(), InputRow(), ReviewDialog() (+2 more)
+### Community 100 - "docs/brainstorm (100)"
+Cohesion: 0.15
+Nodes (13): Données par stdin, jamais en argument, Dépendances @modelcontextprotocol/sdk, xterm, node-pty, Frontière IPC minimale du terminal, IPC term:* et space:*, Migration 0019_spaces, Table spaces, TerminalService (node-pty), Règles de développement — Brainstormer (+5 more)
 
-### Community 87 - "scripts"
+### Community 101 - "divers (101)"
 Cohesion: 0.15
 Nodes (13): scripts, bench:local, build, db:generate, dev, format, lint, preview (+5 more)
 
-### Community 88 - "AIGateway (facade, seul point d'acces IA"
-Cohesion: 0.23
-Nodes (13): F7 - Conseiller proactif, F9 - Moteur IA hybride & contexte, Architecture IA hybride (Ollama local + Claude), AdvisorService (run quotidien), Empreintes de suggestions refusees (60 jours), Signaux locaux sans IA (idee qui dort, retards), SituationSummary (alias, bandes de montants), state_hash (pas d'appel si situation inchangee) (+5 more)
+### Community 102 - "docs/academique (102)"
+Cohesion: 0.17
+Nodes (13): Injection de prompt — cadre figé et données balisées, Balisage <donnees_utilisateur> neutralisé dans toutes ses variantes, Cache de prompt (ordre fixe des blocs, cache_control ephemeral), SYSTEM_FRAME v3 (SystemFrame.ts, wrapUserData), WIDGET_FRAME (cadre figé de la tâche widget), AIGateway — passerelle IA hybride (point d'accès unique), ClaudeProvider (SDK Anthropic), File persistante pending_requests (tri par rowid) (+5 more)
 
-### Community 89 - "QuestionPanel.tsx"
-Cohesion: 0.18
-Nodes (7): QuestionPanel(), QuestionPanelProps, FusionActions, FusionState, DocumentBody(), HatchedPanel(), useIdeaDocument()
-
-### Community 90 - "IdeaPanel.tsx"
-Cohesion: 0.18
-Nodes (7): IdeaPanel(), IdeaPanelProps, SeedCard(), Answer, DiveActions, PendingChild, SynthesisPreview()
-
-### Community 91 - "useAppSettings.ts"
+### Community 103 - "specs/011-plan-attaque (103)"
 Cohesion: 0.21
-Nodes (8): AppShell(), APP_SETTINGS_KEY, useAppSettings(), useEffectiveSettings(), AFFECTED, UndoOutcome, call(), IpcFailure
+Nodes (13): Data Model spec 008, Table change_log, Table neuron_messages, Table neurons (session_id, sheet_json), Data model 011 Plan d'attaque, Verrou locked_at (D6), Migration 0022_plan_attaque, Table plan_proposal_items (+5 more)
 
-### Community 92 - "durations.ts"
-Cohesion: 0.23
-Nodes (8): AnimationKind, DURATIONS, isReducedMotion(), MotionTiming, timingFor(), useReducedMotionPreference(), KINDS, timing
-
-### Community 93 - "app-api.ts"
-Cohesion: 0.21
-Nodes (7): IpcError, IpcResult, Window, AppApi, CaptureApi, FakeIpcError, Handler
-
-### Community 94 - "App.tsx"
+### Community 104 - "renderer/src (104)"
 Cohesion: 0.21
 Nodes (8): ContextPage(), formatDate(), Section(), SectionProps, App(), TabId, TABS, root
 
-### Community 95 - "channels.ts"
+### Community 105 - "src/motion (105)"
+Cohesion: 0.23
+Nodes (8): AnimationKind, DURATIONS, isReducedMotion(), MotionTiming, timingFor(), useReducedMotionPreference(), KINDS, timing
+
+### Community 106 - "application/ai (106)"
 Cohesion: 0.15
-Nodes (8): CAPTURE_WINDOW_CHANNELS, CAPTURE_WINDOW_EVENTS, CaptureWindowChannel, CaptureWindowEvent, MAIN_WINDOW_CHANNELS, MAIN_WINDOW_EVENTS, MainWindowChannel, MainWindowEvent
+Nodes (4): LocalQueue, LocalQueueDependencies, PayloadSchema, PendingRequestRepository
 
-### Community 96 - "AIGateway"
-Cohesion: 0.32
-Nodes (3): AIGateway, failure(), Semaphore
-
-### Community 97 - "ClaudeProvider"
-Cohesion: 0.21
-Nodes (6): addUsage(), answerOf(), ClaudeProvider, toProviderError(), toSystemParam(), usageOf()
-
-### Community 99 - "app.ts"
+### Community 107 - "infrastructure/logging (107)"
 Cohesion: 0.18
-Nodes (10): MIGRATIONS, AppSettingsPatch, DEFAULT_APP_SETTINGS, MOTION_MODES, MotionMode, NavigateEvent, Section, SECTIONS (+2 more)
+Nodes (8): ALLOWED_FIELDS, createLogger(), LogFields, Logger, LogLevel, LogRecord, LogValue, { records, sink }
 
-### Community 100 - "Agent context update procedure (Claude C"
+### Community 108 - "unit/widgets (108)"
+Cohesion: 0.21
+Nodes (10): accents, big, data, line, loop, checkResult(), isPlainObject(), refusal() (+2 more)
+
+### Community 109 - "src/app (109)"
+Cohesion: 0.33
+Nodes (10): ageLabel(), HeaderUsage(), MiniGauge(), percentOf(), tone(), USAGE_KEY, formatTokens(), Gauge() (+2 more)
+
+### Community 110 - "docs/claude (110)"
+Cohesion: 0.18
+Nodes (12): Composition visuelle (phi, grille 8px), Ergonomie UI — standards, Principes de Gestalt, Lois cognitives (Fitts, Hick, Miller, Tesler, Jakob), Heuristiques de Nielsen, Accessibilité WCAG AA, Atomic Design, Design tokens CSS (+4 more)
+
+### Community 111 - "db/repositories (111)"
 Cohesion: 0.17
-Nodes (12): AIProvider Strategy/Adapter pattern, 'Training' the agent = context injection only (no fine-tuning), Hybrid AI architecture (Ollama local + Claude), Monthly API budget cap (10 EUR default), F9 - Hybrid AI engine & context, AI routing table (local vs Claude by task kind), Fictional profile example format, Context bundle: profile.md, rules.md, examples.json (+4 more)
+Nodes (6): approvedCommands, commandRuns, executions, ApprovedCommandRow, CommandRepository, CommandRunRow
 
-### Community 101 - "F2 - AI structuring (questionnaire + dec"
+### Community 112 - "docs/brainstorm (112)"
 Cohesion: 0.18
 Nodes (12): Reference example: 'Acheter un 2e ecran', Structuring model: questionnaire -> conditional tree -> dependencies/triggers -> opportunities, Vision: 'agenda organique' personal secretary, Expanded AI scope: any topic as brainstorm partner, no finished works, Forced lock before 'suffisant' allowed with warning, Bridge to ProjectMaster hub (v2), Markdown export of reflection (MVP-1), Brainstormer pivot (+4 more)
 
-### Community 102 - "preview.test.tsx"
+### Community 113 - "docs/brainstorm (113)"
 Cohesion: 0.17
-Nodes (10): SynthesisView, absorbed, amount, api, base, budget, countdown, field (+2 more)
+Nodes (12): AIProvider Strategy/Adapter pattern, 'Training' the agent = context injection only (no fine-tuning), Hybrid AI architecture (Ollama local + Claude), Monthly API budget cap (10 EUR default), F9 - Hybrid AI engine & context, AI routing table (local vs Claude by task kind), Fictional profile example format, Context bundle: profile.md, rules.md, examples.json (+4 more)
 
-### Community 103 - "Widget généré par Claude — effacement de"
+### Community 114 - "docs/brainstorm (114)"
+Cohesion: 0.23
+Nodes (12): change_log table, plan_dependencies table, Delivery split MVP-1 (F1-F4, F9) / MVP-2 (F5-F8), F4 - Organigramme (org chart map), Task status propagation (blocked/ready/in progress/done/abandoned), F5 - Full interface / planning, F6 - Outlook sync (Microsoft Graph + MSAL PKCE), One-way app -> Outlook sync at MVP (+4 more)
+
+### Community 115 - "shared/ipc (115)"
 Cohesion: 0.17
-Nodes (12): Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget, Absorption des sous-neurones (absorbed_in, migration 0009), Cadre résultat (ResultNode, kind result), GenericResultView (vue générique, code figé de l'app), Glossaire — Suppression douce (soft delete), Widget généré par Claude — effacement de types, versions par pointeur et échec sans dégât, Migration 0011_widgets, Effacement de types (stripTypeScriptTypes, mode transform) (+4 more)
+Nodes (7): CAPTURE_WINDOW_CHANNELS, CAPTURE_WINDOW_EVENTS, CaptureWindowChannel, CaptureWindowEvent, MAIN_WINDOW_EVENTS, MainWindowChannel, MainWindowEvent
 
-### Community 104 - "provenance.test.ts"
-Cohesion: 0.18
-Nodes (7): ActionPlanOut, allowed, nodes, PlanNode, result, sources, values
+### Community 116 - "specs/008-neurone-conversationnel (116)"
+Cohesion: 0.17
+Nodes (12): Plan spec 008 Neurone conversationnel, ChatPanel, contextBlock, ConversationService, NeuronTools, Quickstart lot A chat neurone, Spec 008 Quality Checklist, R2 Contexte frais a chaque ouverture (+4 more)
 
-### Community 105 - "context-assembler.test.ts"
+### Community 117 - "src/app (117)"
+Cohesion: 0.23
+Nodes (7): APP_SETTINGS_KEY, useAppSettings(), useEffectiveSettings(), AFFECTED, UndoOutcome, call(), IpcFailure
+
+### Community 119 - "application/widgets (119)"
 Cohesion: 0.24
-Nodes (8): examples, { system }, text, { user }, wrapped, SYSTEM_FRAME, wrapUserData(), createdAt()
+Nodes (4): currentCode(), WidgetDependencies, WidgetEvent, WidgetService
 
-### Community 106 - "AIGateway.run()"
+### Community 121 - "db/migrations (121)"
 Cohesion: 0.2
-Nodes (11): AIGateway.run(), Sémaphore de concurrence (1 Ollama / 2 Claude), Ordre imposé des blocs de contexte, Mode dégradé (repli Ollama, degraded: true), Cache d'idempotence par requestId (5 min), File persistante pending_requests, Cache de prompt (cache_control ephemeral), resolveEngine / LOCAL_ONLY_KINDS (routing.ts) (+3 more)
+Nodes (11): context_assessments table (context gauge), extensions table (AI questions), neuron_links table, neurons table, plan_nodes table, reflection_summaries table, syntheses table (proposals), neurons_fts FTS5 virtual table (+3 more)
 
-### Community 107 - "AppSettingsRepository"
+### Community 122 - "docs/brainstorm (122)"
+Cohesion: 0.2
+Nodes (11): Migration 0018_cli_engine, ConversationService, Découpage spec 008 (lots A, B, C), IPC chat:* et proposal:decide, Migration 0018_neuron_conversations, Outils MCP neurone_contexte, fiche_ecrire, maturite_evaluer, type_definir, couche_proposer, remontee_proposer, Quota d'abonnement (rate_limit_event), --setting-sources project (pas de hooks utilisateur) (+3 more)
+
+### Community 123 - "specs/007-pont-mcp (123)"
 Cohesion: 0.24
-Nodes (5): AppSettingsRepository, DraftSchema, Field, FIELDS, safeJson()
+Nodes (11): Écritures de Claude directes, marquées et annulables, Serveur MCP local, Jeton 256 bits mcp.token, Transport: relais stdio + canal nommé, PipeServer (canal nommé), Relais src/mcp-relay/relay.ts, src/shared/mcp/tools.ts (schémas Zod), R1 Le protocole MCP vit dans le relais (+3 more)
 
-### Community 108 - "step-node.test.tsx"
-Cohesion: 0.18
-Nodes (8): api, base, born, graph, link, node, noStep, view
-
-### Community 109 - "Delivery split MVP-1 (F1-F4, F9) / MVP-2"
-Cohesion: 0.25
-Nodes (11): change_log table, Delivery split MVP-1 (F1-F4, F9) / MVP-2 (F5-F8), F4 - Organigramme (org chart map), Task status propagation (blocked/ready/in progress/done/abandoned), F5 - Full interface / planning, F6 - Outlook sync (Microsoft Graph + MSAL PKCE), One-way app -> Outlook sync at MVP, All-or-nothing transactional apply, historized and undoable (+3 more)
-
-### Community 110 - "L4b - Mecanique neurones"
-Cohesion: 0.25
-Nodes (11): Animations des neurones (reduced-motion), Jauge de contexte (insuffisant / suffisant / complet), L4b - Mecanique neurones, Fusion (synthese IA puis confirmation), Disposition Incubateur + Reseau, plongee 2b, Noeud bloc / mini-widget genere par Claude, L4c - Blocs et mini-widgets, Modele de securite widget (iframe sandbox, CSP, capacites) (+3 more)
-
-### Community 111 - "Cadre systeme v2 Brainstormer (fige)"
-Cohesion: 0.24
-Nodes (11): Vision Brainstormer, Cadre de l'IA élargi (partenaire de brainstorm), Plan de livraison MVP-1 / MVP-2 / v2, Export Markdown d'un neurone, Neurone Action, Neurone Réflexion, Mitigation prompt injection (donnees balisees, sortie par schema), Vision « Brainstormer » (+3 more)
-
-### Community 112 - "CaptureApp.tsx"
+### Community 124 - "domain/finals (124)"
 Cohesion: 0.27
-Nodes (6): useApplyTheme(), CaptureApp(), Status, root, installCaptureApi(), renderCapture()
+Nodes (8): BINARY_EXTENSIONS, BLOCKED_FOLDERS, checkProjectPath(), ENV_TEMPLATES, extensionOf(), ProjectPathCheck, refuse(), SECRET_EXTENSIONS
 
-### Community 113 - "canvas-create.test.tsx"
-Cohesion: 0.18
-Nodes (8): { api }, { api, container }, { container }, control, edge, sizes, tree, user
+### Community 125 - "src/pages (125)"
+Cohesion: 0.24
+Nodes (7): ClaudeCodeSettings(), SettingsPage(), TabId, TABS, EDITOR_KEY, EditorSettings(), KIND_LABELS
 
-### Community 114 - "canvas-keyboard.test.tsx"
-Cohesion: 0.18
-Nodes (8): accepted, { api }, block, { container }, labels, user, view, viewport
+### Community 126 - "specs/004-widgets (126)"
+Cohesion: 0.31
+Nodes (10): CSP de l'app (default-src 'self', frame-src gi-widget:, object-src 'none'), Protocole gi-widget:// (widgetProtocol.ts), Isolation des widgets en défense en profondeur (6 couches), Plan 004 — Boîte à outils de la carte et mini-widgets, Isolation en 6 couches (sandbox, CSP, filtre webRequest, WebRTC, pas de preload, jamais dans le DOM), WidgetDocument (document isolé, CSP, prélude), Prélude window.gi (inputs, onInputs, output), Pont postMessage (source vérifiée par event.source) (+2 more)
 
-### Community 115 - "Anonymisation en deux couches"
-Cohesion: 0.36
-Nodes (10): Couche 1 — règles déterministes (regex), Anonymisation en deux couches, ExampleStore (exemples appris), Vulnérabilités anticipées (secrets, injection de prompt, XSS Electron, OAuth), Glossaire — Expression régulière, Glossaire — LLM (grand modèle de langage), Import de contexte — paquet vérifié, versionné, réversible, Injection de prompt — cadre figé et données balisées (+2 more)
-
-### Community 116 - "Data Model 002 (modele central)"
+### Community 129 - "specs/002-structuration-ia (129)"
 Cohesion: 0.24
 Nodes (10): Data Model 002 (modele central), growthDepth <= 6 vs planDepth <= 5, SynthesisApplier, Table change_log (batch_id), Table neurons, Tables plan_nodes / plan_dependencies, Table syntheses, Annulation par lot (HistoryService) (+2 more)
 
-### Community 117 - "AppShell.tsx"
-Cohesion: 0.24
-Nodes (6): NAVIGATION, TITLES, SectionPlaceholder(), SettingsPage(), TabId, TABS
-
-### Community 119 - "Spec 006 — Widgets proposés au verrouill"
-Cohesion: 0.29
-Nodes (10): scripts/ai-usage.cjs (mesure du coût IA), ToolGeneration (file de générations en arrière-plan, Réessayer), Table widget_requests (migration 0016), Quickstart 006 — test manuel guidé, Verdict « Outils suggérés » toujours affiché, Checklist qualité spec 006, Outils décochés par défaut (maîtrise du coût), Spec 006 — Widgets proposés au verrouillage (+2 more)
-
-### Community 120 - "BudgetGuard"
-Cohesion: 0.24
-Nodes (4): h, BudgetGuard, BudgetGuardDependencies, BudgetSettings
-
-### Community 122 - "Croissance d'un neurone — arbre, garde-f"
-Cohesion: 0.28
-Nodes (9): Couche 2 — l'IA locale liste, le code remplace, Croissance d'un neurone — arbre, garde-fous et jauge, Garde-fous déterministes de croissance (≥3 extensions, sans doublon, profondeur ≤ 6), Croissance : 3 questions minimum, sans maximum, Cycle de vie d'un neurone (brut → en développement → éclos), Fusion : synthèse IA puis confirmation, Interconnexion : liens libellés suggérés par l'IA, Jauge de contexte (insuffisant / suffisant / complet) (+1 more)
-
-### Community 123 - "Research — 003 Interface MVP-1 (v2)"
+### Community 130 - "domain/context (130)"
 Cohesion: 0.22
-Nodes (9): Tests d'accessibilité axe-core (expectNoAxeViolations), Disposition d3-force (incubateur / réseau), Décision du spike T029 (fusion HTML/Motion, migration CSS transform), renderNeuronMarkdown / export Markdown, Motion (animations pousse, fusion, migration, halo), Disposition radiale de la plongée, React Flow (@xyflow/react) — toile neuronale, Research — 003 Interface MVP-1 (v2) (+1 more)
+Nodes (9): Result, containsPersonalData(), CONTEXT_FILES, ContextBundle, ContextFile, ExamplesFile, ImportedExample, Manifest (+1 more)
 
-### Community 124 - "Synthèse vérifiée — contrôles déterminis"
-Cohesion: 0.28
-Nodes (9): applyProvenance() — contrôle P6, extractValues() (montants et dates par regex), Canal fusion:editProposed (patch revalidé P1–P6/S1), FusionService, Glossaire — Tri topologique de Kahn, isAcyclic() — algorithme de Kahn (planChecks.ts), Contrôles de plan P1–P5 / S1, Nouvel essai unique en signalant le défaut (+1 more)
+### Community 131 - "integration/mcp (131)"
+Cohesion: 0.2
+Nodes (8): conversations, etapes, many, neuronTools, [proposal], result, wrong, PlanProposerInput
 
-### Community 125 - "edit-proposed.test.ts"
-Cohesion: 0.36
-Nodes (7): edit(), proposedPlan(), view, dispatch, readyRoot(), reflectionSummary, screenPlan()
-
-### Community 126 - "package.json"
-Cohesion: 0.22
-Nodes (8): description, engines, node, main, name, private, type, version
-
-### Community 127 - "CompanionService"
+### Community 133 - "docs/academique (133)"
 Cohesion: 0.33
-Nodes (9): Durcissement Electron (contextIsolation, sandbox, CSP, IPC valide), Stack Electron + React + TS + Tailwind, F8 - Compagnon tamagotchi & briefing, CompanionService, Fenetre compagnon transparente always-on-top, L3 - Compagnon (conception technique), Arbre d'evolution evolution.json, Score de maturite (score_events) (+1 more)
+Nodes (10): Couche 1 — règles déterministes (regex), Couche 2 — l'IA locale liste, le code remplace, Anonymisation en deux couches, ExampleStore (exemples appris), Glossaire — Expression régulière, Glossaire — LLM (grand modèle de langage), Import de contexte — paquet vérifié, versionné, réversible, Injection de prompt — cadre figé et données balisées (+2 more)
 
-### Community 128 - "client.test.ts"
+### Community 134 - "docs/academique (134)"
+Cohesion: 0.22
+Nodes (10): AIGateway.run(), Sémaphore de concurrence (1 Ollama / 2 Claude), Ordre imposé des blocs de contexte, Mode dégradé (repli Ollama, degraded: true), Cache d'idempotence par requestId (5 min), File persistante pending_requests, Cache de prompt (cache_control ephemeral), resolveEngine / LOCAL_ONLY_KINDS (routing.ts) (+2 more)
+
+### Community 135 - "specs/003-interface-mvp1 (135)"
+Cohesion: 0.2
+Nodes (10): Tests d'accessibilité axe-core (expectNoAxeViolations), Disposition d3-force (incubateur / réseau), Canal fusion:editProposed (patch revalidé P1–P6/S1), Décision du spike T029 (fusion HTML/Motion, migration CSS transform), renderNeuronMarkdown / export Markdown, Motion (animations pousse, fusion, migration, halo), Disposition radiale de la plongée, React Flow (@xyflow/react) — toile neuronale (+2 more)
+
+### Community 136 - "components/atoms (136)"
 Cohesion: 0.25
-Nodes (7): first, handle, KEY, MIGRATIONS, row, second, aiConfig
+Nodes (5): Button(), ButtonProps, Variant, VARIANTS, CanvasToolbarProps
 
-### Community 129 - "compilerOptions"
+### Community 137 - "unit/conversation (137)"
 Cohesion: 0.25
-Nodes (7): compilerOptions, lib, outDir, types, exclude, extends, include
+Nodes (6): EMPTY_SHEET, big, block, deep, step, rankLabel()
 
-### Community 130 - "compilerOptions"
+### Community 138 - "docs/academique (138)"
+Cohesion: 0.22
+Nodes (9): Architecture Electron — trois processus cloisonnés, Défense en profondeur, Preload en CommonJS, sans dépendance npm, Quatre verrous : contextIsolation, sandbox, nodeIntegration false, CSP, Du brainstorm au code — spécifications et constitution, Développement piloté par la spécification (SDD), Traçabilité exigence → tâche → code (US, FR, SC, T0xx), CSP (Content Security Policy) (+1 more)
+
+### Community 139 - "specs/009-carte-structure (139)"
+Cohesion: 0.22
+Nodes (9): Outil dessiner, Plan spec 009 Carte de structure, resolve.ts (resolution de lot), StructureService, Spec 009 Carte de structure, Outil structure_dessiner, Outil structure_lire, Tasks spec 009 (+1 more)
+
+### Community 140 - "integration/ai (140)"
+Cohesion: 0.22
+Nodes (8): context, examples, MIGRATIONS, pending, repository, seed, selected, version
+
+### Community 141 - "domain/plan (141)"
+Cohesion: 0.42
+Nodes (6): checkDependencies(), hasCycle(), moveRank(), RankedStep, renumber(), moved
+
+### Community 142 - "unit/renderer (142)"
 Cohesion: 0.25
-Nodes (7): compilerOptions, jsx, lib, outDir, types, extends, include
+Nodes (6): ChatUsageView, { api }, { api, container }, group, renderUsage(), session
 
-### Community 131 - "Plan 002 Moteur de neurones"
+### Community 143 - "unit/renderer (143)"
+Cohesion: 0.32
+Nodes (5): PROJECT_SETTINGS_KEY, api, { container }, user, ProjectSettings()
+
+### Community 144 - "specs/003-interface-mvp1 (144)"
 Cohesion: 0.29
 Nodes (8): Constitution (I-VI), Contrat Sorties IA (neurons.ts), Plan 002 Moteur de neurones, Research 002 Moteur de neurones, axe-core (expectNoAxeViolations), Plan 003 Interface MVP-1, Research 003 Interface MVP-1, TanStack Query + Zustand
 
-### Community 132 - "Verrouillage, synthese et eclosion"
+### Community 145 - "specs/002-structuration-ia (145)"
 Cohesion: 0.25
 Nodes (8): Exemple fictif 2e ecran (Action), FakeProvider scripte, Verrouillage, synthese et eclosion, Quickstart 002, Animation de fusion / migration, Motion (ex-Framer Motion), Quickstart 003, Mode animations reduites (useReducedMotionPreference)
 
-### Community 133 - "LinkService"
+### Community 146 - "specs/002-structuration-ia (146)"
 Cohesion: 0.25
 Nodes (8): CandidateFinder, Graphe local de mots-cles (candidats de liens), LinkService, Liens entre neurones eclos, SuggererLiensOut, Table neuron_links, Type de demande suggerer_liens, d3-force
 
-### Community 134 - "Plan 006 — Widgets proposés au verrouill"
-Cohesion: 0.32
-Nodes (8): Anti-doublon des outils (R8, double verrou), FusionService (lock / confirm étendus), Outils ignorés en mode dégradé (R7), placeTools (placement pur côté main), Plan 006 — Widgets proposés au verrouillage, ToolProposal / champ tools (≤ 3, tolérant), Physique de la carte (FR-034, collision et épinglage), CanvasPhysics (d3-force, T066)
+### Community 148 - "divers (148)"
+Cohesion: 0.25
+Nodes (7): compilerOptions, lib, outDir, types, exclude, extends, include
 
-### Community 135 - "WidgetService (prompt, restore)"
+### Community 149 - "divers (149)"
+Cohesion: 0.25
+Nodes (7): compilerOptions, jsx, lib, outDir, types, extends, include
+
+### Community 150 - "shared/ipc (150)"
 Cohesion: 0.29
-Nodes (8): Signature de structure shapeOf (sans valeurs), Claude ne reçoit que la structure (FR-012), AIGateway.run (passerelle IA hybride), CLAUDE_ONLY_KINDS (tâche widget routée Claude seul), Code actuel envoyé en verbatim (non anonymisé), Table widget_messages (conversation), WidgetOut (schéma Zod, ≤ 100 Ko/partie), WidgetService (prompt, restore)
+Nodes (6): PROJECT_LIMITS, PROJECT_TYPES, ProjectCreatedView, ProjectCreateInput, ProjectSettingsView, ProjectType
 
-### Community 136 - "ai.ts"
-Cohesion: 0.29
-Nodes (6): AiConfigView, AiStatusView, AiTestView, BudgetStateView, CLAUDE_MODELS, ClaudeModel
-
-### Community 137 - "neurons table"
-Cohesion: 0.29
-Nodes (7): context_assessments table (context gauge), extensions table (AI questions), neuron_links table, neurons table, neurons_fts FTS5 virtual table, neurons_fts sync triggers (insert/update/delete on root), suggestions table (ghost neurons)
-
-### Community 138 - "F8 - Tamagotchi companion & daily briefi"
+### Community 151 - "docs/brainstorm (151)"
 Cohesion: 0.29
 Nodes (7): Anti-Clippy principle (1 briefing/day, discreet), Weighted RNG (roulette) companion evolution, F8 - Tamagotchi companion & daily briefing, Maturity score and evolution stages, Anonymized situation summary sent to Claude, F7 - Proactive advisor, No Claude call if nothing changed
 
-### Community 139 - "gestionnaire-idees package"
-Cohesion: 0.33
-Nodes (7): @anthropic-ai/sdk dependency, bench:local script (bench-local-model.ts), better-sqlite3 npm alias to better-sqlite3-multiple-ciphers, Drizzle ORM dependency, electron-vite build toolchain, gestionnaire-idees package, Zod dependency
-
-### Community 140 - "Security review spec 001 (T053)"
+### Community 152 - "docs (152)"
 Cohesion: 0.29
 Nodes (7): Security review spec 001 (T053), Secrets encrypted via DPAPI / safeStorage, F1 (high): examples sent to Claude without anonymization, F3: non-local OLLAMA_URL crash -> loopback fallback, F4: IPC sender check limited to out/renderer, F5: synchronous permission checks refused, Encrypted SQLite (SQLCipher) with strict hex key
 
-### Community 141 - "Garde-fous deterministes E1-E4 / P1-P5 /"
-Cohesion: 0.33
-Nodes (7): ActionPlanOut, Garde-fous deterministes E1-E4 / P1-P5 / S1-S2 / L1, FusionService, Detection de boucle (tri de Kahn), Controle de provenance P6 (valeur a trouver), ReflectionSummaryOut, Types de demande synthetiser / reviser
-
-### Community 142 - "Nature Action / Reflexion"
+### Community 153 - "docs/academique (153)"
 Cohesion: 0.29
-Nodes (7): ContextBuilder, Nature Action / Reflexion, NeuronService, Dimensions de reference par nature, Type de demande categoriser (IA locale), Capture globale (fenetre pre-chargee + raccourci), WindowManager / TrayController / lifecycle
+Nodes (7): Alias sN vers UUID, Concurrence optimiste (base_version, STALE), Éclosion atomique — transaction, version et historique, Outils cochés dans la transaction (spec 006), SynthesisApplier.confirm, Transaction tout-ou-rien (APPLY_FAILED), Lot tout ou rien (dessiner)
 
-### Community 143 - "diveModel.ts"
+### Community 154 - "settings/ai (154)"
 Cohesion: 0.29
-Nodes (4): BreadcrumbProps, DiveModel, DiveNeuron, RawNode
+Nodes (5): AiSettingsPage(), LOCAL_MODEL_SUGGESTIONS, MODEL_FIELDS, MODEL_LABELS, ModelField
 
-### Community 144 - "theme-switch.test.tsx"
+### Community 155 - "unit/renderer (155)"
 Cohesion: 0.33
 Nodes (4): OPTIONS, ThemeSwitch(), { api }, { container }
 
-### Community 146 - "accelerator.ts"
+### Community 156 - "specs/011-plan-attaque (156)"
+Cohesion: 0.43
+Nodes (7): structureGraph, Plan spec 011 Plan d'attaque, planLayout, Outil plan_proposer, PlanService, Quickstart spec 011, R4 Disposition deterministe gauche-droite
+
+### Community 157 - "specs/008-neurone-conversationnel (157)"
+Cohesion: 0.29
+Nodes (7): CliConversation, Un processus par conversation, streamEvents (parseStreamLine), Research spec 008, R1 claude -p stream-json, Spec 010 Bascule, Un seul moteur, plus d'API Anthropic
+
+### Community 158 - "008-neurone-conversationnel/contracts (158)"
+Cohesion: 0.29
+Nodes (7): Contrat chat lot A, Outil fiche_ecrire, Canaux IPC chat:*, Outil maturite_evaluer, Outil neurone_contexte, Table context_assessments, R4 Maturite = evaluation de contexte
+
+### Community 159 - "002-structuration-ia/contracts (159)"
+Cohesion: 0.33
+Nodes (7): ActionPlanOut, Garde-fous deterministes E1-E4 / P1-P5 / S1-S2 / L1, FusionService, Detection de boucle (tri de Kahn), Controle de provenance P6 (valeur a trouver), ReflectionSummaryOut, Types de demande synthetiser / reviser
+
+### Community 160 - "specs/002-structuration-ia (160)"
+Cohesion: 0.29
+Nodes (7): ContextBuilder, Nature Action / Reflexion, NeuronService, Dimensions de reference par nature, Type de demande categoriser (IA locale), Capture globale (fenetre pre-chargee + raccourci), WindowManager / TrayController / lifecycle
+
+### Community 163 - "integration/ai (163)"
+Cohesion: 0.29
+Nodes (4): h, MIGRATIONS, rows, AiCallRepository
+
+### Community 164 - "unit/ai (164)"
+Cohesion: 0.33
+Nodes (6): base, body, calls, fetch(), jsonResponse(), request
+
+### Community 166 - "docs/academique (166)"
+Cohesion: 0.29
+Nodes (7): Liste blanche des canaux (preload + main), defineRoute() (registry.ts), Glossaire — IPC (communication entre processus), IpcResult<T> (union discriminée), IPC typé — le guichet unique entre interface et moteur, isTrustedSender (contrôle de l'expéditeur), Result<T, E> (échecs typés)
+
+### Community 167 - "docs/academique (167)"
+Cohesion: 0.33
+Nodes (7): Clean Architecture — domaine, application, infrastructure, Ports et adaptateurs + racine de composition (bootstrap.ts), Drizzle ORM ↔ SQL paramétré et migrations, Du brainstorm au code — spécifications et constitution, Glossaire — FTS5 (recherche plein texte), Développement piloté par la spécification (brainstorm → FOUNDATION → constitution → specs → plan → tâches), Stockage local chiffré — SQLite, SQLCipher et DPAPI
+
+### Community 168 - "shared/app (168)"
 Cohesion: 0.47
 Nodes (4): isKey(), isValidAccelerator(), MODIFIERS, NAMED_KEYS
 
-### Community 147 - "cost.test.ts"
-Cohesion: 0.33
-Nodes (5): cost, estimate, input, usage, write
-
-### Community 148 - "IPC typé — le guichet unique entre inter"
-Cohesion: 0.33
-Nodes (6): Liste blanche des canaux (preload + main), defineRoute() (registry.ts), Glossaire — IPC (communication entre processus), IpcResult<T> (union discriminée), IPC typé — le guichet unique entre interface et moteur, isTrustedSender (contrôle de l'expéditeur)
-
-### Community 149 - "synthesisPatch.ts"
-Cohesion: 0.33
-Nodes (3): PatchOutcome, Section, SECTIONS
-
-### Community 150 - "F1 - Capture rapide"
+### Community 169 - "docs/brainstorm (169)"
 Cohesion: 0.33
 Nodes (6): categories table, Seed of 6 categories (General, Achat, Projet, Sortie, Photo, IT), Local AI auto-categorization (UC-3), F1 - Capture rapide, Rule: a capture is never lost even without AI, Widget shown in < 200 ms (preloaded hidden window)
 
-### Community 151 - "Spec 002 Moteur de neurones (F2 v2)"
+### Community 170 - "specs/010-bascule (170)"
+Cohesion: 0.4
+Nodes (6): Plan spec 010 Bascule, ClaudeCliProvider, D1 Convertir puis garder en archive, D3 Opus genesis, Sonnet elements, Ancien moteur de neurones, Tasks spec 010
+
+### Community 171 - "specs/002-structuration-ia (171)"
 Cohesion: 0.33
 Nodes (6): Analysis Report 002, Requirements Checklist 002, Extension (question d'extension), Neurone (racine / sous-neurone), Spec 002 Moteur de neurones (F2 v2), Tasks 002 Moteur de neurones
 
-### Community 152 - "context.ts"
+### Community 172 - "shared/ipc (172)"
 Cohesion: 0.33
 Nodes (5): ActiveContextView, ContextListView, ContextVersionView, PendingImportView, TextDiffView
 
-### Community 153 - "lenient-outputs.test.ts"
+### Community 174 - "docs/academique (174)"
 Cohesion: 0.33
-Nodes (5): LOCAL_ANSWER_WITH_BAD_DATE, LOCAL_ANSWER_WITH_BRACKETED_REF, parsed, plan, schema
+Nodes (6): HistoryService (annulation par lot), openDatabase() (db/client.ts), SecretStore + safeStorage (DPAPI), SQLCipher (better-sqlite3-multiple-ciphers), WAL (Write-Ahead Logging), Transaction ACID (tout ou rien)
 
-### Community 154 - "format.ts"
-Cohesion: 0.7
-Nodes (3): budgetPercent(), formatEuros(), parseEurosToCents()
+### Community 176 - "docs/brainstorm (176)"
+Cohesion: 0.4
+Nodes (5): Espaces liés à un dossier, Terminal intégré (xterm + node-pty), Envoyer à Claude (pré-remplit sans valider), Espace (carte nommée liée à un dossier), L'app n'écrit jamais dans un dossier lié
 
-### Community 155 - "validateContextBundle (bundle.ts)"
+### Community 177 - "shared/projects (177)"
+Cohesion: 0.4
+Nodes (3): ProjectForm(), RESERVED, slugProblem()
+
+### Community 178 - "specs/012-documents (178)"
+Cohesion: 0.4
+Nodes (5): Outil MCP document_ecrire, DocumentService, Table document_versions, Table documents, Ecriture sure: slug, realpath, ecriture atomique, corbeille
+
+### Community 179 - "src/canvas (179)"
+Cohesion: 0.4
+Nodes (3): Tool, ToolMenuProps, TOOLS
+
+### Community 180 - "tests/support (180)"
+Cohesion: 0.4
+Nodes (3): FICTIVE_EXAMPLES, FICTIVE_PROFILE, InboxFiles
+
+### Community 182 - "unit/ai (182)"
+Cohesion: 0.4
+Nodes (4): examples, { system }, text, { user }
+
+### Community 183 - "infrastructure/ai (183)"
+Cohesion: 0.6
+Nodes (3): wrapped, SYSTEM_FRAME, wrapUserData()
+
+### Community 184 - "domain/neurons (184)"
+Cohesion: 0.6
+Nodes (3): isOutsideNature(), normalize(), REFERENCE_DIMENSIONS
+
+### Community 185 - "docs/academique (185)"
 Cohesion: 0.4
 Nodes (5): containsPersonalData() — détecteur par différence, ContextImportService, Versions de contexte (aperçu → Appliquer → Restaurer), Manifeste écrit en dernier + debounce 1 s (fs.watch), validateContextBundle (bundle.ts)
 
-### Community 156 - "Two neuron natures: Action / Reflexion"
-Cohesion: 0.5
-Nodes (5): plan_dependencies table, plan_nodes table, reflection_summaries table, syntheses table (proposals), Two neuron natures: Action / Reflexion
-
-### Community 157 - "AiThinking.tsx"
-Cohesion: 0.6
-Nodes (3): AiThinking(), AiThinkingProps, workerLabel()
-
-### Community 158 - "context_versions table"
+### Community 186 - "db/migrations (186)"
 Cohesion: 0.5
 Nodes (4): context_imports table, context_versions table, examples table, examples.context_version_id column
 
-### Community 159 - "AIGateway — seul point d'entrée IA"
+### Community 187 - "docs/academique (187)"
 Cohesion: 0.5
-Nodes (4): Ports et adaptateurs + racine de composition (bootstrap.ts), AIGateway — seul point d'entrée IA, AIProvider (pattern Strategy / Adapter), Budget API : plafond 10 €/mois
+Nodes (4): lcg(seed) — générateur congruentiel linéaire (forceLayout.ts), seededRandom / mulberry32 (seedDemo.ts, graine 20260928), Glossaire — Générateur pseudo-aléatoire à graine (PRNG), PRNG à graine (même graine → même suite)
 
-### Community 160 - "Modèle de sécurité des widgets (iframe s"
+### Community 189 - "specs/011-plan-attaque (189)"
 Cohesion: 0.5
-Nodes (4): Blocs et mini-widgets (v2), Modèle de sécurité des widgets (iframe sandbox, capacités, postMessage), Glossaire — CSP (Content Security Policy), Glossaire — Empreinte SHA-256
+Nodes (4): Table step_dependencies, R3 Dependances entre freres, Table map_links, Migration 0017_map_primitives
 
-### Community 163 - "fake-provider.test.ts"
+### Community 190 - "scripts (190)"
+Cohesion: 0.67
+Nodes (3): benchModel(), Cases, main()
+
+### Community 191 - "specs/011-plan-attaque (191)"
+Cohesion: 0.5
+Nodes (4): domain/plan/dependencies.ts, Migration 0022_plan_attaque (step_dependencies, plan_proposals, plan_proposal_items), PlanRepository, PlanService
+
+### Community 192 - "domain/widgets (192)"
+Cohesion: 0.83
+Nodes (3): shapeOf(), shapeSignature(), typeOf()
+
+### Community 195 - "unit/ai (195)"
 Cohesion: 0.5
 Nodes (3): provider, request, schema
+
+### Community 200 - "specs/014-claude-libre (200)"
+Cohesion: 0.67
+Nodes (3): Table permission_log, Table permission_rules, Table trusted_projects
+
+### Community 201 - "specs/015-widgets-etapes (201)"
+Cohesion: 1.0
+Nodes (3): Data model spec 015, Contrats d'interfaces spec 015 (widgetIo), Table widget_inputs (source_kind, source_id, parts_json)
 
 ## Ambiguous Edges - Review These
 - `Graphe local de mots-cles (candidats de liens)` → `d3-force`  [AMBIGUOUS]
   specs/002-structuration-ia/research.md · relation: semantically_similar_to
-- `Idée ouverte sur la carte : volet latéral IdeaPanel + arbre déployé (OpenIdea)` → `radialLayout (arc 300°, rayon par corde ≥ 112 px)`  [AMBIGUOUS]
-  docs/JOURNAL.md · relation: references
-- `leavesWidgetSandbox (filtre webRequest)` → `Point à vérifier : filtre webRequest et referrer vide`  [AMBIGUOUS]
-  docs/academique/Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget.md · relation: references
-- `Effacement de types (stripTypeScriptTypes, mode transform)` → `Plan 004 — Boîte à outils de la carte et mini-widgets`  [AMBIGUOUS]
-  specs/004-widgets/plan.md · relation: conceptually_related_to
+- `Migration 0018_cli_engine` → `Migration 0018_neuron_conversations`  [AMBIGUOUS]
+  docs/brainstorm/L3-moteur-cli.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **1058 isolated node(s):** `shared`, `Cases`, `SensitiveNames`, `SensitiveDetector`, `BudgetSettings` (+1053 more)
+- **1427 isolated node(s):** `Cases`, `TextDiff`, `ImportDiff`, `PendingImport`, `ContextHistory` (+1422 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **53 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `Graphe local de mots-cles (candidats de liens)` and `d3-force`?**
   _Edge tagged AMBIGUOUS (relation: semantically_similar_to) - confidence is low._
-- **What is the exact relationship between `Idée ouverte sur la carte : volet latéral IdeaPanel + arbre déployé (OpenIdea)` and `radialLayout (arc 300°, rayon par corde ≥ 112 px)`?**
-  _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
-- **What is the exact relationship between `leavesWidgetSandbox (filtre webRequest)` and `Point à vérifier : filtre webRequest et referrer vide`?**
-  _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
-- **What is the exact relationship between `Effacement de types (stripTypeScriptTypes, mode transform)` and `Plan 004 — Boîte à outils de la carte et mini-widgets`?**
+- **What is the exact relationship between `Migration 0018_cli_engine` and `Migration 0018_neuron_conversations`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `defineRoute()` connect `defineRoute()` to `capture.test.ts`, `registry.ts`, `app-handlers.test.ts`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `IdeasCanvasView` connect `dive.test.tsx` to `widget-node.test.tsx`, `widget-output.test.tsx`, `canvas.test.ts`, `step-node.test.tsx`, `canvas-create.test.tsx`, `canvas-keyboard.test.tsx`, `canvas.ts`?**
-  _High betweenness centrality (0.032) - this node is a cross-community bridge._
-- **Why does `LinkRepository` connect `LinkRepository` to `neurons.ts`, `canvas.test.ts`, `schemaNeurons.ts`, `bootstrap.ts`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `IdeasCanvasView` connect `Canevas des idées (tests)` to `Profil démo et canevas (tests)`, `Tests d’intégration MCP`, `Contrats IPC des blocs`, `CanvasService`, `Coquille de l’app et toasts`, `Contrats du livrable`, `Tests d’intégration divers`, `Carte de structure`, `Parties d’entrée des widgets`, `Blocs de la carte`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `MapService` connect `Outils MCP de la carte` to `Outils documents MCP`, `Tests d’intégration MCP`, `Routes IPC et cadre de Claude`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `PipeServer` connect `infrastructure/mcp (49)` to `Routes IPC et cadre de Claude`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **What connects `Cases`, `TextDiff`, `ImportDiff` to the rest of the system?**
+  _1427 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Schéma et dépôts SQLite` be split into smaller, more focused modules?**
+  _Cohesion score 0.04 - nodes in this community are weakly interconnected._

@@ -118,3 +118,6 @@ La spec 003 ajoute une **deuxième fenêtre** (la capture rapide). Plutôt que d
 
 ## Évolution du 30/09 — une quatrième zone : le cadre des widgets
 La spec 004 fait tourner du code **écrit par Claude** dans l'app. Il ne va ni dans le main ni dans le renderer : il vit dans une `<iframe sandbox="allow-scripts">` servie par un **protocole personnalisé** `gi-widget://` (déclaré avant `app.whenReady`, servi par le main depuis la base). `hardening.ts` gagne deux gardes : `will-frame-navigate` (un cadre ne navigue que vers `gi-widget:`) et `setWebRTCIPHandlingPolicy('disable_non_proxied_udp')`. Le cadre n'a **pas** de preload, donc pas de `window.api`. Détail des cinq barrières → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]].
+
+## Évolution du 04/10 — un quatrième processus, hors de l'app
+Le build produit une **deuxième entrée** : `out/main/mcp-relay.js`, lancée par Claude Code avec `electron.exe` et `ELECTRON_RUN_AS_NODE=1` — le binaire d'Electron se comporte alors en **Node pur** (ni fenêtre ni Chromium). Ce relais n'a aucun accès à la base ; il parle au main par un canal nommé. Et chaque conversation ouverte lance un processus `claude`. Voir [[Pont MCP — relais stdio, canal nommé et secret partagé]].

@@ -50,3 +50,6 @@ const walk = (node: GrowthNode, depth: number): void => {
 > **Q :** Pourquoi, après le passage au DFS, une borne de 40 000 caractères coupe-t-elle autre chose qu'avant ? **R :** Avant, la coupe tombait sur les nœuds **les plus récents** (ordre de création) ; maintenant elle tombe sur les **dernières branches** du parcours. La borne a été relevée (12 000 → 40 000) pour que ça n'arrive presque jamais.
 
 **Pièges** : ⚠️ récursion sans borne sur une donnée venue de l'extérieur (un widget, une IA) — c'est une porte ouverte au débordement de pile ; ⚠️ confondre l'**ordre d'affichage** et l'**identité** : les alias `[sN]` restent ceux de l'ordre de création, sinon le contrôle de provenance casserait.
+
+## Évolution du 05/10 — les trois couleurs
+Sur un **graphe orienté**, le DFS détecte un cycle en marquant chaque nœud blanc (jamais vu), **gris** (sur le chemin en cours) ou **noir** (fini) : retomber sur un gris = boucle. Utilisé pour les dépendances entre étapes : [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]].

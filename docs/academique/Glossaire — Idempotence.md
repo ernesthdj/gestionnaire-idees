@@ -37,3 +37,7 @@ fromExtensionId: text('from_extension_id').unique()
 > **Q :** Pourquoi la contrainte `UNIQUE` est-elle plus sûre qu'un `if (déjà répondu)` en JavaScript ? **R :** Deux demandes concurrentes peuvent passer le `if` avant l'insertion ; la base, elle, refuse physiquement la seconde.
 
 **Pièges** : ⚠️ générer un nouvel identifiant à chaque tentative — le rejeu n'est alors plus reconnu comme le même.
+
+## Évolution du 05→06/10
+- [[Croissance d'un neurone — arbre, garde-fous et jauge]] — conversion des anciennes idées : marqueur `migration.legacySheets` + aucune idée ayant déjà une fiche touchée (idempotence double).
+- [[Glossaire — Clé stable et upsert]] — recartographier un projet sans doublon.

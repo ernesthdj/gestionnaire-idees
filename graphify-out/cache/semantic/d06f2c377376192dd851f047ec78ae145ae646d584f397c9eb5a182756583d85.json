@@ -1,0 +1,1 @@
+{"nodes": [], "edges": [{"source": "down_migrations", "target": "mig_0022_plan_attaque", "relation": "rationale_for", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "src/main/infrastructure/db/migrations/down/0022_plan_attaque.down.sql", "source_location": null, "weight": 1.0}], "hyperedges": []}

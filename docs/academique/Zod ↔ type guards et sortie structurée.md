@@ -74,3 +74,8 @@ Résultat mesuré : **5 réponses sur 5** acceptées. **Limite volontaire** : on
 **Correction** (`src/shared/ai/neurons.ts`) : `tools: lenientList(ToolProposal, 3).catch([])` et `toolsNote: z.string().trim().min(1).max(200).catch('')` — plus de `.optional()`. Claude **doit** répondre `tools` (liste vide permise) **et** dire en une phrase pourquoi (`toolsNote`) ; l'IA locale et les anciennes synthèses, qui n'ont pas ces champs, restent lisibles (`[]`, `''`). Un test verrouille la décision : `format.schema.required` doit contenir `tools` et `toolsNote` (`tests/integration/neurons/tool-proposals.test.ts`).
 
 Règle à retenir : *pour qu'un modèle pense à un champ, rends-le obligatoire dans le contrat ; pour ne pas tout rejeter, rends-le tolérant dans le parseur.* Application complète → [[Outils proposés au verrouillage — créer dans la transaction, générer hors transaction]].
+
+## Évolution du 04→05/10 — un schéma, trois usages de plus
+- **Vers le CLI** : `z.toJSONSchema(schéma)` produit le JSON Schema passé à `claude -p --json-schema` ; la réponse est revalidée par **le même** schéma.
+- **Protocole du pont** : chaque trame du canal nommé est un `z.strictObject` (`HelloFrame`, `RequestFrame`, `ResponseFrame`) — un champ en trop suffit à refuser.
+- **Outils MCP** : le même schéma d'entrée sert au SDK MCP (côté relais) et à la revalidation dans le main. Voir [[Pont MCP — relais stdio, canal nommé et secret partagé]].
