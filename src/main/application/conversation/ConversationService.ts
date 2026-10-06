@@ -13,6 +13,7 @@ import type {
   ChatView
 } from '@shared/ipc/chat'
 import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
+import { hookSettings } from '../../domain/conversation/hookSettings'
 import { rankLabel } from '@shared/plan/rankLabel'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
@@ -86,6 +87,10 @@ export interface ConversationDeps {
   readonly permissions?: Pick<PermissionService, 'cancel' | 'open' | 'modeChanged'>
   /** Mode de permission par défaut des conversations (réglage) ; absent : Demander. */
   readonly defaultPermissionMode?: () => PermissionMode
+  /** Action finale d'une étape (spec 014 FR-011) : son état et son livrable, dits à Claude dans le contexte. */
+  readonly finalOf?: (neuronId: string) => { readonly state: string; readonly files: readonly string[] } | undefined
+  /** Résultat d'un outil (spec 014 R5) : le livrable d'une action finale relit le fichier écrit. */
+  readonly onToolResult?: (neuronId: string, toolUseId: string, ok: boolean) => void
 }
 
 /**
@@ -134,6 +139,14 @@ export function conversationArgs(input: {
     // « », rien ne s'exécute — et le CLAUDE.md du projet n'est plus chargé d'office : Claude le lit (Read), comme une donnée.
     '--setting-sources',
     '',
+    // Seul réglage chargé : le hook de l'app qui garde le contenu d'avant chaque écriture (livrable, spec 014 R5).
+    '--settings',
+    hookSettings({
+      electronPath: settings.electronPath,
+      relayPath: settings.relayPath,
+      profileDir: settings.profileDir,
+      neuronId: input.neuronId
+    }),
     '--strict-mcp-config',
     '--mcp-config',
     JSON.stringify(mcpConfig),
@@ -506,6 +519,7 @@ ${text}`
         const status = !event.isError ? 'ok' : live.denied.has(event.id) || isRefusal(event.text) ? 'denied' : 'error'
         const row = this.deps.repository.setToolStatus(neuronId, event.id, status, event.isError ? event.text : null)
         if (row !== undefined) this.deps.emit({ type: 'chat:tool', payload: { neuronId, message: messageView(row) } })
+        this.deps.onToolResult?.(neuronId, event.id, status === 'ok')
         return
       }
       case 'quota':
@@ -605,9 +619,11 @@ ${text}`
     }
     if (neuron.kind === 'step') {
       const { ranks, ancestors } = this.pathOf(neuron)
+      const final = this.deps.finalOf?.(neuron.id)
       return {
         ...base,
         step: {
+          ...(final === undefined ? {} : { final }),
           label: rankLabel(ranks),
           // Libellé de chaque ancêtre : `null` pour le genesis, puis ①, ①.2… (préfixes du rang de l'étape).
           path: ancestors.map((ancestor, index) => ({

@@ -52,36 +52,11 @@ export interface EditorSettingsView {
 export const EDITOR_CHOICES = ['vscode', 'notepadpp', 'browse'] as const
 export type EditorChoice = (typeof EDITOR_CHOICES)[number]
 
-/** Dernier lancement d'un script approuvé pendant les exécutions de l'action (spec 013 D2 bis). */
-export interface DeliverableRunView {
-  readonly script: string
-  readonly ok: boolean
-  readonly timedOut: boolean
-  readonly at: string
-}
-
-/** Scripts du projet lié et leur approbation (volet de l'action). */
-export interface ProjectScriptView {
-  readonly name: string
-  readonly text: string
-  readonly approved: boolean
-  /** Approuvé mais modifié depuis : à réapprouver. */
-  readonly changed: boolean
-}
-
-export interface ProjectCommandsView {
-  readonly linked: boolean
-  readonly packageJson: boolean
-  readonly scripts: readonly ProjectScriptView[]
-}
-
 /** Livrable d'une action finale : annexe sous l'action sur la carte (spec 013 FR-008). */
 export interface DeliverableView {
   readonly neuronId: string
   readonly genesisId: string
   readonly files: readonly DeliverableFileView[]
-  /** Dernier résultat de chaque script lancé (tests, compilation…). */
-  readonly runs: readonly DeliverableRunView[]
   readonly executing: boolean
   readonly width: number
   readonly height: number

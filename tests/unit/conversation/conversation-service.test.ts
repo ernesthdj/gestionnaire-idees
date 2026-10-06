@@ -232,6 +232,10 @@ describe('conversations Claude Code des neurones', () => {
       mcpServers: { brainstormer: { env: Record<string, string> } }
     }
     expect(mcp.mcpServers.brainstormer.env).toMatchObject({ GI_NEURON_ID: N1, ELECTRON_RUN_AS_NODE: '1' })
+    // Spec 014 R5 : le seul réglage chargé est le hook avant écriture de l'app, pour ce neurone.
+    const hook = args[args.indexOf('--settings') + 1] ?? ''
+    expect(hook).toContain(`--hook ${N1}`)
+    expect(hook).toContain('ELECTRON_RUN_AS_NODE=1')
   })
 
   it('should_join_the_context_only_to_the_first_message_of_a_process', async () => {
@@ -262,8 +266,14 @@ describe('conversations Claude Code des neurones', () => {
 
   it('should_show_the_real_outcome_of_each_tool_and_cancel_permissions_when_the_chat_closes', async () => {
     const cancelled: string[] = []
+    const results: [string, boolean][] = []
     service = build({
-      permissions: { cancel: (neuronId) => void cancelled.push(neuronId), open: () => [], modeChanged: () => undefined }
+      permissions: {
+        cancel: (neuronId) => void cancelled.push(neuronId),
+        open: () => [],
+        modeChanged: () => undefined
+      },
+      onToolResult: (_neuronId, toolUseId, ok) => void results.push([toolUseId, ok])
     })
     await service.send(N1, 'Corrige et teste')
     const process = processes[0] as FakeProcess
@@ -297,6 +307,12 @@ describe('conversations Claude Code des neurones', () => {
       .filter((event) => event.type === 'chat:tool')
       .map((event) => (event.type === 'chat:tool' ? event.payload.message.toolStatus : undefined))
     expect(outcomes).toEqual(['running', 'running', 'running', 'ok', 'error', 'denied'])
+    // Le livrable d'une action finale ne retient que les écritures réussies (spec 014 R5).
+    expect(results).toEqual([
+      ['t1', true],
+      ['t2', false],
+      ['t3', false]
+    ])
     service.close(N1)
     expect(cancelled).toEqual([N1])
   })

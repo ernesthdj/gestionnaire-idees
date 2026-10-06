@@ -20,8 +20,8 @@
 - [x] T011 Test guidé (quickstart §2)
 
 ## Phase 3 — Actions finales (US4, US7)
-- [ ] T012 Hook `PreToolUse` : relais `--hook`, `--settings` injecté ; `DeliverableTracker` (avant/après, créé/modifié/supprimé) pour toute conversation d'action finale + tests
-- [ ] T013 Retrait : `fichier_*`, `commande_lancer`, `CommandService`/`Runner`/`Repository`, `CommandsSection`, canaux `commands:*` ; `EXECUTE_MESSAGE` et cadre ACTION FINALE réécrits (pas de nouvelle action finale sur une action finale) + tests
+- [x] T012 Hook `PreToolUse` : relais `--hook`, `--settings` injecté ; `DeliverableTracker` (avant/après, créé/modifié/supprimé) pour toute conversation d'action finale + tests
+- [x] T013 Retrait : `fichier_*`, `commande_lancer`, `CommandService`/`Runner`/`Repository`, `CommandsSection`, canaux `commands:*` ; `EXECUTE_MESSAGE` et cadre ACTION FINALE réécrits (pas de nouvelle action finale sur une action finale) + tests
 - [ ] T014 « Commiter l'étape » : `final:commit`, `COMMIT_MESSAGE`, détection du commit (`tool_result`), `committed` sur l'action ; disponibilité (git, livrable) + tests
 - [ ] T015 Interface : bouton « Commiter l'étape », état « commité abc1234 » sur l'action et le livrable + tests renderer/axe
 - [ ] T016 Changements faits par des commandes (projet sous git) : `git status` en fin de tour, sans shell + tests

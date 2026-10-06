@@ -66,16 +66,6 @@ function renderCanvas(
     'history:list': () => ({ items: [], nextCursor: null }),
     'final:execute': () => ({ executionId: 'e1' }),
     'final:stop': () => ({ ok: true }),
-    'commands:get': () => ({
-      linked: true,
-      packageJson: true,
-      scripts: [
-        { name: 'test', text: 'vitest run', approved: true, changed: false },
-        { name: 'build', text: 'vite build', approved: true, changed: true },
-        { name: 'dev', text: 'vite', approved: false, changed: false }
-      ]
-    }),
-    'commands:approve': () => ({ ok: true }),
     ...extra
   })
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -226,7 +216,6 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
             { path: 'src/pages/Contact.tsx', status: 'cree' },
             { path: 'README.md', status: 'modifie' }
           ],
-          runs: [{ script: 'test', ok: false, timedOut: false, at: '2026-10-06T10:00:00.000Z' }],
           executing: true,
           width: 420,
           height: 300,
@@ -239,7 +228,6 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     expect(deliverable.textContent).toContain('Livrable · 2 fichiers')
     expect(deliverable.textContent).toContain('Claude écrit…')
     expect(deliverable.textContent).toContain('src/pages/Contact.tsx')
-    expect(within(deliverable).getByRole('list', { name: 'Résultats des commandes' }).textContent).toBe('test ✗')
     await user.click(screen.getByRole('button', { name: 'Arrêter l’exécution de « Valider le budget »' }))
     expect(api.invoke).toHaveBeenCalledWith('final:stop', { neuronId: STEP_1 })
   })
@@ -253,7 +241,6 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
           neuronId: STEP_1,
           genesisId: HATCHED_A_ID,
           files: [{ path: 'src/a.ts', status: 'modifie' }],
-          runs: [],
           executing: false,
           width: 420,
           height: 300,
@@ -336,20 +323,6 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     await user.click(screen.getByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
     await user.click(await screen.findByRole('button', { name: 'Redevenir une étape ordinaire' }))
     expect(api.invoke).toHaveBeenCalledWith('final:demote', { neuronId: STEP_1 })
-  })
-
-  it('should_let_mentalyas_approve_the_scripts_claude_can_run_from_the_action_panel', async () => {
-    const user = userEvent.setup()
-    const { api } = renderCanvas(finalView('prete'))
-    await user.click(await screen.findByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
-    const panel = await screen.findByRole('complementary', { name: 'Action finale' })
-    expect(await within(panel).findByText('modifié depuis : à réapprouver')).toBeDefined()
-    expect(within(panel).getByRole('checkbox', { name: /test/ })).toHaveProperty('checked', true)
-    await user.click(within(panel).getByRole('checkbox', { name: /dev/ }))
-    await user.click(within(panel).getByRole('checkbox', { name: /test/ }))
-    await user.click(within(panel).getByRole('button', { name: 'Enregistrer les commandes autorisées' }))
-    expect(api.invoke).toHaveBeenCalledWith('commands:approve', { genesisId: HATCHED_A_ID, scripts: ['build', 'dev'] })
-    await expectNoAxeViolations(panel)
   })
 
   it('should_have_no_accessibility_violation_with_a_proposed_final_action', async () => {

@@ -1,13 +1,11 @@
 import type { ToolResult } from '@shared/mcp/protocol'
 import type {
   ActionProposerInput,
-  FichierEcrireInput,
-  FichierModifierInput,
-  CommandeLancerInput,
   FicheEcrireInput,
   PermissionDemanderInput,
   MaturiteEvaluerInput,
   DocumentEcrireInput,
+  EcritureAvantInput,
   McpToolName,
   PlanProposerInput,
   StructureDessinerInput
@@ -20,6 +18,7 @@ import type { DocumentTools } from './DocumentTools'
 import type { FinalTools } from './FinalTools'
 import type { StructureService } from '../structure/StructureService'
 import type { PermissionService } from '../conversation/PermissionService'
+import type { DeliverableTracker } from '../finals/DeliverableTracker'
 import { McpToolError } from '../../domain/mcp/errors'
 
 /** Aiguillage des outils du pont : carte (spec 007) ou neurone de la conversation (spec 008). */
@@ -29,8 +28,9 @@ export function createToolHandler(
   structure: Pick<StructureService, 'draw' | 'read'>,
   plan: Pick<PlanTools, 'propose'>,
   documents: Pick<DocumentTools, 'write' | 'read'>,
-  finals: Pick<FinalTools, 'propose' | 'write' | 'modify' | 'run'>,
-  permissions?: Pick<PermissionService, 'request'>
+  finals: Pick<FinalTools, 'propose'>,
+  permissions?: Pick<PermissionService, 'request'>,
+  deliverables?: Pick<DeliverableTracker, 'before'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
     switch (tool) {
@@ -48,12 +48,12 @@ export function createToolHandler(
         return documents.read((args as { document: string }).document, caller)
       case 'action_proposer':
         return finals.propose(args as ActionProposerInput, caller)
-      case 'fichier_ecrire':
-        return finals.write(args as FichierEcrireInput, caller)
-      case 'fichier_modifier':
-        return finals.modify(args as FichierModifierInput, caller)
-      case 'commande_lancer':
-        return finals.run(args as CommandeLancerInput, caller)
+      case 'ecriture_avant':
+        // Hook de l’app (spec 014 R5) : seulement depuis une conversation du Brainstormer.
+        if (caller.neuronId === null || deliverables === undefined) {
+          throw new McpToolError('NON_MODIFIABLE', 'Hook d’écriture hors d’une conversation du Brainstormer.')
+        }
+        return deliverables.before(caller.neuronId, args as EcritureAvantInput)
       case 'permission_demander': {
         // Seule une conversation de l’app (spec 014 R1) : sa demande attend la réponse de mentalyas dans son chat.
         if (caller.neuronId === null || permissions === undefined) {

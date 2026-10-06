@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
-import { CommandsSection } from './CommandsSection'
 import { finalStateLabel } from './nodes/PlanNode'
 import { useFinalDecide } from './useFinalDecide'
 
@@ -140,7 +139,6 @@ export function FinalPanel({
           </div>
         </div>
       )}
-      {proposed ? null : <CommandsSection genesisId={step.genesisId} />}
     </section>
   )
 }

@@ -1,9 +1,7 @@
 import { z } from 'zod'
-import type { CommandService } from '../application/finals/CommandService'
 import type { DeliverableReader } from '../application/finals/DeliverableReader'
 import type { ExecutionService } from '../application/finals/ExecutionService'
 import type { FinalService } from '../application/finals/FinalService'
-import { COMMAND_LIMITS, SCRIPT_NAME } from '../domain/finals/commands'
 import { DELIVERABLE_SIZE_LIMITS, EDITOR_CHOICES, type DeliverableFileDetailView } from '@shared/ipc/finals'
 import type { EditorService } from '../application/finals/EditorService'
 import { Coordinate } from './canvasHandlers'
@@ -13,7 +11,6 @@ import { defineRoute, type IpcRoute } from './registry'
 export function createFinalRoutes(
   finals: Pick<FinalService, 'decide' | 'demote' | 'move' | 'resize'>,
   executions: Pick<ExecutionService, 'execute' | 'stop'>,
-  commands?: Pick<CommandService, 'list' | 'approve'>,
   reader?: Pick<DeliverableReader, 'file'>,
   editor?: Pick<EditorService, 'view' | 'choose' | 'clear' | 'open'>
 ): IpcRoute[] {
@@ -62,28 +59,6 @@ export function createFinalRoutes(
       input: z.object({ neuronId: z.uuid() }).strict(),
       handler: async ({ neuronId }) => finals.demote(neuronId)
     }),
-    ...(commands === undefined
-      ? []
-      : [
-          defineRoute({
-            channel: 'commands:get',
-            input: z.object({ genesisId: z.uuid() }).strict(),
-            handler: async ({ genesisId }) => commands.list(genesisId)
-          }),
-          defineRoute({
-            channel: 'commands:approve',
-            input: z
-              .object({
-                genesisId: z.uuid(),
-                scripts: z.array(z.string().regex(SCRIPT_NAME)).max(COMMAND_LIMITS.approved)
-              })
-              .strict(),
-            handler: async ({ genesisId, scripts }) => {
-              commands.approve(genesisId, scripts)
-              return { ok: true }
-            }
-          })
-        ]),
     defineRoute({
       channel: 'deliverable:move',
       input: z.object({ neuronId: z.uuid(), x: Coordinate, y: Coordinate }).strict(),

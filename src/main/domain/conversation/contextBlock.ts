@@ -21,6 +21,8 @@ export interface NeuronContext {
   readonly step?: {
     readonly label: string
     readonly path: readonly { readonly title: string; readonly label: string | null; readonly sheet: Sheet }[]
+    /** Action finale de l'étape (spec 013, spec 014 FR-011) : son état et les fichiers de son livrable. */
+    readonly final?: { readonly state: string; readonly files: readonly string[] }
   }
   /** Élément d'une carte de structure de projet (spec 009). */
   readonly element?: {
@@ -45,6 +47,22 @@ function elementLines(title: string, id: string, element: NonNullable<NeuronCont
   ].join('\n')
 }
 
+const FINAL_STATES: Readonly<Record<string, string>> = {
+  proposee: 'proposée, en attente de la décision de mentalyas',
+  prete: 'acceptée, prête à être exécutée',
+  en_cours: 'en cours d’exécution',
+  a_revoir: 'exécutée, livrable à revoir par mentalyas'
+}
+
+/** Une étape qui est déjà une action finale ne se re-propose pas ni ne se découpe (spec 014 US4 #4). */
+function finalLine(final: NonNullable<NonNullable<NeuronContext['step']>['final']>): string {
+  return [
+    `Cette étape EST une ACTION FINALE (${FINAL_STATES[final.state] ?? final.state}) : ne propose ni une nouvelle`,
+    'action finale ni un plan d’attaque sur elle. Tes modifications de fichiers dans cette conversation rejoignent son',
+    `livrable. Livrable actuel : ${final.files.length === 0 ? 'aucun fichier.' : final.files.join(', ')}.`
+  ].join(' ')
+}
+
 function stepLines(title: string, id: string, step: NonNullable<NeuronContext['step']>): string {
   const genesis = step.path[0]?.title ?? 'genesis'
   const chain = step.path.map((node) => (node.label === null ? node.title : `${node.label} ${node.title}`))
@@ -56,6 +74,7 @@ function stepLines(title: string, id: string, step: NonNullable<NeuronContext['s
     `Neurone ouvert : étape ${step.label} « ${title} » (id ${id}) du plan d’attaque de « ${genesis} ».`,
     `Chemin : ${[...chain, `${step.label} ${title}`].join(' › ')}.`,
     'Les fiches du chemin sont la base figée de cette étape : appuie-toi dessus, ne les contredis pas.',
+    ...(step.final === undefined ? [] : [finalLine(step.final)]),
     ...sheets
   ].join('\n')
 }

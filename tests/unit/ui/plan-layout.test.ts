@@ -133,7 +133,6 @@ describe('disposition d’un plan avec ses documents (spec 011 R4, spec 012 R1)'
       neuronId: 'a',
       genesisId: G,
       files: [],
-      runs: [],
       executing: true,
       width: 420,
       height: 300,

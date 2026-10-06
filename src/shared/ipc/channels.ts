@@ -44,8 +44,6 @@ export const MAIN_WINDOW_CHANNELS = [
   'project:chooseRoot',
   'project:create',
   'project:initGit',
-  'commands:get',
-  'commands:approve',
   'document:move',
   'document:resize',
   'document:get',

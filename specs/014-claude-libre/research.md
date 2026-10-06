@@ -44,6 +44,14 @@
   le contenu d'après est relu et le livrable mis à jour (créé / modifié / supprimé).
 - **Pourquoi** : fonctionne dans tous les modes ; le hook est injecté par l'app et n'exécute que le relais de l'app.
   Les hooks de mentalyas et d'un dépôt de confiance s'ajoutent si les réglages sont chargés.
+- **Constat (essai 2.1.291, 2026-10-06, T012)** : un hook passé par `--settings` s'exécute malgré
+  `--setting-sources ""` ; Claude Code le lance avec **Git Bash** (même sans `SHELL` hérité) et lui transmet son
+  environnement ; l'entrée contient `tool_name`, `tool_input.file_path` (chemin **absolu**) et `tool_use_id`. Décision :
+  `ELECTRON_RUN_AS_NODE` et `GI_PROFILE_DIR` sont posés **en préfixe de la commande du hook** (syntaxe bash, chemins en
+  `/`, guillemets échappés), jamais dans l'environnement de `claude` — sinon les commandes Bash de Claude en
+  hériteraient (une app Electron lancée par Claude démarrerait en Node). Le neurone passe en argument (`--hook <uuid>`).
+  Le relais en mode hook rend toujours le code 0 (app fermée : ~250 ms) ; l'outil du pont `ecriture_avant` est
+  **interne** (jamais proposé à Claude). Le livrable retient l'écriture au `tool_result` réussi (`tool_use_id`).
 - **Changements faits par des commandes** (FR-010, projet sous git) : différé en fin de lot 3 — `git status` en fin
   de tour, lancé par l'app sans shell ; à défaut, le livrable le signale.
 

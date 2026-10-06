@@ -57,18 +57,6 @@ export function DeliverableNode({ data, selected }: NodeProps<DeliverableNodeTyp
         ) : null}
       </header>
       <div className="nodrag nowheel min-h-0 flex-1 overflow-y-auto px-3 py-2 text-sm" tabIndex={0}>
-        {deliverable.runs.length === 0 ? null : (
-          <ul aria-label="Résultats des commandes" className="mb-2 flex flex-wrap gap-1">
-            {deliverable.runs.map((run) => (
-              <li
-                key={run.script}
-                className={`rounded px-1.5 text-xs font-semibold ${run.ok ? 'bg-pro/15 text-pro' : 'bg-con/15 text-con'}`}
-              >
-                {run.script} {run.ok ? '✓' : run.timedOut ? '⏱ délai dépassé' : '✗'}
-              </li>
-            ))}
-          </ul>
-        )}
         {count === 0 ? (
           <p className="text-content-muted">
             {deliverable.executing

@@ -9,7 +9,6 @@ import {
   EXECUTION_LIMITS,
   executionBrief
 } from '../../domain/finals/executionBrief'
-import { checkProjectPath } from '../../domain/finals/projectPath'
 import { nextFinalState } from '../../domain/finals/state'
 import type {
   ExecutionEventKind,
@@ -25,6 +24,8 @@ import type { EntityHandler } from '../history/HistoryService'
 
 /** Libellés de chat (spec 008) des outils de lecture : tracés comme lectures dans le fil de l'exécution. */
 const READ_LABELS = new Set(['fichier lu', 'fichiers listés', 'recherche dans les fichiers', 'contexte relu'])
+/** Écritures : tracées par le hook avant écriture (`recordWrite`, spec 014 R5), pas une seconde fois par le fil. */
+const WRITE_LABELS = new Set(['fichier écrit', 'fichier modifié', 'carnet modifié'])
 
 export interface ExecutionDeps {
   readonly repository: Pick<
@@ -55,8 +56,6 @@ export interface ExecutionDeps {
     neuronIds: ReadonlySet<string>
   ) => readonly { readonly id: string; readonly title: string; readonly fileLabel: string }[]
   readonly files: Pick<ProjectFiles, 'read' | 'write' | 'trash'>
-  /** Scripts approuvés et lançables du projet (spec 013 D2 bis), annoncés dans le dossier d'exécution. */
-  readonly scripts?: (genesisId: string) => readonly string[]
   readonly conversations: {
     send(neuronId: string, text: string, data?: string): Promise<void>
     stop(neuronId: string): void
@@ -70,15 +69,11 @@ export interface ExecutionDeps {
   readonly maxMs?: number
 }
 
-export interface WrittenFile {
-  readonly path: string
-  readonly status: 'cree' | 'modifie'
-}
-
 /**
- * Exécutions des actions finales (spec 013 US2) : une passe = un tour de la conversation de l'action, précédé du
- * dossier d'exécution. Pendant ce tour SEULEMENT, Claude écrit dans le dossier du projet lié par `fichier_ecrire` et
- * `fichier_modifier` : chemin contrôlé, contenu d'avant gardé, trace, Historique. Aucune commande, aucun effacement.
+ * Exécutions des actions finales (spec 013 US2, spec 014 US4) : une passe = un tour de la conversation de l'action,
+ * précédé du dossier d'exécution. Claude y travaille avec ses propres outils, selon le mode de permission de la
+ * conversation ; ses écritures rejoignent le livrable par le hook avant écriture (`recordWrite`), pendant la passe
+ * comme dans les échanges qui suivent.
  */
 export class ExecutionService {
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -181,9 +176,12 @@ export class ExecutionService {
         this.finish(open.id, 'echouee', event.payload.message.text)
         return
       case 'chat:tool': {
+        // Un outil apparaît « en cours » puis avec son résultat : tracé une seule fois, à son apparition.
+        if (event.payload.message.toolStatus !== undefined && event.payload.message.toolStatus !== 'running') return
         const label = event.payload.message.text
-        if (label.startsWith('fichier_') || label === 'fichier écrit' || label === 'fichier modifié') return
-        this.event(open.id, READ_LABELS.has(label) ? 'lecture' : 'message', null, label)
+        const kind = label.split(' : ')[0] ?? label
+        if (WRITE_LABELS.has(kind)) return
+        this.event(open.id, READ_LABELS.has(kind) ? 'lecture' : 'message', null, label)
         return
       }
       default:
@@ -195,24 +193,6 @@ export class ExecutionService {
     for (const open of this.deps.repository.openExecutions()) {
       this.finish(open.id, 'interrompue', 'L’app a été fermée pendant l’exécution.')
     }
-  }
-
-  /** `fichier_ecrire` : crée ou remplace un fichier du projet lié. */
-  write(callerNeuronId: string | null, path: string, content: string): WrittenFile {
-    return this.apply(callerNeuronId, path, () => content)
-  }
-
-  /** `fichier_modifier` : remplacement exact d'un passage qui apparaît une seule fois. */
-  modify(callerNeuronId: string | null, path: string, previous: string, next: string): WrittenFile {
-    return this.apply(callerNeuronId, path, (before) => {
-      if (before === null) throw new AppError('NOT_FOUND', 'Fichier introuvable : crée-le avec fichier_ecrire.')
-      const at = before.indexOf(previous)
-      if (at < 0) throw new AppError('NOT_FOUND', 'Passage introuvable dans le fichier : relis-le (Read).')
-      if (before.indexOf(previous, at + 1) >= 0) {
-        throw new AppError('NOT_FOUND', 'Passage présent plusieurs fois : donne un extrait plus long, unique.')
-      }
-      return before.slice(0, at) + next + before.slice(at + previous.length)
-    })
   }
 
   /** Entité `project_file` de l'Historique : contenu d'un fichier du projet (`null` = absent → corbeille). */
@@ -236,57 +216,21 @@ export class ExecutionService {
     }
   }
 
-  private apply(callerNeuronId: string | null, path: string, produce: (before: string | null) => string): WrittenFile {
+  /**
+   * Écriture de Claude dans le projet lié (outil maison ou hook avant écriture, spec 014 R5) : elle s'ajoute au
+   * livrable de l'action (le contenu d'avant la première écriture est gardé), à la trace de l'exécution en cours s'il y
+   * en a une, et à l'Historique (annulable).
+   */
+  recordWrite(neuronId: string, relative: string, before: string | null, next: string): void {
     const { repository } = this.deps
-    const open = callerNeuronId === null ? undefined : repository.openOf(callerNeuronId)
-    if (open === undefined) {
-      throw new AppError(
-        'INVALID_STATE',
-        'Aucune exécution en cours pour cette conversation : propose d’abord l’action finale, mentalyas la lancera.'
-      )
-    }
-    const action = repository.get(open.neuronId) as FinalActionRow
-    const projectDir = this.deps.projectDir(action.genesisId)
-    if (projectDir === null) {
-      throw new AppError(
-        'INVALID_STATE',
-        'Aucun dossier de projet lié : produis le livrable en documents avec document_ecrire.'
-      )
-    }
-    let relative = path
-    let before: string | null
-    let next: string
-    try {
-      const check = checkProjectPath(path)
-      if (!check.ok) throw new AppError('VALIDATION', `Chemin refusé : ${check.reason}.`)
-      relative = check.path
-      const written = new Set(
-        repository
-          .eventsOf(open.id)
-          .filter((event) => event.kind === 'ecriture' && event.path !== null)
-          .map((event) => (event.path ?? '').toLowerCase())
-      )
-      if (!written.has(check.key) && written.size >= EXECUTION_LIMITS.files) {
-        throw new AppError('TOO_LARGE', `Au plus ${EXECUTION_LIMITS.files} fichiers par passe : arrête-toi là.`)
-      }
-      before = this.deps.files.read(projectDir, relative)?.content ?? null
-      next = produce(before)
-      this.deps.files.write(projectDir, relative, next)
-    } catch (error) {
-      this.event(open.id, 'refus', relative.slice(0, 260), error instanceof Error ? error.message : 'refusé')
-      this.deps.emit(open.neuronId)
-      throw error
-    }
+    const open = repository.openOf(neuronId)
     const key = relative.toLowerCase()
     repository.transaction(() => {
-      const existing = repository.file(open.neuronId, key)
-      const firstThisPass = !repository
-        .eventsOf(open.id)
-        .some((event) => event.kind === 'ecriture' && event.path?.toLowerCase() === key)
+      const existing = repository.file(neuronId, key)
       if (existing === undefined) {
         repository.insertFile({
           id: randomUUID(),
-          neuronId: open.neuronId,
+          neuronId,
           path: relative,
           pathKey: key,
           beforeContent: before,
@@ -302,15 +246,20 @@ export class ExecutionService {
           revertedAt: null
         })
       }
-      repository.addEvent({ executionId: open.id, at: this.now(), kind: 'ecriture', path: relative, detail: null })
-      if (firstThisPass) repository.countWrite(open.id)
+      if (open !== undefined) {
+        const firstThisPass = !repository
+          .eventsOf(open.id)
+          .some((event) => event.kind === 'ecriture' && event.path?.toLowerCase() === key)
+        repository.addEvent({ executionId: open.id, at: this.now(), kind: 'ecriture', path: relative, detail: null })
+        if (firstThisPass) repository.countWrite(open.id)
+      }
       repository.log(
         randomUUID(),
         [
           {
             kind: 'mcp_write',
             entity: 'project_file',
-            entityId: `${open.neuronId}:${relative}`,
+            entityId: `${neuronId}:${relative}`,
             before: { path: relative, content: before },
             after: { path: relative, content: next }
           }
@@ -318,9 +267,7 @@ export class ExecutionService {
         'claude'
       )
     })
-    this.deps.emit(open.neuronId)
-    const original = repository.file(open.neuronId, key)
-    return { path: relative, status: original?.beforeContent === null ? 'cree' : 'modifie' }
+    this.deps.emit(neuronId)
   }
 
   private finish(executionId: string, outcome: ExecutionOutcome, detail: string | null): void {
@@ -391,8 +338,7 @@ export class ExecutionService {
       documents: this.deps.documents(pathIds),
       folder: projectDir === null ? null : basename(projectDir),
       currentFiles: this.deps.repository.files(step.id).map((file) => file.path),
-      correction,
-      scripts: this.deps.scripts?.(action.genesisId) ?? []
+      correction
     })
   }
 

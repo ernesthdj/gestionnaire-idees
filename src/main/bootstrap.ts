@@ -46,16 +46,14 @@ import { NeuronTools } from './application/mcp/NeuronTools'
 import { PlanTools } from './application/mcp/PlanTools'
 import { DocumentTools, fileLabel } from './application/mcp/DocumentTools'
 import { ExecutionService } from './application/finals/ExecutionService'
+import { DeliverableTracker } from './application/finals/DeliverableTracker'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
-import { CommandService } from './application/finals/CommandService'
 import { DeliverableReader } from './application/finals/DeliverableReader'
 import { PermissionService } from './application/conversation/PermissionService'
 import { PermissionRepository } from './infrastructure/db/repositories/PermissionRepository'
 import { projectKey } from './domain/conversation/permissions'
 import { EditorService } from './application/finals/EditorService'
 import { detectEditors, isProgram, launchEditor } from './infrastructure/editor/EditorLauncher'
-import { CommandRepository } from './infrastructure/db/repositories/CommandRepository'
-import { resolveNpm, runCommand } from './infrastructure/finals/CommandRunner'
 import { DocumentService } from './application/documents/DocumentService'
 import { DocumentRepository } from './infrastructure/db/repositories/DocumentRepository'
 import { DocumentFiles } from './infrastructure/documents/DocumentFiles'
@@ -250,28 +248,7 @@ export function bootstrap(shell: ShellPort): AppContext {
   const projectDirOf = (genesisId: string): string | null =>
     conversationRepository.neuron(genesisId)?.projectDir ?? null
   const projectFiles = new ProjectFiles({ profileDir: dataDir })
-  // Scripts approuvés (spec 013 D2 bis) : `npm run <script>` lancé par node + npm-cli.js, jamais par un shell.
-  const commandRepository = new CommandRepository(database.db)
-  const commands = new CommandService({
-    commands: commandRepository,
-    finals: finalRepository,
-    projectDir: projectDirOf,
-    files: projectFiles,
-    run: async (cwd, script) => {
-      const npm = resolveNpm()
-      if (npm === null) {
-        return {
-          exitCode: null,
-          timedOut: false,
-          durationMs: 0,
-          output: 'npm introuvable : installe Node.js (avec npm).'
-        }
-      }
-      return runCommand({ command: npm.node, args: [npm.cli, 'run', script], cwd })
-    },
-    emit: (neuronId) => broadcast('final:changed', { neuronId })
-  })
-  // Exécutions (spec 013 US2) : Claude écrit dans le projet lié par les outils de l'app, pendant un tour seulement.
+  // Exécutions (spec 013 US2, spec 014) : un tour de la conversation de l'action, dans son mode de permission.
   const executions = new ExecutionService({
     repository: finalRepository,
     plan: planRepository,
@@ -282,7 +259,6 @@ export function bootstrap(shell: ShellPort): AppContext {
         .filter((document) => ids.has(document.neuronId))
         .map((document) => ({ id: document.id, title: document.title, fileLabel: fileLabel(document) })),
     files: projectFiles,
-    scripts: (genesisId) => commands.runnable(genesisId),
     // La conversation est créée plus bas : ces appels n'ont lieu qu'au lancement d'une exécution.
     conversations: {
       send: (neuronId, text, data) => conversations.send(neuronId, text, data),
@@ -292,13 +268,19 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (neuronId) => broadcast('final:changed', { neuronId })
   })
   executions.recover()
+  // Livrable reconstitué à partir des écritures réelles de Claude (hook avant écriture, spec 014 R5).
+  const deliverables = new DeliverableTracker({
+    finals: finalRepository,
+    projectDir: projectDirOf,
+    files: projectFiles,
+    record: (neuronId, relative, before, next) => executions.recordWrite(neuronId, relative, before, next)
+  })
   const canvas = new CanvasService({
     plan: planRepository,
     documents: documentRepository,
     finals: {
       list: () => finalRepository.list(),
       files: (neuronId) => finalRepository.files(neuronId),
-      runs: (neuronId) => commandRepository.runsOf(neuronId),
       projectLinked: (genesisId) => projectDirOf(genesisId) !== null
     },
     neurons: neuronRepository,
@@ -379,12 +361,11 @@ export function bootstrap(shell: ShellPort): AppContext {
       }),
       new FinalTools({
         finals,
-        executions,
-        commands,
         conversations: conversationRepository,
         onProposed: (summary) => broadcast('final:proposed', { summary })
       }),
-      permissions
+      permissions,
+      deliverables
     ),
     logger
   })
@@ -410,6 +391,13 @@ export function bootstrap(shell: ShellPort): AppContext {
     frame: BRAINSTORMER_FRAME,
     permissions,
     defaultPermissionMode: () => appSettings.get().chatPermissionMode,
+    onToolResult: (neuronId, toolUseId, ok) => deliverables.after(neuronId, toolUseId, ok),
+    finalOf: (neuronId) => {
+      const action = finalRepository.get(neuronId)
+      return action === undefined
+        ? undefined
+        : { state: action.state, files: finalRepository.files(neuronId).map((file) => file.path) }
+    },
     emit: (event) => {
       broadcast(event.type, event.payload)
       executions.onChatEvent(event)
@@ -461,7 +449,6 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createFinalRoutes(
         finals,
         executions,
-        commands,
         new DeliverableReader({ repository: finalRepository, projectDir: projectDirOf, files: projectFiles }),
         // Éditeur (spec 013 D4) : programme connu ou choisi dans le dialogue natif, jamais venu de l'interface.
         new EditorService({

@@ -2,8 +2,9 @@ import { connect, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { parseHookInput } from '@shared/mcp/hook'
 import { HelloReply, PROTOCOL_VERSION, ResponseFrame, type ToolResult } from '@shared/mcp/protocol'
-import { MCP_INSTRUCTIONS, MCP_TOOL_NAMES, MCP_TOOLS, type McpErrorCode } from '@shared/mcp/tools'
+import { MCP_INSTRUCTIONS, MCP_PUBLIC_TOOL_NAMES, MCP_TOOLS, type McpErrorCode } from '@shared/mcp/tools'
 import { pipeNameFor, tokenPathFor } from '../main/infrastructure/mcp/endpoint'
 import { LineSplitter } from '../main/infrastructure/mcp/lineSplitter'
 import { readToken } from '../main/infrastructure/mcp/token'
@@ -13,13 +14,18 @@ import { readToken } from '../main/infrastructure/mcp/token'
  * il est le serveur MCP (stdio) et transmet chaque appel d'outil au main par le canal nommé du profil. Il ne touche
  * jamais la base ; le main revalide tout. App fermée : chaque outil répond « pas lancé », la session MCP survit et se
  * reconnecte à l'appel suivant.
+ *
+ * Mode `--hook <neurone>` (spec 014 R5) : lancé par le hook `PreToolUse` que l'app injecte dans ses conversations, il
+ * annonce au main l'écriture qui va avoir lieu (le main garde le contenu d'avant), puis rend la main à Claude Code.
  */
 
 const CALL_TIMEOUT_MS = 30_000
-/** Un script lancé pendant une exécution (spec 013 D2 bis) a 5 minutes ; le relais attend un peu plus. */
-const COMMAND_TIMEOUT_MS = 6 * 60_000
 /** Une demande de permission attend mentalyas jusqu’à 30 min côté app (spec 014 R1) : le relais un peu plus. */
 const PERMISSION_TIMEOUT_MS = 31 * 60_000
+
+/** Entrée standard du hook : l'outil `Write` y joint le contenu à écrire (1 Mo au plus côté app). */
+const HOOK_STDIN_MAX = 8 * 1024 * 1024
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const APP_CLOSED = 'Le Brainstormer n’est pas lancé — demande à mentalyas de l’ouvrir, puis réessaie.'
 const SECRET_REFUSED =
@@ -63,11 +69,7 @@ class PipeClient {
           this.pending.delete(id)
           reject(new RelayFailure('ERREUR_INTERNE', 'Le Brainstormer ne répond pas.'))
         },
-        tool === 'permission_demander'
-          ? PERMISSION_TIMEOUT_MS
-          : tool === 'commande_lancer'
-            ? COMMAND_TIMEOUT_MS
-            : CALL_TIMEOUT_MS
+        tool === 'permission_demander' ? PERMISSION_TIMEOUT_MS : CALL_TIMEOUT_MS
       )
       this.pending.set(id, { resolve, reject, timer })
       socket.write(`${JSON.stringify({ id, tool, args })}\n`)
@@ -156,7 +158,40 @@ function profileDir(): string {
   return join(process.env['APPDATA'] ?? '', 'gestionnaire-idees')
 }
 
+function readStdin(max: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    process.stdin.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size <= max) chunks.push(chunk)
+    })
+    process.stdin.on('end', () => resolve(size > max ? null : Buffer.concat(chunks).toString('utf8')))
+    process.stdin.on('error', () => resolve(null))
+  })
+}
+
+/** Hook avant écriture : ne bloque jamais Claude Code (code 0 dans tous les cas, app fermée comprise). */
+async function runHook(neuron: string | undefined): Promise<void> {
+  try {
+    const input = neuron === undefined ? null : parseHookInput((await readStdin(HOOK_STDIN_MAX)) ?? '')
+    if (input !== null && neuron !== undefined) {
+      const profile = profileDir()
+      await new PipeClient(pipeNameFor(profile), tokenPathFor(profile), neuron).call('ecriture_avant', input)
+    }
+  } catch {
+    // Livrable incomplet plutôt qu'une écriture bloquée : le main le saura (pas de contenu d'avant).
+  }
+  process.exit(0)
+}
+
 async function main(): Promise<void> {
+  const hookAt = process.argv.indexOf('--hook')
+  if (hookAt >= 0) {
+    const neuron = process.argv[hookAt + 1]
+    await runHook(neuron !== undefined && UUID.test(neuron) ? neuron : undefined)
+    return
+  }
   const profile = profileDir()
   const neuron = process.env['GI_NEURON_ID']
   const client = new PipeClient(
@@ -166,7 +201,7 @@ async function main(): Promise<void> {
   )
   const server = new McpServer({ name: 'brainstormer', version: '1.0.0' }, { instructions: MCP_INSTRUCTIONS })
 
-  for (const name of MCP_TOOL_NAMES) {
+  for (const name of MCP_PUBLIC_TOOL_NAMES) {
     const tool = MCP_TOOLS[name]
     server.registerTool(name, { description: tool.description, inputSchema: tool.input }, async (args: unknown) => {
       try {

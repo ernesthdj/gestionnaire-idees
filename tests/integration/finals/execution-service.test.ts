@@ -7,7 +7,6 @@ import { FinalService } from '../../../src/main/application/finals/FinalService'
 import { HistoryService } from '../../../src/main/application/history/HistoryService'
 import { PlanService } from '../../../src/main/application/plan/PlanService'
 import { EXECUTE_MESSAGE } from '../../../src/main/domain/finals/executionBrief'
-import { toMcpError } from '../../../src/main/domain/mcp/errors'
 import { FinalRepository } from '../../../src/main/infrastructure/db/repositories/FinalRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
 import { PlanRepository } from '../../../src/main/infrastructure/db/repositories/PlanRepository'
@@ -92,6 +91,15 @@ describe('exécuter une action finale (spec 013 US2)', () => {
     executions.onChatEvent({ type: 'chat:turnEnd', payload: { neuronId, message: null, interrupted } })
   }
 
+  /** Écriture de Claude Code (outil natif) signalée par le hook avant écriture (spec 014 R5). */
+  const claudeWrites = (relative: string, content: string, neuronId = contact): void => {
+    const target = join(project, ...relative.split('/'))
+    const before = existsSync(target) ? readFileSync(target, 'utf8') : null
+    mkdirSync(join(target, '..'), { recursive: true })
+    writeFileSync(target, content)
+    executions.recordWrite(neuronId, relative, before, content)
+  }
+
   it('should_send_the_execute_message_with_the_execution_brief_and_mark_the_action_running', async () => {
     await executions.execute(contact)
     const [neuronId, text, brief] = send.mock.calls[0] as [string, string, string]
@@ -101,7 +109,10 @@ describe('exécuter une action finale (spec 013 US2)', () => {
     expect(brief).toContain('① « Valider le budget » — fait')
     expect(brief).toContain('« Charte » [d1]')
     expect(brief).toContain('Dossier de projet lié : « site »')
-    expect(brief).toContain('Scripts lançables : aucun approuvé')
+    // Spec 014 : outils natifs de Claude, selon le mode ; plus d'outils maison ni de scripts approuvés.
+    expect(brief).toContain('écris avec tes outils (Write, Edit)')
+    expect(brief).toContain('Cette étape EST l’action finale')
+    expect(`${brief}${EXECUTE_MESSAGE}`).not.toMatch(/fichier_ecrire|fichier_modifier|commande_lancer/)
     expect(finals.actionOf(contact)?.state).toBe('en_cours')
     expect(changed).toContain(contact)
   })
@@ -127,18 +138,11 @@ describe('exécuter une action finale (spec 013 US2)', () => {
     await expect(executions.execute(budget)).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
-  it('should_write_and_modify_files_in_the_project_and_build_the_deliverable_until_the_turn_ends', async () => {
+  it('should_build_the_deliverable_from_the_writes_of_claude_during_and_after_the_execution', async () => {
     await executions.execute(contact)
-    expect(executions.write(contact, 'src\\pages\\Contact.tsx', 'export const Contact = 1\n')).toEqual({
-      path: 'src/pages/Contact.tsx',
-      status: 'cree'
-    })
-    expect(executions.modify(contact, 'README.md', 'Accueil.', 'Accueil et contact.')).toEqual({
-      path: 'README.md',
-      status: 'modifie'
-    })
-    expect(readFileSync(join(project, 'src', 'pages', 'Contact.tsx'), 'utf8')).toBe('export const Contact = 1\n')
-    expect(readFileSync(join(project, 'README.md'), 'utf8')).toBe('# Site\n\nAccueil et contact.\n')
+    claudeWrites('src/pages/Contact.tsx', 'export const Contact = 1\n')
+    claudeWrites('README.md', '# Site\n\nAccueil et contact.\n')
+    claudeWrites('README.md', '# Site\n\nAccueil, contact et plan.\n')
     expect(repository.files(contact).map((file) => [file.path, file.beforeContent])).toEqual([
       ['src/pages/Contact.tsx', null],
       ['README.md', '# Site\n\nAccueil.\n']
@@ -146,38 +150,26 @@ describe('exécuter une action finale (spec 013 US2)', () => {
     turnEnd()
     expect(finals.actionOf(contact)?.state).toBe('a_revoir')
     expect(repository.executionsOf(contact)[0]).toMatchObject({ outcome: 'terminee', filesWritten: 2 })
-    expect(() => executions.write(contact, 'b.ts', 'x')).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
+    // Après l'exécution, une correction demandée dans le chat rejoint aussi le livrable (spec 014 D6).
+    claudeWrites('src/pages/Plan.tsx', 'export const Plan = 1\n')
+    expect(repository.files(contact).map((file) => file.path)).toContain('src/pages/Plan.tsx')
   })
 
-  it.each([
-    ['../hors.txt', 'LOT_INVALIDE'],
-    ['C:\\Windows\\hors.txt', 'LOT_INVALIDE'],
-    ['.env', 'LOT_INVALIDE'],
-    ['.git/hooks/pre-commit', 'LOT_INVALIDE'],
-    ['node_modules/x/index.js', 'LOT_INVALIDE'],
-    ['lancer.bat', 'LOT_INVALIDE']
-  ])('should_refuse_and_trace_the_hostile_path_%j_without_writing_anything', async (path, code) => {
+  it('should_trace_reads_once_and_leave_writes_to_the_hook', async () => {
     await executions.execute(contact)
-    try {
-      executions.write(contact, path, 'npm install && del /s')
-      expect.unreachable()
-    } catch (error) {
-      expect(toMcpError(error)?.code).toBe(code)
-    }
-    expect(readdirSync(root).sort()).toEqual(['profil', 'site'])
-    expect(readdirSync(project)).toEqual(['README.md'])
+    const tool = (text: string, toolStatus: 'running' | 'ok') => ({
+      type: 'chat:tool' as const,
+      payload: { neuronId: contact, message: { id: 't', role: 'tool' as const, text, createdAt: 'x', toolStatus } }
+    })
+    executions.onChatEvent(tool('fichier lu : README.md', 'running'))
+    executions.onChatEvent(tool('fichier lu : README.md', 'ok'))
+    executions.onChatEvent(tool('fichier modifié : README.md', 'running'))
+    executions.onChatEvent(tool('commande : npm test', 'running'))
     const [execution] = repository.executionsOf(contact)
-    expect(repository.eventsOf(execution?.id ?? '').map((event) => event.kind)).toEqual(['refus'])
-  })
-
-  it('should_refuse_writing_from_another_conversation_or_without_a_linked_folder', async () => {
-    await executions.execute(contact)
-    expect(() => executions.write(budget, 'a.ts', 'x')).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
-    expect(() => executions.write(null, 'a.ts', 'x')).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
-    linked = null
-    expect(() => executions.write(contact, 'a.ts', 'x')).toThrow(
-      expect.objectContaining({ message: expect.stringContaining('document_ecrire') })
-    )
+    expect(repository.eventsOf(execution?.id ?? '').map((event) => [event.kind, event.detail])).toEqual([
+      ['lecture', 'fichier lu : README.md'],
+      ['message', 'commande : npm test']
+    ])
   })
 
   it('should_produce_documents_only_without_a_linked_folder', async () => {
@@ -186,29 +178,10 @@ describe('exécuter une action finale (spec 013 US2)', () => {
     expect(send.mock.calls[0]?.[2]).toContain('Aucun dossier de projet lié')
   })
 
-  it('should_refuse_a_passage_absent_or_present_twice', async () => {
-    writeFileSync(join(project, 'a.txt'), 'x x')
-    await executions.execute(contact)
-    expect(() => executions.modify(contact, 'a.txt', 'y', 'z')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
-    expect(() => executions.modify(contact, 'a.txt', 'x', 'z')).toThrow(
-      expect.objectContaining({ message: expect.stringContaining('plusieurs fois') })
-    )
-    expect(() => executions.modify(contact, 'absent.txt', 'x', 'z')).toThrow(
-      expect.objectContaining({ code: 'NOT_FOUND' })
-    )
-  })
-
-  it('should_stop_at_forty_distinct_files_per_pass_but_allow_rewriting_one', async () => {
-    await executions.execute(contact)
-    for (let i = 0; i < 40; i += 1) executions.write(contact, `f${i}.txt`, 'x')
-    expect(() => executions.write(contact, 'f40.txt', 'x')).toThrow(expect.objectContaining({ code: 'TOO_LARGE' }))
-    expect(executions.write(contact, 'f0.txt', 'y').path).toBe('f0.txt')
-  })
-
   it('should_undo_a_write_from_the_history_into_the_trash_and_restore_a_modified_file', async () => {
     await executions.execute(contact)
-    executions.write(contact, 'nouveau.md', '# N')
-    executions.modify(contact, 'README.md', 'Accueil.', 'Bienvenue.')
+    claudeWrites('nouveau.md', '# N')
+    claudeWrites('README.md', '# Site\n\nBienvenue.\n')
     const [modified, created] = history.list().items
     expect([modified?.summary, created?.summary]).toEqual([
       'Claude : fichier « README.md » modifié',
@@ -223,7 +196,7 @@ describe('exécuter une action finale (spec 013 US2)', () => {
 
   it('should_refuse_to_undo_a_write_when_the_file_was_changed_by_hand_since', async () => {
     await executions.execute(contact)
-    executions.write(contact, 'a.md', 'v1')
+    claudeWrites('a.md', 'v1')
     writeFileSync(join(project, 'a.md'), 'retouché')
     expect(() => history.undo(history.list().items[0]?.batchId ?? '')).toThrow(
       expect.objectContaining({ code: 'UNDO_CONFLICT' })
@@ -245,7 +218,7 @@ describe('exécuter une action finale (spec 013 US2)', () => {
 
   it('should_mark_an_execution_left_open_as_interrupted_at_startup', async () => {
     await executions.execute(contact)
-    executions.write(contact, 'a.md', 'x')
+    claudeWrites('a.md', 'x')
     executions.recover()
     expect(repository.executionsOf(contact)[0]?.outcome).toBe('interrompue')
     expect(finals.actionOf(contact)?.state).toBe('a_revoir')

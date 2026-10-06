@@ -72,10 +72,8 @@ export type MapToolName = Exclude<
   | 'document_ecrire'
   | 'document_lire'
   | 'action_proposer'
-  | 'fichier_ecrire'
-  | 'fichier_modifier'
   | 'permission_demander'
-  | 'commande_lancer'
+  | 'ecriture_avant'
 >
 
 const IDEA_SIZE = 120

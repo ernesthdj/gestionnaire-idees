@@ -47,13 +47,6 @@ export interface CanvasDeps {
   readonly finals?: {
     list(): readonly FinalActionRow[]
     files(neuronId: string): readonly DeliverableFileRow[]
-    /** Lancements de scripts des exécutions de l'action, le plus récent d'abord. */
-    runs?(neuronId: string): readonly {
-      readonly script: string
-      readonly exitCode: number | null
-      readonly timedOut: boolean
-      readonly at: string
-    }[]
     projectLinked(genesisId: string): boolean
   }
 }
@@ -163,18 +156,11 @@ export class CanvasService {
       .flatMap((action): DeliverableView[] => {
         const files = this.deps.finals?.files(action.neuronId) ?? []
         if (files.length === 0 && action.state !== 'en_cours' && action.state !== 'a_revoir') return []
-        const latest = new Map<string, DeliverableView['runs'][number]>()
-        for (const run of this.deps.finals?.runs?.(action.neuronId) ?? []) {
-          if (!latest.has(run.script)) {
-            latest.set(run.script, { script: run.script, ok: run.exitCode === 0, timedOut: run.timedOut, at: run.at })
-          }
-        }
         return [
           {
             neuronId: action.neuronId,
             genesisId: action.genesisId,
             files: files.map((file) => ({ path: file.path, status: file.beforeContent === null ? 'cree' : 'modifie' })),
-            runs: [...latest.values()],
             executing: action.state === 'en_cours',
             width: action.width,
             height: action.height,

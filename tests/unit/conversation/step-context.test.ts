@@ -37,6 +37,14 @@ describe('contexte hérité d’une étape (spec 011 US1)', () => {
     expect(contextBlock(step)).not.toContain('VERROUILLÉ')
   })
 
+  it('should_tell_claude_this_step_is_already_a_final_action_with_its_deliverable', () => {
+    const block = contextBlock({ ...step, step: { ...step.step, final: { state: 'a_revoir', files: ['src/a.ts'] } } })
+    expect(block).toContain('Cette étape EST une ACTION FINALE (exécutée, livrable à revoir par mentalyas)')
+    expect(block).toContain('ne propose ni une nouvelle action finale ni un plan d’attaque sur elle')
+    expect(block).toContain('Livrable actuel : src/a.ts.')
+    expect(contextBlock(step)).not.toContain('ACTION FINALE')
+  })
+
   it('should_drop_the_middle_sheets_first_and_keep_the_genesis_parent_and_own_sheet_when_too_long', () => {
     const big = sheet('y'.repeat(400))
     const deep = {
