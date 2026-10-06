@@ -1,6 +1,17 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
-import { codeExplorerState, codeLayout, codeOverrides, codeProjects, codeRuns } from '../schemaReprise'
+import {
+  codeEdges,
+  codeEntryPoints,
+  codeExplorerState,
+  codeFiles,
+  codeLayout,
+  codeModules,
+  codeOverrides,
+  codeProjects,
+  codeRuns,
+  codeSymbols
+} from '../schemaReprise'
 
 export type CodeProjectRow = typeof codeProjects.$inferSelect
 export type Confidentiality = CodeProjectRow['confidentiality']
@@ -23,6 +34,40 @@ export class RepriseRepository {
 
   createProject(row: Omit<CodeProjectRow, 'createdAt' | 'analysisState' | 'analyzedAt'>): void {
     this.db.insert(codeProjects).values(row).run()
+  }
+
+  /**
+   * Efface un projet repris et tout son graphe (spec 017 D9) : seulement quand son genesis a été supprimé et que le
+   * même dossier est importé de nouveau. Le dossier du projet n'est jamais touché.
+   */
+  deleteProject(genesisId: string): void {
+    this.db.transaction((tx) => {
+      const fileIds = tx
+        .select({ id: codeFiles.id })
+        .from(codeFiles)
+        .where(eq(codeFiles.genesisId, genesisId))
+        .all()
+        .map((row) => row.id)
+      for (let start = 0; start < fileIds.length; start += 200) {
+        const part = fileIds.slice(start, start + 200)
+        const symbolIds = tx
+          .select({ id: codeSymbols.id })
+          .from(codeSymbols)
+          .where(inArray(codeSymbols.fileId, part))
+          .all()
+          .map((row) => row.id)
+        for (let at = 0; at < symbolIds.length; at += 200) {
+          tx.delete(codeEntryPoints)
+            .where(inArray(codeEntryPoints.symbolId, symbolIds.slice(at, at + 200)))
+            .run()
+        }
+        tx.delete(codeSymbols).where(inArray(codeSymbols.fileId, part)).run()
+      }
+      for (const table of [codeEdges, codeFiles, codeModules, codeOverrides, codeRuns, codeLayout, codeExplorerState]) {
+        tx.delete(table).where(eq(table.genesisId, genesisId)).run()
+      }
+      tx.delete(codeProjects).where(eq(codeProjects.genesisId, genesisId)).run()
+    })
   }
 
   project(genesisId: string): CodeProjectRow | undefined {

@@ -9,7 +9,7 @@ import type { ProjectScan } from '../../infrastructure/reprise/ProjectScanner'
 export interface RepriseDeps {
   readonly repository: Pick<
     RepriseRepository,
-    'transaction' | 'createProject' | 'project' | 'projectByRoot' | 'setConfidentiality'
+    'transaction' | 'createProject' | 'project' | 'projectByRoot' | 'setConfidentiality' | 'deleteProject'
   >
   /** Sélecteur de dossier natif (main) ; `undefined` si annulé. Jamais un chemin venu de l'interface. */
   readonly pickFolder: () => Promise<string | undefined>
@@ -26,6 +26,8 @@ export interface RepriseDeps {
   readonly exists?: (path: string) => boolean
   readonly now?: () => Date
   readonly newId?: () => string
+  /** Genesis supprimé (archivé) : son ancien projet repris ne compte plus (spec 017 D9). */
+  readonly isArchived?: (genesisId: string) => boolean
   /** Projet créé : son analyse démarre (spec 017 US3). */
   readonly onCreated?: (genesisId: string) => void
 }
@@ -109,6 +111,9 @@ export class RepriseService {
       throw new AppError('ALREADY_LINKED', 'Ce dossier est déjà lié à un neurone de la carte.', { neuronId: linked })
     }
     this.previews.delete(previewId)
+    // Un ancien projet repris du même dossier, dont le genesis a été supprimé, laisse la place (spec 017 D9).
+    const stale = this.deps.repository.projectByRoot(preview.root)
+    if (stale !== undefined) this.deps.repository.deleteProject(stale.genesisId)
     const genesisId = await this.deps.createGenesis(preview.view.name)
     this.deps.attach(genesisId, preview.root)
     this.deps.repository.createProject({
@@ -158,7 +163,7 @@ export class RepriseService {
   /** Neurone déjà lié à ce dossier (même chemin réel, casse ignorée) ; `null` : aucun. */
   private linkedTo(root: string): string | null {
     const repris = this.deps.repository.projectByRoot(root)
-    if (repris !== undefined) return repris.genesisId
+    if (repris !== undefined && this.deps.isArchived?.(repris.genesisId) !== true) return repris.genesisId
     const realpath = this.deps.realpath ?? realpathSync
     for (const linked of this.deps.linkedFolders()) {
       let real: string

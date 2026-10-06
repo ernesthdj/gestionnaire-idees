@@ -116,6 +116,14 @@ export class NeuronRepository {
       .run()
   }
 
+  /** Dossier de projet lié à une idée (specs 008, 016, 017) ; `null` : aucun. */
+  projectDir(id: string): string | null {
+    return (
+      this.db.select({ projectDir: neurons.projectDir }).from(neurons).where(eq(neurons.id, id)).get()?.projectDir ??
+      null
+    )
+  }
+
   root(id: string): RootView | undefined {
     const row = this.selectRoots()
       .where(and(eq(neurons.id, id), eq(neurons.kind, 'root')))
@@ -156,7 +164,15 @@ export class NeuronRepository {
     patch: Partial<
       Pick<
         typeof neurons.$inferInsert,
-        'title' | 'content' | 'nature' | 'natureSource' | 'categoryId' | 'categorySource' | 'state' | 'archivedAt'
+        | 'title'
+        | 'content'
+        | 'nature'
+        | 'natureSource'
+        | 'categoryId'
+        | 'categorySource'
+        | 'state'
+        | 'archivedAt'
+        | 'projectDir'
       >
     >
   ): void {

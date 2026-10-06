@@ -107,14 +107,16 @@ export class NeuronService {
     if (root.state === 'archived') throw new AppError('INVALID_STATE', 'Cette idée est déjà supprimée')
     const batchId = randomUUID()
     const { repository } = this.deps
+    // Une idée supprimée ne pointe plus vers son dossier de projet (spec 017 D9) ; « Annuler » le remet.
+    const projectDir = repository.projectDir(rootId)
     repository.transaction(() => {
-      repository.updateRoot(rootId, { state: 'archived', archivedAt: new Date().toISOString() })
+      repository.updateRoot(rootId, { state: 'archived', archivedAt: new Date().toISOString(), projectDir: null })
       repository.log(batchId, [
         {
           kind: 'delete',
           entity: 'neuron',
           entityId: rootId,
-          before: { state: root.state, version: root.version },
+          before: { state: root.state, version: root.version, ...(projectDir === null ? {} : { projectDir }) },
           after: null
         }
       ])

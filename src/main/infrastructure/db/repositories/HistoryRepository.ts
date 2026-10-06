@@ -367,9 +367,10 @@ export class HistoryRepository {
         const now = new Date().toISOString()
         if (target === null) {
           // Retrait réversible : l'idée est archivée, jamais supprimée (un rétablissement la fait revenir).
+          // Une idée retirée ne pointe plus vers son dossier de projet (spec 017 D9).
           this.db
             .update(neurons)
-            .set({ state: 'archived', archivedAt: now, updatedAt: now })
+            .set({ state: 'archived', archivedAt: now, updatedAt: now, projectDir: null })
             .where(eq(neurons.id, id))
             .run()
           return
@@ -381,6 +382,7 @@ export class HistoryRepository {
               ? { state: target['state'] as 'raw' | 'developing' | 'hatched', archivedAt: null }
               : {}),
             ...(typeof target['version'] === 'number' ? { version: target['version'] } : {}),
+            ...(typeof target['projectDir'] === 'string' ? { projectDir: target['projectDir'] } : {}),
             updatedAt: now
           })
           .where(eq(neurons.id, id))
