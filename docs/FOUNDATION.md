@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md**
 
 ---
 
@@ -24,6 +24,47 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 000. Amendement du 2026-10-06 — Reprendre un projet existant (cartographie, diagnostic, flux)
+
+> Détail complet : `docs/brainstorm/L1f-reprise-projet.md` (vision, arbitrages A1–A9), `L2-reprise-{import, analyse,
+> explorateur, guide, diagnostic, pont-carte}.md` (cas d'usage, règles, critères), `L3-reprise-{import, analyse,
+> explorateur, diagnostic}.md` (contrats IPC, données, séquences, sécurité), `L4d-reprise.md` (parcours, écrans).
+> Ces fichiers priment sur ce résumé.
+
+### 000.1 Vision
+Le chemin inverse de l'entonnoir : partir d'un **projet existant écrit par d'autres** (dossier local ou dépôt git)
+pour le comprendre vite, comme un dev junior qui rejoint une équipe. Claude et l'app le cartographient en un graphe
+navigable par niveaux, en expliquent chaque partie par une **analogie simple**, et disent où il est sûr d'intervenir.
+
+### 000.2 Arbitrages
+| # | Sujet | Décision |
+|---|-------|----------|
+| A1 | Analyse du flux | Statique d'abord (lire sans exécuter) ; couche dynamique (sondes) en v3 |
+| A2 | Langages du MVP | TypeScript / JavaScript, C# / .NET, PHP / Laravel — `web-tree-sitter` (WASM) dans un processus séparé |
+| A3 | Diagnostic | Mesures calculées + avis justifié de Claude ; mentalyas corrige (sa correction prime) |
+| A4 | Confidentialité | Choisie par projet à l'import : « Claude autorisé » ou « Local uniquement » (Ollama, rien ne sort) ; garde unique avant tout envoi |
+| A5 | Vues | Explorateur (graphe complet, zoom à 4 niveaux) relié à la carte de structure (spec 009) |
+| A6 | Import git | `git clone` avec le git de mentalyas ; URL https / ssh seulement ; rien du projet n'est exécuté |
+| A7 | Livrables | Guide de reprise, parcours d'une fonctionnalité, questions au projet, suivi des changements |
+| A8 | Pédagogie | Analogie concrète d'abord, détail technique ensuite |
+| A9 | Découpage | MVP 1 Voir → MVP 2 Juger → v2 Suivre → v3 Observer |
+
+### 000.3 Fonctionnalités et lots
+| # | Fonctionnalité | Lot | Spec prévue |
+|---|----------------|-----|-------------|
+| R1 | Import (dossier / clone) et confidentialité | MVP 1 | 017 |
+| R2 | Analyse statique multi-langage (symboles, appels, catégories, provenance des liens) | MVP 1 | 017 |
+| R3 | Explorateur à niveaux (React Flow, agrégation dans le main, ≤ 150 nœuds affichés) | MVP 1 | 017 |
+| R4 | Guide de reprise (9 sections, sources vérifiées) | MVP 1 | 017 |
+| R5 | Mesures et diagnostic (6 états : solide, intouchable, fragile, améliorable, point d'extension, sans signal) | MVP 2 | 018 |
+| R6 | Pont explorateur ↔ carte de structure | MVP 2 | 018 |
+| — | Parcours d'une fonctionnalité, questions au projet, suivi des changements | v2 | — |
+| — | Couche dynamique, direction « rétro-néo-futuriste » (WebGL) | v3 | — |
+
+Dépendances nouvelles à confirmer au plan : `web-tree-sitter` + grammaires TS, JS, C#, PHP (MIT, WASM).
 
 ---
 
