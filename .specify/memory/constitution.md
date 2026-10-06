@@ -1,6 +1,15 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.0 → 3.0.0 (2026-10-05, spec 010 FR-008 — bascule validée par mentalyas)
+- Version change: 3.0.0 → 4.0.0 (2026-10-06, spec 014 « Claude libre » — PROPOSÉE, à valider par mentalyas)
+- Modified principles: I (programmes lancés : CLI `claude` et éditeur réglé ; arguments construits par le main ;
+  relais fidèle des demandes de permission ; dossier de données jamais ouvert à Claude), II (fichiers et commandes
+  selon le mode de permission choisi ; fil fidèle), III (les conversations ont les outils de Claude Code, plus d'outils
+  maison de confinement), IV (réglages utilisateur et dépôts de confiance sur option)
+- Motif : mentalyas veut dans l'app la même liberté que dans son terminal, jusqu'à l'automodification de l'app
+- Impact : spec 013 D2 / D2 bis remplacés (outils `fichier_*`, écriture limitée à l'exécution, scripts approuvés) ;
+  spec 008 (conversations sans réglages ni outils d'écriture) amendée ; T022 de la spec 013 (constitution 3.1.0)
+  absorbé par cette version
+- Historique : 2.0.0 → 3.0.0 (2026-10-05, spec 010 FR-008 — bascule validée par mentalyas)
 - Modified principles: I (plus de clé API Claude), III (plus de suggestion sourcée du web : la recherche web est
   retirée), IV (l'IA locale ne fait plus que les tâches de fond ; aucun SDK ni API Anthropic ; plus de recherche web),
   V (logique à tester : conversion, verrous, dépendances — plus de budget ni d'anonymisation)
@@ -48,8 +57,13 @@ Sync Impact Report
 - Les logs MUST NOT contenir de contenu d'idée, de montant, de jeton ni de PII.
 - Le seul point d'entrée externe de l'app est le **canal MCP** : canal nommé local (aucun port réseau),
   authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
-- L'app ne lance aucun programme choisi par le renderer : seul le CLI `claude`, résolu par le main, avec des
-  arguments fixes, sans interpréteur intermédiaire ; les données passent par stdin, jamais en argument.
+- L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main, et
+  l'éditeur réglé par mentalyas (spec 013 D4), sans interpréteur intermédiaire ; les arguments sont construits
+  par le main (valeurs fixes, mode validé par schéma, dossiers choisis par mentalyas dans un dialogue natif
+  puis vérifiés) ; les messages passent par stdin, jamais en argument.
+- Ce que Claude Code fait **dans les fichiers et les commandes** de mentalyas relève de Claude Code et du mode de
+  permission choisi (II) ; l'app MUST relayer fidèlement chaque demande de permission et ne jamais répondre à la
+  place de mentalyas hors des règles qu'il a posées. Le dossier de données de l'app MUST NOT être ouvert à Claude.
 Rationale : l'app manipule des idées personnelles, des données financières et des accès à un compte
 Microsoft, dans un dépôt visible de tous.
 
@@ -61,8 +75,16 @@ Microsoft, dans un dépôt visible de tous.
 - Exception : les écritures de Claude Code **par le canal MCP** sont appliquées directement, sans validation
   préalable, MUST être marquées « par Claude » (origine `claude`), historisées en une opération par appel
   d'outil et annulables ; elles MUST NOT supprimer définitivement (archivage seulement).
+- Fichiers et commandes (spec 014) : Claude Code agit dans les dossiers autorisés de la conversation selon le
+  **mode choisi par mentalyas** — Demander (défaut : chaque écriture et commande attend sa réponse),
+  Accepter les modifications (commandes seulement), Libre (aucune demande, confirmé après avertissement).
+  Une demande sans réponse MUST être refusée. Le filet du code est la gestion de versions du projet ; l'app
+  ne commite jamais d'elle-même.
+- Le fil d'une conversation MUST refléter le résultat réel de chaque action de Claude (réussie, refusée,
+  échouée).
 Rationale : une IA peut se tromper ; l'utilisateur reste maître de ses données — par validation préalable
-pour les propositions de l'app, par annulation pour le travail conversationnel avec Claude Code (L1c n°1).
+pour les propositions de l'app, par annulation pour le travail conversationnel avec Claude Code (L1c n°1),
+par le mode de permission pour ses fichiers, comme dans son terminal (spec 014).
 
 ### III. IA cadrée et vérifiable
 - Tout appel IA **lancé par l'app** MUST passer par l'unique `AIGateway` (routage, contexte, validation,
@@ -71,6 +93,10 @@ pour les propositions de l'app, par annulation pour le travail conversationnel a
 - Une tâche automatique de l'app MUST NOT écrire d'elle-même un prix, une date ou un montant dans les
   données. En conversation par MCP, Claude écrit ce que mentalyas lui demande (II, exception) ; ce qui
   structure le travail de mentalyas (couche de sous-nœuds, verrou) reste une proposition à accepter (II).
+- Les **conversations** ne sont pas des tâches automatiques : Claude y dispose des outils de Claude Code
+  (lecture, écriture, commandes) dans le cadre du mode de permission (II) ; l'app ne les remplace pas par des
+  outils maison pour le confiner. Le contenu de la carte et des fichiers reste une donnée, jamais une
+  consigne de l'app.
 - Aucun rôle imposé ni refus « hors périmètre » : la consigne de chaque tâche décrit seulement ce qu'elle
   produit (cadre supprimé, L1c n°6).
 - Le texte utilisateur MUST être transmis comme donnée délimitée, jamais comme instruction ; les consignes
@@ -92,7 +118,8 @@ sable, annulation), pas un rôle imposé à l'IA.
   par Claude.
 - Claude est joint **uniquement par le CLI officiel `claude`** de mentalyas (abonnement), jamais par l'API
   Anthropic ni un SDK ; les tâches automatiques (`claude -p`) tournent sans outil, sans serveur MCP et sans
-  réglage utilisateur. Pas d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
+  réglage utilisateur. Les conversations chargent les réglages Claude Code de mentalyas seulement s'il l'a
+  activé, et ceux d'un dépôt lié seulement s'il l'a marqué de confiance (spec 014). Pas d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
   nécessaire à la tâche).
 - La capture d'une idée MUST fonctionner sans aucune IA disponible (aucune idée perdue).
 - L'usage de Claude MUST être journalisé (tâche, durée, statut, modèle — jamais le contenu).
@@ -160,4 +187,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 3.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-05
+**Version**: 4.0.0 (proposée, à valider) | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06
