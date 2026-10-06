@@ -5,6 +5,7 @@ export default tseslint.config(
   {
     ignores: [
       'out/**',
+      'tests/fixtures/reprise/**',
       'dist/**',
       'release/**',
       'node_modules/**',

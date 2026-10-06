@@ -10,6 +10,7 @@
     "vitest.config.ts",
     "src/main/**/*",
     "src/mcp-relay/**/*",
+    "src/analysis-worker/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
     "tests/**/*",
@@ -19,6 +20,7 @@
     "tests/unit/renderer/**/*",
     "tests/unit/ui/**/*",
     "tests/fixtures/ui/**/*",
+    "tests/fixtures/reprise/**/*",
     "tests/support/axe.ts",
     "tests/support/renderer-setup.ts"
   ]

@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
-- Version change: 3.0.0 → 4.0.0 (2026-10-06, spec 014 « Claude libre » — validée par mentalyas)
+- Version change: 4.0.0 → 4.1.0 (2026-10-06, spec 017 « Reprise — Voir », D8 — validée par mentalyas)
+- Modified principles: I (git devient un programme que l'app peut lancer : chemin absolu, sans shell, arguments fixes —
+  régularise la spec 016, qui l'utilisait déjà), IV (projet repris « Local uniquement » : rien n'est envoyé à Claude,
+  le modèle local fait les tâches d'IA de ce projet)
+- Modified sections: Contraintes techniques (`@vscode/tree-sitter-wasm` : analyse syntaxique, sans exécution du code)
+- Motif : reprendre un projet existant écrit par d'autres (code d'un employeur), FOUNDATION §000
+- Impact : spec 016 (git) conforme ; spec 017 (import, clone, analyse statique, guide) ; aucun retrait
+- Historique : 3.0.0 → 4.0.0 (2026-10-06, spec 014 « Claude libre » — validée par mentalyas)
 - Modified principles: I (programmes lancés : CLI `claude` et éditeur réglé ; arguments construits par le main ;
   relais fidèle des demandes de permission ; dossier de données jamais ouvert à Claude), II (fichiers et commandes
   selon le mode de permission choisi ; fil fidèle), III (les conversations ont les outils de Claude Code, plus d'outils
@@ -57,8 +64,9 @@ Sync Impact Report
 - Les logs MUST NOT contenir de contenu d'idée, de montant, de jeton ni de PII.
 - Le seul point d'entrée externe de l'app est le **canal MCP** : canal nommé local (aucun port réseau),
   authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
-- L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main, et
-  l'éditeur réglé par mentalyas (spec 013 D4), sans interpréteur intermédiaire ; les arguments sont construits
+- L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main,
+  l'éditeur réglé par mentalyas (spec 013 D4) et **git** (résolu par chemin absolu dans le PATH ; specs 016, 017),
+  sans interpréteur intermédiaire ni shell ; les arguments sont construits
   par le main (valeurs fixes, mode validé par schéma, dossiers choisis par mentalyas dans un dialogue natif
   puis vérifiés) ; les messages passent par stdin, jamais en argument.
 - Ce que Claude Code fait **dans les fichiers et les commandes** de mentalyas relève de Claude Code et du mode de
@@ -115,7 +123,8 @@ sable, annulation), pas un rôle imposé à l'IA.
 ### IV. Local d'abord & minimisation des données
 - Les données MUST rester sur la machine (SQLite chiffré dans `%APPDATA%/gestionnaire-idees/`).
 - L'IA locale (Ollama) fait les tâches de fond (catégorisation d'une idée capturée) ; le raisonnement passe
-  par Claude.
+  par Claude — sauf pour un **projet repris « Local uniquement »** (spec 017) : rien de ce projet MUST être envoyé à
+  Claude (tâches, conversations, pont MCP compris) ; le modèle local fait ses tâches d'IA, ou elles ne sont pas faites.
 - Claude est joint **uniquement par le CLI officiel `claude`** de mentalyas (abonnement), jamais par l'API
   Anthropic ni un SDK ; les tâches automatiques (`claude -p`) tournent sans outil, sans serveur MCP et sans
   réglage utilisateur. Les conversations chargent les réglages Claude Code de mentalyas seulement s'il l'a
@@ -152,7 +161,8 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   **Drizzle ORM** + `better-sqlite3-multiple-ciphers` (exception validée au standard Prisma : moteur
   binaire non empaquetable proprement, SQLite chiffré non supporté) · Ollama · CLI Claude Code (`claude -p`,
   modèles configurables par usage ; aucun SDK Anthropic) · `@modelcontextprotocol/sdk` · `@xterm/xterm` +
-  `node-pty` (lot 3) · Microsoft Graph + MSAL Node (autorité `consumers`,
+  `node-pty` (lot 3) · `@vscode/tree-sitter-wasm` (analyse syntaxique des projets repris, spec 017 : le code est
+  lu, jamais exécuté) · Microsoft Graph + MSAL Node (autorité `consumers`,
   PKCE, scope `Calendars.ReadWrite` uniquement).
 - **Architecture** : pas d'API HTTP ni de port réseau (le canal MCP est un canal nommé local) ; le contrat est l'IPC renderer ↔ main, format uniforme
   `{ success, data } | { success: false, error: { code, message } }`. Le renderer n'accède jamais
@@ -187,4 +197,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06
+**Version**: 4.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06

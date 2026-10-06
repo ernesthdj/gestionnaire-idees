@@ -12,3 +12,5 @@ CLAUDE.md
 *.md
 src/main/infrastructure/db/migrations/meta/
 package.json
+# Projets de démonstration de la spec 017 : lus par l'analyse tels quels (fichier cassé compris).
+tests/fixtures/reprise/

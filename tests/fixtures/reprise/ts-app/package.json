@@ -1,0 +1,11 @@
+{
+  "name": "ts-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Boutique fictive : commandes et remises (projet de démonstration).",
+  "main": "src/main.ts",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "vitest run"
+  }
+}

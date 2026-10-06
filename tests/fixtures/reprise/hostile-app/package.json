@@ -1,0 +1,11 @@
+{
+  "name": "hostile-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Projet piégé fictif : l'app ne doit jamais rien en exécuter.",
+  "main": "src/index.js",
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "start": "node src/index.js"
+  }
+}

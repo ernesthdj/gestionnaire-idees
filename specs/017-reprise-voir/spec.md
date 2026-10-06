@@ -1,0 +1,326 @@
+# Feature Specification: Reprise — Voir (spec 017)
+
+**Feature Branch**: `main` · **Created**: 2026-10-06 · **Status**: Draft — à valider par mentalyas
+**Input**: « Imaginons que je rejoigne une boîte et que je doive reprendre un projet en cours de route, dans lequel sont
+déjà passés d'autres devs. Au lieu de perdre du temps à lire moi-même chaque ligne de code et les README, je veux
+charger le projet dans l'app […] et, grâce à Claude, cartographier le projet : avoir directement l'arborescence et le
+diagramme visuel, comme une map. » — mentalyas. Brainstorm complet : `docs/FOUNDATION.md` §000,
+`docs/brainstorm/L1f-reprise-projet.md` (A1–A9), `L2-reprise-{import, analyse, explorateur, guide}.md`,
+`L3-reprise-{import, analyse, explorateur}.md`, `L4d-reprise.md`. Lot **MVP 1 — Voir** (R1 à R4) ; le diagnostic et
+le pont avec la carte de structure sont la spec 018 (MVP 2 — Juger).
+
+## Décisions (2026-10-06, brainstorm validé)
+
+| # | Sujet | Décision |
+|---|-------|----------|
+| D1 | Analyse | **Statique** : le code est lu, jamais exécuté (ni installation, ni compilation, ni script du projet). La couche dynamique (observer l'application en marche) est hors périmètre (v3). |
+| D2 | Langages | TypeScript / JavaScript, C# / .NET, PHP / Laravel. Un autre langage reste visible dans l'arborescence, sans analyse. |
+| D3 | Confidentialité | Choisie **par projet à l'import**, sans valeur présélectionnée : « Claude autorisé » ou « Local uniquement » (rien du projet n'est envoyé à Claude ; le modèle local fait le travail d'IA, ou il n'est pas fait). Affichée en permanence. |
+| D4 | Import git | Un dépôt distant est cloné avec le git de mentalyas (ses identifiants restent gérés par git ; l'app n'en voit ni n'en stocke aucun) dans un dossier qu'il choisit ; adresse `https://` ou `git@` seulement. |
+| D5 | Vues | Un **explorateur** à 4 niveaux (modules → dossiers → fichiers → code), ouvert depuis le genesis du projet repris. Le lien explorateur ↔ carte de structure (envoyer un élément, revenir) est la spec 018. |
+| D6 | Pédagogie | Chaque explication (élément de l'explorateur, guide) commence par une **analogie simple**, puis le détail technique ; tout terme technique est expliqué à sa première occurrence. |
+| D7 (validée 2026-10-06) | Projet repris | Le projet importé devient un **genesis « projet repris »** de la carte qui pointe vers **son dossier source, défini par mentalyas** : le dossier local choisi, ou le dossier où le dépôt git a été cloné. Il n'est **jamais** inscrit au registre ProjectMaster (spec 016 D4), ni modifié par l'app. |
+| D8 (validée 2026-10-06) | Constitution | Amendement **4.1.0** proposé avec cette spec (MINOR) : principe I — git devient un programme que l'app peut lancer (chemin absolu, arguments fixes ; déjà utilisé par la spec 016) ; principe IV — en « Local uniquement », le modèle local remplace Claude pour les tâches d'IA de ce projet ; contraintes techniques — bibliothèque d'analyse syntaxique. |
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 — Reprendre un projet depuis un dossier, en choisissant sa confidentialité (Priority: P1) 🎯 MVP
+
+mentalyas clique « Reprendre un projet existant », choisit le dossier du projet, voit un aperçu (langages, nombre de
+fichiers retenus, fichiers ignorés, dépôt git ou non), choisit « Claude autorisé » ou « Local uniquement » et importe :
+un genesis « projet repris » apparaît sur la carte, lié au dossier, et l'analyse démarre.
+
+**Why this priority**: sans import, rien d'autre n'existe ; la confidentialité doit être posée avant toute analyse.
+
+**Independent Test**: importer un petit projet Laravel de démonstration en « Local uniquement » → le genesis apparaît
+avec le badge « Local uniquement » ; aucune tâche n'est envoyée à Claude pendant tout le parcours.
+
+**Acceptance Scenarios**:
+
+1. **Given** un dossier choisi au sélecteur natif, **When** l'aperçu s'affiche, **Then** il indique les langages
+   reconnus, le nombre de fichiers retenus et ignorés (dont les fichiers sensibles), et si c'est un dépôt git.
+2. **Given** l'aperçu, **When** mentalyas n'a choisi aucun niveau de confidentialité, **Then** « Importer » reste
+   indisponible.
+3. **Given** un import validé, **When** il se termine, **Then** un genesis « projet repris » lié au dossier existe et
+   le niveau de confidentialité est affiché sur son chat, sur l'explorateur et sur le guide.
+4. **Given** le dossier de données de l'app (ou un de ses parents ou enfants), **When** mentalyas le choisit,
+   **Then** il est refusé avec la raison.
+5. **Given** un dossier déjà lié à un genesis, **When** mentalyas le choisit, **Then** l'app propose d'ouvrir ce
+   genesis plutôt que d'en créer un second.
+6. **Given** un projet « Local uniquement », **When** mentalyas le passe en « Claude autorisé », **Then** l'app
+   demande une confirmation ; **When** il repasse en « Local uniquement », **Then** c'est immédiat et l'app rappelle
+   que ce qui a déjà été envoyé ne peut pas être rappelé.
+
+---
+
+### User Story 2 — Voir le projet dans l'explorateur, du module au code (Priority: P1) 🎯 MVP
+
+mentalyas ouvre l'explorateur du projet repris : il voit les grands modules et les flèches qui les relient (épaisseur
+= nombre d'appels), zoome dans un module (dossiers, namespaces), puis dans un dossier (fichiers, classes), puis dans un
+fichier (fonctions, méthodes et un extrait de code en lecture seule). Un fil d'Ariane le ramène à n'importe quel
+niveau. Un clic sur un élément ouvre son panneau : ce que c'est (analogie, rôle), qui l'appelle, qui il appelle.
+
+**Why this priority**: c'est la « map » demandée : comprendre l'architecture sans lire chaque ligne.
+
+**Independent Test**: sur le projet de démonstration TypeScript, descendre de « Modules » jusqu'au code d'une fonction
+et remonter par le fil d'Ariane ; masquer / afficher la plomberie ; isoler un fichier et ses voisins.
+
+**Acceptance Scenarios**:
+
+1. **Given** un projet analysé, **When** l'explorateur s'ouvre, **Then** il montre le niveau Modules, les liens entre
+   modules avec leur volume d'appels, et le badge de confidentialité.
+2. **Given** un niveau affiché, **When** mentalyas zoome ou double-clique sur un élément, **Then** le niveau suivant de
+   cet élément s'affiche ; les liens vers des éléments non affichés sont regroupés sur leur parent visible.
+3. **Given** un élément, **When** mentalyas le sélectionne, **Then** le panneau montre son analogie et son rôle (si
+   disponibles), sa catégorie, ses fichiers, ses appelants et ses appelés, chacun avec la fiabilité du lien (sûr,
+   déduit, incertain).
+4. **Given** la plomberie (logs, conversions, utilitaires) masquée par défaut, **When** mentalyas regarde la carte,
+   **Then** un compteur dit ce qui est masqué, et un filtre la réaffiche.
+5. **Given** plus d'éléments qu'un écran lisible ne peut en montrer, **When** le niveau s'affiche, **Then** les
+   éléments en trop sont regroupés (« + 42 fichiers ») et l'explorateur invite à zoomer ou filtrer.
+6. **Given** mentalyas au clavier ou avec un lecteur d'écran, **When** il passe en vue liste, **Then** il dispose des
+   mêmes informations (niveaux, appelants, appelés) sans la carte.
+7. **Given** un fichier de code, **When** mentalyas ouvre son extrait, **Then** le code s'affiche en lecture seule,
+   jamais exécuté ni interprété, et un fichier sensible n'est jamais montré.
+
+---
+
+### User Story 3 — Une analyse qui ne lance rien et dit ce qu'elle sait (Priority: P1) 🎯 MVP
+
+À l'import (et à la demande, « Réanalyser »), l'app lit le code TypeScript / JavaScript, C# et PHP / Laravel et en tire
+modules, fichiers, classes, fonctions, imports et appels, chacun rangé dans une catégorie (métier, orchestration,
+infrastructure, plomberie) et chaque lien marqué selon sa fiabilité. La progression est visible ; l'app reste
+utilisable pendant l'analyse.
+
+**Why this priority**: c'est la matière première de l'explorateur et du guide ; une erreur de fiabilité tromperait
+mentalyas.
+
+**Independent Test**: analyser les trois projets de démonstration → les liens attendus apparaissent (en Laravel :
+route → contrôleur → modèle ; en C# : interface injectée → implémentation ; en TypeScript : imports relatifs et
+alias) ; un fichier volontairement cassé est marqué « non analysé » sans arrêter l'analyse.
+
+**Acceptance Scenarios**:
+
+1. **Given** un projet importé, **When** l'analyse tourne, **Then** sa progression (fichiers lus / total) est
+   affichée, l'arborescence est déjà navigable, et l'analyse peut être annulée sans perdre le résultat précédent.
+2. **Given** un fichier illisible ou invalide, **When** l'analyse le rencontre, **Then** il est marqué « non
+   analysé » avec la raison, et l'analyse continue.
+3. **Given** un appel dont la cible est certaine d'après le code, **Then** le lien est « sûr » ; s'il a été déduit,
+   il est « déduit » avec sa raison ; s'il reste ambigu, il est « incertain » — jamais présenté comme sûr.
+4. **Given** une réanalyse après des modifications, **When** elle tourne, **Then** seuls les fichiers modifiés sont
+   relus, et les corrections de mentalyas (catégorie, cible d'un appel) sont conservées.
+5. **Given** un commentaire ou une chaîne du projet qui contient une consigne (« ignore tes instructions… »),
+   **When** le code est analysé, **Then** rien ne change dans le comportement de l'app ni de l'IA.
+6. **Given** mentalyas en désaccord avec une catégorie ou la cible d'un appel, **When** il la corrige, **Then** sa
+   correction prime et survit aux réanalyses.
+
+---
+
+### User Story 4 — Lire le guide de reprise, écrit pour un dev junior (Priority: P2)
+
+À la fin de la première analyse, un guide de reprise s'ouvre : en une phrase, à quoi sert le projet, comment le lancer
+(commandes montrées, jamais lancées), son architecture (modules et analogies, mini-carte), ses points d'entrée, ses
+conventions, ses zones à risque (remplie par la spec 018), par où commencer (3 à 5 fichiers dans l'ordre) et un
+glossaire. Chaque nom cité ouvre l'explorateur dessus.
+
+**Why this priority**: c'est le raccourci vers « comprendre vite » ; il s'appuie sur l'analyse (US3) et l'explorateur
+(US2).
+
+**Independent Test**: sur le projet de démonstration C#, le guide contient les 9 sections, chacune ouverte par une
+analogie ; un clic sur un fichier cité centre l'explorateur dessus ; un chemin inventé est signalé.
+
+**Acceptance Scenarios**:
+
+1. **Given** la première analyse terminée, **When** le guide est produit, **Then** il contient les 9 sections, et une
+   information introuvable est dite « non trouvée dans le projet », jamais inventée.
+2. **Given** une affirmation qui cite un fichier, un module ou une fonction, **Then** la source existe dans le projet ;
+   sinon elle est signalée ou retirée.
+3. **Given** un projet « Local uniquement », **When** le guide est produit, **Then** il l'est par le modèle local,
+   avec la mention « rédigé par le modèle local, qualité moindre ».
+4. **Given** un guide existant, **When** mentalyas le régénère, **Then** la version précédente reste consultable.
+5. **Given** le guide, **Then** il vit dans l'app (document du genesis), jamais écrit dans le dossier du projet repris.
+
+---
+
+### User Story 5 — Reprendre un projet depuis un dépôt git (Priority: P2)
+
+mentalyas colle l'adresse d'un dépôt, choisit le dossier où le cloner, suit la progression (avec Annuler), puis
+retrouve l'aperçu et le choix de confidentialité de l'US1.
+
+**Why this priority**: le cas réel « je rejoins une boîte » ; il réutilise tout le reste.
+
+**Independent Test**: cloner un dépôt public par `https://` → progression, puis aperçu ; annuler en cours → le dossier
+partiel disparaît ; une adresse piégée (`ext::…`, `file://…`, option commençant par `-`) est refusée sans rien lancer.
+
+**Acceptance Scenarios**:
+
+1. **Given** une adresse `https://` ou `git@`, **When** mentalyas lance le clone, **Then** la progression s'affiche et
+   l'aperçu suit à la fin.
+2. **Given** toute autre forme d'adresse, **When** il la colle, **Then** elle est refusée avant tout lancement.
+3. **Given** un dépôt privé et git qui n'arrive pas à s'authentifier, **Then** l'app explique de se connecter avec son
+   gestionnaire git habituel ; elle ne demande jamais de mot de passe ni de jeton.
+4. **Given** un clone annulé ou en échec, **Then** le dossier partiellement créé par l'app est supprimé, et seulement
+   lui.
+5. **Given** une adresse qui contient un identifiant (`https://user:jeton@…`), **Then** cet identifiant n'est jamais
+   affiché, journalisé ni enregistré.
+
+---
+
+### User Story 6 — Lever les ambiguïtés avec l'IA (Priority: P3)
+
+Après l'analyse, les appels ambigus (plusieurs cibles possibles) sont soumis par lots à Claude (projet « Claude
+autorisé ») ou au modèle local (« Local uniquement ») : il choisit une cible parmi celles proposées ou répond
+« indéterminé », avec une raison courte. Il peut aussi proposer une autre catégorie pour un élément, justifiée.
+
+**Why this priority**: améliore la précision du graphe, surtout en C# ; l'explorateur reste utile sans elle.
+
+**Independent Test**: sur le projet C# de démonstration, un appel à `Save()` présent dans trois classes devient
+« déduit » vers la bonne classe ; une réponse de l'IA qui cite une cible non proposée est rejetée.
+
+**Acceptance Scenarios**:
+
+1. **Given** des appels ambigus, **When** l'IA répond, **Then** seules les cibles parmi les candidats proposés sont
+   acceptées ; le reste demeure « incertain ».
+2. **Given** l'abonnement Claude épuisé ou le modèle local indisponible, **Then** l'explorateur reste utilisable, les
+   liens restent « incertains », et l'app le dit.
+3. **Given** un projet « Local uniquement », **Then** aucun lot n'est envoyé à Claude.
+
+---
+
+### Edge Cases
+
+- Projet très grand (au-delà de 20 000 fichiers retenus) : l'aperçu le dit et propose de choisir un sous-dossier.
+- Projet sans aucun langage reconnu : import possible, explorateur réduit à l'arborescence, message clair.
+- Liens symboliques ou jonctions qui sortent du dossier : jamais suivis.
+- Fichiers sensibles (`.env*`, clés, certificats, fichiers d'identifiants, réglages applicatifs avec secrets) : ni
+  lus, ni affichés, ni envoyés, quel que soit le niveau de confidentialité.
+- Fichier trop gros (au-delà de 1 Mo) : ignoré, signalé « trop gros ».
+- Dossier du projet déplacé ou supprimé après l'import : l'explorateur garde la dernière analyse et dit que le dossier
+  est introuvable.
+- App fermée pendant un clone ou une analyse : à la réouverture, le clone partiel est nettoyé, l'analyse est marquée
+  interrompue et peut être relancée.
+- git absent : l'import par dossier reste possible ; le clone explique comment installer git.
+- Projet sans modules clairs : le premier niveau montre les dossiers racine.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+**Import et confidentialité**
+- **FR-001**: Le chemin d'un projet MUST venir uniquement du sélecteur natif (ou du clone dans un dossier choisi au
+  sélecteur), jamais d'un texte de l'interface.
+- **FR-002**: L'import MUST montrer un aperçu (langages, fichiers retenus / ignorés, fichiers sensibles ignorés, git)
+  avant toute création.
+- **FR-003**: L'import MUST exiger un choix explicite de confidentialité, sans valeur présélectionnée ; le niveau
+  MUST être affiché en permanence sur le chat, l'explorateur et le guide du projet.
+- **FR-004**: En « Local uniquement », aucune donnée du projet (code, noms, chemins, guide, conversation) MUST être
+  envoyée à Claude ; la conversation Claude du genesis (et de ses éléments ou étapes) est indisponible, avec la raison ;
+  le pont MCP ne MUST rien en exposer non plus (guide et documents, nœuds, fiche, graphe), y compris à une session
+  Claude Code externe branchée sur le pont.
+- **FR-005**: Passer de « Local uniquement » à « Claude autorisé » MUST être confirmé ; le changement inverse est
+  immédiat et l'app le dit irréversible pour ce qui a déjà été envoyé.
+- **FR-006**: Le dossier de données de l'app, ses parents et ses enfants MUST être refusés à l'import.
+- **FR-007**: Un dossier ne MUST pas être lié à deux genesis « projet repris ».
+
+**Clone**
+- **FR-008**: Seules les adresses `https://…` et `git@hôte:…` MUST être acceptées ; toute autre forme est refusée sans
+  lancer git.
+- **FR-009**: Le clone MUST utiliser le git de mentalyas, sans shell, sans invite dans une console cachée, sans
+  sous-module ni hook ; un seul clone à la fois ; délai borné ; annulable.
+- **FR-010**: Un clone annulé ou en échec MUST supprimer le dossier qu'il a créé, et seulement celui-là (jamais un
+  dossier qui existait avant).
+- **FR-011**: Un identifiant contenu dans une adresse MUST être retiré avant tout affichage, journal ou stockage.
+
+**Analyse**
+- **FR-012**: Rien du projet importé MUST être exécuté (ni installation, ni compilation, ni script, ni hook).
+- **FR-013**: Les fichiers ignorés d'office : dossiers de dépendances et de compilation, contenu de `.git`, fichiers
+  listés par le `.gitignore` du projet, binaires, fichiers de plus de 1 Mo ; les fichiers sensibles ne sont jamais
+  lus.
+- **FR-014**: L'analyse MUST produire, pour TypeScript / JavaScript, C# et PHP / Laravel : modules, dossiers, fichiers,
+  classes / interfaces, fonctions / méthodes, imports, appels, points d'entrée (routes, contrôleurs, programme
+  principal, commandes, tâches planifiées).
+- **FR-015**: Chaque lien MUST porter sa fiabilité (`sûr`, `déduit` avec raison, `incertain`, `corrigé par
+  mentalyas`) ; chaque élément sa catégorie (métier, orchestration, infrastructure, plomberie) et l'origine de cette
+  catégorie.
+- **FR-016**: Un fichier en erreur MUST être marqué « non analysé » avec sa raison, sans arrêter l'analyse.
+- **FR-017**: L'analyse MUST tourner sans geler l'app, afficher sa progression, pouvoir être annulée sans perdre le
+  résultat précédent, et ne relire que les fichiers modifiés lors d'une réanalyse.
+- **FR-018**: Les corrections de mentalyas (catégorie, cible d'un appel) MUST primer sur les règles et l'IA et
+  survivre aux réanalyses.
+- **FR-019**: Le contenu du projet envoyé à une IA MUST être un extrait court délimité comme donnée ; la réponse MUST
+  être validée (une cible hors des candidats proposés est rejetée).
+
+**Explorateur**
+- **FR-020**: L'explorateur MUST offrir 4 niveaux (modules, dossiers / namespaces, fichiers / classes, fonctions /
+  méthodes avec extrait de code), un fil d'Ariane, le zoom et le double-clic pour descendre.
+- **FR-021**: Les liens vers des éléments non affichés MUST être regroupés sur leur parent visible, avec le nombre
+  d'appels ; la fiabilité affichée est la plus faible des liens regroupés.
+- **FR-022**: Au plus un nombre lisible d'éléments (~150) MUST être affiché à la fois ; le reste est regroupé.
+- **FR-023**: La plomberie MUST être masquée par défaut avec un compteur de ce qui est masqué ; filtres par catégorie,
+  langage et fiabilité ; recherche par nom ; « isoler » un élément et ses voisins (1 ou 2 pas).
+- **FR-024**: Une vue liste MUST offrir les mêmes informations au clavier et au lecteur d'écran ; aucune information
+  ne MUST reposer sur la seule couleur.
+- **FR-025**: L'interface MUST ne recevoir que des chemins relatifs au projet ; l'extrait de code est du texte, jamais
+  interprété ; un fichier sensible n'est jamais montré.
+- **FR-026**: Les positions déplacées par mentalyas, le niveau et les filtres MUST être retenus par projet.
+
+**Guide de reprise**
+- **FR-027**: Le guide MUST contenir 9 sections fixes (En une phrase · À quoi ça sert · Comment le lancer · Architecture
+  · Points d'entrée · Conventions observées · Zones à risque · Par où commencer · Glossaire), chacune ouverte par une
+  analogie.
+- **FR-028**: Les commandes de lancement MUST être montrées, jamais exécutées.
+- **FR-029**: Chaque source citée (fichier, module, fonction) MUST exister dans le projet ; sinon elle est signalée ou
+  retirée ; une information introuvable est dite telle.
+- **FR-030**: Le guide MUST être un document du genesis (historisé), jamais écrit dans le dossier du projet repris.
+
+**Traçabilité**
+- **FR-031**: Imports, clones, analyses et générations de guide MUST être journalisés (date, durée, issue, nombres) —
+  jamais de code, de chemin complet, d'adresse avec identifiant ni de nom d'auteur.
+
+### Key Entities
+
+- **Projet repris** : le genesis lié au dossier importé ; source (dossier / git), adresse distante sans identifiant,
+  niveau de confidentialité et date de changement, état de la dernière analyse.
+- **Module** : grande partie du projet (paquet, projet .NET, dossier racine) ; clé stable, nom, racine.
+- **Fichier analysé** : chemin relatif, langage, empreinte, taille, statut (analysé, non analysé + raison, ignoré).
+- **Symbole** : classe, interface, fonction ou méthode ; parent, lignes, catégorie et son origine.
+- **Lien** : import, appel, implémentation, route, injection ; de → vers (ou cible inconnue), fiabilité, raison,
+  nombre d'occurrences.
+- **Point d'entrée** : route HTTP, programme principal, commande, événement, tâche planifiée.
+- **Analyse** : une passe (début, fin, état, statistiques).
+- **Vue de l'explorateur** : positions, niveau courant, filtres, par projet.
+- **Guide de reprise** : document du genesis, versions successives, origine (Claude / modèle local).
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Sur un projet inconnu de taille moyenne (≈ 500 fichiers), mentalyas sait dire à quoi sert le projet,
+  quels sont ses 3 à 5 modules principaux et par quel fichier commencer **en moins de 10 minutes** après l'import.
+- **SC-002**: **0** donnée d'un projet « Local uniquement » envoyée à Claude, vérifié par un test automatique sur tout
+  le parcours (import, analyse, ambiguïtés, guide, conversation).
+- **SC-003**: **0** programme du projet importé exécuté, vérifié avec un projet piégé (scripts d'installation, hooks,
+  sous-modules, commentaires porteurs de consignes).
+- **SC-004**: Un projet de 5 000 fichiers est analysé en **moins de 2 minutes** sur le poste de mentalyas, l'app
+  restant utilisable pendant ce temps ; une réanalyse après la modification d'un fichier prend **moins de 10 s**.
+- **SC-005**: L'explorateur passe d'un niveau à l'autre en **moins d'une seconde** et reste fluide sur ce projet de
+  5 000 fichiers.
+- **SC-006**: Sur les trois projets de démonstration, **100 %** des liens « sûrs » vérifiés à la main sont exacts ;
+  aucune déduction n'est présentée comme sûre.
+- **SC-007**: **100 %** des sources citées par le guide existent dans le projet.
+
+## Assumptions
+
+- mentalyas a git installé et configuré pour ses dépôts privés (gestionnaire d'identifiants) ; sans git, seul l'import
+  par dossier est possible.
+- Les trois projets de démonstration (TypeScript, C#, Laravel) sont **fictifs** et créés pour les tests (dépôt
+  public : aucune donnée réelle).
+- La résolution des appels sans compilateur ni typage complet est approximative : c'est assumé et rendu visible par la
+  fiabilité des liens (D1, FR-015).
+- Le modèle local (Ollama) peut être absent : en « Local uniquement », le guide et la levée d'ambiguïtés sont alors
+  indisponibles avec explication ; l'import, l'analyse et l'explorateur fonctionnent sans IA.
+- Une bibliothèque d'analyse syntaxique multi-langage est ajoutée (dépendance à annoncer au plan, licence à vérifier) ;
+  le détail technique est dans `docs/brainstorm/L3-reprise-*.md`.
+- Hors périmètre (spec 018 et suivantes) : diagnostic en couleurs, envoi vers la carte de structure, parcours d'une
+  fonctionnalité, questions au projet, suivi des changements, couche dynamique, direction artistique « rétro-néo-
+  futuriste ».
