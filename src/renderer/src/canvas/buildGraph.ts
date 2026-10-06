@@ -16,6 +16,7 @@ import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, ty
 import type { DocumentView } from '@shared/ipc/documents'
 import { finalStateLabel, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
+import { PROVENANCE_LABELS } from '../explorer/labels'
 
 /**
  * Taille d'une idée selon son niveau de contexte (FR-029) : plus elle est complète, plus elle est grande.
@@ -389,7 +390,7 @@ export function buildGraph(
       })
     }
   }
-  const structure = structureGraph(view.elements, genesisCenters, view.mapLinks)
+  const structure = structureGraph(view.elements, genesisCenters, view.mapLinks, view.measuredLinks)
   const elementNodes = structure.placed.map((entry): ElementNodeType => ({
     id: entry.element.id,
     type: 'element',
@@ -400,36 +401,50 @@ export function buildGraph(
     deletable: false
   }))
   const structureEdges = structure.edges.map((edge): MapLinkEdgeType | BranchEdgeType =>
-    edge.kind === 'hierarchy'
+    edge.kind === 'measured'
       ? {
-          id: edge.id,
-          type: 'branch',
-          source: edge.source,
-          target: edge.target,
-          data: { style: 'solid' },
-          deletable: false,
-          selectable: false,
-          focusable: false
-        }
-      : {
           id: edge.id,
           type: 'mapLink',
           source: edge.source,
           target: edge.target,
           data: {
-            label: [
-              edge.relation === null ? null : RELATION_LABELS[edge.relation],
-              edge.label,
-              edge.count > 1 ? `×${edge.count}` : null
-            ]
-              .filter((part) => part !== null)
-              .join(' · '),
-            relation: edge.relation
+            label: `${edge.count} appel${edge.count > 1 ? 's' : ''} mesuré${edge.count > 1 ? 's' : ''} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
+            measured: edge.provenance ?? 'uncertain'
           },
           deletable: false,
           selectable: false,
           focusable: false
         }
+      : edge.kind === 'hierarchy'
+        ? {
+            id: edge.id,
+            type: 'branch',
+            source: edge.source,
+            target: edge.target,
+            data: { style: 'solid' },
+            deletable: false,
+            selectable: false,
+            focusable: false
+          }
+        : {
+            id: edge.id,
+            type: 'mapLink',
+            source: edge.source,
+            target: edge.target,
+            data: {
+              label: [
+                edge.relation === null ? null : RELATION_LABELS[edge.relation],
+                edge.label,
+                edge.count > 1 ? `×${edge.count}` : null
+              ]
+                .filter((part) => part !== null)
+                .join(' · '),
+              relation: edge.relation
+            },
+            deletable: false,
+            selectable: false,
+            focusable: false
+          }
   )
   return {
     nodes: [...neuronNodes, ...blockNodes, ...elementNodes, ...planNodes],

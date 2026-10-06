@@ -2,6 +2,7 @@ import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
 import type { DocumentView } from './documents'
 import type { DeliverableView, StepFinalView } from './finals'
+import type { LinkProvenance } from './reprise'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
@@ -57,6 +58,14 @@ export interface ProposalView {
   }[]
 }
 
+/** Appels mesurés d'un élément à un autre (spec 017 FR-033) : nombre, fiabilité la plus faible. */
+export interface MeasuredLinkView {
+  readonly from: string
+  readonly to: string
+  readonly count: number
+  readonly provenance: LinkProvenance
+}
+
 export interface IdeasCanvasView {
   readonly counts: { readonly raw: number; readonly developing: number; readonly hatched: number }
   /** Toutes les idées, quel que soit leur état, dans un seul espace (FR-029). */
@@ -72,6 +81,8 @@ export interface IdeasCanvasView {
   readonly mapLinks: readonly MapLinkView[]
   /** Éléments des cartes de structure des projets liés (spec 009). */
   readonly elements: readonly ElementView[]
+  /** Appels mesurés par l'analyse entre éléments d'une carte de projet repris (spec 017 US7). */
+  readonly measuredLinks: readonly MeasuredLinkView[]
   /** Étapes des plans d'attaque des genesis visibles (spec 011). */
   readonly steps: readonly StepView[]
   /** Couches proposées par Claude, en attente (fantômes). */

@@ -4,6 +4,7 @@ import type { DeliverableFileDetailView } from '@shared/ipc/finals'
 import { lineDiff } from '@shared/diff/lineDiff'
 import { useUiStore } from '../app/uiStore'
 import { highlight, splitHighlightLines, type HighlightNode } from '../lib/highlight'
+import { Highlighted } from '../lib/Highlighted'
 import { call, IpcFailure } from '../lib/ipc'
 
 export const viewerKey = (neuronId: string, path: string): readonly string[] => ['deliverable', neuronId, 'file', path]
@@ -226,21 +227,5 @@ function SourceView({ file }: { readonly file: DeliverableFileDetailView }): Rea
         <code className="hljs">{tree === null ? text : <Highlighted nodes={tree} />}</code>
       </pre>
     </div>
-  )
-}
-
-function Highlighted({ nodes }: { readonly nodes: readonly HighlightNode[] }): React.JSX.Element {
-  return (
-    <>
-      {nodes.map((node, index) =>
-        typeof node === 'string' ? (
-          node
-        ) : (
-          <span key={index} className={node.className}>
-            <Highlighted nodes={node.children} />
-          </span>
-        )
-      )}
-    </>
   )
 }

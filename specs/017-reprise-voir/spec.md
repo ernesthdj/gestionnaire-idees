@@ -20,6 +20,11 @@ le pont avec la carte de structure sont la spec 018 (MVP 2 — Juger).
 | D5 | Vues | Un **explorateur** à 4 niveaux (modules → dossiers → fichiers → code), ouvert depuis le genesis du projet repris. Le lien explorateur ↔ carte de structure (envoyer un élément, revenir) est la spec 018. |
 | D6 | Pédagogie | Chaque explication (élément de l'explorateur, guide) commence par une **analogie simple**, puis le détail technique ; tout terme technique est expliqué à sa première occurrence. |
 | D7 (validée 2026-10-06) | Projet repris | Le projet importé devient un **genesis « projet repris »** de la carte qui pointe vers **son dossier source, défini par mentalyas** : le dossier local choisi, ou le dossier où le dépôt git a été cloné. Il n'est **jamais** inscrit au registre ProjectMaster (spec 016 D4), ni modifié par l'app. |
+| D9 (2026-10-07, test T023) | Suppression | Supprimer une idée (genesis repris ou non) **retire aussi le lien de l'app vers son dossier** ; « Annuler » le remet. Un projet repris dont le genesis est supprimé ne bloque plus un nouvel import du même dossier (ses données d'analyse sont alors effacées). |
+| D10 (2026-10-07, test T023) | Zoom sémantique | Les seuils sont **relatifs au cadrage d'arrivée** de chaque niveau (dézoomer d'environ 40 % remonte, zoomer au double ouvre l'élément au centre), et seuls les gestes de mentalyas comptent, pas les recadrages automatiques ; un bouton « ↑ Niveau au-dessus » double le geste. |
+| D11 (2026-10-07, retour T023) | Carte combinée | La vue principale d'un projet repris est la **carte de structure dessinée par Claude** (spec 009, « Cartographier ce projet ») : elle regroupe par sens, l'explorateur par dossiers. L'analyse statique la **nourrit** : (A) chaque élément montre **ses fichiers**, consultables en lecture seule avec leurs symboles et leurs appelants ; (B) l'app superpose les **appels mesurés** entre éléments (nombre, sûr / incertain), recalculés à chaque analyse ; (C) un outil du pont donne à Claude le **graphe mesuré** quand il cartographie (projet « Claude autorisé » seulement). |
+| D12 (2026-10-07) | Explorateur | Gardé **en second plan** : ouvert depuis le menu du projet ; vue principale seulement en « Local uniquement », où Claude ne cartographie pas. |
+| D13 (2026-10-07) | Lancement | La cartographie par Claude reste **à l'initiative de mentalyas** (bouton « Cartographier ce projet ») : elle consomme son abonnement. |
 | D8 (validée 2026-10-06) | Constitution | Amendement **4.1.0** proposé avec cette spec (MINOR) : principe I — git devient un programme que l'app peut lancer (chemin absolu, arguments fixes ; déjà utilisé par la spec 016) ; principe IV — en « Local uniquement », le modèle local remplace Claude pour les tâches d'IA de ce projet ; contraintes techniques — bibliothèque d'analyse syntaxique. |
 
 ## User Scenarios & Testing *(mandatory)*
@@ -187,6 +192,35 @@ autorisé ») ou au modèle local (« Local uniquement ») : il choisit une cibl
 
 ---
 
+### User Story 7 — La carte de Claude, nourrie par l'analyse (Priority: P1, ajoutée le 2026-10-07) 🎯
+
+mentalyas cartographie le projet repris avec Claude (« Cartographier ce projet ») : la carte de structure regroupe le
+projet par sens. Sur chaque élément, il consulte ses fichiers (code en lecture seule, symboles, qui les appelle) ; entre
+les éléments, la carte montre les appels réellement mesurés par l'analyse ; et Claude a dessiné ses liens en
+s'appuyant sur ce graphe mesuré plutôt que sur des déductions.
+
+**Why this priority**: retour du test T023 — la carte de Claude est plus lisible ; il lui manquait l'accès aux fichiers et
+des liens fondés sur les faits.
+
+**Independent Test**: projet `cs-app` en « Claude autorisé », analysé puis cartographié : sur l'élément de la couche
+domaine, la liste de ses fichiers s'ouvre et montre le code de `OrderService.cs` ; un lien « N appels » relie
+l'élément des contrôleurs à celui du domaine ; Claude a lu le graphe (pastille « graphe du code lu » dans le fil).
+
+**Acceptance Scenarios**:
+
+1. **Given** un élément dont les chemins désignent des fichiers ou des dossiers, **When** mentalyas ouvre ses fichiers,
+   **Then** la liste montre les fichiers du projet couverts (un dossier → ses fichiers), et un clic affiche le code en
+   lecture seule, ses symboles et leurs appelants ; un fichier sensible n'est jamais montré.
+2. **Given** un projet repris analysé et une carte de structure, **When** la carte s'affiche, **Then** entre deux
+   éléments dont les fichiers s'appellent, un lien montre le nombre d'appels et leur fiabilité (sûr / incertain),
+   rattaché à l'ancêtre visible si l'élément est replié.
+3. **Given** un projet « Claude autorisé », **When** Claude cartographie, **Then** il peut lire le graphe mesuré (modules,
+   points d'entrée, appels sûrs entre fichiers) ; **Given** un projet « Local uniquement », **Then** cet outil est refusé.
+4. **Given** un projet repris, **When** mentalyas veut le détail par dossiers, **Then** l'explorateur s'ouvre depuis le
+   chat du genesis, en second plan.
+
+---
+
 ### Edge Cases
 
 - Projet très grand (au-delà de 20 000 fichiers retenus) : l'aperçu le dit et propose de choisir un sous-dossier.
@@ -272,6 +306,15 @@ autorisé ») ou au modèle local (« Local uniquement ») : il choisit une cibl
 - **FR-029**: Chaque source citée (fichier, module, fonction) MUST exister dans le projet ; sinon elle est signalée ou
   retirée ; une information introuvable est dite telle.
 - **FR-030**: Le guide MUST être un document du genesis (historisé), jamais écrit dans le dossier du projet repris.
+
+**Carte combinée (US7, D11–D13)**
+- **FR-032**: Un élément de carte de structure MUST donner accès à ses fichiers (chemins de l'élément ; un dossier couvre
+  ses fichiers, 200 au plus), lus sous la racine du projet, en lecture seule, jamais un fichier sensible ; avec, pour un
+  projet repris analysé, les symboles du fichier et leurs appelants.
+- **FR-033**: La carte de structure d'un projet repris analysé MUST montrer les appels mesurés entre ses éléments
+  (nombre, fiabilité la plus faible), rattachés à l'ancêtre visible, distincts des liens dessinés par Claude.
+- **FR-034**: Le pont MCP MUST offrir à Claude une lecture du graphe mesuré d'un projet repris (`code_graphe_lire`),
+  refusée en « Local uniquement » par la garde de confidentialité.
 
 **Traçabilité**
 - **FR-031**: Imports, clones, analyses et générations de guide MUST être journalisés (date, durée, issue, nombres) —

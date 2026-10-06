@@ -14,6 +14,12 @@ export type CodeCategory = (typeof CODE_CATEGORIES)[number]
 export const LINK_PROVENANCES = ['syntax', 'deduced', 'uncertain', 'user'] as const
 export type LinkProvenance = (typeof LINK_PROVENANCES)[number]
 
+/** Du moins au plus fiable : un lien agrégé prend la fiabilité la plus faible de ses appels (spec 017 US7). */
+const PROVENANCE_STRENGTH: Readonly<Record<LinkProvenance, number>> = { uncertain: 0, deduced: 1, syntax: 2, user: 3 }
+
+export const weakestProvenance = (a: LinkProvenance, b: LinkProvenance): LinkProvenance =>
+  PROVENANCE_STRENGTH[a] <= PROVENANCE_STRENGTH[b] ? a : b
+
 /** Au plus ce nombre d'éléments affichés à la fois dans l'explorateur (spec 017 FR-022). */
 export const EXPLORER_LIMITS = { nodes: 150, edges: 400, callers: 50, excerptLines: 200, search: 30 } as const
 
@@ -116,6 +122,8 @@ export interface ExplorerLinkView {
 
 export interface ExplorerNodeDetailView {
   readonly key: string
+  /** Nœud qui le contient (ouvrir ce parent montre l'élément) ; `''` : la racine. */
+  readonly parentKey: string
   readonly kind: ExplorerNodeView['kind']
   readonly title: string
   readonly path: string | null
@@ -156,3 +164,31 @@ export interface CloneProgressEvent {
   readonly percent: number
 }
 export type CloneFailureCode = 'AUTH_FAILED' | 'NOT_FOUND' | 'NETWORK' | 'CANCELLED' | 'TIMEOUT' | 'FAILED'
+
+/** Fichiers d'un élément de carte de structure (spec 017 US7, FR-032). */
+export interface ElementFilesView {
+  readonly elementId: string
+  readonly title: string
+  /** Chemins donnés à l'élément (fichiers ou dossiers). */
+  readonly paths: readonly string[]
+  readonly files: readonly { readonly path: string; readonly lang: CodeLang; readonly lines: number | null }[]
+  /** Plus de 200 fichiers : la liste est tronquée. */
+  readonly truncated: boolean
+  /** Projet repris analysé : symboles et appelants disponibles. */
+  readonly analyzed: boolean
+}
+
+export interface ElementFileView {
+  readonly path: string
+  readonly lang: CodeLang
+  readonly lines: readonly string[]
+  readonly symbols: readonly {
+    readonly id: string
+    readonly name: string
+    readonly kind: 'namespace' | 'class' | 'interface' | 'function' | 'method'
+    readonly startLine: number
+    readonly endLine: number
+    /** Nombre d'appels venant d'autres fichiers. */
+    readonly callers: number
+  }[]
+}

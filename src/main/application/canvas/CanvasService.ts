@@ -15,7 +15,7 @@ import {
   type StepView
 } from '@shared/ipc/canvas'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
-import type { ElementView, MapLinkView } from '@shared/ipc/canvas'
+import type { ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
 import { AppError } from '../../domain/errors'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
@@ -24,6 +24,7 @@ import type { PlanRepository, ProposalRow } from '../../infrastructure/db/reposi
 import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
 import type { DocumentView } from '@shared/ipc/documents'
 import { fileLabel } from '../mcp/DocumentTools'
+import { measuredLinks, type FileCall } from '../../domain/reprise/measured'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
@@ -39,6 +40,8 @@ export interface CanvasDeps {
   readonly sheetSummaries?: () => Map<string, string>
   /** Éléments des cartes de structure (spec 009). */
   readonly elements?: { views(): ElementView[] }
+  /** Appels mesurés entre fichiers d'un projet repris analysé (spec 017 US7) ; vide sinon. */
+  readonly fileCalls?: (genesisId: string) => readonly FileCall[]
   /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
   readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
   /** Documents des neurones (spec 012). */
@@ -195,11 +198,25 @@ export class CanvasService {
         (link) => present.has(link.from.id) && present.has(link.to.id)
       ),
       elements,
+      measuredLinks: this.measured(elements),
       steps,
       proposals,
       documents,
       deliverables
     }
+  }
+
+  /** Appels mesurés entre les éléments de chaque carte de projet repris (spec 017 FR-033). */
+  private measured(elements: readonly ElementView[]): MeasuredLinkView[] {
+    const fileCallsOf = this.deps.fileCalls
+    if (fileCallsOf === undefined) return []
+    const byGenesis = new Map<string, ElementView[]>()
+    for (const element of elements)
+      byGenesis.set(element.genesisId, [...(byGenesis.get(element.genesisId) ?? []), element])
+    return [...byGenesis].flatMap(([genesisId, members]) => {
+      const calls = fileCallsOf(genesisId)
+      return calls.length === 0 ? [] : measuredLinks(members, calls)
+    })
   }
 
   /** Un cadre résultat suit son widget : widget supprimé, cadre masqué (il revient si la suppression est annulée). */

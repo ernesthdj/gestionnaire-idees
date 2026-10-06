@@ -29,6 +29,10 @@ interface UiState {
   readonly viewer: { readonly neuronId: string; readonly path: string } | null
   openViewer(neuronId: string, path: string): void
   closeViewer(): void
+  /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
+  readonly explorerGenesisId: string | null
+  openExplorer(genesisId: string): void
+  closeExplorer(): void
   openChat(neuronId: string): void
   closeChat(): void
   show(view: View): void
@@ -66,6 +70,9 @@ export const useUiStore = create<UiState>()((set) => ({
   openViewer: (neuronId, path) =>
     set({ view: 'ideas', viewer: { neuronId, path }, chatNeuronId: null, ghostId: null, finalId: null }),
   closeViewer: () => set({ viewer: null }),
+  explorerGenesisId: null,
+  openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),
+  closeExplorer: () => set({ explorerGenesisId: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

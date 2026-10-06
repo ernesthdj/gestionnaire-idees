@@ -574,3 +574,19 @@
 .hljs-strong {
   font-weight: 600;
 }
+
+/*
+ * Appels mesurés par l'analyse d'un projet repris (spec 017 US7) : trait gris épais, distinct des liens dessinés par
+ * Claude ; plein = sûr, tirets = déduit, pointillés = incertain (comme l'explorateur), toujours avec son libellé.
+ */
+.react-flow__edge .measured {
+  stroke: var(--color-content-muted);
+  stroke-width: 3;
+  stroke-opacity: 0.55;
+}
+.react-flow__edge .measured-deduced {
+  stroke-dasharray: 6 4;
+}
+.react-flow__edge .measured-uncertain {
+  stroke-dasharray: 2 4;
+}

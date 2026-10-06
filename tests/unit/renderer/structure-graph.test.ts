@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ELEMENT_SIZE, structureGraph } from '../../../src/renderer/src/canvas/structureGraph'
-import type { ElementView, MapLinkView } from '../../../src/shared/ipc/canvas'
+import type { ElementView, MapLinkView, MeasuredLinkView } from '../../../src/shared/ipc/canvas'
 import { buildGraph, computeLayout } from '../../../src/renderer/src/canvas/buildGraph'
 import { canvasView, RAW_ID } from '../../fixtures/ui/canvas'
 
@@ -82,5 +82,33 @@ describe('carte de structure à l’écran', () => {
       ariaLabel: 'module « Processus principal », 2 éléments repliés'
     })
     expect(graph.mapEdges).toContainEqual(expect.objectContaining({ source: RAW_ID, target: 'm1', type: 'branch' }))
+  })
+
+  it('should_attach_measured_calls_to_the_visible_ancestor_summed_with_the_weakest_provenance', () => {
+    const measured: MeasuredLinkView[] = [
+      { from: 'a', to: 'c', count: 3, provenance: 'syntax' },
+      { from: 'b', to: 'c', count: 2, provenance: 'uncertain' },
+      { from: 'a', to: 'b', count: 7, provenance: 'syntax' }
+    ]
+    const folded = structureGraph(elements, centers, [], measured).edges.filter((edge) => edge.kind === 'measured')
+    expect(folded).toEqual([
+      expect.objectContaining({ source: 'main', target: 'renderer', count: 5, provenance: 'uncertain' })
+    ])
+    const view = {
+      ...canvasView(),
+      elements: [
+        element('m1', RAW_ID, { genesisId: RAW_ID, collapsed: false }),
+        element('m2', RAW_ID, { genesisId: RAW_ID })
+      ],
+      measuredLinks: [{ from: 'm1', to: 'm2', count: 1, provenance: 'syntax' } as const]
+    }
+    expect(buildGraph(view, computeLayout(view)).mapEdges).toContainEqual(
+      expect.objectContaining({
+        source: 'm1',
+        target: 'm2',
+        type: 'mapLink',
+        data: { label: '1 appel mesuré · sûr', measured: 'syntax' }
+      })
+    )
   })
 })

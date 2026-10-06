@@ -53,6 +53,9 @@ export const BRAINSTORMER_FRAME = [
   'decision) à clé stable (« module:main », « composant:src/main/x.ts »…), parent par clé, chemins relatifs, statut, et',
   'liens typés (depend_de, appelle, lit_ecrit, implemente, teste, bloque). Commence par les grandes parties (modules,',
   'fonctionnalités), puis détaille ; 12 enfants au plus par élément. Pour mettre à jour, relis d’abord structure_lire et',
-  'réutilise les mêmes clés. Chaque élément a sa propre conversation : dans celle d’un élément, concentre-toi sur lui',
+  'réutilise les mêmes clés. Projet repris analysé : lis d’abord code_graphe_lire (modules, points d’entrée, appels',
+  'sûrs entre fichiers mesurés par l’analyse) et fonde dessus les liens appelle / depend_de et les chemins des éléments ;',
+  'l’app montre ces appels mesurés sur la carte, à côté de tes liens. Chaque élément a sa propre conversation : dans',
+  'celle d’un élément, concentre-toi sur lui',
   '(ses fichiers, ses liens) et tiens SA fiche.'
 ].join('\n')

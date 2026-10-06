@@ -1,9 +1,11 @@
-import type { ElementRelation, ElementView, MapLinkView } from '@shared/ipc/canvas'
+import type { ElementRelation, ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
+import { weakestProvenance, type LinkProvenance } from '@shared/ipc/reprise'
 
 /**
  * Carte de structure d'un projet à l'écran (spec 009, L3 §5) : quels éléments sont visibles (repli), où ils se
  * placent (arbre en colonnes à droite de leur genesis), et quels liens typés tracer — un lien vers un élément replié
- * se rattache à son ancêtre visible, regroupé avec ses semblables. Fonction pure.
+ * se rattache à son ancêtre visible, regroupé avec ses semblables ; de même pour les appels mesurés par l'analyse
+ * d'un projet repris (spec 017 US7), sommés et ramenés à leur fiabilité la plus faible. Fonction pure.
  */
 
 export const ELEMENT_SIZE = { width: 240, height: 96 } as const
@@ -24,11 +26,13 @@ export interface StructureEdge {
   readonly id: string
   readonly source: string
   readonly target: string
-  readonly kind: 'hierarchy' | 'relation'
+  readonly kind: 'hierarchy' | 'relation' | 'measured'
   readonly relation: ElementRelation | null
   readonly label: string | null
-  /** Nombre de liens regroupés (parties repliées). */
+  /** Nombre de liens regroupés (parties repliées) ; pour un lien mesuré, nombre d'appels. */
   readonly count: number
+  /** Fiabilité la plus faible des appels d'un lien mesuré ; `null` sinon. */
+  readonly provenance: LinkProvenance | null
 }
 
 export interface StructureGraph {
@@ -39,7 +43,8 @@ export interface StructureGraph {
 export function structureGraph(
   elements: readonly ElementView[],
   genesisCenters: ReadonlyMap<string, { readonly x: number; readonly y: number }>,
-  links: readonly MapLinkView[]
+  links: readonly MapLinkView[],
+  measured: readonly MeasuredLinkView[] = []
 ): StructureGraph {
   const byId = new Map(elements.map((element) => [element.id, element] as const))
   const children = new Map<string, ElementView[]>()
@@ -96,7 +101,8 @@ export function structureGraph(
     kind: 'hierarchy',
     relation: null,
     label: null,
-    count: 1
+    count: 1,
+    provenance: null
   }))
   const visibleEnd = (id: string): string | null => {
     let current: string | undefined = id
@@ -123,8 +129,31 @@ export function structureGraph(
       kind: 'relation',
       relation: link.relation,
       label: existing === undefined ? link.label : null,
-      count: (existing?.count ?? 0) + 1
+      count: (existing?.count ?? 0) + 1,
+      provenance: null
     })
   }
-  return { placed, edges: [...edges, ...grouped.values()] }
+  const calls = new Map<string, StructureEdge>()
+  for (const link of measured) {
+    const source = visibleEnd(link.from)
+    const target = visibleEnd(link.to)
+    if (source === null || target === null || source === target) continue
+    const key = `${source}>${target}`
+    const existing = calls.get(key)
+    const provenance =
+      existing === undefined || existing.provenance === null
+        ? link.provenance
+        : weakestProvenance(existing.provenance, link.provenance)
+    calls.set(key, {
+      id: `calls-${key}`,
+      source,
+      target,
+      kind: 'measured',
+      relation: null,
+      label: null,
+      count: (existing?.count ?? 0) + link.count,
+      provenance
+    })
+  }
+  return { placed, edges: [...edges, ...grouped.values(), ...calls.values()] }
 }

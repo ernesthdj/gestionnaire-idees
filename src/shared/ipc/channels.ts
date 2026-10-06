@@ -86,7 +86,16 @@ export const MAIN_WINDOW_CHANNELS = [
   'reprise:cancelAnalysis',
   'reprise:setCategory',
   'reprise:setTarget',
-  'element:setCollapsed'
+  'explorer:view',
+  'explorer:node',
+  'explorer:code',
+  'explorer:search',
+  'explorer:savePosition',
+  'explorer:state',
+  'explorer:saveState',
+  'element:setCollapsed',
+  'structure:files',
+  'structure:file'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

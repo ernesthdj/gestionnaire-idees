@@ -202,6 +202,7 @@ export function toolLabel(name: string): string {
     retirer: 'éléments retirés',
     widget_poser: 'widget posé',
     action_proposer: 'action finale proposée',
+    code_graphe_lire: 'graphe du code lu',
     Read: 'fichier lu',
     Glob: 'fichiers listés',
     Grep: 'recherche dans les fichiers',

@@ -2,11 +2,14 @@ import { BaseEdge, EdgeLabelRenderer, getStraightPath, type Edge, type EdgeProps
 import { useCenter } from './useCenter'
 
 import type { ElementRelation } from '@shared/ipc/canvas'
+import type { LinkProvenance } from '@shared/ipc/reprise'
 
 export type MapLinkEdgeData = {
   readonly label: string | null
   /** Relation d'une carte de structure (spec 009) : style du trait. */
   readonly relation?: ElementRelation | null
+  /** Appels mesurés par l'analyse (spec 017 US7) : trait distinct, selon leur fiabilité. */
+  readonly measured?: LinkProvenance
 }
 export type MapLinkEdgeType = Edge<MapLinkEdgeData, 'mapLink'>
 
@@ -22,7 +25,9 @@ export function MapLinkEdge({ id, source, target, data }: EdgeProps<MapLinkEdgeT
       <BaseEdge
         id={id}
         path={path}
-        className={`map-link-line${data?.relation === undefined || data.relation === null ? '' : ` relation-${data.relation}`}`}
+        className={`map-link-line${data?.relation === undefined || data.relation === null ? '' : ` relation-${data.relation}`}${
+          data?.measured === undefined ? '' : ` measured measured-${data.measured}`
+        }`}
       />
       {label === null || label === '' ? null : (
         <EdgeLabelRenderer>

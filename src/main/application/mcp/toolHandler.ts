@@ -19,6 +19,7 @@ import type { FinalTools } from './FinalTools'
 import type { StructureService } from '../structure/StructureService'
 import type { PermissionService } from '../conversation/PermissionService'
 import type { DeliverableTracker } from '../finals/DeliverableTracker'
+import type { CodeGraphTools } from '../reprise/CodeGraphTools'
 import { McpToolError } from '../../domain/mcp/errors'
 
 /** Aiguillage des outils du pont : carte (spec 007) ou neurone de la conversation (spec 008). */
@@ -30,7 +31,8 @@ export function createToolHandler(
   documents: Pick<DocumentTools, 'write' | 'read'>,
   finals: Pick<FinalTools, 'propose'>,
   permissions?: Pick<PermissionService, 'request'>,
-  deliverables?: Pick<DeliverableTracker, 'before'>
+  deliverables?: Pick<DeliverableTracker, 'before'>,
+  codeGraph?: Pick<CodeGraphTools, 'read'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
     switch (tool) {
@@ -68,6 +70,9 @@ export function createToolHandler(
         return plan.propose(args as PlanProposerInput, caller)
       case 'structure_lire':
         return structure.read((args as { projet?: string }).projet, caller)
+      case 'code_graphe_lire':
+        if (codeGraph === undefined) throw new McpToolError('INTROUVABLE', 'Graphe mesuré indisponible.')
+        return codeGraph.read((args as { projet?: string }).projet, caller)
       default:
         return map.handle(tool, args, caller)
     }

@@ -50,6 +50,10 @@ import { DeliverableTracker } from './application/finals/DeliverableTracker'
 import { ConfidentialityGuard } from './application/reprise/ConfidentialityGuard'
 import { RepriseService } from './application/reprise/RepriseService'
 import { AnalysisService } from './application/reprise/AnalysisService'
+import { CodeGraphTools } from './application/reprise/CodeGraphTools'
+import { ElementFilesService } from './application/reprise/ElementFilesService'
+import { ExplorerService } from './application/reprise/ExplorerService'
+import { createExplorerRoutes } from './ipc/explorerHandlers'
 import { analysisWorker } from './infrastructure/reprise/AnalysisWorker'
 import { CodeGraphRepository } from './infrastructure/db/repositories/CodeGraphRepository'
 import { scanProject } from './infrastructure/reprise/ProjectScanner'
@@ -291,6 +295,10 @@ export function bootstrap(shell: ShellPort): AppContext {
     files: projectFiles,
     record: (neuronId, relative, before, next) => executions.recordWrite(neuronId, relative, before, next)
   })
+  // Graphe des projets repris (spec 017) ; l'explorateur le charge une fois, vidé du cache à chaque analyse ou
+  // correction, et donne aussi à la carte les appels mesurés entre ses éléments (US7).
+  const codeGraph = new CodeGraphRepository(database.db)
+  const explorer = new ExplorerService({ reprise: repriseRepository, graph: codeGraph })
   const canvas = new CanvasService({
     plan: planRepository,
     documents: documentRepository,
@@ -304,7 +312,8 @@ export function bootstrap(shell: ShellPort): AppContext {
     io: widgetIo,
     mapLinks: mapLinkRepository,
     sheetSummaries: () => conversationRepository.sheetSummaries(),
-    elements: elementRepository
+    elements: elementRepository,
+    fileCalls: (genesisId) => explorer.fileCalls(genesisId)
   })
 
   // Cartes de structure des projets liés (spec 009) : un élément appartient au projet de son genesis.
@@ -385,7 +394,13 @@ export function bootstrap(shell: ShellPort): AppContext {
           onProposed: (summary) => broadcast('final:proposed', { summary })
         }),
         permissions,
-        deliverables
+        deliverables,
+        new CodeGraphTools({
+          genesisOf,
+          project: (genesisId) => repriseRepository.project(genesisId),
+          graph: codeGraph,
+          fileCalls: (genesisId) => explorer.fileCalls(genesisId)
+        })
       )
     ),
     logger
@@ -452,12 +467,21 @@ export function bootstrap(shell: ShellPort): AppContext {
   // Analyse des projets repris (spec 017 US3) : processus séparé, une analyse lourde à la fois.
   const analysis = new AnalysisService({
     reprise: repriseRepository,
-    graph: new CodeGraphRepository(database.db),
+    graph: codeGraph,
     scan: (root) => scanProject(root),
     runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js')),
-    emit: (event) => broadcast(event.type, event.payload)
+    emit: (event) => {
+      if (event.type === 'reprise:changed') explorer.invalidate(event.payload.genesisId)
+      broadcast(event.type, event.payload)
+    }
   })
   analysis.recover()
+  // Fichiers d'un élément de carte (spec 017 US7) : lecture seule sous le dossier lié, symboles si le projet est analysé.
+  const elementFiles = new ElementFilesService({
+    neuron: (id) => conversationRepository.neuron(id),
+    graph: codeGraph,
+    scan: (root) => scanProject(root)
+  })
   // Reprendre un projet existant (spec 017) : dossier choisi au sélecteur natif, genesis lié à son dossier source.
   const reprise = new RepriseService({
     repository: repriseRepository,
@@ -473,6 +497,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     createGenesis: async (title) => (await neurons.create({ text: title })).id,
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     dataDir,
+    isArchived: (genesisId) => conversationRepository.neuron(genesisId)?.state === 'archived',
     onCreated: (genesisId) => {
       try {
         analysis.analyze(genesisId)
@@ -539,7 +564,8 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createChatRoutes(conversations, permissions),
       ...createProjectRoutes(projects),
       ...createRepriseRoutes(reprise, analysis),
-      ...createStructureRoutes(structure),
+      ...createExplorerRoutes(explorer),
+      ...createStructureRoutes(structure, elementFiles),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

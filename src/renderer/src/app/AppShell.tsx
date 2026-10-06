@@ -3,6 +3,7 @@ import type { Section } from '@shared/ipc/app'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
+import { ExplorerPage } from '../explorer/ExplorerPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
 import { HeaderUsage } from './HeaderUsage'
@@ -48,6 +49,8 @@ export function AppShell(): React.JSX.Element {
   const reduced = useReducedMotionPreference(settings.motion)
   const view = useUiStore((state) => state.view)
   const show = useUiStore((state) => state.show)
+  const explorerGenesisId = useUiStore((state) => state.explorerGenesisId)
+  const closeExplorer = useUiStore((state) => state.closeExplorer)
   useApplyTheme(settings.theme)
   useMainEvents()
 
@@ -91,7 +94,11 @@ export function AppShell(): React.JSX.Element {
             </div>
           </header>
           <main className="min-h-0 flex-1 overflow-hidden">
-            <CurrentView view={view} />
+            {explorerGenesisId !== null && view === 'ideas' ? (
+              <ExplorerPage genesisId={explorerGenesisId} onClose={closeExplorer} />
+            ) : (
+              <CurrentView view={view} />
+            )}
           </main>
           <Toast />
         </div>

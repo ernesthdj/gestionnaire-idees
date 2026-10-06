@@ -35,11 +35,20 @@
 
 ## Phase 5 — US2 Voir le projet dans l'explorateur (P1) 🎯 MVP
 **Test indépendant** : `ts-app` : Modules → dossiers → fichiers → fonctions + extrait, fil d'Ariane, plomberie masquée avec compteur, isoler, vue liste.
-- [ ] T019 [P] [US2] Pur : agrégation par niveau (ancêtre visible, nombre d'appels, fiabilité la plus faible, regroupement au-delà de 150) dans `src/main/domain/reprise/aggregate.ts` + tests
-- [ ] T020 [P] [US2] Pur : mise en page en colonnes par catégorie, ordre par barycentre, positions épinglées respectées dans `src/main/domain/reprise/layout.ts` + tests
-- [ ] T021 [US2] `ExplorerService` dans `src/main/application/reprise/ExplorerService.ts` (vue agrégée avec cache par run, détail avec appelants / appelés, extrait ≤ 200 lignes sous la racine et hors secrets, recherche, positions, état ; dossier déplacé ou supprimé → dernière analyse en lecture seule, signalée) + IPC `src/main/ipc/explorerHandlers.ts` (`explorer:*`) + tests d'intégration (volumétrie 5 000 fichiers synthétiques)
-- [ ] T022 [US2] Interface : vue `explorer` dans `uiStore`, `src/renderer/src/explorer/ExplorerPage.tsx` (carte React Flow 62 % / panneau 38 %, indicateur de niveau 1-2-3-4, fil d'Ariane, zoom sémantique, double-clic, filtres, recherche, isoler, légende traits + icônes, badge, bandeau d'analyse en cours, bandeau « dossier introuvable »), `NodePanel.tsx`, `CodeExcerpt.tsx` (texte échappé, highlight.js), `ExplorerList.tsx` (vue liste clavier) ; « Ouvrir l'explorateur » sur le genesis + tests renderer/axe
-- [ ] T023 [US2] Test guidé (quickstart §2, §3) — attendre le retour
+- [x] T019 [P] [US2] Pur : agrégation par niveau (ancêtre visible, nombre d'appels, fiabilité la plus faible, regroupement au-delà de 150) dans `src/main/domain/reprise/aggregate.ts` + tests
+- [x] T020 [P] [US2] Pur : mise en page en colonnes par catégorie, ordre par barycentre, positions épinglées respectées dans `src/main/domain/reprise/layout.ts` + tests
+- [x] T021 [US2] `ExplorerService` dans `src/main/application/reprise/ExplorerService.ts` (vue agrégée avec cache par run, détail avec appelants / appelés, extrait ≤ 200 lignes sous la racine et hors secrets, recherche, positions, état ; dossier déplacé ou supprimé → dernière analyse en lecture seule, signalée) + IPC `src/main/ipc/explorerHandlers.ts` (`explorer:*`) + tests d'intégration (volumétrie 5 000 fichiers synthétiques)
+- [x] T022 [US2] Interface : vue `explorer` dans `uiStore`, `src/renderer/src/explorer/ExplorerPage.tsx` (carte React Flow 62 % / panneau 38 %, indicateur de niveau 1-2-3-4, fil d'Ariane, zoom sémantique, double-clic, filtres, recherche, isoler, légende traits + icônes, badge, bandeau d'analyse en cours, bandeau « dossier introuvable »), `NodePanel.tsx`, `CodeExcerpt.tsx` (texte échappé, highlight.js), `ExplorerList.tsx` (vue liste clavier) ; « Ouvrir l'explorateur » sur le genesis + tests renderer/axe
+- [x] T023 [US2] Test guidé (quickstart §2, §3) — retour du 2026-10-07 : dézoom corrigé (D10), suppression d'un genesis (D9), et réorientation vers la carte combinée (D11–D13, phase 5 bis)
+
+## Phase 5 bis — US7 La carte de Claude, nourrie par l'analyse (P1, retour T023, D11–D13)
+**Test indépendant** : `cs-app` cartographié par Claude : fichiers d'un élément consultables, liens « N appels » entre éléments, graphe lu par Claude.
+- [x] T038 [US7] Fichiers d'un élément : `ElementFilesService` (chemins de l'élément → fichiers du projet, dossiers développés, 200 au plus ; lecture sous la racine, 1 Mo, hors sensibles ; symboles et appelants si projet repris analysé) + IPC `structure:files`, `structure:file` + tests
+- [x] T039 [US7] Interface : section « Fichiers » dans le chat d'un élément, lecteur de fichier en lecture seule (code coloré, symboles, appelants) + tests renderer/axe
+- [x] T040 [P] [US7] Pur : appels mesurés entre éléments (fichier → élément le plus profond qui le couvre, agrégation, fiabilité la plus faible) dans `src/main/domain/reprise/measured.ts` ; `IdeasCanvasView.measuredLinks` (CanvasService) ; rendu distinct sur la carte, rattaché à l'ancêtre visible (`structureGraph`) + tests
+- [x] T041 [US7] Outil du pont `code_graphe_lire` (modules, points d'entrée, appels sûrs entre fichiers, bornés) garde comprise ; consigne de cartographie (`MAP_MESSAGE`, cadre) : s'appuyer sur le graphe mesuré + tests
+- [x] T042 [US7] Explorateur en second plan (D12) : bouton discret dans le chat du genesis, mis en avant seulement en « Local uniquement » + tests
+- [x] T043 [US7] Test guidé (US7) — attendre le retour
 
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.

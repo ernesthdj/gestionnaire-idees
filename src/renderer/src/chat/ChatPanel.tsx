@@ -11,7 +11,9 @@ import type {
 import { BYPASS_WARNING, CHAT_MESSAGE_MAX, PERMISSION_MODES } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
+import { useUiStore } from '../app/uiStore'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
+import { ElementFileReader, ElementFiles } from './ElementFiles'
 import { Markdown } from './Markdown'
 import { ProjectForm } from './ProjectForm'
 import { UsageMeter } from './UsageMeter'
@@ -60,7 +62,9 @@ export const FINAL_MESSAGE =
   'découper. N’écris encore aucun fichier.'
 
 export const MAP_MESSAGE =
-  'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code, puis dessine ' +
+  'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code ; s’il s’agit ' +
+  'd’un projet repris analysé, lis aussi son graphe mesuré avec code_graphe_lire et fonde dessus les liens appelle / ' +
+  'depend_de et les chemins des éléments (des faits, pas des déductions). Puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
   'fichiers, données, interfaces, tâches, décisions) et les liens typés entre eux. Si une carte existe déjà, relis-la ' +
   'avec structure_lire et mets-la à jour avec les mêmes clés. Ensuite, résume-moi la structure en quelques lignes.'
@@ -289,11 +293,14 @@ export function ChatPanel({
   readonly onClose: () => void
 }): React.JSX.Element {
   const chat = useChat(neuronId)
+  const openExplorer = useUiStore((state) => state.openExplorer)
   const [draft, setDraft] = useState('')
   const fieldId = useId()
   const end = useRef<HTMLDivElement>(null)
   const nextRequest = chat.pending[0]
   const [projectForm, setProjectForm] = useState(false)
+  // Fichier d'un élément ouvert en lecture (spec 017 US7) : le lecteur recouvre la conversation, qui reste en place.
+  const [reading, setReading] = useState<string | null>(null)
   // Après le premier brainstorm (maturité suffisante), devenir un projet est l'étape suivante : le bouton est mis en avant.
   const brainstormed = chat.maturity === 'sufficient' || chat.maturity === 'complete'
   // Projet repris « Local uniquement » (spec 017 FR-004) : aucune conversation avec Claude.
@@ -311,7 +318,12 @@ export function ChatPanel({
   }
 
   return (
-    <section aria-label={`Conversation : ${chat.title}`} className="flex h-full flex-col">
+    <section aria-label={`Conversation : ${chat.title}`} className="relative flex h-full flex-col">
+      {reading === null ? null : (
+        <div className="absolute inset-0 z-10 bg-surface">
+          <ElementFileReader elementId={neuronId} path={reading} onBack={() => setReading(null)} />
+        </div>
+      )}
       <header className="flex items-center gap-2 border-b border-content-muted/20 px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
@@ -327,12 +339,28 @@ export function ChatPanel({
             {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
           </p>
           {chat.reprise === null ? null : (
-            <div className="mt-1">
+            <div className="mt-1 flex flex-wrap items-start gap-2">
               <ConfidentialityBadge
                 genesisId={chat.reprise.genesisId}
                 level={chat.reprise.confidentiality}
                 onChanged={chat.setConfidentiality}
               />
+              {/*
+               * Explorateur en second plan (spec 017 D12) : la carte de Claude est la vue principale ; il n'est mis en
+               * avant qu'en « Local uniquement », où il reste la seule vue (il ne transmet rien à Claude).
+               */}
+              <button
+                type="button"
+                onClick={() => openExplorer(chat.reprise?.genesisId ?? neuronId)}
+                title="Détail du code par dossiers, fichiers et symboles"
+                className={
+                  localOnly
+                    ? 'rounded-md bg-accent px-2 py-0.5 text-xs text-surface'
+                    : 'px-1 py-0.5 text-xs text-content-muted underline hover:text-content'
+                }
+              >
+                Ouvrir l’explorateur
+              </button>
             </div>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
@@ -504,6 +532,7 @@ export function ChatPanel({
       {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
+        {chat.role === 'element' ? <ElementFiles elementId={neuronId} onOpen={setReading} /> : null}
         {chat.sheet === null ? null : <Sheet sheet={chat.sheet} />}
         {chat.problem === null ? null : (
           <p role="alert" className="text-sm text-red-700 dark:text-red-400">

@@ -519,6 +519,15 @@ describe('chat d’un projet repris (spec 017 FR-003, FR-004)', () => {
     await expectNoAxeViolations(container)
   })
 
+  it.each([
+    ['local', true],
+    ['claude', false]
+  ] as const)('should_put_the_explorer_forward_only_when_the_project_is_%s', async (level, forward) => {
+    renderReprise(level)
+    const button = await screen.findByRole('button', { name: 'Ouvrir l’explorateur' })
+    expect(button.className.includes('bg-accent')).toBe(forward)
+  })
+
   it('should_confirm_before_allowing_claude_then_open_the_conversation', async () => {
     const user = userEvent.setup()
     const { api } = renderReprise('local')
@@ -542,5 +551,47 @@ describe('chat d’un projet repris (spec 017 FR-003, FR-004)', () => {
     await user.click(screen.getByRole('button', { name: 'Repasser en local' }))
     expect(api.invoke).toHaveBeenCalledWith('reprise:setConfidentiality', { genesisId: GENESIS, level: 'local' })
     expect((await screen.findByRole('status')).textContent).toContain('ne peut pas être rappelé')
+  })
+})
+
+describe('fichiers d’un élément de carte (spec 017 US7)', () => {
+  it('should_list_the_files_of_an_element_and_open_one_read_only_with_its_symbols', async () => {
+    const user = userEvent.setup()
+    const api = installFakeApi({
+      'chat:open': () => view({ role: 'element', elementType: 'module', folder: 'ts-app' }),
+      'chat:close': () => ({ ok: true }),
+      'structure:files': () => ({
+        elementId: ID,
+        title: 'Cœur',
+        paths: ['src/core'],
+        files: [{ path: 'src/core/orderService.ts', lang: 'ts', lines: 3 }],
+        truncated: false,
+        analyzed: true
+      }),
+      'structure:file': () => ({
+        path: 'src/core/orderService.ts',
+        lang: 'ts',
+        lines: ['export class OrderService {', '  place(): number { return 1 }', '}'],
+        symbols: [
+          { id: 's1', name: 'OrderService', kind: 'class', startLine: 1, endLine: 3, callers: 0 },
+          { id: 's2', name: 'place', kind: 'method', startLine: 2, endLine: 2, callers: 3 }
+        ]
+      })
+    })
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ChatPanel neuronId={ID} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    expect(await screen.findByText('Fichiers (1)')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /src\/core\/orderService\.ts/ }))
+    expect(api.invoke).toHaveBeenCalledWith('structure:file', { elementId: ID, path: 'src/core/orderService.ts' })
+    const symbols = await screen.findByRole('navigation', { name: 'Symboles du fichier' })
+    expect(symbols.textContent).toContain('appelé 3 fois d’ailleurs')
+    await user.click(screen.getByRole('button', { name: /place/ }))
+    expect(container.querySelector('[data-line="2"]')?.className).toContain('bg-accent/15')
+    await expectNoAxeViolations(container)
+    await user.click(screen.getByRole('button', { name: '← Conversation' }))
+    expect(screen.queryByRole('navigation', { name: 'Symboles du fichier' })).toBeNull()
   })
 })

@@ -217,6 +217,7 @@ export const StructureDessinerInput = z.strictObject({
 })
 export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
 export const StructureLireInput = z.strictObject({ projet: Id.optional() })
+export const CodeGrapheLireInput = z.strictObject({ projet: Id.optional() })
 
 export interface McpToolDefinition {
   readonly description: string
@@ -359,6 +360,14 @@ export const MCP_TOOLS = {
     description:
       'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
     input: StructureLireInput,
+    writes: false
+  },
+  code_graphe_lire: {
+    description:
+      'Lit le graphe MESURÉ d’un projet repris analysé (analyse statique) : modules, points d’entrée et appels sûrs ' +
+      'entre fichiers. Avant de cartographier un projet repris, appuie sur lui les liens appelle / depend_de et les ' +
+      'chemins des éléments ; refusé pour un projet « Local uniquement ».',
+    input: CodeGrapheLireInput,
     writes: false
   }
 } as const satisfies Record<string, McpToolDefinition>
