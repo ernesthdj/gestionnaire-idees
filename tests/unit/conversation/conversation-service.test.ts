@@ -337,6 +337,15 @@ describe('conversations Claude Code des neurones', () => {
     ])
   })
 
+  it('should_refuse_any_conversation_with_claude_when_the_project_is_local_only', async () => {
+    service = build({ claudeAllowed: (neuronId) => neuronId !== N1 })
+    await expect(service.send(N1, 'Explique-moi ce projet')).rejects.toMatchObject({ code: 'LOCAL_ONLY' })
+    expect(processes).toHaveLength(0)
+    expect(messages).toEqual([])
+    await service.send(N2, 'Salut')
+    expect(processes).toHaveLength(1)
+  })
+
   it('should_refuse_a_second_message_during_a_turn', async () => {
     await service.send(N1, 'Salut')
     await expect(service.send(N1, 'Encore')).rejects.toMatchObject({ code: 'BUSY' })

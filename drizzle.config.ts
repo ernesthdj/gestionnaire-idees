@@ -4,6 +4,10 @@ import { defineConfig } from 'drizzle-kit'
 // est accompagnée d'un script d'annulation écrit à la main dans `migrations/down/`.
 export default defineConfig({
   dialect: 'sqlite',
-  schema: ['./src/main/infrastructure/db/schema.ts', './src/main/infrastructure/db/schemaNeurons.ts'],
+  schema: [
+    './src/main/infrastructure/db/schema.ts',
+    './src/main/infrastructure/db/schemaNeurons.ts',
+    './src/main/infrastructure/db/schemaReprise.ts'
+  ],
   out: './src/main/infrastructure/db/migrations'
 })

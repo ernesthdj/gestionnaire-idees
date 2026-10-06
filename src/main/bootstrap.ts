@@ -47,6 +47,9 @@ import { PlanTools } from './application/mcp/PlanTools'
 import { DocumentTools, fileLabel } from './application/mcp/DocumentTools'
 import { ExecutionService } from './application/finals/ExecutionService'
 import { DeliverableTracker } from './application/finals/DeliverableTracker'
+import { ConfidentialityGuard } from './application/reprise/ConfidentialityGuard'
+import { maskLocalProjects } from './domain/reprise/maskLocal'
+import { RepriseRepository } from './infrastructure/db/repositories/RepriseRepository'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
 import { DeliverableReader } from './application/finals/DeliverableReader'
 import { PermissionService } from './application/conversation/PermissionService'
@@ -235,6 +238,13 @@ export function bootstrap(shell: ShellPort): AppContext {
   const planRepository = new PlanRepository(database.db)
   // Documents Markdown des neurones (spec 012) : vrais fichiers, dossier choisi ici, jamais par Claude ni l'interface.
   const documentRepository = new DocumentRepository(database.db)
+  // Projets repris (spec 017) : un projet « Local uniquement » n'est jamais transmis à Claude (garde unique, R5).
+  const repriseRepository = new RepriseRepository(database.db)
+  const confidentiality = new ConfidentialityGuard({
+    neuron: (id) => conversationRepository.neuron(id),
+    project: (genesisId) => repriseRepository.project(genesisId),
+    documentNeuron: (documentId) => documentRepository.get(documentId)?.neuronId
+  })
   const documents = new DocumentService({
     repository: documentRepository,
     files: new DocumentFiles({ profileDir: dataDir }),
@@ -312,8 +322,11 @@ export function bootstrap(shell: ShellPort): AppContext {
   // Pont MCP (spec 007) : Claude Code lit et écrit la carte par un relais, via le canal nommé de ce profil.
   const selection = new SelectionStore()
   const mapService = new MapService({
-    canvas: () => canvas.get(),
-    tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
+    canvas: () => maskLocalProjects(canvas.get(), (genesisId) => confidentiality.isLocalGenesis(genesisId)),
+    tree: (rootId) =>
+      neuronRepository.root(rootId) === undefined || confidentiality.isLocalGenesis(rootId)
+        ? undefined
+        : neurons.getTree(rootId),
     blocks: blockRepository,
     mapLinks: mapLinkRepository,
     neurons: neuronRepository,
@@ -337,35 +350,37 @@ export function bootstrap(shell: ShellPort): AppContext {
   const pipe = new PipeServer({
     pipeName: pipeNameFor(dataDir),
     matchesToken: (candidate) => mcpToken.matches(candidate),
-    handle: createToolHandler(
-      mapService,
-      new NeuronTools({
-        conversations: conversationRepository,
-        insertAssessment: (input) => conversationRepository.insertAssessment(input),
-        onChanged: (neuronId) => broadcast('chat:sheet', { neuronId }),
-        plan: planRepository,
-        documents: documentRepository,
-        finals
-      }),
-      structure,
-      new PlanTools({
-        plan,
-        conversations: conversationRepository,
-        onProposed: (summary) => broadcast('plan:proposed', { summary })
-      }),
-      new DocumentTools({
-        documents,
-        repository: documentRepository,
-        conversations: conversationRepository,
-        onWritten: (event) => broadcast('map:changed', event)
-      }),
-      new FinalTools({
-        finals,
-        conversations: conversationRepository,
-        onProposed: (summary) => broadcast('final:proposed', { summary })
-      }),
-      permissions,
-      deliverables
+    handle: confidentiality.guardTools(
+      createToolHandler(
+        mapService,
+        new NeuronTools({
+          conversations: conversationRepository,
+          insertAssessment: (input) => conversationRepository.insertAssessment(input),
+          onChanged: (neuronId) => broadcast('chat:sheet', { neuronId }),
+          plan: planRepository,
+          documents: documentRepository,
+          finals
+        }),
+        structure,
+        new PlanTools({
+          plan,
+          conversations: conversationRepository,
+          onProposed: (summary) => broadcast('plan:proposed', { summary })
+        }),
+        new DocumentTools({
+          documents,
+          repository: documentRepository,
+          conversations: conversationRepository,
+          onWritten: (event) => broadcast('map:changed', event)
+        }),
+        new FinalTools({
+          finals,
+          conversations: conversationRepository,
+          onProposed: (summary) => broadcast('final:proposed', { summary })
+        }),
+        permissions,
+        deliverables
+      )
     ),
     logger
   })
@@ -391,6 +406,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     frame: BRAINSTORMER_FRAME,
     permissions,
     defaultPermissionMode: () => appSettings.get().chatPermissionMode,
+    claudeAllowed: (neuronId) => confidentiality.claudeAllowed(neuronId),
     onToolResult: (neuronId, toolUseId, ok) => deliverables.after(neuronId, toolUseId, ok),
     finalOf: (neuronId) => {
       const action = finalRepository.get(neuronId)

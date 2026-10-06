@@ -18,6 +18,7 @@ import { rankLabel } from '@shared/plan/rankLabel'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PermissionService } from './PermissionService'
+import { LOCAL_ONLY_MESSAGE } from '../reprise/ConfidentialityGuard'
 import { AppError } from '../../domain/errors'
 import { BYPASS_WARNING, type PermissionMode } from '@shared/ipc/chat'
 import type { ConversationProcess, SpawnConversation } from '../../infrastructure/claude/CliConversation'
@@ -87,6 +88,8 @@ export interface ConversationDeps {
   readonly permissions?: Pick<PermissionService, 'cancel' | 'open' | 'modeChanged'>
   /** Mode de permission par défaut des conversations (réglage) ; absent : Demander. */
   readonly defaultPermissionMode?: () => PermissionMode
+  /** Projet repris « Local uniquement » (spec 017 FR-004) : `false` → aucune conversation avec Claude. */
+  readonly claudeAllowed?: (neuronId: string) => boolean
   /** Action finale d'une étape (spec 014 FR-011) : son état et son livrable, dits à Claude dans le contexte. */
   readonly finalOf?: (neuronId: string) => { readonly state: string; readonly files: readonly string[] } | undefined
   /** Résultat d'un outil (spec 014 R5) : le livrable d'une action finale relit le fichier écrit. */
@@ -330,6 +333,7 @@ export class ConversationService {
    */
   async send(neuronId: string, text: string, data?: string): Promise<void> {
     const neuron = this.neuronOrThrow(neuronId)
+    if (this.deps.claudeAllowed?.(neuronId) === false) throw new AppError('LOCAL_ONLY', LOCAL_ONLY_MESSAGE)
     if (this.live.get(neuronId)?.busy === true)
       throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
     const live = this.live.get(neuronId) ?? (await this.start(neuron))

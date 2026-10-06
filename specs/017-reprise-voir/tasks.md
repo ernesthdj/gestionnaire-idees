@@ -11,11 +11,11 @@
 - [x] T003 [P] Projets fixtures **fictifs** `tests/fixtures/reprise/{ts-app, cs-app, laravel-app, hostile-app}` (modules, routes, interface injectée, appel ambigu, fichier cassé, `.env`, scripts d'installation, hook, commentaire porteur de consigne)
 
 ## Phase 2 — Fondations (bloquant)
-- [ ] T004 Migration `0028_reprise_projet` (10 tables `code_*`, data-model.md) + `migrations/down/0028_reprise_projet.down.sql` écrit à la main + aller-retour testé dans `tests/integration/db/`
-- [ ] T005 Dépôts `src/main/infrastructure/db/repositories/RepriseRepository.ts` (projets, runs, overrides, état de l'explorateur, positions) et `CodeGraphRepository.ts` (modules, fichiers, symboles, liens, points d'entrée ; écriture par lots en transaction) + tests d'intégration
-- [ ] T006 [P] Vues et contrats partagés `src/shared/ipc/reprise.ts` (ImportPreviewView, RepriseProjectView, Explorer*View, CodeExcerptView, codes d'erreur) et canaux / événements dans `src/shared/ipc/channels.ts`
-- [ ] T007 [P] Pur : exclusions + fichiers sensibles + `.gitignore` simple dans `src/main/domain/reprise/fileFilter.ts` (réutilise la liste de `checkProjectPath`) + tests
-- [ ] T008 `ConfidentialityGuard` dans `src/main/application/reprise/ConfidentialityGuard.ts` (genesis → niveau ; projet non repris = autorisé) ; branché dans `ConversationService.send` (code `LOCAL_ONLY`, message clair) **et dans les outils de lecture du pont MCP** (`document_lire`, `noeud_lire`, `neurone_contexte`, `carte_lire`, `etat`, `structure_lire` : un projet local est refusé ou masqué, y compris pour une session externe sans neurone) + tests
+- [x] T004 Migration `0028_reprise_projet` (10 tables `code_*`, data-model.md) + `migrations/down/0028_reprise_projet.down.sql` écrit à la main + aller-retour testé dans `tests/integration/db/`
+- [x] T005 Dépôts `src/main/infrastructure/db/repositories/RepriseRepository.ts` (projets, runs, overrides, état de l'explorateur, positions) et `CodeGraphRepository.ts` (modules, fichiers, symboles, liens, points d'entrée ; écriture par lots en transaction) + tests d'intégration
+- [x] T006 [P] Vues et contrats partagés `src/shared/ipc/reprise.ts` (ImportPreviewView, RepriseProjectView, Explorer*View, CodeExcerptView, codes d'erreur) ; les canaux et événements rejoignent `src/shared/ipc/channels.ts` avec leurs gestionnaires (T010, T018, T021…), comme le veut ce fichier
+- [x] T007 [P] Pur : exclusions + fichiers sensibles + `.gitignore` simple dans `src/main/domain/reprise/fileFilter.ts` (réutilise la liste de `checkProjectPath`) + tests
+- [x] T008 `ConfidentialityGuard` dans `src/main/application/reprise/ConfidentialityGuard.ts` (genesis → niveau ; projet non repris = autorisé) ; branché dans `ConversationService.send` (code `LOCAL_ONLY`, message clair) **et dans les outils de lecture du pont MCP** (`document_lire`, `noeud_lire`, `neurone_contexte`, `carte_lire`, `etat`, `structure_lire` : un projet local est refusé ou masqué, y compris pour une session externe sans neurone) + tests
 
 ## Phase 3 — US1 Reprendre un projet depuis un dossier, confidentialité (P1) 🎯 MVP
 **Test indépendant** : importer `laravel-app` en « Local uniquement » → genesis avec badge ; chat indisponible ; aucune tâche Claude.

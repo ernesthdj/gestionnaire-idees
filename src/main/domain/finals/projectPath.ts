@@ -96,6 +96,16 @@ function extensionOf(name: string): string {
   return dot <= 0 ? '' : name.slice(dot + 1)
 }
 
+/** Fichier de secrets ou de clés (nom en minuscules), modèles d'environnement exceptés (spec 013, spec 017). */
+export function isSecretFileName(name: string): boolean {
+  return !ENV_TEMPLATES.has(name) && (SECRET_NAMES.test(name) || SECRET_EXTENSIONS.has(extensionOf(name)))
+}
+
+/** Fichier binaire ou exécutable connu (nom en minuscules). */
+export function isBinaryFileName(name: string): boolean {
+  return BINARY_EXTENSIONS.has(extensionOf(name))
+}
+
 /** Chemin normalisé (`/`) et sa clé (minuscules : Windows ignore la casse), ou la raison du refus. */
 export function checkProjectPath(input: string): ProjectPathCheck {
   if (input.length === 0 || input.length > PROJECT_PATH_MAX) {
@@ -121,9 +131,9 @@ export function checkProjectPath(input: string): ProjectPathCheck {
   if (blocked !== undefined) return refuse(`dossier protégé (${blocked}) : Claude n’y écrit jamais`)
   const name = lower.at(-1) ?? ''
   const original = segments.at(-1) ?? ''
-  if (!ENV_TEMPLATES.has(name) && (SECRET_NAMES.test(name) || SECRET_EXTENSIONS.has(extensionOf(name)))) {
+  if (isSecretFileName(name)) {
     return refuse(`« ${original} » est un fichier de secrets ou de clés : Claude n’y écrit jamais`)
   }
-  if (BINARY_EXTENSIONS.has(extensionOf(name))) return refuse(`« ${original} » n’est pas un fichier texte`)
+  if (isBinaryFileName(name)) return refuse(`« ${original} » n’est pas un fichier texte`)
   return { ok: true, path, key: lower.join('/') }
 }
