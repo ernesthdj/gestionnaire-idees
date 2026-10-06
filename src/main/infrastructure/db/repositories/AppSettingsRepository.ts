@@ -9,6 +9,7 @@ import {
   type AppSettingsPatch,
   type AppSettingsView
 } from '@shared/ipc/app'
+import { EDITOR_KINDS } from '../../../domain/finals/editor'
 import type { AppDatabase } from '../client'
 import { settings } from '../schemaNeurons'
 
@@ -23,6 +24,10 @@ const FIELDS = {
 
 const DRAFT_KEY = 'capture.draft'
 const DraftSchema = z.string().max(CAPTURE_MAX_CHARS)
+
+const EDITOR_KEY = 'editor.program'
+const EditorSchema = z.object({ kind: z.enum(EDITOR_KINDS), program: z.string().min(1).max(1000) }).strict()
+export type EditorSetting = z.infer<typeof EditorSchema>
 
 type Field = keyof typeof FIELDS
 
@@ -71,6 +76,27 @@ export class AppSettingsRepository {
       }
     })
     return this.get()
+  }
+
+  /** Éditeur réglé pour « Ouvrir dans l'éditeur » (spec 013 D4) ; `null` : aucun. */
+  editor(): EditorSetting | null {
+    const row = this.db.select().from(settings).where(eq(settings.key, EDITOR_KEY)).get()
+    if (row === undefined) return null
+    const parsed = EditorSchema.safeParse(safeJson(row.valueJson))
+    return parsed.success ? parsed.data : null
+  }
+
+  saveEditor(editor: EditorSetting | null): void {
+    if (editor === null) {
+      this.db.delete(settings).where(eq(settings.key, EDITOR_KEY)).run()
+      return
+    }
+    const valueJson = JSON.stringify(EditorSchema.parse(editor))
+    this.db
+      .insert(settings)
+      .values({ key: EDITOR_KEY, valueJson })
+      .onConflictDoUpdate({ target: settings.key, set: { valueJson } })
+      .run()
   }
 
   draft(): string {

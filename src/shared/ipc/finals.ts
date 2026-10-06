@@ -23,6 +23,35 @@ export interface DeliverableFileView {
   readonly status: 'cree' | 'modifie'
 }
 
+/** Un fichier du livrable ouvert dans la visionneuse (spec 013 D4, `deliverable:file`), en lecture seule. */
+export interface DeliverableFileDetailView {
+  readonly path: string
+  readonly status: 'cree' | 'modifie'
+  /** Langage pour la coloration ; `null` : texte brut. */
+  readonly language: string | null
+  /** Contenu d'avant la première écriture de Claude ; `null` : fichier créé. */
+  readonly before: string | null
+  /** Dernier contenu écrit par Claude. */
+  readonly after: string
+  /** Contenu actuel sur le disque ; `null` s'il est absent, trop gros ou binaire. */
+  readonly current: string | null
+  readonly missing: boolean
+  readonly tooBig: boolean
+  readonly binary: boolean
+  /** Le fichier sur le disque n'est plus celui écrit par Claude (retouché ailleurs). */
+  readonly changedSince: boolean
+}
+
+/** Éditeur pour « Ouvrir dans l'éditeur » (spec 013 D4) : réglé, et ceux trouvés sur la machine. */
+export interface EditorSettingsView {
+  readonly current: { readonly kind: 'vscode' | 'notepadpp' | 'other'; readonly program: string } | null
+  readonly detected: readonly { readonly kind: 'vscode' | 'notepadpp'; readonly name: string }[]
+}
+
+/** Choix d'un éditeur : un éditeur détecté, ou un autre programme choisi dans un dialogue natif. */
+export const EDITOR_CHOICES = ['vscode', 'notepadpp', 'browse'] as const
+export type EditorChoice = (typeof EDITOR_CHOICES)[number]
+
 /** Dernier lancement d'un script approuvé pendant les exécutions de l'action (spec 013 D2 bis). */
 export interface DeliverableRunView {
   readonly script: string

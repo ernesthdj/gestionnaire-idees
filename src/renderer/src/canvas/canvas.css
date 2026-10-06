@@ -510,3 +510,65 @@
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
+
+/* Visionneuse de fichier du livrable (spec 013 D4) : lignes de différence et coloration sur les jetons du thème. */
+.viewer-code {
+  line-height: 1.5;
+  tab-size: 2;
+}
+.viewer-code pre {
+  margin: 0;
+  white-space: pre;
+}
+.viewer-diff-added {
+  background: color-mix(in srgb, var(--color-pro) 14%, transparent);
+}
+.viewer-diff-removed {
+  background: color-mix(in srgb, var(--color-con) 14%, transparent);
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-meta {
+  color: var(--color-content-muted);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag {
+  color: var(--color-accent);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--color-pro);
+}
+.hljs-number,
+.hljs-literal,
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--color-idea);
+}
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: var(--color-seed);
+}
+.hljs-built_in,
+.hljs-type,
+.hljs-symbol,
+.hljs-tag {
+  color: var(--color-action);
+}
+.hljs-deletion {
+  color: var(--color-con);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 600;
+}

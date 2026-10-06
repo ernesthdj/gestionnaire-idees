@@ -14,6 +14,7 @@ export function DeliverableNode({ data, selected }: NodeProps<DeliverableNodeTyp
   const { deliverable, title, dimmed } = data
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
+  const openViewer = useUiStore((state) => state.openViewer)
   const count = deliverable.files.length
 
   const resize = async (width: number, height: number): Promise<void> => {
@@ -77,15 +78,22 @@ export function DeliverableNode({ data, selected }: NodeProps<DeliverableNodeTyp
         ) : (
           <ul className="flex flex-col gap-1">
             {deliverable.files.map((file) => (
-              <li key={file.path} className="flex items-center gap-2">
-                <span
-                  className={`shrink-0 rounded px-1.5 text-xs font-semibold ${file.status === 'cree' ? 'bg-pro/15 text-pro' : 'bg-accent/15 text-accent'}`}
+              <li key={file.path}>
+                <button
+                  type="button"
+                  onClick={() => openViewer(deliverable.neuronId, file.path)}
+                  aria-label={`Lire ${file.path} (${file.status === 'cree' ? 'créé' : 'modifié'})`}
+                  className="flex w-full items-center gap-2 rounded px-1 text-left hover:bg-surface-raised"
                 >
-                  {file.status === 'cree' ? 'créé' : 'modifié'}
-                </span>
-                <code className="min-w-0 truncate text-xs" title={file.path}>
-                  {file.path}
-                </code>
+                  <span
+                    className={`shrink-0 rounded px-1.5 text-xs font-semibold ${file.status === 'cree' ? 'bg-pro/15 text-pro' : 'bg-accent/15 text-accent'}`}
+                  >
+                    {file.status === 'cree' ? 'créé' : 'modifié'}
+                  </span>
+                  <code className="min-w-0 truncate text-xs" title={file.path}>
+                    {file.path}
+                  </code>
+                </button>
               </li>
             ))}
           </ul>

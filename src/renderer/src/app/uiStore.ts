@@ -25,6 +25,10 @@ interface UiState {
   readonly finalId: string | null
   openFinal(neuronId: string): void
   closeFinal(): void
+  /** Fichier du livrable d'une action finale lu dans la visionneuse (spec 013 D4). */
+  readonly viewer: { readonly neuronId: string; readonly path: string } | null
+  openViewer(neuronId: string, path: string): void
+  closeViewer(): void
   openChat(neuronId: string): void
   closeChat(): void
   show(view: View): void
@@ -47,17 +51,21 @@ export const useUiStore = create<UiState>()((set) => ({
   chatNeuronId: null,
   ghostId: null,
   finalId: null,
+  viewer: null,
   toast: null,
   bornId: null,
-  show: (view) => set({ view, chatNeuronId: null, ghostId: null, finalId: null }),
+  show: (view) => set({ view, chatNeuronId: null, ghostId: null, finalId: null, viewer: null }),
   // Une idée capturée s'ouvre directement sur sa conversation (spec 010 US2).
-  navigate: ({ section, diveRootId }) => set({ view: section, chatNeuronId: diveRootId ?? null }),
-  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null, finalId: null }),
+  navigate: ({ section, diveRootId }) => set({ view: section, chatNeuronId: diveRootId ?? null, viewer: null }),
+  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null, finalId: null, viewer: null }),
   closeChat: () => set({ chatNeuronId: null }),
-  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null, finalId: null }),
+  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null, finalId: null, viewer: null }),
   closeGhost: () => set({ ghostId: null }),
-  openFinal: (neuronId) => set({ view: 'ideas', finalId: neuronId, chatNeuronId: null, ghostId: null }),
+  openFinal: (neuronId) => set({ view: 'ideas', finalId: neuronId, chatNeuronId: null, ghostId: null, viewer: null }),
   closeFinal: () => set({ finalId: null }),
+  openViewer: (neuronId, path) =>
+    set({ view: 'ideas', viewer: { neuronId, path }, chatNeuronId: null, ghostId: null, finalId: null }),
+  closeViewer: () => set({ viewer: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

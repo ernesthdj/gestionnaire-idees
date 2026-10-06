@@ -90,7 +90,7 @@ function renderCanvas(
 describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   beforeAll(() => installReactFlowMocks())
   beforeEach(() =>
-    useUiStore.setState({ view: 'ideas', chatNeuronId: null, ghostId: null, finalId: null, toast: null })
+    useUiStore.setState({ view: 'ideas', chatNeuronId: null, ghostId: null, finalId: null, viewer: null, toast: null })
   )
 
   it('should_show_steps_with_their_rank_and_ghosts_with_their_future_rank', async () => {
@@ -242,6 +242,62 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     expect(within(deliverable).getByRole('list', { name: 'Résultats des commandes' }).textContent).toBe('test ✗')
     await user.click(screen.getByRole('button', { name: 'Arrêter l’exécution de « Valider le budget »' }))
     expect(api.invoke).toHaveBeenCalledWith('final:stop', { neuronId: STEP_1 })
+  })
+
+  it('should_open_a_deliverable_file_read_only_with_its_differences_and_its_colored_content', async () => {
+    const user = userEvent.setup()
+    const view: IdeasCanvasView = {
+      ...finalView('a_revoir'),
+      deliverables: [
+        {
+          neuronId: STEP_1,
+          genesisId: HATCHED_A_ID,
+          files: [{ path: 'src/a.ts', status: 'modifie' }],
+          runs: [],
+          executing: false,
+          width: 420,
+          height: 300,
+          offset: { x: 0, y: 0 }
+        }
+      ]
+    }
+    const { api } = renderCanvas(view, {
+      'deliverable:file': () => ({
+        path: 'src/a.ts',
+        status: 'modifie',
+        language: 'typescript',
+        before: 'const a = 1\n',
+        after: 'const a = 2\n',
+        current: 'const a = 3\n<script>alert(1)</script>\n',
+        missing: false,
+        tooBig: false,
+        binary: false,
+        changedSince: true
+      }),
+      'deliverable:openInEditor': () => ({ ok: true })
+    })
+    await user.click(await screen.findByRole('button', { name: 'Lire src/a.ts (modifié)' }))
+    expect(api.invoke).toHaveBeenCalledWith('deliverable:file', { neuronId: STEP_1, path: 'src/a.ts' })
+    const viewer = await screen.findByRole('complementary', { name: 'Visionneuse de fichier' })
+    expect(await within(viewer).findByText('Modifié depuis l’écriture de Claude')).toBeTruthy()
+    // La différence part du contenu actuel (retouché) : 2 lignes ajoutées, 1 retirée.
+    expect(within(viewer).getByRole('tabpanel').textContent).toContain('+2 · −1')
+    // Les lignes de la différence sont colorées elles aussi.
+    expect(within(viewer).getByRole('tabpanel').querySelector('.viewer-diff-removed .hljs-keyword')?.textContent).toBe(
+      'const'
+    )
+    await user.click(within(viewer).getByRole('tab', { name: 'Fichier' }))
+    const code = within(viewer).getByRole('tabpanel').querySelector('code.hljs')
+    expect(code?.querySelector('.hljs-keyword')?.textContent).toBe('const')
+    // Le contenu n'est jamais interprété : la balise reste du texte.
+    expect(code?.querySelector('script')).toBeNull()
+    expect(code?.textContent).toContain('<script>alert(1)</script>')
+    await expectNoAxeViolations(viewer)
+    // L'éditeur s'ouvre à la première ligne changée du contenu actuel.
+    await user.click(within(viewer).getByRole('button', { name: 'Ouvrir dans l’éditeur' }))
+    expect(api.invoke).toHaveBeenCalledWith('deliverable:openInEditor', { neuronId: STEP_1, path: 'src/a.ts', line: 1 })
+    await user.click(within(viewer).getByRole('button', { name: 'Fermer la visionneuse' }))
+    expect(screen.queryByRole('complementary', { name: 'Visionneuse de fichier' })).toBeNull()
   })
 
   it('should_show_a_proposed_final_action_on_its_step_and_accept_it_with_its_check_button', async () => {

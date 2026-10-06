@@ -52,6 +52,7 @@ import { useSelectionSync } from './useSelectionSync'
 import { ChatPanel } from '../chat/ChatPanel'
 import { GhostPanel } from './GhostPanel'
 import { FinalPanel } from './FinalPanel'
+import { FileViewer } from './FileViewer'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
@@ -158,6 +159,8 @@ function CanvasInner(): React.JSX.Element {
   const closeGhost = useUiStore((state) => state.closeGhost)
   const finalId = useUiStore((state) => state.finalId)
   const closeFinal = useUiStore((state) => state.closeFinal)
+  const viewer = useUiStore((state) => state.viewer)
+  const closeViewer = useUiStore((state) => state.closeViewer)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -599,6 +602,18 @@ function CanvasInner(): React.JSX.Element {
             className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
           >
             <FinalPanel key={finalId} view={view} neuronId={finalId} onClose={closeFinal} />
+          </aside>
+        ) : viewer !== null ? (
+          <aside
+            aria-label="Visionneuse de fichier"
+            className="min-w-0 basis-[38%] overflow-hidden border-l border-content-muted/20 bg-surface"
+          >
+            <FileViewer
+              key={`${viewer.neuronId}:${viewer.path}`}
+              neuronId={viewer.neuronId}
+              path={viewer.path}
+              onClose={closeViewer}
+            />
           </aside>
         ) : null}
       </div>

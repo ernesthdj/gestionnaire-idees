@@ -138,3 +138,9 @@
   par `deliverable:correct` ; le message est construit par le main à partir de la trace, pas par le renderer.
 - **Risque assumé** : comme R9, un test exécute du code du projet écrit par Claude ; garde-fous : approbation du script,
   geste explicite de mentalyas, trace.
+- **Révision à l'implémentation (2026-10-06)** : pas de commande d'éditeur à variables saisie dans l'interface
+  (constitution I : aucun programme choisi par le renderer). Le programme vient soit d'un éditeur **détecté** à son
+  emplacement d'installation (VS Code, Notepad++ ; arguments fixes `-g fichier:ligne`, `-nLIGNE fichier`), soit du
+  **dialogue natif** (`.exe` seulement, argument : le fichier). Coloration : la sortie de `highlight.js` est relue
+  par un analyseur à grammaire fermée et rendue en éléments React — aucun HTML injecté. `checkProjectPath` refuse
+  déjà `.cmd`/`.bat` dans un livrable ; la liste blanche protège surtout des `.js`.

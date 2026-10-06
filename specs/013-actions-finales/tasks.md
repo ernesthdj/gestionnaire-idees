@@ -39,9 +39,9 @@
 ## Phase 4 — US3 Revoir le livrable (P1) 🎯
 - [ ] T018 [US3] `deliverable:get` (différences, « modifié depuis »), `deliverable:accept` (→ `fait`), `deliverable:correct`, `deliverable:revert` (restaure, épargne les retouchés, corbeille), `deliverable:move/resize` + tests
 - [ ] T019 [US3] `DeliverableNode` complet : différences dépliables, Accepter / Corriger / Revenir en arrière, fil de l'exécution + tests renderer/axe
-- [ ] T030 [US3] D4 : `deliverable:file` (contenu actuel via `ProjectFiles`, langage, trop gros, binaire, absent) + tests
-- [ ] T031 [US3] D4 : volet de lecture (onglets Différences / Fichier, `highlight.js` cœur + langages choisis, numéros de ligne) ouvert au clic sur un fichier du livrable + tests renderer/axe — dépendance `highlight.js` à annoncer
-- [ ] T032 [US3] D4 : analyseur pur de `editor.command` (guillemets, `{fichier}`, `{ligne}`), liste blanche d'extensions, `deliverable:openInEditor` (spawn sans shell, détaché ; repli `shell.openPath` filtré), réglage dans Réglages + tests (commandes et extensions hostiles)
+- [x] T030 [US3] D4 : `deliverable:file` (contenu actuel via `ProjectFiles`, langage, trop gros, binaire, absent) + tests
+- [x] T031 [US3] D4 : volet de lecture (onglets Différences / Fichier, `highlight.js` cœur + langages choisis, numéros de ligne) ouvert au clic sur un fichier du livrable + tests renderer/axe — dépendance `highlight.js` à annoncer
+- [x] T032 [US3] D4 : analyseur pur de `editor.command` (guillemets, `{fichier}`, `{ligne}`), liste blanche d'extensions, `deliverable:openInEditor` (spawn sans shell, détaché ; repli `shell.openPath` filtré), réglage dans Réglages + tests (commandes et extensions hostiles)
 - [ ] T020 [US3] Test guidé US3 (quickstart §4, §6) — attendre le retour
 
 ## Phase 4 bis — US4 Tests du livrable (P2) (D5, 2026-10-06)

@@ -48,6 +48,9 @@ import { DocumentTools, fileLabel } from './application/mcp/DocumentTools'
 import { ExecutionService } from './application/finals/ExecutionService'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
 import { CommandService } from './application/finals/CommandService'
+import { DeliverableReader } from './application/finals/DeliverableReader'
+import { EditorService } from './application/finals/EditorService'
+import { detectEditors, isProgram, launchEditor } from './infrastructure/editor/EditorLauncher'
 import { CommandRepository } from './infrastructure/db/repositories/CommandRepository'
 import { resolveNpm, runCommand } from './infrastructure/finals/CommandRunner'
 import { DocumentService } from './application/documents/DocumentService'
@@ -395,7 +398,31 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...contextRoutes,
       ...createNeuronRoutes(neurons, plan),
       ...createPlanRoutes(plan),
-      ...createFinalRoutes(finals, executions, commands),
+      ...createFinalRoutes(
+        finals,
+        executions,
+        commands,
+        new DeliverableReader({ repository: finalRepository, projectDir: projectDirOf, files: projectFiles }),
+        // Éditeur (spec 013 D4) : programme connu ou choisi dans le dialogue natif, jamais venu de l'interface.
+        new EditorService({
+          settings: appSettings,
+          detect: () => detectEditors(),
+          chooseProgram: async () => {
+            const result = await dialog.showOpenDialog({
+              title: 'Choisir le programme de l’éditeur',
+              properties: ['openFile'],
+              filters: [{ name: 'Programmes', extensions: ['exe'] }]
+            })
+            return result.canceled ? null : (result.filePaths[0] ?? null)
+          },
+          isProgram,
+          launch: launchEditor,
+          openPath: (path) => electronShell.openPath(path),
+          repository: finalRepository,
+          projectDir: projectDirOf,
+          files: projectFiles
+        })
+      ),
       ...createDocumentRoutes({ documents, reveal: (path) => electronShell.showItemInFolder(path) }),
       ...createCanvasRoutes(canvas),
       ...createHistoryRoutes(
