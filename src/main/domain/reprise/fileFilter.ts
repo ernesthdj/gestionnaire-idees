@@ -89,7 +89,7 @@ function patternToRegExp(pattern: string): RegExp {
  * `.gitignore` de la racine, lu simplement (spec 017 R4) : motifs, dossiers (`/` final), ancrage (`/` initial).
  * Les négations (`!`) sont ignorées : un fichier exclu de plus, jamais un fichier sensible lu de trop.
  */
-export function gitignoreMatcher(text: string): (path: string) => boolean {
+export function gitignoreMatcher(text: string): (path: string, isDirectory?: boolean) => boolean {
   const rules = text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -101,11 +101,11 @@ export function gitignoreMatcher(text: string): (path: string) => boolean {
       const anywhere = !line.replace(/\/$/, '').includes('/')
       return { regexp: patternToRegExp(body), directory, anywhere }
     })
-  return (path: string): boolean => {
+  return (path: string, isDirectory = false): boolean => {
     const segments = path.split('/')
     return rules.some((rule) => {
       for (let end = 1; end <= segments.length; end++) {
-        const isFile = end === segments.length
+        const isFile = end === segments.length && !isDirectory
         if (rule.directory && isFile) continue
         const candidates = rule.anywhere ? [segments[end - 1] ?? ''] : [segments.slice(0, end).join('/')]
         if (candidates.some((candidate) => rule.regexp.test(candidate))) return true

@@ -85,6 +85,8 @@ export interface ChatView {
   readonly git: boolean
   /** Mode de permission de la conversation (spec 014 US2) : le sien, sinon le défaut réglé. */
   readonly permissionMode: PermissionMode
+  /** Projet repris (spec 017) auquel appartient ce neurone, et sa confidentialité ; `null` : aucun. */
+  readonly reprise: { readonly genesisId: string; readonly confidentiality: 'claude' | 'local' } | null
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */

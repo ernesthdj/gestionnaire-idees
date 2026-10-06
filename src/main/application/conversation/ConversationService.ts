@@ -90,6 +90,10 @@ export interface ConversationDeps {
   readonly defaultPermissionMode?: () => PermissionMode
   /** Projet repris « Local uniquement » (spec 017 FR-004) : `false` → aucune conversation avec Claude. */
   readonly claudeAllowed?: (neuronId: string) => boolean
+  /** Projet repris auquel appartient le neurone (badge de confidentialité du chat) ; `null` : aucun. */
+  readonly repriseOf?: (
+    neuronId: string
+  ) => { readonly genesisId: string; readonly confidentiality: 'claude' | 'local' } | null
   /** Action finale d'une étape (spec 014 FR-011) : son état et son livrable, dits à Claude dans le contexte. */
   readonly finalOf?: (neuronId: string) => { readonly state: string; readonly files: readonly string[] } | undefined
   /** Résultat d'un outil (spec 014 R5) : le livrable d'une action finale relit le fichier écrit. */
@@ -271,7 +275,8 @@ export class ConversationService {
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
       modelChoice: neuron.chatModel,
-      permissionMode: this.permissionModeOf(neuron)
+      permissionMode: this.permissionModeOf(neuron),
+      reprise: this.deps.repriseOf?.(neuronId) ?? null
     }
   }
 

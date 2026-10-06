@@ -78,6 +78,10 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:linkFolder',
   'chat:setModel',
   'chat:setPermissionMode',
+  'reprise:previewFolder',
+  'reprise:create',
+  'reprise:get',
+  'reprise:setConfidentiality',
   'element:setCollapsed'
 ] as const
 

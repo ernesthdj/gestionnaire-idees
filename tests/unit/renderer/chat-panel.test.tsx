@@ -37,6 +37,7 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   model: 'claude-opus-5-5',
   modelChoice: null,
   permissionMode: 'default',
+  reprise: null,
   ...extra
 })
 
@@ -489,5 +490,57 @@ describe('mode de permission de la conversation (spec 014 US2)', () => {
     expect((await screen.findByRole('status')).textContent).toBe(
       'Mode « Accepter les modifications » appliqué à partir de ton prochain message.'
     )
+  })
+})
+
+describe('chat d’un projet repris (spec 017 FR-003, FR-004)', () => {
+  const GENESIS = '00000000-0000-4000-8000-0000000000d9'
+
+  function renderReprise(level: 'claude' | 'local') {
+    const api = installFakeApi({
+      'chat:open': () => view({ reprise: { genesisId: GENESIS, confidentiality: level } }),
+      'chat:close': () => ({ ok: true }),
+      'reprise:setConfidentiality': (payload) => ({ level: (payload as { level: string }).level })
+    })
+    const result = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ChatPanel neuronId={ID} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    return { api, ...result }
+  }
+
+  it('should_show_the_badge_and_block_the_conversation_when_the_project_is_local_only', async () => {
+    const { container } = renderReprise('local')
+    expect(await screen.findByRole('button', { name: /Local uniquement/ })).toBeTruthy()
+    expect(screen.getByRole('note').textContent).toContain('rien de ce projet n’est transmis à Claude')
+    expect(screen.queryByLabelText('Message à Claude')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Commencer le brainstorm' })).toBeNull()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_confirm_before_allowing_claude_then_open_the_conversation', async () => {
+    const user = userEvent.setup()
+    const { api } = renderReprise('local')
+    await user.click(await screen.findByRole('button', { name: /Local uniquement/ }))
+    expect(screen.getByRole('region', { name: 'Autoriser Claude sur ce projet ?' })).toBeTruthy()
+    expect(api.invoke).not.toHaveBeenCalledWith('reprise:setConfidentiality', expect.anything())
+    await user.click(screen.getByRole('button', { name: 'Autoriser Claude' }))
+    expect(api.invoke).toHaveBeenCalledWith('reprise:setConfidentiality', {
+      genesisId: GENESIS,
+      level: 'claude',
+      confirm: true
+    })
+    expect(await screen.findByRole('button', { name: /Claude autorisé/ })).toBeTruthy()
+    expect(screen.getByLabelText('Message à Claude')).toBeTruthy()
+  })
+
+  it('should_go_back_to_local_at_once_and_say_what_was_sent_stays_sent', async () => {
+    const user = userEvent.setup()
+    const { api } = renderReprise('claude')
+    await user.click(await screen.findByRole('button', { name: /Claude autorisé/ }))
+    await user.click(screen.getByRole('button', { name: 'Repasser en local' }))
+    expect(api.invoke).toHaveBeenCalledWith('reprise:setConfidentiality', { genesisId: GENESIS, level: 'local' })
+    expect((await screen.findByRole('status')).textContent).toContain('ne peut pas être rappelé')
   })
 })

@@ -23,6 +23,7 @@ import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { buildGraph, computeLayout, ideaLinks, type CanvasNode } from './buildGraph'
+import { ImportWizard } from '../reprise/ImportWizard'
 import { CanvasToolbar } from './CanvasToolbar'
 import { BranchEdge, type BranchEdgeType } from './edges/BranchEdge'
 import { MapLinkEdge, type MapLinkEdgeType } from './edges/MapLinkEdge'
@@ -172,6 +173,7 @@ function CanvasInner(): React.JSX.Element {
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
+  const [importing, setImporting] = useState(false)
   /** Boîte à outils ouverte par un clic droit dans le vide : position à l'écran et point de la carte visé. */
   const [tools, setTools] = useState<{ at: Point; position: Point } | null>(null)
   const closeTools = useCallback(() => setTools(null), [])
@@ -418,7 +420,19 @@ function CanvasInner(): React.JSX.Element {
         onFilter={setFilter}
         onRecenter={recenter}
         onAddBlock={() => void addBlock().catch(() => undefined)}
+        onImport={() => setImporting(true)}
       />
+      {importing ? (
+        <ImportWizard
+          onClose={() => setImporting(false)}
+          onImported={(genesisId) => {
+            setImporting(false)
+            void client.invalidateQueries({ queryKey: ['canvas'] })
+            showToast('Projet importé.')
+            openChat(genesisId)
+          }}
+        />
+      ) : null}
       <div className="flex min-h-0 flex-1">
         <div
           ref={surface}

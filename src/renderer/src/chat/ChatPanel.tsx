@@ -11,6 +11,7 @@ import type {
 import { BYPASS_WARNING, CHAT_MESSAGE_MAX, PERMISSION_MODES } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
+import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { Markdown } from './Markdown'
 import { ProjectForm } from './ProjectForm'
 import { UsageMeter } from './UsageMeter'
@@ -295,6 +296,8 @@ export function ChatPanel({
   const [projectForm, setProjectForm] = useState(false)
   // Après le premier brainstorm (maturité suffisante), devenir un projet est l'étape suivante : le bouton est mis en avant.
   const brainstormed = chat.maturity === 'sufficient' || chat.maturity === 'complete'
+  // Projet repris « Local uniquement » (spec 017 FR-004) : aucune conversation avec Claude.
+  const localOnly = chat.reprise?.confidentiality === 'local'
 
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: 'end' })
@@ -323,6 +326,15 @@ export function ChatPanel({
             · conversation Claude Code
             {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
           </p>
+          {chat.reprise === null ? null : (
+            <div className="mt-1">
+              <ConfidentialityBadge
+                genesisId={chat.reprise.genesisId}
+                level={chat.reprise.confidentiality}
+                onChanged={chat.setConfidentiality}
+              />
+            </div>
+          )}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
             {chat.role !== 'genesis' ? null : chat.folder === null ? (
               <>
@@ -375,7 +387,7 @@ export function ChatPanel({
                 <button
                   type="button"
                   onClick={() => void chat.send(MAP_MESSAGE)}
-                  disabled={chat.busy}
+                  disabled={chat.busy || localOnly}
                   className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
                 >
                   Cartographier ce projet
@@ -386,7 +398,7 @@ export function ChatPanel({
               <button
                 type="button"
                 onClick={() => void chat.send(PLAN_MESSAGE)}
-                disabled={chat.busy}
+                disabled={chat.busy || localOnly}
                 className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
               >
                 Proposer un plan d’attaque
@@ -396,7 +408,7 @@ export function ChatPanel({
               <button
                 type="button"
                 onClick={() => void chat.send(DOC_MESSAGE)}
-                disabled={chat.busy}
+                disabled={chat.busy || localOnly}
                 className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
               >
                 Rédiger un document
@@ -406,7 +418,7 @@ export function ChatPanel({
               <button
                 type="button"
                 onClick={() => void chat.send(FINAL_MESSAGE)}
-                disabled={chat.busy}
+                disabled={chat.busy || localOnly}
                 className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
               >
                 Proposer l’action finale
@@ -512,7 +524,7 @@ export function ChatPanel({
             </div>
           ) : null}
         </div>
-        {!chat.loading && chat.messages.length === 0 && !chat.busy ? (
+        {!chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly ? (
           <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
             <p>Claude connaît déjà le titre de l’idée et sa fiche. Lance le cadrage, ou écris directement.</p>
             <Button variant="primary" onClick={() => void chat.send(OPENING_MESSAGE)}>
@@ -532,40 +544,47 @@ export function ChatPanel({
         />
       )}
 
-      <form
-        className="flex items-end gap-2 border-t border-content-muted/20 p-3"
-        onSubmit={(event) => {
-          event.preventDefault()
-          submit()
-        }}
-      >
-        <label htmlFor={fieldId} className="sr-only">
-          Message à Claude
-        </label>
-        <textarea
-          id={fieldId}
-          value={draft}
-          rows={2}
-          maxLength={CHAT_MESSAGE_MAX}
-          placeholder="Ta réponse, une idée, une question…"
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            event.stopPropagation()
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              submit()
-            }
+      {localOnly ? (
+        <p role="note" className="border-t border-content-muted/20 p-3 text-sm text-content-muted">
+          Projet repris « Local uniquement » : rien de ce projet n’est transmis à Claude, la conversation est donc
+          indisponible. Change le niveau depuis le badge 🔒 pour discuter avec Claude.
+        </p>
+      ) : (
+        <form
+          className="flex items-end gap-2 border-t border-content-muted/20 p-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            submit()
           }}
-          className="min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm outline-none"
-        />
-        {chat.busy ? (
-          <Button onClick={chat.stop}>Arrêter</Button>
-        ) : (
-          <Button type="submit" variant="primary" disabled={draft.trim() === ''}>
-            Envoyer
-          </Button>
-        )}
-      </form>
+        >
+          <label htmlFor={fieldId} className="sr-only">
+            Message à Claude
+          </label>
+          <textarea
+            id={fieldId}
+            value={draft}
+            rows={2}
+            maxLength={CHAT_MESSAGE_MAX}
+            placeholder="Ta réponse, une idée, une question…"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              event.stopPropagation()
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                submit()
+              }
+            }}
+            className="min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm outline-none"
+          />
+          {chat.busy ? (
+            <Button onClick={chat.stop}>Arrêter</Button>
+          ) : (
+            <Button type="submit" variant="primary" disabled={draft.trim() === ''}>
+              Envoyer
+            </Button>
+          )}
+        </form>
+      )}
     </section>
   )
 }

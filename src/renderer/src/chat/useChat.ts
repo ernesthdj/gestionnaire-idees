@@ -47,6 +47,8 @@ export interface ChatState {
   readonly confirmingBypass: boolean
   /** Mode changé pendant un tour : il s'appliquera au message suivant. */
   readonly modeAppliesNext: boolean
+  /** Projet repris (spec 017) et sa confidentialité ; `null` : aucun. */
+  readonly reprise: ChatView['reprise']
 }
 
 export interface ChatActions {
@@ -65,6 +67,8 @@ export interface ChatActions {
   /** Mode de cette conversation ; Libre demande d'abord la confirmation de l'avertissement. */
   setPermissionMode(mode: PermissionMode, confirmBypass?: boolean): Promise<void>
   cancelBypass(): void
+  /** Niveau changé depuis le badge du projet repris. */
+  setConfidentiality(level: 'claude' | 'local'): void
 }
 
 const forNeuron = <T extends { readonly neuronId: string }>(neuronId: string, payload: unknown): T | null =>
@@ -98,7 +102,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     git: false,
     permissionMode: 'default',
     confirmingBypass: false,
-    modeAppliesNext: false
+    modeAppliesNext: false,
+    reprise: null
   })
 
   const refreshSheet = useCallback(async () => {
@@ -133,7 +138,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           modelChoice: view.modelChoice ?? null,
           pending: view.pending ?? [],
           git: view.git ?? false,
-          permissionMode: view.permissionMode ?? 'default'
+          permissionMode: view.permissionMode ?? 'default',
+          reprise: view.reprise ?? null
         }))
       })
       .catch((error: unknown) => {
@@ -339,6 +345,14 @@ export function useChat(neuronId: string): ChatState & ChatActions {
 
   const cancelBypass = useCallback(() => setState((current) => ({ ...current, confirmingBypass: false })), [])
 
+  const setConfidentiality = useCallback(
+    (level: 'claude' | 'local') =>
+      setState((current) =>
+        current.reprise === null ? current : { ...current, reprise: { ...current.reprise, confidentiality: level } }
+      ),
+    []
+  )
+
   return {
     ...state,
     send,
@@ -349,6 +363,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     refreshProject,
     initGit,
     setPermissionMode,
-    cancelBypass
+    cancelBypass,
+    setConfidentiality
   }
 }

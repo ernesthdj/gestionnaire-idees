@@ -129,6 +129,17 @@ export class ConversationRepository {
       .run()
   }
 
+  /** Neurones liés à un dossier de projet (spec 017 FR-007 : un dossier, un seul neurone), archivés exclus. */
+  linkedFolders(): { readonly id: string; readonly projectDir: string }[] {
+    return this.db
+      .select({ id: neurons.id, projectDir: neurons.projectDir, state: neurons.state })
+      .from(neurons)
+      .where(sql`${neurons.projectDir} IS NOT NULL`)
+      .all()
+      .filter((row) => row.state !== 'archived')
+      .map((row) => ({ id: row.id, projectDir: row.projectDir ?? '' }))
+  }
+
   /** Échange terminé : jetons et durée, sans contenu (constitution I). */
   recordTurn(neuronId: string, turn: TurnRecord): void {
     this.db

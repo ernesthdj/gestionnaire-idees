@@ -48,6 +48,9 @@ import { DocumentTools, fileLabel } from './application/mcp/DocumentTools'
 import { ExecutionService } from './application/finals/ExecutionService'
 import { DeliverableTracker } from './application/finals/DeliverableTracker'
 import { ConfidentialityGuard } from './application/reprise/ConfidentialityGuard'
+import { RepriseService } from './application/reprise/RepriseService'
+import { scanProject } from './infrastructure/reprise/ProjectScanner'
+import { createRepriseRoutes } from './ipc/repriseHandlers'
 import { maskLocalProjects } from './domain/reprise/maskLocal'
 import { RepriseRepository } from './infrastructure/db/repositories/RepriseRepository'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
@@ -407,6 +410,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     permissions,
     defaultPermissionMode: () => appSettings.get().chatPermissionMode,
     claudeAllowed: (neuronId) => confidentiality.claudeAllowed(neuronId),
+    repriseOf: (neuronId) => confidentiality.projectOf(neuronId),
     onToolResult: (neuronId, toolUseId, ok) => deliverables.after(neuronId, toolUseId, ok),
     finalOf: (neuronId) => {
       const action = finalRepository.get(neuronId)
@@ -441,6 +445,22 @@ export function bootstrap(shell: ShellPort): AppContext {
     neuron: (id) => conversationRepository.neuron(id),
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     git: runGit
+  })
+  // Reprendre un projet existant (spec 017) : dossier choisi au sélecteur natif, genesis lié à son dossier source.
+  const reprise = new RepriseService({
+    repository: repriseRepository,
+    pickFolder: async () => {
+      const result = await dialog.showOpenDialog({
+        title: 'Choisir le dossier du projet à reprendre',
+        properties: ['openDirectory']
+      })
+      return result.canceled ? undefined : result.filePaths[0]
+    },
+    scan: (root) => scanProject(root),
+    linkedFolders: () => conversationRepository.linkedFolders(),
+    createGenesis: async (title) => (await neurons.create({ text: title })).id,
+    attach: (neuronId, dir) => conversations.attach(neuronId, dir),
+    dataDir
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -499,6 +519,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations, permissions),
       ...createProjectRoutes(projects),
+      ...createRepriseRoutes(reprise),
       ...createStructureRoutes(structure),
       ...createMcpRoutes({
         selection,

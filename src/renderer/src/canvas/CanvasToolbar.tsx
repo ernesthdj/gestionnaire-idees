@@ -8,6 +8,8 @@ interface CanvasToolbarProps {
   readonly onFilter: (filter: CanvasFilterInput) => void
   readonly onRecenter: () => void
   readonly onAddBlock: () => void
+  /** « Reprendre un projet existant » (spec 017) : le chemin inverse de « Nouvelle idée ». */
+  readonly onImport: () => void
 }
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -26,7 +28,8 @@ export function CanvasToolbar({
   filter,
   onFilter,
   onRecenter,
-  onAddBlock
+  onAddBlock,
+  onImport
 }: CanvasToolbarProps): React.JSX.Element {
   const [search, setSearch] = useState(filter.search ?? '')
   const ids = { nature: useId(), category: useId(), search: useId() }
@@ -91,6 +94,9 @@ export function CanvasToolbar({
           placeholder="Rechercher…"
           className="h-8 w-48 rounded-md bg-surface-raised px-2"
         />
+        <Button onClick={onImport} title="Importer un projet écrit par d’autres pour le comprendre (dossier)">
+          Reprendre un projet existant
+        </Button>
         <Button onClick={onAddBlock} title="Bloc libre : accueillera les mini-widgets en v2">
           + Bloc
         </Button>

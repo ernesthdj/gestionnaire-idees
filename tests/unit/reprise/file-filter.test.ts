@@ -56,5 +56,7 @@ describe('fichiers retenus, sensibles ou ignorés d’un projet repris (spec 017
     expect(ignored('docs/a/b/draft.md')).toBe(true)
     expect(ignored('src/app.ts')).toBe(false)
     expect(ignored('logs')).toBe(false)
+    expect(ignored('logs', true)).toBe(true)
+    expect(ignored('src/logs', true)).toBe(true)
   })
 })

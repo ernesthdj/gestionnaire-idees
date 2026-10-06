@@ -27,9 +27,17 @@ export class ConfidentialityGuard {
     return this.deps.project(genesisId)?.confidentiality === 'local'
   }
 
-  claudeAllowed(neuronId: string): boolean {
+  /** Projet repris auquel appartient un neurone (genesis, élément, étape) ; `null` : aucun. */
+  projectOf(neuronId: string): { readonly genesisId: string; readonly confidentiality: 'claude' | 'local' } | null {
     const row = this.deps.neuron(neuronId)
-    return row === undefined || !this.isLocalGenesis(row.genesisId ?? row.rootId)
+    if (row === undefined) return null
+    const genesisId = row.genesisId ?? row.rootId
+    const project = this.deps.project(genesisId)
+    return project === undefined ? null : { genesisId, confidentiality: project.confidentiality }
+  }
+
+  claudeAllowed(neuronId: string): boolean {
+    return this.projectOf(neuronId)?.confidentiality !== 'local'
   }
 
   assertClaudeAllowed(neuronId: string): void {
