@@ -95,8 +95,11 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > `<profil>/workspace` (ou le dossier de projet lie), session reprise ; AUCUNE source de reglages (`--setting-sources ""` :
 > ni hooks utilisateur, ni hooks d'un projet lie ; le CLAUDE.md d'un projet est lu par Claude, pas charge d'office), outils restreints.
 > Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
-> `npm audit` : 4 alertes moderees connues (esbuild ancien dans drizzle-kit, outil de dev uniquement, pas de
-> serveur lance) — correctif auto refuse car il retrograderait drizzle-kit 0.31 → 0.18.
+> `npm audit` : 0 alerte (2026-10-06) grace a deux `overrides` dans `package.json` : `@esbuild-kit/core-utils > esbuild`
+> (dependance morte de drizzle-kit) et `global-agent ^4` (packaging seulement ; a retirer si un packaging derriere un
+> proxy echoue). Jamais `npm audit fix --force` (il retrograderait drizzle-kit 0.31 → 0.18).
+> `npm ci` echoue si l'app ou le relais MCP tourne (`electron.exe` verrouille) : fermer l'app, ou `npm install` puis
+> `node node_modules/electron/install.js`.
 
 ## Workflows actifs
 
