@@ -27,9 +27,20 @@ gestionnaire-idees/
 └── tests/             # Tests
 ```
 
+## Regles de travail (tout contributeur)
+
+Ces regles s'appliquent a toute personne qui travaille sur ce depot avec Claude Code (elles reprennent, sans donnee
+personnelle, les regles globales de mentalyas) :
+
+@docs/claude/regles-dev.md
+@docs/claude/methode-travail.md
+
+Avant tout travail d'interface, lire `docs/claude/ergonomie-ui.md` et `docs/claude/frontend-workflow.md`.
+Skills du depot : `/journal`, `/selfdoubt`, `/speckit-*` (`.claude/skills/`). Installation : `README.md`.
+
 ## Regles specifiques
 
-> Les regles globales de `~/.claude/CLAUDE.md` s'appliquent par defaut.
+> Les regles globales de `~/.claude/CLAUDE.md` s'appliquent par defaut (et `docs/claude/` pour tout contributeur).
 
 - **Exception ORM (validee 2026-09-28)** : **Drizzle ORM** + `better-sqlite3-multiple-ciphers` au lieu de Prisma
   (standard global Node). Raison : Prisma embarque un moteur binaire separe, fragile a empaqueter dans Electron,
