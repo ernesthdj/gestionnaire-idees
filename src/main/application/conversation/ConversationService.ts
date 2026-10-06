@@ -212,12 +212,13 @@ export class ConversationService {
     }
   }
 
-  usage(neuronId: string): ChatUsageView {
+  /** Consommation ; sans neurone (en-tête de l'app), la part « ce neurone » vaut zéro. */
+  usage(neuronId?: string): ChatUsageView {
     const { repository } = this.deps
     const since = new Date((this.deps.now?.() ?? new Date()).getTime() - WEEK_MS).toISOString()
     const week = repository.usageSince(since)
     const total = repository.usageSince(null)
-    const own = repository.usageSince(null, neuronId)
+    const own = neuronId === undefined ? { tokens: 0, turns: 0 } : repository.usageSince(null, neuronId)
     return {
       account: readAccount(repository.accountUsage()),
       app: {

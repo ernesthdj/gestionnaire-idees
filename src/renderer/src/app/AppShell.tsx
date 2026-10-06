@@ -5,6 +5,7 @@ import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
+import { HeaderUsage } from './HeaderUsage'
 import { ThemeSwitch } from './ThemeSwitch'
 import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
@@ -76,6 +77,7 @@ export function AppShell(): React.JSX.Element {
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-content-muted/20 px-4">
             <h1 className="text-base font-semibold">{TITLES[view]}</h1>
             <div className="flex items-center gap-2">
+              <HeaderUsage />
               <ThemeSwitch />
               <button
                 type="button"

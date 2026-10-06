@@ -9,6 +9,8 @@ const NeuronInput = z.strictObject({ neuronId: z.uuid() })
 /** Canaux du chat d'un neurone (spec 008 contracts/chat.md) ; la réponse de Claude arrive par événements. */
 export function createChatRoutes(conversations: ConversationService): IpcRoute[] {
   return [
+    // Consommation de l'abonnement, affichée en permanence dans l'en-tête (hors de toute conversation).
+    defineRoute({ channel: 'usage:get', input: z.undefined(), handler: async () => conversations.usage() }),
     defineRoute({
       channel: 'chat:open',
       input: NeuronInput,

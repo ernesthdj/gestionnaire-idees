@@ -67,6 +67,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'map:selection',
   'mcp:status',
   'mcp:rotateToken',
+  'usage:get',
   'chat:open',
   'chat:send',
   'chat:stop',

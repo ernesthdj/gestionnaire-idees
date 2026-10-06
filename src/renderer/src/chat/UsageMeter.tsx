@@ -7,7 +7,7 @@ export function formatTokens(tokens: number): string {
   return `${(tokens / 1_000_000).toLocaleString('fr-BE', { maximumFractionDigits: 1 })} M`
 }
 
-function resetLabel(resetsAt: number | null): string {
+export function resetLabel(resetsAt: number | null): string {
   if (resetsAt === null) return ''
   return `remise à zéro ${new Date(resetsAt * 1000).toLocaleString('fr-BE', {
     weekday: 'short',
