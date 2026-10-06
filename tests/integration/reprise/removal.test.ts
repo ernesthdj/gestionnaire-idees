@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { HistoryService } from '../../../src/main/application/history/HistoryService'
 import { RepriseService } from '../../../src/main/application/reprise/RepriseService'
 import { ConversationRepository } from '../../../src/main/infrastructure/db/repositories/ConversationRepository'
 import { HistoryRepository } from '../../../src/main/infrastructure/db/repositories/HistoryRepository'
+import { neurons } from '../../../src/main/infrastructure/db/schemaNeurons'
 import { RepriseRepository } from '../../../src/main/infrastructure/db/repositories/RepriseRepository'
 import { scanProject } from '../../../src/main/infrastructure/reprise/ProjectScanner'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
@@ -69,5 +71,17 @@ describe('supprimer une idée retire son lien vers le dossier (spec 017 D9)', ()
     expect(reprise.project(first.genesisId)).toBeUndefined()
     expect(reprise.overrides(first.genesisId).size).toBe(0)
     expect(reprise.project(second.genesisId)).toMatchObject({ rootDir: project, confidentiality: 'claude' })
+  })
+
+  it('should_import_the_folder_again_when_its_genesis_was_removed_before_the_fix_and_kept_its_folder', async () => {
+    const first = await service.create((await service.previewFolder())?.previewId ?? '', 'claude')
+    // Suppression d'avant le correctif D9 : genesis archivé, mais lien vers le dossier et projet repris gardés.
+    t.handle.db.update(neurons).set({ state: 'archived' }).where(eq(neurons.id, first.genesisId)).run()
+    expect(conversations.neuron(first.genesisId)).toMatchObject({ state: 'archived', projectDir: project })
+    const preview = await service.previewFolder()
+    expect(preview?.alreadyLinked).toBeNull()
+    const second = await service.create(preview?.previewId ?? '', 'claude')
+    expect(reprise.project(first.genesisId)).toBeUndefined()
+    expect(reprise.project(second.genesisId)).toMatchObject({ rootDir: project })
   })
 })

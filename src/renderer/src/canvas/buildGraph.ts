@@ -11,7 +11,7 @@ import type {
 } from '@shared/ipc/canvas'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
-import { structureGraph } from './structureGraph'
+import { structureGraph, type StructureEdge } from './structureGraph'
 import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
 import type { DocumentView } from '@shared/ipc/documents'
 import { finalStateLabel, STEP_STATUS_LABELS } from './nodes/PlanNode'
@@ -400,55 +400,51 @@ export function buildGraph(
     ariaLabel: `${entry.element.type} « ${entry.element.title} »${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
-  const structureEdges = structure.edges.map((edge): MapLinkEdgeType | BranchEdgeType =>
-    edge.kind === 'measured'
-      ? {
-          id: edge.id,
-          type: 'mapLink',
-          source: edge.source,
-          target: edge.target,
-          data: {
-            label: `${edge.count} appel${edge.count > 1 ? 's' : ''} mesuré${edge.count > 1 ? 's' : ''} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
-            measured: edge.provenance ?? 'uncertain'
-          },
-          deletable: false,
-          selectable: false,
-          focusable: false
-        }
-      : edge.kind === 'hierarchy'
-        ? {
-            id: edge.id,
-            type: 'branch',
-            source: edge.source,
-            target: edge.target,
-            data: { style: 'solid' },
-            deletable: false,
-            selectable: false,
-            focusable: false
-          }
-        : {
-            id: edge.id,
-            type: 'mapLink',
-            source: edge.source,
-            target: edge.target,
-            data: {
-              label: [
-                edge.relation === null ? null : RELATION_LABELS[edge.relation],
-                edge.label,
-                edge.count > 1 ? `×${edge.count}` : null
-              ]
-                .filter((part) => part !== null)
-                .join(' · '),
-              relation: edge.relation
-            },
-            deletable: false,
-            selectable: false,
-            focusable: false
-          }
-  )
+  const structureEdges = structure.edges.map(structureFlowEdge)
   return {
     nodes: [...neuronNodes, ...blockNodes, ...elementNodes, ...planNodes],
     edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges],
     mapEdges: [...mapEdges, ...structureEdges]
+  }
+}
+
+/** Lien d'une carte de structure à l'écran (spec 009, 017) : trait de hiérarchie, relation de Claude ou appels mesurés. */
+export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | BranchEdgeType {
+  const common = {
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    deletable: false,
+    selectable: false,
+    focusable: false
+  }
+  if (edge.kind === 'hierarchy') return { ...common, type: 'branch', data: { style: 'solid' } }
+  const layer = edge.focused ? 'focus' : 'rest'
+  if (edge.kind === 'measured') {
+    const plural = edge.count > 1 ? 's' : ''
+    return {
+      ...common,
+      type: 'mapLink',
+      data: {
+        label: `${edge.count} appel${plural} mesuré${plural} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
+        measured: edge.provenance ?? 'uncertain',
+        layer
+      }
+    }
+  }
+  return {
+    ...common,
+    type: 'mapLink',
+    data: {
+      label: [
+        edge.relation === null ? null : RELATION_LABELS[edge.relation],
+        edge.label,
+        edge.count > 1 ? `×${edge.count}` : null
+      ]
+        .filter((part) => part !== null)
+        .join(' · '),
+      relation: edge.relation,
+      layer
+    }
   }
 }

@@ -25,6 +25,8 @@ le pont avec la carte de structure sont la spec 018 (MVP 2 — Juger).
 | D11 (2026-10-07, retour T023) | Carte combinée | La vue principale d'un projet repris est la **carte de structure dessinée par Claude** (spec 009, « Cartographier ce projet ») : elle regroupe par sens, l'explorateur par dossiers. L'analyse statique la **nourrit** : (A) chaque élément montre **ses fichiers**, consultables en lecture seule avec leurs symboles et leurs appelants ; (B) l'app superpose les **appels mesurés** entre éléments (nombre, sûr / incertain), recalculés à chaque analyse ; (C) un outil du pont donne à Claude le **graphe mesuré** quand il cartographie (projet « Claude autorisé » seulement). |
 | D12 (2026-10-07) | Explorateur | Gardé **en second plan** : ouvert depuis le menu du projet ; vue principale seulement en « Local uniquement », où Claude ne cartographie pas. |
 | D13 (2026-10-07) | Lancement | La cartographie par Claude reste **à l'initiative de mentalyas** (bouton « Cartographier ce projet ») : elle consomme son abonnement. |
+| D14 (2026-10-07, retour T043, révisée) | Disposition de la carte | L'**arbre en colonnes** reste (hiérarchie arborescente, traits parent → enfant), **aéré** : plus d'écart entre colonnes et entre nœuds, et un écart supplémentaire entre les sous-arbres de deux modules de niveau 1. Les cadres imbriqués, essayés, sont écartés par mentalyas. |
+| D15 (2026-10-07, retour T043) | Liens de la carte | **Selon le focus** : au repos, seuls les liens entre éléments de niveau 1 (liens de Claude et appels mesurés), agrégés ; un élément sélectionné ou survolé montre ses propres liens en détail, rattachés à l'élément visible de l'autre bout. |
 | D8 (validée 2026-10-06) | Constitution | Amendement **4.1.0** proposé avec cette spec (MINOR) : principe I — git devient un programme que l'app peut lancer (chemin absolu, arguments fixes ; déjà utilisé par la spec 016) ; principe IV — en « Local uniquement », le modèle local remplace Claude pour les tâches d'IA de ce projet ; contraintes techniques — bibliothèque d'analyse syntaxique. |
 
 ## User Scenarios & Testing *(mandatory)*
@@ -218,6 +220,11 @@ l'élément des contrôleurs à celui du domaine ; Claude a lu le graphe (pastil
    points d'entrée, appels sûrs entre fichiers) ; **Given** un projet « Local uniquement », **Then** cet outil est refusé.
 4. **Given** un projet repris, **When** mentalyas veut le détail par dossiers, **Then** l'explorateur s'ouvre depuis le
    chat du genesis, en second plan.
+5. **Given** une carte de structure dépliée sur plusieurs niveaux, **When** elle s'affiche, **Then** l'arbre en colonnes
+   laisse de l'air entre les nœuds, et davantage entre les modules de niveau 1 (D14).
+6. **Given** une carte avec des dizaines de liens, **When** rien n'est sélectionné, **Then** seuls les liens entre
+   éléments de niveau 1 s'affichent, agrégés ; **When** mentalyas sélectionne ou survole un élément, **Then** ses liens
+   apparaissent en détail (D15).
 
 ---
 
@@ -315,6 +322,10 @@ l'élément des contrôleurs à celui du domaine ; Claude a lu le graphe (pastil
   (nombre, fiabilité la plus faible), rattachés à l'ancêtre visible, distincts des liens dessinés par Claude.
 - **FR-034**: Le pont MCP MUST offrir à Claude une lecture du graphe mesuré d'un projet repris (`code_graphe_lire`),
   refusée en « Local uniquement » par la garde de confidentialité.
+- **FR-035**: La carte de structure MUST rester un arbre en colonnes, aéré : écart entre colonnes et entre nœuds, et
+  écart supplémentaire entre les sous-arbres de deux modules de niveau 1, sans chevauchement (D14).
+- **FR-036**: Les liens d'une carte de structure (de Claude et mesurés) MUST être agrégés au niveau 1 au repos et
+  détaillés pour l'élément sélectionné ou survolé (D15).
 
 **Traçabilité**
 - **FR-031**: Imports, clones, analyses et générations de guide MUST être journalisés (date, durée, issue, nombres) —

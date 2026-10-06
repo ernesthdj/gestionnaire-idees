@@ -696,3 +696,11 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 
 ### [2026-10-07 01:30] DOCS — test guidé validé : spec 017 T043 (US7)
 **Quoi :** mentalyas valide la carte combinée (fichiers des éléments, appels mesurés, `code_graphe_lire`). Retour suivant : la carte d'un gros projet est une longue colonne, les liens se croisent en tous sens → demande d'une disposition plus hiérarchisée et organisée.
+
+### [2026-10-07 02:00] FEAT — spec 017 (T044–T046) : carte de structure aérée, liens selon le focus
+**Fichiers :** `spec.md` (D14 révisée, D15, FR-035, FR-036, scénarios 5–6 d'US7) ; `tasks.md` (T044–T047) ; `canvas/structureGraph.ts` (espacement `SPACING`, `focusEdges`, liens au repos agrégés au niveau 1) ; `canvas/buildGraph.ts` (`structureFlowEdge`) ; `edges/{useCenter, BranchEdge, MapLinkEdge}` (un lien s'arrête au bord d'un élément) ; `IdeasCanvas` (focus survolé / ouvert) ; `canvas.css`. Tests : `structure-graph` (10). 
+**Quoi :** retour du test T043 (carte d'un gros projet serrée, liens emmêlés). L'arbre en colonnes reste, aéré : colonnes espacées de 140 px (72 avant), 40 px entre nœuds (20 avant), et 120 px de plus entre les sous-arbres de deux modules de niveau 1. Au repos, seuls les liens entre modules de niveau 1 s'affichent, agrégés ; survoler ou ouvrir un élément montre ses propres liens et ceux de son contenu, épaissis, et estompe les autres.
+**Erreur corrigée :** une première version en cadres imbriqués (grilles dans des cadres) a été écartée par mentalyas avant tout commit : il veut garder l'aspect d'arbre hiérarchique, seulement plus d'air. Règle : pour un retour visuel (« plus organisé »), proposer d'abord le changement minimal qui garde la forme connue, avant une refonte.
+
+### [2026-10-07 02:30] DOCS — test guidé validé : spec 017 T047 ; réimport de PID vérifié
+**Quoi :** mentalyas valide la carte aérée et les liens selon le focus. Diagnostic en lecture seule de son profil : le genesis « PID » supprimé avant le correctif D9 est archivé mais garde son lien vers le dossier et sa fiche de projet repris ; le code actuel les ignore (test de non-régression ajouté dans `removal.test.ts`). Traces laissées en place : les effacer casserait l'annulation de l'ancienne suppression.

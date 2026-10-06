@@ -49,6 +49,10 @@
 - [x] T041 [US7] Outil du pont `code_graphe_lire` (modules, points d'entrée, appels sûrs entre fichiers, bornés) garde comprise ; consigne de cartographie (`MAP_MESSAGE`, cadre) : s'appuyer sur le graphe mesuré + tests
 - [x] T042 [US7] Explorateur en second plan (D12) : bouton discret dans le chat du genesis, mis en avant seulement en « Local uniquement » + tests
 - [x] T043 [US7] Test guidé (US7) — attendre le retour
+- [x] T044 [P] [US7] Pur : arbre en colonnes aéré (écart entre colonnes, entre nœuds, et entre modules de niveau 1) dans `src/renderer/src/canvas/structureGraph.ts` + tests (FR-035, D14 révisée)
+- [x] T045 [P] [US7] Pur : liens selon le focus (agrégés au niveau 1 au repos ; détail de l'élément sélectionné ou survolé et de son sous-arbre) dans `structureGraph.ts` + tests (FR-036, D15)
+- [x] T046 [US7] Rendu : liens du focus (survolé / ouvert) dans `IdeasCanvas`, liens arrêtés au bord des éléments (`edges/useCenter.ts`), estompage au repos (`canvas.css`) + tests
+- [x] T047 [US7] Test guidé (D14–D15) — attendre le retour
 
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.

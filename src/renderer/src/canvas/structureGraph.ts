@@ -2,17 +2,17 @@ import type { ElementRelation, ElementView, MapLinkView, MeasuredLinkView } from
 import { weakestProvenance, type LinkProvenance } from '@shared/ipc/reprise'
 
 /**
- * Carte de structure d'un projet à l'écran (spec 009, L3 §5) : quels éléments sont visibles (repli), où ils se
- * placent (arbre en colonnes à droite de leur genesis), et quels liens typés tracer — un lien vers un élément replié
- * se rattache à son ancêtre visible, regroupé avec ses semblables ; de même pour les appels mesurés par l'analyse
- * d'un projet repris (spec 017 US7), sommés et ramenés à leur fiabilité la plus faible. Fonction pure.
+ * Carte de structure d'un projet à l'écran (spec 009, L3 §5 ; spec 017 D14–D15) : quels éléments sont visibles (repli),
+ * où ils se placent (arbre en colonnes à droite de leur genesis, aéré : écart entre nœuds, et plus encore entre
+ * modules de niveau 1), et quels liens tracer selon le focus — au repos, ceux entre éléments de niveau 1, agrégés ;
+ * pour l'élément en focus, ses propres liens, rattachés à l'élément visible de l'autre bout. Fonctions pures.
  */
 
 export const ELEMENT_SIZE = { width: 240, height: 96 } as const
-const COLUMN = ELEMENT_SIZE.width + 72
-const ROW_GAP = 20
+/** Espacement de l'arbre (D14) : colonnes, nœuds d'une même colonne, et sous-arbres de deux modules de niveau 1. */
+export const SPACING = { column: ELEMENT_SIZE.width + 140, row: 40, module: 120 } as const
 /** Écart entre le genesis et la première colonne de sa carte. */
-const FIRST_COLUMN = 220
+const FIRST_COLUMN = 240
 
 export interface PlacedElement {
   readonly element: ElementView
@@ -29,15 +29,39 @@ export interface StructureEdge {
   readonly kind: 'hierarchy' | 'relation' | 'measured'
   readonly relation: ElementRelation | null
   readonly label: string | null
-  /** Nombre de liens regroupés (parties repliées) ; pour un lien mesuré, nombre d'appels. */
+  /** Nombre de liens regroupés ; pour un lien mesuré, nombre d'appels. */
   readonly count: number
   /** Fiabilité la plus faible des appels d'un lien mesuré ; `null` sinon. */
   readonly provenance: LinkProvenance | null
+  /** Lien de l'élément en focus (détail) plutôt qu'agrégé au niveau 1. */
+  readonly focused: boolean
 }
 
 export interface StructureGraph {
   readonly placed: readonly PlacedElement[]
   readonly edges: readonly StructureEdge[]
+}
+
+interface Tree {
+  readonly byId: ReadonlyMap<string, ElementView>
+  readonly children: ReadonlyMap<string, readonly ElementView[]>
+  readonly visible: ReadonlySet<string>
+}
+
+function treeOf(elements: readonly ElementView[], genesisIds: readonly string[]): Tree {
+  const byId = new Map(elements.map((element) => [element.id, element] as const))
+  const children = new Map<string, ElementView[]>()
+  for (const element of elements) children.set(element.parentId, [...(children.get(element.parentId) ?? []), element])
+  // Visible : tous les ancêtres (éléments) sont dépliés ; le genesis est toujours déplié.
+  const visible = new Set<string>()
+  const walk = (parentId: string): void => {
+    for (const child of children.get(parentId) ?? []) {
+      visible.add(child.id)
+      if (!child.collapsed) walk(child.id)
+    }
+  }
+  for (const genesisId of genesisIds) walk(genesisId)
+  return { byId, children, visible }
 }
 
 export function structureGraph(
@@ -46,32 +70,23 @@ export function structureGraph(
   links: readonly MapLinkView[],
   measured: readonly MeasuredLinkView[] = []
 ): StructureGraph {
-  const byId = new Map(elements.map((element) => [element.id, element] as const))
-  const children = new Map<string, ElementView[]>()
-  for (const element of elements) children.set(element.parentId, [...(children.get(element.parentId) ?? []), element])
-
-  // Visible : tous les ancêtres (éléments) sont dépliés ; le genesis est toujours déplié.
-  const visible = new Set<string>()
-  const walkVisible = (parentId: string): void => {
-    for (const child of children.get(parentId) ?? []) {
-      visible.add(child.id)
-      if (!child.collapsed) walkVisible(child.id)
-    }
-  }
   const genesisIds = [...new Set(elements.map((element) => element.genesisId))].filter((id) => genesisCenters.has(id))
-  for (const genesisId of genesisIds) walkVisible(genesisId)
+  const tree = treeOf(elements, genesisIds)
 
-  // Placement : feuilles empilées, parent centré sur ses enfants visibles ; l'arbre est centré sur le genesis.
+  // Placement : feuilles empilées, parent centré sur ses enfants visibles ; un écart de plus entre deux modules de
+  // niveau 1 sépare leurs sous-arbres ; l'arbre est centré sur le genesis.
   const placed: PlacedElement[] = []
   for (const genesisId of genesisIds) {
     const center = genesisCenters.get(genesisId) as { x: number; y: number }
     const local: { element: ElementView; depth: number; y: number }[] = []
     let cursor = 0
     const place = (element: ElementView, depth: number): { top: number; bottom: number } => {
-      const kids = element.collapsed ? [] : (children.get(element.id) ?? []).filter((kid) => visible.has(kid.id))
+      const kids = element.collapsed
+        ? []
+        : (tree.children.get(element.id) ?? []).filter((kid) => tree.visible.has(kid.id))
       if (kids.length === 0) {
         const top = cursor
-        cursor += ELEMENT_SIZE.height + ROW_GAP
+        cursor += ELEMENT_SIZE.height + SPACING.row
         local.push({ element, depth, y: top + ELEMENT_SIZE.height / 2 })
         return { top, bottom: top + ELEMENT_SIZE.height }
       }
@@ -81,20 +96,24 @@ export function structureGraph(
       local.push({ element, depth, y: (top + bottom) / 2 })
       return { top, bottom }
     }
-    for (const root of (children.get(genesisId) ?? []).filter((kid) => visible.has(kid.id))) place(root, 1)
-    const height = Math.max(0, cursor - ROW_GAP)
+    const roots = (tree.children.get(genesisId) ?? []).filter((kid) => tree.visible.has(kid.id))
+    roots.forEach((root, index) => {
+      if (index > 0) cursor += SPACING.module
+      place(root, 1)
+    })
+    const height = Math.max(0, cursor - SPACING.row)
     for (const entry of local) {
       placed.push({
         element: entry.element,
         depth: entry.depth,
-        x: center.x + FIRST_COLUMN + (entry.depth - 1) * COLUMN + ELEMENT_SIZE.width / 2,
+        x: center.x + FIRST_COLUMN + (entry.depth - 1) * SPACING.column + ELEMENT_SIZE.width / 2,
         y: center.y - height / 2 + entry.y
       })
     }
   }
 
-  // Liens : hiérarchie (parent visible → enfant visible), puis liens typés rattachés aux ancêtres visibles.
-  const edges: StructureEdge[] = placed.map((entry) => ({
+  // Hiérarchie (parent visible → enfant visible), puis, au repos, les liens agrégés entre éléments de niveau 1.
+  const hierarchy: StructureEdge[] = placed.map((entry) => ({
     id: `struct-${entry.element.id}`,
     source: entry.element.parentId,
     target: entry.element.id,
@@ -102,58 +121,104 @@ export function structureGraph(
     relation: null,
     label: null,
     count: 1,
-    provenance: null
+    provenance: null,
+    focused: false
   }))
-  const visibleEnd = (id: string): string | null => {
-    let current: string | undefined = id
+  const topOf = (id: string): string | null => {
+    let current = tree.byId.get(id)
     for (let guard = 0; current !== undefined && guard < 100; guard++) {
-      if (visible.has(current)) return current
-      const element = byId.get(current)
-      if (element === undefined) return genesisCenters.has(current) ? current : null
-      current = element.parentId
+      if (!tree.byId.has(current.parentId)) return genesisCenters.has(current.parentId) ? current.id : null
+      current = tree.byId.get(current.parentId)
     }
     return null
   }
+  return { placed, edges: [...hierarchy, ...linkEdges(links, measured, topOf, () => true, false)] }
+}
+
+/**
+ * Liens détaillés de l'élément en focus (D15) : ceux dont un bout est cet élément ou l'un de ses descendants,
+ * rattachés à l'élément visible le plus proche de chaque bout. Vide sans focus ou pour un élément hors carte.
+ */
+export function focusEdges(
+  elements: readonly ElementView[],
+  links: readonly MapLinkView[],
+  measured: readonly MeasuredLinkView[],
+  focusId: string | null
+): StructureEdge[] {
+  if (focusId === null) return []
+  const focus = elements.find((element) => element.id === focusId)
+  if (focus === undefined) return []
+  const tree = treeOf(elements, [focus.genesisId])
+  const inFocus = (id: string): boolean => {
+    let current = tree.byId.get(id)
+    for (let guard = 0; current !== undefined && guard < 100; guard++) {
+      if (current.id === focusId) return true
+      current = tree.byId.get(current.parentId)
+    }
+    return false
+  }
+  const visibleEnd = (id: string): string | null => {
+    let current = tree.byId.get(id)
+    for (let guard = 0; current !== undefined && guard < 100; guard++) {
+      if (tree.visible.has(current.id)) return current.id
+      current = tree.byId.get(current.parentId)
+    }
+    return null
+  }
+  return linkEdges(links, measured, visibleEnd, (from, to) => inFocus(from) || inFocus(to), true)
+}
+
+/** Liens de Claude regroupés par relation, appels mesurés sommés, chaque bout ramené par `endOf`. */
+function linkEdges(
+  links: readonly MapLinkView[],
+  measured: readonly MeasuredLinkView[],
+  endOf: (id: string) => string | null,
+  keep: (from: string, to: string) => boolean,
+  focused: boolean
+): StructureEdge[] {
+  const prefix = focused ? 'focus-' : ''
   const grouped = new Map<string, StructureEdge>()
   for (const link of links) {
-    if (link.relation === null) continue
-    const source = visibleEnd(link.from.id)
-    const target = visibleEnd(link.to.id)
+    if (link.relation === null || !keep(link.from.id, link.to.id)) continue
+    const source = endOf(link.from.id)
+    const target = endOf(link.to.id)
     if (source === null || target === null || source === target) continue
     const key = `${source}>${target}>${link.relation}`
     const existing = grouped.get(key)
     grouped.set(key, {
-      id: `rel-${existing === undefined ? link.id : existing.id.slice(4)}`,
+      id: existing?.id ?? `${prefix}rel-${link.id}`,
       source,
       target,
       kind: 'relation',
       relation: link.relation,
       label: existing === undefined ? link.label : null,
       count: (existing?.count ?? 0) + 1,
-      provenance: null
+      provenance: null,
+      focused
     })
   }
   const calls = new Map<string, StructureEdge>()
   for (const link of measured) {
-    const source = visibleEnd(link.from)
-    const target = visibleEnd(link.to)
+    if (!keep(link.from, link.to)) continue
+    const source = endOf(link.from)
+    const target = endOf(link.to)
     if (source === null || target === null || source === target) continue
     const key = `${source}>${target}`
     const existing = calls.get(key)
-    const provenance =
-      existing === undefined || existing.provenance === null
-        ? link.provenance
-        : weakestProvenance(existing.provenance, link.provenance)
     calls.set(key, {
-      id: `calls-${key}`,
+      id: `${prefix}calls-${key}`,
       source,
       target,
       kind: 'measured',
       relation: null,
       label: null,
       count: (existing?.count ?? 0) + link.count,
-      provenance
+      provenance:
+        existing === undefined || existing.provenance === null
+          ? link.provenance
+          : weakestProvenance(existing.provenance, link.provenance),
+      focused
     })
   }
-  return { placed, edges: [...edges, ...grouped.values(), ...calls.values()] }
+  return [...grouped.values(), ...calls.values()]
 }

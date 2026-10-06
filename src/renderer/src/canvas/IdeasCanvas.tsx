@@ -22,7 +22,8 @@ import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
-import { buildGraph, computeLayout, ideaLinks, type CanvasNode } from './buildGraph'
+import { buildGraph, computeLayout, ideaLinks, structureFlowEdge, type CanvasNode } from './buildGraph'
+import { focusEdges } from './structureGraph'
 import { ImportWizard } from '../reprise/ImportWizard'
 import { CanvasToolbar } from './CanvasToolbar'
 import { BranchEdge, type BranchEdgeType } from './edges/BranchEdge'
@@ -223,6 +224,22 @@ function CanvasInner(): React.JSX.Element {
   }, [view, layout, positions, physics, bornId, chatNeuronId])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
+
+  // Liens d'une carte de structure selon le focus (spec 017 D15) : l'élément survolé, sinon celui ouvert dans le volet.
+  const [hoveredElement, setHoveredElement] = useState<string | null>(null)
+  const focusId =
+    hoveredElement ??
+    (chatNeuronId !== null && view?.elements.some((element) => element.id === chatNeuronId) === true
+      ? chatNeuronId
+      : null)
+  const focused = useMemo(
+    () =>
+      view === undefined
+        ? []
+        : focusEdges(view.elements, view.mapLinks, view.measuredLinks, focusId).map(structureFlowEdge),
+    [view, focusId]
+  )
+  const edges = useMemo(() => [...graph.edges, ...focused], [graph.edges, focused])
 
   // Glisser une étape ou un document (spec 011 D7, 012 D4) : le déplacement s'ajoute à son décalage mémorisé ;
   // la disposition le réapplique (une étape entraîne sa branche et ses annexes).
@@ -438,6 +455,7 @@ function CanvasInner(): React.JSX.Element {
           ref={surface}
           className="relative min-h-0 min-w-0 flex-1"
           data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
+          data-structure-focus={focused.length > 0 ? 'on' : 'off'}
           onKeyDownCapture={onKeyDownCapture}
           onKeyDown={onKeyDown}
           onPointerDown={() => setInteracting(true)}
@@ -452,7 +470,13 @@ function CanvasInner(): React.JSX.Element {
           ) : (
             <ReactFlow<MapNode, MapEdge>
               nodes={nodes}
-              edges={graph.edges}
+              edges={edges}
+              onNodeMouseEnter={(_event, node) => {
+                if (node.type === 'element') setHoveredElement(node.id)
+              }}
+              onNodeMouseLeave={(_event, node) => {
+                if (node.type === 'element') setHoveredElement((current) => (current === node.id ? null : current))
+              }}
               nodeTypes={NODE_TYPES}
               edgeTypes={EDGE_TYPES}
               onNodesChange={onNodesChange}
