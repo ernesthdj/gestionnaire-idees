@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AnalysisService } from '../../../src/main/application/reprise/AnalysisService'
 import type { RepriseService } from '../../../src/main/application/reprise/RepriseService'
 import { createRepriseRoutes } from '../../../src/main/ipc/repriseHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
@@ -12,8 +13,16 @@ function setup() {
     view: vi.fn(),
     setConfidentiality: vi.fn((_id: string, level: string) => ({ level }))
   }
-  const dispatch = createDispatcher(createRepriseRoutes(service as unknown as RepriseService))
-  return { dispatch, service }
+  const analysis = {
+    analyze: vi.fn(() => ({ runId: 'r1' })),
+    cancel: vi.fn(),
+    setCategory: vi.fn(),
+    setTarget: vi.fn()
+  }
+  const dispatch = createDispatcher(
+    createRepriseRoutes(service as unknown as RepriseService, analysis as unknown as AnalysisService)
+  )
+  return { dispatch, service, analysis }
 }
 
 describe('canaux reprise:* (spec 017 US1)', () => {
@@ -40,5 +49,22 @@ describe('canaux reprise:* (spec 017 US1)', () => {
     expect(await dispatch(channel, payload)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
     expect(service.create).not.toHaveBeenCalled()
     expect(service.previewFolder).not.toHaveBeenCalled()
+  })
+
+  it('should_pass_analysis_requests_and_corrections_with_valid_identifiers_only', async () => {
+    const { dispatch, analysis } = setup()
+    const symbol = 'a'.repeat(32)
+    expect(await dispatch('reprise:analyze', { genesisId: ID })).toMatchObject({ success: true, data: { runId: 'r1' } })
+    await dispatch('reprise:setCategory', { genesisId: ID, symbolId: symbol, category: 'plumbing' })
+    await dispatch('reprise:setTarget', { genesisId: ID, edgeId: symbol, targetSymbolId: null })
+    expect(analysis.setCategory).toHaveBeenCalledWith(ID, symbol, 'plumbing')
+    expect(analysis.setTarget).toHaveBeenCalledWith(ID, symbol, null)
+    for (const payload of [
+      { genesisId: ID, symbolId: '../x', category: 'domain' },
+      { genesisId: ID, symbolId: symbol, category: 'secret' }
+    ]) {
+      expect(await dispatch('reprise:setCategory', payload)).toMatchObject({ success: false })
+    }
+    expect(analysis.setCategory).toHaveBeenCalledTimes(1)
   })
 })

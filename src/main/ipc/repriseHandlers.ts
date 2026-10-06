@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { CONFIDENTIALITY_LEVELS } from '@shared/ipc/reprise'
+import { CODE_CATEGORIES, CONFIDENTIALITY_LEVELS } from '@shared/ipc/reprise'
+import type { AnalysisService } from '../application/reprise/AnalysisService'
 import type { RepriseService } from '../application/reprise/RepriseService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -8,9 +9,54 @@ import { defineRoute, type IpcRoute } from './registry'
  * choisi au sélecteur natif du main, puis désigné par un `previewId` éphémère.
  */
 export function createRepriseRoutes(
-  reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'view' | 'setConfidentiality'>
+  reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'view' | 'setConfidentiality'>,
+  analysis?: Pick<AnalysisService, 'analyze' | 'cancel' | 'setCategory' | 'setTarget'>
 ): IpcRoute[] {
   return [
+    ...(analysis === undefined
+      ? []
+      : [
+          defineRoute({
+            channel: 'reprise:analyze',
+            input: z.strictObject({ genesisId: z.uuid() }),
+            handler: async ({ genesisId }) => analysis.analyze(genesisId)
+          }),
+          defineRoute({
+            channel: 'reprise:cancelAnalysis',
+            input: z.strictObject({ genesisId: z.uuid() }),
+            handler: async ({ genesisId }) => {
+              analysis.cancel(genesisId)
+              return { ok: true }
+            }
+          }),
+          defineRoute({
+            channel: 'reprise:setCategory',
+            input: z.strictObject({
+              genesisId: z.uuid(),
+              symbolId: z.string().regex(/^[0-9a-f]{32}$/),
+              category: z.enum(CODE_CATEGORIES)
+            }),
+            handler: async ({ genesisId, symbolId, category }) => {
+              analysis.setCategory(genesisId, symbolId, category)
+              return { ok: true }
+            }
+          }),
+          defineRoute({
+            channel: 'reprise:setTarget',
+            input: z.strictObject({
+              genesisId: z.uuid(),
+              edgeId: z.string().regex(/^[0-9a-f]{32}$/),
+              targetSymbolId: z
+                .string()
+                .regex(/^[0-9a-f]{32}$/)
+                .nullable()
+            }),
+            handler: async ({ genesisId, edgeId, targetSymbolId }) => {
+              analysis.setTarget(genesisId, edgeId, targetSymbolId)
+              return { ok: true }
+            }
+          })
+        ]),
     defineRoute({
       channel: 'reprise:previewFolder',
       input: z.undefined(),

@@ -26,6 +26,8 @@ export interface RepriseDeps {
   readonly exists?: (path: string) => boolean
   readonly now?: () => Date
   readonly newId?: () => string
+  /** Projet créé : son analyse démarre (spec 017 US3). */
+  readonly onCreated?: (genesisId: string) => void
 }
 
 /** Un aperçu attend la décision de mentalyas 15 minutes au plus. */
@@ -117,6 +119,7 @@ export class RepriseService {
       confidentiality,
       confidentialityChangedAt: this.now().toISOString()
     })
+    this.deps.onCreated?.(genesisId)
     return { genesisId }
   }
 

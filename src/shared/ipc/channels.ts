@@ -82,6 +82,10 @@ export const MAIN_WINDOW_CHANNELS = [
   'reprise:create',
   'reprise:get',
   'reprise:setConfidentiality',
+  'reprise:analyze',
+  'reprise:cancelAnalysis',
+  'reprise:setCategory',
+  'reprise:setTarget',
   'element:setCollapsed'
 ] as const
 
@@ -106,7 +110,10 @@ export const MAIN_WINDOW_EVENTS = [
   'chat:usage',
   'chat:sheet',
   'chat:permission',
-  'chat:permissionResolved'
+  'chat:permissionResolved',
+  'reprise:analysisProgress',
+  'reprise:analysisDone',
+  'reprise:changed'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

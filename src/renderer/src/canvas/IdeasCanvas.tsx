@@ -428,7 +428,7 @@ function CanvasInner(): React.JSX.Element {
           onImported={(genesisId) => {
             setImporting(false)
             void client.invalidateQueries({ queryKey: ['canvas'] })
-            showToast('Projet importé.')
+            showToast('Projet importé : l’analyse démarre.')
             openChat(genesisId)
           }}
         />

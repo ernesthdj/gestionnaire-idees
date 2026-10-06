@@ -49,6 +49,9 @@ import { ExecutionService } from './application/finals/ExecutionService'
 import { DeliverableTracker } from './application/finals/DeliverableTracker'
 import { ConfidentialityGuard } from './application/reprise/ConfidentialityGuard'
 import { RepriseService } from './application/reprise/RepriseService'
+import { AnalysisService } from './application/reprise/AnalysisService'
+import { analysisWorker } from './infrastructure/reprise/AnalysisWorker'
+import { CodeGraphRepository } from './infrastructure/db/repositories/CodeGraphRepository'
 import { scanProject } from './infrastructure/reprise/ProjectScanner'
 import { createRepriseRoutes } from './ipc/repriseHandlers'
 import { maskLocalProjects } from './domain/reprise/maskLocal'
@@ -446,6 +449,15 @@ export function bootstrap(shell: ShellPort): AppContext {
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     git: runGit
   })
+  // Analyse des projets repris (spec 017 US3) : processus séparé, une analyse lourde à la fois.
+  const analysis = new AnalysisService({
+    reprise: repriseRepository,
+    graph: new CodeGraphRepository(database.db),
+    scan: (root) => scanProject(root),
+    runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js')),
+    emit: (event) => broadcast(event.type, event.payload)
+  })
+  analysis.recover()
   // Reprendre un projet existant (spec 017) : dossier choisi au sélecteur natif, genesis lié à son dossier source.
   const reprise = new RepriseService({
     repository: repriseRepository,
@@ -460,7 +472,14 @@ export function bootstrap(shell: ShellPort): AppContext {
     linkedFolders: () => conversationRepository.linkedFolders(),
     createGenesis: async (title) => (await neurons.create({ text: title })).id,
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
-    dataDir
+    dataDir,
+    onCreated: (genesisId) => {
+      try {
+        analysis.analyze(genesisId)
+      } catch {
+        // Dossier disparu entre-temps : mentalyas relancera l'analyse depuis l'explorateur.
+      }
+    }
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -519,7 +538,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations, permissions),
       ...createProjectRoutes(projects),
-      ...createRepriseRoutes(reprise),
+      ...createRepriseRoutes(reprise, analysis),
       ...createStructureRoutes(structure),
       ...createMcpRoutes({
         selection,

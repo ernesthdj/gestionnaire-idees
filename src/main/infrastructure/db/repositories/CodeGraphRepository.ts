@@ -103,6 +103,25 @@ export class CodeGraphRepository {
       .map((row) => ({ ...row.symbol, path: row.path }))
   }
 
+  /** Un symbole du projet et le chemin de son fichier ; `undefined` s'il n'appartient pas à ce projet. */
+  symbol(genesisId: string, id: string): (CodeSymbolRow & { readonly path: string }) | undefined {
+    const row = this.db
+      .select({ symbol: codeSymbols, path: codeFiles.path })
+      .from(codeSymbols)
+      .innerJoin(codeFiles, eq(codeFiles.id, codeSymbols.fileId))
+      .where(and(eq(codeFiles.genesisId, genesisId), eq(codeSymbols.id, id)))
+      .get()
+    return row === undefined ? undefined : { ...row.symbol, path: row.path }
+  }
+
+  edge(genesisId: string, id: string): CodeEdgeRow | undefined {
+    return this.db
+      .select()
+      .from(codeEdges)
+      .where(and(eq(codeEdges.genesisId, genesisId), eq(codeEdges.id, id)))
+      .get()
+  }
+
   entryPoints(genesisId: string): CodeEntryPointRow[] {
     return this.db
       .select({ entry: codeEntryPoints })

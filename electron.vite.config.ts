@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync } from 'node:fs'
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import type { Plugin } from 'vite'
@@ -26,6 +26,8 @@ function copyGrammars(): Plugin {
       const target = join(options.dir ?? resolve(import.meta.dirname, 'out/main'), 'grammars')
       mkdirSync(target, { recursive: true })
       for (const file of GRAMMAR_FILES) copyFileSync(join(source, file), join(target, file))
+      // Le moteur est un module CommonJS : le dépôt étant en `"type": "module"`, le dossier le redit pour Node.
+      writeFileSync(join(target, 'package.json'), '{ "type": "commonjs" }\n')
     }
   }
 }
