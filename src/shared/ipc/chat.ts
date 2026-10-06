@@ -74,6 +74,8 @@ export interface ChatView {
   readonly modelChoice: string | null
   /** Demandes de permission encore ouvertes (spec 014) : rouvrir le chat les remontre. */
   readonly pending: readonly ChatPermissionRequest[]
+  /** Le dossier du projet est un dépôt git (spec 016) : sinon « Initialiser git » est proposé. */
+  readonly git: boolean
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */

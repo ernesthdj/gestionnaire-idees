@@ -1,9 +1,17 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { ChatMessageView, ChatSheetView } from '@shared/ipc/chat'
+import type {
+  ChatMessageView,
+  ChatPermissionRequest,
+  ChatSheetView,
+  PermissionDecisionView,
+  PermissionDetailView,
+  ToolStatus
+} from '@shared/ipc/chat'
 import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
 import { Markdown } from './Markdown'
+import { ProjectForm } from './ProjectForm'
 import { UsageMeter } from './UsageMeter'
 import { useChat } from './useChat'
 
@@ -84,17 +92,132 @@ function Sheet({ sheet }: { readonly sheet: ChatSheetView }): React.JSX.Element 
   )
 }
 
-function Message({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
-  if (message.role === 'tool') {
+/** Résultat réel d'un outil dans le fil (spec 014 US3) : jamais le libellé d'une réussite pour un refus. */
+const TOOL_STATUS: Readonly<
+  Record<ToolStatus, { readonly label: string; readonly icon: string; readonly tone: string }>
+> = {
+  running: { label: 'en cours', icon: '…', tone: 'bg-accent/10 text-accent' },
+  ok: { label: 'fait', icon: '✓', tone: 'bg-accent/10 text-accent' },
+  denied: { label: 'refusé', icon: '⛔', tone: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' },
+  error: { label: 'échoué', icon: '✕', tone: 'bg-red-500/10 text-red-700 dark:text-red-400' }
+}
+
+function ToolMessage({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
+  // Ancien fil (avant spec 014) : pas de statut, pastille neutre.
+  const status = message.toolStatus === undefined ? null : TOOL_STATUS[message.toolStatus]
+  const reason = message.toolReason ?? ''
+  const label =
+    status === null
+      ? `Action de Claude : ${message.text}`
+      : `Action de Claude : ${message.text} — ${status.label}${reason === '' ? '' : ` : ${reason}`}`
+  return (
+    <p
+      className={`max-w-[85%] self-start rounded-2xl px-3 py-0.5 text-xs ${status?.tone ?? 'bg-accent/10 text-accent'}`}
+      aria-label={label}
+      title={reason === '' ? undefined : reason}
+    >
+      {status === null ? '⚙' : status.icon} {message.text}
+      {status === null || message.toolStatus === 'ok' ? null : <span className="font-semibold"> — {status.label}</span>}
+      {reason === '' || message.toolStatus === 'ok' ? null : <span className="block opacity-80">{reason}</span>}
+    </p>
+  )
+}
+
+const DECISION_LABELS: Readonly<Record<PermissionDecisionView, string>> = {
+  allow: 'Autoriser',
+  always: 'Toujours pour ce projet',
+  deny: 'Refuser'
+}
+
+/** Ce que Claude veut faire, montré tel quel (texte, jamais interprété) avant la décision (spec 014 FR-004). */
+function PermissionDetail({ detail }: { readonly detail: PermissionDetailView }): React.JSX.Element {
+  if (detail.kind === 'write') {
     return (
-      <p
-        className="self-start rounded-full bg-accent/10 px-3 py-0.5 text-xs text-accent"
-        aria-label={`Action de Claude : ${message.text}`}
-      >
-        ⚙ {message.text}
-      </p>
+      <>
+        <p className="text-xs text-content-muted">
+          Écrire dans <code className="break-all text-content">{detail.path}</code>
+        </p>
+        {detail.preview === '' ? null : (
+          <pre
+            aria-label="Aperçu du changement"
+            className="max-h-48 overflow-auto rounded-md bg-surface px-2 py-1 text-xs whitespace-pre-wrap"
+          >
+            {detail.preview}
+          </pre>
+        )}
+      </>
     )
   }
+  if (detail.kind === 'command') {
+    return (
+      <>
+        <pre
+          aria-label="Commande exacte"
+          className="max-h-32 overflow-auto rounded-md bg-surface px-2 py-1 text-xs whitespace-pre-wrap"
+        >
+          {detail.command}
+        </pre>
+        {detail.cwd === null ? null : (
+          <p className="text-xs text-content-muted">
+            Dans <code className="break-all text-content">{detail.cwd}</code>
+          </p>
+        )}
+      </>
+    )
+  }
+  return (
+    <pre className="max-h-32 overflow-auto rounded-md bg-surface px-2 py-1 text-xs whitespace-pre-wrap">
+      {detail.input}
+    </pre>
+  )
+}
+
+/**
+ * Demande de permission de Claude Code (spec 014 US1) : une à la fois, dans l'ordre d'arrivée ; refuser l'une
+ * n'autorise ni ne refuse les suivantes.
+ */
+function PermissionCard({
+  request,
+  waiting,
+  onDecide
+}: {
+  readonly request: ChatPermissionRequest
+  readonly waiting: number
+  readonly onDecide: (decision: PermissionDecisionView) => void
+}): React.JSX.Element {
+  const titleId = useId()
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="mx-3 mb-2 flex flex-col gap-2 rounded-lg border border-amber-500/60 bg-surface-raised px-3 py-2 text-sm"
+    >
+      <h3 id={titleId} className="font-semibold">
+        Claude demande{' '}
+        {request.detail.kind === 'write'
+          ? 'à écrire un fichier'
+          : request.detail.kind === 'command'
+            ? 'à lancer une commande'
+            : `l’outil ${request.tool}`}
+      </h3>
+      <PermissionDetail detail={request.detail} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" onClick={() => onDecide('allow')}>
+          {DECISION_LABELS.allow}
+        </Button>
+        <Button onClick={() => onDecide('always')}>{DECISION_LABELS.always}</Button>
+        <Button onClick={() => onDecide('deny')}>{DECISION_LABELS.deny}</Button>
+        {waiting === 0 ? null : (
+          <span className="text-xs text-content-muted">
+            {waiting === 1 ? '1 autre demande en attente' : `${waiting} autres demandes en attente`}
+          </span>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function Message({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
+  if (message.role === 'tool') return <ToolMessage message={message} />
   if (message.role === 'error') {
     return (
       <p role="alert" className="rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -132,6 +255,10 @@ export function ChatPanel({
   const [draft, setDraft] = useState('')
   const fieldId = useId()
   const end = useRef<HTMLDivElement>(null)
+  const nextRequest = chat.pending[0]
+  const [projectForm, setProjectForm] = useState(false)
+  // Après le premier brainstorm (maturité suffisante), devenir un projet est l'étape suivante : le bouton est mis en avant.
+  const brainstormed = chat.maturity === 'sufficient' || chat.maturity === 'complete'
 
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: 'end' })
@@ -162,14 +289,26 @@ export function ChatPanel({
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
             {chat.role !== 'genesis' ? null : chat.folder === null ? (
-              <button
-                type="button"
-                onClick={() => void chat.linkFolder()}
-                disabled={chat.busy}
-                className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
-              >
-                Lier un dossier de projet…
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setProjectForm(true)}
+                  disabled={chat.busy || projectForm}
+                  className={`rounded-md px-2 py-0.5 disabled:opacity-50 ${
+                    brainstormed ? 'bg-accent text-surface' : 'border border-accent text-accent hover:bg-surface-raised'
+                  }`}
+                >
+                  Faire de ce genesis un projet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void chat.linkFolder()}
+                  disabled={chat.busy}
+                  className="underline disabled:opacity-50"
+                >
+                  Lier un dossier existant…
+                </button>
+              </>
             ) : (
               <>
                 <span
@@ -177,6 +316,7 @@ export function ChatPanel({
                   title="Dossier de travail de cette conversation"
                 >
                   Dossier : {chat.folder}
+                  {chat.git ? ' · git' : ''}
                 </span>
                 <button
                   type="button"
@@ -186,14 +326,16 @@ export function ChatPanel({
                 >
                   Changer
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void chat.linkFolder(true)}
-                  disabled={chat.busy}
-                  className="underline disabled:opacity-50"
-                >
-                  Délier
-                </button>
+                {chat.git ? null : (
+                  <button
+                    type="button"
+                    onClick={() => void chat.initGit()}
+                    disabled={chat.busy}
+                    className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                  >
+                    Initialiser git
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void chat.send(MAP_MESSAGE)}
@@ -264,6 +406,19 @@ export function ChatPanel({
         </button>
       </header>
 
+      {projectForm && chat.role === 'genesis' && chat.folder === null ? (
+        <ProjectForm
+          neuronId={neuronId}
+          title={chat.title}
+          summary={chat.sheet?.resume ?? ''}
+          onCancel={() => setProjectForm(false)}
+          onDone={() => {
+            setProjectForm(false)
+            void chat.refreshProject()
+          }}
+        />
+      ) : null}
+
       {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
@@ -297,6 +452,15 @@ export function ChatPanel({
         ) : null}
         <div ref={end} />
       </div>
+
+      {nextRequest === undefined ? null : (
+        <PermissionCard
+          key={nextRequest.id}
+          request={nextRequest}
+          waiting={chat.pending.length - 1}
+          onDecide={(decision) => void chat.decide(nextRequest.id, decision)}
+        />
+      )}
 
       <form
         className="flex items-end gap-2 border-t border-content-muted/20 p-3"

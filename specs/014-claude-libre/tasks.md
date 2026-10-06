@@ -11,7 +11,7 @@
 - [x] T004 Migration `0027_claude_libre` (+ down) et dépôts (mode, dossiers, règles, confiance, commit, journal des décisions) + aller-retour
 - [x] T005 `PermissionService` : demande en attente, annonce, décision (allow / always / deny), règle appliquée, annulation (chat fermé, arrêt, app fermée), journal + tests
 - [x] T006 Outil MCP `permission_demander` (relais : attente 30 min ; appelant vérifié) ; `conversationArgs` : `--permission-prompt-tool`, `--permission-mode default`, `--tools default`, sans `--permission-prompts none` + tests
-- [ ] T007 Interface : cartes de permission dans le chat (écriture : chemin + aperçu ; commande : texte exact + dossier) ; statut des outils dans le fil + tests renderer/axe
+- [x] T007 Interface : cartes de permission dans le chat (écriture : chemin + aperçu ; commande : texte exact + dossier) ; statut des outils dans le fil + tests renderer/axe
 - [ ] T008 Test guidé (quickstart §1, §3) — attendre le retour
 
 ## Phase 2 — Modes (US2)

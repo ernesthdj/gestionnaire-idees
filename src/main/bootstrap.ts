@@ -70,6 +70,9 @@ import { ConversationRepository } from './infrastructure/db/repositories/Convers
 import { resolveClaudePath } from './infrastructure/claude/claudePath'
 import { spawnClaudeConversation } from './infrastructure/claude/CliConversation'
 import { createChatRoutes } from './ipc/chatHandlers'
+import { createProjectRoutes } from './ipc/projectHandlers'
+import { ProjectService } from './application/projects/ProjectService'
+import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
@@ -417,7 +420,22 @@ export function bootstrap(shell: ShellPort): AppContext {
         properties: ['openDirectory']
       })
       return result.canceled ? undefined : result.filePaths[0]
-    }
+    },
+    isGitRepo: (dir) => existsSync(join(dir, '.git'))
+  })
+  // Genesis → projet (spec 016) : racine choisie au sélecteur natif, dossier construit par le main.
+  const projects = new ProjectService({
+    settings: appSettings,
+    pickRoot: async () => {
+      const result = await dialog.showOpenDialog({
+        title: 'Choisir la racine des projets (ex. le dossier projects de ProjectMaster)',
+        properties: ['openDirectory', 'createDirectory']
+      })
+      return result.canceled ? undefined : result.filePaths[0]
+    },
+    neuron: (id) => conversationRepository.neuron(id),
+    attach: (neuronId, dir) => conversations.attach(neuronId, dir),
+    git: runGit
   })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
@@ -476,6 +494,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations, permissions),
+      ...createProjectRoutes(projects),
       ...createStructureRoutes(structure),
       ...createMcpRoutes({
         selection,

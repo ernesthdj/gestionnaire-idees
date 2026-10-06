@@ -29,6 +29,10 @@ const EDITOR_KEY = 'editor.program'
 const EditorSchema = z.object({ kind: z.enum(EDITOR_KINDS), program: z.string().min(1).max(1000) }).strict()
 export type EditorSetting = z.infer<typeof EditorSchema>
 
+/** Racine des projets (spec 016 D3) : chemin absolu choisi au sélecteur natif. */
+const PROJECTS_ROOT_KEY = 'projects.root'
+const ProjectsRootSchema = z.string().min(1).max(1000)
+
 type Field = keyof typeof FIELDS
 
 export class AppSettingsRepository {
@@ -95,6 +99,22 @@ export class AppSettingsRepository {
     this.db
       .insert(settings)
       .values({ key: EDITOR_KEY, valueJson })
+      .onConflictDoUpdate({ target: settings.key, set: { valueJson } })
+      .run()
+  }
+
+  projectsRoot(): string | null {
+    const row = this.db.select().from(settings).where(eq(settings.key, PROJECTS_ROOT_KEY)).get()
+    if (row === undefined) return null
+    const parsed = ProjectsRootSchema.safeParse(safeJson(row.valueJson))
+    return parsed.success ? parsed.data : null
+  }
+
+  saveProjectsRoot(root: string): void {
+    const valueJson = JSON.stringify(ProjectsRootSchema.parse(root))
+    this.db
+      .insert(settings)
+      .values({ key: PROJECTS_ROOT_KEY, valueJson })
       .onConflictDoUpdate({ target: settings.key, set: { valueJson } })
       .run()
   }

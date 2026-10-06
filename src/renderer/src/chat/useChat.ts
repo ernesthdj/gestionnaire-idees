@@ -29,6 +29,8 @@ export interface ChatState {
   readonly usage: ChatUsageView | null
   /** Dossier de projet lié (nom) ; `null` : aucun. */
   readonly folder: string | null
+  /** Le dossier est un dépôt git (spec 016). */
+  readonly git: boolean
   readonly role: 'genesis' | 'element' | 'step'
   readonly elementType: string | null
   readonly stepLabel: string | null
@@ -49,6 +51,10 @@ export interface ChatActions {
   setModel(model: string | null): Promise<void>
   /** Réponse à une demande de permission. */
   decide(requestId: string, decision: PermissionDecisionView): Promise<void>
+  /** Relit le dossier du projet et son état git (après « Faire de ce genesis un projet », spec 016). */
+  refreshProject(): Promise<void>
+  /** Fait du dossier du projet un dépôt git avec un premier commit (spec 016 US2). */
+  initGit(): Promise<void>
 }
 
 const forNeuron = <T extends { readonly neuronId: string }>(neuronId: string, payload: unknown): T | null =>
@@ -78,7 +84,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     model: '',
     modelChoice: null,
     problem: null,
-    pending: []
+    pending: [],
+    git: false
   })
 
   const refreshSheet = useCallback(async () => {
@@ -111,7 +118,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           stepLabel: view.stepLabel ?? null,
           model: view.model ?? '',
           modelChoice: view.modelChoice ?? null,
-          pending: view.pending ?? []
+          pending: view.pending ?? [],
+          git: view.git ?? false
         }))
       })
       .catch((error: unknown) => {
@@ -123,8 +131,6 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           }))
         }
       })
-    const append = (message: ChatMessageView): void =>
-      setState((current) => ({ ...current, messages: [...current.messages, message] }))
     // Un outil réapparaît avec son résultat réel (spec 014 R4) : il remplace sa pastille « en cours ».
     const upsert = (message: ChatMessageView): void =>
       setState((current) =>
@@ -215,23 +221,46 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     call('chat:stop', { neuronId }).catch(() => undefined)
   }, [neuronId])
 
+  const showError = useCallback((error: unknown, fallback: string): void => {
+    const message: ChatMessageView = {
+      id: `local-error-${Date.now()}`,
+      role: 'error',
+      text: error instanceof IpcFailure ? error.message : fallback,
+      createdAt: ''
+    }
+    setState((current) => ({ ...current, messages: [...current.messages, message] }))
+  }, [])
+
+  const refreshProject = useCallback(async (): Promise<void> => {
+    try {
+      const view = await call<ChatView>('chat:open', { neuronId })
+      setState((current) => ({ ...current, folder: view.folder ?? null, git: view.git ?? false }))
+    } catch {
+      // Le neurone a pu être retiré : le panneau se fermera avec la carte.
+    }
+  }, [neuronId])
+
   const linkFolder = useCallback(
     async (unlink = false): Promise<void> => {
       try {
-        const { folder } = await call<{ readonly folder: string | null }>('chat:linkFolder', { neuronId, unlink })
-        setState((current) => ({ ...current, folder }))
+        await call('chat:linkFolder', { neuronId, unlink })
+        await refreshProject()
       } catch (error) {
-        const message: ChatMessageView = {
-          id: `local-error-${Date.now()}`,
-          role: 'error',
-          text: error instanceof IpcFailure ? error.message : 'Le dossier n’a pas pu être lié.',
-          createdAt: ''
-        }
-        setState((current) => ({ ...current, messages: [...current.messages, message] }))
+        showError(error, 'Le dossier n’a pas pu être lié.')
       }
     },
-    [neuronId]
+    [neuronId, refreshProject, showError]
   )
+
+  const initGit = useCallback(async (): Promise<void> => {
+    try {
+      await call('project:initGit', { neuronId })
+    } catch (error) {
+      showError(error, 'Le dépôt git n’a pas pu être créé.')
+    }
+    // Même en cas d'échec du commit, le dépôt a pu être créé : l'état affiché suit le disque.
+    await refreshProject()
+  }, [neuronId, refreshProject, showError])
 
   const setModel = useCallback(
     async (model: string | null): Promise<void> => {
@@ -267,5 +296,5 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     }
   }, [])
 
-  return { ...state, send, stop, linkFolder, setModel, decide }
+  return { ...state, send, stop, linkFolder, setModel, decide, refreshProject, initGit }
 }

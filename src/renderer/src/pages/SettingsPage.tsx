@@ -3,16 +3,18 @@ import { AiSettingsPage } from './settings/ai/AiSettingsPage'
 import { ContextPage } from './settings/ai/ContextPage'
 import { ClaudeCodeSettings } from './settings/claude/ClaudeCodeSettings'
 import { EditorSettings } from './settings/EditorSettings'
+import { ProjectSettings } from './settings/ProjectSettings'
 
 const TABS = [
   { id: 'ai', label: 'IA' },
   { id: 'context', label: 'Contexte IA' },
   { id: 'claude-code', label: 'Claude Code' },
-  { id: 'editor', label: 'Éditeur' }
+  { id: 'editor', label: 'Éditeur' },
+  { id: 'projects', label: 'Projets' }
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
-/** Réglages (⚙) : IA et contexte (feature 001), pont Claude Code (spec 007), éditeur (spec 013 D4) ; réglages généraux avec T043. */
+/** Réglages (⚙) : IA et contexte (feature 001), pont Claude Code (spec 007), éditeur (spec 013 D4), projets (spec 016) ; réglages généraux avec T043. */
 export function SettingsPage(): React.JSX.Element {
   const [tab, setTab] = useState<TabId>('ai')
   return (
@@ -36,6 +38,8 @@ export function SettingsPage(): React.JSX.Element {
         <ContextPage />
       ) : tab === 'editor' ? (
         <EditorSettings />
+      ) : tab === 'projects' ? (
+        <ProjectSettings />
       ) : (
         <ClaudeCodeSettings />
       )}

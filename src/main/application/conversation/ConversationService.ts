@@ -72,6 +72,8 @@ export interface ConversationDeps {
   /** Sélecteur de dossier natif (main) ; `undefined` si annulé. Jamais un chemin venu de l'interface. */
   readonly pickFolder?: () => Promise<string | undefined>
   readonly folderExists?: (path: string) => boolean
+  /** Le dossier est un dépôt git (spec 016) ; absent : jamais. */
+  readonly isGitRepo?: (path: string) => boolean
   readonly newSessionId?: () => string
   readonly now?: () => Date
   /** Arrêt d'une conversation inactive (10 min) ; après fermeture du panneau (2 min). */
@@ -243,6 +245,7 @@ export class ConversationService {
       partial: live?.partial ?? '',
       usage: this.usage(neuronId),
       folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
+      git: ((dir) => dir !== null && (this.deps.isGitRepo?.(dir) ?? false))(this.folderOf(neuron)),
       role: neuron.kind === 'element' ? 'element' : neuron.kind === 'step' ? 'step' : 'genesis',
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
@@ -291,9 +294,16 @@ export class ConversationService {
       if (picked === undefined) return { folder: neuron.projectDir === null ? null : basename(neuron.projectDir) }
       folder = picked
     }
+    this.attach(neuronId, folder)
+    return { folder: folder === null ? null : basename(folder) }
+  }
+
+  /** Change le dossier d'un genesis (spec 016 : son projet) ; la conversation repart sur une nouvelle session. */
+  attach(neuronId: string, folder: string | null): void {
+    if (this.live.get(neuronId)?.busy === true)
+      throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
     this.dispose(neuronId)
     this.deps.repository.setProjectDir(neuronId, folder, this.deps.newSessionId?.() ?? randomUUID())
-    return { folder: folder === null ? null : basename(folder) }
   }
 
   /**

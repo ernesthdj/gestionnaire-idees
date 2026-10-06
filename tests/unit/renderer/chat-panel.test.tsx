@@ -10,7 +10,8 @@ import {
   OPENING_MESSAGE,
   PLAN_MESSAGE
 } from '../../../src/renderer/src/chat/ChatPanel'
-import type { ChatView } from '../../../src/shared/ipc/chat'
+import type { ChatPermissionRequest, ChatView } from '../../../src/shared/ipc/chat'
+import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 
 const ID = '00000000-0000-4000-8000-0000000000d1'
@@ -20,6 +21,7 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   title: 'Ouvrir un studio photo',
   messages: [],
   pending: [],
+  git: false,
   sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
   maturity: null,
   busy: false,
@@ -54,6 +56,9 @@ function renderChat(initial: ChatView = view()) {
     'chat:stop': () => ({ ok: true }),
     'chat:close': () => ({ ok: true }),
     'chat:linkFolder': () => ({ folder: 'gestionnaire-idees' }),
+    'project:settings': () => ({ root: 'C:/Projets', hub: true }),
+    'project:create': () => ({ folder: 'studio-photo', registered: true }),
+    'project:initGit': () => ({ ok: true }),
     'chat:setModel': (payload) => ({
       ...current,
       model: 'claude-haiku-4-5',
@@ -176,11 +181,15 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(api.invoke).toHaveBeenCalledWith('chat:open', { neuronId: ID })
   })
 
-  it('should_link_a_project_folder_through_the_native_picker_and_show_it', async () => {
-    const { api } = renderChat()
-    await userEvent.click(await screen.findByRole('button', { name: 'Lier un dossier de projet…' }))
+  it('should_link_an_existing_folder_through_the_native_picker_and_show_it', async () => {
+    const { api, setView } = renderChat()
+    const button = await screen.findByRole('button', { name: 'Lier un dossier existant…' })
+    setView(view({ folder: 'gestionnaire-idees', git: true }))
+    await userEvent.click(button)
     expect(api.invoke).toHaveBeenCalledWith('chat:linkFolder', { neuronId: ID, unlink: false })
-    expect(await screen.findByText('Dossier : gestionnaire-idees')).toBeTruthy()
+    expect(await screen.findByText('Dossier : gestionnaire-idees · git')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Délier' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Initialiser git' })).toBeNull()
   })
 
   it('should_offer_to_map_a_linked_project', async () => {
@@ -192,7 +201,7 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
   it('should_ask_claude_for_the_plan_of_a_step_with_the_plan_tool_named', async () => {
     const { api } = renderChat(view({ role: 'step', stepLabel: '①.1', title: 'Initialiser le projet' }))
     expect(await screen.findByText(/Étape ①\.1 du plan d’attaque/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Lier un dossier de projet…' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Faire de ce genesis un projet' })).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'Proposer un plan d’attaque' }))
     expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: PLAN_MESSAGE })
     expect(PLAN_MESSAGE).toContain('plan_proposer')
@@ -219,7 +228,7 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
   it('should_present_an_element_conversation_without_folder_controls', async () => {
     renderChat(view({ role: 'element', elementType: 'composant', folder: 'gestionnaire-idees' }))
     expect(await screen.findByText(/composant du projet/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Lier un dossier de projet…' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Faire de ce genesis un projet' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Cartographier ce projet' })).toBeNull()
   })
 
@@ -258,5 +267,153 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(screen.getByRole('option', { name: 'Défaut (Opus 5.5)' })).toBeTruthy()
     await userEvent.selectOptions(select, 'claude-haiku-4-5')
     expect(api.invoke).toHaveBeenCalledWith('chat:setModel', { neuronId: ID, model: 'claude-haiku-4-5' })
+  })
+})
+
+describe('permissions et fil fidèle (spec 014 US1, US3)', () => {
+  const REQ1 = '00000000-0000-4000-8000-0000000000e1'
+  const REQ2 = '00000000-0000-4000-8000-0000000000e2'
+  const write: ChatPermissionRequest = {
+    id: REQ1,
+    neuronId: ID,
+    tool: 'Write',
+    detail: { kind: 'write', path: 'C:/projet/hello.md', preview: '# Bonjour <b>x</b>' },
+    at: ''
+  }
+  const command: ChatPermissionRequest = {
+    id: REQ2,
+    neuronId: ID,
+    tool: 'Bash',
+    detail: { kind: 'command', command: 'npm test', cwd: 'C:/projet' },
+    at: ''
+  }
+
+  it('should_show_one_request_at_a_time_with_its_path_and_preview_when_claude_asks_to_write', async () => {
+    const { container } = renderChatWithContainer(view({ pending: [write, command] }))
+    const card = await screen.findByRole('region', { name: 'Claude demande à écrire un fichier' })
+    expect(card.textContent).toContain('C:/projet/hello.md')
+    expect(screen.getByLabelText('Aperçu du changement').textContent).toBe('# Bonjour <b>x</b>')
+    expect(container.querySelector('pre b')).toBeNull()
+    expect(screen.getByText('1 autre demande en attente')).toBeTruthy()
+    expect(screen.queryByText('npm test')).toBeNull()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_send_the_decision_and_show_the_next_request_when_mentalyas_decides', async () => {
+    const { api } = renderChat(view({ pending: [write, command] }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Autoriser' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:permissionDecide', { requestId: REQ1, decision: 'allow' })
+    expect(await screen.findByRole('region', { name: 'Claude demande à lancer une commande' })).toBeTruthy()
+    expect(screen.getByLabelText('Commande exacte').textContent).toBe('npm test')
+    await userEvent.click(screen.getByRole('button', { name: 'Toujours pour ce projet' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:permissionDecide', { requestId: REQ2, decision: 'always' })
+    expect(screen.queryByRole('button', { name: 'Refuser' })).toBeNull()
+  })
+
+  it('should_add_a_request_when_it_arrives_and_remove_it_when_resolved_elsewhere', async () => {
+    const { api } = renderChat()
+    await screen.findByText('Fiche du neurone')
+    act(() => api.emit('chat:permission', command))
+    act(() => api.emit('chat:permission', { ...write, neuronId: 'autre' }))
+    expect(screen.getByLabelText('Commande exacte').textContent).toBe('npm test')
+    expect(screen.queryByText(/autre demande/)).toBeNull()
+    act(() => api.emit('chat:permissionResolved', { neuronId: ID, requestId: REQ2, decision: 'expired' }))
+    expect(screen.queryByRole('button', { name: 'Autoriser' })).toBeNull()
+  })
+
+  it('should_never_show_a_refused_or_failed_tool_as_done', async () => {
+    const { container } = renderChatWithContainer(
+      view({
+        messages: [
+          { id: 't1', role: 'tool', text: 'fichier écrit : hello.md', createdAt: '', toolStatus: 'ok' },
+          {
+            id: 't2',
+            role: 'tool',
+            text: 'fichier modifié : app.ts',
+            createdAt: '',
+            toolStatus: 'denied',
+            toolReason: 'Refusé par mentalyas'
+          },
+          {
+            id: 't3',
+            role: 'tool',
+            text: 'commande : npm test',
+            createdAt: '',
+            toolStatus: 'error',
+            toolReason: 'code 1'
+          },
+          { id: 't4', role: 'tool', text: 'commande : npm run build', createdAt: '', toolStatus: 'running' }
+        ]
+      })
+    )
+    expect(await screen.findByLabelText('Action de Claude : fichier écrit : hello.md — fait')).toBeTruthy()
+    expect(
+      screen.getByLabelText('Action de Claude : fichier modifié : app.ts — refusé : Refusé par mentalyas')
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Action de Claude : commande : npm test — échoué : code 1')).toBeTruthy()
+    expect(screen.getByLabelText('Action de Claude : commande : npm run build — en cours')).toBeTruthy()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_replace_the_running_tool_with_its_result', async () => {
+    const { api } = renderChat()
+    await screen.findByText('Fiche du neurone')
+    const tool = { id: 't9', role: 'tool', text: 'commande : npm test', createdAt: '' }
+    act(() => api.emit('chat:tool', { neuronId: ID, message: { ...tool, toolStatus: 'running' } }))
+    act(() => api.emit('chat:tool', { neuronId: ID, message: { ...tool, toolStatus: 'denied', toolReason: 'Refusé' } }))
+    expect(screen.getAllByText(/commande : npm test/)).toHaveLength(1)
+    expect(screen.getByLabelText('Action de Claude : commande : npm test — refusé : Refusé')).toBeTruthy()
+  })
+})
+
+describe('genesis → projet (spec 016)', () => {
+  it('should_create_the_project_from_the_genesis_with_a_proposed_folder_name', async () => {
+    const { api, setView } = renderChat(
+      view({
+        maturity: 'sufficient',
+        sheet: { resume: 'Un studio à Liège', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] }
+      })
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Faire de ce genesis un projet' }))
+    const form = await screen.findByRole('form', { name: 'Faire de ce genesis un projet' })
+    expect(await screen.findByText(/inscrit au registre ProjectMaster/)).toBeTruthy()
+    expect((screen.getByLabelText('Nom du dossier') as HTMLInputElement).value).toBe('ouvrir-un-studio-photo')
+    expect((screen.getByLabelText('Description') as HTMLTextAreaElement).value).toBe('Un studio à Liège')
+    const create = screen.getByRole('button', { name: 'Créer le projet' })
+    expect((create as HTMLButtonElement).disabled).toBe(true)
+    await userEvent.selectOptions(screen.getByLabelText('Type'), 'Knowledge Base')
+    await expectNoAxeViolations(form)
+    setView(view({ folder: 'ouvrir-un-studio-photo' }))
+    await userEvent.click(create)
+    expect(api.invoke).toHaveBeenCalledWith('project:create', {
+      neuronId: ID,
+      name: 'Ouvrir un studio photo',
+      slug: 'ouvrir-un-studio-photo',
+      type: 'Knowledge Base',
+      description: 'Un studio à Liège'
+    })
+    expect(await screen.findByText('Dossier : ouvrir-un-studio-photo')).toBeTruthy()
+    expect(screen.queryByRole('form', { name: 'Faire de ce genesis un projet' })).toBeNull()
+  })
+
+  it('should_block_an_invalid_folder_name_with_its_reason', async () => {
+    renderChat()
+    await userEvent.click(await screen.findByRole('button', { name: 'Faire de ce genesis un projet' }))
+    const slug = await screen.findByLabelText('Nom du dossier')
+    await userEvent.clear(slug)
+    await userEvent.type(slug, 'status')
+    expect(screen.getByText(/réservé/)).toBeTruthy()
+    await userEvent.selectOptions(screen.getByLabelText('Type'), 'Web App')
+    expect((screen.getByRole('button', { name: 'Créer le projet' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('should_init_git_on_demand_on_a_project_without_git', async () => {
+    const { api, setView } = renderChat(view({ folder: 'studio-photo', git: false }))
+    const button = await screen.findByRole('button', { name: 'Initialiser git' })
+    setView(view({ folder: 'studio-photo', git: true }))
+    await userEvent.click(button)
+    expect(api.invoke).toHaveBeenCalledWith('project:initGit', { neuronId: ID })
+    expect(await screen.findByText('Dossier : studio-photo · git')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Initialiser git' })).toBeNull()
   })
 })
