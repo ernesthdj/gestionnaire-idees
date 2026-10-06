@@ -53,6 +53,7 @@ import { ChatPanel } from '../chat/ChatPanel'
 import { GhostPanel } from './GhostPanel'
 import { FinalPanel } from './FinalPanel'
 import { FileViewer } from './FileViewer'
+import { connectionIntent } from './connection'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
@@ -360,9 +361,9 @@ function CanvasInner(): React.JSX.Element {
   // Lien tiré d'une idée vers une autre (FR-031) : un lien libre, créé tout de suite, sans libellé.
   // Vers un widget (spec 005 FR-001) : l'idée devient une entrée, et la revue s'ouvre.
   const openReview = useWidgetReview((state) => state.open)
-  const connectInput = async (blockId: string, source: string): Promise<void> => {
+  const connectInput = async (blockId: string, source: string, sourceKind: 'idea' | 'plan_step'): Promise<void> => {
     try {
-      const next = await call<WidgetIoStateView>('widgetIo:connect', { blockId, sourceKind: 'idea', sourceId: source })
+      const next = await call<WidgetIoStateView>('widgetIo:connect', { blockId, sourceKind, sourceId: source })
       client.setQueryData(widgetIoKey(blockId), next)
       await client.invalidateQueries({ queryKey: ['canvas'] })
       openReview(blockId)
@@ -371,14 +372,14 @@ function CanvasInner(): React.JSX.Element {
     }
   }
 
+  // Une étape de plan ne se tire que vers un widget (spec 015) : pas de lien libre depuis une étape.
+  const isValidConnection = (connection: Connection | MapEdge): boolean =>
+    connectionIntent(viewRef.current, connection.source, connection.target) !== null
+
   const onConnect = (connection: Connection): void => {
-    const { source, target } = connection
-    if (source === target) return
-    if (viewRef.current?.blocks.some((block) => block.id === target && block.kind === 'widget') === true) {
-      void connectInput(target, source)
-      return
-    }
-    void createLink({ aRootId: source, bRootId: target, label: '' })
+    const intent = connectionIntent(viewRef.current, connection.source, connection.target)
+    if (intent?.kind === 'input') void connectInput(intent.blockId, intent.sourceId, intent.sourceKind)
+    else if (intent?.kind === 'link') void createLink({ aRootId: intent.from, bRootId: intent.to, label: '' })
   }
 
   const onKeyDownCapture = (event: React.KeyboardEvent): void => {
@@ -448,6 +449,7 @@ function CanvasInner(): React.JSX.Element {
               nodesConnectable
               connectionRadius={64}
               onConnect={onConnect}
+              isValidConnection={isValidConnection}
               zoomOnDoubleClick={false}
               // Tab va d'idée en idée.
               edgesFocusable={false}

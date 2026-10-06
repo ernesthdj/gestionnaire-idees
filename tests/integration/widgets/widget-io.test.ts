@@ -49,7 +49,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
 
     const root = await t.neurons.create({ text: 'Acheter un 2e écran', nature: 'action' })
     rootId = root.id
-    // Une question répondue dans l'ancien moteur (archive, spec 010) : toujours transmise aux widgets branchés.
+    // Une question répondue dans l'ancien moteur (archive, spec 010) : plus transmise depuis la spec 015.
     db.insert(extensions)
       .values({
         id: 'q1',
@@ -81,7 +81,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     const versionId = addVersion('gi.onInputs(() => {})')
     const state = io.connect({ blockId, sourceKind: 'idea', sourceId: rootId })
     expect(state).toMatchObject({ approved: false, inputs: [{ sourceKind: 'idea', title: 'Acheter un 2e écran' }] })
-    expect(state.inputs[0]?.parts).toEqual(['identity', 'original', 'answers', 'tree', 'document'])
+    expect(state.inputs[0]?.parts).toEqual(['identity', 'sheet', 'plan', 'annexes'])
     expect(io.inputs({ blockId, versionId })).toEqual({ approved: false, inputs: [] })
 
     expect(io.approve(blockId).approved).toBe(true)
@@ -94,10 +94,11 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
       title: 'Acheter un 2e écran',
       nature: 'action',
       originalText: 'Acheter un 2e écran',
-      answers: [{ question: 'Quel budget ?', answer: expect.stringContaining('300 €') }],
-      document: null,
-      nextStep: null
+      sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
+      plan: [],
+      annexes: { documents: [] }
     })
+    expect(given.inputs[0]).not.toHaveProperty('answers')
   })
 
   it('should_transmit_only_the_checked_parts_and_ask_again_when_they_change', () => {
@@ -115,7 +116,8 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
       title: 'Acheter un 2e écran',
       nature: 'action',
       category: null,
-      state: 'raw'
+      state: 'raw',
+      originalText: 'Acheter un 2e écran'
     })
   })
 
@@ -140,7 +142,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     expect(() => io.approve(blockId)).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
   })
 
-  it('should_refuse_a_duplicate_an_unknown_source_and_a_step_that_does_not_exist', () => {
+  it('should_refuse_a_duplicate_an_unknown_source_and_a_new_old_style_next_step', () => {
     io.connect({ blockId, sourceKind: 'idea', sourceId: rootId })
     expect(() => io.connect({ blockId, sourceKind: 'idea', sourceId: rootId })).toThrow(
       expect.objectContaining({ code: 'DUPLICATE' })
@@ -148,8 +150,11 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     expect(() => io.connect({ blockId, sourceKind: 'idea', sourceId: '00000000-0000-4000-8000-00000000dead' })).toThrow(
       expect.objectContaining({ code: 'NOT_FOUND' })
     )
-    // L'idée n'a pas de document : elle n'a donc pas de prochaine étape à brancher.
+    // L'ancienne « prochaine étape » (spec 005) ne se branche plus (spec 015 D3) ; une étape sans plan : introuvable.
     expect(() => io.connect({ blockId, sourceKind: 'step', sourceId: rootId })).toThrow(
+      expect.objectContaining({ code: 'VALIDATION' })
+    )
+    expect(() => io.connect({ blockId, sourceKind: 'plan_step', sourceId: rootId })).toThrow(
       expect.objectContaining({ code: 'NOT_FOUND' })
     )
   })
@@ -159,7 +164,8 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     io.connect({ blockId, sourceKind: 'idea', sourceId: rootId })
     const shape = io.inputShape(blockId) ?? ''
     expect(shape).toContain('kind: string')
-    expect(shape).toContain('answers: [{ answer: string, question: string }] × 1')
+    expect(shape).toContain('originalText: string')
+    expect(shape).toContain('plan: []')
     expect(shape).not.toMatch(/écran|300|Quel budget/)
   })
 

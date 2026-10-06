@@ -423,8 +423,8 @@ export const widgetInputs = sqliteTable(
     blockId: text('block_id')
       .notNull()
       .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
-    sourceKind: text('source_kind', { enum: ['idea', 'step'] }).notNull(),
-    /** Idée branchée, ou idée dont la prochaine étape est branchée. */
+    sourceKind: text('source_kind', { enum: ['idea', 'plan_step', 'step'] }).notNull(),
+    /** Idée, étape de plan (spec 015), ou idée dont l'ancienne prochaine étape est branchée. */
     sourceId: text('source_id').notNull(),
     partsJson: text('parts_json').notNull().default('[]'),
     deletedAt: text('deleted_at'),

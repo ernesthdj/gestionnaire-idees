@@ -257,7 +257,8 @@ describe('conversion des idées de l’ancien moteur au démarrage (spec 010 US3
     expect(rows.filter((row) => row.deletedAt === null).map((row) => [row.sourceKind, row.sourceId])).toEqual([
       ['idea', 'a']
     ])
-    expect(JSON.parse(rows.find((row) => row.sourceKind === 'idea')?.partsJson ?? '[]')).toContain('document')
+    // Le document de l'idée (son ancienne prochaine étape) est transmis par les annexes (spec 015).
+    expect(JSON.parse(rows.find((row) => row.sourceKind === 'idea')?.partsJson ?? '[]')).toContain('annexes')
   })
 
   it('should_only_unplug_the_step_when_the_widget_already_receives_the_idea', () => {

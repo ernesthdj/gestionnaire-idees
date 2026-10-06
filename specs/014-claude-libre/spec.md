@@ -21,6 +21,7 @@ alors que l'écriture a été refusée, et Claude tente de reproposer une action
 | D4 | Fin de la cage | Remplace, dans la spec 013, les outils d'écriture maison, la règle « écriture seulement pendant une exécution » et la liste de scripts approuvés (D2, D2 bis). Les actions finales gardent leur rôle : contexte de la branche, livrable, revue. Le livrable est reconstitué à partir des **modifications réelles**. |
 | D5 | Fil fidèle | Le fil d'une conversation dit ce qui s'est **réellement** passé : un outil refusé ou en erreur apparaît « refusé » / « échoué », jamais comme réussi. |
 | D6 | Après exécution | mentalyas demande des modifications **directement dans le chat** de l'action ; elles s'ajoutent à son livrable. |
+| D7 (2026-10-06) | Commit par étape | Claude peut **commiter** depuis l'app (git est une commande comme une autre, D1). Une action finale gagne « Commiter l'étape » : Claude prépare un commit des seuls fichiers de son livrable, message au format Conventional Commits rattaché au rang de l'étape ; en mode Demander, la commande exacte s'affiche et attend l'accord de mentalyas. Jamais de push sans demande explicite. |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -176,6 +177,35 @@ marqué de confiance qui contient un hook → le hook ne s'exécute pas ; marqu�
 
 ---
 
+### User Story 7 — Commiter chaque étape d'action (Priority: P1)
+
+Une action finale est revue et acceptée. mentalyas clique « Commiter l'étape » (ou le demande dans le chat) : Claude
+ajoute explicitement les fichiers du livrable, propose un message (ex. `feat(budget): tableau des postes (①.1.2)`)
+et lance le commit ; en mode Demander, mentalyas voit la commande exacte et la liste des fichiers avant d'autoriser.
+
+**Why this priority**: D7 — un historique git qui suit le plan d'attaque, étape par étape, sans quitter la carte.
+
+**Independent Test**: action finale acceptée dont le livrable a 2 fichiers, projet sous git → « Commiter l'étape » →
+carte de demande « git add <2 fichiers> » puis « git commit -m … » ; autoriser → `git log` du projet montre le commit,
+avec seulement ces 2 fichiers ; l'action affiche « commité » avec le court identifiant du commit.
+
+**Acceptance Scenarios**:
+
+1. **Given** une action finale dont le livrable a des fichiers, dans un projet sous git, **When** mentalyas clique
+   « Commiter l'étape », **Then** Claude ajoute **nommément** les fichiers du livrable (jamais tout le dossier) et
+   propose un message Conventional Commits qui cite le rang et le titre de l'étape.
+2. **Given** le mode Demander, **When** Claude lance `git add` puis `git commit`, **Then** chaque commande s'affiche
+   exactement (fichiers et message) et attend l'accord de mentalyas ; un refus n'a aucun effet.
+3. **Given** un commit réussi, **When** il se termine, **Then** l'action finale affiche « commité » et l'identifiant
+   court du commit ; le fil de la conversation le trace.
+4. **Given** des fichiers modifiés hors du livrable, **When** Claude prépare le commit, **Then** ils ne sont pas inclus
+   et Claude les signale.
+5. **Given** une demande de push, **When** mentalyas ne l'a pas explicitement demandée, **Then** Claude ne pousse pas.
+6. **Given** un projet sans git, ou un livrable vide, **When** mentalyas ouvre l'action, **Then** « Commiter l'étape »
+   est indisponible avec la raison.
+
+---
+
 ### Edge Cases
 
 - L'app fermée avec une demande en attente : à la réouverture, la demande est caduque (refusée), le fil le dit.
@@ -222,6 +252,12 @@ marqué de confiance qui contient un hook → le hook ne s'exécute pas ; marqu�
   défaut) ; les réglages d'un dépôt lié MUST s'appliquer seulement s'il est marqué de confiance.
 - **FR-013**: Les écritures de Claude sur la carte (pont MCP) MUST rester inchangées : directes, marquées « par
   Claude », annulables.
+- **FR-015**: Une action finale dont le livrable a des fichiers, dans un projet sous git, MUST offrir « Commiter
+  l'étape », qui demande à Claude un commit des seuls fichiers du livrable, nommés explicitement, avec un message
+  Conventional Commits citant le rang et le titre de l'étape, sans ligne de co-auteur.
+- **FR-016**: Un commit MUST suivre le mode de permission de la conversation (en mode Demander : commande exacte
+  affichée et autorisée) ; Claude MUST NOT pousser sans demande explicite de mentalyas.
+- **FR-017**: L'action finale MUST afficher l'état « commité » et l'identifiant court du dernier commit de son livrable.
 - **FR-014**: Chaque demande, réponse et changement de mode MUST être tracé localement (date, conversation, nature,
   décision) sans contenu de fichier ni de commande dans les logs.
 
@@ -246,6 +282,8 @@ marqué de confiance qui contient un hook → le hook ne s'exécute pas ; marqu�
 - **SC-003**: 100 % des outils refusés ou en erreur apparaissent comme tels dans le fil.
 - **SC-004**: 100 % des fichiers changés pendant une exécution et dans les échanges qui suivent figurent au livrable
   (projet sous gestion de versions).
+- **SC-006**: Une étape d'action acceptée se commite en un clic plus une autorisation, avec 100 % des fichiers du
+  livrable et 0 fichier hors livrable.
 - **SC-005**: Ce que mentalyas fait dans le terminal se fait depuis le chat : sur 5 tâches courantes
   (corriger un fichier, lancer les tests, installer une dépendance, lire un autre dépôt, modifier l'app), 5 sont
   faisables depuis le chat (validé en test guidé).

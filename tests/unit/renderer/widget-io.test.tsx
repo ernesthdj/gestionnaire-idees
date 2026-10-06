@@ -8,8 +8,9 @@ import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { useWidgetReview } from '../../../src/renderer/src/widgets/useWidgetIo'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { BlockView, IdeasCanvasView } from '../../../src/shared/ipc/canvas'
-import type { IdeaPart, WidgetInputsView, WidgetIoStateView } from '../../../src/shared/ipc/widgetIo'
+import type { InputPart, WidgetInputsView, WidgetIoStateView } from '../../../src/shared/ipc/widgetIo'
 import type { WidgetView } from '../../../src/shared/ipc/widgets'
+import { expectNoAxeViolations } from '../../support/axe'
 import { canvasView, HATCHED_A_ID } from '../../fixtures/ui/canvas'
 import { installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
@@ -60,7 +61,7 @@ const widget: WidgetView = {
   messages: []
 }
 
-const state = (approved: boolean, parts: readonly IdeaPart[] = ['identity', 'original']): WidgetIoStateView => ({
+const state = (approved: boolean, parts: readonly InputPart[] = ['identity', 'sheet']): WidgetIoStateView => ({
   blockId: BLOCK_ID,
   approved,
   inputs: [
@@ -70,6 +71,7 @@ const state = (approved: boolean, parts: readonly IdeaPart[] = ['identity', 'ori
       sourceKind: 'idea',
       sourceId: HATCHED_A_ID,
       title: 'Mission mariage',
+      label: null,
       parts: [...parts]
     }
   ]
@@ -128,8 +130,10 @@ describe('entrées d’un widget sur la carte (spec 005 lot 1)', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Revue du widget « Budget »' })
     expect(within(dialog).getByText('Lire l’idée « Mission mariage »')).toBeDefined()
-    expect((within(dialog).getByLabelText('Texte d’origine') as HTMLInputElement).checked).toBe(true)
-    expect((within(dialog).getByLabelText('Questions et réponses') as HTMLInputElement).checked).toBe(false)
+    expect((within(dialog).getByLabelText('Fiche') as HTMLInputElement).checked).toBe(true)
+    expect(
+      (within(dialog).getByLabelText('Plan d’attaque (étapes, rangs et statuts)') as HTMLInputElement).checked
+    ).toBe(false)
     // Le code est montré comme du texte, jamais interprété.
     expect(within(dialog).getByRole('tabpanel').textContent).toBe('gi.onInputs((inputs) => render(inputs))')
 
@@ -148,12 +152,44 @@ describe('entrées d’un widget sur la carte (spec 005 lot 1)', () => {
     })
     await user.click(await within(await node()).findByRole('button', { name: 'Revoir' }))
     const dialog = await screen.findByRole('dialog', { name: /^Revue du widget/ })
-    await user.click(within(dialog).getByLabelText('Texte d’origine'))
+    await user.click(within(dialog).getByLabelText('Fiche'))
     expect(api.invoke).toHaveBeenCalledWith('widgetIo:setParts', { inputId: INPUT_ID, parts: ['identity'] })
 
     await user.click(within(dialog).getByRole('button', { name: /^Débrancher/ }))
     await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('widgetIo:disconnect', { inputId: INPUT_ID }))
     await waitFor(() => expect(useUiStore.getState().toast).toMatchObject({ undoBatchId: 'lot-7' }))
+  })
+
+  it('should_show_a_plan_step_source_with_its_rank_and_its_context_parts', async () => {
+    const user = userEvent.setup()
+    const stepState: WidgetIoStateView = {
+      blockId: BLOCK_ID,
+      approved: false,
+      inputs: [
+        {
+          id: INPUT_ID,
+          blockId: BLOCK_ID,
+          sourceKind: 'plan_step',
+          sourceId: HATCHED_A_ID,
+          title: 'Chiffrer le budget',
+          label: '1.2',
+          parts: ['identity', 'sheet', 'path', 'subtree']
+        }
+      ]
+    }
+    renderCanvas({ 'widgetIo:state': () => stepState })
+    await user.click(await within(await node()).findByRole('button', { name: 'Revoir' }))
+    const dialog = await screen.findByRole('dialog', { name: /^Revue du widget/ })
+    expect(within(dialog).getByText('Lire l’étape 1.2 « Chiffrer le budget »')).toBeDefined()
+    for (const label of [
+      'Titre, rang, statut, raison et action finale',
+      'Fiche de l’étape',
+      'Chemin depuis le genesis (titres et fiches)',
+      'Sous-étapes, documents annexés et fichiers du livrable'
+    ]) {
+      expect((within(dialog).getByLabelText(label) as HTMLInputElement).checked).toBe(true)
+    }
+    await expectNoAxeViolations(dialog)
   })
 
   it('should_hand_the_inputs_to_its_own_frame_only_once_the_frame_is_ready', async () => {

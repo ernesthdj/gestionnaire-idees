@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ELEMENT_RELATIONS, ELEMENT_STATUSES, ELEMENT_TYPES } from '../ipc/canvas'
-import { IDEA_PARTS } from '../ipc/widgetIo'
+import { INPUT_PARTS } from '../ipc/widgetIo'
 
 /**
  * Outils du pont MCP (spec 007 contracts/mcp-tools.md) : déclarés par le relais à Claude Code, revalidés par le main
@@ -79,7 +79,7 @@ export const WidgetPoserInput = z.strictObject({
   ts: z.string().min(1).max(100_000),
   resume: z.string().trim().min(1).max(500),
   source: Id.optional(),
-  parties: z.array(z.enum(IDEA_PARTS)).max(IDEA_PARTS.length).optional()
+  parties: z.array(z.enum(INPUT_PARTS)).max(INPUT_PARTS.length).optional()
 })
 export type WidgetPoserInput = z.infer<typeof WidgetPoserInput>
 
@@ -273,7 +273,8 @@ export const MCP_TOOLS = {
   },
   widget_poser: {
     description:
-      'Pose un widget dont tu fournis le code (html, css, ts ; API `gi`), relié éventuellement à une idée. ' +
+      'Pose un widget dont tu fournis le code (html, css, ts ; API `gi`), relié éventuellement à une idée ou à une ' +
+      'étape de plan (source = son id ; une étape transmet son contexte complet : identité, fiche, chemin, sous-étapes et annexes). ' +
       "Il arrive « À revoir » : il ne reçoit aucune donnée avant l'autorisation de mentalyas.",
     input: WidgetPoserInput,
     writes: true

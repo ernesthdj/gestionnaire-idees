@@ -7,7 +7,8 @@ import {
   type MapEnd
 } from '@shared/ipc/canvas'
 import type { TreeView } from '@shared/ipc/neurons'
-import type { IdeaPart } from '@shared/ipc/widgetIo'
+import type { InputPart } from '@shared/ipc/widgetIo'
+import { defaultParts, partsFor } from '../../domain/widgets/inputParts'
 import type { ToolResult } from '@shared/mcp/protocol'
 import {
   MCP_LIMITS,
@@ -47,8 +48,13 @@ export interface MapServiceDeps {
   readonly selection: SelectionStore
   /** Crée la version d'un widget à partir du code fourni (validation et transpilation de la spec 004). */
   readonly widgetFromCode: (blockId: string, code: WidgetPoserInput) => void
-  /** Branche une idée sur un widget avec les parties lues (spec 005) ; renvoie l'identifiant du branchement. */
-  readonly connectIdea: (blockId: string, rootId: string, parts: readonly IdeaPart[]) => string
+  /** Branche une idée ou une étape de plan sur un widget avec les parties lues (spec 005, 015) ; renvoie l'identifiant du branchement. */
+  readonly connectSource: (
+    blockId: string,
+    sourceKind: 'idea' | 'plan_step',
+    sourceId: string,
+    parts: readonly InputPart[]
+  ) => string
   /** Classement local d'une idée posée par Claude, après la transaction. */
   readonly categorize?: (rootId: string) => void
   readonly emit: (event: MapChangedEvent) => void
@@ -635,10 +641,23 @@ export class MapService {
 
   private poseWidget(input: WidgetPoserInput): ToolResult {
     const universe = this.universe()
-    const source = input.source === undefined ? undefined : this.require(universe, input.source)
+    // Une étape de plan (spec 015) se branche comme une idée ; le widget se pose près de son genesis.
+    const step = input.source === undefined ? undefined : universe.view.steps.find((entry) => entry.id === input.source)
+    const source =
+      input.source === undefined
+        ? undefined
+        : step === undefined
+          ? this.require(universe, input.source)
+          : this.require(universe, step.genesisId)
     if (source !== undefined && source.kind !== 'idea') {
-      throw new McpToolError('LOT_INVALIDE', 'source : seule une idée peut être branchée sur un widget.')
+      throw new McpToolError('LOT_INVALIDE', 'source : seule une idée ou une étape de plan se branche sur un widget.')
     }
+    const connection =
+      source === undefined
+        ? undefined
+        : step === undefined
+          ? { kind: 'idea' as const, id: source.idea.id }
+          : { kind: 'plan_step' as const, id: step.id }
     const size = BLOCK_DEFAULT_SIZES.widget
     const anchor = source === undefined ? null : this.rectOf(source)
     const layout = layoutBatch({
@@ -658,14 +677,16 @@ export class MapService {
         const entries: ChangeEntry[] = [
           { kind: 'mcp_write', entity: 'canvas_block', entityId: block.id, before: null, after: { kind: 'widget' } }
         ]
-        if (source !== undefined && source.kind === 'idea') {
-          const inputId = this.deps.connectIdea(block.id, source.idea.id, input.parties ?? ['identity', 'answers'])
+        if (connection !== undefined) {
+          const parts =
+            input.parties === undefined ? defaultParts(connection.kind) : partsFor(connection.kind, input.parties)
+          const inputId = this.deps.connectSource(block.id, connection.kind, connection.id, parts)
           entries.push({
             kind: 'mcp_write',
             entity: 'widget_input',
             entityId: inputId,
             before: null,
-            after: { sourceKind: 'idea' }
+            after: { sourceKind: connection.kind }
           })
         }
         this.deps.blocks.log(batchId, entries, 'claude')

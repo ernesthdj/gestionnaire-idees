@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
 import { create } from 'zustand'
-import type { IdeaPart, InputSourceKind, WidgetIoStateView } from '@shared/ipc/widgetIo'
+import type { InputPart, InputSourceKind, WidgetIoStateView } from '@shared/ipc/widgetIo'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -22,7 +22,7 @@ export interface WidgetIoActions {
   readonly state: UseQueryResult<WidgetIoStateView>
   /** Branche une idée ou une prochaine étape ; `true` si c'est fait (la revue s'ouvre alors). */
   connect(sourceKind: InputSourceKind, sourceId: string): Promise<boolean>
-  setParts(inputId: string, parts: readonly IdeaPart[]): Promise<void>
+  setParts(inputId: string, parts: readonly InputPart[]): Promise<void>
   disconnect(inputId: string): Promise<void>
   approve(): Promise<boolean>
 }

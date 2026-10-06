@@ -197,8 +197,14 @@ export class CanvasService {
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
       blocks,
-      // Un trait n'a de sens que si son idée est encore sur la carte.
-      io: this.deps.io.links().filter((link) => link.sourceKind === 'idea' && visible.has(link.sourceId)),
+      // Un trait n'a de sens que si sa source (idée ou étape de plan, spec 015) est encore sur la carte.
+      io: this.deps.io
+        .links()
+        .filter(
+          (link) =>
+            (link.sourceKind === 'idea' && visible.has(link.sourceId)) ||
+            (link.sourceKind === 'plan_step' && steps.some((step) => step.id === link.sourceId))
+        ),
       mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
         (link) => present.has(link.from.id) && present.has(link.to.id)
       ),

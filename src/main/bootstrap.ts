@@ -190,7 +190,34 @@ export function bootstrap(shell: ShellPort): AppContext {
     widgets: widgetRepository,
     blocks: blockRepository,
     tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
-    document: (rootId) => hatchedRepository.result(rootId)
+    document: (rootId) => hatchedRepository.result(rootId),
+    // Contexte des plans d'attaque (spec 015) : lu à la demande, une fois l'app démarrée (dépôts créés plus bas).
+    context: {
+      node: (id) => planRepository.node(id),
+      steps: (genesisId) => planRepository.steps(genesisId),
+      sheetJson: (id) => planRepository.sheetJson(id),
+      whyOf: (stepId) => planRepository.whyOf(stepId),
+      final: (stepId) => {
+        const action = finalRepository.get(stepId)
+        if (action === undefined || action.state === 'proposee') return null
+        return {
+          deliverable: action.deliverable,
+          state: action.state,
+          files: finalRepository
+            .files(stepId)
+            .filter((file) => file.revertedAt === null)
+            .map((file) => ({ path: file.path, status: file.beforeContent === null ? 'cree' : 'modifie' }))
+        }
+      },
+      documents: (neuronIds) =>
+        documentRepository
+          .list()
+          .filter((document) => neuronIds.has(document.neuronId))
+          .map((document) => {
+            const { content, missing } = documents.read(document.id)
+            return { title: document.title, content, ...(missing ? { missing: true as const } : {}) }
+          })
+    }
   })
   const widgets = new WidgetService({
     repository: widgetRepository,
@@ -304,8 +331,8 @@ export function bootstrap(shell: ShellPort): AppContext {
     neurons: neuronRepository,
     selection,
     widgetFromCode: (blockId, code) => widgets.createFromCode(blockId, code),
-    connectIdea: (blockId, rootId, parts) =>
-      widgetIoRepository.insertInput({ blockId, sourceKind: 'idea', sourceId: rootId, parts }).id,
+    connectSource: (blockId, sourceKind, sourceId, parts) =>
+      widgetIoRepository.insertInput({ blockId, sourceKind, sourceId, parts }).id,
     categorize: (rootId) => neurons.categorizeInBackground(rootId),
     emit: (event) => broadcast('map:changed', event)
   })

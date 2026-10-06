@@ -3,9 +3,12 @@ import { BLOCK_DEFAULT_SIZES, RESULT_GAP } from '@shared/ipc/canvas'
 import type { HatchedResultView, TreeView } from '@shared/ipc/neurons'
 import {
   IDEA_PARTS,
+  STEP_PARTS,
   type IdeaPart,
+  type InputPart,
   type InputSourceKind,
   type IoLinkView,
+  type StepPart,
   type WidgetEmitView,
   type WidgetInputData,
   type WidgetInputsView,
@@ -18,7 +21,10 @@ import { shapeOf } from '../../domain/widgets/shape'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { WidgetInputRow, WidgetIoRepository } from '../../infrastructure/db/repositories/WidgetIoRepository'
 import type { WidgetRepository, WidgetVersionRow } from '../../infrastructure/db/repositories/WidgetRepository'
-import { assembleIdea, assembleStep, type IdeaFacts } from './InputAssembler'
+import { defaultParts, partsFor } from '../../domain/widgets/inputParts'
+import { EMPTY_SHEET } from '../../domain/conversation/sheet'
+import { assembleIdea, assembleLegacyStep, assemblePlanStep, type IdeaFacts } from './InputAssembler'
+import { PlanFacts, type PlanContextPort } from './PlanFacts'
 
 export interface WidgetIoDependencies {
   readonly repository: WidgetIoRepository
@@ -27,7 +33,10 @@ export interface WidgetIoDependencies {
   readonly blocks: Pick<BlockRepository, 'get' | 'insert' | 'resultBlockOf'>
   /** Idée et son arbre en cours ; `undefined` si elle n'existe plus. */
   readonly tree: (rootId: string) => TreeView | undefined
+  /** Ancien document éclos (archive), pour les anciennes « prochaines étapes » branchées. */
   readonly document: (rootId: string) => HatchedResultView | null
+  /** Plans, fiches et annexes (spec 015) ; absent : une idée ne transmet que son identité, aucune étape n'est branchable. */
+  readonly context?: PlanContextPort
 }
 
 /**
@@ -44,13 +53,20 @@ export function ioFingerprint(version: WidgetVersionRow, inputs: readonly Widget
 }
 
 /**
- * Entrées et sorties des widgets (spec 005) : brancher une idée ou une prochaine étape, autoriser une version figée
+ * Entrées et sorties des widgets (spec 005, 015) : brancher une idée ou une étape de plan, autoriser une version figée
  * à les lire, lui remettre ces données — et seulement elles — puis recevoir le résultat qu'elle publie. C'est ici,
  * dans le main, que se décide ce qu'un widget reçoit et ce qui est gardé de lui : l'interface et le cadre isolé ne
  * font que relayer.
  */
 export class WidgetIoService {
-  constructor(private readonly deps: WidgetIoDependencies) {}
+  private readonly plans: PlanFacts | undefined
+
+  constructor(private readonly deps: WidgetIoDependencies) {
+    this.plans =
+      deps.context === undefined
+        ? undefined
+        : new PlanFacts(deps.context, (rootId) => this.liveTree(rootId) !== undefined)
+  }
 
   connect(input: {
     readonly blockId: string
@@ -59,27 +75,28 @@ export class WidgetIoService {
   }): WidgetIoStateView {
     const { repository } = this.deps
     this.widgetOrThrow(input.blockId)
-    const facts = this.facts(input.sourceId)
-    if (facts === undefined) throw new AppError('NOT_FOUND', 'Idée introuvable')
-    if (input.sourceKind === 'step' && assembleStep(facts) === null) {
-      throw new AppError('NOT_FOUND', 'Cette idée n’a pas de prochaine étape')
+    if (input.sourceKind === 'step') {
+      throw new AppError('VALIDATION', 'Ancienne source : branche plutôt une étape du plan d’attaque')
+    }
+    if (input.sourceKind === 'idea' && this.liveTree(input.sourceId) === undefined) {
+      throw new AppError('NOT_FOUND', 'Idée introuvable')
+    }
+    if (input.sourceKind === 'plan_step' && this.plans?.liveStep(input.sourceId) === undefined) {
+      throw new AppError('NOT_FOUND', 'Étape introuvable')
     }
     const already = repository
       .inputs(input.blockId)
       .some((entry) => entry.sourceKind === input.sourceKind && entry.sourceId === input.sourceId)
     if (already) throw new AppError('DUPLICATE', 'Cette source est déjà branchée sur ce widget')
-    repository.insertInput({ ...input, parts: input.sourceKind === 'idea' ? [...IDEA_PARTS] : [] })
+    repository.insertInput({ ...input, parts: defaultParts(input.sourceKind) })
     return this.state(input.blockId)
   }
 
-  /** Parties d'une idée transmises par ce branchement ; les changer redemande l'autorisation. */
-  setParts(input: { readonly inputId: string; readonly parts: readonly IdeaPart[] }): WidgetIoStateView {
+  /** Parties transmises par ce branchement ; les changer redemande l'autorisation. */
+  setParts(input: { readonly inputId: string; readonly parts: readonly InputPart[] }): WidgetIoStateView {
     const row = this.inputOrThrow(input.inputId)
-    if (row.sourceKind !== 'idea') throw new AppError('VALIDATION', 'Une prochaine étape n’a pas de parties')
-    this.deps.repository.setParts(
-      row.id,
-      IDEA_PARTS.filter((part) => input.parts.includes(part))
-    )
+    if (row.sourceKind === 'step') throw new AppError('VALIDATION', 'Une ancienne prochaine étape n’a pas de parties')
+    this.deps.repository.setParts(row.id, partsFor(row.sourceKind, input.parts))
     return this.state(row.blockId)
   }
 
@@ -114,7 +131,7 @@ export class WidgetIoService {
         blockId,
         sourceKind: input.sourceKind,
         sourceId: input.sourceId,
-        title: this.liveTree(input.sourceId)?.root.title ?? null,
+        ...this.sourceTitle(input.sourceKind, input.sourceId),
         parts: input.parts
       })),
       approved:
@@ -218,26 +235,48 @@ export class WidgetIoService {
 
   private assemble(rows: readonly WidgetInputRow[]): WidgetInputData[] {
     return rows.flatMap((row): WidgetInputData[] => {
-      const facts = this.facts(row.sourceId)
-      // Source disparue (idée supprimée, étape absente du nouveau document) : entrée vide, sans erreur.
-      if (facts === undefined) return []
-      if (row.sourceKind === 'idea') return [assembleIdea(facts, row.parts)]
-      const step = assembleStep(facts)
-      return step === null ? [] : [step]
+      // Source disparue (idée ou étape retirée) : entrée vide, sans erreur.
+      if (row.sourceKind === 'plan_step') {
+        const facts = this.plans?.step(row.sourceId)
+        return facts === undefined ? [] : [assemblePlanStep(facts, row.parts.filter(isStepPart))]
+      }
+      const tree = this.liveTree(row.sourceId)
+      if (tree === undefined) return []
+      if (row.sourceKind === 'idea') return [assembleIdea(this.ideaFacts(tree), row.parts.filter(isIdeaPart))]
+      const legacy = assembleLegacyStep(tree.root, this.deps.document(row.sourceId))
+      return legacy === null ? [] : [legacy]
     })
+  }
+
+  /** Titre et rang affichés par la revue ; `null` si la source a disparu. */
+  private sourceTitle(
+    kind: InputSourceKind,
+    id: string
+  ): { readonly title: string | null; readonly label: string | null } {
+    if (kind !== 'plan_step') return { title: this.liveTree(id)?.root.title ?? null, label: null }
+    const step = this.plans?.liveStep(id)
+    return step === undefined || this.plans === undefined
+      ? { title: null, label: null }
+      : { title: step.title, label: this.plans.displayLabel(step) }
+  }
+
+  private ideaFacts(tree: TreeView): IdeaFacts {
+    const { root } = tree
+    return {
+      id: root.id,
+      title: root.title,
+      nature: root.nature,
+      category: root.category?.label ?? null,
+      state: root.state,
+      originalText: root.content ?? root.title,
+      ...(this.plans?.idea(root) ?? { sheet: EMPTY_SHEET, plan: [], documents: [] })
+    }
   }
 
   /** Idée encore sur la carte : une idée supprimée (archivée) ne transmet plus rien. */
   private liveTree(rootId: string): TreeView | undefined {
     const tree = this.deps.tree(rootId)
     return tree === undefined || tree.root.state === 'archived' ? undefined : tree
-  }
-
-  private facts(rootId: string): IdeaFacts | undefined {
-    const tree = this.liveTree(rootId)
-    return tree === undefined
-      ? undefined
-      : { tree, answers: this.deps.repository.answers(rootId), document: this.deps.document(rootId) }
   }
 
   private widgetOrThrow(blockId: string): { readonly versionId: string | null } {
@@ -252,3 +291,6 @@ export class WidgetIoService {
     return row
   }
 }
+
+const isIdeaPart = (part: InputPart): part is IdeaPart => (IDEA_PARTS as readonly string[]).includes(part)
+const isStepPart = (part: InputPart): part is StepPart => (STEP_PARTS as readonly string[]).includes(part)

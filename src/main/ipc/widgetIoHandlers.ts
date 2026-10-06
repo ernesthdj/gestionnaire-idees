@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { IDEA_PARTS } from '@shared/ipc/widgetIo'
+import { CONNECTABLE_SOURCES, INPUT_PARTS } from '@shared/ipc/widgetIo'
 import type { WidgetIoService } from '../application/widgets/WidgetIoService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -15,12 +15,13 @@ export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
     }),
     defineRoute({
       channel: 'widgetIo:connect',
-      input: z.object({ blockId: Id, sourceKind: z.enum(['idea', 'step']), sourceId: Id }).strict(),
+      input: z.object({ blockId: Id, sourceKind: z.enum(CONNECTABLE_SOURCES), sourceId: Id }).strict(),
       handler: async (input) => io.connect(input)
     }),
     defineRoute({
       channel: 'widgetIo:setParts',
-      input: z.object({ inputId: Id, parts: z.array(z.enum(IDEA_PARTS)).max(IDEA_PARTS.length) }).strict(),
+      // Parties d'une idée ou d'une étape : le service ne garde que celles de la nature du branchement.
+      input: z.object({ inputId: Id, parts: z.array(z.enum(INPUT_PARTS)).max(INPUT_PARTS.length) }).strict(),
       handler: async (input) => io.setParts(input)
     }),
     defineRoute({

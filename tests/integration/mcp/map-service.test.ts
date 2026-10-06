@@ -84,8 +84,8 @@ describe('pont MCP — service de la carte', () => {
       neurons: neuronRepository,
       selection,
       widgetFromCode: (blockId, code) => widgets.createFromCode(blockId, code),
-      connectIdea: (blockId, rootId, parts) =>
-        widgetIoRepository.insertInput({ blockId, sourceKind: 'idea', sourceId: rootId, parts }).id,
+      connectSource: (blockId, sourceKind, sourceId, parts) =>
+        widgetIoRepository.insertInput({ blockId, sourceKind, sourceId, parts }).id,
       emit: (event) => events.push(event)
     })
     ideaId = (await t.neurons.create({ text: 'Organiser le mariage de Léa', position: { x: 0, y: 0 } })).id
@@ -305,6 +305,25 @@ describe('pont MCP — service de la carte', () => {
       const versionId = widget?.versionId ?? ''
       expect(io.inputs({ blockId, versionId }).inputs).toEqual([])
       expect(history.list().items[0]).toMatchObject({ actor: 'claude', summary: 'Claude : 1 widget' })
+    })
+
+    it('should_connect_a_widget_posed_by_claude_to_a_plan_step_with_its_full_context', () => {
+      const plan = new PlanService({ repository: plans })
+      const { proposalId } = plan.propose({ parentId: ideaId, steps: [{ key: 'a', title: 'Chiffrer', why: 'x' }] })
+      plan.decide({ proposalId, accept: plans.proposal(proposalId)?.items.map((item) => item.id) ?? [], reject: [] })
+      const stepId = plans.children(ideaId)[0]?.id ?? ''
+      const result = call('widget_poser', {
+        titre: 'Budget',
+        html: '<main></main>',
+        css: '',
+        ts: 'gi.onInputs(() => {})',
+        resume: 'Budget de l’étape',
+        source: stepId,
+        // Une partie d'idée demandée pour une étape est ignorée.
+        parties: ['path', 'plan', 'sheet']
+      })
+      const [input] = io.state((result.data as { id: string }).id).inputs
+      expect(input).toMatchObject({ sourceKind: 'plan_step', sourceId: stepId, parts: ['sheet', 'path'] })
     })
 
     it('should_create_nothing_when_the_code_is_refused', () => {

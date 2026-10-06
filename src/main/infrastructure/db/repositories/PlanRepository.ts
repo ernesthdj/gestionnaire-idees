@@ -176,6 +176,24 @@ export class PlanRepository {
     )
   }
 
+  /** Fiche stockée d'un genesis ou d'une étape (spec 010) ; `null` sans fiche. */
+  sheetJson(id: string): string | null {
+    return (
+      this.db.select({ sheetJson: neurons.sheetJson }).from(neurons).where(eq(neurons.id, id)).get()?.sheetJson ?? null
+    )
+  }
+
+  /** Raison donnée par Claude quand il a proposé cette étape (spec 011) ; `null` pour une étape créée autrement. */
+  whyOf(stepId: string): string | null {
+    return (
+      this.db
+        .select({ why: planProposalItems.why })
+        .from(planProposalItems)
+        .where(eq(planProposalItems.bornId, stepId))
+        .get()?.why ?? null
+    )
+  }
+
   /** Étapes vivantes d'un parent, par rang. */
   children(parentId: string): StepRow[] {
     const genesisId = this.node(parentId)?.genesisId

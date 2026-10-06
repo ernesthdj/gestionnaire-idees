@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useRef } from 'react'
-import { IDEA_PART_LABELS, IDEA_PARTS, type WidgetInputView } from '@shared/ipc/widgetIo'
+import {
+  IDEA_PART_LABELS,
+  IDEA_PARTS,
+  STEP_PART_LABELS,
+  STEP_PARTS,
+  type InputPart,
+  type WidgetInputView
+} from '@shared/ipc/widgetIo'
 import type { WidgetView } from '@shared/ipc/widgets'
 import { Button } from '../components/atoms/Button'
 import { call } from '../lib/ipc'
@@ -8,12 +15,22 @@ import { CodeView } from './CodeView'
 import { useWidgetIo, useWidgetReview, type WidgetIoActions } from './useWidgetIo'
 
 function sourceLabel(input: WidgetInputView): string {
+  if (input.sourceKind === 'plan_step') {
+    return input.title === null ? 'Lire une étape retirée' : `Lire l’étape ${input.label ?? ''} « ${input.title} »`
+  }
   const title = input.title ?? 'idée supprimée'
   return input.sourceKind === 'idea' ? `Lire l’idée « ${title} »` : `Lire la prochaine étape de « ${title} »`
 }
 
+/** Cases proposées selon la nature de la source (spec 015) : une étape transmet son contexte complet. */
+function partsOf(input: WidgetInputView): readonly { readonly part: InputPart; readonly label: string }[] {
+  return input.sourceKind === 'plan_step'
+    ? STEP_PARTS.map((part) => ({ part, label: STEP_PART_LABELS[part] }))
+    : IDEA_PARTS.map((part) => ({ part, label: IDEA_PART_LABELS[part] }))
+}
+
 function InputRow({ input, io }: { readonly input: WidgetInputView; readonly io: WidgetIoActions }): React.JSX.Element {
-  const toggle = (part: (typeof IDEA_PARTS)[number]): void => {
+  const toggle = (part: InputPart): void => {
     const next = input.parts.includes(part) ? input.parts.filter((entry) => entry !== part) : [...input.parts, part]
     void io.setParts(input.id, next)
   }
@@ -26,16 +43,19 @@ function InputRow({ input, io }: { readonly input: WidgetInputView; readonly io:
         </Button>
       </div>
       {input.sourceKind === 'step' ? (
-        <p className="mt-1 text-xs text-content-muted">Transmis : le texte de l’étape et le titre de son idée.</p>
+        <p className="mt-1 text-xs text-content-muted">
+          Ancienne source : le texte d’une prochaine étape et le titre de son idée. Débranche-la et branche plutôt une
+          étape du plan d’attaque.
+        </p>
       ) : (
         <fieldset className="mt-2">
           <legend className="text-xs text-content-muted">Parties transmises</legend>
           <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
-            {IDEA_PARTS.map((part) => (
+            {partsOf(input).map(({ part, label }) => (
               <li key={part}>
                 <label className="flex items-center gap-2 text-xs">
                   <input type="checkbox" checked={input.parts.includes(part)} onChange={() => toggle(part)} />
-                  {IDEA_PART_LABELS[part]}
+                  {label}
                 </label>
               </li>
             ))}

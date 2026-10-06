@@ -129,6 +129,15 @@ export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
       title={final === undefined ? undefined : `${finalStateLabel(final.state, step.status)} — ${final.deliverable}`}
     >
       <PlanHandles />
+      {/* Point d'accroche visible au survol : on le tire vers un widget pour lui transmettre l'étape (spec 015). */}
+      <Handle
+        id="connect"
+        type="source"
+        position={Position.Right}
+        isConnectableEnd={false}
+        className="neuron-connector"
+        title="Tirer vers un widget pour lui transmettre cette étape"
+      />
       <span className="plan-rank">{item.label}</span>
       <span className="min-w-0 flex-1">
         <span className="plan-title">{step.title}</span>

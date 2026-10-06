@@ -206,6 +206,8 @@
   transition: opacity 150ms;
 }
 .react-flow__node-neuron:hover .neuron-connector.react-flow__handle,
+.react-flow__node-plan:hover .neuron-connector.react-flow__handle,
+.react-flow__node-plan:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron.selected .neuron-connector.react-flow__handle,
 .neuron-connector.react-flow__handle.connectingfrom {

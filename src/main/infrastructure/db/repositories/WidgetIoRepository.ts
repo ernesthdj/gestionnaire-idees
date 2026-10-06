@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import { IDEA_PARTS, type IdeaPart, type InputSourceKind } from '@shared/ipc/widgetIo'
+import type { InputPart, InputSourceKind } from '@shared/ipc/widgetIo'
+import { normalizeParts } from '../../../domain/widgets/inputParts'
 import type { AppDatabase } from '../client'
 import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs, widgetResults } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
@@ -10,12 +11,16 @@ export interface WidgetInputRow {
   readonly blockId: string
   readonly sourceKind: InputSourceKind
   readonly sourceId: string
-  readonly parts: readonly IdeaPart[]
+  readonly parts: readonly InputPart[]
 }
 
-function parseParts(json: string): IdeaPart[] {
-  const parsed: unknown = JSON.parse(json)
-  return Array.isArray(parsed) ? IDEA_PARTS.filter((part) => parsed.includes(part)) : []
+/** Parties stockées, converties vers le vocabulaire actuel (spec 015 R1) ; une valeur abîmée ne transmet rien. */
+function parseParts(sourceKind: InputSourceKind, json: string): InputPart[] {
+  try {
+    return normalizeParts(sourceKind, JSON.parse(json))
+  } catch {
+    return []
+  }
 }
 
 const COLUMNS = {
@@ -37,7 +42,7 @@ const toRow = (row: {
   blockId: row.blockId,
   sourceKind: row.sourceKind,
   sourceId: row.sourceId,
-  parts: parseParts(row.partsJson)
+  parts: parseParts(row.sourceKind, row.partsJson)
 })
 
 /** Branchements d'entrée, autorisations et derniers résultats des widgets (spec 005). */
@@ -95,7 +100,7 @@ export class WidgetIoRepository {
     return { id, ...input }
   }
 
-  setParts(id: string, parts: readonly IdeaPart[]): void {
+  setParts(id: string, parts: readonly InputPart[]): void {
     this.db
       .update(widgetInputs)
       .set({ partsJson: JSON.stringify(parts) })
