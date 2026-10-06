@@ -35,14 +35,18 @@ describe('canaux app:*', () => {
     expect(stored().theme).toBe('dark')
   })
 
-  it.each([{ theme: 'violet' }, { shortcut: 'Space' }, { onboardingDone: true }, { unknown: 1 }])(
-    'should_refuse_invalid_or_foreign_field_%o',
-    async (patch) => {
-      const { dispatch, stored } = setup()
-      expect(await dispatch('app:setSettings', patch)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
-      expect(stored()).toEqual(DEFAULT_APP_SETTINGS)
-    }
-  )
+  it.each([
+    { theme: 'violet' },
+    { shortcut: 'Space' },
+    { onboardingDone: true },
+    { unknown: 1 },
+    // Spec 014 D8 : Libre ne peut pas être le défaut (il se confirme conversation par conversation).
+    { chatPermissionMode: 'bypassPermissions' }
+  ])('should_refuse_invalid_or_foreign_field_%o', async (patch) => {
+    const { dispatch, stored } = setup()
+    expect(await dispatch('app:setSettings', patch)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
+    expect(stored()).toEqual(DEFAULT_APP_SETTINGS)
+  })
 
   it('should_switch_the_global_shortcut_when_the_new_one_is_free', async () => {
     const { dispatch, shortcut, registry } = setup()

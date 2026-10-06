@@ -18,7 +18,7 @@ import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PermissionService } from './PermissionService'
 import { AppError } from '../../domain/errors'
-import type { PermissionMode } from '@shared/ipc/chat'
+import { BYPASS_WARNING, type PermissionMode } from '@shared/ipc/chat'
 import type { ConversationProcess, SpawnConversation } from '../../infrastructure/claude/CliConversation'
 import type {
   ConversationNeuron,
@@ -54,6 +54,8 @@ export interface ConversationDeps {
     | 'setSession'
     | 'setProjectDir'
     | 'setChatModel'
+    | 'setPermissionMode'
+    | 'confirmBypass'
     | 'messages'
     | 'addMessage'
     | 'setToolStatus'
@@ -81,7 +83,7 @@ export interface ConversationDeps {
   readonly closeGraceMs?: number
   readonly maxLive?: number
   /** Demandes de permission (spec 014) : refusées quand le chat se ferme ou que la conversation s’arrête. */
-  readonly permissions?: Pick<PermissionService, 'cancel' | 'open'>
+  readonly permissions?: Pick<PermissionService, 'cancel' | 'open' | 'modeChanged'>
   /** Mode de permission par défaut des conversations (réglage) ; absent : Demander. */
   readonly defaultPermissionMode?: () => PermissionMode
 }
@@ -165,6 +167,8 @@ interface Live {
   lastActive: number
   /** Outils refusés faute de permission dans ce processus (spec 014 R4). */
   readonly denied: Set<string>
+  /** Mode changé pendant le tour : le processus repart à la fin du tour, avec le nouveau mode. */
+  restartAfterTurn: boolean
 }
 
 const MESSAGES: Readonly<Record<ChatErrorCode, string>> = {
@@ -250,7 +254,8 @@ export class ConversationService {
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
-      modelChoice: neuron.chatModel
+      modelChoice: neuron.chatModel,
+      permissionMode: this.permissionModeOf(neuron)
     }
   }
 
@@ -347,6 +352,25 @@ ${text}`
     return this.open(neuronId)
   }
 
+  /**
+   * Mode de permission de cette conversation (spec 014 US2). Libre exige d'avoir confirmé l'avertissement, une fois
+   * par conversation (`CONFIRM_REQUIRED` sinon). Le processus repart avec le nouveau mode (session reprise) : aussitôt
+   * s'il est inactif, à la fin du tour sinon.
+   */
+  setPermissionMode(neuronId: string, mode: PermissionMode, confirmBypass = false): { readonly mode: PermissionMode } {
+    const neuron = this.neuronOrThrow(neuronId)
+    if (mode === 'bypassPermissions' && neuron.chatBypassConfirmedAt === null) {
+      if (!confirmBypass) throw new AppError('CONFIRM_REQUIRED', BYPASS_WARNING)
+      this.deps.repository.confirmBypass(neuronId, (this.deps.now?.() ?? new Date()).toISOString())
+    }
+    this.deps.repository.setPermissionMode(neuronId, mode)
+    this.deps.permissions?.modeChanged(neuronId, mode)
+    const live = this.live.get(neuronId)
+    if (live?.busy === true) live.restartAfterTurn = true
+    else this.dispose(neuronId)
+    return { mode }
+  }
+
   /** Interrompt le tour en cours : ce qui a été reçu est gardé ; la session reprendra au message suivant. */
   stop(neuronId: string): void {
     const live = this.live.get(neuronId)
@@ -409,7 +433,7 @@ ${text}`
       neuronId: neuron.id,
       frame: this.deps.frame,
       settings: { ...settings, model },
-      permissionMode: neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
+      permissionMode: this.permissionModeOf(neuron)
     })
     const neuronId = neuron.id
     const process = this.deps.spawn({
@@ -434,7 +458,8 @@ ${text}`
       quotaRejected: null,
       timer: undefined,
       lastActive: Date.now(),
-      denied: new Set()
+      denied: new Set(),
+      restartAfterTurn: false
     }
     this.live.set(neuronId, live)
     return live
@@ -493,31 +518,36 @@ ${text}`
         })
         this.emitUsage(neuronId)
         return
-      case 'result': {
-        live.busy = false
-        this.touch(neuronId, live, this.deps.idleMs ?? 10 * 60_000)
-        this.deps.repository.recordTurn(neuronId, {
-          model: live.model,
-          ok: event.ok,
-          durationMs: Date.now() - live.turnStarted,
-          ...event.usage
-        })
-        this.emitUsage(neuronId)
-        if (!event.ok) {
-          if (live.quotaRejected !== null) this.fail(neuronId, 'LIMIT_REACHED', live.quotaRejected.resetsAt)
-          else this.fail(neuronId, 'PROCESS_FAILED', null)
-          return
-        }
-        if (!live.started) {
-          live.started = true
-          this.deps.repository.setSession(neuronId, live.sessionId, true)
-        }
-        const text = (event.text === '' ? live.partial : event.text).trim()
-        live.partial = ''
-        const message = text === '' ? null : this.save(neuronId, 'assistant', text)
-        this.deps.emit({ type: 'chat:turnEnd', payload: { neuronId, message, interrupted: false } })
-      }
+      case 'result':
+        this.endTurn(neuronId, live, event)
+        if (live.restartAfterTurn) this.dispose(neuronId)
     }
+  }
+
+  /** Fin d'un tour : consommation, session confirmée, réponse enregistrée (ou erreur expliquée). */
+  private endTurn(neuronId: string, live: Live, event: Extract<StreamEvent, { kind: 'result' }>): void {
+    live.busy = false
+    this.touch(neuronId, live, this.deps.idleMs ?? 10 * 60_000)
+    this.deps.repository.recordTurn(neuronId, {
+      model: live.model,
+      ok: event.ok,
+      durationMs: Date.now() - live.turnStarted,
+      ...event.usage
+    })
+    this.emitUsage(neuronId)
+    if (!event.ok) {
+      if (live.quotaRejected !== null) this.fail(neuronId, 'LIMIT_REACHED', live.quotaRejected.resetsAt)
+      else this.fail(neuronId, 'PROCESS_FAILED', null)
+      return
+    }
+    if (!live.started) {
+      live.started = true
+      this.deps.repository.setSession(neuronId, live.sessionId, true)
+    }
+    const text = (event.text === '' ? live.partial : event.text).trim()
+    live.partial = ''
+    const message = text === '' ? null : this.save(neuronId, 'assistant', text)
+    this.deps.emit({ type: 'chat:turnEnd', payload: { neuronId, message, interrupted: false } })
   }
 
   private emitUsage(neuronId: string): void {
@@ -634,6 +664,11 @@ ${text}`
       parentId = parent.parentId
     }
     return { ancestors, ranks }
+  }
+
+  /** Mode d'une conversation : celui choisi pour elle, sinon le défaut réglé (Demander). */
+  private permissionModeOf(neuron: ConversationNeuron): PermissionMode {
+    return neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
   }
 
   /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */

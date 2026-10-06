@@ -103,4 +103,9 @@ describe('demandes de permission relayées dans le chat (spec 014 US1)', () => {
     await expect(answer).resolves.toMatchObject({ behavior: 'deny' })
     expect(() => service.decide(requestId(), 'allow')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
   })
+
+  it('should_trace_a_mode_change_without_any_tool_input', () => {
+    service.modeChanged('n1', 'acceptEdits')
+    expect(logged).toEqual([['n1', 'acceptEdits', 'mode']])
+  })
 })

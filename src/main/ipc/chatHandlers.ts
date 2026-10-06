@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
-import { PERMISSION_DECISIONS } from '@shared/ipc/chat'
+import { PERMISSION_DECISIONS, PERMISSION_MODES } from '@shared/ipc/chat'
 import type { ConversationService } from '../application/conversation/ConversationService'
 import type { PermissionService } from '../application/conversation/PermissionService'
 import { defineRoute, type IpcRoute } from './registry'
@@ -59,6 +59,17 @@ export function createChatRoutes(
       channel: 'chat:setModel',
       input: z.strictObject({ neuronId: z.uuid(), model: z.enum(CLAUDE_MODELS).nullable() }),
       handler: async ({ neuronId, model }) => conversations.setModel(neuronId, model)
+    }),
+    // Mode de permission de la conversation (spec 014 US2) ; Libre exige la confirmation de l'avertissement.
+    defineRoute({
+      channel: 'chat:setPermissionMode',
+      input: z.strictObject({
+        neuronId: z.uuid(),
+        mode: z.enum(PERMISSION_MODES),
+        confirmBypass: z.literal(true).optional()
+      }),
+      handler: async ({ neuronId, mode, confirmBypass }) =>
+        conversations.setPermissionMode(neuronId, mode, confirmBypass === true)
     }),
     defineRoute({
       channel: 'chat:close',

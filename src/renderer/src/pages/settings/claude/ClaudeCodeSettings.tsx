@@ -1,7 +1,63 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useId, useState } from 'react'
+import type { AppSettingsView } from '@shared/ipc/app'
+import { DEFAULT_PERMISSION_MODES, type DefaultPermissionMode } from '@shared/ipc/chat'
 import type { McpStatusView } from '@shared/ipc/mcp'
+import { APP_SETTINGS_KEY, useEffectiveSettings } from '../../../app/useAppSettings'
+import { MODE_LABELS } from '../../../chat/ChatPanel'
 import { Button } from '../../../components/atoms/Button'
 import { Section } from '../../../components/molecules/Section'
+import { call, IpcFailure } from '../../../lib/ipc'
+
+const MODE_HINTS: Readonly<Record<DefaultPermissionMode, string>> = {
+  default: 'chaque écriture et chaque commande attend ton accord dans le chat',
+  acceptEdits: 'les écritures se font sans demande, les commandes attendent ton accord'
+}
+
+/**
+ * Mode de permission des nouvelles conversations (spec 014 US2, D8) : Demander ou Accepter les modifications ; Libre
+ * se choisit conversation par conversation, après avertissement.
+ */
+function DefaultModeSetting({ onMessage }: { readonly onMessage: (text: string) => void }): React.JSX.Element {
+  const client = useQueryClient()
+  const current = useEffectiveSettings().chatPermissionMode
+  const name = useId()
+
+  const choose = async (mode: DefaultPermissionMode): Promise<void> => {
+    if (mode === current) return
+    try {
+      client.setQueryData(
+        APP_SETTINGS_KEY,
+        await call<AppSettingsView>('app:setSettings', { chatPermissionMode: mode })
+      )
+      onMessage(`Les nouvelles conversations démarreront en « ${MODE_LABELS[mode]} ».`)
+    } catch (error) {
+      onMessage(error instanceof IpcFailure ? error.message : 'Le mode par défaut n’a pas pu être enregistré.')
+    }
+  }
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="sr-only">Mode des nouvelles conversations</legend>
+      {DEFAULT_PERMISSION_MODES.map((mode) => (
+        <label key={mode} className="flex items-start gap-2 text-sm">
+          <input
+            type="radio"
+            name={name}
+            value={mode}
+            checked={current === mode}
+            onChange={() => void choose(mode)}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium">{MODE_LABELS[mode]}</span>
+            <span className="text-content-muted"> — {MODE_HINTS[mode]}</span>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  )
+}
 
 /**
  * Réglages › Claude Code (spec 007 US5) : état du pont MCP, commande d'enregistrement à copier (sans secret) et
@@ -83,6 +139,13 @@ export function ClaudeCodeSettings(): React.JSX.Element {
             Ensuite, dans n’importe quel terminal Claude Code : « travaillons dans le brainstormer ».
           </p>
         </div>
+      </Section>
+
+      <Section
+        title="Mode des nouvelles conversations"
+        description="Ce que Claude peut faire sans te demander quand une conversation commence. Chaque conversation peut ensuite changer de mode depuis son en-tête ; « Libre » se choisit là, après un avertissement."
+      >
+        <DefaultModeSetting onMessage={setMessage} />
       </Section>
 
       <Section

@@ -12,7 +12,7 @@ import {
 } from '../../../src/renderer/src/chat/ChatPanel'
 import type { ChatPermissionRequest, ChatView } from '../../../src/shared/ipc/chat'
 import { expectNoAxeViolations } from '../../support/axe'
-import { installFakeApi } from './support/fakeApi'
+import { FakeIpcError, installFakeApi } from './support/fakeApi'
 
 const ID = '00000000-0000-4000-8000-0000000000d1'
 
@@ -36,6 +36,7 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   stepLabel: null,
   model: 'claude-opus-5-5',
   modelChoice: null,
+  permissionMode: 'default',
   ...extra
 })
 
@@ -415,5 +416,78 @@ describe('genesis → projet (spec 016)', () => {
     expect(api.invoke).toHaveBeenCalledWith('project:initGit', { neuronId: ID })
     expect(await screen.findByText('Dossier : studio-photo · git')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Initialiser git' })).toBeNull()
+  })
+})
+
+describe('mode de permission de la conversation (spec 014 US2)', () => {
+  function renderModes(initial: ChatView = view()) {
+    const api = installFakeApi({
+      'chat:open': () => initial,
+      'chat:close': () => ({ ok: true }),
+      'chat:setPermissionMode': (payload) => {
+        const { mode, confirmBypass } = payload as { mode: string; confirmBypass?: true }
+        if (mode === 'bypassPermissions' && confirmBypass !== true) throw new FakeIpcError('CONFIRM_REQUIRED')
+        return { mode }
+      }
+    })
+    const result = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ChatPanel neuronId={ID} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    return { api, ...result }
+  }
+
+  it('should_show_the_current_mode_and_switch_to_accept_edits', async () => {
+    const { api, container } = renderModes(view({ permissionMode: 'default' }))
+    const select = (await screen.findByLabelText('Mode de permission de cette conversation')) as HTMLSelectElement
+    expect(select.value).toBe('default')
+    await userEvent.selectOptions(select, 'acceptEdits')
+    expect(api.invoke).toHaveBeenCalledWith('chat:setPermissionMode', { neuronId: ID, mode: 'acceptEdits' })
+    expect(select.value).toBe('acceptEdits')
+    expect(screen.queryByRole('status')).toBeNull()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_warn_and_wait_for_confirmation_when_switching_to_libre', async () => {
+    const { api, container } = renderModes()
+    const select = (await screen.findByLabelText('Mode de permission de cette conversation')) as HTMLSelectElement
+    await userEvent.selectOptions(select, 'bypassPermissions')
+    const warning = await screen.findByRole('region', { name: 'Passer cette conversation en mode Libre ?' })
+    expect(warning.textContent).toContain('sans te demander')
+    // Rien ne change avant la confirmation.
+    expect(select.value).toBe('default')
+    await expectNoAxeViolations(container)
+    await userEvent.click(screen.getByRole('button', { name: 'Passer en Libre' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:setPermissionMode', {
+      neuronId: ID,
+      mode: 'bypassPermissions',
+      confirmBypass: true
+    })
+    expect(select.value).toBe('bypassPermissions')
+    expect(select.className).toContain('border-red-500')
+    expect(screen.queryByRole('region', { name: 'Passer cette conversation en mode Libre ?' })).toBeNull()
+  })
+
+  it('should_keep_the_mode_when_the_libre_warning_is_cancelled', async () => {
+    const { api } = renderModes()
+    const select = (await screen.findByLabelText('Mode de permission de cette conversation')) as HTMLSelectElement
+    await userEvent.selectOptions(select, 'bypassPermissions')
+    await userEvent.click(await screen.findByRole('button', { name: 'Annuler' }))
+    expect(screen.queryByRole('region', { name: 'Passer cette conversation en mode Libre ?' })).toBeNull()
+    expect(select.value).toBe('default')
+    expect(api.invoke).not.toHaveBeenCalledWith(
+      'chat:setPermissionMode',
+      expect.objectContaining({ confirmBypass: true })
+    )
+  })
+
+  it('should_say_the_new_mode_applies_to_the_next_message_when_claude_is_answering', async () => {
+    renderModes(view({ busy: true, permissionMode: 'default' }))
+    const select = await screen.findByLabelText('Mode de permission de cette conversation')
+    await userEvent.selectOptions(select, 'acceptEdits')
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Mode « Accepter les modifications » appliqué à partir de ton prochain message.'
+    )
   })
 })

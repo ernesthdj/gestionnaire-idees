@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { isValidAccelerator } from '@shared/app/accelerator'
 import { MOTION_MODES, THEMES, type AppSettingsPatch, type AppSettingsView } from '@shared/ipc/app'
+import { DEFAULT_PERMISSION_MODES } from '@shared/ipc/chat'
 import { AppError } from '../domain/errors'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -9,7 +10,8 @@ const SettingsPatch = z
     shortcut: z.string().refine(isValidAccelerator).optional(),
     launchAtLogin: z.boolean().optional(),
     theme: z.enum(THEMES).optional(),
-    motion: z.enum(MOTION_MODES).optional()
+    motion: z.enum(MOTION_MODES).optional(),
+    chatPermissionMode: z.enum(DEFAULT_PERMISSION_MODES).optional()
   })
   .strict()
 

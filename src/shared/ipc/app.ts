@@ -1,5 +1,7 @@
 /** Vues et constantes de la coquille de l'app (spec 003 contracts/ipc-mvp1.md). */
 
+import type { DefaultPermissionMode } from './chat'
+
 export const THEMES = ['system', 'light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
@@ -18,6 +20,8 @@ export interface AppSettingsView {
   readonly theme: Theme
   readonly motion: MotionMode
   readonly onboardingDone: boolean
+  /** Mode de permission des nouvelles conversations (spec 014 D8). */
+  readonly chatPermissionMode: DefaultPermissionMode
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettingsView = {
@@ -25,10 +29,13 @@ export const DEFAULT_APP_SETTINGS: AppSettingsView = {
   launchAtLogin: true,
   theme: 'system',
   motion: 'auto',
-  onboardingDone: false
+  onboardingDone: false,
+  chatPermissionMode: 'default'
 }
 
-export type AppSettingsPatch = Partial<Pick<AppSettingsView, 'shortcut' | 'launchAtLogin' | 'theme' | 'motion'>>
+export type AppSettingsPatch = Partial<
+  Pick<AppSettingsView, 'shortcut' | 'launchAtLogin' | 'theme' | 'motion' | 'chatPermissionMode'>
+>
 
 /** Demande de navigation poussée par le main (zone de notification, capture « plonger maintenant »). */
 export interface NavigateEvent {

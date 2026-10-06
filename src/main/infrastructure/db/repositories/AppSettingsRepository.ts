@@ -1,4 +1,4 @@
-import { eq, like } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { isValidAccelerator } from '@shared/app/accelerator'
 import {
@@ -9,6 +9,7 @@ import {
   type AppSettingsPatch,
   type AppSettingsView
 } from '@shared/ipc/app'
+import { DEFAULT_PERMISSION_MODES } from '@shared/ipc/chat'
 import { EDITOR_KINDS } from '../../../domain/finals/editor'
 import type { AppDatabase } from '../client'
 import { settings } from '../schemaNeurons'
@@ -19,7 +20,8 @@ const FIELDS = {
   launchAtLogin: { key: 'app.launchAtLogin', schema: z.boolean() },
   theme: { key: 'app.theme', schema: z.enum(THEMES) },
   motion: { key: 'app.motion', schema: z.enum(MOTION_MODES) },
-  onboardingDone: { key: 'app.onboardingDone', schema: z.boolean() }
+  onboardingDone: { key: 'app.onboardingDone', schema: z.boolean() },
+  chatPermissionMode: { key: 'chat.defaultPermissionMode', schema: z.enum(DEFAULT_PERMISSION_MODES) }
 } as const
 
 const DRAFT_KEY = 'capture.draft'
@@ -43,7 +45,12 @@ export class AppSettingsRepository {
       this.db
         .select()
         .from(settings)
-        .where(like(settings.key, 'app.%'))
+        .where(
+          inArray(
+            settings.key,
+            Object.values(FIELDS).map((field) => field.key)
+          )
+        )
         .all()
         .map((row) => [row.key, row.valueJson])
     )
@@ -59,7 +66,8 @@ export class AppSettingsRepository {
       launchAtLogin: read('launchAtLogin'),
       theme: read('theme'),
       motion: read('motion'),
-      onboardingDone: read('onboardingDone')
+      onboardingDone: read('onboardingDone'),
+      chatPermissionMode: read('chatPermissionMode')
     }
   }
 

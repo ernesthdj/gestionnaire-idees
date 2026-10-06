@@ -113,7 +113,12 @@ describe('Réglages › Claude Code (spec 007 US5)', () => {
       'mcp:status': () => ({ listening: true, clients: 1, command: 'claude mcp add brainstormer --scope user …' }),
       'mcp:rotateToken': () => ({ ok: true })
     })
-    render(<ClaudeCodeSettings />)
+    // La page lit aussi les réglages de l'app (mode par défaut, spec 014) : même fournisseur que dans l'app.
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ClaudeCodeSettings />
+      </QueryClientProvider>
+    )
     expect(await screen.findByText('● Pont actif — 1 client connecté')).toBeTruthy()
     expect((screen.getByLabelText('Commande d’enregistrement') as HTMLTextAreaElement).value).toContain(
       'claude mcp add brainstormer'

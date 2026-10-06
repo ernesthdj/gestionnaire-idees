@@ -684,14 +684,17 @@ export const trustedProjects = sqliteTable('trusted_projects', {
   createdAt: createdAt()
 })
 
-/** Décisions de permission (spec 014 FR-014) : jamais l'entrée de l'outil ni la commande. */
+/**
+ * Décisions de permission et changements de mode (spec 014 FR-014) : jamais l'entrée de l'outil ni la commande. Pour
+ * `mode`, `tool` porte le nouveau mode de la conversation.
+ */
 export const permissionLog = sqliteTable(
   'permission_log',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     neuronId: text('neuron_id').notNull(),
     tool: text('tool').notNull(),
-    decision: text('decision', { enum: ['allow', 'always', 'deny', 'expired', 'rule'] }).notNull(),
+    decision: text('decision', { enum: ['allow', 'always', 'deny', 'expired', 'rule', 'mode'] }).notNull(),
     at: createdAt()
   },
   (t) => [index('permission_log_neuron_idx').on(t.neuronId)]

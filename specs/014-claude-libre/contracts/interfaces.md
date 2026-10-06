@@ -14,7 +14,8 @@ Entrée standard du hook (Claude Code) → `{ neuronId, tool, file_path }` au ma
 | Canal | Entrée | Sortie |
 |---|---|---|
 | `chat:permissionDecide` | `{ requestId, decision: 'allow' \| 'always' \| 'deny' }` | `{}` |
-| `chat:setPermissionMode` | `{ neuronId, mode, confirmBypass?: true }` | `{ mode }` ; `CONFIRM_REQUIRED` sans confirmation pour Libre |
+| `chat:setPermissionMode` | `{ neuronId, mode, confirmBypass?: true }` | `{ mode }` ; `CONFIRM_REQUIRED` (message = avertissement) sans confirmation pour Libre, une fois par conversation |
+| `app:setSettings` | `{ chatPermissionMode?: 'default' \| 'acceptEdits' }` (D8 : jamais Libre) | réglages ; `ChatView.permissionMode` = mode effectif |
 | `chat:addDir` | `{ neuronId }` (dialogue natif) | `{ extraDirs }` ; `FOLDER_REFUSED` (dossier de données) |
 | `chat:removeDir` | `{ neuronId, path }` (un des dossiers) | `{ extraDirs }` |
 | `rules:list` / `rules:remove` | `{ projectKey? }` / `{ id }` | règles |

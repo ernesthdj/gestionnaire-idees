@@ -15,9 +15,9 @@
 - [x] T008 Test guidé (quickstart §1, §3) — attendre le retour
 
 ## Phase 2 — Modes (US2)
-- [ ] T009 Mode par conversation (redémarrage repris), défaut réglable, avertissement Libre (`CONFIRM_REQUIRED`) ; IPC + tests
-- [ ] T010 Interface : sélecteur de mode dans l'en-tête du chat (Libre distinct), réglage du défaut + tests renderer/axe
-- [ ] T011 Test guidé (quickstart §2)
+- [x] T009 Mode par conversation (redémarrage repris), défaut réglable, avertissement Libre (`CONFIRM_REQUIRED`) ; IPC + tests
+- [x] T010 Interface : sélecteur de mode dans l'en-tête du chat (Libre distinct), réglage du défaut + tests renderer/axe
+- [x] T011 Test guidé (quickstart §2)
 
 ## Phase 3 — Actions finales (US4, US7)
 - [ ] T012 Hook `PreToolUse` : relais `--hook`, `--settings` injecté ; `DeliverableTracker` (avant/après, créé/modifié/supprimé) pour toute conversation d'action finale + tests

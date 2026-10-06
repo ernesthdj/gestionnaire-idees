@@ -18,6 +18,13 @@ export interface ChatMessageView {
 /** Mode de permission d'une conversation (spec 014 D1), comme Maj+Tab dans le terminal. */
 export const PERMISSION_MODES = ['default', 'acceptEdits', 'bypassPermissions'] as const
 export type PermissionMode = (typeof PERMISSION_MODES)[number]
+/** Modes possibles par défaut (spec 014 D8) : jamais Libre, qui se confirme conversation par conversation. */
+export const DEFAULT_PERMISSION_MODES = ['default', 'acceptEdits'] as const
+export type DefaultPermissionMode = (typeof DEFAULT_PERMISSION_MODES)[number]
+
+/** Avertissement du mode Libre (spec 014 FR-006), à confirmer une fois par conversation. */
+export const BYPASS_WARNING =
+  'En mode Libre, Claude écrit et lance n’importe quelle commande sans te demander. Un fichier ou une fiche piégés peuvent en profiter.'
 
 /** Ce que Claude veut faire, montré à mentalyas avant qu'il décide. */
 export type PermissionDetailView =
@@ -76,6 +83,8 @@ export interface ChatView {
   readonly pending: readonly ChatPermissionRequest[]
   /** Le dossier du projet est un dépôt git (spec 016) : sinon « Initialiser git » est proposé. */
   readonly git: boolean
+  /** Mode de permission de la conversation (spec 014 US2) : le sien, sinon le défaut réglé. */
+  readonly permissionMode: PermissionMode
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */

@@ -119,6 +119,14 @@ describe('conversations Claude Code des neurones', () => {
           const current = neurons.get(id)
           if (current !== undefined) neurons.set(id, { ...current, chatModel })
         },
+        setPermissionMode: (id, chatPermissionMode) => {
+          const current = neurons.get(id)
+          if (current !== undefined) neurons.set(id, { ...current, chatPermissionMode })
+        },
+        confirmBypass: (id, at) => {
+          const current = neurons.get(id)
+          if (current !== undefined) neurons.set(id, { ...current, chatBypassConfirmedAt: at })
+        },
         recordTurn: (neuronId, turn) => turns.push({ neuronId, ...turn }),
         usageSince: (_since, neuronId) => {
           const mine = turns.filter((turn) => neuronId === undefined || turn.neuronId === neuronId)
@@ -254,7 +262,9 @@ describe('conversations Claude Code des neurones', () => {
 
   it('should_show_the_real_outcome_of_each_tool_and_cancel_permissions_when_the_chat_closes', async () => {
     const cancelled: string[] = []
-    service = build({ permissions: { cancel: (neuronId) => void cancelled.push(neuronId), open: () => [] } })
+    service = build({
+      permissions: { cancel: (neuronId) => void cancelled.push(neuronId), open: () => [], modeChanged: () => undefined }
+    })
     await service.send(N1, 'Corrige et teste')
     const process = processes[0] as FakeProcess
     process.emit({
@@ -481,5 +491,64 @@ describe('conversations Claude Code des neurones', () => {
     expect(args[args.indexOf('--model') + 1]).toBe('claude-opus-5-5')
     expect(args).toContain('--resume')
     expect(() => service.setModel(N2, null)).toThrow(/répond encore/)
+  })
+
+  it('should_start_in_the_default_mode_set_in_settings_when_the_conversation_has_none', async () => {
+    service = build({ defaultPermissionMode: () => 'acceptEdits' })
+    expect(service.open(N1).permissionMode).toBe('acceptEdits')
+    await service.send(N1, 'Salut')
+    const args = (processes[0] as FakeProcess).options.args
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('acceptEdits')
+    expect(args).not.toContain('--allow-dangerously-skip-permissions')
+  })
+
+  it('should_require_confirming_the_warning_once_per_conversation_when_switching_to_libre', async () => {
+    const modes: [string, string][] = []
+    service = build({
+      permissions: { cancel: () => undefined, open: () => [], modeChanged: (id, mode) => void modes.push([id, mode]) }
+    })
+    expect(() => service.setPermissionMode(N1, 'bypassPermissions')).toThrow(
+      expect.objectContaining({ code: 'CONFIRM_REQUIRED' })
+    )
+    expect(neurons.get(N1)?.chatPermissionMode).toBeNull()
+    expect(service.setPermissionMode(N1, 'bypassPermissions', true)).toEqual({ mode: 'bypassPermissions' })
+    expect(neurons.get(N1)?.chatBypassConfirmedAt).not.toBeNull()
+    service.setPermissionMode(N1, 'default')
+    // Déjà confirmé pour cette conversation : plus d'avertissement ; une autre conversation le redemande.
+    expect(service.setPermissionMode(N1, 'bypassPermissions')).toEqual({ mode: 'bypassPermissions' })
+    expect(() => service.setPermissionMode(N2, 'bypassPermissions')).toThrow(/mode Libre/)
+    expect(modes).toEqual([
+      [N1, 'bypassPermissions'],
+      [N1, 'default'],
+      [N1, 'bypassPermissions']
+    ])
+    await service.send(N1, 'Vas-y')
+    const args = (processes[0] as FakeProcess).options.args
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('bypassPermissions')
+    expect(args).toContain('--allow-dangerously-skip-permissions')
+    expect(service.open(N1).permissionMode).toBe('bypassPermissions')
+  })
+
+  it('should_apply_a_mode_change_made_during_a_turn_at_the_next_message', async () => {
+    await service.send(N1, 'Salut')
+    const first = processes[0] as FakeProcess
+    expect(service.setPermissionMode(N1, 'acceptEdits')).toEqual({ mode: 'acceptEdits' })
+    expect(first.killed).toBe(false)
+    expect(service.open(N1)).toMatchObject({ busy: true, permissionMode: 'acceptEdits' })
+    finish(first, 'Bonjour')
+    expect(first.killed).toBe(true)
+    expect(events.at(-1)).toMatchObject({ type: 'chat:turnEnd', payload: { interrupted: false } })
+    await service.send(N1, 'Suite')
+    const args = (processes[1] as FakeProcess).options.args
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('acceptEdits')
+    expect(args).toContain('--resume')
+  })
+
+  it('should_restart_an_idle_conversation_right_away_when_its_mode_changes', async () => {
+    await service.send(N1, 'Salut')
+    finish(processes[0] as FakeProcess, 'ok')
+    service.setPermissionMode(N1, 'acceptEdits')
+    expect((processes[0] as FakeProcess).killed).toBe(true)
+    expect(service.liveCount()).toBe(0)
   })
 })

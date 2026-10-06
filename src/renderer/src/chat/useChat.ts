@@ -13,7 +13,8 @@ import type {
   ChatUsageEvent,
   ChatUsageView,
   ChatView,
-  PermissionDecisionView
+  PermissionDecisionView,
+  PermissionMode
 } from '@shared/ipc/chat'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -40,6 +41,12 @@ export interface ChatState {
   readonly problem: string | null
   /** Demandes de permission de Claude en attente de ta réponse (spec 014 US1). */
   readonly pending: readonly ChatPermissionRequest[]
+  /** Mode de permission de la conversation (spec 014 US2). */
+  readonly permissionMode: PermissionMode
+  /** Passage en Libre en attente de la confirmation de l'avertissement. */
+  readonly confirmingBypass: boolean
+  /** Mode changé pendant un tour : il s'appliquera au message suivant. */
+  readonly modeAppliesNext: boolean
 }
 
 export interface ChatActions {
@@ -55,6 +62,9 @@ export interface ChatActions {
   refreshProject(): Promise<void>
   /** Fait du dossier du projet un dépôt git avec un premier commit (spec 016 US2). */
   initGit(): Promise<void>
+  /** Mode de cette conversation ; Libre demande d'abord la confirmation de l'avertissement. */
+  setPermissionMode(mode: PermissionMode, confirmBypass?: boolean): Promise<void>
+  cancelBypass(): void
 }
 
 const forNeuron = <T extends { readonly neuronId: string }>(neuronId: string, payload: unknown): T | null =>
@@ -85,7 +95,10 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     modelChoice: null,
     problem: null,
     pending: [],
-    git: false
+    git: false,
+    permissionMode: 'default',
+    confirmingBypass: false,
+    modeAppliesNext: false
   })
 
   const refreshSheet = useCallback(async () => {
@@ -119,7 +132,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           model: view.model ?? '',
           modelChoice: view.modelChoice ?? null,
           pending: view.pending ?? [],
-          git: view.git ?? false
+          git: view.git ?? false,
+          permissionMode: view.permissionMode ?? 'default'
         }))
       })
       .catch((error: unknown) => {
@@ -166,6 +180,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           ...current,
           busy: false,
           partial: '',
+          modeAppliesNext: false,
           messages: event.message === null ? current.messages : [...current.messages, event.message]
         }))
       }),
@@ -296,5 +311,44 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     }
   }, [])
 
-  return { ...state, send, stop, linkFolder, setModel, decide, refreshProject, initGit }
+  const setPermissionMode = useCallback(
+    async (mode: PermissionMode, confirmBypass = false): Promise<void> => {
+      try {
+        const result = await call<{ readonly mode: PermissionMode }>('chat:setPermissionMode', {
+          neuronId,
+          mode,
+          ...(confirmBypass ? { confirmBypass: true } : {})
+        })
+        setState((current) => ({
+          ...current,
+          permissionMode: result.mode,
+          confirmingBypass: false,
+          modeAppliesNext: current.busy
+        }))
+      } catch (error) {
+        // Libre jamais confirmé pour cette conversation : l'avertissement s'affiche, rien ne change encore.
+        if (error instanceof IpcFailure && error.code === 'CONFIRM_REQUIRED') {
+          setState((current) => ({ ...current, confirmingBypass: true }))
+          return
+        }
+        showError(error, 'Le mode n’a pas pu être changé.')
+      }
+    },
+    [neuronId, showError]
+  )
+
+  const cancelBypass = useCallback(() => setState((current) => ({ ...current, confirmingBypass: false })), [])
+
+  return {
+    ...state,
+    send,
+    stop,
+    linkFolder,
+    setModel,
+    decide,
+    refreshProject,
+    initGit,
+    setPermissionMode,
+    cancelBypass
+  }
 }

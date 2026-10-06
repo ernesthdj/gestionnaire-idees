@@ -10,7 +10,8 @@ export interface StoredRule extends PermissionRule {
   readonly createdAt: string
 }
 
-export type PermissionDecision = 'allow' | 'always' | 'deny' | 'expired' | 'rule'
+/** `mode` : changement de mode de la conversation (l'outil porte alors le nouveau mode). */
+export type PermissionDecision = 'allow' | 'always' | 'deny' | 'expired' | 'rule' | 'mode'
 
 /** Règles « Toujours », dépôts de confiance et journal des décisions (spec 014 R3, US6, FR-014). */
 export class PermissionRepository {

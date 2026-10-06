@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import type { ChatPermissionRequest, ChatPermissionResolvedEvent, PermissionDecisionView } from '@shared/ipc/chat'
+import type {
+  ChatPermissionRequest,
+  ChatPermissionResolvedEvent,
+  PermissionDecisionView,
+  PermissionMode
+} from '@shared/ipc/chat'
 import { describeRequest, ruleFor, ruleMatches } from '../../domain/conversation/permissions'
 import { AppError } from '../../domain/errors'
 import type { PermissionRepository } from '../../infrastructure/db/repositories/PermissionRepository'
@@ -93,6 +98,11 @@ export class PermissionService {
     for (const entry of [...this.pending.values()]) {
       if (entry.request.neuronId === neuronId) this.settle(entry, 'expired', { behavior: 'deny', message: EXPIRED })
     }
+  }
+
+  /** Changement de mode d'une conversation, tracé comme une décision (spec 014 FR-014). */
+  modeChanged(neuronId: string, mode: PermissionMode): void {
+    this.deps.repository.log(neuronId, mode, 'mode')
   }
 
   /** Fermeture de l'app : tout ce qui attend est refusé. */

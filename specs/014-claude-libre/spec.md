@@ -22,6 +22,7 @@ alors que l'écriture a été refusée, et Claude tente de reproposer une action
 | D5 | Fil fidèle | Le fil d'une conversation dit ce qui s'est **réellement** passé : un outil refusé ou en erreur apparaît « refusé » / « échoué », jamais comme réussi. |
 | D6 | Après exécution | mentalyas demande des modifications **directement dans le chat** de l'action ; elles s'ajoutent à son livrable. |
 | D7 (2026-10-06) | Commit par étape | Claude peut **commiter** depuis l'app (git est une commande comme une autre, D1). Une action finale gagne « Commiter l'étape » : Claude prépare un commit des seuls fichiers de son livrable, message au format Conventional Commits rattaché au rang de l'étape ; en mode Demander, la commande exacte s'affiche et attend l'accord de mentalyas. Jamais de push sans demande explicite. |
+| D8 (2026-10-06, T009) | Défaut réglable | Le mode par défaut des nouvelles conversations se règle parmi **Demander** et **Accepter les modifications** seulement : un défaut Libre contournerait l'avertissement « une fois par conversation » (FR-006). Un changement de mode pendant un tour est enregistré aussitôt et s'applique au message suivant (le processus repart à la fin du tour, session reprise). Chaque changement de mode est tracé (`permission_log`, décision `mode`). |
 
 ## User Scenarios & Testing *(mandatory)*
 

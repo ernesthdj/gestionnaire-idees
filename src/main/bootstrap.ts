@@ -409,6 +409,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     }),
     frame: BRAINSTORMER_FRAME,
     permissions,
+    defaultPermissionMode: () => appSettings.get().chatPermissionMode,
     emit: (event) => {
       broadcast(event.type, event.payload)
       executions.onChatEvent(event)

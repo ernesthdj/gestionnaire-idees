@@ -35,6 +35,13 @@ describe('réglages de l’app', () => {
     expect(repository.get()).toEqual({ ...DEFAULT_APP_SETTINGS, theme: 'dark', motion: 'reduced' })
   })
 
+  it('should_keep_the_default_permission_mode_of_new_conversations_when_set', () => {
+    repository.update({ chatPermissionMode: 'acceptEdits' })
+    expect(repository.get().chatPermissionMode).toBe('acceptEdits')
+    handle.db.update(settings).set({ valueJson: '"bypassPermissions"' }).run()
+    expect(repository.get().chatPermissionMode).toBe('default')
+  })
+
   it('should_write_nothing_when_one_field_is_invalid', () => {
     expect(() => repository.update({ theme: 'dark', shortcut: 'Space' })).toThrow()
     expect(repository.get().theme).toBe('system')

@@ -5,9 +5,10 @@ import type {
   ChatSheetView,
   PermissionDecisionView,
   PermissionDetailView,
+  PermissionMode,
   ToolStatus
 } from '@shared/ipc/chat'
-import { CHAT_MESSAGE_MAX } from '@shared/ipc/chat'
+import { BYPASS_WARNING, CHAT_MESSAGE_MAX, PERMISSION_MODES } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
 import { Markdown } from './Markdown'
@@ -27,6 +28,13 @@ const SHORT_MODEL_NAMES: Readonly<Record<string, string>> = {
   'claude-sonnet-5-5': 'Sonnet 5.5',
   'claude-haiku-4-5': 'Haiku 4.5',
   'claude-opus-5': 'Opus 5'
+}
+
+/** Modes de permission (spec 014 D1), comme Maj+Tab dans le terminal. */
+export const MODE_LABELS: Readonly<Record<PermissionMode, string>> = {
+  default: 'Demander',
+  acceptEdits: 'Accepter les modifications',
+  bypassPermissions: 'Libre'
 }
 
 /** Demande de cartographie d'un projet lié (spec 009) : Claude lit le projet et dessine sa carte de structure. */
@@ -216,6 +224,34 @@ function PermissionCard({
   )
 }
 
+/** Avertissement du mode Libre (spec 014 FR-006) : rien ne change avant la confirmation. */
+function BypassWarning({
+  onConfirm,
+  onCancel
+}: {
+  readonly onConfirm: () => void
+  readonly onCancel: () => void
+}): React.JSX.Element {
+  const titleId = useId()
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="mx-3 mt-2 flex flex-col gap-2 rounded-lg border border-red-500/60 bg-surface-raised px-3 py-2 text-sm"
+    >
+      <h3 id={titleId} className="font-semibold">
+        Passer cette conversation en mode Libre ?
+      </h3>
+      <p>{BYPASS_WARNING}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="danger" onClick={onConfirm}>
+          Passer en Libre
+        </Button>
+        <Button onClick={onCancel}>Annuler</Button>
+      </div>
+    </section>
+  )
+}
+
 function Message({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
   if (message.role === 'tool') return <ToolMessage message={message} />
   if (message.role === 'error') {
@@ -378,6 +414,28 @@ export function ChatPanel({
             ) : null}
           </div>
         </div>
+        <label className="sr-only" htmlFor={`${fieldId}-mode`}>
+          Mode de permission de cette conversation
+        </label>
+        <select
+          id={`${fieldId}-mode`}
+          value={chat.permissionMode}
+          disabled={chat.loading}
+          onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
+          title="Mode de permission : ce que Claude peut faire sans te demander"
+          className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
+            // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
+            chat.permissionMode === 'bypassPermissions'
+              ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
+              : 'border-content-muted/40'
+          }`}
+        >
+          {PERMISSION_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
+            </option>
+          ))}
+        </select>
         <label className="sr-only" htmlFor={`${fieldId}-model`}>
           Modèle de cette conversation
         </label>
@@ -417,6 +475,18 @@ export function ChatPanel({
             void chat.refreshProject()
           }}
         />
+      ) : null}
+
+      {chat.confirmingBypass ? (
+        <BypassWarning
+          onConfirm={() => void chat.setPermissionMode('bypassPermissions', true)}
+          onCancel={chat.cancelBypass}
+        />
+      ) : null}
+      {chat.modeAppliesNext ? (
+        <p role="status" className="mx-4 mt-2 text-xs text-content-muted">
+          Mode « {MODE_LABELS[chat.permissionMode]} » appliqué à partir de ton prochain message.
+        </p>
       ) : null}
 
       {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}

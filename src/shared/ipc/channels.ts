@@ -79,6 +79,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:close',
   'chat:linkFolder',
   'chat:setModel',
+  'chat:setPermissionMode',
   'element:setCollapsed'
 ] as const
 
