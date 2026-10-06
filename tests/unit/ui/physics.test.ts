@@ -64,6 +64,36 @@ describe('physique de la carte', () => {
     expect(physics.settle(1).get('b0')).not.toEqual({ x: 500, y: -300 })
   })
 
+  it('should_not_move_placed_objects_when_a_new_one_arrives_or_one_is_dragged', () => {
+    const placed: Body[] = pile(4).map((body, i) => ({ ...body, x: i * 400, y: 0, pinned: true }))
+    const physics = new CanvasPhysics()
+    physics.update(placed, [], { x: 0, y: 0 })
+    const before = physics.settle(1)
+    // Un objet glissé sur un voisin : le voisin reste où il est.
+    physics.pin('b0', { x: 400, y: 10 })
+    const fresh: Body = { id: 'nouveau', radius: 76, x: 0, y: 0, pinned: false, gravity: true }
+    physics.update([...placed, fresh], [], { x: 0, y: 0 })
+    const after = physics.settle(0.5)
+    for (const id of ['b1', 'b2', 'b3']) expect(after.get(id)).toEqual(before.get(id))
+    expect(after.get('b0')).toEqual({ x: 400, y: 10 })
+    expect(overlaps([fresh, ...placed.slice(1)], after)).toEqual([])
+  })
+
+  it('should_freeze_a_released_object_again_once_it_has_found_a_place', () => {
+    const placed: Body[] = pile(3).map((body, i) => ({ ...body, x: i * 10, y: 0, pinned: true }))
+    const physics = new CanvasPhysics()
+    physics.update(placed, [], { x: 0, y: 0 })
+    physics.settle(1)
+    physics.pin('b1', null)
+    physics.wake()
+    let steps = 0
+    while (physics.step(false) && steps < 1000) steps++
+    const rested = physics.positions().get('b1')
+    expect(rested).not.toEqual({ x: 10, y: 0 })
+    physics.update(placed, [], { x: 0, y: 0 })
+    expect(physics.settle(1).get('b1')).toEqual(rested)
+  })
+
   it('should_keep_linked_objects_close_to_each_other', () => {
     const bodies: Body[] = [
       { id: 'idee', radius: 80, x: 0, y: 0, pinned: true, gravity: false },

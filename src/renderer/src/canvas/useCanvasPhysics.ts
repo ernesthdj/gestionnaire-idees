@@ -36,13 +36,14 @@ export function useCanvasPhysics(input: PhysicsInput): {
   const springs: Spring[] = []
   if (view !== undefined && seed !== null) {
     for (const neuron of view.ideas) {
-      const start = seed.positions.get(neuron.id) ?? neuron.position ?? { x: 0, y: 0 }
+      // Une idée déjà posée (place mémorisée) ne bouge plus d'elle-même : seules les nouvelles se placent.
+      const start = neuron.position ?? seed.positions.get(neuron.id) ?? { x: 0, y: 0 }
       bodies.push({
         id: neuron.id,
         radius: ideaRadius(neuron),
         x: start.x,
         y: start.y,
-        pinned: neuron.pinned,
+        pinned: neuron.pinned || neuron.position !== null,
         gravity: true
       })
     }

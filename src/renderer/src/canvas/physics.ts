@@ -11,11 +11,10 @@ import {
 } from 'd3-force'
 
 /**
- * Physique de la carte (retour de test de mentalyas, 2026-09-29 : « une physique dominante », comme le graphe
- * d'Obsidian) : tous les objets — idées, sous-neurones, questions, textes, blocs — se repoussent et ne se
- * chevauchent jamais (collision sur un rayon qui englobe leur titre). Un objet épinglé (glissé à la main) reste à
- * sa place, les autres s'écartent. Stabilisation d'un coup et déterministe à chaque changement ; en direct pendant
- * un glisser.
+ * Physique de la carte : les objets libres se repoussent et ne se chevauchent pas (collision sur un rayon qui
+ * englobe leur titre). Un objet épinglé reste à sa place. Retour de mentalyas (2026-10-06) : un objet déjà posé ne
+ * bouge plus de lui-même — la physique place seulement les nouveaux et ceux qu'il libère (`pin(id, null)`), qui se
+ * figent de nouveau une fois au repos. Stabilisation d'un coup et déterministe.
  */
 
 export interface Point {
@@ -74,6 +73,8 @@ export class CanvasPhysics {
   private center: Point = { x: 0, y: 0 }
   /** Épinglés pendant la session (glissés à la main), avant que les données rechargées le disent. */
   private readonly held = new Set<string>()
+  /** Libérés à la main : libres jusqu'au prochain repos, même si les données les disent épinglés. */
+  private readonly released = new Set<string>()
 
   constructor() {
     this.simulation = forceSimulation<PhysicsNode, PhysicsLink>([])
@@ -114,9 +115,9 @@ export class CanvasPhysics {
       }
       node.radius = body.radius
       node.gravity = body.gravity
-      if (body.pinned || this.held.has(body.id)) {
-        node.fx = existing?.fx ?? body.x
-        node.fy = existing?.fy ?? body.y
+      if ((body.pinned || this.held.has(body.id)) && !this.released.has(body.id)) {
+        node.fx = existing?.fx ?? existing?.x ?? body.x
+        node.fy = existing?.fy ?? existing?.y ?? body.y
       } else {
         node.fx = null
         node.fy = null
@@ -138,8 +139,13 @@ export class CanvasPhysics {
 
   /** Épingle un objet à une position (objet glissé) ou le libère (`null`). */
   pin(id: string, at: Point | null): void {
-    if (at === null) this.held.delete(id)
-    else this.held.add(id)
+    if (at === null) {
+      this.held.delete(id)
+      this.released.add(id)
+    } else {
+      this.held.add(id)
+      this.released.delete(id)
+    }
     const node = this.nodes.get(id)
     if (node === undefined) return
     node.fx = at === null ? null : at.x
@@ -157,15 +163,29 @@ export class CanvasPhysics {
     return this.positions()
   }
 
-  /** Un pas de simulation en direct (pendant un glisser) ; `false` quand tout est au repos. */
+  /** Un pas de simulation en direct (objet libéré qui se replace) ; `false` quand tout est au repos. */
   step(dragging: boolean): boolean {
     this.simulation.alphaTarget(dragging ? 0.3 : 0)
-    if (!dragging && this.simulation.alpha() < ALPHA_REST) return false
+    if (!dragging && this.simulation.alpha() < ALPHA_REST) {
+      this.freezeReleased()
+      return false
+    }
     this.simulation.tick()
     return true
   }
 
-  /** Relance le mouvement (début d'un glisser). */
+  /** Au repos, un objet libéré redevient fixe à sa nouvelle place. */
+  private freezeReleased(): void {
+    for (const id of this.released) {
+      const node = this.nodes.get(id)
+      if (node === undefined) continue
+      node.fx = node.x
+      node.fy = node.y
+    }
+    this.released.clear()
+  }
+
+  /** Relance le mouvement (objet libéré). */
   wake(): void {
     this.simulation.alpha(Math.max(this.simulation.alpha(), 0.3))
   }

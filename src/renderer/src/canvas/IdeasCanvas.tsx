@@ -249,22 +249,18 @@ function CanvasInner(): React.JSX.Element {
   )
   useEffect(() => setNodes(graph.nodes), [graph, setNodes])
 
-  // Glisser (FR-034) : l'objet saisi est épinglé sous le pointeur, les autres réagissent en direct ; lâché, il reste
-  // à sa place (mémorisée), et la physique se repose.
-  const drag = useRef<{ id: string; at: Point } | null>(null)
+  // Idée libérée (menu) : elle se replace en direct parmi les autres, qui restent fixes, puis sa place est mémorisée.
   const frame = useRef(0)
   useEffect(() => () => cancelAnimationFrame(frame.current), [])
   const runLive = useCallback((): void => {
     cancelAnimationFrame(frame.current)
     const loop = (): void => {
-      const held = drag.current
-      if (held !== null) physics.pin(held.id, held.at)
-      const moving = physics.step(held !== null)
+      const moving = physics.step(false)
       const live = physics.positions()
       setNodes((current) =>
         current.map((node) => {
           const at = live.get(node.id)
-          return at === undefined || node.id === held?.id ? node : { ...node, position: at }
+          return at === undefined ? node : { ...node, position: at }
         })
       )
       if (moving) frame.current = requestAnimationFrame(loop)
@@ -497,21 +493,15 @@ function CanvasInner(): React.JSX.Element {
                   planDrag.current = { id: node.id, at: node.position }
                   return
                 }
-                drag.current = { id: node.id, at: node.position }
-                physics.wake()
-                runLive()
-              }}
-              onNodeDrag={(_event, node) => {
-                if (drag.current?.id === node.id) drag.current = { id: node.id, at: node.position }
+                // Les autres objets ne bougent pas pendant un glisser (retour de mentalyas, 2026-10-06).
               }}
               onNodeDragStop={(_event, node) => {
                 if (node.type === 'plan' || node.type === 'document' || node.type === 'deliverable') {
                   void savePlanDrag(node)
                   return
                 }
-                // Lâché : il reste épinglé à cette place ; la physique se repose autour de lui.
+                // Lâché : il reste épinglé à cette place, sans déplacer les autres.
                 physics.pin(node.id, node.position)
-                drag.current = null
                 if (node.type !== undefined && BLOCK_TYPES.has(node.type)) {
                   void blockActions.save(node.id, {
                     ...node.position,
@@ -580,6 +570,8 @@ function CanvasInner(): React.JSX.Element {
               onRelease={() => {
                 const at = physics.positions().get(menuNeuron.id)
                 physics.pin(menuNeuron.id, null)
+                physics.wake()
+                runLive()
                 setMenu(null)
                 if (at !== undefined) persist([{ neuronId: menuNeuron.id, x: at.x, y: at.y, pinned: false }])
                 void client.invalidateQueries({ queryKey: ['canvas'] })
