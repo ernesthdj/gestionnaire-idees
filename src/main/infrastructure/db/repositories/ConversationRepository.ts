@@ -7,12 +7,18 @@ import { aiCalls } from '../schema'
 import { contextAssessments, neuronMessages, neurons, settings } from '../schemaNeurons'
 
 export type MessageRole = 'user' | 'assistant' | 'tool' | 'error'
+export type ToolStatus = 'running' | 'ok' | 'denied' | 'error'
+export type PermissionModeValue = 'default' | 'acceptEdits' | 'bypassPermissions'
 
 export interface MessageRow {
   readonly id: string
   readonly role: MessageRole
   readonly text: string
   readonly createdAt: string
+  /** Outil (spec 014 R4) : appel, résultat réel, raison courte ; `null` pour un message ordinaire. */
+  readonly toolUseId: string | null
+  readonly toolStatus: ToolStatus | null
+  readonly toolReason: string | null
 }
 
 export interface ConversationNeuron {
@@ -39,6 +45,11 @@ export interface ConversationNeuron {
   readonly rank: number | null
   /** Verrou (spec 011) ; `null` : modifiable. */
   readonly lockedAt: string | null
+  /** Mode de permission (spec 014) ; `null` : le défaut réglé. */
+  readonly chatPermissionMode: PermissionModeValue | null
+  /** Dossiers supplémentaires autorisés (JSON) ; `null` : aucun. */
+  readonly chatExtraDirsJson: string | null
+  readonly chatBypassConfirmedAt: string | null
 }
 
 export interface TurnRecord {
@@ -92,7 +103,10 @@ export class ConversationRepository {
         parentId: neurons.parentId,
         chatModel: neurons.chatModel,
         rank: neurons.rank,
-        lockedAt: neurons.lockedAt
+        lockedAt: neurons.lockedAt,
+        chatPermissionMode: neurons.chatPermissionMode,
+        chatExtraDirsJson: neurons.chatExtraDirsJson,
+        chatBypassConfirmedAt: neurons.chatBypassConfirmedAt
       })
       .from(neurons)
       .where(eq(neurons.id, id))
@@ -179,6 +193,25 @@ export class ConversationRepository {
     this.db.update(neurons).set({ chatModel: model }).where(eq(neurons.id, id)).run()
   }
 
+  /** Mode de permission de la conversation (spec 014 US2) ; `null` revient au défaut. */
+  setPermissionMode(id: string, mode: PermissionModeValue | null): void {
+    this.db.update(neurons).set({ chatPermissionMode: mode }).where(eq(neurons.id, id)).run()
+  }
+
+  /** Avertissement du mode Libre confirmé (une fois par conversation). */
+  confirmBypass(id: string, at: string): void {
+    this.db.update(neurons).set({ chatBypassConfirmedAt: at }).where(eq(neurons.id, id)).run()
+  }
+
+  /** Dossiers supplémentaires autorisés pour la conversation (spec 014 US5). */
+  setExtraDirs(id: string, dirs: readonly string[]): void {
+    this.db
+      .update(neurons)
+      .set({ chatExtraDirsJson: dirs.length === 0 ? null : JSON.stringify(dirs) })
+      .where(eq(neurons.id, id))
+      .run()
+  }
+
   setSheet(id: string, sheetJson: string): void {
     this.db.update(neurons).set({ sheetJson }).where(eq(neurons.id, id)).run()
   }
@@ -224,7 +257,10 @@ export class ConversationRepository {
         id: neuronMessages.id,
         role: neuronMessages.role,
         text: neuronMessages.text,
-        createdAt: neuronMessages.createdAt
+        createdAt: neuronMessages.createdAt,
+        toolUseId: neuronMessages.toolUseId,
+        toolStatus: neuronMessages.toolStatus,
+        toolReason: neuronMessages.toolReason
       })
       .from(neuronMessages)
       .where(eq(neuronMessages.neuronId, neuronId))
@@ -234,15 +270,49 @@ export class ConversationRepository {
       .reverse()
   }
 
-  addMessage(neuronId: string, role: MessageRole, text: string): MessageRow {
+  addMessage(neuronId: string, role: MessageRole, text: string, toolUseId: string | null = null): MessageRow {
     const id = randomUUID()
-    this.db.insert(neuronMessages).values({ id, neuronId, role, text }).run()
+    // Un outil commence « en cours » ; son résultat réel arrive ensuite (setToolStatus).
+    const toolStatus: ToolStatus | null = toolUseId === null ? null : 'running'
+    this.db.insert(neuronMessages).values({ id, neuronId, role, text, toolUseId, toolStatus }).run()
     const row = this.db
       .select({ createdAt: neuronMessages.createdAt })
       .from(neuronMessages)
       .where(and(eq(neuronMessages.id, id)))
       .get()
-    return { id, role, text, createdAt: row?.createdAt ?? new Date().toISOString() }
+    return {
+      id,
+      role,
+      text,
+      createdAt: row?.createdAt ?? new Date().toISOString(),
+      toolUseId,
+      toolStatus,
+      toolReason: null
+    }
+  }
+
+  /** Résultat réel d'un outil (spec 014 R4) ; renvoie le message mis à jour, `undefined` s'il est inconnu. */
+  setToolStatus(
+    neuronId: string,
+    toolUseId: string,
+    status: ToolStatus,
+    reason: string | null
+  ): MessageRow | undefined {
+    const where = and(eq(neuronMessages.neuronId, neuronId), eq(neuronMessages.toolUseId, toolUseId))
+    this.db.update(neuronMessages).set({ toolStatus: status, toolReason: reason }).where(where).run()
+    return this.db
+      .select({
+        id: neuronMessages.id,
+        role: neuronMessages.role,
+        text: neuronMessages.text,
+        createdAt: neuronMessages.createdAt,
+        toolUseId: neuronMessages.toolUseId,
+        toolStatus: neuronMessages.toolStatus,
+        toolReason: neuronMessages.toolReason
+      })
+      .from(neuronMessages)
+      .where(where)
+      .get()
   }
 
   /** Résumés des fiches des idées (affichés sous les neurones de la carte). */

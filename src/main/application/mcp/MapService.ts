@@ -74,6 +74,7 @@ export type MapToolName = Exclude<
   | 'action_proposer'
   | 'fichier_ecrire'
   | 'fichier_modifier'
+  | 'permission_demander'
   | 'commande_lancer'
 >
 

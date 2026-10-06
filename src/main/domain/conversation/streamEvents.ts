@@ -8,7 +8,17 @@ export type QuotaStatus = 'allowed' | 'allowed_warning' | 'rejected'
 export type StreamEvent =
   | { readonly kind: 'init'; readonly sessionId: string; readonly model: string; readonly apiKeySource: string }
   | { readonly kind: 'delta'; readonly text: string }
-  | { readonly kind: 'tool'; readonly name: string }
+  | {
+      readonly kind: 'tool'
+      readonly name: string
+      /** Identifiant de l'appel (relie l'outil à son résultat, spec 014 R4) ; vide si absent. */
+      readonly id: string
+      readonly input: Readonly<Record<string, unknown>>
+    }
+  /** Résultat d'un outil : réussi ou en erreur (refus de permission compris), avec un extrait du message. */
+  | { readonly kind: 'toolResult'; readonly id: string; readonly isError: boolean; readonly text: string }
+  /** Claude Code a refusé l'outil faute de permission (mode, règle, refus de mentalyas). */
+  | { readonly kind: 'permissionDenied'; readonly id: string; readonly message: string }
   | {
       readonly kind: 'quota'
       readonly status: QuotaStatus
@@ -56,6 +66,15 @@ export function parseStreamLine(line: string): StreamEvent[] {
   if (!isObject(value)) return []
   switch (value['type']) {
     case 'system': {
+      if (value['subtype'] === 'permission_denied') {
+        return [
+          {
+            kind: 'permissionDenied',
+            id: str(value['tool_use_id']) ?? '',
+            message: excerpt(str(value['message']) ?? '')
+          }
+        ]
+      }
       if (value['subtype'] !== 'init') return []
       return [
         {
@@ -80,7 +99,27 @@ export function parseStreamLine(line: string): StreamEvent[] {
       return content.flatMap((block): StreamEvent[] => {
         if (!isObject(block) || block['type'] !== 'tool_use') return []
         const name = str(block['name'])
-        return name === null ? [] : [{ kind: 'tool', name }]
+        const input = isObject(block['input']) ? block['input'] : {}
+        return name === null ? [] : [{ kind: 'tool', name, id: str(block['id']) ?? '', input }]
+      })
+    }
+    case 'user': {
+      // Résultats des outils, renvoyés à Claude par le CLI (spec 014 R4).
+      const message = value['message']
+      const content = isObject(message) && Array.isArray(message['content']) ? message['content'] : []
+      return content.flatMap((block): StreamEvent[] => {
+        if (!isObject(block) || block['type'] !== 'tool_result') return []
+        const id = str(block['tool_use_id'])
+        return id === null
+          ? []
+          : [
+              {
+                kind: 'toolResult',
+                id,
+                isError: block['is_error'] === true,
+                text: excerpt(resultText(block['content']))
+              }
+            ]
       })
     }
     case 'rate_limit_event': {
@@ -124,6 +163,22 @@ export function parseStreamLine(line: string): StreamEvent[] {
   }
 }
 
+/** Extrait court d'un résultat ou d'un refus : la raison, jamais tout un contenu de fichier. */
+const EXCERPT_MAX = 300
+function excerpt(value: string): string {
+  const flat = value.replace(/\s+/g, ' ').trim()
+  return flat.length <= EXCERPT_MAX ? flat : `${flat.slice(0, EXCERPT_MAX)}…`
+}
+
+/** Texte d'un `tool_result` : chaîne, ou blocs `{ type: 'text', text }`. */
+function resultText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  return content
+    .map((block) => (isObject(block) && block['type'] === 'text' ? (str(block['text']) ?? '') : ''))
+    .join(' ')
+}
+
 function windowOf(value: unknown): UsageWindow | null {
   if (!isObject(value)) return null
   const utilization = num(value['utilization'])
@@ -153,7 +208,26 @@ export function toolLabel(name: string): string {
     Read: 'fichier lu',
     Glob: 'fichiers listés',
     Grep: 'recherche dans les fichiers',
-    WebSearch: 'recherche web'
+    WebSearch: 'recherche web',
+    WebFetch: 'page web lue',
+    Write: 'fichier écrit',
+    Edit: 'fichier modifié',
+    MultiEdit: 'fichier modifié',
+    NotebookEdit: 'carnet modifié',
+    Bash: 'commande',
+    PowerShell: 'commande',
+    Task: 'sous-agent',
+    TodoWrite: 'liste de tâches'
   }
   return labels[short] ?? short
+}
+
+/** Libellé d'un outil avec ce qu'il vise (fichier ou commande), pour un fil lisible (spec 014 R4). */
+export function toolTitle(name: string, input: Readonly<Record<string, unknown>>): string {
+  const label = toolLabel(name)
+  const command = typeof input['command'] === 'string' ? input['command'].replace(/\s+/g, ' ').trim() : ''
+  if (command !== '') return `${label} : ${command.length > 120 ? `${command.slice(0, 120)}…` : command}`
+  const path = typeof input['file_path'] === 'string' ? input['file_path'] : ''
+  const file = path.split(/[\\/]/).pop() ?? ''
+  return file === '' ? label : `${label} : ${file}`
 }

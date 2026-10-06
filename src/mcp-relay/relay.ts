@@ -18,6 +18,8 @@ import { readToken } from '../main/infrastructure/mcp/token'
 const CALL_TIMEOUT_MS = 30_000
 /** Un script lancé pendant une exécution (spec 013 D2 bis) a 5 minutes ; le relais attend un peu plus. */
 const COMMAND_TIMEOUT_MS = 6 * 60_000
+/** Une demande de permission attend mentalyas jusqu’à 30 min côté app (spec 014 R1) : le relais un peu plus. */
+const PERMISSION_TIMEOUT_MS = 31 * 60_000
 
 const APP_CLOSED = 'Le Brainstormer n’est pas lancé — demande à mentalyas de l’ouvrir, puis réessaie.'
 const SECRET_REFUSED =
@@ -61,7 +63,11 @@ class PipeClient {
           this.pending.delete(id)
           reject(new RelayFailure('ERREUR_INTERNE', 'Le Brainstormer ne répond pas.'))
         },
-        tool === 'commande_lancer' ? COMMAND_TIMEOUT_MS : CALL_TIMEOUT_MS
+        tool === 'permission_demander'
+          ? PERMISSION_TIMEOUT_MS
+          : tool === 'commande_lancer'
+            ? COMMAND_TIMEOUT_MS
+            : CALL_TIMEOUT_MS
       )
       this.pending.set(id, { resolve, reject, timer })
       socket.write(`${JSON.stringify({ id, tool, args })}\n`)

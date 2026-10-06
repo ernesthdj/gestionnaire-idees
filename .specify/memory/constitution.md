@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-- Version change: 3.0.0 → 4.0.0 (2026-10-06, spec 014 « Claude libre » — PROPOSÉE, à valider par mentalyas)
+- Version change: 3.0.0 → 4.0.0 (2026-10-06, spec 014 « Claude libre » — validée par mentalyas)
 - Modified principles: I (programmes lancés : CLI `claude` et éditeur réglé ; arguments construits par le main ;
   relais fidèle des demandes de permission ; dossier de données jamais ouvert à Claude), II (fichiers et commandes
   selon le mode de permission choisi ; fil fidèle), III (les conversations ont les outils de Claude Code, plus d'outils
@@ -187,4 +187,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.0.0 (proposée, à valider) | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06
+**Version**: 4.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06

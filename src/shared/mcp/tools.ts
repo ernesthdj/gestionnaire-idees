@@ -172,6 +172,17 @@ export const CommandeLancerInput = z.strictObject({
 })
 export type CommandeLancerInput = z.infer<typeof CommandeLancerInput>
 
+/**
+ * Relais des demandes de permission de Claude Code (spec 014 R1, `--permission-prompt-tool`) : entrée fixée par Claude
+ * Code, non stricte (il peut ajouter des champs).
+ */
+export const PermissionDemanderInput = z.object({
+  tool_name: z.string().min(1).max(100),
+  input: z.record(z.string(), z.unknown()),
+  tool_use_id: z.string().max(200).optional()
+})
+export type PermissionDemanderInput = z.infer<typeof PermissionDemanderInput>
+
 /** Carte de structure d'un projet (spec 009) : éléments typés à clé stable, liens typés. */
 export const STRUCTURE_LIMITS = { elements: 300, links: 600, paths: 20 } as const
 const ElementKey = z
@@ -346,6 +357,12 @@ export const MCP_TOOLS = {
       'fichier_ecrire.',
     input: FichierModifierInput,
     writes: true
+  },
+  permission_demander: {
+    description:
+      'Interne à l’app : relaie les demandes de permission de Claude Code vers mentalyas. Ne l’appelle jamais toi-même.',
+    input: PermissionDemanderInput,
+    writes: false
   },
   commande_lancer: {
     description:

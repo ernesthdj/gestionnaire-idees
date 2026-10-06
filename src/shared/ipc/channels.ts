@@ -71,6 +71,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:open',
   'chat:send',
   'chat:stop',
+  'chat:permissionDecide',
   'chat:close',
   'chat:linkFolder',
   'chat:setModel',
@@ -96,7 +97,9 @@ export const MAIN_WINDOW_EVENTS = [
   'chat:turnEnd',
   'chat:error',
   'chat:usage',
-  'chat:sheet'
+  'chat:sheet',
+  'chat:permission',
+  'chat:permissionResolved'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

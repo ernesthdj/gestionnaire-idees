@@ -49,6 +49,9 @@ import { ExecutionService } from './application/finals/ExecutionService'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
 import { CommandService } from './application/finals/CommandService'
 import { DeliverableReader } from './application/finals/DeliverableReader'
+import { PermissionService } from './application/conversation/PermissionService'
+import { PermissionRepository } from './infrastructure/db/repositories/PermissionRepository'
+import { projectKey } from './domain/conversation/permissions'
 import { EditorService } from './application/finals/EditorService'
 import { detectEditors, isProgram, launchEditor } from './infrastructure/editor/EditorLauncher'
 import { CommandRepository } from './infrastructure/db/repositories/CommandRepository'
@@ -70,7 +73,7 @@ import { createChatRoutes } from './ipc/chatHandlers'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, realpathSync } from 'node:fs'
 import { SelectionStore } from './application/mcp/SelectionStore'
 import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
 import { pipeNameFor, tokenPathFor } from './infrastructure/mcp/endpoint'
@@ -336,6 +339,15 @@ export function bootstrap(shell: ShellPort): AppContext {
     categorize: (rootId) => neurons.categorizeInBackground(rootId),
     emit: (event) => broadcast('map:changed', event)
   })
+  // Demandes de permission de Claude Code relayées dans le chat (spec 014) ; règles « Toujours » par projet.
+  const permissions: PermissionService = new PermissionService({
+    repository: new PermissionRepository(database.db),
+    projectKeyOf: (neuronId: string): string => {
+      const dir: string = conversations.workingDir(neuronId)
+      return projectKey(existsSync(dir) ? realpathSync(dir) : dir)
+    },
+    emit: (event) => broadcast(event.type, event.payload)
+  })
   const mcpToken = new McpToken(tokenPathFor(dataDir))
   const pipe = new PipeServer({
     pipeName: pipeNameFor(dataDir),
@@ -368,7 +380,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         commands,
         conversations: conversationRepository,
         onProposed: (summary) => broadcast('final:proposed', { summary })
-      })
+      }),
+      permissions
     ),
     logger
   })
@@ -392,6 +405,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       profileDir: dataDir
     }),
     frame: BRAINSTORMER_FRAME,
+    permissions,
     emit: (event) => {
       broadcast(event.type, event.payload)
       executions.onChatEvent(event)
@@ -461,7 +475,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ),
       ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
-      ...createChatRoutes(conversations),
+      ...createChatRoutes(conversations, permissions),
       ...createStructureRoutes(structure),
       ...createMcpRoutes({
         selection,
@@ -489,6 +503,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       stopWatching()
       ai.stop()
       conversations.stopAll()
+      permissions.cancelAll()
       void pipe.stop()
     }
   }

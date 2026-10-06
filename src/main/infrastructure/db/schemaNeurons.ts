@@ -85,6 +85,12 @@ export const neurons = sqliteTable(
     projectDir: text('project_dir'),
     /** Modèle choisi pour la conversation de ce neurone (spec 010) ; `null` : le modèle par défaut de son usage. */
     chatModel: text('chat_model'),
+    /** Mode de permission de la conversation (spec 014) ; `null` : le mode par défaut réglé. */
+    chatPermissionMode: text('chat_permission_mode', { enum: ['default', 'acceptEdits', 'bypassPermissions'] }),
+    /** Dossiers supplémentaires autorisés pour la conversation (spec 014 US5) : chemins absolus vérifiés (JSON). */
+    chatExtraDirsJson: text('chat_extra_dirs_json'),
+    /** Avertissement du mode Libre confirmé pour cette conversation (spec 014 FR-006). */
+    chatBypassConfirmedAt: text('chat_bypass_confirmed_at'),
     /**
      * Élément de la carte de structure d'un projet (spec 009) : genesis auquel il appartient, type, clé stable dans le
      * projet, statut, chemins des fichiers (JSON), repli de ses enfants sur la carte.
@@ -307,6 +313,10 @@ export const neuronMessages = sqliteTable(
       .references(() => neurons.id),
     role: text('role', { enum: ['user', 'assistant', 'tool', 'error'] }).notNull(),
     text: text('text').notNull(),
+    /** Outil (spec 014 R4) : identifiant de l'appel, résultat réel et raison courte d'un refus ou d'une erreur. */
+    toolUseId: text('tool_use_id'),
+    toolStatus: text('tool_status', { enum: ['running', 'ok', 'denied', 'error'] }),
+    toolReason: text('tool_reason'),
     createdAt: createdAt()
   },
   (t) => [index('neuron_messages_neuron_idx').on(t.neuronId)]
@@ -644,9 +654,47 @@ export const finalActions = sqliteTable(
     offsetX: real('offset_x').notNull().default(0),
     offsetY: real('offset_y').notNull().default(0),
     width: real('width').notNull().default(420),
-    height: real('height').notNull().default(300)
+    height: real('height').notNull().default(300),
+    /** Dernier commit de l'étape (spec 014 US7) : identifiant court et date. */
+    committedHash: text('committed_hash'),
+    committedAt: text('committed_at')
   },
   (t) => [index('final_actions_genesis_idx').on(t.genesisId)]
+)
+
+/** Règles « Toujours pour ce projet » (spec 014 R3) : gardées par l'app, jamais écrites dans le dépôt. */
+export const permissionRules = sqliteTable(
+  'permission_rules',
+  {
+    id: text('id').primaryKey(),
+    /** Chemin réel du projet en minuscules (`projectKey`). */
+    projectKey: text('project_key').notNull(),
+    tool: text('tool').notNull(),
+    /** Commande exacte pour un outil de commande ; `null` : tout l'outil. */
+    pattern: text('pattern'),
+    createdAt: createdAt(),
+    deletedAt: text('deleted_at')
+  },
+  (t) => [index('permission_rules_project_idx').on(t.projectKey)]
+)
+
+/** Dossiers liés dont mentalyas accepte les réglages Claude Code (hooks, autorisations) — spec 014 US6. */
+export const trustedProjects = sqliteTable('trusted_projects', {
+  projectKey: text('project_key').primaryKey(),
+  createdAt: createdAt()
+})
+
+/** Décisions de permission (spec 014 FR-014) : jamais l'entrée de l'outil ni la commande. */
+export const permissionLog = sqliteTable(
+  'permission_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    neuronId: text('neuron_id').notNull(),
+    tool: text('tool').notNull(),
+    decision: text('decision', { enum: ['allow', 'always', 'deny', 'expired', 'rule'] }).notNull(),
+    at: createdAt()
+  },
+  (t) => [index('permission_log_neuron_idx').on(t.neuronId)]
 )
 
 /** Une passe de Claude sur une action finale ; au plus une exécution ouverte (`ended_at` nul) par genesis. */

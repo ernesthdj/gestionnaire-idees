@@ -4,13 +4,16 @@ import type {
   ChatDeltaEvent,
   ChatErrorEvent,
   ChatMessageView,
+  ChatPermissionRequest,
+  ChatPermissionResolvedEvent,
   ChatSheetEvent,
   ChatSheetView,
   ChatToolEvent,
   ChatTurnEndEvent,
   ChatUsageEvent,
   ChatUsageView,
-  ChatView
+  ChatView,
+  PermissionDecisionView
 } from '@shared/ipc/chat'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -33,6 +36,8 @@ export interface ChatState {
   readonly model: string
   readonly modelChoice: string | null
   readonly problem: string | null
+  /** Demandes de permission de Claude en attente de ta réponse (spec 014 US1). */
+  readonly pending: readonly ChatPermissionRequest[]
 }
 
 export interface ChatActions {
@@ -42,6 +47,8 @@ export interface ChatActions {
   linkFolder(unlink?: boolean): Promise<void>
   /** Modèle de cette conversation (`null` : défaut de son usage). */
   setModel(model: string | null): Promise<void>
+  /** Réponse à une demande de permission. */
+  decide(requestId: string, decision: PermissionDecisionView): Promise<void>
 }
 
 const forNeuron = <T extends { readonly neuronId: string }>(neuronId: string, payload: unknown): T | null =>
@@ -70,7 +77,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     stepLabel: null,
     model: '',
     modelChoice: null,
-    problem: null
+    problem: null,
+    pending: []
   })
 
   const refreshSheet = useCallback(async () => {
@@ -102,7 +110,8 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           elementType: view.elementType ?? null,
           stepLabel: view.stepLabel ?? null,
           model: view.model ?? '',
-          modelChoice: view.modelChoice ?? null
+          modelChoice: view.modelChoice ?? null,
+          pending: view.pending ?? []
         }))
       })
       .catch((error: unknown) => {
@@ -116,6 +125,13 @@ export function useChat(neuronId: string): ChatState & ChatActions {
       })
     const append = (message: ChatMessageView): void =>
       setState((current) => ({ ...current, messages: [...current.messages, message] }))
+    // Un outil réapparaît avec son résultat réel (spec 014 R4) : il remplace sa pastille « en cours ».
+    const upsert = (message: ChatMessageView): void =>
+      setState((current) =>
+        current.messages.some((entry) => entry.id === message.id)
+          ? { ...current, messages: current.messages.map((entry) => (entry.id === message.id ? message : entry)) }
+          : { ...current, messages: [...current.messages, message] }
+      )
     const offs = [
       window.api.on('chat:delta', (payload) => {
         const event = forNeuron<ChatDeltaEvent>(neuronId, payload)
@@ -123,7 +139,19 @@ export function useChat(neuronId: string): ChatState & ChatActions {
       }),
       window.api.on('chat:tool', (payload) => {
         const event = forNeuron<ChatToolEvent>(neuronId, payload)
-        if (event !== null) append(event.message)
+        if (event !== null) upsert(event.message)
+      }),
+      window.api.on('chat:permission', (payload) => {
+        const request = forNeuron<ChatPermissionRequest>(neuronId, payload)
+        if (request !== null) setState((current) => ({ ...current, pending: [...current.pending, request] }))
+      }),
+      window.api.on('chat:permissionResolved', (payload) => {
+        const event = forNeuron<ChatPermissionResolvedEvent>(neuronId, payload)
+        if (event === null) return
+        setState((current) => ({
+          ...current,
+          pending: current.pending.filter((entry) => entry.id !== event.requestId)
+        }))
       }),
       window.api.on('chat:turnEnd', (payload) => {
         const event = forNeuron<ChatTurnEndEvent>(neuronId, payload)
@@ -223,5 +251,21 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     [neuronId]
   )
 
-  return { ...state, send, stop, linkFolder, setModel }
+  const decide = useCallback(async (requestId: string, decision: PermissionDecisionView): Promise<void> => {
+    // La carte disparaît aussitôt ; l'événement de résolution du main la retire aussi des autres fenêtres.
+    setState((current) => ({ ...current, pending: current.pending.filter((entry) => entry.id !== requestId) }))
+    try {
+      await call('chat:permissionDecide', { requestId, decision })
+    } catch (error) {
+      const message: ChatMessageView = {
+        id: `local-error-${Date.now()}`,
+        role: 'error',
+        text: error instanceof IpcFailure ? error.message : 'La réponse n’a pas pu être transmise à Claude.',
+        createdAt: ''
+      }
+      setState((current) => ({ ...current, messages: [...current.messages, message] }))
+    }
+  }, [])
+
+  return { ...state, send, stop, linkFolder, setModel, decide }
 }

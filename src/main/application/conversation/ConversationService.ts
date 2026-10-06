@@ -15,13 +15,16 @@ import type {
 import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
 import { rankLabel } from '@shared/plan/rankLabel'
 import { readSheet } from '../../domain/conversation/sheet'
-import { parseStreamLine, toolLabel, type StreamEvent } from '../../domain/conversation/streamEvents'
+import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
+import type { PermissionService } from './PermissionService'
 import { AppError } from '../../domain/errors'
+import type { PermissionMode } from '@shared/ipc/chat'
 import type { ConversationProcess, SpawnConversation } from '../../infrastructure/claude/CliConversation'
 import type {
   ConversationNeuron,
   ConversationRepository,
-  MessageRole
+  MessageRole,
+  MessageRow
 } from '../../infrastructure/db/repositories/ConversationRepository'
 
 export type ChatEvent =
@@ -53,6 +56,7 @@ export interface ConversationDeps {
     | 'setChatModel'
     | 'messages'
     | 'addMessage'
+    | 'setToolStatus'
     | 'maturity'
     | 'recordTurn'
     | 'usageSince'
@@ -74,11 +78,20 @@ export interface ConversationDeps {
   readonly idleMs?: number
   readonly closeGraceMs?: number
   readonly maxLive?: number
+  /** Demandes de permission (spec 014) : refusées quand le chat se ferme ou que la conversation s’arrête. */
+  readonly permissions?: Pick<PermissionService, 'cancel' | 'open'>
+  /** Mode de permission par défaut des conversations (réglage) ; absent : Demander. */
+  readonly defaultPermissionMode?: () => PermissionMode
 }
 
-/** Outils autorisés : la carte, la lecture de fichiers du dossier de travail, la recherche web (L1c n°10). */
-export const CHAT_BUILTIN_TOOLS = 'Read,Glob,Grep,WebSearch'
+/**
+ * Outils (spec 014) : tous ceux de Claude Code ; la carte, la lecture et la recherche web sont autorisées d'office,
+ * le reste suit le mode de permission de la conversation.
+ */
+export const CHAT_BUILTIN_TOOLS = 'default'
 export const CHAT_ALLOWED_TOOLS = 'mcp__brainstormer Read Glob Grep WebSearch'
+/** Outil du pont qui relaie chaque demande de permission vers mentalyas (spec 014 R1). */
+export const PERMISSION_PROMPT_TOOL = 'mcp__brainstormer__permission_demander'
 
 /** Arguments fixes du CLI (spec 008 research R1) : aucun ne vient de l'interface ni du texte de mentalyas. */
 export function conversationArgs(input: {
@@ -87,6 +100,8 @@ export function conversationArgs(input: {
   readonly neuronId: string
   readonly frame: string
   readonly settings: ConversationSettings
+  /** Mode de permission de la conversation (spec 014 D1) ; défaut : Demander. */
+  readonly permissionMode?: PermissionMode
 }): string[] {
   const { settings } = input
   const mcpConfig = {
@@ -122,8 +137,12 @@ export function conversationArgs(input: {
     CHAT_BUILTIN_TOOLS,
     '--allowedTools',
     CHAT_ALLOWED_TOOLS,
-    '--permission-prompts',
-    'none',
+    // Les demandes de permission vont à mentalyas par le pont (jamais refusées en silence, jamais acceptées seules).
+    '--permission-prompt-tool',
+    PERMISSION_PROMPT_TOOL,
+    '--permission-mode',
+    input.permissionMode ?? 'default',
+    ...(input.permissionMode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
     '--append-system-prompt',
     input.frame
   ]
@@ -142,6 +161,8 @@ interface Live {
   quotaRejected: { readonly resetsAt: number | null } | null
   timer: ReturnType<typeof setTimeout> | undefined
   lastActive: number
+  /** Outils refusés faute de permission dans ce processus (spec 014 R4). */
+  readonly denied: Set<string>
 }
 
 const MESSAGES: Readonly<Record<ChatErrorCode, string>> = {
@@ -185,6 +206,23 @@ function readAccount(value: unknown): ChatUsageView['account'] {
  * gardés dans la base, flux relayé à l'interface. Un neurone peut être lié à un dossier de projet : sa conversation
  * s'y ouvre. Au plus 3 processus ; arrêt à l'inactivité ; un tour à la fois par conversation.
  */
+/** Message stocké → vue : le statut et la raison d'un outil seulement s'ils existent. */
+export function messageView(row: MessageRow): ChatMessageView {
+  return {
+    id: row.id,
+    role: row.role,
+    text: row.text,
+    createdAt: row.createdAt,
+    ...(row.toolStatus === null ? {} : { toolStatus: row.toolStatus }),
+    ...(row.toolReason === null ? {} : { toolReason: row.toolReason })
+  }
+}
+
+/** Refus de permission renvoyé par l'app (PermissionService) ou par Claude Code. */
+function isRefusal(text: string): boolean {
+  return /^(mentalyas a refusé|Demande restée sans réponse)|requested permissions|haven.t granted/i.test(text)
+}
+
 export class ConversationService {
   private readonly live = new Map<string, Live>()
 
@@ -197,7 +235,8 @@ export class ConversationService {
     return {
       neuronId,
       title: neuron.title,
-      messages: this.deps.repository.messages(neuronId),
+      messages: this.deps.repository.messages(neuronId).map(messageView),
+      pending: this.deps.permissions?.open(neuronId) ?? [],
       sheet: readSheet(neuron.sheetJson),
       maturity: this.deps.repository.maturity(neuron.id),
       busy: live?.busy ?? false,
@@ -303,6 +342,7 @@ ${text}`
     const live = this.live.get(neuronId)
     if (live === undefined || !live.busy) return
     live.stopping = true
+    this.deps.permissions?.cancel(neuronId)
     live.process.kill()
   }
 
@@ -313,12 +353,15 @@ ${text}`
 
   /** Panneau fermé : la conversation reste prête quelques minutes, puis son processus s'arrête. */
   close(neuronId: string): void {
+    // Une demande de permission ne survit pas au chat fermé : elle est refusée (spec 014 FR-004).
+    this.deps.permissions?.cancel(neuronId)
     const live = this.live.get(neuronId)
     if (live !== undefined && !live.busy) this.touch(neuronId, live, this.deps.closeGraceMs ?? 2 * 60_000)
   }
 
   stopAll(): void {
     for (const [neuronId, live] of this.live) {
+      this.deps.permissions?.cancel(neuronId)
       clearTimeout(live.timer)
       live.process.kill()
       this.live.delete(neuronId)
@@ -355,7 +398,8 @@ ${text}`
       resume,
       neuronId: neuron.id,
       frame: this.deps.frame,
-      settings: { ...settings, model }
+      settings: { ...settings, model },
+      permissionMode: neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
     })
     const neuronId = neuron.id
     const process = this.deps.spawn({
@@ -379,7 +423,8 @@ ${text}`
       turnStarted: Date.now(),
       quotaRejected: null,
       timer: undefined,
-      lastActive: Date.now()
+      lastActive: Date.now(),
+      denied: new Set()
     }
     this.live.set(neuronId, live)
     return live
@@ -409,8 +454,23 @@ ${text}`
         this.deps.emit({ type: 'chat:delta', payload: { neuronId, text: event.text } })
         return
       case 'tool': {
-        const message = this.save(neuronId, 'tool', toolLabel(event.name))
+        const message = this.save(
+          neuronId,
+          'tool',
+          toolTitle(event.name, event.input),
+          event.id === '' ? null : event.id
+        )
         this.deps.emit({ type: 'chat:tool', payload: { neuronId, message } })
+        return
+      }
+      case 'permissionDenied':
+        live.denied.add(event.id)
+        return
+      case 'toolResult': {
+        // Le fil dit ce qui s’est réellement passé : réussi, refusé (permission) ou échoué (spec 014 R4).
+        const status = !event.isError ? 'ok' : live.denied.has(event.id) || isRefusal(event.text) ? 'denied' : 'error'
+        const row = this.deps.repository.setToolStatus(neuronId, event.id, status, event.isError ? event.text : null)
+        if (row !== undefined) this.deps.emit({ type: 'chat:tool', payload: { neuronId, message: messageView(row) } })
         return
       }
       case 'quota':
@@ -458,6 +518,8 @@ ${text}`
     const live = this.live.get(neuronId)
     if (live === undefined) return
     clearTimeout(live.timer)
+    // Processus terminé : ce qui attendait une permission n’a plus de destinataire.
+    this.deps.permissions?.cancel(neuronId)
     this.live.delete(neuronId)
     if (live.stopping) {
       const text = live.partial.trim()
@@ -485,8 +547,8 @@ ${text}`
     this.deps.emit({ type: 'chat:error', payload: { neuronId, code, message, resetsAt } })
   }
 
-  private save(neuronId: string, role: MessageRole, text: string): ChatMessageView {
-    return this.deps.repository.addMessage(neuronId, role, text)
+  private save(neuronId: string, role: MessageRole, text: string, toolUseId: string | null = null): ChatMessageView {
+    return messageView(this.deps.repository.addMessage(neuronId, role, text, toolUseId))
   }
 
   private contextOf(neuron: ConversationNeuron, live: Live): NeuronContext {
@@ -568,6 +630,12 @@ ${text}`
   private modelOf(neuron: ConversationNeuron, settings: ConversationSettings): string {
     if (neuron.chatModel !== null) return neuron.chatModel
     return neuron.genesisId === null ? settings.model : (settings.elementModel ?? settings.model)
+  }
+
+  /** Dossier de travail effectif d'une conversation (spec 014 : projet des règles « Toujours »). */
+  workingDir(neuronId: string): string {
+    const neuron = this.deps.repository.neuron(neuronId)
+    return (neuron === undefined ? null : this.folderOf(neuron)) ?? this.deps.settings().cwd
   }
 
   /** Dossier de travail d'un neurone : le sien, ou celui du projet de son genesis (élément de structure). */

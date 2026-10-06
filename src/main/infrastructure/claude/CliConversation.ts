@@ -30,8 +30,8 @@ export const spawnClaudeConversation: SpawnConversation = (options) => {
     shell: false,
     windowsHide: true,
     stdio: ['pipe', 'pipe', 'pipe'],
-    // Un script lancé par `commande_lancer` peut durer 5 minutes (spec 013 D2 bis) : Claude Code attend 7 minutes.
-    env: { ...process.env, MCP_TOOL_TIMEOUT: '420000' }
+    // Une demande de permission attend mentalyas jusqu'à 30 min (spec 014 R1) : Claude Code attend 32 min un outil MCP.
+    env: { ...process.env, MCP_TOOL_TIMEOUT: '1920000' }
   })
   let buffer = ''
   let stderr = ''

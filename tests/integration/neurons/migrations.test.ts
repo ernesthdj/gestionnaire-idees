@@ -102,6 +102,20 @@ describe('migrations du modèle de neurones', () => {
     expect(tables().some((name) => added.includes(name))).toBe(false)
   })
 
+  it('should_add_the_permission_tables_and_columns_then_remove_them_with_the_down_migration', () => {
+    const added = ['permission_rules', 'trusted_projects', 'permission_log']
+    const neuronColumns = ['chat_permission_mode', 'chat_extra_dirs_json', 'chat_bypass_confirmed_at']
+    expect(tables()).toEqual(expect.arrayContaining(added))
+    expect(columns('neurons')).toEqual(expect.arrayContaining(neuronColumns))
+    expect(columns('neuron_messages')).toEqual(expect.arrayContaining(['tool_use_id', 'tool_status', 'tool_reason']))
+    expect(columns('final_actions')).toEqual(expect.arrayContaining(['committed_hash', 'committed_at']))
+    runDown('0027_claude_libre')
+    expect(tables().some((name) => added.includes(name))).toBe(false)
+    expect(columns('neurons').some((name) => neuronColumns.includes(name))).toBe(false)
+    expect(columns('neuron_messages').some((name) => name.startsWith('tool_'))).toBe(false)
+    expect(columns('final_actions').some((name) => name.startsWith('committed_'))).toBe(false)
+  })
+
   it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {
     expect(tables()).toEqual(expect.arrayContaining(['step_dependencies', 'plan_proposals', 'plan_proposal_items']))
     expect(columns('neurons')).toEqual(expect.arrayContaining(['rank', 'step_status', 'locked_at', 'lock_proposed_at']))

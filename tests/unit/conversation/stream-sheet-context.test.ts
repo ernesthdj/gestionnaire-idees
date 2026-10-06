@@ -35,7 +35,9 @@ describe('flux stream-json du CLI', () => {
         ]
       }
     }
-    expect(parseStreamLine(line(message))).toEqual([{ kind: 'tool', name: 'mcp__brainstormer__fiche_ecrire' }])
+    expect(parseStreamLine(line(message))).toEqual([
+      { kind: 'tool', name: 'mcp__brainstormer__fiche_ecrire', id: '', input: {} }
+    ])
     expect(toolLabel('mcp__brainstormer__fiche_ecrire')).toBe('fiche mise à jour')
     expect(toolLabel('WebSearch')).toBe('recherche web')
   })

@@ -2,11 +2,45 @@
 
 export type ChatRole = 'user' | 'assistant' | 'tool' | 'error'
 
+/** Résultat réel d'un outil de Claude (spec 014 R4) : en cours, réussi, refusé (permission) ou échoué. */
+export type ToolStatus = 'running' | 'ok' | 'denied' | 'error'
+
 export interface ChatMessageView {
   readonly id: string
   readonly role: ChatRole
   readonly text: string
   readonly createdAt: string
+  /** Outil : son résultat réel et la raison courte d'un refus ou d'une erreur. */
+  readonly toolStatus?: ToolStatus
+  readonly toolReason?: string
+}
+
+/** Mode de permission d'une conversation (spec 014 D1), comme Maj+Tab dans le terminal. */
+export const PERMISSION_MODES = ['default', 'acceptEdits', 'bypassPermissions'] as const
+export type PermissionMode = (typeof PERMISSION_MODES)[number]
+
+/** Ce que Claude veut faire, montré à mentalyas avant qu'il décide. */
+export type PermissionDetailView =
+  | { readonly kind: 'write'; readonly path: string; readonly preview: string }
+  | { readonly kind: 'command'; readonly command: string; readonly cwd: string | null }
+  | { readonly kind: 'other'; readonly input: string }
+
+/** Demande de permission de Claude Code, en attente de la réponse de mentalyas (spec 014 US1). */
+export interface ChatPermissionRequest {
+  readonly id: string
+  readonly neuronId: string
+  readonly tool: string
+  readonly detail: PermissionDetailView
+  readonly at: string
+}
+
+export const PERMISSION_DECISIONS = ['allow', 'always', 'deny'] as const
+export type PermissionDecisionView = (typeof PERMISSION_DECISIONS)[number]
+
+export interface ChatPermissionResolvedEvent {
+  readonly neuronId: string
+  readonly requestId: string
+  readonly decision: PermissionDecisionView | 'expired'
 }
 
 export interface ChatSheetView {
@@ -38,6 +72,8 @@ export interface ChatView {
   /** Modèle utilisé par cette conversation ; `modelChoice` : celui choisi pour elle (`null` : défaut de son usage). */
   readonly model: string
   readonly modelChoice: string | null
+  /** Demandes de permission encore ouvertes (spec 014) : rouvrir le chat les remontre. */
+  readonly pending: readonly ChatPermissionRequest[]
 }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */

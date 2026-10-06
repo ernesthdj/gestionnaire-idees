@@ -63,6 +63,9 @@ describe('conversations Claude Code des neurones', () => {
     chatModel: null,
     rank: null,
     lockedAt: null,
+    chatPermissionMode: null,
+    chatExtraDirsJson: null,
+    chatBypassConfirmedAt: null,
     ...extra
   })
 
@@ -81,12 +84,32 @@ describe('conversations Claude Code des neurones', () => {
               id: String(index),
               role: message.role,
               text: message.text,
-              createdAt: ''
+              createdAt: '',
+              toolUseId: null,
+              toolStatus: null,
+              toolReason: null
             })),
-        addMessage: (neuronId, role, text) => {
+        addMessage: (neuronId, role, text, toolUseId = null) => {
           messages.push({ neuronId, role, text })
-          return { id: String(messages.length), role, text, createdAt: '' }
+          return {
+            id: String(messages.length),
+            role,
+            text,
+            createdAt: '',
+            toolUseId,
+            toolStatus: toolUseId === null ? null : 'running',
+            toolReason: null
+          }
         },
+        setToolStatus: (_neuronId, toolUseId, toolStatus, toolReason) => ({
+          id: toolUseId,
+          role: 'tool',
+          text: 'outil',
+          createdAt: '',
+          toolUseId,
+          toolStatus,
+          toolReason
+        }),
         maturity: () => null,
         setProjectDir: (id, projectDir, sessionId) => {
           const current = neurons.get(id)
@@ -180,7 +203,7 @@ describe('conversations Claude Code des neurones', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('should_launch_claude_with_fixed_restricted_arguments_and_a_new_session', async () => {
+  it('should_launch_claude_with_fixed_arguments_asking_mentalyas_and_a_new_session', async () => {
     await service.send(N1, 'Salut')
     const { options } = processes[0] as FakeProcess
     expect(options.command).toBe('C:\\claude.exe')
@@ -190,7 +213,12 @@ describe('conversations Claude Code des neurones', () => {
     expect(args[args.indexOf('--session-id') + 1]).toBe(neurons.get(N1)?.sessionId)
     expect(args).not.toContain('--resume')
     expect(args[args.indexOf('--allowedTools') + 1]).toBe(CHAT_ALLOWED_TOOLS)
-    expect(args[args.indexOf('--permission-prompts') + 1]).toBe('none')
+    // Spec 014 : outils natifs, demandes relayées à mentalyas, mode Demander par défaut.
+    expect(args[args.indexOf('--tools') + 1]).toBe('default')
+    expect(args[args.indexOf('--permission-prompt-tool') + 1]).toBe('mcp__brainstormer__permission_demander')
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('default')
+    expect(args).not.toContain('--permission-prompts')
+    expect(args).not.toContain('--allow-dangerously-skip-permissions')
     expect(args).not.toContain('Salut')
     const mcp = JSON.parse(args[args.indexOf('--mcp-config') + 1] ?? '{}') as {
       mcpServers: { brainstormer: { env: Record<string, string> } }
@@ -222,6 +250,45 @@ describe('conversations Claude Code des neurones', () => {
     const args = (processes[1] as FakeProcess).options.args
     expect(args[args.indexOf('--resume') + 1]).toBe(neurons.get(N1)?.sessionId)
     expect(sent(processes[1] as FakeProcess)).toContain('Reprise d’une conversation existante')
+  })
+
+  it('should_show_the_real_outcome_of_each_tool_and_cancel_permissions_when_the_chat_closes', async () => {
+    const cancelled: string[] = []
+    service = build({ permissions: { cancel: (neuronId) => void cancelled.push(neuronId), open: () => [] } })
+    await service.send(N1, 'Corrige et teste')
+    const process = processes[0] as FakeProcess
+    process.emit({
+      type: 'assistant',
+      message: {
+        content: [
+          { type: 'tool_use', id: 't1', name: 'Edit', input: { file_path: 'C:\\p\\a.ts' } },
+          { type: 'tool_use', id: 't2', name: 'Bash', input: { command: 'npm test' } },
+          { type: 'tool_use', id: 't3', name: 'Bash', input: { command: 'npm install' } }
+        ]
+      }
+    })
+    process.emit({ type: 'system', subtype: 'permission_denied', tool_use_id: 't3', message: 'refusé' })
+    process.emit({
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 't1', content: 'ok' },
+          { type: 'tool_result', tool_use_id: 't2', is_error: true, content: 'Exit code 1' },
+          { type: 'tool_result', tool_use_id: 't3', is_error: true, content: 'refusé' }
+        ]
+      }
+    })
+    expect(messages.filter((message) => message.role === 'tool').map((message) => message.text)).toEqual([
+      'fichier modifié : a.ts',
+      'commande : npm test',
+      'commande : npm install'
+    ])
+    const outcomes = events
+      .filter((event) => event.type === 'chat:tool')
+      .map((event) => (event.type === 'chat:tool' ? event.payload.message.toolStatus : undefined))
+    expect(outcomes).toEqual(['running', 'running', 'running', 'ok', 'error', 'denied'])
+    service.close(N1)
+    expect(cancelled).toEqual([N1])
   })
 
   it('should_relay_deltas_tools_and_save_the_full_answer', async () => {

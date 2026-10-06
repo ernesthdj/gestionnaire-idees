@@ -19,6 +19,7 @@ const view = (extra: Partial<ChatView> = {}): ChatView => ({
   neuronId: ID,
   title: 'Ouvrir un studio photo',
   messages: [],
+  pending: [],
   sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
   maturity: null,
   busy: false,
