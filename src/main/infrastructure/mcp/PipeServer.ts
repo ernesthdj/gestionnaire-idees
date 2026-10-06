@@ -16,7 +16,8 @@ import type { Logger } from '../logging/logger'
 import { LineSplitter } from './lineSplitter'
 
 /** Exécute un outil dont l'entrée a déjà été validée par son schéma. */
-export type McpToolHandler = (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult
+/** Un outil répond tout de suite, ou plus tard (commande lancée pendant une exécution, spec 013 D2 bis). */
+export type McpToolHandler = (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult>
 
 export interface PipeServerOptions {
   readonly pipeName: string
@@ -125,12 +126,15 @@ export class PipeServer {
           socket.destroy()
           return
         }
-        socket.write(`${JSON.stringify(this.run(request.data.id, request.data.tool, request.data.args, caller))}\n`)
+        // Réponses dans l'ordre d'achèvement : chacune porte l'identifiant de sa demande.
+        void this.run(request.data.id, request.data.tool, request.data.args, caller).then((response) => {
+          if (!socket.destroyed) socket.write(`${JSON.stringify(response)}\n`)
+        })
       }
     })
   }
 
-  private run(id: number, tool: string, args: unknown, caller: McpCaller): ResponseFrame {
+  private async run(id: number, tool: string, args: unknown, caller: McpCaller): Promise<ResponseFrame> {
     const started = Date.now()
     const fail = (code: McpErrorCode, message: string): ResponseFrame => {
       this.options.logger.info('mcp.call', { kind: tool, status: code, durationMs: Date.now() - started })
@@ -140,7 +144,7 @@ export class PipeServer {
     const parsed = MCP_TOOLS[tool].input.safeParse(args)
     if (!parsed.success) return fail('ENTREE_INVALIDE', describeIssues(parsed.error))
     try {
-      const result = this.options.handle(tool, parsed.data, caller)
+      const result = await this.options.handle(tool, parsed.data, caller)
       this.options.logger.info('mcp.call', { kind: tool, status: 'ok', durationMs: Date.now() - started })
       return { id, ok: true, result }
     } catch (error) {

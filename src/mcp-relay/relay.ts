@@ -16,6 +16,8 @@ import { readToken } from '../main/infrastructure/mcp/token'
  */
 
 const CALL_TIMEOUT_MS = 30_000
+/** Un script lancé pendant une exécution (spec 013 D2 bis) a 5 minutes ; le relais attend un peu plus. */
+const COMMAND_TIMEOUT_MS = 6 * 60_000
 
 const APP_CLOSED = 'Le Brainstormer n’est pas lancé — demande à mentalyas de l’ouvrir, puis réessaie.'
 const SECRET_REFUSED =
@@ -54,10 +56,13 @@ class PipeClient {
     const socket = await this.connected()
     const id = this.nextId++
     const frame = await new Promise<ResponseFrame>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(id)
-        reject(new RelayFailure('ERREUR_INTERNE', 'Le Brainstormer ne répond pas.'))
-      }, CALL_TIMEOUT_MS)
+      const timer = setTimeout(
+        () => {
+          this.pending.delete(id)
+          reject(new RelayFailure('ERREUR_INTERNE', 'Le Brainstormer ne répond pas.'))
+        },
+        tool === 'commande_lancer' ? COMMAND_TIMEOUT_MS : CALL_TIMEOUT_MS
+      )
       this.pending.set(id, { resolve, reject, timer })
       socket.write(`${JSON.stringify({ id, tool, args })}\n`)
     })

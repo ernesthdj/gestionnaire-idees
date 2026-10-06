@@ -44,11 +44,20 @@ import type { MainWindowEvent } from '@shared/ipc/channels'
 import { MapService } from './application/mcp/MapService'
 import { NeuronTools } from './application/mcp/NeuronTools'
 import { PlanTools } from './application/mcp/PlanTools'
-import { DocumentTools } from './application/mcp/DocumentTools'
+import { DocumentTools, fileLabel } from './application/mcp/DocumentTools'
+import { ExecutionService } from './application/finals/ExecutionService'
+import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
+import { CommandService } from './application/finals/CommandService'
+import { CommandRepository } from './infrastructure/db/repositories/CommandRepository'
+import { resolveNpm, runCommand } from './infrastructure/finals/CommandRunner'
 import { DocumentService } from './application/documents/DocumentService'
 import { DocumentRepository } from './infrastructure/db/repositories/DocumentRepository'
 import { DocumentFiles } from './infrastructure/documents/DocumentFiles'
 import { createToolHandler } from './application/mcp/toolHandler'
+import { FinalTools } from './application/mcp/FinalTools'
+import { FinalService } from './application/finals/FinalService'
+import { FinalRepository } from './infrastructure/db/repositories/FinalRepository'
+import { createFinalRoutes } from './ipc/finalHandlers'
 import { ConversationService } from './application/conversation/ConversationService'
 import { BRAINSTORMER_FRAME } from './application/conversation/frame'
 import { ConversationRepository } from './infrastructure/db/repositories/ConversationRepository'
@@ -198,10 +207,64 @@ export function bootstrap(shell: ShellPort): AppContext {
     nodes: planRepository,
     projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir ?? null
   })
-  const plan = new PlanService({ repository: planRepository })
+  // Actions finales (spec 013) : une étape feuille devient exécutable sur proposition de Claude, acceptée par mentalyas.
+  const finalRepository = new FinalRepository(database.db)
+  const finals = new FinalService({ repository: finalRepository, plan: planRepository })
+  const plan = new PlanService({ repository: planRepository, finals })
+  const projectDirOf = (genesisId: string): string | null =>
+    conversationRepository.neuron(genesisId)?.projectDir ?? null
+  const projectFiles = new ProjectFiles({ profileDir: dataDir })
+  // Scripts approuvés (spec 013 D2 bis) : `npm run <script>` lancé par node + npm-cli.js, jamais par un shell.
+  const commandRepository = new CommandRepository(database.db)
+  const commands = new CommandService({
+    commands: commandRepository,
+    finals: finalRepository,
+    projectDir: projectDirOf,
+    files: projectFiles,
+    run: async (cwd, script) => {
+      const npm = resolveNpm()
+      if (npm === null) {
+        return {
+          exitCode: null,
+          timedOut: false,
+          durationMs: 0,
+          output: 'npm introuvable : installe Node.js (avec npm).'
+        }
+      }
+      return runCommand({ command: npm.node, args: [npm.cli, 'run', script], cwd })
+    },
+    emit: (neuronId) => broadcast('final:changed', { neuronId })
+  })
+  // Exécutions (spec 013 US2) : Claude écrit dans le projet lié par les outils de l'app, pendant un tour seulement.
+  const executions = new ExecutionService({
+    repository: finalRepository,
+    plan: planRepository,
+    projectDir: projectDirOf,
+    documents: (ids) =>
+      documentRepository
+        .list()
+        .filter((document) => ids.has(document.neuronId))
+        .map((document) => ({ id: document.id, title: document.title, fileLabel: fileLabel(document) })),
+    files: projectFiles,
+    scripts: (genesisId) => commands.runnable(genesisId),
+    // La conversation est créée plus bas : ces appels n'ont lieu qu'au lancement d'une exécution.
+    conversations: {
+      send: (neuronId, text, data) => conversations.send(neuronId, text, data),
+      stop: (neuronId) => conversations.stop(neuronId),
+      isBusy: (neuronId) => conversations.isBusy(neuronId)
+    },
+    emit: (neuronId) => broadcast('final:changed', { neuronId })
+  })
+  executions.recover()
   const canvas = new CanvasService({
     plan: planRepository,
     documents: documentRepository,
+    finals: {
+      list: () => finalRepository.list(),
+      files: (neuronId) => finalRepository.files(neuronId),
+      runs: (neuronId) => commandRepository.runsOf(neuronId),
+      projectLinked: (genesisId) => projectDirOf(genesisId) !== null
+    },
     neurons: neuronRepository,
     blocks: blockRepository,
     io: widgetIo,
@@ -254,7 +317,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         insertAssessment: (input) => conversationRepository.insertAssessment(input),
         onChanged: (neuronId) => broadcast('chat:sheet', { neuronId }),
         plan: planRepository,
-        documents: documentRepository
+        documents: documentRepository,
+        finals
       }),
       structure,
       new PlanTools({
@@ -267,6 +331,13 @@ export function bootstrap(shell: ShellPort): AppContext {
         repository: documentRepository,
         conversations: conversationRepository,
         onWritten: (event) => broadcast('map:changed', event)
+      }),
+      new FinalTools({
+        finals,
+        executions,
+        commands,
+        conversations: conversationRepository,
+        onProposed: (summary) => broadcast('final:proposed', { summary })
       })
     ),
     logger
@@ -291,7 +362,10 @@ export function bootstrap(shell: ShellPort): AppContext {
       profileDir: dataDir
     }),
     frame: BRAINSTORMER_FRAME,
-    emit: (event) => broadcast(event.type, event.payload),
+    emit: (event) => {
+      broadcast(event.type, event.payload)
+      executions.onChatEvent(event)
+    },
     // Le chemin d'un dossier de projet vient uniquement du sélecteur natif, jamais de l'interface (constitution I).
     pickFolder: async () => {
       const result = await dialog.showOpenDialog({
@@ -321,9 +395,16 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...contextRoutes,
       ...createNeuronRoutes(neurons, plan),
       ...createPlanRoutes(plan),
+      ...createFinalRoutes(finals, executions, commands),
       ...createDocumentRoutes({ documents, reveal: (path) => electronShell.showItemInFolder(path) }),
       ...createCanvasRoutes(canvas),
-      ...createHistoryRoutes(new HistoryService(new HistoryRepository(database.db), documents.historyHandlers())),
+      ...createHistoryRoutes(
+        new HistoryService(new HistoryRepository(database.db), {
+          ...documents.historyHandlers(),
+          ...finals.historyHandlers(),
+          ...executions.historyHandlers()
+        })
+      ),
       ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations),

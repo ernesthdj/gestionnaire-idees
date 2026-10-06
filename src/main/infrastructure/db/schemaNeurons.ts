@@ -330,7 +330,8 @@ export const changeLog = sqliteTable(
         'mcp_write',
         'convert',
         'plan',
-        'document'
+        'document',
+        'final'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
@@ -618,6 +619,127 @@ export const planProposalItems = sqliteTable(
     bornId: text('born_id')
   },
   (t) => [index('plan_proposal_items_proposal_idx').on(t.proposalId)]
+)
+
+/**
+ * Étape proposée ou devenue action finale (spec 013) : feuille de son plan, exécutable par Claude dans le dossier du
+ * projet lié. « Fait » se lit dans `neurons.step_status`. Le livrable est son annexe (place et taille gardées).
+ */
+export const finalActions = sqliteTable(
+  'final_actions',
+  {
+    neuronId: text('neuron_id')
+      .primaryKey()
+      .references(() => neurons.id),
+    genesisId: text('genesis_id')
+      .notNull()
+      .references(() => neurons.id),
+    deliverable: text('deliverable').notNull(),
+    reason: text('reason').notNull(),
+    state: text('state', { enum: ['proposee', 'prete', 'en_cours', 'a_revoir'] }).notNull(),
+    origin: text('origin', { enum: ['user', 'claude'] }).notNull(),
+    proposedAt: text('proposed_at').notNull(),
+    acceptedAt: text('accepted_at'),
+    archivedAt: text('archived_at'),
+    offsetX: real('offset_x').notNull().default(0),
+    offsetY: real('offset_y').notNull().default(0),
+    width: real('width').notNull().default(420),
+    height: real('height').notNull().default(300)
+  },
+  (t) => [index('final_actions_genesis_idx').on(t.genesisId)]
+)
+
+/** Une passe de Claude sur une action finale ; au plus une exécution ouverte (`ended_at` nul) par genesis. */
+export const executions = sqliteTable(
+  'executions',
+  {
+    id: text('id').primaryKey(),
+    neuronId: text('neuron_id')
+      .notNull()
+      .references(() => finalActions.neuronId),
+    genesisId: text('genesis_id').notNull(),
+    startedAt: text('started_at').notNull(),
+    endedAt: text('ended_at'),
+    outcome: text('outcome', { enum: ['terminee', 'arretee', 'interrompue', 'echouee'] }),
+    correction: text('correction'),
+    filesWritten: integer('files_written').notNull().default(0)
+  },
+  (t) => [
+    index('executions_neuron_idx').on(t.neuronId),
+    uniqueIndex('executions_open_genesis_idx')
+      .on(t.genesisId)
+      .where(sql`ended_at IS NULL`)
+  ]
+)
+
+/** Fil d'une exécution (trace, spec 013 FR-007) : chemins relatifs et motifs, jamais de contenu de fichier. */
+export const executionEvents = sqliteTable(
+  'execution_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    executionId: text('execution_id')
+      .notNull()
+      .references(() => executions.id),
+    at: text('at').notNull(),
+    kind: text('kind', { enum: ['lecture', 'ecriture', 'refus', 'message', 'commande'] }).notNull(),
+    path: text('path'),
+    detail: text('detail')
+  },
+  (t) => [index('execution_events_execution_idx').on(t.executionId)]
+)
+
+/** Fichier du livrable cumulé d'une action : contenu d'avant la première écriture (`null` = créé) et dernier écrit. */
+export const deliverableFiles = sqliteTable(
+  'deliverable_files',
+  {
+    id: text('id').primaryKey(),
+    neuronId: text('neuron_id')
+      .notNull()
+      .references(() => finalActions.neuronId),
+    path: text('path').notNull(),
+    pathKey: text('path_key').notNull(),
+    beforeContent: text('before_content'),
+    afterContent: text('after_content').notNull(),
+    afterHash: text('after_hash').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    revertedAt: text('reverted_at')
+  },
+  (t) => [uniqueIndex('deliverable_files_path_idx').on(t.neuronId, t.pathKey)]
+)
+
+/**
+ * Script d'un projet que Claude peut lancer pendant une exécution (spec 013 D2 bis) : approuvé par mentalyas, avec le
+ * texte approuvé — un texte changé depuis rend le script non lançable.
+ */
+export const approvedCommands = sqliteTable(
+  'approved_commands',
+  {
+    genesisId: text('genesis_id')
+      .notNull()
+      .references(() => neurons.id),
+    script: text('script').notNull(),
+    scriptText: text('script_text').notNull(),
+    approvedAt: text('approved_at').notNull()
+  },
+  (t) => [primaryKey({ columns: [t.genesisId, t.script] })]
+)
+
+/** Lancement d'un script pendant une exécution : code, durée, fin de sortie (sans codes de couleur). */
+export const commandRuns = sqliteTable(
+  'command_runs',
+  {
+    id: text('id').primaryKey(),
+    executionId: text('execution_id')
+      .notNull()
+      .references(() => executions.id),
+    script: text('script').notNull(),
+    exitCode: integer('exit_code'),
+    timedOut: integer('timed_out', { mode: 'boolean' }).notNull().default(false),
+    durationMs: integer('duration_ms').notNull(),
+    output: text('output').notNull(),
+    at: text('at').notNull()
+  },
+  (t) => [index('command_runs_execution_idx').on(t.executionId)]
 )
 
 /** Réglages génériques clé/valeur (JSON validé à la lecture). */

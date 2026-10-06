@@ -29,7 +29,9 @@ export const spawnClaudeConversation: SpawnConversation = (options) => {
     cwd: options.cwd,
     shell: false,
     windowsHide: true,
-    stdio: ['pipe', 'pipe', 'pipe']
+    stdio: ['pipe', 'pipe', 'pipe'],
+    // Un script lancé par `commande_lancer` peut durer 5 minutes (spec 013 D2 bis) : Claude Code attend 7 minutes.
+    env: { ...process.env, MCP_TOOL_TIMEOUT: '420000' }
   })
   let buffer = ''
   let stderr = ''

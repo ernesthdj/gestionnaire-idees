@@ -1,8 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { ChatPanel, DOC_MESSAGE, MAP_MESSAGE, OPENING_MESSAGE, PLAN_MESSAGE } from '../../../src/renderer/src/chat/ChatPanel'
+import {
+  ChatPanel,
+  DOC_MESSAGE,
+  FINAL_MESSAGE,
+  MAP_MESSAGE,
+  OPENING_MESSAGE,
+  PLAN_MESSAGE
+} from '../../../src/renderer/src/chat/ChatPanel'
 import type { ChatView } from '../../../src/shared/ipc/chat'
 import { installFakeApi } from './support/fakeApi'
 
@@ -195,6 +202,17 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Rédiger un document' }))
     expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: DOC_MESSAGE })
     expect(DOC_MESSAGE).toContain('document_ecrire')
+  })
+
+  it('should_ask_claude_to_assess_a_step_as_a_final_action_with_the_tool_named_only_on_a_step', async () => {
+    const { api } = renderChat(view({ role: 'step', stepLabel: '①.1', title: 'Initialiser le projet' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Proposer l’action finale' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: FINAL_MESSAGE })
+    expect(FINAL_MESSAGE).toContain('action_proposer')
+    cleanup()
+    renderChat(view({ role: 'genesis' }))
+    await screen.findByRole('button', { name: 'Proposer un plan d’attaque' })
+    expect(screen.queryByRole('button', { name: 'Proposer l’action finale' })).toBeNull()
   })
 
   it('should_present_an_element_conversation_without_folder_controls', async () => {

@@ -15,6 +15,7 @@ export interface ChangeEntry {
     | 'convert'
     | 'plan'
     | 'document'
+    | 'final'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown

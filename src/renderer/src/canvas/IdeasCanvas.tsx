@@ -44,12 +44,14 @@ import { useBlockActions } from './useBlockActions'
 import { NeuronNode } from './nodes/NeuronNode'
 import { PlanBarNode, PlanNode } from './nodes/PlanNode'
 import { DocumentNode } from './nodes/DocumentNode'
+import { DeliverableNode } from './nodes/DeliverableNode'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
 import { useRemoveIdea } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
 import { ChatPanel } from '../chat/ChatPanel'
 import { GhostPanel } from './GhostPanel'
+import { FinalPanel } from './FinalPanel'
 
 const NODE_TYPES: NodeTypes = {
   neuron: NeuronNode,
@@ -62,7 +64,8 @@ const NODE_TYPES: NodeTypes = {
   result: ResultNode,
   plan: PlanNode,
   planBar: PlanBarNode,
-  document: DocumentNode
+  document: DocumentNode,
+  deliverable: DeliverableNode
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -153,6 +156,8 @@ function CanvasInner(): React.JSX.Element {
   const ghostId = useUiStore((state) => state.ghostId)
   const openGhost = useUiStore((state) => state.openGhost)
   const closeGhost = useUiStore((state) => state.closeGhost)
+  const finalId = useUiStore((state) => state.finalId)
+  const closeFinal = useUiStore((state) => state.closeFinal)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -228,6 +233,9 @@ function CanvasInner(): React.JSX.Element {
         if (node.type === 'document') {
           const { id, offset } = node.data.document
           await call('document:move', { id, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
+        } else if (node.type === 'deliverable') {
+          const { neuronId, offset } = node.data.deliverable
+          await call('deliverable:move', { neuronId, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
         } else if (node.type === 'plan' && node.data.item.kind === 'step') {
           const { id, offset } = node.data.item.step
           await call('plan:move', { stepId: id, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
@@ -485,7 +493,7 @@ function CanvasInner(): React.JSX.Element {
               }}
               onNodeDragStart={(_event, node) => {
                 // Étape ou document : placés par la disposition du plan, hors de la physique.
-                if (node.type === 'plan' || node.type === 'document') {
+                if (node.type === 'plan' || node.type === 'document' || node.type === 'deliverable') {
                   planDrag.current = { id: node.id, at: node.position }
                   return
                 }
@@ -497,7 +505,7 @@ function CanvasInner(): React.JSX.Element {
                 if (drag.current?.id === node.id) drag.current = { id: node.id, at: node.position }
               }}
               onNodeDragStop={(_event, node) => {
-                if (node.type === 'plan' || node.type === 'document') {
+                if (node.type === 'plan' || node.type === 'document' || node.type === 'deliverable') {
                   void savePlanDrag(node)
                   return
                 }
@@ -592,6 +600,13 @@ function CanvasInner(): React.JSX.Element {
             className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
           >
             <GhostPanel key={ghostId} view={view} ghostId={ghostId} onClose={closeGhost} />
+          </aside>
+        ) : finalId !== null && view !== undefined ? (
+          <aside
+            aria-label="Action finale"
+            className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
+          >
+            <FinalPanel key={finalId} view={view} neuronId={finalId} onClose={closeFinal} />
           </aside>
         ) : null}
       </div>

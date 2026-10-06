@@ -1,3 +1,4 @@
+import type { DeliverableView } from '@shared/ipc/finals'
 import type { Node } from '@xyflow/react'
 import type {
   BlockView,
@@ -11,9 +12,9 @@ import type {
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { structureGraph } from './structureGraph'
-import { documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
+import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
 import type { DocumentView } from '@shared/ipc/documents'
-import { STEP_STATUS_LABELS } from './nodes/PlanNode'
+import { finalStateLabel, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 
 /**
@@ -64,12 +65,18 @@ export type PlanNodeType = Node<
 export type PlanBarNodeType = Node<{ readonly proposal: ProposalView }, 'planBar'>
 /** Document Markdown rattaché à un neurone (spec 012), dans la colonne de ses enfants. */
 export type DocumentNodeType = Node<{ readonly document: DocumentView; readonly dimmed: boolean }, 'document'>
+/** Livrable d'une action finale (spec 013), annexe sous son action. */
+export type DeliverableNodeType = Node<
+  { readonly deliverable: DeliverableView; readonly title: string; readonly dimmed: boolean },
+  'deliverable'
+>
 
 export type CanvasNode =
   | NeuronNodeType
   | PlanNodeType
   | PlanBarNodeType
   | DocumentNodeType
+  | DeliverableNodeType
   | BlockNodeType
   | LabelNodeType
   | WidgetNodeType
@@ -300,11 +307,12 @@ export function buildGraph(
     const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
     const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
     const documents = view.documents.filter((document) => ids.has(document.neuronId))
+    const deliverables = view.deliverables.filter((deliverable) => ids.has(deliverable.neuronId))
     const center = genesisCenters.get(genesis.id)
     if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) continue
     const color = genesis.category?.color ?? '#71717a'
     const dimmed = isDimmed(genesis.id)
-    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals, documents })
+    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals, documents, deliverables })
     for (const placed of plan.items) {
       if (placed.kind === 'bar') {
         planNodes.push({
@@ -317,6 +325,21 @@ export function buildGraph(
           draggable: false,
           selectable: false,
           ariaLabel: `Couche proposée par Claude pour « ${genesis.title} »`,
+          deletable: false
+        })
+        continue
+      }
+      if (placed.kind === 'deliverable') {
+        const title = steps.find((step) => step.id === placed.deliverable.neuronId)?.title ?? ''
+        planNodes.push({
+          id: deliverableNodeId(placed.deliverable.neuronId),
+          type: 'deliverable',
+          width: placed.deliverable.width,
+          height: placed.deliverable.height,
+          position: { x: placed.x, y: placed.y },
+          data: { deliverable: placed.deliverable, title, dimmed },
+          draggable: true,
+          ariaLabel: `Livrable de « ${title} » : ${placed.deliverable.files.length} fichier${placed.deliverable.files.length > 1 ? 's' : ''}${placed.deliverable.executing ? ', exécution en cours' : ''}`,
           deletable: false
         })
         continue
@@ -348,7 +371,7 @@ export function buildGraph(
         draggable: placed.kind === 'step',
         ariaLabel:
           placed.kind === 'step'
-            ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}`
+            ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}${placed.step.final === undefined ? '' : `, ${finalStateLabel(placed.step.final.state, placed.step.status).toLowerCase()}`}`
             : `Étape proposée ${placed.label} : ${placed.ghost.title}`,
         deletable: false
       })

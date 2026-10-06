@@ -143,6 +143,35 @@ export const DocumentEcrireInput = z.strictObject({
 export type DocumentEcrireInput = z.infer<typeof DocumentEcrireInput>
 export const DocumentLireInput = z.strictObject({ document: Id })
 
+/** Action finale (spec 013) : livrable annoncé et raison, bornés. */
+export const ActionProposerInput = z.strictObject({
+  id: Id.optional(),
+  livrable: z.string().trim().min(1).max(2000),
+  raison: z.string().trim().min(1).max(2000)
+})
+export type ActionProposerInput = z.infer<typeof ActionProposerInput>
+
+/** Écriture dans le projet lié pendant une exécution (spec 013 R1) : le main contrôle le chemin (relatif, confiné). */
+export const PROJECT_FILE_MAX_CHARS = 1024 * 1024
+const ProjectFilePath = z.string().min(1).max(260)
+export const FichierEcrireInput = z.strictObject({
+  chemin: ProjectFilePath,
+  contenu: z.string().max(PROJECT_FILE_MAX_CHARS)
+})
+export type FichierEcrireInput = z.infer<typeof FichierEcrireInput>
+export const FichierModifierInput = z.strictObject({
+  chemin: ProjectFilePath,
+  ancien: z.string().min(1).max(PROJECT_FILE_MAX_CHARS),
+  nouveau: z.string().max(PROJECT_FILE_MAX_CHARS)
+})
+export type FichierModifierInput = z.infer<typeof FichierModifierInput>
+
+/** Script approuvé lancé pendant une exécution (spec 013 D2 bis) : un nom, jamais une ligne de commande. */
+export const CommandeLancerInput = z.strictObject({
+  script: z.string().regex(/^[A-Za-z0-9:_.-]{1,40}$/, 'nom de script npm')
+})
+export type CommandeLancerInput = z.infer<typeof CommandeLancerInput>
+
 /** Carte de structure d'un projet (spec 009) : éléments typés à clé stable, liens typés. */
 export const STRUCTURE_LIMITS = { elements: 300, links: 600, paths: 20 } as const
 const ElementKey = z
@@ -291,6 +320,41 @@ export const MCP_TOOLS = {
     input: PlanProposerInput,
     writes: false
   },
+  action_proposer: {
+    description:
+      'Propose à mentalyas qu’une étape FEUILLE (sans sous-étapes), assez mûre pour se réaliser d’un seul tenant, ' +
+      'devienne une ACTION FINALE : `livrable` = ce que tu produiras (fichiers du projet lié ou documents, nommés ' +
+      'précisément), `raison` = pourquoi elle n’a plus besoin d’être brainstormée ni découpée. Étape de la ' +
+      'conversation par défaut. Rien ne change avant sa validation ; une fois acceptée, mentalyas pourra « Exécuter ».',
+    input: ActionProposerInput,
+    writes: false
+  },
+  fichier_ecrire: {
+    description:
+      'PENDANT L’EXÉCUTION d’une action finale lancée par mentalyas seulement : crée ou remplace un fichier TEXTE du ' +
+      'dossier de projet lié (`chemin` relatif à ce dossier, ex. « src/pages/Contact.tsx »). Refusé hors exécution, ' +
+      'hors du dossier, sur .env, clés, .git, node_modules ou binaires ; 1 Mo et 40 fichiers par passe au plus. ' +
+      'Aucune commande n’est possible : mentalyas lance lui-même build et tests.',
+    input: FichierEcrireInput,
+    writes: true
+  },
+  fichier_modifier: {
+    description:
+      'PENDANT L’EXÉCUTION d’une action finale seulement : remplace dans un fichier existant du projet lié le passage ' +
+      '`ancien` (exact, présent une seule fois — relis le fichier avec Read avant) par `nouveau`. Mêmes règles que ' +
+      'fichier_ecrire.',
+    input: FichierModifierInput,
+    writes: true
+  },
+  commande_lancer: {
+    description:
+      'PENDANT L’EXÉCUTION d’une action finale seulement : lance un script APPROUVÉ par mentalyas du package.json du ' +
+      'projet lié (`npm run <script>`, ex. « test », « build », « typecheck ») et rend son code de sortie et la fin de ' +
+      'sa sortie (5 minutes au plus). Lance-le après avoir écrit, corrige et relance jusqu’à ce que ça passe. Aucune ' +
+      'autre commande n’est possible (ni installation, ni commande libre) ; un script non approuvé est refusé.',
+    input: CommandeLancerInput,
+    writes: false
+  },
   structure_dessiner: {
     description:
       'Dessine ou met à jour la carte de structure d’un projet lié : éléments typés (module, fonctionnalite, composant, ' +
@@ -344,5 +408,8 @@ export const MCP_INSTRUCTIONS = [
   'Si un outil répond que le Brainstormer n’est pas lancé, dis-le à mentalyas au lieu d’inventer le contenu de la carte.',
   'Un document détaillé sur un neurone (spec, recherche, décision, guide) : `document_ecrire`, jamais `dessiner`.',
   'Un nœud mûr (maturité « complet ») : propose son plan d’attaque avec `plan_proposer` ; s’il n’est pas mûr, dis ' +
-    'plutôt ce qui manque.'
+    'plutôt ce qui manque.',
+  'Une étape feuille qui n’a plus besoin d’être découpée : propose-la comme action finale avec `action_proposer`.',
+  'Pendant l’exécution d’une action finale (et seulement alors) : écris dans le projet lié avec `fichier_ecrire` / ' +
+    '`fichier_modifier`, jamais autrement ; teste et compile avec `commande_lancer` (scripts approuvés seulement).'
 ].join('\n')

@@ -37,6 +37,8 @@ export interface PlanDeps {
     | 'decideItem'
     | 'closeIfDecided'
   >
+  /** Actions finales (spec 013) : une action acceptée est une feuille, jamais découpée. */
+  readonly finals?: { isFinal(neuronId: string): boolean }
   readonly now?: () => Date
 }
 
@@ -60,6 +62,12 @@ export class PlanService {
     const { repository } = this.deps
     const parent = repository.node(input.parentId)
     if (parent === undefined) throw new AppError('NOT_FOUND', 'Nœud introuvable')
+    if (this.deps.finals?.isFinal(parent.id) === true) {
+      throw new AppError(
+        'VALIDATION',
+        'Cette étape est une action finale : elle ne se découpe plus (mentalyas peut la rétrograder).'
+      )
+    }
     if (parent.depth + 1 > PLAN_LIMITS.depth) {
       throw new AppError('VALIDATION', `Au plus ${PLAN_LIMITS.depth} niveaux sous le genesis : regroupe plutôt.`)
     }

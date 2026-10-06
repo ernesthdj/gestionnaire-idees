@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { documentNodeId, planLayout, type PlacedPlanItem } from '../../../src/renderer/src/canvas/planLayout'
+import {
+  deliverableNodeId,
+  documentNodeId,
+  planLayout,
+  type PlacedPlanItem
+} from '../../../src/renderer/src/canvas/planLayout'
 import type { StepView } from '../../../src/shared/ipc/canvas'
 import type { DocumentView } from '../../../src/shared/ipc/documents'
+import type { DeliverableView } from '../../../src/shared/ipc/finals'
 
 const G = 'genesis'
 const center = { x: 0, y: 0 }
@@ -33,7 +39,13 @@ const document = (id: string, neuronId: string, width = 360, height = 280): Docu
 })
 
 const idOf = (item: PlacedPlanItem): string =>
-  item.kind === 'step' ? item.step.id : item.kind === 'document' ? documentNodeId(item.document.id) : item.kind
+  item.kind === 'step'
+    ? item.step.id
+    : item.kind === 'document'
+      ? documentNodeId(item.document.id)
+      : item.kind === 'deliverable'
+        ? deliverableNodeId(item.deliverable.neuronId)
+        : item.kind
 const positions = (items: readonly PlacedPlanItem[]): Map<string, { x: number; y: number }> =>
   new Map(items.map((item) => [idOf(item), { x: item.x, y: item.y }]))
 
@@ -114,6 +126,36 @@ describe('disposition d’un plan avec ses documents (spec 011 R4, spec 012 R1)'
     )
     expect(after.get(documentNodeId('d'))?.x).toBe((before.get(documentNodeId('d'))?.x ?? 0) - 400)
     expect(after.get('a')).toEqual(before.get('a'))
+  })
+
+  it('should_put_the_deliverable_of_an_action_first_below_it_and_its_documents_after', () => {
+    const deliverable: DeliverableView = {
+      neuronId: 'a',
+      genesisId: G,
+      files: [],
+      runs: [],
+      executing: true,
+      width: 420,
+      height: 300,
+      offset: { x: 0, y: 0 }
+    }
+    const plan = planLayout({
+      genesisId: G,
+      center,
+      steps: [step('a', G, 1)],
+      proposals: [],
+      documents: [document('cdc', 'a', 360, 200)],
+      deliverables: [deliverable]
+    })
+    const at = positions(plan.items)
+    const a = at.get('a')
+    const livrable = at.get(deliverableNodeId('a'))
+    const doc = at.get(documentNodeId('cdc'))
+    expect((livrable?.y ?? 0) - 150).toBe((a?.y ?? 0) + 36 + 24)
+    expect((doc?.y ?? 0) - 100).toBe((livrable?.y ?? 0) + 150 + 24)
+    expect(plan.edges).toContainEqual(
+      expect.objectContaining({ source: 'a', target: deliverableNodeId('a'), annex: true })
+    )
   })
 
   it('should_be_deterministic', () => {

@@ -65,6 +65,10 @@ export type MapToolName = Exclude<
   | 'plan_proposer'
   | 'document_ecrire'
   | 'document_lire'
+  | 'action_proposer'
+  | 'fichier_ecrire'
+  | 'fichier_modifier'
+  | 'commande_lancer'
 >
 
 const IDEA_SIZE = 120

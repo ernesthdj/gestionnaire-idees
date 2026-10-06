@@ -1,5 +1,6 @@
 import type { ProposalView, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
+import type { DeliverableView } from '@shared/ipc/finals'
 import { rankLabel } from '@shared/plan/rankLabel'
 
 /**
@@ -42,6 +43,7 @@ export type PlacedPlanItem =
       readonly y: number
     }
   | { readonly kind: 'document'; readonly document: DocumentView; readonly x: number; readonly y: number }
+  | { readonly kind: 'deliverable'; readonly deliverable: DeliverableView; readonly x: number; readonly y: number }
   | {
       readonly kind: 'bar'
       readonly proposal: ProposalView
@@ -69,6 +71,17 @@ export interface PlanLayout {
 export const ghostNodeId = (itemId: string): string => `ghost-${itemId}`
 export const barNodeId = (proposalId: string): string => `plan-bar-${proposalId}`
 export const documentNodeId = (documentId: string): string => `document-${documentId}`
+/** Livrable d'une action finale (spec 013) : un par action. */
+export const deliverableNodeId = (neuronId: string): string => `deliverable-${neuronId}`
+
+/** Annexe d'un nœud : document (spec 012) ou livrable (spec 013), empilés sous lui. */
+type Annex =
+  | { readonly kind: 'document'; readonly document: DocumentView }
+  | { readonly kind: 'deliverable'; readonly deliverable: DeliverableView }
+const boxOf = (annex: Annex): DocumentView | DeliverableView =>
+  annex.kind === 'document' ? annex.document : annex.deliverable
+const annexNodeId = (annex: Annex): string =>
+  annex.kind === 'document' ? documentNodeId(annex.document.id) : deliverableNodeId(annex.deliverable.neuronId)
 
 type Child =
   | { readonly kind: 'step'; readonly step: StepView }
@@ -86,6 +99,8 @@ export function planLayout(input: {
   readonly proposals: readonly ProposalView[]
   /** Documents rattachés à ce genesis ou à ses étapes (spec 012) : annexes sous leur neurone. */
   readonly documents?: readonly DocumentView[]
+  /** Livrables des actions finales de ce plan (spec 013) : première annexe sous leur action. */
+  readonly deliverables?: readonly DeliverableView[]
 }): PlanLayout {
   const children = new Map<string, Child[]>()
   const push = (parentId: string, child: Child): void => {
@@ -97,12 +112,14 @@ export function planLayout(input: {
     for (const ghost of [...proposal.items].sort((a, b) => a.rank - b.rank))
       push(proposal.parentId, { kind: 'ghost', ghost, proposal })
   }
-  const annexes = new Map<string, DocumentView[]>()
-  for (const document of input.documents ?? []) {
-    annexes.set(document.neuronId, [...(annexes.get(document.neuronId) ?? []), document])
+  const annexes = new Map<string, Annex[]>()
+  const annex = (neuronId: string, entry: Annex): void => {
+    annexes.set(neuronId, [...(annexes.get(neuronId) ?? []), entry])
   }
+  for (const deliverable of input.deliverables ?? []) annex(deliverable.neuronId, { kind: 'deliverable', deliverable })
+  for (const document of input.documents ?? []) annex(document.neuronId, { kind: 'document', document })
   const annexHeight = (neuronId: string): number =>
-    (annexes.get(neuronId) ?? []).reduce((sum, document) => sum + ANNEX_GAP + document.height, 0)
+    (annexes.get(neuronId) ?? []).reduce((sum, entry) => sum + ANNEX_GAP + boxOf(entry).height, 0)
 
   const idOf = (child: Child): string =>
     child.kind === 'step'
@@ -116,9 +133,9 @@ export function planLayout(input: {
   const blockOf = (child: Child, depth: number): { readonly width: number; readonly height: number } => {
     const card = cardOf(child, depth)
     if (child.kind !== 'step') return card
-    const documents = annexes.get(child.step.id) ?? []
+    const stacked = annexes.get(child.step.id) ?? []
     return {
-      width: Math.max(card.width, ...documents.map((document) => document.width)),
+      width: Math.max(card.width, ...stacked.map((entry) => boxOf(entry).width)),
       height: card.height + annexHeight(child.step.id)
     }
   }
@@ -145,8 +162,8 @@ export function planLayout(input: {
   const columnWidths: number[] = []
   const edges: PlanEdge[] = []
   const annexEdges = (neuronId: string): void => {
-    for (const document of annexes.get(neuronId) ?? []) {
-      const target = documentNodeId(document.id)
+    for (const entry of annexes.get(neuronId) ?? []) {
+      const target = annexNodeId(entry)
       edges.push({ id: `plan-line-${target}`, source: neuronId, target, ghost: false, annex: true })
     }
   }
@@ -161,12 +178,15 @@ export function planLayout(input: {
     shift: Point
   ): PlacedPlanItem[] => {
     let top = bottom
-    return (annexes.get(neuronId) ?? []).map((document): PlacedPlanItem => {
+    return (annexes.get(neuronId) ?? []).map((entry): PlacedPlanItem => {
+      const box = boxOf(entry)
       top += ANNEX_GAP
-      const x = 'left' in edge ? edge.left + document.width / 2 : edge.right - document.width / 2
-      const base = { x, y: top + document.height / 2 }
-      top += document.height
-      return { kind: 'document', document, ...add(add(base, shift), document.offset) }
+      const x = 'left' in edge ? edge.left + box.width / 2 : edge.right - box.width / 2
+      const at = add(add({ x, y: top + box.height / 2 }, shift), box.offset)
+      top += box.height
+      return entry.kind === 'document'
+        ? { kind: 'document', document: entry.document, ...at }
+        : { kind: 'deliverable', deliverable: entry.deliverable, ...at }
     })
   }
   const place = (parentId: string, ranks: readonly number[], depth: number, centerY: number, shift: Point): void => {

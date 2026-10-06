@@ -40,9 +40,7 @@ describe('écran Idées', () => {
     renderCanvas()
     expect(await screen.findByText('1 brute · 1 en dév. · 2 écloses')).toBeDefined()
     await waitFor(() => expect(idea(/^Idée brute : Acheter un flash cobra/)).toBeDefined())
-    expect(
-      idea(/^En développement, contexte insuffisant : Deuxième écran, Action, catégorie Achat$/)
-    ).toBeDefined()
+    expect(idea(/^En développement, contexte insuffisant : Deuxième écran, Action, catégorie Achat$/)).toBeDefined()
     expect(idea(/^Idée éclose : Mission mariage, Réflexion \(proposée par l’IA\)/)).toBeDefined()
   })
 

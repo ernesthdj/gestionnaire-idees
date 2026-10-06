@@ -13,6 +13,8 @@ import { conversationTarget } from './target'
 import { fileLabel } from './DocumentTools'
 import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
 import type { PlanRepository, StepStatus } from '../../infrastructure/db/repositories/PlanRepository'
+import type { FinalService } from '../finals/FinalService'
+import type { FinalState } from '../../domain/finals/state'
 
 export interface NeuronToolsDeps {
   readonly conversations: Pick<ConversationRepository, 'neuron' | 'setSheet' | 'maturity' | 'log' | 'transaction'>
@@ -30,6 +32,15 @@ export interface NeuronToolsDeps {
   readonly plan?: Pick<PlanRepository, 'children'>
   /** Documents du nœud (spec 012), listés par `neurone_contexte`. */
   readonly documents?: Pick<DocumentRepository, 'ofNeuron'>
+  /** Action finale de l'étape (spec 013), montrée par `neurone_contexte`. */
+  readonly finals?: Pick<FinalService, 'actionOf'>
+}
+
+const FINAL_STATE_NAMES: Readonly<Record<FinalState, string>> = {
+  proposee: 'proposée, en attente de mentalyas',
+  prete: 'prête à exécuter',
+  en_cours: 'en cours d’exécution',
+  a_revoir: 'exécutée, livrable à revoir par mentalyas'
 }
 
 const STATUS_NAMES: Readonly<Record<StepStatus, string>> = {
@@ -68,6 +79,7 @@ export class NeuronTools {
           : 'sous-neurone'
     const children = this.deps.plan?.children(neuron.id) ?? []
     const docs = this.deps.documents?.ofNeuron(neuron.id) ?? []
+    const action = this.deps.finals?.actionOf(neuron.id)
     const rankOf = new Map(children.map((child) => [child.id, child.rank] as const))
     const plan =
       children.length === 0
@@ -83,6 +95,9 @@ export class NeuronTools {
       neuron.content === null ? null : `Description : ${neuron.content}`,
       `Maturité : ${maturity === null ? 'non évaluée' : (LEVEL_NAMES[maturity] ?? maturity)}`,
       neuron.lockedAt === null ? null : 'Verrouillé : sa fiche, son titre et sa description ne s’écrivent plus.',
+      action === undefined
+        ? null
+        : `Action finale (${FINAL_STATE_NAMES[action.state]}) — livrable annoncé : ${action.deliverable}`,
       `Fiche :\n${sheetMarkdown(readSheet(neuron.sheetJson))}`,
       plan,
       docs.length === 0

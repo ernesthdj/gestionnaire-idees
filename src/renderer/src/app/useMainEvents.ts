@@ -13,7 +13,11 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   // Écriture de Claude Code par le pont MCP (spec 007) : la carte et l'Historique changent.
   ['map:changed', [['canvas'], ['history'], ['widgetIo'], ['widgetInputs'], ['document']]],
   // Couche proposée par Claude (spec 011) : les fantômes apparaissent sur la carte.
-  ['plan:proposed', [['canvas']]]
+  ['plan:proposed', [['canvas']]],
+  // Action finale proposée par Claude (spec 013) : la proposition apparaît sur son étape.
+  ['final:proposed', [['canvas']]],
+  // Exécution commencée, fichier écrit, exécution finie (spec 013) : l'action et son livrable changent.
+  ['final:changed', [['canvas'], ['history'], ['deliverable']]]
 ]
 
 function isMapChanged(payload: unknown): payload is MapChangedPayload {
@@ -61,19 +65,21 @@ export function useMainEvents(): void {
         }
       })
     )
-    // Une proposition n'écrit rien : la notification l'annonce, sans « Annuler ».
-    unsubscribes.push(
-      window.api.on('plan:proposed', (payload) => {
-        if (
-          typeof payload === 'object' &&
-          payload !== null &&
-          'summary' in payload &&
-          typeof payload.summary === 'string'
-        ) {
-          showToast(payload.summary)
-        }
-      })
-    )
+    // Une proposition (couche d'étapes, action finale) n'écrit rien : la notification l'annonce, sans « Annuler ».
+    for (const channel of ['plan:proposed', 'final:proposed'] as const) {
+      unsubscribes.push(
+        window.api.on(channel, (payload) => {
+          if (
+            typeof payload === 'object' &&
+            payload !== null &&
+            'summary' in payload &&
+            typeof payload.summary === 'string'
+          ) {
+            showToast(payload.summary)
+          }
+        })
+      )
+    }
     return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
   }, [client, navigate, showToast])
 }

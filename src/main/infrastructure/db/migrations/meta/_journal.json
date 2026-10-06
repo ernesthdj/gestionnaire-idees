@@ -176,6 +176,20 @@
       "when": 1791231037013,
       "tag": "0024_document_offsets",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1791236054916,
+      "tag": "0025_final_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1791240926875,
+      "tag": "0026_approved_commands",
+      "breakpoints": true
     }
   ]
 }

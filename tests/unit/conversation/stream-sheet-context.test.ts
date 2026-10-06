@@ -48,7 +48,9 @@ describe('flux stream-json du CLI', () => {
           rate_limit_info: { status: 'allowed_warning', utilization: 0.85, resetsAt: 9 }
         })
       )
-    ).toEqual([{ kind: 'quota', status: 'allowed_warning', utilization: 0.85, resetsAt: 9, fiveHour: null, sevenDay: null }])
+    ).toEqual([
+      { kind: 'quota', status: 'allowed_warning', utilization: 0.85, resetsAt: 9, fiveHour: null, sevenDay: null }
+    ])
     expect(
       parseStreamLine(line({ type: 'result', subtype: 'success', is_error: false, result: 'Salut', session_id: 's1' }))
     ).toMatchObject([{ kind: 'result', ok: true, text: 'Salut', sessionId: 's1', usage: { inputTokens: 0 } }])

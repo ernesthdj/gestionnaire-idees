@@ -35,6 +35,13 @@ export const DOC_MESSAGE =
   'explicite et complet — objectif, contexte, décisions et leurs raisons, étapes, points de vigilance, questions ' +
   'ouvertes — structuré en titres Markdown, sans recopier notre conversation et sans HTML. N’utilise pas dessiner.'
 
+/** Demande sans ambiguïté d'évaluer l'étape ouverte comme action finale (spec 013) : l'outil est nommé. */
+export const FINAL_MESSAGE =
+  'Cette étape est-elle prête à être réalisée d’un seul tenant, sans plus de brainstorm ni de découpage ? Si oui, ' +
+  'appelle l’outil action_proposer (sans id) : `livrable` = ce que tu produiras précisément (chemins de fichiers du ' +
+  'projet lié, ou documents), `raison` = pourquoi elle est prête. Sinon, dis-moi ce qui manque ou s’il faut la ' +
+  'découper. N’écris encore aucun fichier.'
+
 export const MAP_MESSAGE =
   'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code, puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
@@ -217,6 +224,16 @@ export function ChatPanel({
                 Rédiger un document
               </button>
             )}
+            {chat.role === 'step' ? (
+              <button
+                type="button"
+                onClick={() => void chat.send(FINAL_MESSAGE)}
+                disabled={chat.busy}
+                className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
+              >
+                Proposer l’action finale
+              </button>
+            ) : null}
           </div>
         </div>
         <label className="sr-only" htmlFor={`${fieldId}-model`}>

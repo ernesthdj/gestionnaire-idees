@@ -1,6 +1,7 @@
 import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
 import type { DocumentView } from './documents'
+import type { DeliverableView, StepFinalView } from './finals'
 
 /** Vues de l'écran Idées (spec 003 data-model § Vues d'interface). */
 
@@ -38,6 +39,8 @@ export interface StepView {
   /** Décalage manuel (glissé) de l'étape et de sa branche par rapport à sa place calculée. */
   readonly offset: { readonly x: number; readonly y: number }
   readonly sheetSummary?: string
+  /** Action finale (spec 013) : proposée ou acceptée ; absente pour une étape ordinaire. */
+  readonly final?: StepFinalView
 }
 
 /** Couche proposée par Claude (fantômes), en attente de la décision de mentalyas. */
@@ -75,6 +78,8 @@ export interface IdeasCanvasView {
   readonly proposals: readonly ProposalView[]
   /** Documents Markdown rattachés aux neurones visibles (spec 012). */
   readonly documents: readonly DocumentView[]
+  /** Livrables des actions finales exécutées ou en cours (spec 013). */
+  readonly deliverables: readonly DeliverableView[]
 }
 
 /** Libellé court d'un lien entre deux idées (1 à 3 mots en pratique). */

@@ -95,6 +95,13 @@ describe('migrations du modèle de neurones', () => {
     expect(tables().some((name) => name.startsWith('document'))).toBe(false)
   })
 
+  it('should_add_the_final_action_tables_then_remove_them_with_the_down_migration', () => {
+    const added = ['final_actions', 'executions', 'execution_events', 'deliverable_files']
+    expect(tables()).toEqual(expect.arrayContaining(added))
+    runDown('0025_final_actions')
+    expect(tables().some((name) => added.includes(name))).toBe(false)
+  })
+
   it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {
     expect(tables()).toEqual(expect.arrayContaining(['step_dependencies', 'plan_proposals', 'plan_proposal_items']))
     expect(columns('neurons')).toEqual(expect.arrayContaining(['rank', 'step_status', 'locked_at', 'lock_proposed_at']))

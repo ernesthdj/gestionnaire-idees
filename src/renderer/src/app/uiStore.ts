@@ -21,6 +21,10 @@ interface UiState {
   readonly ghostId: string | null
   openGhost(ghostId: string): void
   closeGhost(): void
+  /** Action finale (proposée ou acceptée, spec 013) lue dans le volet. */
+  readonly finalId: string | null
+  openFinal(neuronId: string): void
+  closeFinal(): void
   openChat(neuronId: string): void
   closeChat(): void
   show(view: View): void
@@ -42,15 +46,18 @@ export const useUiStore = create<UiState>()((set) => ({
   view: 'ideas',
   chatNeuronId: null,
   ghostId: null,
+  finalId: null,
   toast: null,
   bornId: null,
-  show: (view) => set({ view, chatNeuronId: null, ghostId: null }),
+  show: (view) => set({ view, chatNeuronId: null, ghostId: null, finalId: null }),
   // Une idée capturée s'ouvre directement sur sa conversation (spec 010 US2).
   navigate: ({ section, diveRootId }) => set({ view: section, chatNeuronId: diveRootId ?? null }),
-  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null }),
+  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null, finalId: null }),
   closeChat: () => set({ chatNeuronId: null }),
-  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null }),
+  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null, finalId: null }),
   closeGhost: () => set({ ghostId: null }),
+  openFinal: (neuronId) => set({ view: 'ideas', finalId: neuronId, chatNeuronId: null, ghostId: null }),
+  closeFinal: () => set({ finalId: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import type { DeliverableFileRow, FinalActionRow } from '../../infrastructure/db/repositories/FinalRepository'
+import type { DeliverableView } from '@shared/ipc/finals'
 import {
   BLOCK_DEFAULT_SIZES,
   BLOCK_LIMITS,
@@ -41,6 +43,19 @@ export interface CanvasDeps {
   readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
   /** Documents des neurones (spec 012). */
   readonly documents?: Pick<DocumentRepository, 'list'>
+  /** Actions finales (spec 013), proposées ou acceptées. */
+  readonly finals?: {
+    list(): readonly FinalActionRow[]
+    files(neuronId: string): readonly DeliverableFileRow[]
+    /** Lancements de scripts des exécutions de l'action, le plus récent d'abord. */
+    runs?(neuronId: string): readonly {
+      readonly script: string
+      readonly exitCode: number | null
+      readonly timedOut: boolean
+      readonly at: string
+    }[]
+    projectLinked(genesisId: string): boolean
+  }
 }
 
 /** Résumé d'une fiche (affiché sous le nœud) ; absent sans fiche lisible. */
@@ -90,11 +105,13 @@ export class CanvasService {
       }
     })
     const visible = new Set(roots.map((root) => root.id))
+    const finals = new Map((this.deps.finals?.list() ?? []).map((row) => [row.neuronId, row] as const))
     // Un plan d'attaque n'apparaît que si son genesis est sur la carte.
     const steps = (this.deps.plan?.steps() ?? [])
       .filter((step) => visible.has(step.genesisId))
       .map((step): StepView => {
         const summary = resumeOf(step.sheetJson)
+        const final = finals.get(step.id)
         return {
           id: step.id,
           genesisId: step.genesisId,
@@ -107,7 +124,17 @@ export class CanvasService {
           lockProposed: step.lockProposedAt !== null,
           waitsFor: step.waitsFor,
           offset: step.offset,
-          ...(summary === undefined ? {} : { sheetSummary: summary })
+          ...(summary === undefined ? {} : { sheetSummary: summary }),
+          ...(final === undefined
+            ? {}
+            : {
+                final: {
+                  state: final.state,
+                  deliverable: final.deliverable,
+                  reason: final.reason,
+                  projectLinked: this.deps.finals?.projectLinked(final.genesisId) ?? false
+                }
+              })
         }
       })
     const nodes = new Set([...visible, ...steps.map((step) => step.id)])
@@ -129,6 +156,32 @@ export class CanvasService {
         origin: document.origin,
         offset: { x: document.offsetX, y: document.offsetY }
       }))
+    // Livrable : annexe d'une action exécutée (ou en cours), si son étape est sur la carte.
+    const stepIds = new Set(steps.map((step) => step.id))
+    const deliverables = [...finals.values()]
+      .filter((action) => stepIds.has(action.neuronId))
+      .flatMap((action): DeliverableView[] => {
+        const files = this.deps.finals?.files(action.neuronId) ?? []
+        if (files.length === 0 && action.state !== 'en_cours' && action.state !== 'a_revoir') return []
+        const latest = new Map<string, DeliverableView['runs'][number]>()
+        for (const run of this.deps.finals?.runs?.(action.neuronId) ?? []) {
+          if (!latest.has(run.script)) {
+            latest.set(run.script, { script: run.script, ok: run.exitCode === 0, timedOut: run.timedOut, at: run.at })
+          }
+        }
+        return [
+          {
+            neuronId: action.neuronId,
+            genesisId: action.genesisId,
+            files: files.map((file) => ({ path: file.path, status: file.beforeContent === null ? 'cree' : 'modifie' })),
+            runs: [...latest.values()],
+            executing: action.state === 'en_cours',
+            width: action.width,
+            height: action.height,
+            offset: { x: action.offsetX, y: action.offsetY }
+          }
+        ]
+      })
     const blocks = this.visibleBlocks()
     // Un élément de structure n'apparaît que si son genesis est sur la carte.
     const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
@@ -152,7 +205,8 @@ export class CanvasService {
       elements,
       steps,
       proposals,
-      documents
+      documents,
+      deliverables
     }
   }
 

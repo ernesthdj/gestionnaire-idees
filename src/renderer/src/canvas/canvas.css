@@ -387,6 +387,77 @@
 .plan-ghost .plan-rank {
   opacity: 0.7;
 }
+.plan-decide-small {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+/*
+ * Action finale (spec 013) : bord orange épais et éclair ; proposée = pointillés orange, en attente de décision.
+ * « En cours » pulse doucement ; « à revoir » garde un fond orange ; « faite » se calme (vert à gauche).
+ */
+.plan-final,
+.plan-final-proposed {
+  border-color: var(--color-action);
+  border-width: 2px;
+  border-left-width: 6px;
+}
+.plan-final-proposed {
+  border-style: dashed;
+}
+.plan-final .plan-status,
+.plan-final-proposed .plan-status {
+  color: var(--color-action);
+  font-weight: 600;
+}
+.plan-final-a_revoir {
+  background: color-mix(in oklab, var(--color-action) 16%, var(--color-surface));
+}
+.plan-final-fait {
+  border-left-color: var(--color-pro);
+}
+.plan-final-en_cours {
+  animation: plan-final-pulse 1.6s ease-in-out infinite;
+}
+@keyframes plan-final-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-action) 35%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-final-en_cours {
+    animation: none;
+  }
+}
+.plan-final-badge {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--color-action);
+}
+.plan-final-run {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: var(--color-action);
+  color: var(--color-surface);
+  font-size: 12px;
+}
+.plan-final-run:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.plan-final-badge:hover {
+  background: var(--color-surface-raised);
+}
 .plan-dimmed {
   opacity: 0.35;
 }

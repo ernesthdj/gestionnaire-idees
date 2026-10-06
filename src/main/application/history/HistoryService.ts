@@ -22,7 +22,8 @@ const UNDOABLE = new Set([
   'mcp_write',
   'convert',
   'plan',
-  'document'
+  'document',
+  'final'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -47,6 +48,8 @@ const CONFLICT_MESSAGES: Readonly<Record<string, string>> = {
   step_status: 'Le statut d’une étape a changé depuis.',
   step_dependency: 'Une dépendance du plan a changé depuis.',
   neuron_lock: 'Le verrou a changé depuis.',
+  final_action: 'L’action finale a changé depuis (exécutée, rétrogradée ou retirée).',
+  project_file: 'Le fichier a été modifié depuis (à la main ou par une autre écriture).',
   element: 'Un élément de la carte a changé depuis.',
   widget_input: 'Ce branchement a changé depuis.'
 }
@@ -70,6 +73,22 @@ function documentSummary(entries: readonly ChangeRow[]): string | null {
   if (entry.entity === 'document_version') return `Modification de ${title}`
   if (entry.entity === 'document_placement') return `Retrait du document ${title}`
   return `Document ${title}`
+}
+
+/**
+ * Lot d'une action finale (spec 013) : « Action finale : « X » », « Action finale retirée : « X » ». Le titre voyage
+ * dans l'entrée ; `null` si le lot ne concerne pas une action finale.
+ */
+function finalSummary(entries: readonly ChangeRow[], undo: boolean): string | null {
+  const entry = entries.find((row) => row.entity === 'final_action')
+  if (entry === undefined) return null
+  // Dans un lot d'annulation, avant et après sont inversés.
+  const before = undo ? entry.after : entry.before
+  const after = undo ? entry.before : entry.after
+  const raw = after?.['title'] ?? before?.['title']
+  const title = typeof raw === 'string' ? `« ${raw} »` : 'une étape'
+  const text = after === null ? `Action finale retirée : ${title}` : `Action finale : ${title}`
+  return undo ? `Annulé — ${text}` : text
 }
 
 /** Contenu d'un lot de conversion (spec 010) : « 3 fiches, 2 liens, 1 branchement ». */
@@ -103,6 +122,14 @@ function blockSummary(entry: ChangeRow): string {
  * Lot d'écritures de Claude Code par le pont MCP (spec 007) ou son annulation : « Claude : 12 notes, 1 cadre, 9 liens ».
  */
 function mcpSummary(entries: readonly ChangeRow[], undo: boolean): string {
+  // Fichier du projet écrit pendant une exécution (spec 013) : son chemin, créé ou modifié.
+  const file = entries.find((entry) => entry.entity === 'project_file')
+  if (file !== undefined) {
+    const path = file.after?.['path'] ?? file.before?.['path']
+    const original = undo ? file.after : file.before
+    const text = `Claude : fichier « ${typeof path === 'string' ? path : '?'} » ${original?.['content'] === null ? 'créé' : 'modifié'}`
+    return undo ? `Annulation — ${text}` : text
+  }
   const kindOf = (entry: ChangeRow): unknown => entry.after?.['kind'] ?? entry.before?.['kind']
   // Dans un lot d'annulation, avant et après sont inversés : un élément « créé » est celui qui disparaît.
   const created = (entry: ChangeRow): boolean => (undo ? entry.after === null : entry.before === null)
@@ -265,6 +292,8 @@ export class HistoryService {
 
   private summarize(entries: readonly ChangeRow[]): string {
     const head = entries[0] as ChangeRow
+    const final = finalSummary(entries, head.kind === 'undo')
+    if (final !== null) return final
     const document = documentSummary(entries)
     if (document !== null) return head.kind === 'undo' ? `Annulé — ${document}` : document
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
@@ -309,6 +338,8 @@ export class HistoryService {
         return `Idée éclose à part : ${title()}`
       case 'document':
         return 'Document'
+      case 'final':
+        return 'Action finale'
       case 'undo': {
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')
         if (placed !== undefined) {

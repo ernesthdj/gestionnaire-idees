@@ -10,7 +10,13 @@ describe('résolution d’une carte de structure', () => {
       parse({
         elements: [
           { cle: 'module:main', type: 'module', titre: 'main' },
-          { cle: 'composant:src/main/a.ts', type: 'composant', titre: 'A', parent: 'module:main', chemins: ['src/main/a.ts'] },
+          {
+            cle: 'composant:src/main/a.ts',
+            type: 'composant',
+            titre: 'A',
+            parent: 'module:main',
+            chemins: ['src/main/a.ts']
+          },
           { cle: 'composant:b', type: 'composant', titre: 'B', parent: 'module:renderer' }
         ],
         liens: [{ de: 'composant:src/main/a.ts', vers: 'composant:b', relation: 'appelle' }]
@@ -33,16 +39,27 @@ describe('résolution d’une carte de structure', () => {
     const empty = new Map<string, string | null>()
     expect(
       resolveStructure(parse({ elements: [{ cle: 'a', type: 'module', titre: 'A', parent: 'zz' }] }), empty)
-    ).toMatchObject({ ok: false, problem: { code: 'LOT_INVALIDE', message: expect.stringContaining('« zz » inconnue') } })
+    ).toMatchObject({
+      ok: false,
+      problem: { code: 'LOT_INVALIDE', message: expect.stringContaining('« zz » inconnue') }
+    })
     expect(
       resolveStructure(
-        parse({ elements: [{ cle: 'a', type: 'module', titre: 'A' }, { cle: 'a', type: 'module', titre: 'B' }] }),
+        parse({
+          elements: [
+            { cle: 'a', type: 'module', titre: 'A' },
+            { cle: 'a', type: 'module', titre: 'B' }
+          ]
+        }),
         empty
       )
     ).toMatchObject({ ok: false })
     expect(
       resolveStructure(
-        parse({ elements: [{ cle: 'a', type: 'module', titre: 'A' }], liens: [{ de: 'a', vers: 'a', relation: 'appelle' }] }),
+        parse({
+          elements: [{ cle: 'a', type: 'module', titre: 'A' }],
+          liens: [{ de: 'a', vers: 'a', relation: 'appelle' }]
+        }),
         empty
       )
     ).toMatchObject({ ok: false })
@@ -75,7 +92,11 @@ describe('résolution d’une carte de structure', () => {
   })
 
   it('should_refuse_a_batch_over_300_elements', () => {
-    const elements = Array.from({ length: 301 }, (_, index) => ({ cle: `e${index}`, type: 'composant', titre: `E${index}` }))
+    const elements = Array.from({ length: 301 }, (_, index) => ({
+      cle: `e${index}`,
+      type: 'composant',
+      titre: `E${index}`
+    }))
     expect(resolveStructure(parse({ elements }), new Map())).toMatchObject({
       ok: false,
       problem: { code: 'LOT_TROP_GROS' }

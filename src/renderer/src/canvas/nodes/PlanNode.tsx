@@ -1,8 +1,11 @@
 import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { StepStatus } from '@shared/ipc/canvas'
+import type { FinalState } from '@shared/ipc/finals'
+import { useUiStore } from '../../app/uiStore'
 import type { PlanBarNodeType, PlanNodeType } from '../buildGraph'
 import { planSize } from '../planLayout'
+import { useFinalDecide } from '../useFinalDecide'
 import { usePlanDecide } from '../usePlanDecide'
 
 export const STEP_STATUS_LABELS: Readonly<Record<StepStatus, string>> = {
@@ -10,6 +13,27 @@ export const STEP_STATUS_LABELS: Readonly<Record<StepStatus, string>> = {
   en_cours: 'en cours',
   fait: 'fait',
   bloque: 'bloqué'
+}
+
+/** État lisible d'une action finale ; « faite » vient du statut de l'étape (livrable accepté). */
+export function finalStateLabel(state: FinalState, status: StepStatus): string {
+  if (state === 'proposee') return 'Action finale proposée'
+  if (status === 'fait') return 'Action finale · faite'
+  const labels: Readonly<Record<Exclude<FinalState, 'proposee'>, string>> = {
+    prete: 'Action finale · prête',
+    en_cours: 'Action finale · en cours',
+    a_revoir: 'Action finale · à revoir'
+  }
+  return labels[state]
+}
+
+/** Éclair d'une action finale (spec 013) : l'étape produit le livrable de sa branche. */
+export function BoltIcon({ className = '' }: { readonly className?: string }): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" className={className}>
+      <path d="M9.5 1 3 9h4l-1 6 6.5-8h-4z" fill="currentColor" />
+    </svg>
+  )
 }
 
 /** Cadenas d'un nœud verrouillé (spec 011) : ses sous-nœuds s'appuient sur son contexte figé. */
@@ -42,6 +66,8 @@ function PlanHandles(): React.JSX.Element {
 export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
   const { item, color, dimmed } = data
   const { decide, busy } = usePlanDecide()
+  const finals = useFinalDecide()
+  const openFinal = useUiStore((state) => state.openFinal)
   const depth = item.kind === 'step' ? item.step.depth : item.depth
   const size = planSize(depth)
   const style = { width: size.width, height: size.height, '--cat': color } as CSSProperties
@@ -89,18 +115,103 @@ export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
   }
 
   const { step } = item
+  const { final } = step
+  const finalClass =
+    final === undefined
+      ? ''
+      : final.state === 'proposee'
+        ? ' plan-final-proposed'
+        : ` plan-final plan-final-${step.status === 'fait' ? 'fait' : final.state}`
   return (
     <div
-      className={`nopan plan-card plan-step plan-status-${step.status}${compact ? ' plan-card-compact' : ''}${dimmed ? ' plan-dimmed' : ''}`}
+      className={`nopan plan-card plan-step plan-status-${step.status}${finalClass}${compact ? ' plan-card-compact' : ''}${dimmed ? ' plan-dimmed' : ''}`}
       style={style}
+      title={final === undefined ? undefined : `${finalStateLabel(final.state, step.status)} — ${final.deliverable}`}
     >
       <PlanHandles />
       <span className="plan-rank">{item.label}</span>
       <span className="min-w-0 flex-1">
         <span className="plan-title">{step.title}</span>
-        {compact ? null : <span className="plan-status">{STEP_STATUS_LABELS[step.status]}</span>}
+        {compact ? null : (
+          <span className="plan-status">
+            {final === undefined ? STEP_STATUS_LABELS[step.status] : finalStateLabel(final.state, step.status)}
+          </span>
+        )}
       </span>
       {step.locked ? <LockIcon className="shrink-0 text-content-muted" /> : null}
+      {final === undefined ? null : (
+        <button
+          type="button"
+          className="nodrag plan-final-badge"
+          aria-label={`Lire l’action finale de « ${step.title} »`}
+          onClick={(event) => {
+            event.stopPropagation()
+            openFinal(step.id)
+          }}
+        >
+          <BoltIcon />
+        </button>
+      )}
+      {final !== undefined && final.state !== 'proposee' && step.status !== 'fait' ? (
+        final.state === 'en_cours' ? (
+          <button
+            type="button"
+            className="nodrag plan-final-run"
+            aria-label={`Arrêter l’exécution de « ${step.title} »`}
+            disabled={finals.busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              void finals.stop(step.id)
+            }}
+          >
+            ■
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="nodrag plan-final-run"
+            aria-label={`Exécuter « ${step.title} »`}
+            title={
+              final.projectLinked ? 'Exécuter : Claude écrit dans le projet lié' : 'Exécuter : documents seulement'
+            }
+            disabled={finals.busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              void finals.execute(step.id)
+            }}
+          >
+            ▶
+          </button>
+        )
+      ) : null}
+      {final?.state === 'proposee' ? (
+        <span className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            className="nodrag plan-decide plan-decide-small"
+            aria-label={`Accepter « ${step.title} » comme action finale`}
+            disabled={finals.busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              void finals.decide(step.id, true)
+            }}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            className="nodrag plan-decide plan-decide-small"
+            aria-label={`Refuser l’action finale pour « ${step.title} »`}
+            disabled={finals.busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              void finals.decide(step.id, false)
+            }}
+          >
+            ✗
+          </button>
+        </span>
+      ) : null}
     </div>
   )
 }

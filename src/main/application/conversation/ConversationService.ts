@@ -256,13 +256,23 @@ export class ConversationService {
     return { folder: folder === null ? null : basename(folder) }
   }
 
-  async send(neuronId: string, text: string): Promise<void> {
+  /**
+   * Envoie un message de mentalyas ; `data` (dossier d'exécution, spec 013) l'accompagne comme donnée délimitée, sans
+   * entrer dans l'historique affiché du chat.
+   */
+  async send(neuronId: string, text: string, data?: string): Promise<void> {
     const neuron = this.neuronOrThrow(neuronId)
     if (this.live.get(neuronId)?.busy === true)
       throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
     const live = this.live.get(neuronId) ?? (await this.start(neuron))
     if (live === undefined) return
-    const content = live.contextSent ? text : withContext(this.contextOf(neuron, live), text)
+    const message =
+      data === undefined
+        ? text
+        : `${data}
+
+${text}`
+    const content = live.contextSent ? message : withContext(this.contextOf(neuron, live), message)
     live.contextSent = true
     live.busy = true
     live.stopping = false
@@ -293,6 +303,11 @@ export class ConversationService {
     if (live === undefined || !live.busy) return
     live.stopping = true
     live.process.kill()
+  }
+
+  /** Un tour est-il en cours dans cette conversation ? */
+  isBusy(neuronId: string): boolean {
+    return this.live.get(neuronId)?.busy === true
   }
 
   /** Panneau fermé : la conversation reste prête quelques minutes, puis son processus s'arrête. */

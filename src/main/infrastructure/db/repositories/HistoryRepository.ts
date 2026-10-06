@@ -32,6 +32,7 @@ export type ChangeKind =
   | 'convert'
   | 'plan'
   | 'document'
+  | 'final'
 
 export interface ChangeRow {
   readonly id: string

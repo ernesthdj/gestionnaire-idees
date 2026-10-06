@@ -20,6 +20,8 @@
   /* Fiche d'une idée éclose : arguments pour / contre (contraste ≥ 4,5:1 sur la surface). */
   --color-pro: #15803d;
   --color-con: #b91c1c;
+  /* Action finale (spec 013) : orange, distinct de l'idée (ambre) et de l'accent (bleu). */
+  --color-action: #c2410c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,6 +36,7 @@
     --color-seed: #2dd4bf;
     --color-pro: #4ade80;
     --color-con: #f87171;
+    --color-action: #fb923c;
   }
 }
 
@@ -48,6 +51,7 @@
   --color-seed: #2dd4bf;
   --color-pro: #4ade80;
   --color-con: #f87171;
+  --color-action: #fb923c;
 }
 
 @theme inline {
@@ -61,6 +65,7 @@
   --color-seed: var(--color-seed);
   --color-pro: var(--color-pro);
   --color-con: var(--color-con);
+  --color-action: var(--color-action);
 }
 
 /*
