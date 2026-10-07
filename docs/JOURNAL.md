@@ -858,3 +858,16 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 ### [2026-10-07 22:41] DOCS — constitution 4.2.1 → 4.3.0 (Arbre de skills)
 **Fichiers :** `.specify/memory/constitution.md`.
 **Quoi :** un ajout au principe I (L1h A9) : l'app peut écrire dans les dossiers de skills de Claude Code seulement sur « Installer » ou « Revenir », version remplacée sauvegardée ; jamais d'exécutable depuis un brouillon de Claude ; un script d'import seulement s'il est autorisé fichier par fichier, jamais exécuté. Aucun retrait.
+
+### [2026-10-07 22:43] DOCS — spec 020 « Arbre de skills » (/speckit-specify)
+**Fichiers :** `specs/020-arbre-de-skills/spec.md`, `checklists/requirements.md`, `.specify/feature.json` (spec en cours : 020).
+**Quoi :** 9 décisions (D1–D9), 4 user stories (P1 : voir, comprendre ; P2 : faire évoluer ; P3 : importer), 29 exigences, 7 critères de succès ; checklist de qualité validée, aucune clarification ouverte.
+
+### [2026-10-07 22:47] DOCS — spec 020 : plan et tâches (/speckit-plan, /speckit-tasks)
+**Fichiers :** `specs/020-arbre-de-skills/{plan,research,data-model,quickstart,tasks}.md`, `contracts/interfaces.md`.
+**Quoi :** constitution 4.3.0 vérifiée (I–VI ✅) ; aucune dépendance (en-tête YAML maison) ; migration 0033 (7 tables) ; 9 points de recherche (R1 : les skills de plugins sont espacés par leur plugin, pas de collision ; R4 usage en worker ; R7 contrôle d'URL et clone de la spec 017 US5 livrés ici ; R8 règles fixes d'audit) ; 34 tâches en 7 phases, MVP = US1 + US2.
+
+### [2026-10-07 22:50] DOCS — spec 020 : /speckit-analyze et remédiation
+**Fichiers :** `specs/020-arbre-de-skills/{analysis-report,spec,research,data-model,tasks}.md`.
+**Quoi :** 5 constats (0 CRITICAL, 2 HIGH, 2 MEDIUM, 1 LOW), corrigés après validation : H1 conversations Skills sans outil d'écriture ni de commande (sinon le mode « Libre » contournait les brouillons) ; H2 un brouillon d'import retravaillé par Claude perd ses scripts autorisés ; M1 numéro de migration fixé au moment de coder ; M2 mesure SC-006 au test guidé ; L1 FR-008 précisée.
+**Règle apprise :** une garantie « Claude ne fait que des brouillons » doit tenir quel que soit le mode de permission : on retire l'outil, on ne compte pas sur le réglage.
