@@ -1,5 +1,6 @@
 import { MotionConfig } from 'motion/react'
 import type { Section } from '@shared/ipc/app'
+import { AnalystePage } from '../analyste/AnalystePage'
 import { useAnalysteStatus, useProbe } from '../analyste/useAnalysteStatus'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { HistoryPage } from '../pages/HistoryPage'
@@ -41,9 +42,7 @@ function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
     case 'history':
       return <HistoryPage />
     case 'analyste':
-      return (
-        <SectionPlaceholder text="La sonde observe l’app. Les propositions de l’Analyste arriveront ici ; ce qu’elle garde est dans Réglages › Analyste." />
-      )
+      return <AnalystePage />
   }
 }
 

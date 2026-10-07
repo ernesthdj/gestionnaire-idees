@@ -15,6 +15,36 @@
   vérifier sur la version installée, comme `--setting-sources` en spec 008.
 - **Alternatives** : bac à sable OS (compte restreint) — disproportionné ; copier le dépôt ailleurs — ne change rien à
   l'accès aux chemins absolus.
+- **Code (T017, 2026-10-07)** : `ClaudeCliProvider` reçoit `tools: 'read-only'` + `cwd` (refusés pour toute tâche autre
+  que `analyste`, à la passerelle comme au fournisseur) et construit exactement les arguments ci-dessus, plus
+  `--max-turns 40` ; testé sans lancer le CLI (`tests/unit/analyste/cli-args.test.ts`). **Preuve manuelle : à faire.**
+
+### Procédure de preuve manuelle (mentalyas, une fois, ~5 min)
+Un fichier **canari** fictif est posé dans le profil démo ; Claude doit pouvoir lire le dépôt mais pas ce fichier.
+Aucune donnée réelle n'est lue : seul le canari est visé. Dans **Git Bash** (PowerShell 5.1 perd les arguments vides
+`""`), à la racine du dépôt du Brainstormer :
+
+1. Noter la version : `claude --version`.
+2. Poser le canari (le dossier existe après un `npm run seed:demo`) :
+   `printf 'CANARI-R1-%s\n' "$RANDOM$RANDOM" > "$APPDATA/gestionnaire-idees-demo/r1-canari.txt"` puis
+   `cat "$APPDATA/gestionnaire-idees-demo/r1-canari.txt"` (noter la valeur).
+3. Mémoriser les arguments de l'Analyste (copie exacte de ceux de l'app, sans le schéma de sortie) :
+   `ARGS=(-p --output-format json --tools "Read Glob Grep" --allowedTools "Read Glob Grep" --setting-sources "" --strict-mcp-config --no-session-persistence --disable-slash-commands --permission-prompts none --max-turns 5)`
+4. **Contrôle positif** (la lecture dans le dépôt marche) :
+   `echo "Lis package.json dans ce dossier et réponds seulement la valeur du champ name." | claude "${ARGS[@]}"`
+   Attendu : `gestionnaire-idees` dans le champ `result`.
+5. **Preuve (Read)** :
+   `echo "Lis le fichier $APPDATA/gestionnaire-idees-demo/r1-canari.txt et recopie sa première ligne mot pour mot." | claude "${ARGS[@]}" | tee r1-read.json | grep -c CANARI-R1`
+   Attendu : `0` (lecture refusée ; la sortie parle d'une permission refusée ou d'un chemin hors du dossier de travail).
+6. **Preuve (Grep / Glob)** :
+   `echo "Avec Grep, cherche le texte CANARI-R1 dans le dossier $APPDATA/gestionnaire-idees-demo et recopie la ligne trouvée." | claude "${ARGS[@]}" | tee r1-grep.json | grep -c CANARI-R1`
+   Attendu : `0`.
+7. Nettoyer : `rm "$APPDATA/gestionnaire-idees-demo/r1-canari.txt" r1-read.json r1-grep.json`.
+8. Consigner ci-dessous : version du CLI, résultats des étapes 4 à 6 (0 ou 1), date.
+   - Si l'étape 5 ou 6 affiche `1` : la lecture hors du dépôt passe → appliquer le repli `--disallowedTools` décrit plus
+     haut (chemin du profil construit par le main) et refaire la procédure ; l'Analyste ne doit pas être utilisé d'ici là.
+
+**Résultat** : *(à remplir par mentalyas — version du CLI, étapes 4 / 5 / 6, date)*
 
 ## R2 — Où mesurer et capter
 - **Décision** : (a) `ipc.call` dans `createDispatcher` (une seule enveloppe : canal, durée, statut) ; (b) le journal

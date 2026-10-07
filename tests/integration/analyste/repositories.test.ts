@@ -61,12 +61,75 @@ describe('dépôts de l’Analyste', () => {
 
   it('should_keep_defaults_and_refuse_out_of_bounds_settings_when_updating', () => {
     const settings = new AnalysteRepository(handle.db)
-    expect(settings.settings()).toEqual({ retentionDays: 30, maxEvents: 50_000 })
-    expect(settings.updateSettings({ retentionDays: 14 })).toEqual({ retentionDays: 14, maxEvents: 50_000 })
+    const defaults = { retentionDays: 30, maxEvents: 50_000, maxProposals: 5, repeatThreshold: 5, minEvents: 200 }
+    expect(settings.settings()).toEqual(defaults)
+    expect(settings.updateSettings({ retentionDays: 14, maxProposals: 3 })).toEqual({
+      ...defaults,
+      retentionDays: 14,
+      maxProposals: 3
+    })
     expect(() => settings.updateSettings({ maxEvents: 5 })).toThrow()
+    expect(() => settings.updateSettings({ maxProposals: 11 })).toThrow()
     expect(settings.settings().maxEvents).toBe(50_000)
     expect(settings.repoPath()).toBeNull()
     settings.saveRepoPath('D:/dev/brainstormer')
     expect(settings.repoPath()).toBe('D:/dev/brainstormer')
+  })
+
+  it('should_read_a_window_in_order_and_count_grouped_events', () => {
+    repo.insertBatch([action(10), { ...action(20), count: 4 }, action(30)])
+    expect(repo.between(10, 30).map((record) => record.at)).toEqual([20, 30])
+    expect(repo.between(10, 30)[0]).toEqual({ ...action(20), count: 4 })
+    expect(repo.countBetween(0, 30)).toBe(6)
+    expect(repo.countBetween(30, 40)).toBe(0)
+  })
+
+  it('should_save_an_analysis_and_its_proposals_together_and_keep_refusal_facts_out_of_the_view', () => {
+    const store = new AnalysteRepository(handle.db)
+    const row = { id: 'a1', trigger: 'manual' as const, windowFrom: 0, windowTo: 100, events: 3, startedAt: 100 }
+    expect(store.startAnalysis(row)).toBe(true)
+    expect(store.startAnalysis({ ...row, id: 'a2' })).toBe(false)
+    store.finishAnalysis('a1', 200, 'req-1', [
+      {
+        id: 'p1',
+        category: 'bug',
+        title: 'Corriger buildGraph',
+        finding: 'Constat',
+        proposal: 'Proposition',
+        gain: 'Gain',
+        risk: 'faible',
+        severity: 3,
+        confidence: 0.5,
+        evidence: {
+          observations: [{ key: 'obs:err:1', sentence: 'Phrase.', signature: 'err|TypeError' }],
+          code: [{ path: 'src/a.ts', start: 3 }]
+        },
+        files: ['src/a.ts'],
+        withoutEvidence: false,
+        dedupeKey: 'k1'
+      }
+    ])
+    expect(store.analyses(5)[0]).toMatchObject({ id: 'a1', status: 'done', proposals: 1, finishedAt: 200 })
+    expect(store.lastDoneWindowTo()).toBe(100)
+    const [view] = store.proposals(['new'], 10)
+    expect(view?.evidence).toEqual({
+      observations: [{ key: 'obs:err:1', sentence: 'Phrase.' }],
+      code: [{ path: 'src/a.ts', start: 3 }]
+    })
+    expect(store.known()).toEqual([{ dedupeKey: 'k1', status: 'new', signatures: ['err|TypeError'] }])
+    expect(store.memory(30)).toEqual([
+      { category: 'bug', title: 'Corriger buildGraph', status: 'new', refusalReason: null, files: ['src/a.ts'] }
+    ])
+  })
+
+  it('should_end_a_failed_analysis_without_moving_the_window_and_interrupt_a_stale_one', () => {
+    const store = new AnalysteRepository(handle.db)
+    store.startAnalysis({ id: 'a1', trigger: 'manual', windowFrom: 0, windowTo: 100, events: 0, startedAt: 1 })
+    store.endAnalysis('a1', 'failed', 'AI_UNAVAILABLE', 2, 'req-1')
+    expect(store.analyses(1)[0]).toMatchObject({ status: 'failed', errorCode: 'AI_UNAVAILABLE' })
+    expect(store.lastDoneWindowTo()).toBeNull()
+    store.startAnalysis({ id: 'a2', trigger: 'auto', windowFrom: 0, windowTo: 100, events: 0, startedAt: 3 })
+    expect(store.interruptRunning(4)).toBe(1)
+    expect(store.analyses(1)[0]).toMatchObject({ id: 'a2', status: 'failed', errorCode: 'INTERRUPTED' })
   })
 })

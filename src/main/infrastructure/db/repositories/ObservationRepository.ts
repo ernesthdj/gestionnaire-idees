@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lt, lte, sql, type SQL } from 'drizzle-orm'
+import { and, count, desc, eq, gt, gte, lt, lte, sql, sum, type SQL } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   PROBE_FAMILIES,
@@ -108,6 +108,45 @@ export class ObservationRepository {
       ).changes
       return byAge + byVolume
     })
+  }
+
+  /** Observations d'une fenêtre d'analyse `]from, to]`, dans l'ordre (spec 019 US2). */
+  between(from: number, to: number): ObservationRecord[] {
+    return this.db
+      .select()
+      .from(observations)
+      .where(and(gt(observations.at, from), lte(observations.at, to)))
+      .orderBy(observations.at, observations.id)
+      .all()
+      .map((row) => {
+        const view = this.view(row)
+        return {
+          at: view.at,
+          family: view.family,
+          event: view.event,
+          count: view.count,
+          ...(view.screen === null ? {} : { screen: view.screen }),
+          ...(view.subjectKind === null ? {} : { subjectKind: view.subjectKind }),
+          ...(view.subjectRef === null ? {} : { subjectRef: view.subjectRef }),
+          ...(view.via === null ? {} : { via: view.via }),
+          ...(view.channel === null ? {} : { channel: view.channel }),
+          ...(view.code === null ? {} : { code: view.code }),
+          ...(view.module === null ? {} : { module: view.module }),
+          ...(view.frames.length === 0 ? {} : { frames: view.frames }),
+          ...(view.durationMs === null ? {} : { durationMs: view.durationMs }),
+          ...(view.status === null ? {} : { status: view.status })
+        }
+      })
+  }
+
+  /** Nombre d'événements (rafales comprises) d'une fenêtre `]from, to]`. */
+  countBetween(from: number, to: number): number {
+    const row = this.db
+      .select({ n: sum(observations.count) })
+      .from(observations)
+      .where(and(gt(observations.at, from), lte(observations.at, to)))
+      .get()
+    return Number(row?.n ?? 0)
   }
 
   clear(): number {

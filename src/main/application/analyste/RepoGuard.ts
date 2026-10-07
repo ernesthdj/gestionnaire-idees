@@ -28,7 +28,7 @@ export interface RepoState {
   readonly reason: AnalysteInactiveReason | null
 }
 
-const real = (path: string): string | null => {
+export const real = (path: string): string | null => {
   try {
     return realpathSync.native(path)
   } catch {
@@ -37,7 +37,7 @@ const real = (path: string): string | null => {
 }
 
 /** Même dossier, en ignorant la casse et le séparateur sous Windows. */
-const sameDir = (a: string, b: string): boolean => {
+export const sameDir = (a: string, b: string): boolean => {
   const norm = (path: string): string => {
     const clean = resolve(path).replace(/[\\/]+$/, '')
     return process.platform === 'win32' ? clean.toLowerCase() : clean
@@ -45,7 +45,7 @@ const sameDir = (a: string, b: string): boolean => {
   return norm(a) === norm(b)
 }
 
-const inside = (child: string, parent: string): boolean => {
+export const inside = (child: string, parent: string): boolean => {
   const rel = relative(parent, child)
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }

@@ -1,0 +1,3209 @@
+{
+  "version": 1,
+  "description": "Semaine d’observations FICTIVE de la sonde (spec 019 T003) : aucune donnée réelle. Erreur TypeError répétée dans buildGraph.ts, canal reprise:analyze lent, tâche categoriser répétée 23 fois, allers-retours explorateur ↔ carte, écran À valider jamais ouvert, séquence idée → lien → bloc ×42.",
+  "from": 1767600000000,
+  "to": 1768204800000,
+  "observations": [
+    {
+      "at": 1767601800000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767603600000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7060,
+      "status": "ok"
+    },
+    {
+      "at": 1767604740000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767604860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 4171,
+      "status": "ok"
+    },
+    {
+      "at": 1767605400000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 17,
+      "status": "ok"
+    },
+    {
+      "at": 1767605820000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 29,
+      "status": "ok"
+    },
+    {
+      "at": 1767606120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6559,
+      "status": "ok"
+    },
+    {
+      "at": 1767606240000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 30,
+      "status": "ok"
+    },
+    {
+      "at": 1767606660000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 24,
+      "status": "ok"
+    },
+    {
+      "at": 1767607080000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 31,
+      "status": "ok"
+    },
+    {
+      "at": 1767607380000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 2458,
+      "status": "ok"
+    },
+    {
+      "at": 1767607500000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767607920000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1767608340000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 20,
+      "status": "ok"
+    },
+    {
+      "at": 1767608640000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7615,
+      "status": "ok"
+    },
+    {
+      "at": 1767608760000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 27,
+      "status": "ok"
+    },
+    {
+      "at": 1767609180000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 29,
+      "status": "ok"
+    },
+    {
+      "at": 1767609600000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 19,
+      "status": "ok"
+    },
+    {
+      "at": 1767610020000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 33,
+      "status": "ok"
+    },
+    {
+      "at": 1767610440000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 21,
+      "status": "ok"
+    },
+    {
+      "at": 1767610860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 19,
+      "status": "ok"
+    },
+    {
+      "at": 1767611280000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1767611700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 17,
+      "status": "ok"
+    },
+    {
+      "at": 1767612000000,
+      "family": "erreur",
+      "event": "error.main",
+      "code": "reprise.guide_failed",
+      "module": "reprise"
+    },
+    {
+      "at": 1767612120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 18,
+      "status": "ok"
+    },
+    {
+      "at": 1767612540000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1767618000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767618003000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767618006000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767622620000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767622623000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767622626000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767627240000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767627243000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767627246000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767636000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "historique"
+    },
+    {
+      "at": 1767636000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "reglages"
+    },
+    {
+      "at": 1767636000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "chat"
+    },
+    {
+      "at": 1767636000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "analyste"
+    },
+    {
+      "at": 1767636000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767641460000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767642000000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "193c13564264",
+      "via": "clavier"
+    },
+    {
+      "at": 1767642005000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "7adaa3676d36",
+      "via": "souris"
+    },
+    {
+      "at": 1767642010000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "7b067fd1bd58",
+      "via": "souris"
+    },
+    {
+      "at": 1767644100000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "91d2d239d4c0",
+      "via": "clavier"
+    },
+    {
+      "at": 1767644105000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "19f6d2b5a3f0",
+      "via": "souris"
+    },
+    {
+      "at": 1767644110000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "d47d4877c9b6",
+      "via": "souris"
+    },
+    {
+      "at": 1767646200000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "80bc3dd38394",
+      "via": "clavier"
+    },
+    {
+      "at": 1767646205000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "f85132991081",
+      "via": "souris"
+    },
+    {
+      "at": 1767646210000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "e04167850906",
+      "via": "souris"
+    },
+    {
+      "at": 1767648300000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "94209a6011e2",
+      "via": "clavier"
+    },
+    {
+      "at": 1767648305000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "aaa4df71b195",
+      "via": "souris"
+    },
+    {
+      "at": 1767648310000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "2e4b846baf58",
+      "via": "souris"
+    },
+    {
+      "at": 1767650400000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "607708890d4f",
+      "via": "clavier"
+    },
+    {
+      "at": 1767650405000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "580ff05d4b83",
+      "via": "souris"
+    },
+    {
+      "at": 1767650410000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "32b55f64831b",
+      "via": "souris"
+    },
+    {
+      "at": 1767652500000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e5bd5ec6ed47",
+      "via": "clavier"
+    },
+    {
+      "at": 1767652505000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "c76b1e28ef93",
+      "via": "souris"
+    },
+    {
+      "at": 1767652510000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "1131d44fcfba",
+      "via": "souris"
+    },
+    {
+      "at": 1767660000000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "13bf18d40426",
+      "via": "clavier"
+    },
+    {
+      "at": 1767663780000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "9d10cb138cb5",
+      "via": "clavier"
+    },
+    {
+      "at": 1767666000000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "3e01591d126f",
+      "via": "clavier"
+    },
+    {
+      "at": 1767688620000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767690180000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5280,
+      "status": "ok"
+    },
+    {
+      "at": 1767691440000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 2466,
+      "status": "ok"
+    },
+    {
+      "at": 1767691560000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767691860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 36,
+      "status": "ok"
+    },
+    {
+      "at": 1767692280000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 32,
+      "status": "ok"
+    },
+    {
+      "at": 1767692700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6041,
+      "status": "ok"
+    },
+    {
+      "at": 1767692700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 30,
+      "status": "ok"
+    },
+    {
+      "at": 1767693120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767693540000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 15,
+      "status": "ok"
+    },
+    {
+      "at": 1767693960000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 1708,
+      "status": "ok"
+    },
+    {
+      "at": 1767693960000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 18,
+      "status": "ok"
+    },
+    {
+      "at": 1767694380000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 15,
+      "status": "ok"
+    },
+    {
+      "at": 1767694800000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 10,
+      "status": "ok"
+    },
+    {
+      "at": 1767695220000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5033,
+      "status": "ok"
+    },
+    {
+      "at": 1767695220000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 25,
+      "status": "ok"
+    },
+    {
+      "at": 1767695640000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 37,
+      "status": "ok"
+    },
+    {
+      "at": 1767696060000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 20,
+      "status": "ok"
+    },
+    {
+      "at": 1767696480000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1767696900000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 40,
+      "status": "ok"
+    },
+    {
+      "at": 1767697320000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 30,
+      "status": "ok"
+    },
+    {
+      "at": 1767697740000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 39,
+      "status": "ok"
+    },
+    {
+      "at": 1767698160000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767698580000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 17,
+      "status": "ok"
+    },
+    {
+      "at": 1767705060000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767705063000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767705066000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767709680000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767709683000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767709686000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767714300000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767714303000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767714306000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767723180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "historique"
+    },
+    {
+      "at": 1767723180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "reglages"
+    },
+    {
+      "at": 1767723180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "chat"
+    },
+    {
+      "at": 1767723180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "analyste"
+    },
+    {
+      "at": 1767723180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767728640000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767728700000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "8e219f03eb50",
+      "via": "clavier"
+    },
+    {
+      "at": 1767728705000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "158ec86de3d5",
+      "via": "souris"
+    },
+    {
+      "at": 1767728710000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "d1b85f888cf6",
+      "via": "souris"
+    },
+    {
+      "at": 1767730800000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "54462ea9346a",
+      "via": "clavier"
+    },
+    {
+      "at": 1767730805000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "7bb85b86cc9a",
+      "via": "souris"
+    },
+    {
+      "at": 1767730810000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "97cfb241b635",
+      "via": "souris"
+    },
+    {
+      "at": 1767732900000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "cd387b7fdab6",
+      "via": "clavier"
+    },
+    {
+      "at": 1767732905000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "2538faa3d8ac",
+      "via": "souris"
+    },
+    {
+      "at": 1767732910000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "b575d5a70b54",
+      "via": "souris"
+    },
+    {
+      "at": 1767735000000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e7b5b1914dfc",
+      "via": "clavier"
+    },
+    {
+      "at": 1767735005000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "04bef93a2e0b",
+      "via": "souris"
+    },
+    {
+      "at": 1767735010000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "011bc5318722",
+      "via": "souris"
+    },
+    {
+      "at": 1767737100000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "04cd11b22318",
+      "via": "clavier"
+    },
+    {
+      "at": 1767737105000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "56bf9f335b0f",
+      "via": "souris"
+    },
+    {
+      "at": 1767737110000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "83408704f2fb",
+      "via": "souris"
+    },
+    {
+      "at": 1767739200000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e845804bb86a",
+      "via": "clavier"
+    },
+    {
+      "at": 1767739205000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "38fce6a6104e",
+      "via": "souris"
+    },
+    {
+      "at": 1767739210000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "37cc78ea3c88",
+      "via": "souris"
+    },
+    {
+      "at": 1767746940000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "b42de0d7034e",
+      "via": "clavier"
+    },
+    {
+      "at": 1767750720000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "0e4538b4a2e0",
+      "via": "clavier"
+    },
+    {
+      "at": 1767752940000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "2e445b3a6ea7",
+      "via": "clavier"
+    },
+    {
+      "at": 1767775440000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767776760000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7898,
+      "status": "ok"
+    },
+    {
+      "at": 1767778020000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5402,
+      "status": "ok"
+    },
+    {
+      "at": 1767778320000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 36,
+      "status": "ok"
+    },
+    {
+      "at": 1767778380000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767778740000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 30,
+      "status": "ok"
+    },
+    {
+      "at": 1767779160000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 21,
+      "status": "ok"
+    },
+    {
+      "at": 1767779280000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6279,
+      "status": "ok"
+    },
+    {
+      "at": 1767779580000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 29,
+      "status": "ok"
+    },
+    {
+      "at": 1767780000000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1767780420000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 18,
+      "status": "ok"
+    },
+    {
+      "at": 1767780540000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5954,
+      "status": "ok"
+    },
+    {
+      "at": 1767780840000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 26,
+      "status": "ok"
+    },
+    {
+      "at": 1767781260000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 13,
+      "status": "ok"
+    },
+    {
+      "at": 1767781680000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1767781800000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7317,
+      "status": "ok"
+    },
+    {
+      "at": 1767782100000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 30,
+      "status": "ok"
+    },
+    {
+      "at": 1767782520000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 35,
+      "status": "ok"
+    },
+    {
+      "at": 1767782940000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767783360000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 24,
+      "status": "ok"
+    },
+    {
+      "at": 1767783780000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 15,
+      "status": "ok"
+    },
+    {
+      "at": 1767784200000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 12,
+      "status": "ok"
+    },
+    {
+      "at": 1767784620000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767784800000,
+      "family": "erreur",
+      "event": "error.main",
+      "code": "reprise.guide_failed",
+      "module": "reprise"
+    },
+    {
+      "at": 1767785040000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 31,
+      "status": "ok"
+    },
+    {
+      "at": 1767792120000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767792123000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767792126000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767796740000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767796743000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767796746000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767801360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767801363000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767801366000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767810360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "historique"
+    },
+    {
+      "at": 1767810360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "reglages"
+    },
+    {
+      "at": 1767810360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "chat"
+    },
+    {
+      "at": 1767810360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767815400000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "688dce1f45fc",
+      "via": "clavier"
+    },
+    {
+      "at": 1767815405000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "7c53ed7be713",
+      "via": "souris"
+    },
+    {
+      "at": 1767815410000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "b9787a46b8cb",
+      "via": "souris"
+    },
+    {
+      "at": 1767815820000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767817500000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "affa218996eb",
+      "via": "clavier"
+    },
+    {
+      "at": 1767817505000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "784a526668fe",
+      "via": "souris"
+    },
+    {
+      "at": 1767817510000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "0d842b73a844",
+      "via": "souris"
+    },
+    {
+      "at": 1767819600000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "01d2ecc64a05",
+      "via": "clavier"
+    },
+    {
+      "at": 1767819605000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "332e6e460b4d",
+      "via": "souris"
+    },
+    {
+      "at": 1767819610000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "3ab08020389b",
+      "via": "souris"
+    },
+    {
+      "at": 1767821700000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "306549e48f04",
+      "via": "clavier"
+    },
+    {
+      "at": 1767821705000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "9442f1f68d2a",
+      "via": "souris"
+    },
+    {
+      "at": 1767821710000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "4d75b6aed200",
+      "via": "souris"
+    },
+    {
+      "at": 1767823800000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "a8182c18120a",
+      "via": "clavier"
+    },
+    {
+      "at": 1767823805000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "01a15d31f6c8",
+      "via": "souris"
+    },
+    {
+      "at": 1767823810000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "705d5f0c55ab",
+      "via": "souris"
+    },
+    {
+      "at": 1767825900000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "2af342eae698",
+      "via": "clavier"
+    },
+    {
+      "at": 1767825905000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "b36cb75afd36",
+      "via": "souris"
+    },
+    {
+      "at": 1767825910000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "50bac794ffed",
+      "via": "souris"
+    },
+    {
+      "at": 1767833880000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "93050f3b2fa3",
+      "via": "clavier"
+    },
+    {
+      "at": 1767837660000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "3928b61a4df7",
+      "via": "clavier"
+    },
+    {
+      "at": 1767839880000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "4f9edf21857c",
+      "via": "clavier"
+    },
+    {
+      "at": 1767862260000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767863340000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6652,
+      "status": "ok"
+    },
+    {
+      "at": 1767864600000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 3000,
+      "status": "ok"
+    },
+    {
+      "at": 1767864780000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 26,
+      "status": "ok"
+    },
+    {
+      "at": 1767865200000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767865200000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 17,
+      "status": "ok"
+    },
+    {
+      "at": 1767865620000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 37,
+      "status": "ok"
+    },
+    {
+      "at": 1767865860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7056,
+      "status": "ok"
+    },
+    {
+      "at": 1767866040000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 39,
+      "status": "ok"
+    },
+    {
+      "at": 1767866460000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 28,
+      "status": "ok"
+    },
+    {
+      "at": 1767866880000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 14,
+      "status": "ok"
+    },
+    {
+      "at": 1767867120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5467,
+      "status": "ok"
+    },
+    {
+      "at": 1767867300000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 27,
+      "status": "ok"
+    },
+    {
+      "at": 1767867720000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 14,
+      "status": "ok"
+    },
+    {
+      "at": 1767868140000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 31,
+      "status": "ok"
+    },
+    {
+      "at": 1767868560000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 29,
+      "status": "ok"
+    },
+    {
+      "at": 1767868980000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 40,
+      "status": "ok"
+    },
+    {
+      "at": 1767869400000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 12,
+      "status": "ok"
+    },
+    {
+      "at": 1767869820000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1767870240000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 27,
+      "status": "ok"
+    },
+    {
+      "at": 1767870660000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1767871080000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1767871500000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 14,
+      "status": "ok"
+    },
+    {
+      "at": 1767879180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767879183000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767879186000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767883800000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767883803000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767883806000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767888420000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767888423000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767888426000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767897540000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "reglages"
+    },
+    {
+      "at": 1767897540000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "chat"
+    },
+    {
+      "at": 1767897540000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767902100000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "1296e55b7aea",
+      "via": "clavier"
+    },
+    {
+      "at": 1767902105000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "5477487a3023",
+      "via": "souris"
+    },
+    {
+      "at": 1767902110000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "b9982ca3f2d9",
+      "via": "souris"
+    },
+    {
+      "at": 1767903000000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767904200000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "ce0f115bbfca",
+      "via": "clavier"
+    },
+    {
+      "at": 1767904205000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "891acbacbd3a",
+      "via": "souris"
+    },
+    {
+      "at": 1767904210000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "15a50325baf6",
+      "via": "souris"
+    },
+    {
+      "at": 1767906300000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "061b61879370",
+      "via": "clavier"
+    },
+    {
+      "at": 1767906305000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "91537adbff60",
+      "via": "souris"
+    },
+    {
+      "at": 1767906310000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "62612b331283",
+      "via": "souris"
+    },
+    {
+      "at": 1767908400000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "936203b2d4bf",
+      "via": "clavier"
+    },
+    {
+      "at": 1767908405000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "5fcd746f82d2",
+      "via": "souris"
+    },
+    {
+      "at": 1767908410000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "2bb857f6c1e3",
+      "via": "souris"
+    },
+    {
+      "at": 1767910500000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "2a7e7ee45911",
+      "via": "clavier"
+    },
+    {
+      "at": 1767910505000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "df9b83ccc355",
+      "via": "souris"
+    },
+    {
+      "at": 1767910510000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "f725e777979c",
+      "via": "souris"
+    },
+    {
+      "at": 1767912600000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "fd57d531ec63",
+      "via": "clavier"
+    },
+    {
+      "at": 1767912605000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "725c7b8ea613",
+      "via": "souris"
+    },
+    {
+      "at": 1767912610000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "45c3855f2de5",
+      "via": "souris"
+    },
+    {
+      "at": 1767920820000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "bffce0f2f8f3",
+      "via": "clavier"
+    },
+    {
+      "at": 1767926820000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "2fcdd31eda61",
+      "via": "clavier"
+    },
+    {
+      "at": 1767949080000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767949920000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 7682,
+      "status": "ok"
+    },
+    {
+      "at": 1767951180000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 2109,
+      "status": "ok"
+    },
+    {
+      "at": 1767951240000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 32,
+      "status": "ok"
+    },
+    {
+      "at": 1767951660000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 37,
+      "status": "ok"
+    },
+    {
+      "at": 1767952020000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1767952080000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 21,
+      "status": "ok"
+    },
+    {
+      "at": 1767952440000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 1678,
+      "status": "ok"
+    },
+    {
+      "at": 1767952500000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 19,
+      "status": "ok"
+    },
+    {
+      "at": 1767952920000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 15,
+      "status": "ok"
+    },
+    {
+      "at": 1767953340000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 33,
+      "status": "ok"
+    },
+    {
+      "at": 1767953700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 1955,
+      "status": "ok"
+    },
+    {
+      "at": 1767953760000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 36,
+      "status": "ok"
+    },
+    {
+      "at": 1767954180000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 32,
+      "status": "ok"
+    },
+    {
+      "at": 1767954600000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 25,
+      "status": "ok"
+    },
+    {
+      "at": 1767955020000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767955440000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 20,
+      "status": "ok"
+    },
+    {
+      "at": 1767955860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1767956280000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 25,
+      "status": "ok"
+    },
+    {
+      "at": 1767956700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1767957120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 27,
+      "status": "ok"
+    },
+    {
+      "at": 1767957540000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1767957600000,
+      "family": "erreur",
+      "event": "error.main",
+      "code": "reprise.guide_failed",
+      "module": "reprise"
+    },
+    {
+      "at": 1767957960000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1767966240000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767966243000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767966246000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767970860000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767970863000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767970866000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767975480000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767975483000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767975486000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1767984720000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "chat"
+    },
+    {
+      "at": 1767984720000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767988800000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e83d286309fb",
+      "via": "clavier"
+    },
+    {
+      "at": 1767988805000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "d1fe9d746728",
+      "via": "souris"
+    },
+    {
+      "at": 1767988810000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "990c47d03804",
+      "via": "souris"
+    },
+    {
+      "at": 1767990180000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1767990900000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "de80405fb51b",
+      "via": "clavier"
+    },
+    {
+      "at": 1767990905000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "ecf8aee2eed7",
+      "via": "souris"
+    },
+    {
+      "at": 1767990910000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "eb644b49dd58",
+      "via": "souris"
+    },
+    {
+      "at": 1767993000000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "35f6a81d8afd",
+      "via": "clavier"
+    },
+    {
+      "at": 1767993005000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "9c55ac188662",
+      "via": "souris"
+    },
+    {
+      "at": 1767993010000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "fedc3e32f178",
+      "via": "souris"
+    },
+    {
+      "at": 1767995100000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "daf0aa4486e0",
+      "via": "clavier"
+    },
+    {
+      "at": 1767995105000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "748f944dfc15",
+      "via": "souris"
+    },
+    {
+      "at": 1767995110000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "10ead4a15bf4",
+      "via": "souris"
+    },
+    {
+      "at": 1767997200000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "49f6e30a9b9b",
+      "via": "clavier"
+    },
+    {
+      "at": 1767997205000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "04299b9f1360",
+      "via": "souris"
+    },
+    {
+      "at": 1767997210000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "de4388c78df7",
+      "via": "souris"
+    },
+    {
+      "at": 1767999300000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "4bb442e1f42b",
+      "via": "clavier"
+    },
+    {
+      "at": 1767999305000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "f90aebacf018",
+      "via": "souris"
+    },
+    {
+      "at": 1767999310000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "c2f179b80ed7",
+      "via": "souris"
+    },
+    {
+      "at": 1768007760000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "5573c2935534",
+      "via": "clavier"
+    },
+    {
+      "at": 1768013760000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "6bdf67aaeaea",
+      "via": "clavier"
+    },
+    {
+      "at": 1768035900000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1768036500000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 1073,
+      "status": "ok"
+    },
+    {
+      "at": 1768037700000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 23,
+      "status": "ok"
+    },
+    {
+      "at": 1768037760000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6257,
+      "status": "ok"
+    },
+    {
+      "at": 1768038120000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1768038540000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 27,
+      "status": "ok"
+    },
+    {
+      "at": 1768038840000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1768038960000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 39,
+      "status": "ok"
+    },
+    {
+      "at": 1768039020000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 6428,
+      "status": "ok"
+    },
+    {
+      "at": 1768039380000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1768039800000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 20,
+      "status": "ok"
+    },
+    {
+      "at": 1768040220000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 24,
+      "status": "ok"
+    },
+    {
+      "at": 1768040280000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 4684,
+      "status": "ok"
+    },
+    {
+      "at": 1768040640000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 33,
+      "status": "ok"
+    },
+    {
+      "at": 1768041060000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1768041480000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 13,
+      "status": "ok"
+    },
+    {
+      "at": 1768041900000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1768042320000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 12,
+      "status": "ok"
+    },
+    {
+      "at": 1768042740000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 19,
+      "status": "ok"
+    },
+    {
+      "at": 1768043160000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 18,
+      "status": "ok"
+    },
+    {
+      "at": 1768043580000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 21,
+      "status": "ok"
+    },
+    {
+      "at": 1768044000000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 24,
+      "status": "ok"
+    },
+    {
+      "at": 1768044420000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 22,
+      "status": "ok"
+    },
+    {
+      "at": 1768053300000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768053303000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768053306000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768057920000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768057923000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768057926000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768071900000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768075500000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "ce75730fffc8",
+      "via": "clavier"
+    },
+    {
+      "at": 1768075505000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "6e0af48f7984",
+      "via": "souris"
+    },
+    {
+      "at": 1768075510000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "c8d475ef73bb",
+      "via": "souris"
+    },
+    {
+      "at": 1768077600000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "25ade6ce0cd4",
+      "via": "clavier"
+    },
+    {
+      "at": 1768077605000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "a28988776b38",
+      "via": "souris"
+    },
+    {
+      "at": 1768077610000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "65dfc36494d8",
+      "via": "souris"
+    },
+    {
+      "at": 1768079700000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "36dcfb97b950",
+      "via": "clavier"
+    },
+    {
+      "at": 1768079705000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "76069c88c320",
+      "via": "souris"
+    },
+    {
+      "at": 1768079710000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "9b212c8302a9",
+      "via": "souris"
+    },
+    {
+      "at": 1768081800000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "cc56194525be",
+      "via": "clavier"
+    },
+    {
+      "at": 1768081805000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "c3c917e54b67",
+      "via": "souris"
+    },
+    {
+      "at": 1768081810000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "7855f7f1a2ec",
+      "via": "souris"
+    },
+    {
+      "at": 1768083900000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "0558b148ea43",
+      "via": "clavier"
+    },
+    {
+      "at": 1768083905000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "062507513c65",
+      "via": "souris"
+    },
+    {
+      "at": 1768083910000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "c192d0393eb4",
+      "via": "souris"
+    },
+    {
+      "at": 1768086000000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e70407473009",
+      "via": "clavier"
+    },
+    {
+      "at": 1768086005000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "7dd91d944302",
+      "via": "souris"
+    },
+    {
+      "at": 1768086010000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "aac27e4e6b80",
+      "via": "souris"
+    },
+    {
+      "at": 1768094700000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "df762cb81d60",
+      "via": "clavier"
+    },
+    {
+      "at": 1768100700000,
+      "family": "action",
+      "event": "history.undo",
+      "subjectKind": "batch",
+      "subjectRef": "c0e0cb728fa0",
+      "via": "clavier"
+    },
+    {
+      "at": 1768122720000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1768123080000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 8734,
+      "status": "ok"
+    },
+    {
+      "at": 1768124160000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1768124340000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 5750,
+      "status": "ok"
+    },
+    {
+      "at": 1768124580000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 16,
+      "status": "ok"
+    },
+    {
+      "at": 1768125000000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 15,
+      "status": "ok"
+    },
+    {
+      "at": 1768125420000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 20,
+      "status": "ok"
+    },
+    {
+      "at": 1768125600000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 4302,
+      "status": "ok"
+    },
+    {
+      "at": 1768125660000,
+      "family": "erreur",
+      "event": "error.renderer",
+      "code": "TypeError",
+      "frames": ["src/renderer/src/canvas/buildGraph.ts:212", "src/renderer/src/canvas/CanvasPage.tsx:88"]
+    },
+    {
+      "at": 1768125840000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 26,
+      "status": "ok"
+    },
+    {
+      "at": 1768126260000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 33,
+      "status": "ok"
+    },
+    {
+      "at": 1768126680000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 39,
+      "status": "ok"
+    },
+    {
+      "at": 1768126860000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "reprise:analyze",
+      "durationMs": 3149,
+      "status": "ok"
+    },
+    {
+      "at": 1768127100000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 21,
+      "status": "ok"
+    },
+    {
+      "at": 1768127520000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 31,
+      "status": "ok"
+    },
+    {
+      "at": 1768127940000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 39,
+      "status": "ok"
+    },
+    {
+      "at": 1768128360000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 33,
+      "status": "ok"
+    },
+    {
+      "at": 1768128780000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 28,
+      "status": "ok"
+    },
+    {
+      "at": 1768129200000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 31,
+      "status": "ok"
+    },
+    {
+      "at": 1768129620000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 36,
+      "status": "ok"
+    },
+    {
+      "at": 1768130040000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 11,
+      "status": "ok"
+    },
+    {
+      "at": 1768130460000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 38,
+      "status": "ok"
+    },
+    {
+      "at": 1768130880000,
+      "family": "performance",
+      "event": "ipc.call",
+      "channel": "canvas:get",
+      "durationMs": 32,
+      "status": "ok"
+    },
+    {
+      "at": 1768140360000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768140363000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768140366000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768144980000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768144983000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768144986000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "explorateur"
+    },
+    {
+      "at": 1768159080000,
+      "family": "navigation",
+      "event": "screen.open",
+      "screen": "carte"
+    },
+    {
+      "at": 1768162200000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "6b61601928cb",
+      "via": "clavier"
+    },
+    {
+      "at": 1768162205000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "2c0aa203cc2d",
+      "via": "souris"
+    },
+    {
+      "at": 1768162210000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "360792bd5c18",
+      "via": "souris"
+    },
+    {
+      "at": 1768164300000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e146aea6f6db",
+      "via": "clavier"
+    },
+    {
+      "at": 1768164305000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "7a62cc710b8a",
+      "via": "souris"
+    },
+    {
+      "at": 1768164310000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "fe890c92d4c6",
+      "via": "souris"
+    },
+    {
+      "at": 1768166400000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "921e46bf70de",
+      "via": "clavier"
+    },
+    {
+      "at": 1768166405000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "a67d6768f5df",
+      "via": "souris"
+    },
+    {
+      "at": 1768166410000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "46c598c31065",
+      "via": "souris"
+    },
+    {
+      "at": 1768168500000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "03921ff3cf71",
+      "via": "clavier"
+    },
+    {
+      "at": 1768168505000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "1c7ba7596a40",
+      "via": "souris"
+    },
+    {
+      "at": 1768168510000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "2f7d8155881e",
+      "via": "souris"
+    },
+    {
+      "at": 1768170600000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "d47a472ed9c8",
+      "via": "clavier"
+    },
+    {
+      "at": 1768170605000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "e8572fe162df",
+      "via": "souris"
+    },
+    {
+      "at": 1768170610000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "ed69745f377f",
+      "via": "souris"
+    },
+    {
+      "at": 1768172700000,
+      "family": "action",
+      "event": "neuron.create",
+      "subjectKind": "neuron",
+      "subjectRef": "e3e41ccea0de",
+      "via": "clavier"
+    },
+    {
+      "at": 1768172705000,
+      "family": "action",
+      "event": "link.create",
+      "subjectKind": "link",
+      "subjectRef": "1f029fcf9203",
+      "via": "souris"
+    },
+    {
+      "at": 1768172710000,
+      "family": "action",
+      "event": "block.create",
+      "subjectKind": "block",
+      "subjectRef": "11313fb2de31",
+      "via": "souris"
+    },
+    {
+      "at": 1768181640000,
+      "family": "action",
+      "event": "chat.send",
+      "subjectKind": "conversation",
+      "subjectRef": "849cb23490e8",
+      "via": "clavier"
+    }
+  ],
+  "aiCalls": [
+    {
+      "kind": "categoriser",
+      "at": 1767624000000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767625680000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767627360000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767629040000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767630000000,
+      "inputFp": "2f5d9e7fc82578e8",
+      "outputFp": "07841f2f843b27b5",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767631680000,
+      "inputFp": "b73dfb5c2b1b9a09",
+      "outputFp": "d2fbf6db2a013429",
+      "status": "ok"
+    },
+    {
+      "kind": "widget",
+      "at": 1767648000000,
+      "inputFp": "068b57e4b2ddb87c",
+      "outputFp": "92765ffa0802b1c4",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767710640000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767712320000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767714000000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767715680000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767716640000,
+      "inputFp": "a30e70aff3812ea4",
+      "outputFp": "5f1228c2858c5dd5",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767797280000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767798960000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767800640000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767803280000,
+      "inputFp": "f2363be143211563",
+      "outputFp": "a5d2e590093f5175",
+      "status": "ok"
+    },
+    {
+      "kind": "widget",
+      "at": 1767820800000,
+      "inputFp": "52db1f85c8e32541",
+      "outputFp": "412857582daa5eac",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767883920000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767885600000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767887280000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767889920000,
+      "inputFp": "44b87e5cd13a875a",
+      "outputFp": "8864e769dfc6635f",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767970560000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767972240000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767973920000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1767976560000,
+      "inputFp": "4e467cf6e0e30e84",
+      "outputFp": "c0e0b1bc4bada54f",
+      "status": "ok"
+    },
+    {
+      "kind": "widget",
+      "at": 1767993600000,
+      "inputFp": "53e77b37605449ab",
+      "outputFp": "09165f7490110615",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768057200000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768058880000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768060560000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768063200000,
+      "inputFp": "d4327d301c1dafba",
+      "outputFp": "ef8b9a658b763857",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768143840000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768145520000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768147200000,
+      "inputFp": "94bd27970fd9c450",
+      "outputFp": "61cb5fa21b7a5c96",
+      "status": "ok"
+    },
+    {
+      "kind": "categoriser",
+      "at": 1768149840000,
+      "inputFp": "8d4aede627239dc1",
+      "outputFp": "9d1353c9bc1caa95",
+      "status": "ok"
+    }
+  ]
+}

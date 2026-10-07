@@ -1,9 +1,16 @@
 import { z } from 'zod'
 import { PROBE_FAMILIES, PROBE_LIMITS } from '@shared/analyste/events'
 import {
+  ANALYSES_LIMIT,
   ANALYSTE_SETTINGS_LIMITS as LIMITS,
   OBSERVATIONS_PAGE_LIMIT,
+  PROPOSAL_TAB_NAMES,
+  PROPOSAL_TABS,
+  PROPOSALS_PAGE_LIMIT,
+  type AnalysisView,
   type AnalysteSettingsView,
+  type ProposalStatus,
+  type ProposalView,
   type AnalysteStatusView,
   type ObservationsPageView,
   type ObservationView
@@ -35,6 +42,15 @@ export interface AnalysteRoutesDeps {
   /** Fichier d'export choisi au dialogue natif du main ; `undefined` si annulé. */
   readonly pickExportFile: () => Promise<string | undefined>
   readonly writeFile: (path: string, content: string) => void
+  /** Analyses (spec 019 US2). */
+  readonly analyste: {
+    analyze(options: { readonly force?: boolean }): { analysisId: string }
+    cancel(analysisId: string): void
+  }
+  readonly store: {
+    analyses(limit: number): AnalysisView[]
+    proposals(statuses: readonly ProposalStatus[], limit: number): ProposalView[]
+  }
 }
 
 // Canal sans paramètre : l'interface n'envoie rien (convention des autres canaux).
@@ -49,6 +65,12 @@ export function createAnalysteRoutes(deps: AnalysteRoutesDeps): IpcRoute[] {
   const available = (): void => {
     if (!deps.guard.current().available) {
       throw new AppError('PACKAGED_APP', "L'Analyste n'existe pas dans l'app installée")
+    }
+  }
+  const active = (): void => {
+    available()
+    if (!deps.guard.current().active) {
+      throw new AppError('PROBE_INACTIVE', 'La sonde est inactive : désigne le dépôt dans Réglages › Analyste')
     }
   }
   const status = (): AnalysteStatusView => {
@@ -131,14 +153,51 @@ export function createAnalysteRoutes(deps: AnalysteRoutesDeps): IpcRoute[] {
       channel: 'analyste:settings:set',
       input: z.strictObject({
         retentionDays: z.int().min(LIMITS.retentionDays.min).max(LIMITS.retentionDays.max).optional(),
-        maxEvents: z.int().min(LIMITS.maxEvents.min).max(LIMITS.maxEvents.max).optional()
+        maxEvents: z.int().min(LIMITS.maxEvents.min).max(LIMITS.maxEvents.max).optional(),
+        maxProposals: z.int().min(LIMITS.maxProposals.min).max(LIMITS.maxProposals.max).optional(),
+        repeatThreshold: z.int().min(LIMITS.repeatThreshold.min).max(LIMITS.repeatThreshold.max).optional(),
+        minEvents: z.int().min(LIMITS.minEvents.min).max(LIMITS.minEvents.max).optional()
       }),
       handler: async (patch) => {
         available()
-        return deps.settings.updateSettings({
-          ...(patch.retentionDays === undefined ? {} : { retentionDays: patch.retentionDays }),
-          ...(patch.maxEvents === undefined ? {} : { maxEvents: patch.maxEvents })
-        })
+        const entries = Object.entries(patch).filter(([, value]) => value !== undefined)
+        return deps.settings.updateSettings(Object.fromEntries(entries) as Partial<AnalysteSettingsView>)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:analyze',
+      input: z.strictObject({ force: z.boolean().optional() }),
+      handler: async ({ force }) => {
+        active()
+        return deps.analyste.analyze(force === undefined ? {} : { force })
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:cancel',
+      input: z.strictObject({ analysisId: z.uuid() }),
+      handler: async ({ analysisId }) => {
+        active()
+        deps.analyste.cancel(analysisId)
+        return { ok: true }
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:analyses',
+      input: z.strictObject({ limit: z.int().min(1).max(ANALYSES_LIMIT).default(ANALYSES_LIMIT) }),
+      handler: async ({ limit }) => {
+        active()
+        return deps.store.analyses(limit)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:proposals',
+      input: z.strictObject({
+        tab: z.enum(PROPOSAL_TAB_NAMES).default('todo'),
+        limit: z.int().min(1).max(PROPOSALS_PAGE_LIMIT).default(PROPOSALS_PAGE_LIMIT)
+      }),
+      handler: async ({ tab, limit }) => {
+        active()
+        return { items: deps.store.proposals(PROPOSAL_TABS[tab], limit) }
       }
     })
   ]

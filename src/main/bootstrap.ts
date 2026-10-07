@@ -25,7 +25,12 @@ import { createDocumentRoutes } from './ipc/documentHandlers'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
 import { createLogger, stdoutSink, teeSink, type Logger } from './infrastructure/logging/logger'
+import { AnalysteService } from './application/analyste/AnalysteService'
+import { existsInRepo, graphGenesisFor } from './application/analyste/repoCode'
 import { ProbeService } from './application/analyste/ProbeService'
+import { runAnalyste } from './application/ai/AnalysteTask'
+import { summarizeCodeGraph } from './domain/analyste/codeSummary'
+import { AiCallRepository } from './infrastructure/db/repositories/AiCallRepository'
 import { RepoGuard } from './application/analyste/RepoGuard'
 import { AnalysteRepository } from './infrastructure/db/repositories/AnalysteRepository'
 import { ObservationRepository } from './infrastructure/db/repositories/ObservationRepository'
@@ -221,7 +226,9 @@ export function bootstrap(shell: ShellPort): AppContext {
     cliSandbox: join(dataDir, 'cli-sandbox'),
     contextSource: (kind) => contextService.activeContext(kind),
     // Rejeu de la file locale (ex. catégorisation d'une idée capturée pendant qu'Ollama était arrêté).
-    onQueuedCompleted: (requestId, data) => neuronsRef.current?.applyQueuedResult(requestId, data)
+    onQueuedCompleted: (requestId, data) => neuronsRef.current?.applyQueuedResult(requestId, data),
+    // Empreintes des tâches d'IA (spec 019 FR-007) : seulement quand la sonde est active.
+    fingerprintKey: () => repoGuard.hmacKey()
   })
 
   const aiRoutes = createAiRoutes({
@@ -599,6 +606,38 @@ export function bootstrap(shell: ShellPort): AppContext {
       }
     }
   })
+  // Analyste interne (spec 019 US2) : analyse en lecture seule du dépôt désigné, propositions contrôlées.
+  const analyste = new AnalysteService({
+    guard: repoGuard,
+    observations: observationRepository,
+    aiCalls: new AiCallRepository(database.db),
+    store: analysteRepository,
+    settings: () => analysteRepository.settings(),
+    code: () => {
+      const repoPath = repoGuard.current().repoPath
+      if (repoPath === null) return null
+      const genesisId = graphGenesisFor(repoPath, {
+        linkedFolders: () => conversationRepository.linkedFolders(),
+        projectByRoot: (root) => repriseRepository.projectByRoot(root),
+        hasGraph: (id) => codeGraph.files(id).length > 0
+      })
+      if (genesisId === null) return null
+      return summarizeCodeGraph({
+        modules: codeGraph.modules(genesisId),
+        files: codeGraph.files(genesisId),
+        symbols: codeGraph.symbols(genesisId),
+        edges: codeGraph.edges(genesisId),
+        entryPoints: codeGraph.entryPoints(genesisId)
+      })
+    },
+    runTask: (dossier, options) => runAnalyste(ai.gateway, dossier, options),
+    exists: existsInRepo,
+    // Le codage des propositions (US4) n'existe pas encore.
+    isCoding: () => false,
+    flushProbe: () => probe.flush(),
+    emit: (event) => broadcast('analyste:progress', event)
+  })
+  analyste.recover()
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
@@ -680,7 +719,9 @@ export function bootstrap(shell: ShellPort): AppContext {
           })
           return result.canceled ? undefined : result.filePath
         },
-        writeFile: (path, content) => writeFileSync(path, content, 'utf8')
+        writeFile: (path, content) => writeFileSync(path, content, 'utf8'),
+        analyste,
+        store: analysteRepository
       }),
       ...createMcpRoutes({
         selection,
@@ -710,6 +751,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ai.stop()
       conversations.stopAll()
       permissions.cancelAll()
+      analyste.stop()
       probe.stop()
       void pipe.stop()
     }

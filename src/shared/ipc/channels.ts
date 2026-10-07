@@ -112,7 +112,11 @@ export const MAIN_WINDOW_CHANNELS = [
   'analyste:observations:export',
   'analyste:purge',
   'analyste:settings:get',
-  'analyste:settings:set'
+  'analyste:settings:set',
+  'analyste:analyze',
+  'analyste:cancel',
+  'analyste:analyses',
+  'analyste:proposals'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -139,7 +143,8 @@ export const MAIN_WINDOW_EVENTS = [
   'chat:permissionResolved',
   'reprise:analysisProgress',
   'reprise:analysisDone',
-  'reprise:changed'
+  'reprise:changed',
+  'analyste:progress'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

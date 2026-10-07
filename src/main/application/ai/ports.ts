@@ -34,6 +34,9 @@ export interface CallRecord {
   readonly status: CallStatus
   readonly errorCode?: string
   readonly durationMs: number
+  /** Empreintes HMAC de l'entrée et de la sortie validée (spec 019), seulement quand la sonde est active. */
+  readonly inputFp?: string
+  readonly outputFp?: string
 }
 
 export interface CallLog {

@@ -1,4 +1,5 @@
 import type { ProbeFamily, ProbeScreen, ProbeStatus, ProbeSubjectKind, ProbeVia } from '../analyste/events'
+import type { ProposalCategory, ProposalRisk } from '../analyste/proposals'
 
 /** Vues et contrats de l'Analyste interne (spec 019 contracts/interfaces.md). Aucune vue ne porte de contenu saisi. */
 
@@ -20,12 +21,21 @@ export interface AnalysteStatusView {
 
 export const ANALYSTE_SETTINGS_LIMITS = {
   retentionDays: { min: 7, max: 90, default: 30 },
-  maxEvents: { min: 10_000, max: 200_000, default: 50_000 }
+  maxEvents: { min: 10_000, max: 200_000, default: 50_000 },
+  /** Propositions gardées au plus par analyse (FR-017). */
+  maxProposals: { min: 1, max: 10, default: 5 },
+  /** Répétitions d'une même entrée d'IA pour un fait « IA → code » (FR-019). */
+  repeatThreshold: { min: 2, max: 50, default: 5 },
+  /** Observations nouvelles en dessous desquelles l'analyse demande confirmation (FR-012, FR-040). */
+  minEvents: { min: 10, max: 10_000, default: 200 }
 } as const
 
 export interface AnalysteSettingsView {
   readonly retentionDays: number
   readonly maxEvents: number
+  readonly maxProposals: number
+  readonly repeatThreshold: number
+  readonly minEvents: number
 }
 
 export interface ObservationView {
@@ -53,4 +63,87 @@ export interface ObservationsPageView {
   /** Curseur de la page suivante (identifiant), `null` à la fin. */
   readonly next: number | null
   readonly totals: Readonly<Record<ProbeFamily, number>>
+}
+
+/** Analyse (spec 019 data-model `analyses`) : déclencheur, période, statut ; jamais de contenu. */
+export const ANALYSIS_STATUSES = ['running', 'done', 'failed', 'cancelled'] as const
+export type AnalysisStatus = (typeof ANALYSIS_STATUSES)[number]
+
+export interface AnalysisView {
+  readonly id: string
+  readonly trigger: 'manual' | 'auto'
+  readonly status: AnalysisStatus
+  readonly windowFrom: number
+  readonly windowTo: number
+  readonly events: number
+  readonly proposals: number
+  readonly errorCode: string | null
+  readonly startedAt: number
+  readonly finishedAt: number | null
+}
+
+export const ANALYSES_LIMIT = 20
+
+/** Étapes annoncées pendant une analyse (événement `analyste:progress`). */
+export const ANALYSIS_STEPS = ['dossier', 'claude', 'controle', 'fini', 'echec'] as const
+export type AnalysisStep = (typeof ANALYSIS_STEPS)[number]
+
+export interface AnalysisProgressEvent {
+  readonly analysisId: string
+  readonly step: AnalysisStep
+  /** Propositions gardées (étape `fini`). */
+  readonly proposals?: number
+  /** Cause d'un échec (étape `echec`) : `AI_UNAVAILABLE`, `AUTH_FAILED`, `AI_INVALID_OUTPUT`, `CANCELLED`… */
+  readonly errorCode?: string
+}
+
+export const PROPOSAL_STATUSES = [
+  'new',
+  'postponed',
+  'refused',
+  'accepted',
+  'coding',
+  'to_fix',
+  'ready',
+  'kept',
+  'discarded',
+  'reverted'
+] as const
+export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
+
+/** Onglets de la boîte (spec 019 FR-022) et statuts qu'ils regroupent. */
+export const PROPOSAL_TAB_NAMES = ['todo', 'progress', 'kept', 'dismissed'] as const
+export type ProposalTab = (typeof PROPOSAL_TAB_NAMES)[number]
+export const PROPOSAL_TABS: Readonly<Record<ProposalTab, readonly ProposalStatus[]>> = {
+  todo: ['new'],
+  progress: ['postponed', 'accepted', 'coding', 'to_fix', 'ready'],
+  kept: ['kept'],
+  dismissed: ['refused', 'discarded', 'reverted']
+}
+
+export const PROPOSALS_PAGE_LIMIT = 50
+
+/** Fiche d'une proposition : texte écrit par Claude sur le code de l'app, affiché comme texte (FR-026). */
+export interface ProposalView {
+  readonly id: string
+  readonly analysisId: string
+  readonly category: ProposalCategory
+  readonly title: string
+  readonly finding: string
+  readonly proposal: string
+  readonly gain: string
+  readonly risk: ProposalRisk
+  readonly severity: number
+  readonly confidence: number
+  readonly evidence: {
+    /** Preuves d'observation en phrases lisibles, avec leur clé (`obs:err:1`). */
+    readonly observations: readonly { readonly key: string; readonly sentence: string }[]
+    readonly code: readonly { readonly path: string; readonly start?: number; readonly end?: number }[]
+  }
+  readonly files: readonly string[]
+  /** Évolutivité sans preuve : « idée, sans preuve d'usage ». */
+  readonly withoutEvidence: boolean
+  readonly status: ProposalStatus
+  readonly refusalReason: string | null
+  readonly createdAt: number
 }

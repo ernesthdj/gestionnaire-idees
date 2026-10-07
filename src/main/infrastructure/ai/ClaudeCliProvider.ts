@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { isAbsolute } from 'node:path'
 import { z } from 'zod'
 import {
   ProviderError,
@@ -16,6 +17,8 @@ export type RunProcess = (input: {
   readonly cwd: string
   readonly stdin: string
   readonly timeoutMs: number
+  /** Annulation : le processus est arrêté. */
+  readonly signal?: AbortSignal
 }) => Promise<{
   readonly code: number | null
   readonly stdout: string
@@ -36,6 +39,13 @@ export interface ClaudeCliOptions {
 const MAX_SYSTEM_ARG = 20_000
 const DEFAULT_TIMEOUT_MS = 240_000
 
+/** Seule tâche qui reçoit des outils, en lecture seule (spec 019, constitution IV). */
+export const READ_ONLY_TASK = 'analyste'
+/** Outils de lecture et de recherche de Claude Code : rien n'écrit, rien ne lance de commande. */
+export const READ_ONLY_TOOLS = 'Read Glob Grep'
+/** Tours d'outils au plus pour une analyse (`L3-analyste-analyse.md` §2). */
+export const READ_ONLY_MAX_TURNS = 40
+
 const ResultLine = z.object({
   is_error: z.boolean().optional(),
   subtype: z.string().optional(),
@@ -52,7 +62,7 @@ const ResultLine = z.object({
   modelUsage: z.record(z.string(), z.unknown()).optional()
 })
 
-export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs }) =>
+export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs, signal }) =>
   new Promise((resolve) => {
     const child = spawn(command, [...args], { cwd, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
     let stdout = ''
@@ -62,16 +72,21 @@ export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs })
       timedOut = true
       child.kill()
     }, timeoutMs)
+    const abort = (): void => void child.kill()
+    if (signal?.aborted === true) abort()
+    signal?.addEventListener('abort', abort, { once: true })
     child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
     child.stdout.on('data', (chunk: string) => (stdout += chunk))
     child.stderr.on('data', (chunk: string) => (stderr = (stderr + chunk).slice(-4000)))
     child.on('error', () => {
       clearTimeout(timer)
+      signal?.removeEventListener('abort', abort)
       resolve({ code: null, stdout, stderr, timedOut })
     })
     child.on('close', (code) => {
       clearTimeout(timer)
+      signal?.removeEventListener('abort', abort)
       resolve({ code, stdout, stderr, timedOut })
     })
     child.stdin.on('error', () => undefined)
@@ -82,6 +97,7 @@ export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs })
  * Claude par le CLI officiel de mentalyas (spec 010, F11) : `claude -p` avec un format de sortie imposé
  * (`--json-schema`, tiré du schéma Zod de la tâche), sans outil, sans serveur MCP, sans réglage chargé, dans un dossier
  * vide. L'abonnement remplace l'API Anthropic : aucune clé. Les données passent par l'entrée standard, jamais en argument.
+ * Seule exception (spec 019, constitution IV) : la tâche `analyste` reçoit `Read Glob Grep`, dans le dépôt désigné.
  */
 export class ClaudeCliProvider implements AIProvider {
   readonly id = 'claude' as const
@@ -100,6 +116,7 @@ export class ClaudeCliProvider implements AIProvider {
   }
 
   async complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>> {
+    const readOnly = this.readOnlyDir(request)
     const command = await this.options.claudePath()
     if (command === undefined) throw new ProviderError('AI_UNAVAILABLE', 'Claude Code est introuvable', true)
     const model = request.model ?? this.options.model()
@@ -114,7 +131,8 @@ export class ClaudeCliProvider implements AIProvider {
       '--model',
       model,
       '--tools',
-      '',
+      readOnly === null ? '' : READ_ONLY_TOOLS,
+      ...(readOnly === null ? [] : ['--allowedTools', READ_ONLY_TOOLS]),
       '--setting-sources',
       '',
       '--strict-mcp-config',
@@ -122,6 +140,7 @@ export class ClaudeCliProvider implements AIProvider {
       '--disable-slash-commands',
       '--permission-prompts',
       'none',
+      ...(readOnly === null ? [] : ['--max-turns', String(READ_ONLY_MAX_TURNS)]),
       ...(request.effort === undefined ? [] : ['--effort', request.effort]),
       ...(systemInArgs ? ['--system-prompt', system] : [])
     ]
@@ -130,10 +149,12 @@ export class ClaudeCliProvider implements AIProvider {
     const outcome = await run({
       command,
       args,
-      cwd: this.options.cwd(),
+      cwd: readOnly ?? this.options.cwd(),
       stdin,
-      timeoutMs: request.timeoutMs ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+      timeoutMs: request.timeoutMs ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      ...(request.signal === undefined ? {} : { signal: request.signal })
     })
+    if (request.signal?.aborted === true) throw new ProviderError('AI_UNAVAILABLE', 'Demande annulée', false)
     if (outcome.timedOut) throw new ProviderError('AI_UNAVAILABLE', 'Claude a mis trop de temps à répondre', true)
     if (/not logged in|log in|login|authenticat/i.test(outcome.stderr)) {
       throw new ProviderError('AUTH_FAILED', 'Claude Code n’est pas connecté : lance `claude` pour te connecter', false)
@@ -164,5 +185,20 @@ export class ClaudeCliProvider implements AIProvider {
     }
     const output = request.schema.safeParse(parsedLine.structured_output)
     return { parsed: output.success ? output.data : null, usage, stopReason: 'end_turn', model: usedModel }
+  }
+
+  /**
+   * Dossier des outils de lecture, ou `null` sans outil. Toute demande d'outils ou de dossier hors de la tâche
+   * `analyste` est refusée : aucune autre tâche automatique ne lit le disque (constitution IV).
+   */
+  private readOnlyDir<T>(request: CompletionRequest<T>): string | null {
+    if (request.tools === undefined && request.cwd === undefined) return null
+    if (request.task !== READ_ONLY_TASK || request.tools !== 'read-only') {
+      throw new ProviderError('AI_UNAVAILABLE', 'Les outils de lecture sont réservés à la tâche analyste', false)
+    }
+    if (request.cwd === undefined || !isAbsolute(request.cwd)) {
+      throw new ProviderError('AI_UNAVAILABLE', 'Dossier de lecture absent ou relatif', false)
+    }
+    return request.cwd
   }
 }

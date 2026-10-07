@@ -24,7 +24,7 @@ export interface ProbeServiceDeps {
     purge(olderThan: number, maxEvents: number): number
     count(): number
   }
-  readonly settings: () => AnalysteSettingsView
+  readonly settings: () => Pick<AnalysteSettingsView, 'retentionDays' | 'maxEvents'>
   readonly now?: () => number
   readonly timers?: {
     readonly every: (ms: number, run: () => void) => unknown

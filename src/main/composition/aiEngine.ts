@@ -34,7 +34,12 @@ export interface AiEngineOptions {
   readonly contextSource: (kind: TaskKind) => AgentContext | undefined
   /** Demande locale rejouée avec succès : identifiant et données validées. */
   readonly onQueuedCompleted: (requestId: string, data: unknown) => void
+  /** Clé des empreintes de la sonde de l'Analyste (spec 019), `null` quand elle est inactive. */
+  readonly fingerprintKey?: () => string | null
 }
+
+/** Modèle de l'Analyste interne (spec 019 T022) : lecture du dépôt et raisonnement sur le code. */
+export const ANALYSTE_MODEL = 'claude-opus-5-5'
 
 /**
  * Racine de composition du moteur IA (spec 010) : Ollama pour les tâches locales, Claude par le CLI officiel de
@@ -59,7 +64,8 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       const current = config.get()
       return {
         allowClaudeFallback: current.allowClaudeFallback,
-        claudeModelFor: (kind) => (kind === 'widget' ? current.widgetModel : undefined)
+        claudeModelFor: (kind) =>
+          kind === 'widget' ? current.widgetModel : kind === 'analyste' ? ANALYSTE_MODEL : undefined
       }
     },
     context: async (kind) => options.contextSource(kind),
@@ -69,7 +75,8 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
         if (localQueueRef.current === undefined) throw new Error('File locale non initialisée')
         await localQueueRef.current.enqueue(request)
       }
-    }
+    },
+    ...(options.fingerprintKey === undefined ? {} : { fingerprintKey: options.fingerprintKey })
   })
 
   const localQueue = new LocalQueue({

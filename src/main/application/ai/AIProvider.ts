@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { Effort, Engine, Usage } from '../../domain/ai/types'
+import type { Effort, Engine, TaskKind, Usage } from '../../domain/ai/types'
 
 /** Bloc de consigne système ; `cacheable` = contenu stable, placé en tête pour le cache de prompt. */
 export interface SystemBlock {
@@ -21,6 +21,17 @@ export interface CompletionRequest<T> {
   readonly timeoutMs?: number
   /** Fenêtre de contexte demandée au modèle local (Ollama) ; ignorée par Claude. */
   readonly contextTokens?: number
+  /** Tâche à l'origine de la demande : les outils ne sont accordés qu'à la tâche `analyste` (constitution IV). */
+  readonly task?: TaskKind
+  /**
+   * Outils de lecture (`Read Glob Grep`) dans `cwd` (spec 019, `L3-analyste-analyse.md` §2) ; refusés pour toute
+   * autre tâche que `analyste`. Sans cette option, aucun outil.
+   */
+  readonly tools?: 'read-only'
+  /** Dossier de travail des outils de lecture (le dépôt désigné) ; seulement avec `tools: 'read-only'`. */
+  readonly cwd?: string
+  /** Annulation : le processus du moteur est arrêté. */
+  readonly signal?: AbortSignal
 }
 
 export interface CompletionResponse<T> {

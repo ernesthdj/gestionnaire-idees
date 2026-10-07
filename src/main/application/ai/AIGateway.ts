@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
+import { fingerprint } from '../../domain/analyste/fingerprint'
 import { contextTokensFor, effortFor, engineFor, maxTokensFor, timeoutFor } from '../../domain/ai/routing'
 import type { AIError, AIErrorCode, Engine, Result, TaskKind, Usage } from '../../domain/ai/types'
 import { ProviderError, type AIProvider, type CompletionResponse } from './AIProvider'
-import { assembleContext } from './ContextAssembler'
+import { assembleContext, frameVersionOf } from './ContextAssembler'
 import type { AgentContext, CallLog, CallStatus, GatewayConfig, LocalQueuePort } from './ports'
 
 export interface GatewayRequest<T> {
@@ -24,6 +25,13 @@ export interface GatewayRequest<T> {
    * mise en file ; IA locale arrêtée → `AI_UNAVAILABLE`.
    */
   readonly localOnly?: boolean
+  /**
+   * Dépôt où la tâche `analyste` lit avec `Read Glob Grep` (spec 019, constitution IV) ; refusé pour toute autre
+   * tâche.
+   */
+  readonly readOnlyRepo?: string
+  /** Annulation de la demande (analyse annulée par mentalyas) : le processus du moteur est arrêté. */
+  readonly signal?: AbortSignal
 }
 
 export interface AIResult<T> {
@@ -39,6 +47,16 @@ export interface GatewayDependencies {
   readonly context: (kind: TaskKind) => Promise<AgentContext | undefined>
   readonly callLog: CallLog
   readonly localQueue: LocalQueuePort
+  /**
+   * Clé des empreintes de la sonde (spec 019 R3), `null` quand la sonde est inactive : les empreintes de l'entrée et
+   * de la sortie validée ne sont écrites que si elle est active.
+   */
+  readonly fingerprintKey?: () => string | null
+}
+
+interface Fingerprints {
+  readonly inputFp?: string
+  readonly outputFp?: string
 }
 
 const CONCURRENCY: Readonly<Record<Engine, number>> = { ollama: 1, claude: 2 }
@@ -88,6 +106,9 @@ export class AIGateway {
       return { ok: true, value: cached.result as AIResult<T> }
     }
 
+    if (request.readOnlyRepo !== undefined && request.kind !== 'analyste') {
+      return failure('AI_UNAVAILABLE', 'Les outils de lecture sont réservés à la tâche analyste')
+    }
     const config = this.deps.config()
     const localOnly = request.localOnly === true
     if (localOnly && !(await this.deps.providers.ollama.isAvailable()).up) {
@@ -147,6 +168,7 @@ export class AIGateway {
     const timeoutMs = timeoutFor(request.kind)
     const contextTokens = contextTokensFor(request.kind)
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (request.signal?.aborted === true) return failure('AI_UNAVAILABLE', 'Demande annulée')
       const started = Date.now()
       let response: CompletionResponse<T>
       try {
@@ -156,9 +178,12 @@ export class AIGateway {
           schema: request.schema,
           effort: effortFor(request.kind),
           maxTokens: maxTokensFor(request.kind),
+          task: request.kind,
           ...(model === undefined ? {} : { model }),
           ...(timeoutMs === undefined ? {} : { timeoutMs }),
-          ...(contextTokens === undefined ? {} : { contextTokens })
+          ...(contextTokens === undefined ? {} : { contextTokens }),
+          ...(request.readOnlyRepo === undefined ? {} : { tools: 'read-only' as const, cwd: request.readOnlyRepo }),
+          ...(request.signal === undefined ? {} : { signal: request.signal })
         })
       } catch (error) {
         const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'
@@ -179,13 +204,25 @@ export class AIGateway {
         response.usage,
         status,
         Date.now() - started,
-        errorCode
+        errorCode,
+        status === 'ok' ? this.fingerprints(request, response.parsed) : {}
       )
 
       if (refused) return failure('AI_REFUSAL', "L'IA a refusé de traiter cette demande")
       if (response.parsed !== null) return { ok: true, value: { data: response.parsed, engine, model: response.model } }
     }
     return failure('AI_INVALID_OUTPUT', "La réponse de l'IA ne respectait pas le format attendu")
+  }
+
+  /** Empreintes de l'entrée et de la sortie validée, seulement si la sonde est active (spec 019 FR-007). */
+  private fingerprints<T>(request: GatewayRequest<T>, output: T | null): Fingerprints {
+    const key = this.deps.fingerprintKey?.() ?? null
+    if (key === null || output === null) return {}
+    const version = frameVersionOf(request.kind)
+    return {
+      inputFp: fingerprint(key, request.kind, version, { input: request.input, verbatim: request.verbatim ?? null }),
+      outputFp: fingerprint(key, request.kind, version, output)
+    }
   }
 
   private remember(requestId: string, result: AIResult<unknown>): void {
@@ -202,7 +239,8 @@ export class AIGateway {
     usage: Usage | undefined,
     status: CallStatus,
     durationMs: number,
-    errorCode?: string
+    errorCode?: string,
+    fingerprints: Fingerprints = {}
   ): Promise<void> {
     return this.deps.callLog.record({
       requestId,
@@ -213,7 +251,8 @@ export class AIGateway {
       costMillicents: 0,
       status,
       durationMs,
-      ...(errorCode === undefined ? {} : { errorCode })
+      ...(errorCode === undefined ? {} : { errorCode }),
+      ...fingerprints
     })
   }
 }

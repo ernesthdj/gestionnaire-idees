@@ -8,26 +8,33 @@ const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   categoriser: 'ollama',
   widget: 'claude',
   // Ollama quand le projet repris est « Local uniquement » (`localOnly` de la passerelle, spec 017 R6).
-  reprise_guide: 'claude'
+  reprise_guide: 'claude',
+  analyste: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   categoriser: 'low',
   widget: 'medium',
-  reprise_guide: 'medium'
+  reprise_guide: 'medium',
+  analyste: 'high'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   categoriser: 256,
   widget: 20000,
-  reprise_guide: 16000
+  reprise_guide: 16000,
+  analyste: 16000
 }
 
 /**
  * Tâches longues : délai propre (sinon celui du moteur) et fenêtre de contexte d'Ollama (par défaut trop petite pour
  * une entrée de ~40 000 caractères : elle serait tronquée sans erreur).
  */
-const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 10 * 60 * 1000 }
+const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
+  reprise_guide: 10 * 60 * 1000,
+  // L'Analyste lit le dépôt avec ses outils (spec 019, `L3-analyste-analyse.md` §2).
+  analyste: 15 * 60 * 1000
+}
 const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 32768 }
 
 export function engineFor(kind: TaskKind): Engine {

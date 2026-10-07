@@ -1,5 +1,6 @@
 import type { TaskKind } from '../../domain/ai/types'
-import { REPRISE_GUIDE_FRAME } from '../../infrastructure/ai/RepriseGuideFrame'
+import { ANALYSTE_FRAME, ANALYSTE_FRAME_VERSION } from '../../infrastructure/ai/AnalysteFrame'
+import { REPRISE_GUIDE_FRAME, REPRISE_GUIDE_FRAME_VERSION } from '../../infrastructure/ai/RepriseGuideFrame'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
 import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
 import { WIDGET_FRAME } from '../../infrastructure/ai/WidgetFrame'
@@ -11,7 +12,18 @@ const MAX_EXAMPLES = 3
 /** Tâches dont le cadre figé remplace `SYSTEM_FRAME`. */
 const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
   widget: WIDGET_FRAME,
-  reprise_guide: REPRISE_GUIDE_FRAME
+  reprise_guide: REPRISE_GUIDE_FRAME,
+  analyste: ANALYSTE_FRAME
+}
+
+/** Version du cadre figé d'une tâche, mêlée à ses empreintes (spec 019 R3) : changer de cadre change d'empreinte. */
+const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
+  reprise_guide: REPRISE_GUIDE_FRAME_VERSION,
+  analyste: ANALYSTE_FRAME_VERSION
+}
+
+export function frameVersionOf(kind: TaskKind): string {
+  return String(FRAME_VERSIONS[kind] ?? 1)
 }
 
 export interface AssembledContext {
@@ -28,7 +40,7 @@ export function assembleContext(request: {
   readonly input: string
   readonly context: AgentContext | undefined
 }): AssembledContext {
-  // Widgets (constitution 1.2.0) et guide de reprise (spec 017) : cadre figé propre, sans profil ni exemples
+  // Widgets (constitution 1.2.0), guide de reprise (spec 017) et Analyste (spec 019) : cadre figé propre, sans profil ni exemples
   // (minimisation : un outil ou un guide n'a pas besoin de la vie de l'utilisateur).
   const ownFrame = OWN_FRAMES[request.kind]
   if (ownFrame !== undefined) {
