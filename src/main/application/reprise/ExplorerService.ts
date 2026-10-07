@@ -20,6 +20,7 @@ import {
   type IndexEdge
 } from '../../domain/reprise/aggregate'
 import { classifyFile } from '../../domain/reprise/fileFilter'
+import { parseSource } from '../../domain/reprise/guideSources'
 import { columnLayout } from '../../domain/reprise/layout'
 import type {
   CodeEdgeRow,
@@ -223,6 +224,46 @@ export class ExplorerService {
           .map((crumb) => crumb.title)
           .join(' › ')
       })
+    }
+    return { results }
+  }
+
+  /**
+   * Éléments de l'explorateur désignés par des sources citées (guide de reprise, spec 017 US4) : module, dossier,
+   * fichier, `fichier#symbole` ou nom de symbole. Une source inconnue est omise.
+   */
+  locate(
+    genesisId: string,
+    sources: readonly string[]
+  ): { readonly results: readonly { readonly source: string; readonly key: string; readonly parentKey: string }[] } {
+    this.projectOrThrow(genesisId)
+    const loaded = this.load(genesisId)
+    const symbols = [...loaded.symbols.values()].filter((symbol) => symbol.name !== FILE_SYMBOL)
+    const moduleAt = new Map([...loaded.modules.values()].map((module) => [module.rootPath, module.key] as const))
+    const results: { source: string; key: string; parentKey: string }[] = []
+    for (const raw of sources) {
+      const source = parseSource(raw)
+      if (source === null) continue
+      const { path, symbol } = source
+      const named = (candidate: CodeSymbolRow): boolean =>
+        candidate.name === symbol || candidate.qualifiedName === symbol
+      const bare = path.replace(/\(\)$/, '')
+      const candidates =
+        symbol !== undefined
+          ? symbols.filter((entry) => entry.path === path && named(entry)).map((entry) => `s:${entry.id}`)
+          : [
+              `m:${source.text}`,
+              `f:${path}`,
+              `d:${path}`,
+              ...(moduleAt.has(path) ? [`m:${moduleAt.get(path) ?? ''}`] : []),
+              ...(path.includes('/')
+                ? []
+                : symbols
+                    .filter((entry) => entry.name === bare || entry.qualifiedName === bare)
+                    .map((entry) => `s:${entry.id}`))
+            ]
+      const node = candidates.map((key) => loaded.index.nodes.get(key)).find((found) => found !== undefined)
+      if (node !== undefined) results.push({ source: raw, key: node.key, parentKey: node.parentKey ?? ROOT_KEY })
     }
     return { results }
   }

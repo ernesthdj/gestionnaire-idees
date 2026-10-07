@@ -11,15 +11,32 @@ import { installReactFlowMocks } from './support/reactFlowMocks'
 const GENESIS = '00000000-0000-4000-8000-0000000000f5'
 const SYMBOL = 'a'.repeat(32)
 
-const project = (extra: Partial<RepriseProjectView['analysis']> = {}): RepriseProjectView => ({
+const project = (
+  extra: Partial<RepriseProjectView['analysis']> = {},
+  guide: RepriseProjectView['guide'] = { documentId: null, running: false }
+): RepriseProjectView => ({
   genesisId: GENESIS,
   name: 'cs-app',
   source: 'folder',
   confidentiality: 'local',
   remote: null,
   folderMissing: false,
-  analysis: { state: 'idle', progress: null, stats: null, analyzedAt: '2026-10-07T08:00:00.000Z', ...extra }
+  analysis: { state: 'idle', progress: null, stats: null, analyzedAt: '2026-10-07T08:00:00.000Z', ...extra },
+  guide
 })
+const GUIDE = [
+  '# Guide de reprise — cs-app',
+  '',
+  '## 1. En une phrase',
+  '',
+  '*Comme une boutique et son arrière-boutique.*',
+  '',
+  'Lance `npm start`.',
+  '',
+  '**Sources :** `Domain/OrderService.cs`',
+  '',
+  '> ⚠️ Introuvables dans le projet, retirées des sources : `src/Invente.cs`'
+].join('\n')
 
 const top: ExplorerView = {
   level: 1,
@@ -93,15 +110,20 @@ const detail: ExplorerNodeDetailView = {
   error: null
 }
 
-function renderExplorer(projectView: RepriseProjectView = project()) {
+function renderExplorer(projectView: RepriseProjectView = project(), nodeDetail: ExplorerNodeDetailView = detail) {
   const api = installFakeApi({
+    'document:get': () => ({ id: 'd1', content: GUIDE, hash: 'h', missing: false }),
+    'explorer:locate': () => ({
+      results: [{ source: 'Domain/OrderService.cs', key: `s:${SYMBOL}`, parentKey: 'm:dir:Domain' }]
+    }),
+    'reprise:guide': () => ({ documentId: 'd1' }),
     'reprise:get': () => projectView,
     'explorer:state': () => ({
       parentKey: '',
       filters: { categories: ['domain', 'orchestration', 'infrastructure'], langs: [], hideUncertain: false }
     }),
     'explorer:view': (payload) => ((payload as { parentKey: string }).parentKey === '' ? top : domain),
-    'explorer:node': () => detail,
+    'explorer:node': () => nodeDetail,
     'explorer:code': () => ({
       path: 'Domain/OrderService.cs',
       startLine: 20,
@@ -193,6 +215,48 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     await user.type(screen.getByLabelText('Rechercher un élément'), 'Pla')
     await user.click(await screen.findByRole('button', { name: /^Place/ }))
     expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
+  })
+
+  it('should_open_the_guide_and_turn_each_cited_name_of_the_project_into_a_link_to_the_explorer', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderExplorer(project({}, { documentId: 'd1', running: false }))
+    const guide = await screen.findByRole('complementary', { name: 'Guide de reprise' })
+    expect(await within(guide).findByText('Comme une boutique et son arrière-boutique.')).toBeTruthy()
+    expect(within(guide).getByText('npm start').closest('button')).toBeNull()
+    expect(within(guide).getByText('src/Invente.cs').closest('button')).toBeNull()
+    await user.click(
+      await within(guide).findByRole('button', { name: 'Voir Domain/OrderService.cs dans l’explorateur' })
+    )
+    expect(api.invoke).toHaveBeenCalledWith('explorer:locate', {
+      genesisId: GENESIS,
+      sources: ['npm start', 'Domain/OrderService.cs', 'src/Invente.cs']
+    })
+    expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
+    await user.click(within(guide).getByRole('button', { name: 'Régénérer' }))
+    expect(api.invoke).toHaveBeenCalledWith('reprise:guide', { genesisId: GENESIS })
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_offer_to_write_the_guide_once_analyzed_and_show_the_module_analogy_in_the_element_panel', async () => {
+    const user = userEvent.setup()
+    renderExplorer(project(), {
+      ...detail,
+      key: 'm:dir:Domain',
+      kind: 'module',
+      title: 'Domain',
+      summary: 'Le cœur métier.',
+      analogy: 'La cuisine du restaurant.'
+    })
+    await user.click(await screen.findByRole('tab', { name: 'Guide de reprise' }))
+    expect(await screen.findByRole('button', { name: 'Rédiger le guide' })).toBeTruthy()
+    await user.click(screen.getByRole('tab', { name: 'Élément' }))
+    await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
+    await user.click(
+      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: /^Domain/ })
+    )
+    const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
+    expect(await within(panel).findByText('« La cuisine du restaurant. »')).toBeTruthy()
+    expect(within(panel).getByText('Le cœur métier.')).toBeTruthy()
   })
 
   it('should_offer_to_analyze_a_project_never_analyzed_and_go_back_to_the_map', async () => {

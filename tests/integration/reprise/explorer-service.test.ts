@@ -95,6 +95,26 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     expect(explorer.search(genesis, 'save').results.map((result) => result.title)).toContain('Save')
   })
 
+  it('should_locate_the_names_cited_by_the_guide_and_skip_the_unknown_ones', () => {
+    const place = graph.symbols(genesis).find((symbol) => symbol.name === 'Place')
+    const { results } = explorer.locate(genesis, [
+      './Domain/OrderService.cs',
+      'Domain/OrderService.cs#Place',
+      'Place()',
+      'Domain/Invente.cs',
+      'npm start'
+    ])
+    expect(results.map((result) => result.key)).toEqual([
+      'f:Domain/OrderService.cs',
+      `s:${place?.id ?? ''}`,
+      `s:${place?.id ?? ''}`
+    ])
+    for (const result of results)
+      expect(
+        explorer.view(genesis, { parentKey: result.parentKey, filters: DEFAULT_FILTERS }).nodes.length
+      ).toBeGreaterThan(0)
+  })
+
   it('should_measure_the_calls_between_files_for_the_map_of_claude', () => {
     expect(explorer.fileCalls(genesis)).toContainEqual(
       expect.objectContaining({ from: 'Controllers/OrdersController.cs', to: 'Domain/OrderService.cs' })

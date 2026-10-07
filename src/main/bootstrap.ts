@@ -522,6 +522,13 @@ export function bootstrap(shell: ShellPort): AppContext {
     },
     scan: (root) => scanProject(root),
     linkedFolders: () => conversationRepository.linkedFolders(),
+    guide: (genesisId) => {
+      const documentId = repriseRepository.project(genesisId)?.guideDocumentId ?? null
+      return {
+        documentId: documentId !== null && documentRepository.get(documentId)?.deletedAt === null ? documentId : null,
+        running: guide.isRunning(genesisId)
+      }
+    },
     createGenesis: async (title) => (await neurons.create({ text: title })).id,
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     dataDir,

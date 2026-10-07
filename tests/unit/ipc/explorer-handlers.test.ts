@@ -15,6 +15,7 @@ function setup() {
     node: vi.fn(),
     code: vi.fn(() => ({ lines: [] })),
     search: vi.fn(() => ({ results: [] })),
+    locate: vi.fn(() => ({ results: [] })),
     savePosition: vi.fn(),
     state: vi.fn(),
     saveState: vi.fn()
@@ -23,6 +24,19 @@ function setup() {
 }
 
 describe('canaux explorer:* (spec 017 US2)', () => {
+  it('should_locate_at_most_a_hundred_cited_names_of_bounded_length', async () => {
+    const { dispatch, explorer } = setup()
+    expect(await dispatch('explorer:locate', { genesisId: ID, sources: ['Domain/A.cs'] })).toMatchObject({
+      success: true
+    })
+    const many = Array.from({ length: 101 }, (_, index) => `f${index}.ts`)
+    expect(await dispatch('explorer:locate', { genesisId: ID, sources: many })).toMatchObject({ success: false })
+    expect(await dispatch('explorer:locate', { genesisId: ID, sources: ['x'.repeat(301)] })).toMatchObject({
+      success: false
+    })
+    expect(explorer.locate).toHaveBeenCalledTimes(1)
+  })
+
   it('should_open_a_node_with_its_filters_and_isolate_a_neighbourhood', async () => {
     const { dispatch, explorer } = setup()
     expect(await dispatch('explorer:view', { genesisId: ID, parentKey: '', filters: FILTERS })).toMatchObject({

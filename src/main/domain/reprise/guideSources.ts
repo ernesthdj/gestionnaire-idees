@@ -38,21 +38,29 @@ function normalizePath(raw: string): string {
     .replace(/\/+$/, '')
 }
 
+/** Source citée, découpée : texte nettoyé, chemin normalisé, symbole après `#` éventuel. `null` : vide. */
+export function parseSource(
+  raw: string
+): { readonly text: string; readonly path: string; readonly symbol: string | undefined } | null {
+  const text = raw.trim().replace(/^`|`$/g, '').trim()
+  if (text === '') return null
+  const hash = text.lastIndexOf('#')
+  const symbol = hash > 0 && !/^#L\d/.test(text.slice(hash)) ? text.slice(hash + 1) : undefined
+  const path = normalizePath(symbol === undefined ? text : text.slice(0, hash))
+  return { text, path, symbol }
+}
+
 /**
  * Source citée par le guide : sa forme normalisée si elle existe dans le projet (fichier, dossier, clé de module,
  * `fichier#symbole` ou nom de symbole), sinon `null` (retirée et signalée).
  */
 export function checkSource(raw: string, known: KnownSources): string | null {
-  const text = raw.trim().replace(/^`|`$/g, '').trim()
-  if (text === '') return null
-  if (known.modules.has(text)) return text
-  const hash = text.lastIndexOf('#')
-  const symbolPart = hash > 0 && !/^#L\d/.test(text.slice(hash)) ? text.slice(hash + 1) : undefined
-  const path = normalizePath(symbolPart === undefined ? text : text.slice(0, hash))
-  if (symbolPart !== undefined) {
-    return known.symbolsByFile.get(path)?.has(symbolPart) === true ? `${path}#${symbolPart}` : null
-  }
+  const source = parseSource(raw)
+  if (source === null) return null
+  if (known.modules.has(source.text)) return source.text
+  const { path, symbol } = source
+  if (symbol !== undefined) return known.symbolsByFile.get(path)?.has(symbol) === true ? `${path}#${symbol}` : null
   if (known.files.has(path) || known.dirs.has(path)) return path
-  if (!path.includes('/') && known.symbolNames.has(path.replace(/\(\)$/, ''))) return path.replace(/\(\)$/, '')
-  return null
+  const bare = path.replace(/\(\)$/, '')
+  return !path.includes('/') && known.symbolNames.has(bare) ? bare : null
 }

@@ -18,7 +18,10 @@ const SymbolId = z.string().regex(/^[0-9a-f]{32}$/)
 
 /** Canaux `explorer:*` (spec 017 contracts) : lectures du graphe d'un projet repris, positions et filtres retenus. */
 export function createExplorerRoutes(
-  explorer: Pick<ExplorerService, 'view' | 'node' | 'code' | 'search' | 'savePosition' | 'state' | 'saveState'>
+  explorer: Pick<
+    ExplorerService,
+    'view' | 'node' | 'code' | 'search' | 'locate' | 'savePosition' | 'state' | 'saveState'
+  >
 ): IpcRoute[] {
   return [
     defineRoute({
@@ -46,6 +49,11 @@ export function createExplorerRoutes(
       channel: 'explorer:search',
       input: z.strictObject({ genesisId: z.uuid(), query: z.string().trim().min(2).max(100) }),
       handler: async ({ genesisId, query }) => explorer.search(genesisId, query)
+    }),
+    defineRoute({
+      channel: 'explorer:locate',
+      input: z.strictObject({ genesisId: z.uuid(), sources: z.array(z.string().max(300)).max(100) }),
+      handler: async ({ genesisId, sources }) => explorer.locate(genesisId, sources)
     }),
     defineRoute({
       channel: 'explorer:savePosition',

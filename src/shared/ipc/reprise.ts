@@ -70,6 +70,8 @@ export interface RepriseProjectView {
     readonly stats: AnalysisStatsView | null
     readonly analyzedAt: string | null
   }
+  /** Guide de reprise (spec 017 US4) : document du genesis (`null` : pas encore rédigé), rédaction en cours. */
+  readonly guide: { readonly documentId: string | null; readonly running: boolean }
 }
 
 export interface ExplorerFiltersView {

@@ -62,6 +62,7 @@ export class GuideService {
     const runId = randomUUID()
     const started = Date.now()
     this.deps.reprise.startRun({ id: runId, genesisId, kind: 'guide', at: this.now() })
+    this.deps.emit({ type: 'reprise:changed', payload: { genesisId } })
     try {
       const files = this.deps.graph
         .files(genesisId)
@@ -116,13 +117,13 @@ export class GuideService {
         local: localOnly ? 1 : 0,
         durationMs: Date.now() - started
       })
-      this.deps.emit({ type: 'reprise:changed', payload: { genesisId } })
       return { documentId }
     } catch (error) {
       this.deps.reprise.endRun(runId, 'failed', this.now(), { durationMs: Date.now() - started })
       throw error
     } finally {
       this.running.delete(genesisId)
+      this.deps.emit({ type: 'reprise:changed', payload: { genesisId } })
     }
   }
 

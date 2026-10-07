@@ -7,6 +7,20 @@ import remarkGfm from 'remark-gfm'
  * react-markdown), les liens s'ouvrent hors de l'app (seuls les liens https passent : `guardNavigation`), les images
  * ne sont jamais chargées (texte alternatif seulement).
  */
+function Code({
+  children,
+  className
+}: {
+  readonly children?: React.ReactNode
+  readonly className?: string | undefined
+}): React.JSX.Element {
+  return className === undefined ? (
+    <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.85em]">{children}</code>
+  ) : (
+    <code className="font-mono text-xs">{children}</code>
+  )
+}
+
 const COMPONENTS: Components = {
   h1: ({ children }) => <h3 className="mt-3 mb-1 text-base font-semibold">{children}</h3>,
   h2: ({ children }) => <h3 className="mt-3 mb-1 text-base font-semibold">{children}</h3>,
@@ -36,12 +50,7 @@ const COMPONENTS: Components = {
   blockquote: ({ children }) => (
     <blockquote className="my-2 border-l-2 border-content-muted/40 pl-3 text-content-muted">{children}</blockquote>
   ),
-  code: ({ children, className }) =>
-    className === undefined ? (
-      <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.85em]">{children}</code>
-    ) : (
-      <code className="font-mono text-xs">{children}</code>
-    ),
+  code: Code,
   pre: ({ children }) => <pre className="my-2 overflow-x-auto rounded-md bg-surface p-3 text-xs">{children}</pre>,
   a: ({ children, href }) => (
     <a href={href} target="_blank" rel="noreferrer noopener" className="text-accent underline">
@@ -61,9 +70,26 @@ const COMPONENTS: Components = {
   hr: () => <hr className="my-3 border-content-muted/30" />
 }
 
-export function Markdown({ text }: { readonly text: string }): React.JSX.Element {
+export function Markdown({
+  text,
+  inlineCode
+}: {
+  readonly text: string
+  /** Rendu propre d'un code en ligne (ex. un chemin cité qui devient un lien) ; `null` : rendu par défaut. */
+  readonly inlineCode?: (code: string) => React.ReactNode | null
+}): React.JSX.Element {
+  const components: Components =
+    inlineCode === undefined
+      ? COMPONENTS
+      : {
+          ...COMPONENTS,
+          code: ({ children, className }) =>
+            (className === undefined && typeof children === 'string' ? inlineCode(children) : null) ?? (
+              <Code className={className}>{children}</Code>
+            )
+        }
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={COMPONENTS}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={components}>
       {text}
     </ReactMarkdown>
   )

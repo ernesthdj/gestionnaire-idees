@@ -15,7 +15,7 @@ import {
   type Viewport
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CodeCategory, CodeLang, ExplorerNodeView, ExplorerView } from '@shared/ipc/reprise'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
 import { useEffectiveSettings } from '../app/useAppSettings'
@@ -23,6 +23,7 @@ import { Button } from '../components/atoms/Button'
 import { call } from '../lib/ipc'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ExplorerList } from './ExplorerList'
+import { GuidePanel } from './GuidePanel'
 import { CATEGORY_LABELS, KIND_LABELS, LEVEL_NAMES, PROVENANCE_LABELS } from './labels'
 import { NodePanel } from './NodePanel'
 import { semanticZoom } from './semanticZoom'
@@ -101,17 +102,22 @@ function ExplorerMap({
   view,
   parentKey,
   selected,
+  centerKey,
   onSelect,
   onOpen,
-  onUp
+  onUp,
+  onCentered
 }: {
   readonly genesisId: string
   readonly view: ExplorerView
   readonly parentKey: string
   readonly selected: string | null
+  /** Élément à cadrer (lien cité par le guide), une seule fois. */
+  readonly centerKey: string | null
   readonly onSelect: (key: string | null) => void
   readonly onOpen: (key: string) => void
   readonly onUp: () => void
+  readonly onCentered: () => void
 }): React.JSX.Element {
   const settings = useEffectiveSettings()
   const flow = useReactFlow()
@@ -119,6 +125,14 @@ function ExplorerMap({
   const built = useMemo(() => toFlow(view, selected), [view, selected])
   const [nodes, setNodes] = useState<CodeNodeType[]>(built.nodes)
   useEffect(() => setNodes(built.nodes), [built.nodes])
+  useEffect(() => {
+    if (centerKey === null || !built.nodes.some((node) => node.id === centerKey)) return
+    const frame = requestAnimationFrame(() => {
+      void flow.fitView({ nodes: [{ id: centerKey }], duration: 300, maxZoom: 1.2 })
+      onCentered()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [centerKey, built.nodes, flow, onCentered])
   // Zoom d'arrivée du niveau : relevé au début du premier geste de mentalyas (la carte vient d'être cadrée).
   const arrival = useRef<number | null>(null)
   useEffect(() => {
@@ -214,6 +228,20 @@ export function ExplorerPage({
   const [results, setResults] = useState<readonly { key: string; parentKey: string; title: string; path: string }[]>([])
   const view = explorer.view
   const project = explorer.project
+  const [aside, setAside] = useState<'element' | 'guide'>('element')
+  const [centerKey, setCenterKey] = useState<string | null>(null)
+  const guideId = project?.guide.documentId ?? null
+  // Un guide qui vient d'exister (rédigé après la première analyse) s'ouvre dans le panneau (spec 017 US4).
+  const knownGuide = useRef<string | null>(null)
+  useEffect(() => {
+    if (knownGuide.current === null && guideId !== null) setAside('guide')
+    knownGuide.current = guideId
+  }, [guideId])
+  const select = (key: string | null): void => {
+    explorer.select(key)
+    if (key !== null) setAside('element')
+  }
+  const clearCenter = useCallback(() => setCenterKey(null), [])
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -418,7 +446,7 @@ export function ExplorerPage({
             <ExplorerList
               view={view}
               selected={explorer.selected}
-              onSelect={explorer.select}
+              onSelect={select}
               onOpen={(key) => explorer.open(key)}
             />
           ) : (
@@ -428,34 +456,71 @@ export function ExplorerPage({
                 view={view}
                 parentKey={explorer.parentKey}
                 selected={explorer.selected}
-                onSelect={explorer.select}
+                centerKey={centerKey}
+                onSelect={select}
                 onOpen={(key) => explorer.open(key)}
                 onUp={up}
+                onCentered={clearCenter}
               />
             </ReactFlowProvider>
           )}
         </div>
-        <aside aria-label="Élément choisi" className="min-w-0 basis-[38%] border-l border-content-muted/20">
-          {explorer.selected === null ? (
-            <div className="flex flex-col gap-2 p-4 text-sm text-content-muted">
-              <p>Choisis un élément pour voir ce qu’il fait, qui l’appelle et ce qu’il appelle.</p>
-              <p>Double-clic (ou zoom très près) pour entrer dedans ; zoom très loin pour remonter.</p>
-            </div>
-          ) : (
-            <div className="flex h-full flex-col">
-              <div className="flex gap-2 border-b border-content-muted/20 px-4 py-2">
-                <Button onClick={() => explorer.isolate(explorer.selected)}>Isoler</Button>
+        <aside
+          aria-label={aside === 'guide' ? 'Guide de reprise' : 'Élément choisi'}
+          className="flex min-w-0 basis-[38%] flex-col border-l border-content-muted/20"
+        >
+          <div
+            role="tablist"
+            aria-label="Panneau de droite"
+            className="flex gap-1 border-b border-content-muted/20 px-4 py-2"
+          >
+            {(['element', 'guide'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={aside === value}
+                onClick={() => setAside(value)}
+                className={`rounded-md px-3 py-1 text-xs ${
+                  aside === value ? 'bg-surface-raised font-semibold' : 'text-content-muted'
+                }`}
+              >
+                {value === 'element' ? 'Élément' : 'Guide de reprise'}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1">
+            {aside === 'guide' && project !== undefined ? (
+              <GuidePanel
+                genesisId={genesisId}
+                guide={project.guide}
+                analyzed={project.analysis.analyzedAt !== null}
+                onLocate={(parentKey, key) => {
+                  explorer.open(parentKey, key)
+                  setCenterKey(key)
+                }}
+              />
+            ) : explorer.selected === null ? (
+              <div className="flex flex-col gap-2 p-4 text-sm text-content-muted">
+                <p>Choisis un élément pour voir ce qu’il fait, qui l’appelle et ce qu’il appelle.</p>
+                <p>Double-clic (ou zoom très près) pour entrer dedans ; zoom très loin pour remonter.</p>
               </div>
-              <div className="min-h-0 flex-1">
-                <NodePanel
-                  genesisId={genesisId}
-                  nodeKey={explorer.selected}
-                  onGo={explorer.select}
-                  onOpen={(parentKey, select) => explorer.open(parentKey, select)}
-                />
+            ) : (
+              <div className="flex h-full flex-col">
+                <div className="flex gap-2 border-b border-content-muted/20 px-4 py-2">
+                  <Button onClick={() => explorer.isolate(explorer.selected)}>Isoler</Button>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <NodePanel
+                    genesisId={genesisId}
+                    nodeKey={explorer.selected}
+                    onGo={explorer.select}
+                    onOpen={(parentKey, key) => explorer.open(parentKey, key)}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </aside>
       </div>
 
