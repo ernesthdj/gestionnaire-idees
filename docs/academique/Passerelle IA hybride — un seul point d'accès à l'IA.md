@@ -123,3 +123,9 @@ for (let attempt = 0; attempt < 2; attempt += 1) {
 
 ## Évolution du 05/10 — plus d'API Anthropic
 > ⚠️ **Correction du 05/10** — Le routage configurable, la recherche web, le budget et l'anonymisation décrits ci-dessus ont été **retirés** (spec 010, constitution 3.0.0). `ClaudeProvider` (SDK Anthropic) est remplacé par `ClaudeCliProvider` : Claude passe par le CLI de mentalyas (`claude -p --json-schema`, abonnement, aucune clé). La passerelle ne garde que **deux tâches** : `categoriser` (Ollama, local) et `widget` (Claude Code). Le principe de la note reste vrai : **un seul point d'accès**, et toute réponse revalidée par Zod. Le chat des neurones, lui, ne passe pas par la passerelle : voir [[Piloter Claude Code — processus enfant, flux stream-json et session reprise]].
+
+## Évolution du 07/10 — une troisième tâche, et un moteur imposé par la confidentialité
+- **`reprise_guide`** rejoint `categoriser` et `widget` (spec 017 US4) : Claude par défaut, effort moyen, 16 000 tokens de sortie. Son **cadre système** est propre (`RepriseGuideFrame.ts`), comme celui des widgets : le cadre du brainstorm refuse les longs textes rédigés.
+- **`localOnly`** : pour un projet repris « Local uniquement », la passerelle **impose Ollama**, sans repli vers Claude **ni** mise en file, et teste cette règle **avant** le repli habituel ; Ollama arrêté → `AI_UNAVAILABLE` immédiat. La règle « `LOCAL_ONLY_KINDS` » de l'ancienne passerelle revient sous une autre forme : non plus par **type de tâche**, mais par **donnée** (le projet).
+- **Délai et fenêtre par tâche** (`timeoutFor`, `contextTokensFor` dans `domain/ai/routing.ts`) : 10 min et `num_ctx: 32768` pour le guide, sinon les valeurs du moteur (2 min Ollama, 4 min Claude). → [[Glossaire — Fenêtre de contexte (IA)]]
+- Détail : [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]].

@@ -107,3 +107,9 @@ catch { throw new AppError('VALIDATION', 'Le registre ProjectMaster est illisibl
 - [[Glossaire — Empreinte SHA-256]] — détecter qu'un fichier a changé hors de l'app.
 - [[Glossaire — Suppression douce (soft delete)]] — la corbeille est sa version « disque ».
 - [[Annuler par lot — journal avant-après, conflit et lot inverse]] — gestionnaires d'entités externes (base + disque).
+
+
+## Évolution du 07/10 — un dossier lié n'est pas toujours à nous (faille FR-030)
+> 🔒 Un genesis **repris** (spec 017) est lié au dossier du projet d'un autre. Or `DocumentFiles` écrivait les documents d'un genesis lié dans `<dossier>/docs/brainstormer/` : le guide de reprise, ou un `document_ecrire` de Claude, aurait **modifié le projet de l'employeur**. Trouvé en **lisant** le code (pas par un test), corrigé à la **composition** (`bootstrap.ts`) : pour un projet repris, `projectDir` renvoie `null`, et tout document vit dans le profil de l'app. Leçon : la règle « le main choisit le chemin » ne suffit pas — il faut aussi se demander **à qui appartient** le dossier.
+
+Côté lecture, la même garde sert à l'explorateur et au guide : `realpath` de la racine et du fichier, `relative()` qui ne commence pas par `..`, taille bornée (256 Ko pour le guide, 1 Mo pour le volet de code), octet nul refusé (fichier binaire), fichier sensible jamais lu. → [[Explorateur de code — du module au bloc, appelants et appelés]]

@@ -1,8 +1,8 @@
 ---
 type: MOC
-subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés ; session du 04→06/10 : interface visuelle de Claude Code, specs 007 à 016)
-tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets, #mcp, #claude-code, #processus, #fichiers]
-date: 2026-10-06
+subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés ; session du 04→06/10 : interface visuelle de Claude Code, specs 007 à 016 ; matin du 07/10 : reprise d'un projet existant, spec 017 US4 et D16)
+tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets, #mcp, #claude-code, #processus, #fichiers, #reprise]
+date: 2026-10-07
 ---
 
 # Gestionnaire idées — Map of Content
@@ -50,7 +50,13 @@ flowchart TD
     end
     C --> X1
     W --> X4
+    subgraph "Spec 017 — reprendre un projet existant (07/10)"
+        Y1["Guide de reprise<br/>contexte borné + sources vérifiées"] --> Y2["Explorateur de code<br/>module → bloc, appelants / appelés"]
+    end
+    X6 --> Y1
 ```
+
+> 🆕 **Matin du 07/10 (spec 017 US4 et D16)** : pour un projet **écrit par d'autres**, l'app fait rédiger un **guide de reprise** en 9 sections (Claude, ou Ollama seul si le projet est « Local uniquement »), dont chaque source citée est **vérifiée** contre l'analyse ; puis l'explorateur passe à **un seul écran** : modules et dossiers sur la carte, fichier entier dans le volet avec, par bloc, ses **appelants** et ses **appelés**. Nouvelles notes : 2 concepts, 2 glossaires ; blocs « Évolution du 07/10 » dans 4 notes (Passerelle, Synthèse vérifiée, Fichiers écrits, Injection de prompt). 🔒 Faille FR-030 corrigée (documents écrits dans le dossier du projet repris). ℹ️ L'import, l'analyse statique tree-sitter, la confidentialité par projet et la carte de Claude (US1, US3, US7, nuit du 06→07/10) n'ont **pas encore de note dédiée** : les deux notes du jour en donnent l'essentiel dans leurs introductions.
 
 > 🆕 **Session du 04→06/10 (specs 007 à 016)** : virage de la vision — le Brainstormer devient **l'interface visuelle de Claude Code**. Claude lit et dessine la carte par un **pont MCP**, chaque idée est une **conversation `claude -p`**, l'API Anthropic disparaît, l'ancien moteur de neurones est **retiré** (≈ 13 400 lignes). Puis : plan d'attaque, documents Markdown, actions finales qui écrivent dans un vrai projet, permissions relayées en cartes, genesis → projet avec git. Nouvelles notes : 6 concepts, 5 glossaires ; blocs « Évolution » ajoutés dans 21 notes existantes. ⚠️ **Huit d’entre eux sont des corrections** : passerelle, anonymisation, budget, croissance, synthèse, liens, plongée, outils au verrouillage — ces modules **n'existent plus dans le code** (tables gardées en archive). Les notes restent des cours valables sur leurs techniques.
 
@@ -90,6 +96,8 @@ flowchart TD
 - [[Glossaire — Écriture atomique (temporaire puis renommage)]] — ancien ou nouveau, jamais à moitié *(06/10)*
 - [[Glossaire — Traversée de chemin et lien symbolique]] — rester dans son dossier, vérifié sur le chemin réel *(06/10)*
 - [[Glossaire — Clé stable et upsert]] — recevoir deux fois la même chose sans doublon *(06/10)*
+- [[Glossaire — Fenêtre de contexte (IA)]] — ce que le modèle voit d'un coup, et la troncature silencieuse *(07/10)*
+- [[Glossaire — Graphe d'appels (appelants et appelés)]] — qui appelle qui, lu dans les deux sens *(07/10)*
 
 ## Concepts fondamentaux
 *À maîtriser en premier — la charpente*
@@ -141,6 +149,11 @@ flowchart TD
 - [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — *intermédiaire* — documents, dossier de projet, registre
 - [[Lancer un programme sans shell — chemin absolu, arguments séparés, listes blanches]] — *avancé* — git, npm, éditeur, sans injection
 
+## Reprendre un projet existant (spec 017 — 07/10)
+*Lire le code d'un autre sans le modifier, et sans le laisser partir*
+- [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]] — *avancé* — l'IA rédige, le code vérifie chaque citation ; Ollama seul en « Local uniquement »
+- [[Explorateur de code — du module au bloc, appelants et appelés]] — *avancé* — carte à deux étages, volet de code, liens agrégés sur l'ancêtre visible
+
 ## Ponts outil ↔ mécanisme
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que l'ORM fait à ta place (et pourquoi pas Prisma)
 - [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier (+ sortie tolérante, 29/09)
@@ -177,8 +190,10 @@ flowchart TD
 27. [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]] — avec [[Glossaire — Parcours en profondeur (DFS)]] (bloc des trois couleurs) et [[Glossaire — Clé stable et upsert]]
 28. [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — avec [[Glossaire — Écriture atomique (temporaire puis renommage)]] et [[Glossaire — Traversée de chemin et lien symbolique]]
 29. [[Lancer un programme sans shell — chemin absolu, arguments séparés, listes blanches]] — la synthèse sécurité de la session
+30. [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]] — avec [[Glossaire — Fenêtre de contexte (IA)]] ; relire avant les blocs « Évolution du 07/10 » de la Passerelle, de la Synthèse vérifiée et de l'Injection de prompt
+31. [[Explorateur de code — du module au bloc, appelants et appelés]] — avec [[Glossaire — Graphe d'appels (appelants et appelés)]] ; puis le bloc « Évolution du 07/10 » de [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] (faille FR-030)
 
-> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion. Notes 24 à 29 → **revoir dans 2 jours** : dessine de mémoire les quatre processus (Claude Code, relais, main, renderer) et le trajet d'une demande de permission, avec les trois délais ; puis déroule à la main le DFS gris/noir sur A→B→C→A ; enfin, cite les trois règles pour lancer un programme.
+> 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion. Notes 24 à 29 → **revoir dans 2 jours** : dessine de mémoire les quatre processus (Claude Code, relais, main, renderer) et le trajet d'une demande de permission, avec les trois délais ; puis déroule à la main le DFS gris/noir sur A→B→C→A ; enfin, cite les trois règles pour lancer un programme. Notes 30 et 31 → **revoir dans 2 jours** : sans regarder, liste l'ordre de l'entrée du guide (et ce qui est compté quand ça déborde), déroule `checkSource` sur trois sources (un fichier, un `fichier#symbole` inventé, une clé de module) ; puis dessine deux dossiers, trois fonctions et leurs appels, et trace la flèche agrégée que montre la carte.
 
 ## Questions de révision globale
 > **Q :** Suis une réponse de l'utilisateur, de son clic jusqu'au disque puis jusqu'à Claude : quelles barrières traverse-t-elle ?
@@ -217,6 +232,12 @@ flowchart TD
 > **Q :** Qu'ont en commun `--setting-sources ""`, `resolveGit()` et `realpath` ?
 > **R :** Tous trois empêchent un **dossier de projet non fiable** d'agir à notre place : hooks cachés, `git.exe` piégé dans le dossier courant, lien symbolique vers ailleurs.
 
+> **Q :** Projet repris « Local uniquement ». Suis une demande de guide de reprise de l'onglet jusqu'au document, en nommant chaque barrière.
+> **R :** `reprise:guide` (IPC, Zod) → `GuideService` : projet analysé ? pas déjà en cours ? → entrée bornée (graphe + README/manifestes lus sous la racine réelle, jamais sensibles) → `AIGateway` : `localOnly` → Ollama ou `AI_UNAVAILABLE`, jamais Claude → réponse validée par Zod (9 sections) → `checkSource` retire les sources inventées → document du **profil** (jamais le dossier du projet, FR-030), nouvelle version + lot annulable → `reprise:changed` → l'onglet relit.
+
+> **Q :** Donne deux endroits où l'app **dit sa propre limite** au lieu de la cacher.
+> **R :** Les chemins omis comptés dans l'entrée du guide (« … N chemins omis ») ; la ligne d'appel du volet de code, **approchée** et écrite comme telle dans D16 ; (et le bandeau « rédigé par le modèle local, qualité moindre »).
+
 ## Ressources complémentaires
 - Cadrage : `docs/FOUNDATION.md` (§0 amendements Brainstormer prioritaires), `docs/brainstorm/L1-…L4c-*.md`, `.specify/memory/constitution.md` (v1.1.0)
 - Specs : `specs/001-moteur-ia-hybride/`, `specs/002-structuration-ia/`, `specs/003-interface-mvp1/` (spec, plan, research, data-model, contracts, tasks, analysis-report)
@@ -228,4 +249,5 @@ flowchart TD
 - *Mise à jour du 30/09* — Graphe : 2 558 nœuds, 177 communautés ; nouvelles communautés « Spec 004 — Boîte à outils de la carte et mini-widgets », « WidgetRepository », « WidgetNode.tsx », hyper-arête « Bac à sable des widgets : isolation en couches gi-widget:// ». Cadrage : `specs/004-widgets/` (spec, plan § Isolation, tasks, quickstart § 4 « Évasion du bac à sable »), `.specify/memory/constitution.md` (v1.2.0), `docs/brainstorm/L4c-widgets.md`. Code clé spec 004 : `src/main/application/widgets/{WidgetDocument,transpile,widgetUrl,WidgetService}.ts`, `src/main/shell/{widgetProtocol,hardening}.ts`, `src/main/infrastructure/ai/WidgetFrame.ts`, `src/main/infrastructure/db/repositories/{WidgetRepository,BlockRepository}.ts`, `src/main/infrastructure/db/migrations/0009…0011` (+ `down/`), `src/renderer/src/canvas/{ToolMenu.tsx,useBlockActions.ts,nodes/WidgetNode.tsx,nodes/LabelNode.tsx}`, `src/shared/ai/widgets.ts`. Tests : `tests/unit/widgets/{widget-document,widget-escape}.test.ts`, `tests/integration/widgets/widgets.test.ts`. 634 tests en fin de session selon le journal (lus, non exécutés ici).
 - *Mise à jour du 30/09 (soir)* — Graphe : 3 082 nœuds, 191 communautés ; nouvelles communautés « WidgetIoService », « WidgetIoRepository » (24 liens), « Spec 005 — Widgets branchés », « Spec 006 — Widgets proposés au verrouillage », « tool-hatching.test.ts » ; hyper-arêtes « Pont d'entrées d'un widget » et « Outils à l'éclosion ». Cadrage : `specs/005-widgets-entrees-sorties/` (plan § Pont, § Revue et empreinte, § Signature de structure, § Cadre résultat), `specs/006-widgets-au-verrouillage/` (plan, décisions R1–R8). Code clé : `src/main/application/widgets/{WidgetIoService,InputAssembler,ToolGeneration,toolSurroundings,GenericResultView}.ts`, `src/main/domain/widgets/{shape,resultLimits,placeTools,toolProposals}.ts`, `src/shared/widgets/genericResultView.ts`, `src/renderer/src/widgets/{useWidgetBridge,emitThrottle}.ts`, `src/main/application/neurons/{SynthesisApplier,SynthesisContextBuilder}.ts`, `src/main/domain/neurons/nextStep.ts`, `src/shared/ai/neurons.ts`, migrations `0012…0016` (+ `down/`). 788 tests en fin de session selon le journal (lus, non exécutés ici).
 - *Mise à jour du 06/10* — Graphe : 3 907 nœuds, 244 communautés ; nouvelles communautés « Outils MCP de la carte », « Permissions et flux du CLI », « Processus Claude Code », « Plan d'attaque », « Disposition du plan », « Commandes approuvées (spec 013) », « Actions finales et livrables », « Genesis → projet (spec 016) », « Conversion de l'ancien moteur ». Cadrage : `docs/brainstorm/L1c-pont-claude-code.md`, `L2-`/`L3-` (pont MCP, moteur CLI, terminal, neurone conversationnel, carte de structure), `specs/007-…` à `specs/016-…`, `.specify/memory/constitution.md` (3.0.0, 4.0.0 proposée). Code clé : `src/mcp-relay/relay.ts`, `src/main/infrastructure/mcp/{PipeServer,token,endpoint,lineSplitter}.ts`, `src/shared/mcp/{protocol,tools}.ts`, `src/main/infrastructure/claude/{CliConversation,claudePath}.ts`, `src/main/domain/conversation/{streamEvents,permissions}.ts`, `src/main/application/conversation/{ConversationService,PermissionService,LegacyConversion}.ts`, `src/main/infrastructure/ai/ClaudeCliProvider.ts`, `src/main/domain/plan/{dependencies,lock}.ts`, `src/renderer/src/canvas/planLayout.ts`, `src/main/infrastructure/documents/DocumentFiles.ts`, `src/main/domain/documents/fileName.ts`, `src/main/domain/finals/{projectPath,commands,editor}.ts`, `src/main/infrastructure/{finals/CommandRunner,editor/EditorLauncher,projects/GitCli,projects/ProjectFolder,projects/HubRegistry}.ts`, migrations `0017…0027` (+ `down/`). 994 tests en fin de session selon le journal (lus, non exécutés ici).
+- *Mise à jour du 07/10* — Graphe : 5 101 nœuds, 317 communautés ; communautés liées : « Agrégation de l'explorateur », « Analyse statique tree-sitter », hyper-arête « Explorateur sur un seul écran (D16) », groupes « Tâche IA reprise_guide », « Faille FR-030 ». Cadrage : `specs/017-reprise-voir/` (spec D16, FR-020 révisée, FR-027 à FR-030, FR-037 ; contracts, data-model), `docs/brainstorm/L1f-reprise-projet.md`. Code clé : `src/main/application/ai/RepriseGuideTask.ts`, `src/main/infrastructure/ai/RepriseGuideFrame.ts`, `src/main/domain/ai/routing.ts`, `src/main/application/reprise/{GuideService,ExplorerService}.ts`, `src/main/domain/reprise/{guideSources,aggregate,layout}.ts`, `src/main/infrastructure/reprise/projectText.ts`, `src/shared/ai/schemas.ts` (`GuideOut`), migration `0029_reprise_guide` (+ `down/`), `src/renderer/src/explorer/{GuidePanel,FilePanel,ExplorerNodes,ExplorerPage}.tsx`, `src/renderer/src/lib/CodeLines.tsx`. 1 175 tests en fin de session selon le journal (lus, non exécutés ici).
 - 💡 Glisse ces notes dans NotebookLM / Gemini si tu veux un *study guide* ou un quiz audio.

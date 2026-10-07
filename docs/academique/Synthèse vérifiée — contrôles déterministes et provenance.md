@@ -109,3 +109,6 @@ export function applyProvenance(plan: ActionPlanOut, sources: ReadonlyMap<string
 
 ## Évolution du 05/10 — moteur retiré, l'idée continue
 > ⚠️ **Correction du 05/10** — `planChecks.ts`, `provenance.ts` et la synthèse sont **retirés** avec l'ancien moteur (spec 010 C2). Le principe « **l'IA propose, le code garantit** » survit dans le plan d'attaque : Claude propose une couche d'étapes (fantômes), le code vérifie dépendances et ordre, mentalyas valide. Le tri de Kahn cède la place à un **DFS à trois couleurs** pour détecter les cycles : [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]].
+
+## Évolution du 07/10 — le contrôle de provenance revient, pour le guide de reprise
+Le principe de P6 (« une valeur doit venir d'une source citée ») réapparaît dans la spec 017 : le guide de reprise cite ses **sources** (chemins, clés de modules, `fichier#symbole`), et `checkSource` (`domain/reprise/guideSources.ts`, fonction pure) les confronte à ce que l'analyse connaît. Une source introuvable est **retirée et affichée** (« ⚠️ Introuvables dans le projet »), jamais corrigée en silence. Même limite qu'ici : on vérifie qu'une source **existe**, pas qu'elle **dit** ce qu'on lui fait dire. → [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]]
