@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md**
 
 ---
 
@@ -24,6 +24,43 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 00000. Amendement du 2026-10-07 — L'arbre de skills : la toile de compétences de Claude
+
+> Détail complet : `docs/brainstorm/L1h-arbre-de-skills.md` (vision, arbitrages A1–A9), `L2-skills-{voir, comprendre,
+> evoluer, importer}.md` (cas d'usage, règles, critères), `L3-skills-{voir, comprendre, evoluer, importer}.md` (contrats
+> IPC, données, outils, séquences, sécurité), `L4f-skills.md` (parcours, écrans). Ces fichiers priment sur ce résumé.
+
+### 00000.1 Vision
+Une page **Skills** qui montre les skills de Claude Code comme un **arbre de compétences de jeu vidéo** : chaque skill
+est un nœud (titre, qualité en étoiles, usage réel), rangé sur la branche de son domaine, relié aux skills qu'il appelle
+ou complète ; un clic ouvre sa **fiche technique**. On y brainstorme avec Claude exclusivement sur les skills : les
+comprendre, les améliorer, en créer, en importer depuis GitHub — et voir sa toile grandir.
+
+### 00000.2 Arbitrages
+| # | Sujet | Décision |
+|---|-------|----------|
+| A1 | Périmètre | Tous les skills, par familles : personnels, de projet, de plugins (filtre) |
+| A2 | Étoiles | Qualité 1–5 notée par Claude (grille fixe, justifiée ; la note de mentalyas prime) + usage réel sur 30 jours, compté sans lire les conversations |
+| A3 | Liens | Détectés dans le texte (« appelle ») + proposés par Claude (« enchaîne vers », « complète », « alternative à ») ; corrigeables |
+| A4 | Écriture | Brouillon (outil `skill_brouillon`, rien sur le disque) → différences → « Installer » ; 10 versions gardées, « Revenir » |
+| A5 | Import GitHub | Clone en quarantaine (clone contrôlé de la spec 017 US5), audit par Claude + règles fixes, choix de mentalyas, scripts exclus par défaut |
+| A6 | Disposition | Branches par domaine autour d'un tronc « Toi » |
+| A7 | Conversations | Une conversation « Skills » générale + une par skill |
+| A8 | Droits | Personnels et de projet modifiables ; plugins en lecture seule (« Dupliquer en skill personnel ») |
+| A9 | Constitution | Amendement du principe I : écriture dans les dossiers de skills seulement sur « Installer » / « Revenir », version sauvegardée, jamais d'exécutable depuis un brouillon de Claude |
+
+### 00000.3 Fonctionnalités et lots
+| # | Fonctionnalité | Lot | Spec prévue |
+|---|----------------|-----|-------------|
+| SK-A | Voir : inventaire, liens écrits, arbre, fiche brute | A | 020 |
+| SK-B | Comprendre : fiche et note par Claude (tâche sans outil), domaines, liens de sens, usage | B | 020 |
+| SK-C | Faire évoluer : conversations, brouillons, installation, versions | C | 020 |
+| SK-D | Importer : URL contrôlée, quarantaine, audit, choix | D | 020 (reprend 017 US5) |
+
+Aucune dépendance externe nouvelle prévue. Migration prévue : 0033 (tables `skill_*`).
 
 ---
 

@@ -13,6 +13,9 @@
 > **Évolution (2026-10-07) :** **Analyste interne** (sonde sans contenu, Claude en lecture seule qui propose, mise à jour
 > sur une branche `analyste/*` gardée ou jetée, annulable). Voir `docs/FOUNDATION.md` §0000 et
 > `docs/brainstorm/L1g-analyste-interne.md`. Spec prévue : 019 (à confirmer), après amendement de la constitution.
+> **Évolution (2026-10-07) :** **Arbre de skills** (page Skills : skills de Claude en arbre de compétences, fiche
+> technique, brouillon → installation, import GitHub en quarantaine). Voir `docs/FOUNDATION.md` §00000 et
+> `docs/brainstorm/L1h-arbre-de-skills.md`. Spec prévue : 020.
 
 ---
 
