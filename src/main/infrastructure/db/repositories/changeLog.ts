@@ -17,6 +17,7 @@ export interface ChangeEntry {
     | 'document'
     | 'final'
     | 'structure'
+    | 'skills'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown

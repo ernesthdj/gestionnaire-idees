@@ -9,7 +9,8 @@ import type {
   McpToolName,
   PlanProposerInput,
   StructureDessinerInput,
-  ElementAvancerInput
+  ElementAvancerInput,
+  SkillBrouillonInput
 } from '@shared/mcp/tools'
 import type { McpCaller } from '../../domain/mcp/caller'
 import type { MapService } from './MapService'
@@ -21,7 +22,16 @@ import type { StructureService } from '../structure/StructureService'
 import type { PermissionService } from '../conversation/PermissionService'
 import type { DeliverableTracker } from '../finals/DeliverableTracker'
 import type { CodeGraphTools } from '../reprise/CodeGraphTools'
+import type { SkillTools } from './SkillTools'
 import { McpToolError } from '../../domain/mcp/errors'
+
+/** Outils permis dans une conversation Skills (la permission reste relayée à mentalyas). */
+const SKILLS_CHAT_TOOLS: ReadonlySet<McpToolName> = new Set([
+  'skills_lire',
+  'skill_brouillon',
+  'permission_demander',
+  'ecriture_avant'
+])
 
 /** Aiguillage des outils du pont : carte (spec 007) ou neurone de la conversation (spec 008). */
 export function createToolHandler(
@@ -33,10 +43,27 @@ export function createToolHandler(
   finals: Pick<FinalTools, 'propose'>,
   permissions?: Pick<PermissionService, 'request'>,
   deliverables?: Pick<DeliverableTracker, 'before'>,
-  codeGraph?: Pick<CodeGraphTools, 'read'>
+  codeGraph?: Pick<CodeGraphTools, 'read'>,
+  skills?: {
+    readonly tools: Pick<SkillTools, 'read' | 'draft'>
+    /** Conversation Skills (spec 020 H1) : seuls les outils des skills et les demandes de permission. */
+    readonly isSkillsChat: (neuronId: string) => boolean
+  }
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
+    if (caller.neuronId !== null && skills?.isSkillsChat(caller.neuronId) === true && !SKILLS_CHAT_TOOLS.has(tool)) {
+      throw new McpToolError(
+        'NON_MODIFIABLE',
+        'Dans une conversation Skills, seuls skills_lire et skill_brouillon servent.'
+      )
+    }
     switch (tool) {
+      case 'skills_lire':
+        if (skills === undefined) throw new McpToolError('INTROUVABLE', 'Skills indisponibles.')
+        return skills.tools.read((args as { skill?: string }).skill)
+      case 'skill_brouillon':
+        if (skills === undefined) throw new McpToolError('INTROUVABLE', 'Skills indisponibles.')
+        return skills.tools.draft(args as SkillBrouillonInput)
       case 'neurone_contexte':
         return neurons.context((args as { id?: string }).id, caller)
       case 'fiche_ecrire':

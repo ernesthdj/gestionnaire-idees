@@ -33,7 +33,7 @@ export interface ChatState {
   readonly folder: string | null
   /** Le dossier est un dépôt git (spec 016). */
   readonly git: boolean
-  readonly role: 'genesis' | 'element' | 'step'
+  readonly role: 'genesis' | 'element' | 'step' | 'skills'
   readonly elementType: string | null
   readonly stepLabel: string | null
   /** Modèle utilisé ; `modelChoice` : celui choisi pour cette conversation (`null` : défaut de son usage). */

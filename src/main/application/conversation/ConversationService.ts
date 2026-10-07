@@ -72,6 +72,8 @@ export interface ConversationDeps {
   readonly settings: () => ConversationSettings
   /** Cadre stable (`--append-system-prompt`). */
   readonly frame: string
+  /** Cadre des conversations Skills (spec 020 US3). */
+  readonly skillsFrame?: string
   readonly emit: (event: ChatEvent) => void
   /** Sélecteur de dossier natif (main) ; `undefined` si annulé. Jamais un chemin venu de l'interface. */
   readonly pickFolder?: () => Promise<string | undefined>
@@ -108,6 +110,12 @@ export const CHAT_BUILTIN_TOOLS = 'default'
 export const CHAT_ALLOWED_TOOLS = 'mcp__brainstormer Read Glob Grep WebSearch'
 /** Outil du pont qui relaie chaque demande de permission vers mentalyas (spec 014 R1). */
 export const PERMISSION_PROMPT_TOOL = 'mcp__brainstormer__permission_demander'
+/**
+ * Conversations Skills (spec 020 H1) : lecture et recherche, plus les deux outils des skills ; aucun outil d'écriture
+ * ni de commande, quel que soit le mode choisi ailleurs : Claude ne peut que déposer des brouillons.
+ */
+export const SKILLS_CHAT_TOOLS = 'Read Glob Grep'
+export const SKILLS_CHAT_ALLOWED = 'mcp__brainstormer__skills_lire mcp__brainstormer__skill_brouillon Read Glob Grep'
 
 /** Arguments fixes du CLI (spec 008 research R1) : aucun ne vient de l'interface ni du texte de mentalyas. */
 export function conversationArgs(input: {
@@ -118,7 +126,11 @@ export function conversationArgs(input: {
   readonly settings: ConversationSettings
   /** Mode de permission de la conversation (spec 014 D1) ; défaut : Demander. */
   readonly permissionMode?: PermissionMode
+  /** Conversation Skills : outils restreints et mode Demander figé (spec 020 H1). */
+  readonly profile?: 'skills'
 }): string[] {
+  const skills = input.profile === 'skills'
+  const mode = skills ? 'default' : (input.permissionMode ?? 'default')
   const { settings } = input
   const mcpConfig = {
     mcpServers: {
@@ -158,15 +170,15 @@ export function conversationArgs(input: {
     '--mcp-config',
     JSON.stringify(mcpConfig),
     '--tools',
-    CHAT_BUILTIN_TOOLS,
+    skills ? SKILLS_CHAT_TOOLS : CHAT_BUILTIN_TOOLS,
     '--allowedTools',
-    CHAT_ALLOWED_TOOLS,
+    skills ? SKILLS_CHAT_ALLOWED : CHAT_ALLOWED_TOOLS,
     // Les demandes de permission vont à mentalyas par le pont (jamais refusées en silence, jamais acceptées seules).
     '--permission-prompt-tool',
     PERMISSION_PROMPT_TOOL,
     '--permission-mode',
-    input.permissionMode ?? 'default',
-    ...(input.permissionMode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
+    mode,
+    ...(mode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
     '--append-system-prompt',
     input.frame
   ]
@@ -270,7 +282,14 @@ export class ConversationService {
       usage: this.usage(neuronId),
       folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
       git: ((dir) => dir !== null && (this.deps.isGitRepo?.(dir) ?? false))(this.folderOf(neuron)),
-      role: neuron.kind === 'element' ? 'element' : neuron.kind === 'step' ? 'step' : 'genesis',
+      role:
+        neuron.kind === 'element'
+          ? 'element'
+          : neuron.kind === 'step'
+            ? 'step'
+            : neuron.kind === 'skills_chat'
+              ? 'skills'
+              : 'genesis',
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
@@ -453,9 +472,10 @@ ${text}`
       sessionId,
       resume,
       neuronId: neuron.id,
-      frame: this.deps.frame,
+      frame: neuron.kind === 'skills_chat' ? (this.deps.skillsFrame ?? this.deps.frame) : this.deps.frame,
       settings: { ...settings, model },
-      permissionMode: this.permissionModeOf(neuron)
+      permissionMode: this.permissionModeOf(neuron),
+      ...(neuron.kind === 'skills_chat' ? { profile: 'skills' as const } : {})
     })
     const neuronId = neuron.id
     const process = this.deps.spawn({
@@ -693,6 +713,7 @@ ${text}`
 
   /** Mode d'une conversation : celui choisi pour elle, sinon le défaut réglé (Demander). */
   private permissionModeOf(neuron: ConversationNeuron): PermissionMode {
+    if (neuron.kind === 'skills_chat') return 'default'
     return neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
   }
 

@@ -20,6 +20,7 @@ export type NeuronKind =
   | 'idea'
   | 'element'
   | 'step'
+  | 'skills_chat'
 export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
 
 export interface CategoryView {

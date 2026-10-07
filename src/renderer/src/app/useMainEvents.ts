@@ -19,7 +19,7 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   // Exécution commencée, fichier écrit, exécution finie (spec 013) : l'action et son livrable changent.
   ['final:changed', [['canvas'], ['history'], ['deliverable'], ['structure']]],
   // Dossier de skills modifié (spec 020) : l'arbre et la fiche ouverte se relisent.
-  ['skills:changed', [['skills'], ['skill']]]
+  ['skills:changed', [['skills'], ['skill'], ['skillDrafts'], ['skillDraftDiff']]]
 ]
 
 function isMapChanged(payload: unknown): payload is MapChangedPayload {

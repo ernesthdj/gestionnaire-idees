@@ -39,7 +39,8 @@ const DETAIL: SkillDetailView = {
   skill: VIEW.skills[0] as SkillView,
   markdown: '# Hub\n\nLance `/graphify`. <img src=x onerror=alert(1)>',
   files: [{ path: 'SKILL.md', size: 2048, executable: false }],
-  filesTruncated: false
+  filesTruncated: false,
+  versions: 0
 }
 
 const renderPage = () =>

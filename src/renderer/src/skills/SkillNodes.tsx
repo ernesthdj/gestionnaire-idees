@@ -16,6 +16,10 @@ export type SkillNodeType = Node<SkillNodeData, 'skill'>
 export type TrunkNodeType = Node<{ readonly count: number }, 'trunk'>
 export type BranchNodeType = Node<{ readonly label: string; readonly count: number }, 'branch'>
 export type ClusterNodeType = Node<{ readonly count: number; readonly onToggle: () => void }, 'cluster'>
+export type GhostNodeType = Node<
+  { readonly name: string; readonly description: string; readonly selected: boolean },
+  'ghost'
+>
 
 function Handles(): React.JSX.Element {
   return (
@@ -90,5 +94,23 @@ export function ClusterNode({ data }: NodeProps<ClusterNodeType>): React.JSX.Ele
       </span>
       <span className="text-content-muted">Déplier</span>
     </button>
+  )
+}
+
+/** Brouillon d'un nouveau skill (FR-023) : nœud fantôme jusqu'à son installation. */
+export function GhostNode({ data }: NodeProps<GhostNodeType>): React.JSX.Element {
+  return (
+    <div
+      className={`flex h-[104px] w-[208px] flex-col justify-between rounded-xl border-2 border-dashed border-accent bg-surface px-3 py-2 text-xs opacity-90 ${
+        data.selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : ''
+      }`}
+    >
+      <Handles />
+      <p className="truncate text-sm font-semibold text-content" title={data.name}>
+        {data.name}
+      </p>
+      <p className="line-clamp-2 text-content-muted">{data.description}</p>
+      <p className="font-semibold text-accent">Brouillon · à installer</p>
+    </div>
   )
 }

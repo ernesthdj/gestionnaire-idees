@@ -82,6 +82,16 @@ export class SkillInventory {
 
   constructor(private readonly options: SkillInventoryOptions) {}
 
+  /** Dossier réel d'un skill inventorié (lecture par le main seulement), `null` s'il est inconnu. */
+  dirOf(skillId: string): string | null {
+    return this.scan().entries.get(skillId)?.dir ?? null
+  }
+
+  /** Oublie l'inventaire en cache (un skill vient d'être écrit par l'app). */
+  invalidate(): void {
+    this.cache = null
+  }
+
   /** Toile courante (inventaire fait au premier appel ou après un changement). */
   list(): SkillsView {
     return this.scan().view
@@ -94,7 +104,7 @@ export class SkillInventory {
   }
 
   /** Détail d'un skill : son `SKILL.md` et la liste de ses fichiers, relus sur le disque. */
-  get(skillId: string): SkillDetailView {
+  get(skillId: string): Omit<SkillDetailView, 'versions'> {
     const entry = this.scan().entries.get(skillId)
     if (entry === undefined) throw new AppError('NOT_FOUND', 'Skill introuvable')
     const files = listFiles(entry.dir)
@@ -169,6 +179,8 @@ export class SkillInventory {
     if (realRoot === null) return []
     const entries: Entry[] = []
     for (const name of listDirs(realRoot)) {
+      // Dossier caché : préparation ou retrait en cours d'un skill (écriture atomique), jamais un skill.
+      if (name.startsWith('.')) continue
       const entry = readSkill(family, realRoot, join(realRoot, name), name, idOf(name), origin)
       if (entry !== null) entries.push(entry)
     }

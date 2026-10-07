@@ -10,7 +10,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEffect, useId, useMemo, useState } from 'react'
-import type { SkillsView, SkillView } from '@shared/ipc/skills'
+import type { SkillDraftView, SkillsView, SkillView } from '@shared/ipc/skills'
 import { FAMILY_LABELS, SKILL_FAMILIES, type SkillFamily } from '@shared/skills/model'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
@@ -18,17 +18,26 @@ import {
   BranchNode,
   ClusterNode,
   FAMILY_ICONS,
+  GhostNode,
   SkillNode,
   TrunkNode,
   type BranchNodeType,
   type ClusterNodeType,
+  type GhostNodeType,
   type SkillNodeType,
   type TrunkNodeType
 } from './SkillNodes'
-import { SkillPanel } from './SkillPanel'
+import { DraftPanel } from './DraftPanel'
+import { SkillConversation, SkillPanel } from './SkillPanel'
 import { layoutTree, type TreeGroup } from './skillTree'
 
-const NODE_TYPES: NodeTypes = { skill: SkillNode, trunk: TrunkNode, branch: BranchNode, cluster: ClusterNode }
+const NODE_TYPES: NodeTypes = {
+  skill: SkillNode,
+  trunk: TrunkNode,
+  branch: BranchNode,
+  cluster: ClusterNode,
+  ghost: GhostNode
+}
 const CLUSTER_ID = 'cluster:plugin'
 const ARIA_LABELS = {
   'node.a11yDescription.default': 'Entrée pour ouvrir la fiche du skill.',
@@ -36,7 +45,8 @@ const ARIA_LABELS = {
   'edge.a11yDescription.default': 'Un skill qui en appelle un autre.'
 }
 
-type TreeNode = SkillNodeType | TrunkNodeType | BranchNodeType | ClusterNodeType
+type TreeNode = SkillNodeType | TrunkNodeType | BranchNodeType | ClusterNodeType | GhostNodeType
+const GHOST_PREFIX = 'draft:'
 
 const matches = (skill: SkillView, search: string): boolean => {
   const term = search.trim().toLowerCase()
@@ -46,6 +56,7 @@ const matches = (skill: SkillView, search: string): boolean => {
 /** Nœuds et liens de l'arbre (lot A : une branche par famille), à partir de la toile filtrée. */
 function buildTree(
   view: SkillsView,
+  ghosts: readonly SkillDraftView[],
   families: ReadonlySet<SkillFamily>,
   search: string,
   pluginsOpen: boolean,
@@ -57,7 +68,12 @@ function buildTree(
   const groups: TreeGroup[] = SKILL_FAMILIES.filter((family) => families.has(family)).map((family) => {
     const skills = visible.filter((skill) => skill.family === family).sort((a, b) => (a.name < b.name ? -1 : 1))
     const folded = family === 'plugin' && collapsed && skills.length > 0
-    return { id: family, label: FAMILY_LABELS[family], items: folded ? [CLUSTER_ID] : skills.map((skill) => skill.id) }
+    const drafts = ghosts.filter((draft) => draft.family === family).map((draft) => `${GHOST_PREFIX}${draft.id}`)
+    return {
+      id: family,
+      label: FAMILY_LABELS[family],
+      items: [...drafts, ...(folded ? [CLUSTER_ID] : skills.map((skill) => skill.id))]
+    }
   })
   const layout = layoutTree(groups)
   const nodes: TreeNode[] = [
@@ -85,6 +101,19 @@ function buildTree(
         data: { count: visible.filter((skill) => skill.family === 'plugin').length, onToggle: onToggleCluster },
         selectable: false
       })
+      continue
+    }
+    if (id.startsWith(GHOST_PREFIX)) {
+      const draft = ghosts.find((candidate) => `${GHOST_PREFIX}${candidate.id}` === id)
+      if (draft !== undefined) {
+        nodes.push({
+          id,
+          type: 'ghost',
+          position,
+          data: { name: draft.name, description: draft.description, selected: id === selectedId },
+          ariaLabel: `${draft.name}, brouillon de nouveau skill à installer`
+        })
+      }
       continue
     }
     const skill = byId.get(id)
@@ -117,6 +146,11 @@ function SkillsTree(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const searchId = useId()
   const query = useQuery({ queryKey: ['skills'], queryFn: () => call<SkillsView>('skills:list') })
+  const drafts = useQuery({
+    queryKey: ['skillDrafts', '*'],
+    queryFn: () => call<SkillDraftView[]>('skills:drafts', {})
+  })
+  const ghosts = useMemo(() => (drafts.data ?? []).filter((draft) => draft.isNew), [drafts.data])
   const [families, setFamilies] = useState<ReadonlySet<SkillFamily>>(new Set(SKILL_FAMILIES))
   const [search, setSearch] = useState('')
   const [pluginsOpen, setPluginsOpen] = useState(false)
@@ -125,7 +159,12 @@ function SkillsTree(): React.JSX.Element {
 
   // Un skill disparu (dossier supprimé) referme sa fiche.
   useEffect(() => {
-    if (selectedId !== null && view !== undefined && !view.skills.some((skill) => skill.id === selectedId)) {
+    if (
+      selectedId !== null &&
+      !selectedId.startsWith(GHOST_PREFIX) &&
+      view !== undefined &&
+      !view.skills.some((skill) => skill.id === selectedId)
+    ) {
       setSelectedId(null)
     }
   }, [view, selectedId])
@@ -134,8 +173,8 @@ function SkillsTree(): React.JSX.Element {
     () =>
       view === undefined
         ? { nodes: [], edges: [] }
-        : buildTree(view, families, search, pluginsOpen, selectedId, () => setPluginsOpen(true)),
-    [view, families, search, pluginsOpen, selectedId]
+        : buildTree(view, ghosts, families, search, pluginsOpen, selectedId, () => setPluginsOpen(true)),
+    [view, ghosts, families, search, pluginsOpen, selectedId]
   )
 
   const counts = (family: SkillFamily): number => view?.skills.filter((skill) => skill.family === family).length ?? 0
@@ -203,7 +242,7 @@ function SkillsTree(): React.JSX.Element {
               ariaLabelConfig={ARIA_LABELS}
               proOptions={{ hideAttribution: true }}
               onNodeClick={(_event, node) => {
-                if (node.type === 'skill') setSelectedId(node.id)
+                if (node.type === 'skill' || node.type === 'ghost') setSelectedId(node.id)
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter') return
@@ -219,7 +258,15 @@ function SkillsTree(): React.JSX.Element {
         </div>
       </div>
       <aside className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface">
-        {selectedId !== null && view !== undefined ? (
+        {selectedId !== null && selectedId.startsWith(GHOST_PREFIX) ? (
+          <div className="h-full overflow-auto">
+            <DraftPanel
+              key={selectedId}
+              draftId={selectedId.slice(GHOST_PREFIX.length)}
+              onDone={(skillId) => setSelectedId(skillId)}
+            />
+          </div>
+        ) : selectedId !== null && view !== undefined ? (
           <SkillPanel
             key={selectedId}
             skillId={selectedId}
@@ -228,9 +275,8 @@ function SkillsTree(): React.JSX.Element {
             onClose={() => setSelectedId(null)}
           />
         ) : (
-          <p className="p-8 text-center text-sm text-content-muted">
-            Choisis un skill dans l’arbre pour ouvrir sa fiche.
-          </p>
+          // Sans sélection : la conversation « Skills » générale (créer, combiner, faire le tri).
+          <SkillConversation onClose={() => undefined} />
         )}
       </aside>
     </div>

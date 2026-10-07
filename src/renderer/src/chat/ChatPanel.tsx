@@ -80,6 +80,16 @@ export const MAP_MESSAGE =
 /** Premier message proposé quand la conversation est vide : Claude ouvre le cadrage. */
 export const OPENING_MESSAGE = 'Commençons le brainstorm de cette idée.'
 
+/** Suggestions de départ d'une conversation Skills (spec 020 US3) : générale, ou sur un skill. */
+export const SKILLS_STARTERS: readonly string[] = [
+  'Aide-moi à créer un nouveau skill : pose-moi les questions utiles, puis dépose un brouillon.',
+  'Regarde ma toile de skills : lesquels se recoupent, lesquels manquent ?'
+]
+export const SKILL_STARTERS: readonly string[] = [
+  'Lis ce skill et dis-moi ce qui pourrait être plus clair (déclencheurs, étapes, garde-fous, exemples).',
+  'Améliore ce skill et dépose un brouillon que je pourrai comparer.'
+]
+
 const SECTIONS: ReadonlyArray<readonly [keyof Omit<ChatSheetView, 'resume'>, string]> = [
   ['points_cles', 'Points clés'],
   ['decisions', 'Décisions'],
@@ -336,13 +346,15 @@ export function ChatPanel({
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
           <p className="text-xs text-content-muted">
-            {chat.role === 'element'
-              ? `${chat.elementType ?? 'Élément'} du projet`
-              : chat.role === 'step'
-                ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                : chat.folder === null
-                  ? 'Genesis'
-                  : 'Projet'}{' '}
+            {chat.role === 'skills'
+              ? 'Conversation Skills · Claude ne dépose que des brouillons'
+              : chat.role === 'element'
+                ? `${chat.elementType ?? 'Élément'} du projet`
+                : chat.role === 'step'
+                  ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
+                  : chat.folder === null
+                    ? 'Genesis'
+                    : 'Projet'}{' '}
             · conversation Claude Code
             {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
           </p>
@@ -371,119 +383,127 @@ export function ChatPanel({
               </button>
             </div>
           )}
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-            {chat.role !== 'genesis' ? null : chat.folder === null ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setProjectForm(true)}
-                  disabled={chat.busy || projectForm}
-                  className={`rounded-md px-2 py-0.5 disabled:opacity-50 ${
-                    brainstormed ? 'bg-accent text-surface' : 'border border-accent text-accent hover:bg-surface-raised'
-                  }`}
-                >
-                  Faire de ce genesis un projet
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void chat.linkFolder()}
-                  disabled={chat.busy}
-                  className="underline disabled:opacity-50"
-                >
-                  Lier un dossier existant…
-                </button>
-              </>
-            ) : (
-              <>
-                <span
-                  className="rounded-full bg-surface-raised px-2 py-0.5"
-                  title="Dossier de travail de cette conversation"
-                >
-                  Dossier : {chat.folder}
-                  {chat.git ? ' · git' : ''}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void chat.linkFolder()}
-                  disabled={chat.busy}
-                  className="underline disabled:opacity-50"
-                >
-                  Changer
-                </button>
-                {chat.git ? null : (
+          {chat.role === 'skills' ? null : (
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+              {chat.role !== 'genesis' ? null : chat.folder === null ? (
+                <>
                   <button
                     type="button"
-                    onClick={() => void chat.initGit()}
-                    disabled={chat.busy}
-                    className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                    onClick={() => setProjectForm(true)}
+                    disabled={chat.busy || projectForm}
+                    className={`rounded-md px-2 py-0.5 disabled:opacity-50 ${
+                      brainstormed
+                        ? 'bg-accent text-surface'
+                        : 'border border-accent text-accent hover:bg-surface-raised'
+                    }`}
                   >
-                    Initialiser git
+                    Faire de ce genesis un projet
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => void chat.linkFolder()}
+                    disabled={chat.busy}
+                    className="underline disabled:opacity-50"
+                  >
+                    Lier un dossier existant…
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span
+                    className="rounded-full bg-surface-raised px-2 py-0.5"
+                    title="Dossier de travail de cette conversation"
+                  >
+                    Dossier : {chat.folder}
+                    {chat.git ? ' · git' : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void chat.linkFolder()}
+                    disabled={chat.busy}
+                    className="underline disabled:opacity-50"
+                  >
+                    Changer
+                  </button>
+                  {chat.git ? null : (
+                    <button
+                      type="button"
+                      onClick={() => void chat.initGit()}
+                      disabled={chat.busy}
+                      className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                    >
+                      Initialiser git
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void chat.send(MAP_MESSAGE)}
+                    disabled={chat.busy || localOnly}
+                    className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
+                  >
+                    Cartographier ce projet
+                  </button>
+                </>
+              )}
+              {chat.role === 'element' ? null : (
                 <button
                   type="button"
-                  onClick={() => void chat.send(MAP_MESSAGE)}
+                  onClick={() => void chat.send(PLAN_MESSAGE)}
                   disabled={chat.busy || localOnly}
-                  className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
+                  className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
                 >
-                  Cartographier ce projet
+                  Proposer un plan d’attaque
                 </button>
-              </>
-            )}
-            {chat.role === 'element' ? null : (
-              <button
-                type="button"
-                onClick={() => void chat.send(PLAN_MESSAGE)}
-                disabled={chat.busy || localOnly}
-                className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
-              >
-                Proposer un plan d’attaque
-              </button>
-            )}
-            {chat.role === 'element' ? null : (
-              <button
-                type="button"
-                onClick={() => void chat.send(DOC_MESSAGE)}
-                disabled={chat.busy || localOnly}
-                className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
-              >
-                Rédiger un document
-              </button>
-            )}
-            {chat.role === 'step' ? (
-              <button
-                type="button"
-                onClick={() => void chat.send(FINAL_MESSAGE)}
-                disabled={chat.busy || localOnly}
-                className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
-              >
-                Proposer l’action finale
-              </button>
-            ) : null}
-          </div>
+              )}
+              {chat.role === 'element' ? null : (
+                <button
+                  type="button"
+                  onClick={() => void chat.send(DOC_MESSAGE)}
+                  disabled={chat.busy || localOnly}
+                  className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                >
+                  Rédiger un document
+                </button>
+              )}
+              {chat.role === 'step' ? (
+                <button
+                  type="button"
+                  onClick={() => void chat.send(FINAL_MESSAGE)}
+                  disabled={chat.busy || localOnly}
+                  className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
+                >
+                  Proposer l’action finale
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
-        <label className="sr-only" htmlFor={`${fieldId}-mode`}>
-          Mode de permission de cette conversation
-        </label>
-        <select
-          id={`${fieldId}-mode`}
-          value={chat.permissionMode}
-          disabled={chat.loading}
-          onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
-          title="Mode de permission : ce que Claude peut faire sans te demander"
-          className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
-            // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
-            chat.permissionMode === 'bypassPermissions'
-              ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
-              : 'border-content-muted/40'
-          }`}
-        >
-          {PERMISSION_MODES.map((mode) => (
-            <option key={mode} value={mode}>
-              {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
-            </option>
-          ))}
-        </select>
+        {chat.role === 'skills' ? null : (
+          <>
+            <label className="sr-only" htmlFor={`${fieldId}-mode`}>
+              Mode de permission de cette conversation
+            </label>
+            <select
+              id={`${fieldId}-mode`}
+              value={chat.permissionMode}
+              disabled={chat.loading}
+              onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
+              title="Mode de permission : ce que Claude peut faire sans te demander"
+              className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
+                // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
+                chat.permissionMode === 'bypassPermissions'
+                  ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
+                  : 'border-content-muted/40'
+              }`}
+            >
+              {PERMISSION_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <label className="sr-only" htmlFor={`${fieldId}-model`}>
           Modèle de cette conversation
         </label>
@@ -561,7 +581,20 @@ export function ChatPanel({
             </div>
           ) : null}
         </div>
-        {!chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly ? (
+        {!chat.loading && chat.messages.length === 0 && !chat.busy && chat.role === 'skills' ? (
+          <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
+            <p>
+              Demande à Claude de créer, améliorer ou faire le tri dans tes skills. Il dépose des brouillons ; tu
+              installes.
+            </p>
+            {(chat.title === 'Skills' ? SKILLS_STARTERS : SKILL_STARTERS).map((starter) => (
+              <Button key={starter} onClick={() => void chat.send(starter)}>
+                {starter}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+        {!chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly && chat.role !== 'skills' ? (
           <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
             <p>Claude connaît déjà le titre de l’idée et sa fiche. Lance le cadrage, ou écris directement.</p>
             <Button variant="primary" onClick={() => void chat.send(OPENING_MESSAGE)}>

@@ -37,6 +37,11 @@ import { ObservationRepository } from './infrastructure/db/repositories/Observat
 import { createAnalysteRoutes } from './ipc/analysteHandlers'
 import { createSkillsRoutes } from './ipc/skillsHandlers'
 import { SkillInventory } from './application/skills/SkillInventory'
+import { SkillService } from './application/skills/SkillService'
+import { SKILLS_FRAME } from './application/skills/skillsFrame'
+import { SkillTools } from './application/mcp/SkillTools'
+import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
+import { SkillStore } from './infrastructure/skills/SkillStore'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes, LEGACY_CLAUDE_SECRET } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
@@ -245,6 +250,16 @@ export function bootstrap(shell: ShellPort): AppContext {
     home: app.getPath('home'),
     projects: () => neuronRepository.linkedProjects(),
     onChanged: (scannedAt) => broadcast('skills:changed', { scannedAt })
+  })
+  // Brouillons, installation, versions et suppression des skills (spec 020 US3, constitution 4.5.0).
+  const skillService = new SkillService({
+    repository: new SkillRepository(database.db),
+    store: new SkillStore(join(dataDir, 'skill-versions')),
+    inventory: skillInventory,
+    home: app.getPath('home'),
+    projects: () => neuronRepository.linkedProjects(),
+    workspace: join(dataDir, 'skills-workspace'),
+    onChanged: () => broadcast('skills:changed', { scannedAt: Date.now() })
   })
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
@@ -481,7 +496,15 @@ export function bootstrap(shell: ShellPort): AppContext {
           project: (genesisId) => repriseRepository.project(genesisId),
           graph: codeGraph,
           fileCalls: (genesisId) => explorer.fileCalls(genesisId)
-        })
+        }),
+        {
+          tools: new SkillTools({
+            inventory: skillInventory,
+            skills: skillService,
+            projects: () => neuronRepository.linkedProjects()
+          }),
+          isSkillsChat: (neuronId) => conversationRepository.neuron(neuronId)?.kind === 'skills_chat'
+        }
       )
     ),
     logger
@@ -506,6 +529,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       profileDir: dataDir
     }),
     frame: BRAINSTORMER_FRAME,
+    skillsFrame: SKILLS_FRAME,
     permissions,
     defaultPermissionMode: () => appSettings.get().chatPermissionMode,
     claudeAllowed: (neuronId) => confidentiality.claudeAllowed(neuronId),
@@ -698,7 +722,8 @@ export function bootstrap(shell: ShellPort): AppContext {
         new HistoryService(new HistoryRepository(database.db), {
           ...documents.historyHandlers(),
           ...finals.historyHandlers(),
-          ...executions.historyHandlers()
+          ...executions.historyHandlers(),
+          ...skillService.historyHandlers()
         })
       ),
       ...createWidgetRoutes(widgets),
@@ -732,7 +757,7 @@ export function bootstrap(shell: ShellPort): AppContext {
         analyste,
         store: analysteRepository
       }),
-      ...createSkillsRoutes({ inventory: skillInventory }),
+      ...createSkillsRoutes({ inventory: skillInventory, skills: skillService }),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

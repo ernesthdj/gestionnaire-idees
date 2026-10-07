@@ -76,6 +76,8 @@ export type MapToolName = Exclude<
   | 'action_proposer'
   | 'permission_demander'
   | 'ecriture_avant'
+  | 'skills_lire'
+  | 'skill_brouillon'
 >
 
 const IDEA_SIZE = 120

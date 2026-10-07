@@ -51,8 +51,44 @@ export interface SkillDetailView {
   readonly files: readonly SkillFileView[]
   /** Plus de fichiers que la limite listée. */
   readonly filesTruncated: boolean
+  /** Versions sauvegardées (« Revenir » possible). */
+  readonly versions: number
 }
 
 export interface SkillsChangedEvent {
   readonly scannedAt: number
+}
+
+/** Brouillon d'un skill (US3) : rien n'est écrit sur le disque avant « Installer ». */
+export interface SkillDraftView {
+  readonly id: string
+  /** Identifiant du skill visé (existant ou nouveau). */
+  readonly skillId: string
+  readonly family: 'perso' | 'projet'
+  readonly name: string
+  readonly description: string
+  readonly origin: 'claude' | 'import' | 'duplicate'
+  /** Le skill n'existe pas encore : nœud fantôme dans l'arbre. */
+  readonly isNew: boolean
+  readonly fileCount: number
+  readonly updatedAt: number
+}
+
+export interface SkillFileDiffView {
+  readonly path: string
+  readonly status: 'ajout' | 'modifie' | 'inchange'
+  readonly before: string | null
+  readonly after: string
+}
+
+export interface SkillDraftDiffView {
+  readonly draft: SkillDraftView
+  readonly files: readonly SkillFileDiffView[]
+  /** Le skill a changé sur le disque depuis la création du brouillon : reconfirmer. */
+  readonly diskChanged: boolean
+}
+
+export interface SkillVersionView {
+  readonly id: string
+  readonly createdAt: number
 }

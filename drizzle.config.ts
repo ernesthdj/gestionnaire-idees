@@ -8,7 +8,8 @@ export default defineConfig({
     './src/main/infrastructure/db/schema.ts',
     './src/main/infrastructure/db/schemaNeurons.ts',
     './src/main/infrastructure/db/schemaReprise.ts',
-    './src/main/infrastructure/db/schemaAnalyste.ts'
+    './src/main/infrastructure/db/schemaAnalyste.ts',
+    './src/main/infrastructure/db/schemaSkills.ts'
   ],
   out: './src/main/infrastructure/db/migrations'
 })

@@ -24,7 +24,8 @@ const UNDOABLE = new Set([
   'plan',
   'document',
   'final',
-  'structure'
+  'structure',
+  'skills'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -178,6 +179,21 @@ function matches(current: Snapshot, expected: Snapshot): boolean {
   return Object.keys(current).every((key) => !(key in expected) || current[key] === expected[key])
 }
 
+/** Skills (spec 020) : fichiers d'un skill installés, rétablis ou supprimés, brouillons écrits par Claude. */
+function skillsSummary(entries: readonly ChangeRow[]): string | null {
+  const head = entries[0]
+  if (head === undefined || !entries.every((entry) => entry.entity === head.entity)) return null
+  const name = head.entityId.split(':').at(-1) ?? head.entityId
+  if (head.entity === 'skill_draft') {
+    const draftName = head.after?.['name'] ?? head.before?.['name']
+    return `Brouillon de skill « ${typeof draftName === 'string' ? draftName : '?'} »`
+  }
+  if (head.entity !== 'skill_files') return null
+  if (head.after === null) return `Skill « ${name} » supprimé`
+  if (head.before === null) return `Skill « ${name} » installé`
+  return `Skill « ${name} » mis à jour`
+}
+
 /** Lecture et restauration d'un type d'élément géré hors de `HistoryRepository`. */
 export interface EntityHandler {
   snapshot(id: string): Snapshot
@@ -323,6 +339,8 @@ export class HistoryService {
     }
     const document = documentSummary(entries)
     if (document !== null) return head.kind === 'undo' ? `Annulé — ${document}` : document
+    const skills = skillsSummary(entries)
+    if (skills !== null) return head.kind === 'undo' ? `Annulé — ${skills}` : skills
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
@@ -372,6 +390,8 @@ export class HistoryService {
         return 'Action finale'
       case 'structure':
         return structureSummary(head, false)
+      case 'skills':
+        return 'Skills'
       case 'undo': {
         if (this.repository.undoneKind(head.batchId) === 'structure') return structureSummary(head, true)
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')

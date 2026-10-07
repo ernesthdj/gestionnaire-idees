@@ -44,7 +44,9 @@ export const neurons = sqliteTable(
         'user_branch',
         'idea',
         'element',
-        'step'
+        'step',
+        // Conversation Skills (spec 020 US3) : neurone caché, jamais sur la carte ni dans le pont.
+        'skills_chat'
       ]
     }).notNull(),
     title: text('title').notNull(),
@@ -354,7 +356,8 @@ export const changeLog = sqliteTable(
         'plan',
         'document',
         'final',
-        'structure'
+        'structure',
+        'skills'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
