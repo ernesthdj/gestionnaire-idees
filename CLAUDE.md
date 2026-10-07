@@ -16,6 +16,9 @@
 > **Évolution (2026-10-07) :** **Arbre de skills** (page Skills : skills de Claude en arbre de compétences, fiche
 > technique, brouillon → installation, import GitHub en quarantaine). Voir `docs/FOUNDATION.md` §00000 et
 > `docs/brainstorm/L1h-arbre-de-skills.md`. Spec prévue : 020.
+> **Évolution (2026-10-07) :** **Git et GitHub** (volet Dépôt : commit, branches, publier, tirer, pousser sur clic ;
+> clone par lien ; frise des contributions ; conflits guidés ; PR et issues). Voir `docs/FOUNDATION.md` §000000 et
+> `docs/brainstorm/L1i-git-github.md`. Spec prévue : 021, après amendement 4.4.0 de la constitution.
 
 ---
 

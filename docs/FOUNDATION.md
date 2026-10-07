@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md**
 
 ---
 
@@ -24,6 +24,47 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 000000. Amendement du 2026-10-07 — Git et GitHub : le git local prolongé jusqu'à GitHub
+
+> Détail complet : `docs/brainstorm/L1i-git-github.md` (vision, décisions D1–D7, hypothèses H1–H18 validées),
+> `L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md` (cas d'usage, règles,
+> critères), `L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md` (contrats IPC, données, séquences, sécurité,
+> amendement de constitution en `L3-git-publier.md` §7), `L4g-git.md` (parcours, écrans). Ces fichiers priment.
+
+### 000000.1 Vision
+Faire du Brainstormer le **prolongement du git local vers GitHub** : récupérer un projet depuis un lien (open source à
+étudier, projet de collègues), voir **qui a fait quoi et quand** en rejouant l'histoire du projet sur sa carte, puis
+créer un dépôt sur son compte, commiter, tirer et pousser sans quitter l'app — Claude propose, mentalyas clique.
+
+### 000000.2 Décisions
+| # | Sujet | Décision |
+|---|-------|----------|
+| D1 | Collaboration | Par git / GitHub seulement : les collègues gardent leurs outils ; aucune donnée de l'app partagée |
+| D2 | Déclencheur | Claude propose (messages, découpage, textes de PR, résolutions) ; seul un clic de mentalyas, après diff, commite ou pousse |
+| D3 | Connexion | `git` et `gh` du poste, déjà connectés ; aucun jeton lu, stocké ni journalisé |
+| D4 | Périmètre | Clone, commit, pull, push + branches, conflits guidés, PR, issues |
+| D5 | Chronologie | Frise par auteur + carte colorisée (« rediffusion »), couleur + initiales, auteurs pseudonymisés pour Claude |
+| D6 | Interface | Volet « Dépôt » du projet (Changements · Branches · Historique · PR · Issues) + badge sur le genesis ; clone par « Reprendre un projet » |
+| D7 | Open source | Étudier, extraire (licence + attribution), forker et contribuer, suivre les mises à jour |
+| H | Garde-fous (H1–H18) | Rien de coché d'office ; jamais de réécriture d'historique (ni rebase, ni `--amend`, ni forçage, ni `--no-verify`) ; fichier sensible dans les commits à pousser = blocage ; fusion en cas de divergence ; branche + PR vers le `main` d'autrui ; hooks seulement dans un dépôt de confiance ; fetch à l'ouverture du volet, jamais en fond ; clone partiel (`--filter=blob:none`) ; PR consultées et commentées, jamais approuvées ni fusionnées ; liens issue ↔ nœud locaux |
+
+### 000000.3 Fonctionnalités et lots
+| # | Fonctionnalité | Lot | Ordre |
+|---|----------------|-----|-------|
+| GH-A | Dépôt local : changements, diff, commit (message proposé), branches, badge ; socle `GitRunner` sûr | A | MVP |
+| GH-B | Publier (`gh repo create`, privé par défaut), tirer, pousser ; contrôle des fichiers sensibles | B | MVP |
+| GH-C | Cloner par lien (clone partiel, un seul `CloneService` à deux profils avec la spec 020), suivre les mises à jour | C | MVP |
+| GH-E | Conflits guidés par Claude (tâche sans outil, choix bloc par bloc, vue dédiée) | E | 2 |
+| GH-D | Historique : frise + rediffusion sur la carte | D | 3 |
+| GH-F | PR (voir, relire, commenter), issues (liens locaux), fork | F | 4 |
+| GH-G | Extraire un morceau (licence, attribution) | G | 5 |
+
+Tant que E n'existe pas, un pull en conflit annule proprement la fusion et explique quoi faire. Aucune dépendance npm
+nouvelle prévue ; programme ajouté : `gh`. Amendement de constitution prévu : 4.3.0 → 4.4.0 (principes I et II).
+Migration à numéroter au moment de coder (tables `git_*`).
 
 ---
 
