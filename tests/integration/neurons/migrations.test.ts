@@ -116,6 +116,12 @@ describe('migrations du modèle de neurones', () => {
     expect(columns('final_actions').some((name) => name.startsWith('committed_'))).toBe(false)
   })
 
+  it('should_add_the_progress_columns_then_remove_them_with_the_down_migration', () => {
+    expect(columns('neurons')).toEqual(expect.arrayContaining(['progress', 'progress_note']))
+    runDown('0032_element_progress')
+    expect(columns('neurons').some((name) => name.startsWith('progress'))).toBe(false)
+  })
+
   it('should_add_the_architecture_columns_then_remove_them_with_the_down_migration', () => {
     const added = ['layer', 'layer_source', 'architecture', 'architecture_reason', 'architecture_source']
     expect(columns('neurons')).toEqual(expect.arrayContaining(added))

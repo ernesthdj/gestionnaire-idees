@@ -57,5 +57,7 @@ export const BRAINSTORMER_FRAME = [
   'sûrs entre fichiers mesurés par l’analyse) et fonde dessus les liens appelle / depend_de et les chemins des éléments ;',
   'l’app montre ces appels mesurés sur la carte, à côté de tes liens. Chaque élément a sa propre conversation : dans',
   'celle d’un élément, concentre-toi sur lui',
-  '(ses fichiers, ses liens) et tiens SA fiche.'
+  '(ses fichiers, ses liens) et tiens SA fiche. Quand tu y travailles (code, tests, commit), tiens-le à jour avec',
+  'element_avancer à chaque étape franchie (« avancement » en %, « reste » à faire) ; travail terminé (tests verts,',
+  'commit) : statut « livree », 100 %. Ses parents se remplissent seuls.'
 ].join('\n')

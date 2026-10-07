@@ -12,6 +12,7 @@ import type {
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { contentLabel } from './elementContent'
+import { progressOf, type ElementProgress } from './progress'
 import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
 import type { StructureArchitectureView } from '@shared/ipc/canvas'
 import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
@@ -62,6 +63,8 @@ export type ElementNodeType = Node<
     readonly number: string
     /** Architecture de sa carte (D20) : couches proposées par la puce ; `null` : aucune. */
     readonly architecture?: ArchitectureKind | null
+    /** Avancement affiché (D21) : déclaré, ou moyenne des sous-éléments ; absent sans information. */
+    readonly progress?: ElementProgress | null
   },
   'element'
 >
@@ -433,6 +436,7 @@ export function buildGraph(
   // Vue Architecture (D20) : seulement pour une carte basculée dont l'architecture est connue ; les autres gardent la
   // vue Progression, inchangée.
   const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
+  const progress = progressOf(view.elements)
   const switched = [...genesisCenters.keys()].filter(
     (id) => structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
   )
@@ -497,10 +501,11 @@ export function buildGraph(
     data: {
       element: entry.element,
       number: entry.number,
-      architecture: architectureOf.get(entry.element.genesisId)?.kind ?? null
+      architecture: architectureOf.get(entry.element.genesisId)?.kind ?? null,
+      progress: progress.get(entry.element.id) ?? null
     },
     draggable: false,
-    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${layerPhrase(architectureOf.get(entry.element.genesisId)?.kind ?? null, entry.element.layer ?? null)}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
+    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${layerPhrase(architectureOf.get(entry.element.genesisId)?.kind ?? null, entry.element.layer ?? null)}${progress.has(entry.element.id) ? `, avancement ${progress.get(entry.element.id)?.percent ?? 0} %` : ''}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
   const structureEdges = structure.edges.map(structureFlowEdge)

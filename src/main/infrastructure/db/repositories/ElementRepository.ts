@@ -30,6 +30,9 @@ export interface ElementRow {
   /** Couche d'architecture (D20) et qui l'a donnée ; `null` : aucune couche enregistrée. */
   readonly layer: string | null
   readonly layerSource: 'claude' | 'user' | null
+  /** Avancement déclaré par Claude (D21) et reste à faire. */
+  readonly progress: number | null
+  readonly progressNote: string | null
 }
 
 export interface NewElement {
@@ -89,7 +92,9 @@ export class ElementRepository {
         depth: neurons.depth,
         rank: neurons.rank,
         layer: neurons.layer,
-        layerSource: neurons.layerSource
+        layerSource: neurons.layerSource,
+        progress: neurons.progress,
+        progressNote: neurons.progressNote
       })
       .from(neurons)
       .where(and(...conditions))
@@ -114,7 +119,9 @@ export class ElementRepository {
                 depth: row.depth,
                 rank: row.rank,
                 layer: row.layer,
-                layerSource: row.layerSource
+                layerSource: row.layerSource,
+                progress: row.progress,
+                progressNote: row.progressNote
               }
             ]
       )
@@ -149,6 +156,8 @@ export class ElementRepository {
         collapsed: row.collapsed,
         childCount: children.get(row.id) ?? 0,
         order: row.rank,
+        progress: row.progress,
+        progressNote: row.progressNote,
         ...this.layerView(row, architectures.get(row.genesisId) ?? null)
       }
     })
@@ -200,6 +209,25 @@ export class ElementRepository {
       })
       .where(eq(neurons.id, genesisId))
       .run()
+  }
+
+  /** Statut, avancement et reste à faire d'un élément (D21). */
+  setProgress(
+    id: string,
+    value: { readonly status: ElementStatus | null; readonly progress: number | null; readonly note: string | null }
+  ): boolean {
+    return (
+      this.db
+        .update(neurons)
+        .set({
+          elementStatus: value.status,
+          progress: value.progress,
+          progressNote: value.note,
+          updatedAt: new Date().toISOString()
+        })
+        .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+        .run().changes > 0
+    )
   }
 
   setLayer(id: string, layer: string | null, source: 'claude' | 'user' | null): boolean {

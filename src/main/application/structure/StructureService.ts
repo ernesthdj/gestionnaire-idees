@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { ToolResult } from '@shared/mcp/protocol'
-import type { StructureDessinerInput } from '@shared/mcp/tools'
+import type { ElementAvancerInput, StructureDessinerInput } from '@shared/mcp/tools'
 import type { McpCaller } from '../../domain/mcp/caller'
 import { McpToolError } from '../../domain/mcp/errors'
 import { resolveStructure } from '../../domain/structure/resolve'
@@ -24,6 +24,7 @@ export interface StructureDeps {
     | 'architectures'
     | 'setArchitecture'
     | 'setLayer'
+    | 'setProgress'
   >
   readonly links: Pick<MapLinkRepository, 'insert' | 'between' | 'touching' | 'softDelete'>
   /** Genesis (racine visible) d'un neurone : lui-même pour une racine, son genesis pour un élément ; `undefined` sinon. */
@@ -249,6 +250,59 @@ export class StructureService {
     }
     walk(genesisId, 0)
     return { text: `Carte de structure (${rows.length} éléments) :\n${lines.join('\n')}` }
+  }
+
+  /**
+   * Avancement d'un élément depuis sa conversation (D21) : l'élément de la conversation par défaut, ou un autre
+   * élément du même projet ; « livree » ou « faite » sans avancement vaut 100 %. Écriture « par Claude », annulable.
+   */
+  advance(input: ElementAvancerInput, caller: McpCaller): ToolResult {
+    const target = input.element ?? caller.neuronId
+    if (target === null) {
+      throw new McpToolError(
+        'ENTREE_INVALIDE',
+        'element requis : cette session n’est pas la conversation d’un élément.'
+      )
+    }
+    const row = this.deps.elements.list().find((entry) => entry.id === target)
+    if (row === undefined) {
+      throw new McpToolError('INTROUVABLE', 'Élément de carte de structure introuvable (retiré, ou pas un élément ?)')
+    }
+    const own = caller.neuronId === null ? undefined : this.deps.genesisOf(caller.neuronId)
+    if (own !== undefined && own !== row.genesisId) {
+      throw new McpToolError('NON_MODIFIABLE', 'Cet élément n’appartient pas au projet de cette conversation.')
+    }
+    const status = input.statut ?? row.status
+    const done = input.statut === 'livree' || input.statut === 'faite'
+    const next = {
+      status,
+      progress: input.avancement ?? (done ? 100 : row.progress),
+      note: input.reste === undefined ? (done ? null : row.progressNote) : input.reste === '' ? null : input.reste
+    }
+    const batchId = randomUUID()
+    this.deps.elements.transaction(() => {
+      this.deps.elements.setProgress(row.id, next)
+      this.deps.elements.log(
+        batchId,
+        [
+          {
+            kind: 'mcp_write',
+            entity: 'element_progress',
+            entityId: row.id,
+            before: { status: row.status, progress: row.progress, note: row.progressNote },
+            after: next
+          }
+        ],
+        'claude'
+      )
+    })
+    const parts = [next.status, next.progress === null ? null : `${next.progress} %`].filter((part) => part !== null)
+    const summary = `Claude : « ${row.title} » — ${parts.join(', ')}`
+    this.deps.emit({ batchId, summary, count: 1 })
+    return {
+      text: `« ${row.title} » : ${parts.join(', ')}${next.note === null ? '' : ` — reste : ${next.note}`} (annulable par mentalyas).`,
+      data: { lot: batchId, statut: next.status, avancement: next.progress }
+    }
   }
 
   setCollapsed(elementId: string, collapsed: boolean): void {

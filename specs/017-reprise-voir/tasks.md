@@ -95,6 +95,14 @@
 - [x] T073 [US7] Puce de couche dans le pied du nœud (« déduite » si besoin), sélecteurs de correction (architecture dans la barre de la carte, couche dans le volet de l'élément) + tests renderer/axe — *la couche se corrige dans la puce même du nœud (menu déroulant du pied) plutôt que dans le volet ; nœud porté à 304 × 152 px pour loger la puce*
 - [x] T074 [US7] Test guidé (D20) — validé par mentalyas
 
+## Phase 5 nonies — US7 Carte de structure : avancement vivant (D21)
+**Test indépendant** : dans la conversation d'un élément, Claude termine un travail (tests, commit) → le nœud passe « livrée », barre pleine, sans recartographier ; son parent voit sa barre monter ; « Annuler » remet l'état d'avant.
+- [x] T075 Spec : D21, FR-042
+- [x] T076 [US7] Données et outil : migration 0032 (+ down) `neurons.progress`, `progress_note` ; outil MCP `element_avancer` (élément de la conversation par défaut, même projet seulement, livrée ⇒ 100 %) ; `StructureService.advance` historisé (`element_progress`, annulable) ; consigne des conversations d'élément et instructions du pont + tests
+- [x] T077 [P] [US7] Pur : avancement mixte des éléments (moyenne des sous-éléments, feuille déclarée) dans `src/renderer/src/canvas/progress.ts` + tests
+- [x] T078 [US7] Rendu : barre de progression et % dans `ElementNode`, reste à faire au survol, % dans le libellé accessible + tests renderer/axe
+- [ ] T079 [US7] Test guidé (D21) — attendre le retour
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)

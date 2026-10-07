@@ -8,7 +8,8 @@ import type {
   EcritureAvantInput,
   McpToolName,
   PlanProposerInput,
-  StructureDessinerInput
+  StructureDessinerInput,
+  ElementAvancerInput
 } from '@shared/mcp/tools'
 import type { McpCaller } from '../../domain/mcp/caller'
 import type { MapService } from './MapService'
@@ -26,7 +27,7 @@ import { McpToolError } from '../../domain/mcp/errors'
 export function createToolHandler(
   map: Pick<MapService, 'handle'>,
   neurons: NeuronTools,
-  structure: Pick<StructureService, 'draw' | 'read'>,
+  structure: Pick<StructureService, 'draw' | 'read' | 'advance'>,
   plan: Pick<PlanTools, 'propose'>,
   documents: Pick<DocumentTools, 'write' | 'read'>,
   finals: Pick<FinalTools, 'propose'>,
@@ -68,6 +69,8 @@ export function createToolHandler(
       }
       case 'plan_proposer':
         return plan.propose(args as PlanProposerInput, caller)
+      case 'element_avancer':
+        return structure.advance(args as ElementAvancerInput, caller)
       case 'structure_lire':
         return structure.read((args as { projet?: string }).projet, caller)
       case 'code_graphe_lire':

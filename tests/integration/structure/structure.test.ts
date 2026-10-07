@@ -13,7 +13,7 @@ import { HistoryRepository } from '../../../src/main/infrastructure/db/repositor
 import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
-import { FicheEcrireInput, StructureDessinerInput } from '../../../src/shared/mcp/tools'
+import { ElementAvancerInput, FicheEcrireInput, StructureDessinerInput } from '../../../src/shared/mcp/tools'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 
 describe('carte de structure d’un projet (spec 009)', () => {
@@ -187,6 +187,39 @@ describe('carte de structure d’un projet (spec 009)', () => {
       for (const item of history.list().items.slice(0, 2)) history.undo(item.batchId)
       history.undo(batchId)
       expect(layerOf('module:db')).toEqual(['infrastructure', 'claude'])
+    })
+  })
+
+  describe('avancement vivant (spec 017 D21)', () => {
+    const elementOf = (key: string) => view().elements.find((entry) => entry.key === key)
+    const advance = (args: unknown, neuronId: string | null) =>
+      structure.advance(ElementAvancerInput.parse(args), { neuronId })
+
+    it('should_update_the_element_of_the_conversation_and_mark_it_delivered_at_100_percent', () => {
+      draw(map)
+      const id = elementOf('composant:conversation')?.id ?? ''
+      advance({ avancement: 60, reste: 'tests à écrire' }, id)
+      expect(elementOf('composant:conversation')).toMatchObject({ progress: 60, progressNote: 'tests à écrire' })
+      advance({ statut: 'livree' }, id)
+      expect(elementOf('composant:conversation')).toMatchObject({ status: 'livree', progress: 100, progressNote: null })
+      expect(changed.at(-1)).toBe('Claude : « ConversationService » — livree, 100 %')
+    })
+
+    it('should_refuse_an_element_of_another_project_or_a_session_without_element', async () => {
+      draw(map)
+      const id = elementOf('module:main')?.id ?? ''
+      expect(() => advance({ statut: 'livree' }, autre)).toThrow(McpToolError)
+      expect(() => advance({ element: id, statut: 'livree' }, autre)).toThrow(/projet/)
+      expect(() => advance({ statut: 'livree' }, null)).toThrow(/element requis/)
+      expect(() => ElementAvancerInput.parse({})).toThrow()
+    })
+
+    it('should_undo_the_progress_back_to_the_previous_state', () => {
+      draw(map)
+      const id = elementOf('fonctionnalite:chat')?.id ?? ''
+      advance({ statut: 'livree' }, id)
+      history.undo(history.list().items[0]?.batchId ?? '')
+      expect(elementOf('fonctionnalite:chat')).toMatchObject({ status: 'en_cours', progress: null })
     })
   })
 

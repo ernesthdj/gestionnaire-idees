@@ -68,6 +68,7 @@ export type MapToolName = Exclude<
   | 'maturite_evaluer'
   | 'structure_dessiner'
   | 'structure_lire'
+  | 'element_avancer'
   | 'code_graphe_lire'
   | 'plan_proposer'
   | 'document_ecrire'

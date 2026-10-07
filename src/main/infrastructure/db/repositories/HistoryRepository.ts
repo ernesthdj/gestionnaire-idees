@@ -1,3 +1,4 @@
+import { ELEMENT_STATUSES, type ElementStatus } from '@shared/ipc/canvas'
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { linkFingerprint, orderedPair } from '../../../domain/neurons/links'
@@ -306,6 +307,14 @@ export class HistoryRepository {
           layerSource: row.layerSource
         }
       }
+      case 'element_progress': {
+        const row = this.db
+          .select({ status: neurons.elementStatus, progress: neurons.progress, note: neurons.progressNote })
+          .from(neurons)
+          .where(eq(neurons.id, id))
+          .get()
+        return row === undefined ? null : { status: row.status, progress: row.progress, note: row.note }
+      }
       case 'element_layer': {
         const row = this.db
           .select({ layer: neurons.layer, layerSource: neurons.layerSource })
@@ -603,6 +612,23 @@ export class HistoryRepository {
         if (target === null) return
         this.db.update(neurons).set(layerFields(target)).where(eq(neurons.id, id)).run()
         return
+      case 'element_progress': {
+        if (target === null) return
+        const status = target['status']
+        this.db
+          .update(neurons)
+          .set({
+            elementStatus:
+              typeof status === 'string' && (ELEMENT_STATUSES as readonly string[]).includes(status)
+                ? (status as ElementStatus)
+                : null,
+            progress: typeof target['progress'] === 'number' ? target['progress'] : null,
+            progressNote: typeof target['note'] === 'string' ? target['note'] : null
+          })
+          .where(eq(neurons.id, id))
+          .run()
+        return
+      }
       case 'structure_architecture': {
         if (target === null) return
         const text = (key: string): string | null => (typeof target[key] === 'string' ? (target[key] as string) : null)

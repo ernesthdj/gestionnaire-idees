@@ -225,6 +225,13 @@
       "when": 1791390499930,
       "tag": "0031_architecture",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1791399380414,
+      "tag": "0032_element_progress",
+      "breakpoints": true
     }
   ]
 }

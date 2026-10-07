@@ -228,6 +228,18 @@ export const StructureDessinerInput = z.strictObject({
     .optional()
 })
 export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
+/** Avancement d'un élément de structure (D21), depuis sa conversation : au moins un champ. */
+export const ElementAvancerInput = z
+  .strictObject({
+    element: Id.optional(),
+    statut: z.enum(ELEMENT_STATUSES).optional(),
+    avancement: z.number().int().min(0).max(100).optional(),
+    reste: z.string().trim().max(200).optional()
+  })
+  .refine((input) => input.statut !== undefined || input.avancement !== undefined || input.reste !== undefined, {
+    message: 'donne au moins statut, avancement ou reste'
+  })
+export type ElementAvancerInput = z.infer<typeof ElementAvancerInput>
 export const StructureLireInput = z.strictObject({ projet: Id.optional() })
 export const CodeGrapheLireInput = z.strictObject({ projet: Id.optional() })
 
@@ -376,6 +388,14 @@ export const MCP_TOOLS = {
     input: StructureDessinerInput,
     writes: true
   },
+  element_avancer: {
+    description:
+      'Tient à jour l’élément de carte de structure de cette conversation (ou `element`, du même projet) : statut, ' +
+      '« avancement » 0–100 % et « reste » (ce qui reste à faire, une phrase). Appelle-le à chaque étape franchie ; ' +
+      'travail terminé (tests verts, commit) : statut « livree » (100 %). Annulable par mentalyas.',
+    input: ElementAvancerInput,
+    writes: true
+  },
   structure_lire: {
     description:
       'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
@@ -431,6 +451,8 @@ export const MCP_INSTRUCTIONS = [
   'Lis avant de modifier ; ne retire que ce qui est demandé.',
   'Si un outil répond que le Brainstormer n’est pas lancé, dis-le à mentalyas au lieu d’inventer le contenu de la carte.',
   'Un document détaillé sur un neurone (spec, recherche, décision, guide) : `document_ecrire`, jamais `dessiner`.',
+  'Dans la conversation d’un élément de carte de structure, quand tu travailles dessus : `element_avancer` à chaque ' +
+    'étape franchie (avancement, reste) et « livree » quand c’est terminé (tests verts, commit).',
   'Cartographier un projet lié (modules, composants, architecture, couches) : TOUJOURS `structure_dessiner`, jamais ' +
     '`dessiner` ni `cadre` : l’app en tire elle-même la vue Progression et la vue Architecture, et la bascule entre les deux.',
   'Un nœud mûr (maturité « complet ») : propose son plan d’attaque avec `plan_proposer` ; s’il n’est pas mûr, dis ' +

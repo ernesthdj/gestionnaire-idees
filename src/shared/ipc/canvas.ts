@@ -196,6 +196,9 @@ export interface ElementView {
   /** Couche d'architecture (D20) : donnée par Claude, corrigée par mentalyas ou déduite par l'app ; `null` : non classé. */
   readonly layer?: string | null
   readonly layerSource?: LayerSource | null
+  /** Avancement déclaré par Claude (D21), 0–100, et ce qui reste à faire ; la moyenne des enfants est calculée à l'écran. */
+  readonly progress?: number | null
+  readonly progressNote?: string | null
 }
 
 /** Origine d'une couche ou d'une architecture (D20) ; « deduite » : repère de l'app, jamais stocké. */

@@ -109,6 +109,14 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
     )
   }
   const paths = `${element.paths.length} chemin${element.paths.length > 1 ? 's' : ''}`
+  // Avancement (D21) : barre au pied du nœud, % dans le pied, reste à faire ou origine au survol.
+  const progress = data.progress ?? null
+  const progressTitle =
+    progress === null
+      ? ''
+      : progress.fromChildren
+        ? `Avancement ${progress.percent} % : moyenne de ses sous-éléments`
+        : `Avancement ${progress.percent} %${element.progressNote === null || element.progressNote === undefined ? '' : ` — reste : ${element.progressNote}`}`
   // Couche (D20) : corrigée ici même, annulable par la notification.
   const setLayer = (value: string): void => {
     void call<{ readonly batchId: string }>('element:setLayer', {
@@ -173,6 +181,19 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
           {element.summary}
         </p>
       )}
+      {progress === null ? null : (
+        <span
+          aria-hidden="true"
+          className="absolute right-0 bottom-0 left-1 h-1 bg-content-muted/20"
+          title={progressTitle}
+          data-progress={progress.percent}
+        >
+          <span
+            className={`block h-full ${progress.percent === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+            style={{ width: `${progress.percent}%` }}
+          />
+        </span>
+      )}
       <footer className={`mt-auto flex h-5 items-center gap-2 text-[11px] leading-4 whitespace-nowrap ${skin.muted}`}>
         {layers.length === 0 ? null : (
           <span className="flex shrink-0 items-center gap-1">
@@ -205,6 +226,11 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
             title={`Chemins donnés à l’élément (un dossier couvre tous ses fichiers) :\n${element.paths.join('\n')}`}
           >
             {paths}
+          </span>
+        )}
+        {progress === null ? null : (
+          <span className={`font-semibold ${skin.title}`} title={progressTitle}>
+            {progress.percent} %
           </span>
         )}
         {element.childCount === 0 ? null : (

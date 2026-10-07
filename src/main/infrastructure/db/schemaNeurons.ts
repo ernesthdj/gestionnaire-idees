@@ -119,6 +119,9 @@ export const neurons = sqliteTable(
     architecture: text('architecture'),
     architectureReason: text('architecture_reason'),
     architectureSource: text('architecture_source', { enum: ['claude', 'user'] }),
+    /** Avancement déclaré par Claude pour un élément de structure (spec 017 D21), 0–100, et ce qui reste à faire. */
+    progress: integer('progress'),
+    progressNote: text('progress_note'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
