@@ -5,7 +5,7 @@ Migration `0028_reprise_projet` (+ `down` écrit à la main). Chemins **relatifs
 ## Tables
 | Table | Colonnes | Règles |
 |---|---|---|
-| `code_projects` | `genesis_id` PK → `neurons.id` · `root_dir` (chemin réel) · `source` (`folder` \| `git`) · `remote_url` null (sans identifiants) · `confidentiality` (`claude` \| `local`) · `confidentiality_changed_at` · `created_at` · `analysis_state` (`idle` \| `running` \| `failed` \| `interrupted`) · `analyzed_at` null | `UNIQUE(root_dir)` ; `confidentiality` NOT NULL |
+| `code_projects` | `genesis_id` PK → `neurons.id` · `root_dir` (chemin réel) · `source` (`folder` \| `git`) · `remote_url` null (sans identifiants) · `confidentiality` (`claude` \| `local`) · `confidentiality_changed_at` · `created_at` · `analysis_state` (`idle` \| `running` \| `failed` \| `interrupted`) · `analyzed_at` null · `guide_document_id` null (migration `0029_reprise_guide`, T025) | `UNIQUE(root_dir)` ; `confidentiality` NOT NULL |
 | `code_modules` | `id` · `genesis_id` · `key` (`npm:@app/core`, `csproj:App.Core`, `dir:app/Billing`) · `name` · `root_path` · `kind` (`package` \| `csproj` \| `folder`) · `summary` null · `analogy` null | `UNIQUE(genesis_id, key)` |
 | `code_files` | `id` · `genesis_id` · `module_id` · `path` · `lang` (`ts` \| `tsx` \| `js` \| `cs` \| `php` \| `other`) · `hash` (SHA-256) · `lines` · `status` (`ok` \| `parse_error` \| `unsupported` \| `too_large`) · `error` (≤ 200) | `UNIQUE(genesis_id, path)` ; index `module_id` |
 | `code_symbols` | `id` · `file_id` · `parent_id` null · `kind` (`namespace` \| `class` \| `interface` \| `function` \| `method`) · `name` · `qualified_name` · `start_line` · `end_line` · `category` (`domain` \| `orchestration` \| `infrastructure` \| `plumbing`) · `category_source` (`rules` \| `claude` \| `ollama` \| `user`) · `category_reason` null | index `file_id`, `(file_id, qualified_name)` |
@@ -25,7 +25,8 @@ Clés de nœud de l'explorateur : `m:<moduleKey>`, `d:<chemin dossier>`, `f:<che
 
 ## Liens avec l'existant
 - Le genesis « projet repris » est un neurone `kind = 'root'` avec `project_dir` = `root_dir` (spec 008) ; `code_projects`
-  le marque comme repris. Le **guide** est un document du genesis (spec 012, `documents`, versions).
+  le marque comme repris. Le **guide** est un document du genesis (spec 012, `documents`, versions). Les documents d'un
+  genesis repris vivent dans le profil (`documents/`), jamais dans `docs/brainstormer/` du projet (FR-030, T025).
 - Aucune donnée du projet n'est copiée hors de la base de l'app (pas de fichier écrit dans le dossier du projet).
 
 ## États

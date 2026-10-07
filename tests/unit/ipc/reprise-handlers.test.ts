@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AnalysisService } from '../../../src/main/application/reprise/AnalysisService'
+import type { GuideService } from '../../../src/main/application/reprise/GuideService'
 import type { RepriseService } from '../../../src/main/application/reprise/RepriseService'
 import { createRepriseRoutes } from '../../../src/main/ipc/repriseHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
@@ -19,13 +20,28 @@ function setup() {
     setCategory: vi.fn(),
     setTarget: vi.fn()
   }
+  const guide = { generate: vi.fn(async () => ({ documentId: 'd1' })) }
   const dispatch = createDispatcher(
-    createRepriseRoutes(service as unknown as RepriseService, analysis as unknown as AnalysisService)
+    createRepriseRoutes(
+      service as unknown as RepriseService,
+      analysis as unknown as AnalysisService,
+      guide as unknown as GuideService
+    )
   )
-  return { dispatch, service, analysis }
+  return { dispatch, service, analysis, guide }
 }
 
 describe('canaux reprise:* (spec 017 US1)', () => {
+  it('should_ask_for_the_guide_of_a_valid_genesis_only', async () => {
+    const { dispatch, guide } = setup()
+    expect(await dispatch('reprise:guide', { genesisId: ID })).toMatchObject({
+      success: true,
+      data: { documentId: 'd1' }
+    })
+    expect(await dispatch('reprise:guide', { genesisId: '../x' })).toMatchObject({ success: false })
+    expect(guide.generate).toHaveBeenCalledTimes(1)
+  })
+
   it('should_create_with_an_explicit_confidentiality_and_pass_the_confirmation', async () => {
     const { dispatch, service } = setup()
     expect(await dispatch('reprise:create', { previewId: ID, confidentiality: 'local' })).toMatchObject({

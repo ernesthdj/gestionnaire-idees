@@ -57,7 +57,7 @@
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)
-- [ ] T025 [US4] `GuideService` dans `src/main/application/reprise/GuideService.ts` : contexte (graphe résumé, README, docs, configs, hors secrets), vérification des sources sur le disque (retrait / signalement), document du genesis versionné (spec 012), mention « modèle local », résumés des modules dans `code_modules` ; run journalisé (`code_runs`, sans contenu) ; produit à la fin de la première analyse ; IPC `reprise:guide` + tests (README piégé)
+- [x] T025 [US4] `GuideService` dans `src/main/application/reprise/GuideService.ts` : contexte (graphe résumé, README, docs, configs, hors secrets), vérification des sources sur le disque (retrait / signalement), document du genesis versionné (spec 012), mention « modèle local », résumés des modules dans `code_modules` ; run journalisé (`code_runs`, sans contenu) ; produit à la fin de la première analyse ; IPC `reprise:guide` + tests (README piégé)
 - [ ] T026 [US4] Interface : ouverture du guide, liens cités → explorateur centré, « Régénérer », analogie du module dans `NodePanel` + tests renderer/axe
 - [ ] T027 [US4] Test guidé (quickstart §4) — attendre le retour
 

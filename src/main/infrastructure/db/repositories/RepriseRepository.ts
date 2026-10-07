@@ -32,7 +32,7 @@ export class RepriseRepository {
     return this.db.transaction(() => work())
   }
 
-  createProject(row: Omit<CodeProjectRow, 'createdAt' | 'analysisState' | 'analyzedAt'>): void {
+  createProject(row: Omit<CodeProjectRow, 'createdAt' | 'analysisState' | 'analyzedAt' | 'guideDocumentId'>): void {
     this.db.insert(codeProjects).values(row).run()
   }
 
@@ -92,6 +92,10 @@ export class RepriseRepository {
       .set({ analysisState, ...(analyzedAt === undefined ? {} : { analyzedAt }) })
       .where(eq(codeProjects.genesisId, genesisId))
       .run()
+  }
+
+  setGuideDocument(genesisId: string, documentId: string): void {
+    this.db.update(codeProjects).set({ guideDocumentId: documentId }).where(eq(codeProjects.genesisId, genesisId)).run()
   }
 
   /** Au démarrage : une analyse restée en cours a été interrompue par la fermeture de l'app. */

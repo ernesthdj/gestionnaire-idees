@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { CODE_CATEGORIES, CONFIDENTIALITY_LEVELS } from '@shared/ipc/reprise'
 import type { AnalysisService } from '../application/reprise/AnalysisService'
+import type { GuideService } from '../application/reprise/GuideService'
 import type { RepriseService } from '../application/reprise/RepriseService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -10,9 +11,19 @@ import { defineRoute, type IpcRoute } from './registry'
  */
 export function createRepriseRoutes(
   reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'view' | 'setConfidentiality'>,
-  analysis?: Pick<AnalysisService, 'analyze' | 'cancel' | 'setCategory' | 'setTarget'>
+  analysis?: Pick<AnalysisService, 'analyze' | 'cancel' | 'setCategory' | 'setTarget'>,
+  guide?: Pick<GuideService, 'generate'>
 ): IpcRoute[] {
   return [
+    ...(guide === undefined
+      ? []
+      : [
+          defineRoute({
+            channel: 'reprise:guide',
+            input: z.strictObject({ genesisId: z.uuid() }),
+            handler: async ({ genesisId }) => guide.generate(genesisId)
+          })
+        ]),
     ...(analysis === undefined
       ? []
       : [

@@ -130,6 +130,8 @@ describe('migrations du modèle de neurones', () => {
       'code_explorer_state'
     ]
     expect(tables()).toEqual(expect.arrayContaining(added))
+    runDown('0029_reprise_guide')
+    expect(columns('code_projects')).not.toContain('guide_document_id')
     runDown('0028_reprise_projet')
     expect(tables().some((name) => name.startsWith('code_'))).toBe(false)
     expect(tables()).toContain('neurons')

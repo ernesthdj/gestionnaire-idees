@@ -30,7 +30,9 @@ export const codeProjects = sqliteTable(
     analysisState: text('analysis_state', { enum: ['idle', 'running', 'failed', 'interrupted'] })
       .notNull()
       .default('idle'),
-    analyzedAt: text('analyzed_at')
+    analyzedAt: text('analyzed_at'),
+    /** Document du genesis qui porte le guide de reprise (spec 017 US4) ; régénérer en ajoute une version. */
+    guideDocumentId: text('guide_document_id')
   },
   (t) => [uniqueIndex('code_projects_root_idx').on(t.rootDir)]
 )

@@ -86,6 +86,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'reprise:cancelAnalysis',
   'reprise:setCategory',
   'reprise:setTarget',
+  'reprise:guide',
   'explorer:view',
   'explorer:node',
   'explorer:code',

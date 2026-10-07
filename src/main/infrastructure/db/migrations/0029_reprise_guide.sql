@@ -1,0 +1,1 @@
+ALTER TABLE `code_projects` ADD `guide_document_id` text;

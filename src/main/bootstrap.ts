@@ -58,6 +58,9 @@ import { analysisWorker } from './infrastructure/reprise/AnalysisWorker'
 import { CodeGraphRepository } from './infrastructure/db/repositories/CodeGraphRepository'
 import { scanProject } from './infrastructure/reprise/ProjectScanner'
 import { createRepriseRoutes } from './ipc/repriseHandlers'
+import { GuideService } from './application/reprise/GuideService'
+import { runRepriseGuide } from './application/ai/RepriseGuideTask'
+import { readProjectText } from './infrastructure/reprise/projectText'
 import { maskLocalProjects } from './domain/reprise/maskLocal'
 import { RepriseRepository } from './infrastructure/db/repositories/RepriseRepository'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
@@ -259,7 +262,11 @@ export function bootstrap(shell: ShellPort): AppContext {
     repository: documentRepository,
     files: new DocumentFiles({ profileDir: dataDir }),
     nodes: planRepository,
-    projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir ?? null
+    // Un projet repris n'est jamais modifié (spec 017 FR-030) : ses documents vivent dans le profil.
+    projectDir: (genesisId) =>
+      repriseRepository.project(genesisId) === undefined
+        ? (conversationRepository.neuron(genesisId)?.projectDir ?? null)
+        : null
   })
   // Actions finales (spec 013) : une étape feuille devient exécutable sur proposition de Claude, acceptée par mentalyas.
   const finalRepository = new FinalRepository(database.db)
@@ -473,9 +480,30 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (event) => {
       if (event.type === 'reprise:changed') explorer.invalidate(event.payload.genesisId)
       broadcast(event.type, event.payload)
+      // Fin de la première analyse : le guide de reprise est rédigé (spec 017 US4) ; un échec reste dans son run.
+      const genesisId = event.payload.genesisId
+      if (
+        event.type === 'reprise:analysisDone' &&
+        repriseRepository.project(genesisId)?.guideDocumentId === null &&
+        !guide.isRunning(genesisId)
+      ) {
+        guide.generate(genesisId).catch(() => logger.warn('reprise.guide_failed', {}))
+      }
     }
   })
   analysis.recover()
+  // Guide de reprise (spec 017 US4) : Claude ou le modèle local selon la confidentialité, document du genesis.
+  const guide = new GuideService({
+    reprise: repriseRepository,
+    graph: codeGraph,
+    documents,
+    documentAlive: (documentId) => documentRepository.get(documentId)?.deletedAt === null,
+    claudeAllowed: (genesisId) => confidentiality.claudeAllowed(genesisId),
+    runGuide: (input, options) => runRepriseGuide(ai.gateway, input, options),
+    readText: readProjectText,
+    emit: (event) => broadcast(event.type, event.payload),
+    onWritten: (event) => broadcast('map:changed', event)
+  })
   // Fichiers d'un élément de carte (spec 017 US7) : lecture seule sous le dossier lié, symboles si le projet est analysé.
   const elementFiles = new ElementFilesService({
     neuron: (id) => conversationRepository.neuron(id),
@@ -563,7 +591,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations, permissions),
       ...createProjectRoutes(projects),
-      ...createRepriseRoutes(reprise, analysis),
+      ...createRepriseRoutes(reprise, analysis, guide),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
       ...createMcpRoutes({
