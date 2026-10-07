@@ -17,6 +17,10 @@ export interface CompletionRequest<T> {
   readonly maxTokens: number
   /** Modèle propre à la tâche (ex. widgets sur Sonnet) ; sinon le modèle configuré du moteur. */
   readonly model?: string
+  /** Délai propre à la tâche ; sinon celui du moteur. */
+  readonly timeoutMs?: number
+  /** Fenêtre de contexte demandée au modèle local (Ollama) ; ignorée par Claude. */
+  readonly contextTokens?: number
 }
 
 export interface CompletionResponse<T> {

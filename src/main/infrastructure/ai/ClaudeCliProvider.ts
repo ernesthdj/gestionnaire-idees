@@ -132,7 +132,7 @@ export class ClaudeCliProvider implements AIProvider {
       args,
       cwd: this.options.cwd(),
       stdin,
-      timeoutMs: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+      timeoutMs: request.timeoutMs ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS
     })
     if (outcome.timedOut) throw new ProviderError('AI_UNAVAILABLE', 'Claude a mis trop de temps à répondre', true)
     if (/not logged in|log in|login|authenticat/i.test(outcome.stderr)) {

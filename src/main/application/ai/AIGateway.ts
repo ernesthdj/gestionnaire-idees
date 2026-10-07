@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
-import { effortFor, engineFor, maxTokensFor } from '../../domain/ai/routing'
+import { contextTokensFor, effortFor, engineFor, maxTokensFor, timeoutFor } from '../../domain/ai/routing'
 import type { AIError, AIErrorCode, Engine, Result, TaskKind, Usage } from '../../domain/ai/types'
 import { ProviderError, type AIProvider, type CompletionResponse } from './AIProvider'
 import { assembleContext } from './ContextAssembler'
@@ -19,6 +19,11 @@ export interface GatewayRequest<T> {
   readonly verbatim?: string
   /** Appelé quand un moteur commence réellement à travailler (repli compris) : l'interface peut dire qui réfléchit. */
   readonly onEngine?: (engine: Engine, model: string) => void
+  /**
+   * Données d'un projet « Local uniquement » (spec 017, constitution IV) : Ollama imposé, sans repli vers Claude ni
+   * mise en file ; IA locale arrêtée → `AI_UNAVAILABLE`.
+   */
+  readonly localOnly?: boolean
 }
 
 export interface AIResult<T> {
@@ -84,9 +89,13 @@ export class AIGateway {
     }
 
     const config = this.deps.config()
-    let engine = engineFor(request.kind)
+    const localOnly = request.localOnly === true
+    if (localOnly && !(await this.deps.providers.ollama.isAvailable()).up) {
+      return failure('AI_UNAVAILABLE', "L'IA locale est indisponible, et ce projet n'est jamais envoyé à Claude", true)
+    }
+    let engine: Engine = localOnly ? 'ollama' : engineFor(request.kind)
 
-    if (engine === 'ollama' && !(await this.deps.providers.ollama.isAvailable()).up) {
+    if (engine === 'ollama' && !localOnly && !(await this.deps.providers.ollama.isAvailable()).up) {
       if (config.allowClaudeFallback) {
         engine = 'claude'
       } else if (request.noQueue === true) {
@@ -135,6 +144,8 @@ export class AIGateway {
     model: string | undefined
   ): Promise<Result<AIResult<T>, AIError>> {
     const provider = this.deps.providers[engine]
+    const timeoutMs = timeoutFor(request.kind)
+    const contextTokens = contextTokensFor(request.kind)
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const started = Date.now()
       let response: CompletionResponse<T>
@@ -145,7 +156,9 @@ export class AIGateway {
           schema: request.schema,
           effort: effortFor(request.kind),
           maxTokens: maxTokensFor(request.kind),
-          ...(model === undefined ? {} : { model })
+          ...(model === undefined ? {} : { model }),
+          ...(timeoutMs === undefined ? {} : { timeoutMs }),
+          ...(contextTokens === undefined ? {} : { contextTokens })
         })
       } catch (error) {
         const code = error instanceof ProviderError ? error.code : 'AI_UNAVAILABLE'

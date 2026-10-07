@@ -1,4 +1,5 @@
 import type { TaskKind } from '../../domain/ai/types'
+import { REPRISE_GUIDE_FRAME } from '../../infrastructure/ai/RepriseGuideFrame'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
 import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
 import { WIDGET_FRAME } from '../../infrastructure/ai/WidgetFrame'
@@ -6,6 +7,12 @@ import type { SystemBlock } from './AIProvider'
 import type { AgentContext } from './ports'
 
 const MAX_EXAMPLES = 3
+
+/** Tâches dont le cadre figé remplace `SYSTEM_FRAME`. */
+const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
+  widget: WIDGET_FRAME,
+  reprise_guide: REPRISE_GUIDE_FRAME
+}
 
 export interface AssembledContext {
   readonly system: readonly SystemBlock[]
@@ -21,12 +28,13 @@ export function assembleContext(request: {
   readonly input: string
   readonly context: AgentContext | undefined
 }): AssembledContext {
-  // Les widgets ont leur propre cadre figé (constitution 1.2.0) et ne reçoivent ni profil ni exemples
-  // (minimisation : un outil n'a pas besoin de la vie de l'utilisateur).
-  if (request.kind === 'widget') {
+  // Widgets (constitution 1.2.0) et guide de reprise (spec 017) : cadre figé propre, sans profil ni exemples
+  // (minimisation : un outil ou un guide n'a pas besoin de la vie de l'utilisateur).
+  const ownFrame = OWN_FRAMES[request.kind]
+  if (ownFrame !== undefined) {
     return {
-      system: [{ text: WIDGET_FRAME, cacheable: true, role: 'frame' }],
-      user: `Tâche : widget\n${wrapUserData(request.input)}`
+      system: [{ text: ownFrame, cacheable: true, role: 'frame' }],
+      user: `Tâche : ${request.kind}\n${wrapUserData(request.input)}`
     }
   }
   const system: SystemBlock[] = [{ text: SYSTEM_FRAME, cacheable: true, role: 'frame' }]

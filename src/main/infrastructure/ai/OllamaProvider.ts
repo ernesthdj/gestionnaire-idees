@@ -92,14 +92,17 @@ export class OllamaProvider implements AIProvider {
       const response = await this.fetchFn(`${this.options.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        signal: AbortSignal.timeout(this.options.timeoutMs ?? 120_000),
+        signal: AbortSignal.timeout(request.timeoutMs ?? this.options.timeoutMs ?? 120_000),
         body: JSON.stringify({
           model,
           stream: false,
           // Tâches locales courtes et structurées : la réflexion à voix haute ralentit sans améliorer le résultat.
           think: false,
           format: z.toJSONSchema(request.schema),
-          options: { num_predict: request.maxTokens },
+          options: {
+            num_predict: request.maxTokens,
+            ...(request.contextTokens === undefined ? {} : { num_ctx: request.contextTokens })
+          },
           messages: [
             { role: 'system', content: request.system.map((block) => block.text).join('\n\n') },
             { role: 'user', content: request.user }

@@ -6,18 +6,29 @@ import type { Effort, Engine, TaskKind } from './types'
  */
 const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   categoriser: 'ollama',
-  widget: 'claude'
+  widget: 'claude',
+  // Ollama quand le projet repris est « Local uniquement » (`localOnly` de la passerelle, spec 017 R6).
+  reprise_guide: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   categoriser: 'low',
-  widget: 'medium'
+  widget: 'medium',
+  reprise_guide: 'medium'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   categoriser: 256,
-  widget: 20000
+  widget: 20000,
+  reprise_guide: 16000
 }
+
+/**
+ * Tâches longues : délai propre (sinon celui du moteur) et fenêtre de contexte d'Ollama (par défaut trop petite pour
+ * une entrée de ~40 000 caractères : elle serait tronquée sans erreur).
+ */
+const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 10 * 60 * 1000 }
+const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 32768 }
 
 export function engineFor(kind: TaskKind): Engine {
   return ENGINES[kind]
@@ -29,4 +40,12 @@ export function effortFor(kind: TaskKind): Effort {
 
 export function maxTokensFor(kind: TaskKind): number {
   return MAX_TOKENS[kind]
+}
+
+export function timeoutFor(kind: TaskKind): number | undefined {
+  return TIMEOUT_MS[kind]
+}
+
+export function contextTokensFor(kind: TaskKind): number | undefined {
+  return CONTEXT_TOKENS[kind]
 }

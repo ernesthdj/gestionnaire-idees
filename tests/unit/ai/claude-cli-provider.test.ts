@@ -56,6 +56,12 @@ describe('Claude par le CLI (spec 010, F11)', () => {
     expect(stdin).toBe('DONNÉES PERSONNELLES')
   })
 
+  it('should_use_the_task_timeout_when_the_request_sets_one', async () => {
+    const { cli, calls } = provider({ stdout: success({ title: 'x', count: 1 }) })
+    await cli.complete({ ...request(), timeoutMs: 600_000 })
+    expect(calls[0]?.timeoutMs).toBe(600_000)
+  })
+
   it('should_move_long_instructions_to_stdin', async () => {
     const { cli, calls } = provider({ stdout: success({ title: 'x', count: 1 }) })
     await cli.complete(request('x'.repeat(25_000)))

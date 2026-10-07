@@ -62,6 +62,20 @@ describe('OllamaProvider', () => {
     expect(body.format.type).toBe('object')
   })
 
+  it('should_widen_the_local_context_only_when_the_task_asks_for_it', async () => {
+    const bodies: string[] = []
+    const fetch: FetchLike = (_url, init) => {
+      bodies.push(init?.body ?? '')
+      return jsonResponse({ model: 'qwen-test', message: { content: '{"categorySlug":"achat","nature":"action"}' } })
+    }
+    const ollama = new OllamaProvider({ ...base, fetch })
+    await ollama.complete(request)
+    await ollama.complete({ ...request, contextTokens: 32768 })
+    const options = bodies.map((body) => (JSON.parse(body) as { options: Record<string, number> }).options)
+    expect(options[0]).toEqual({ num_predict: 256 })
+    expect(options[1]).toEqual({ num_predict: 256, num_ctx: 32768 })
+  })
+
   it('should_return_null_parsed_when_content_is_not_json', async () => {
     const fetch: FetchLike = () => jsonResponse({ model: 'qwen-test', message: { content: 'pas du json' } })
     await expect(new OllamaProvider({ ...base, fetch }).complete(request)).resolves.toMatchObject({ parsed: null })

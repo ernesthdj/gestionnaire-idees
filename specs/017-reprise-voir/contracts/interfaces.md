@@ -50,5 +50,7 @@ projet ne vient jamais de l'interface (`previewId` éphémère, 15 min).
 - `reprise_resolution` : entrée `{ items: { edgeId, call, context ≤ 8 lignes, candidates: { id, label }[] }[≤50] }` →
   `{ items: { edgeId, targetId: string | null, reason ≤ 160 }[] }` (targetId ∈ candidats).
 - `reprise_guide` : entrée `{ name, modules, entryPoints, files (arbre), readme, configs }` (borné à ~40 000 caractères)
-  → `{ sections: { id, title, markdown, sources: string[] }[9], modules: { key, summary, analogy }[] }`.
+  → `{ sections: { id, analogy, markdown, sources: string[] }[9], modules: { key, summary, analogy }[] }` (T024 : les
+  titres sont fixés par l'app d'après `id` ; l'`analogy` obligatoire garantit l'ouverture de chaque section par une
+  analogie, D6). Délai 10 min, contexte local 32 768 jetons ; `localOnly` : Ollama imposé, sans repli ni file.
 - Routage : Claude si `claudeAllowed`, sinon Ollama ; indisponible → `AI_UNAVAILABLE`.
