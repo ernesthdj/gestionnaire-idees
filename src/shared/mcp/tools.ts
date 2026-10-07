@@ -193,7 +193,9 @@ export const StructureElement = z.strictObject({
   resume: z.string().trim().max(600).optional(),
   statut: z.enum(ELEMENT_STATUSES).optional(),
   chemins: z.array(ProjectPath).max(STRUCTURE_LIMITS.paths).optional(),
-  parent: ElementKey.optional()
+  parent: ElementKey.optional(),
+  /** Rang de progression parmi ses frères (D17) : 1 = à construire ou lire en premier. */
+  ordre: z.number().int().min(1).max(999).optional()
 })
 export type StructureElement = z.infer<typeof StructureElement>
 export const StructureLink = z.strictObject({
@@ -351,7 +353,9 @@ export const MCP_TOOLS = {
       'Dessine ou met à jour la carte de structure d’un projet lié : éléments typés (module, fonctionnalite, composant, ' +
       'donnee, interface, tache, decision) à CLÉ STABLE (ex. « module:main », « composant:src/main/x.ts ») — une clé ' +
       'existante est mise à jour, jamais dupliquée —, parent par clé (absent = niveau 1), chemins relatifs, liens typés ' +
-      '(depend_de, appelle, lit_ecrit, implemente, teste, bloque). Tout ou rien ; 300 éléments et 600 liens par appel. ' +
+      '(depend_de, appelle, lit_ecrit, implemente, teste, bloque). « ordre » : rang parmi les frères dans la progression ' +
+      'logique de développement (1 = fondations, à construire ou lire en premier). Tout ou rien ; 300 éléments et 600 ' +
+      'liens par appel. ' +
       'Reste lisible : 12 enfants au plus par élément, regroupe sinon.',
     input: StructureDessinerInput,
     writes: true

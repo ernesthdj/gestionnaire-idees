@@ -1,18 +1,21 @@
 import type { ElementRelation, ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
 import { weakestProvenance, type LinkProvenance } from '@shared/ipc/reprise'
+import { progression } from './structureOrder'
 
 /**
- * Carte de structure d'un projet à l'écran (spec 009, L3 §5 ; spec 017 D14–D15) : quels éléments sont visibles (repli),
- * où ils se placent (arbre en colonnes à droite de leur genesis, aéré : écart entre nœuds, et plus encore entre
- * modules de niveau 1), et quels liens tracer selon le focus — au repos, ceux entre éléments de niveau 1, agrégés ;
- * pour l'élément en focus, ses propres liens, rattachés à l'élément visible de l'autre bout. Fonctions pures.
+ * Carte de structure d'un projet à l'écran (spec 009, L3 §5 ; spec 017 D15, D17) : quels éléments sont visibles
+ * (repli), où ils se placent (disposition alternée : modules en colonne sous le genesis, enfants d'un niveau impair en
+ * ligne à droite, d'un niveau pair en colonne dessous, dans l'ordre de progression), et quels liens tracer selon le
+ * focus — au repos, ceux entre éléments de niveau 1, agrégés ; pour l'élément en focus, ses propres liens, rattachés à
+ * l'élément visible de l'autre bout. Fonctions pures.
  */
 
 export const ELEMENT_SIZE = { width: 240, height: 96 } as const
-/** Espacement de l'arbre (D14) : colonnes, nœuds d'une même colonne, et sous-arbres de deux modules de niveau 1. */
-export const SPACING = { column: ELEMENT_SIZE.width + 140, row: 40, module: 120 } as const
-/** Écart entre le genesis et la première colonne de sa carte. */
-const FIRST_COLUMN = 240
+/**
+ * Espacement (D17) : entre deux frères d'une ligne (`across`) ou d'une colonne (`down`), en plus entre deux modules de
+ * niveau 1 (`module`), et du centre du genesis au premier module (`genesis`).
+ */
+export const SPACING = { across: 96, down: 48, module: 72, genesis: 120 } as const
 
 export interface PlacedElement {
   readonly element: ElementView
@@ -20,6 +23,8 @@ export interface PlacedElement {
   readonly y: number
   /** Profondeur dans la carte (1 : enfant du genesis). */
   readonly depth: number
+  /** Numéro de progression (1, 1.2, 1.2.1…). */
+  readonly number: string
 }
 
 export interface StructureEdge {
@@ -73,57 +78,64 @@ export function structureGraph(
   const genesisIds = [...new Set(elements.map((element) => element.genesisId))].filter((id) => genesisCenters.has(id))
   const tree = treeOf(elements, genesisIds)
 
-  // Placement : feuilles empilées, parent centré sur ses enfants visibles ; un écart de plus entre deux modules de
-  // niveau 1 sépare leurs sous-arbres ; l'arbre est centré sur le genesis.
+  const order = progression(elements, links, measured)
+  const visibleKids = (element: { readonly id: string; readonly collapsed?: boolean }): ElementView[] =>
+    element.collapsed === true ? [] : (order.children.get(element.id) ?? []).filter((kid) => tree.visible.has(kid.id))
   const placed: PlacedElement[] = []
+  // Hiérarchie en chemin (D17) : du parent vers son premier enfant, puis de chaque frère au suivant.
+  const hierarchy: StructureEdge[] = []
+  const chain = (parentId: string, kids: readonly ElementView[]): void =>
+    kids.forEach((kid, index) =>
+      hierarchy.push({
+        id: `struct-${kid.id}`,
+        source: index === 0 ? parentId : (kids[index - 1] as ElementView).id,
+        target: kid.id,
+        kind: 'hierarchy',
+        relation: null,
+        label: null,
+        count: 1,
+        provenance: null,
+        focused: false
+      })
+    )
+  const { width: W, height: H } = ELEMENT_SIZE
+  // Boîte d'un sous-arbre posé à (x, y) (coin haut gauche) : les enfants d'un niveau impair partent en ligne à droite,
+  // ceux d'un niveau pair en colonne dessous ; chaque enfant occupe toute sa boîte, donc rien ne se chevauche.
+  const layout = (element: ElementView, depth: number, x: number, y: number): { width: number; height: number } => {
+    placed.push({ element, depth, number: order.numbers.get(element.id) ?? '', x: x + W / 2, y: y + H / 2 })
+    const kids = visibleKids(element)
+    chain(element.id, kids)
+    let width: number = W
+    let height: number = H
+    if (depth % 2 === 1) {
+      let cursor = x + W + SPACING.across
+      for (const kid of kids) {
+        const box = layout(kid, depth + 1, cursor, y)
+        cursor += box.width + SPACING.across
+        height = Math.max(height, box.height)
+      }
+      if (kids.length > 0) width = cursor - SPACING.across - x
+    } else {
+      let cursor = y + H + SPACING.down
+      for (const kid of kids) {
+        const box = layout(kid, depth + 1, x, cursor)
+        cursor += box.height + SPACING.down
+        width = Math.max(width, box.width)
+      }
+      if (kids.length > 0) height = cursor - SPACING.down - y
+    }
+    return { width, height }
+  }
+  // Les modules (niveau 1) descendent sous le genesis, alignés sur lui, avec de l'air en plus entre deux modules.
   for (const genesisId of genesisIds) {
     const center = genesisCenters.get(genesisId) as { x: number; y: number }
-    const local: { element: ElementView; depth: number; y: number }[] = []
-    let cursor = 0
-    const place = (element: ElementView, depth: number): { top: number; bottom: number } => {
-      const kids = element.collapsed
-        ? []
-        : (tree.children.get(element.id) ?? []).filter((kid) => tree.visible.has(kid.id))
-      if (kids.length === 0) {
-        const top = cursor
-        cursor += ELEMENT_SIZE.height + SPACING.row
-        local.push({ element, depth, y: top + ELEMENT_SIZE.height / 2 })
-        return { top, bottom: top + ELEMENT_SIZE.height }
-      }
-      const spans = kids.map((kid) => place(kid, depth + 1))
-      const top = (spans[0] as { top: number }).top
-      const bottom = (spans[spans.length - 1] as { bottom: number }).bottom
-      local.push({ element, depth, y: (top + bottom) / 2 })
-      return { top, bottom }
-    }
-    const roots = (tree.children.get(genesisId) ?? []).filter((kid) => tree.visible.has(kid.id))
-    roots.forEach((root, index) => {
-      if (index > 0) cursor += SPACING.module
-      place(root, 1)
-    })
-    const height = Math.max(0, cursor - SPACING.row)
-    for (const entry of local) {
-      placed.push({
-        element: entry.element,
-        depth: entry.depth,
-        x: center.x + FIRST_COLUMN + (entry.depth - 1) * SPACING.column + ELEMENT_SIZE.width / 2,
-        y: center.y - height / 2 + entry.y
-      })
+    const modules = visibleKids({ id: genesisId })
+    chain(genesisId, modules)
+    let cursor = center.y + SPACING.genesis
+    for (const module of modules) {
+      cursor += layout(module, 1, center.x - W / 2, cursor).height + SPACING.down + SPACING.module
     }
   }
-
-  // Hiérarchie (parent visible → enfant visible), puis, au repos, les liens agrégés entre éléments de niveau 1.
-  const hierarchy: StructureEdge[] = placed.map((entry) => ({
-    id: `struct-${entry.element.id}`,
-    source: entry.element.parentId,
-    target: entry.element.id,
-    kind: 'hierarchy',
-    relation: null,
-    label: null,
-    count: 1,
-    provenance: null,
-    focused: false
-  }))
   const topOf = (id: string): string | null => {
     let current = tree.byId.get(id)
     for (let guard = 0; current !== undefined && guard < 100; guard++) {

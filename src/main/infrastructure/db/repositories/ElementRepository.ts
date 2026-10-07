@@ -18,6 +18,8 @@ export interface ElementRow {
   readonly collapsed: boolean
   readonly sheetJson: string | null
   readonly depth: number
+  /** Rang de progression parmi ses frères (D17) ; `null` : non donné. */
+  readonly rank: number | null
 }
 
 export interface NewElement {
@@ -31,6 +33,7 @@ export interface NewElement {
   readonly content: string | null
   readonly status: ElementStatus | null
   readonly paths: readonly string[]
+  readonly rank: number | null
 }
 
 const parsePaths = (json: string | null): string[] => {
@@ -71,7 +74,8 @@ export class ElementRepository {
         pathsJson: neurons.pathsJson,
         collapsed: neurons.collapsed,
         sheetJson: neurons.sheetJson,
-        depth: neurons.depth
+        depth: neurons.depth,
+        rank: neurons.rank
       })
       .from(neurons)
       .where(and(...conditions))
@@ -93,7 +97,8 @@ export class ElementRepository {
                 paths: parsePaths(row.pathsJson),
                 collapsed: row.collapsed,
                 sheetJson: row.sheetJson,
-                depth: row.depth
+                depth: row.depth,
+                rank: row.rank
               }
             ]
       )
@@ -123,7 +128,8 @@ export class ElementRepository {
         summary,
         paths: row.paths,
         collapsed: row.collapsed,
-        childCount: children.get(row.id) ?? 0
+        childCount: children.get(row.id) ?? 0,
+        order: row.rank
       }
     })
   }
@@ -146,6 +152,7 @@ export class ElementRepository {
         elementKey: element.key,
         elementStatus: element.status,
         pathsJson: JSON.stringify(element.paths),
+        rank: element.rank,
         collapsed: element.depth >= 1
       })
       .run()
@@ -153,7 +160,7 @@ export class ElementRepository {
 
   update(
     id: string,
-    patch: Pick<NewElement, 'parentId' | 'depth' | 'type' | 'title' | 'content' | 'status' | 'paths'>
+    patch: Pick<NewElement, 'parentId' | 'depth' | 'type' | 'title' | 'content' | 'status' | 'paths' | 'rank'>
   ): void {
     this.db
       .update(neurons)
@@ -165,6 +172,7 @@ export class ElementRepository {
         content: patch.content,
         elementStatus: patch.status,
         pathsJson: JSON.stringify(patch.paths),
+        rank: patch.rank,
         state: 'raw',
         archivedAt: null,
         updatedAt: new Date().toISOString()

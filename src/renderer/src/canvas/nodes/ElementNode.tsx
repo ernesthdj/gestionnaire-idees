@@ -38,7 +38,7 @@ export const STATUS_LABELS: Readonly<Record<ElementStatus, string>> = {
  * enfants. Un clic sur la carte ouvre sa conversation (géré par la carte) ; le bouton de repli ne l'ouvre pas.
  */
 export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Element {
-  const { element } = data
+  const { element, number } = data
   const client = useQueryClient()
   const style = ELEMENT_STYLES[element.type]
   const toggle = (event: React.MouseEvent): void => {
@@ -53,6 +53,14 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
       style={{ width: ELEMENT_SIZE.width, height: ELEMENT_SIZE.height }}
     >
       <header className="flex items-center gap-2 text-[11px] font-medium">
+        {number === '' ? null : (
+          <span
+            className="rounded bg-content px-1.5 py-0.5 font-mono text-[10px] font-semibold text-surface"
+            title="Numéro de progression : ordre logique de développement"
+          >
+            {number}
+          </span>
+        )}
         <span aria-hidden="true">{style.icon}</span>
         <span>{style.label}</span>
         {element.status === null ? null : (
@@ -61,8 +69,11 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
           </span>
         )}
         {element.paths.length === 0 ? null : (
-          <span className="ml-auto text-content-muted" title={element.paths.join('\n')}>
-            {element.paths.length} fichier{element.paths.length > 1 ? 's' : ''}
+          <span
+            className="ml-auto text-content-muted"
+            title={`Chemins donnés à l’élément (un dossier couvre tous ses fichiers) :\n${element.paths.join('\n')}`}
+          >
+            {element.paths.length} chemin{element.paths.length > 1 ? 's' : ''}
           </span>
         )}
       </header>

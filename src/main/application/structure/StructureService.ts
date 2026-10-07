@@ -21,14 +21,17 @@ export interface StructureDeps {
   readonly emit: (event: { readonly batchId: string; readonly summary: string; readonly count: number }) => void
 }
 
-const snapshot = (row: Pick<ElementRow, 'title' | 'content' | 'type' | 'status' | 'paths' | 'parentId' | 'depth'>) => ({
+const snapshot = (
+  row: Pick<ElementRow, 'title' | 'content' | 'type' | 'status' | 'paths' | 'parentId' | 'depth' | 'rank'>
+) => ({
   title: row.title,
   content: row.content,
   type: row.type,
   status: row.status,
   paths: JSON.stringify(row.paths),
   parentId: row.parentId,
-  depth: row.depth
+  depth: row.depth,
+  rank: row.rank
 })
 
 /**
@@ -85,7 +88,8 @@ export class StructureService {
           title: element.title,
           content: element.summary ?? before?.content ?? null,
           status: element.status ?? before?.status ?? null,
-          paths: element.paths ?? before?.paths ?? []
+          paths: element.paths ?? before?.paths ?? [],
+          rank: element.order ?? before?.rank ?? null
         }
         if (before === undefined) {
           elements.insert({ id, genesisId, key: element.key, ...fields })

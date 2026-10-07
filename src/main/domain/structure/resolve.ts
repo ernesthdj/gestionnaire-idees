@@ -10,6 +10,8 @@ export interface ResolvedElement {
   readonly paths: readonly string[] | null
   /** Clé du parent ; `null` : niveau 1 (enfant du genesis). */
   readonly parentKey: string | null
+  /** Rang de progression parmi ses frères (D17) ; `null` : non donné. */
+  readonly order: number | null
 }
 
 export interface ResolvedStructureLink {
@@ -98,7 +100,8 @@ export function resolveStructure(
       summary: element.resume === undefined || element.resume === '' ? null : element.resume,
       status: element.statut ?? null,
       paths: element.chemins ?? null,
-      parentKey: element.parent ?? null
+      parentKey: element.parent ?? null,
+      order: element.ordre ?? null
     })),
     links: resolvedLinks
   }

@@ -111,6 +111,26 @@ describe('carte de structure d’un projet (spec 009)', () => {
     expect(view().mapLinks).toHaveLength(1)
   })
 
+  it('should_keep_the_progression_order_given_by_claude_across_redraws_and_undo_it', () => {
+    draw(map)
+    const orderOf = (key: string): number | null | undefined =>
+      view().elements.find((element) => element.key === key)?.order
+    expect(orderOf('module:main')).toBeNull()
+    draw({ elements: [{ cle: 'module:main', type: 'module', titre: 'Processus principal', ordre: 2 }] })
+    const ordered = history.list().items[0]?.batchId ?? ''
+    expect(orderOf('module:main')).toBe(2)
+    // Redessiné sans ordre : le rang donné reste.
+    draw({ elements: [{ cle: 'module:main', type: 'module', titre: 'Main' }] })
+    const renamed = history.list().items[0]?.batchId ?? ''
+    expect(orderOf('module:main')).toBe(2)
+    // Annulations dans l'ordre : le dernier dessin (titre), puis celui qui a donné l'ordre.
+    history.undo(renamed)
+    expect(orderOf('module:main')).toBe(2)
+    history.undo(ordered)
+    expect(orderOf('module:main')).toBeNull()
+    expect(() => draw({ elements: [{ cle: 'module:x', type: 'module', titre: 'X', ordre: 0 }] })).toThrow()
+  })
+
   it('should_remove_absent_elements_only_when_asked_and_undo_everything_in_one_go', () => {
     draw(map)
     draw({ elements: [{ cle: 'module:main', type: 'module', titre: 'main' }], retirer_absents: true })

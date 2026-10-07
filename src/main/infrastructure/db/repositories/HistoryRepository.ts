@@ -273,7 +273,8 @@ export class HistoryRepository {
             status: neurons.elementStatus,
             paths: neurons.pathsJson,
             parentId: neurons.parentId,
-            depth: neurons.depth
+            depth: neurons.depth,
+            rank: neurons.rank
           })
           .from(neurons)
           .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
@@ -286,7 +287,8 @@ export class HistoryRepository {
           status: row.status,
           paths: row.paths,
           parentId: row.parentId,
-          depth: row.depth
+          depth: row.depth,
+          rank: row.rank
         }
       }
       case 'neuron_sheet': {
@@ -520,6 +522,8 @@ export class HistoryRepository {
             pathsJson: text('paths'),
             ...(text('parentId') === null ? {} : { parentId: text('parentId') }),
             ...(typeof target['depth'] === 'number' ? { depth: target['depth'] } : {}),
+            // Rang de progression (D17) : absent des instantanés d'avant D17, laissé tel quel.
+            ...('rank' in target ? { rank: typeof target['rank'] === 'number' ? target['rank'] : null } : {}),
             ...(text('type') === null
               ? {}
               : { elementType: text('type') as (typeof neurons.$inferInsert)['elementType'] })

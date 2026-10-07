@@ -18,6 +18,7 @@ const element = (id: string, parentId: string, extra: Partial<ElementView> = {})
   paths: [],
   collapsed: true,
   childCount: 0,
+  order: null,
   ...extra
 })
 const link = (id: string, from: string, to: string): MapLinkView => ({
@@ -43,32 +44,72 @@ const unfold = (rows: readonly ElementView[], ...ids: string[]): ElementView[] =
 const at = (graph: ReturnType<typeof structureGraph>) =>
   new Map(graph.placed.map((entry) => [entry.element.id, entry] as const))
 
-describe('carte de structure à l’écran : arbre aéré (spec 017 D14)', () => {
-  it('should_show_only_level_one_when_everything_is_folded_linked_to_the_genesis', () => {
+const hierarchyOf = (graph: ReturnType<typeof structureGraph>): string[][] =>
+  graph.edges.filter((edge) => edge.kind === 'hierarchy').map((edge) => [edge.source, edge.target])
+
+/** Aucun rectangle de nœud ne recouvre un autre. */
+const overlaps = (graph: ReturnType<typeof structureGraph>): boolean =>
+  graph.placed.some((a, i) =>
+    graph.placed.some(
+      (b, j) => i < j && Math.abs(a.x - b.x) < ELEMENT_SIZE.width && Math.abs(a.y - b.y) < ELEMENT_SIZE.height
+    )
+  )
+
+describe('carte de structure à l’écran : disposition alternée et progression (spec 017 D17)', () => {
+  it('should_put_the_modules_in_a_column_under_the_genesis_linked_as_a_path', () => {
     const graph = structureGraph(elements, centers, [])
-    expect(graph.placed.map((entry) => entry.element.id).sort()).toEqual(['main', 'renderer'])
-    expect(graph.placed.every((entry) => entry.x > 0)).toBe(true)
-    expect(graph.edges.filter((edge) => edge.kind === 'hierarchy').map((edge) => [edge.source, edge.target])).toEqual([
+    const place = at(graph)
+    expect(place.get('main')).toMatchObject({ x: 0, number: '1' })
+    expect(place.get('renderer')).toMatchObject({ x: 0, number: '2' })
+    expect(place.get('main')?.y).toBe(SPACING.genesis + ELEMENT_SIZE.height / 2)
+    expect((place.get('renderer')?.y ?? 0) - (place.get('main')?.y ?? 0)).toBe(
+      ELEMENT_SIZE.height + SPACING.down + SPACING.module
+    )
+    expect(hierarchyOf(graph)).toEqual([
       [G, 'main'],
-      [G, 'renderer']
+      ['main', 'renderer']
     ])
   })
 
-  it('should_put_the_children_in_the_next_column_centered_with_air_between_nodes', () => {
-    const graph = structureGraph(unfold(elements, 'main'), centers, [])
+  it('should_put_the_children_of_a_module_in_a_row_to_its_right_and_theirs_in_a_column_below', () => {
+    const rows = unfold(
+      [...elements, element('a1', 'a', { type: 'composant' }), element('a2', 'a', { type: 'composant' })],
+      'main',
+      'a'
+    )
+    const graph = structureGraph(rows, centers, [])
     const place = at(graph)
-    expect((place.get('a')?.x ?? 0) - (place.get('main')?.x ?? 0)).toBe(SPACING.column)
-    expect(place.get('main')?.y).toBeCloseTo(((place.get('a')?.y ?? 0) + (place.get('b')?.y ?? 0)) / 2)
-    expect((place.get('b')?.y ?? 0) - (place.get('a')?.y ?? 0)).toBe(ELEMENT_SIZE.height + SPACING.row)
-    expect(
-      graph.edges.filter((edge) => edge.kind === 'hierarchy').map((edge) => [edge.source, edge.target])
-    ).toContainEqual(['main', 'a'])
+    // Niveau 2 : en ligne à droite du module, sur sa hauteur.
+    expect(place.get('a')).toMatchObject({ y: place.get('main')?.y, number: '1.1' })
+    expect((place.get('a')?.x ?? 0) - (place.get('main')?.x ?? 0)).toBe(ELEMENT_SIZE.width + SPACING.across)
+    expect(place.get('b')?.y).toBe(place.get('main')?.y)
+    // Niveau 3 : en colonne sous leur parent, alignés sur lui.
+    expect(place.get('a1')).toMatchObject({ x: place.get('a')?.x, number: '1.1.1' })
+    expect((place.get('a1')?.y ?? 0) - (place.get('a')?.y ?? 0)).toBe(ELEMENT_SIZE.height + SPACING.down)
+    // La boîte de « a » (avec sa colonne) repousse « b » et le module suivant : rien ne se chevauche.
+    expect(place.get('b')?.x).toBeGreaterThan(place.get('a')?.x ?? 0)
+    expect(place.get('renderer')?.y).toBeGreaterThan(place.get('a2')?.y ?? 0)
+    expect(overlaps(graph)).toBe(false)
+    expect(hierarchyOf(graph)).toEqual(
+      expect.arrayContaining([
+        ['main', 'a'],
+        ['a', 'b'],
+        ['a', 'a1'],
+        ['a1', 'a2']
+      ])
+    )
   })
 
-  it('should_separate_two_level_one_modules_more_than_two_siblings', () => {
-    const place = at(structureGraph(unfold(elements, 'main', 'renderer'), centers, []))
-    // Dernier enfant de « main » (b) puis premier de « renderer » (c) : écart de module en plus.
-    expect((place.get('c')?.y ?? 0) - (place.get('b')?.y ?? 0)).toBe(ELEMENT_SIZE.height + SPACING.row + SPACING.module)
+  it('should_follow_the_order_of_claude_then_the_dependencies_then_the_drawing', () => {
+    const rows = [element('ui', G), element('core', G), element('db', G, { order: 1 }), element('api', G)]
+    const dependsOn = (id: string, from: string, to: string): MapLinkView => ({
+      ...link(id, from, to),
+      relation: 'depend_de'
+    })
+    const graph = structureGraph(rows, centers, [dependsOn('l1', 'ui', 'core'), dependsOn('l2', 'ui', 'api')])
+    const numbers = Object.fromEntries(graph.placed.map((entry) => [entry.element.id, entry.number]))
+    // « db » numéroté par Claude d'abord ; puis « core » et « api » avant « ui » qui en dépend.
+    expect(numbers).toEqual({ db: '1', core: '2', api: '3', ui: '4' })
   })
 
   it('should_draw_nothing_for_a_genesis_that_is_not_on_the_map', () => {
@@ -84,7 +125,8 @@ describe('carte de structure à l’écran : arbre aéré (spec 017 D14)', () =>
     expect(graph.nodes.find((node) => node.id === 'm1')).toMatchObject({
       type: 'element',
       draggable: false,
-      ariaLabel: 'module « Processus principal », 2 éléments repliés'
+      ariaLabel: 'Étape 1 : module « Processus principal », 2 éléments repliés',
+      data: expect.objectContaining({ number: '1' })
     })
     expect(graph.mapEdges).toContainEqual(expect.objectContaining({ source: RAW_ID, target: 'm1', type: 'branch' }))
   })

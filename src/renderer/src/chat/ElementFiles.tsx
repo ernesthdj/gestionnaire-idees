@@ -45,6 +45,9 @@ export function ElementFiles({
       <summary className="cursor-pointer font-semibold">
         Fichiers ({view.files.length}
         {view.truncated ? '+' : ''})
+        <span className="ml-2 text-xs font-normal text-content-muted">
+          dans {view.paths.length} chemin{view.paths.length > 1 ? 's' : ''} de la carte
+        </span>
       </summary>
       <ul className="mt-2 flex max-h-48 flex-col gap-0.5 overflow-y-auto">
         {view.files.map((file) => (
@@ -56,7 +59,11 @@ export function ElementFiles({
               title={file.path}
             >
               {file.path}
-              {file.lines === null ? '' : <span className="text-content-muted"> · {file.lines} l.</span>}
+              {file.lines === null || file.lines === 0 ? (
+                ''
+              ) : (
+                <span className="text-content-muted"> · {file.lines} lignes</span>
+              )}
             </button>
           </li>
         ))}

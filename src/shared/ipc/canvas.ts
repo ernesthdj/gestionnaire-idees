@@ -186,6 +186,8 @@ export interface ElementView {
   /** Ses enfants sont repliés sur la carte. */
   readonly collapsed: boolean
   readonly childCount: number
+  /** Rang de progression parmi ses frères donné par Claude (D17) ; `null` : non donné. */
+  readonly order: number | null
 }
 
 export interface SizeLimits {

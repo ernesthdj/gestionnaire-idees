@@ -66,7 +66,9 @@ export const MAP_MESSAGE =
   'd’un projet repris analysé, lis aussi son graphe mesuré avec code_graphe_lire et fonde dessus les liens appelle / ' +
   'depend_de et les chemins des éléments (des faits, pas des déductions). Puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
-  'fichiers, données, interfaces, tâches, décisions) et les liens typés entre eux. Si une carte existe déjà, relis-la ' +
+  'fichiers, données, interfaces, tâches, décisions) et les liens typés entre eux. Donne à chaque élément son « ordre » ' +
+  'parmi ses frères selon la progression logique de développement : ce qu’on construit ou lit en premier ' +
+  '(fondations, données, configuration) avant ce qui en dépend (métier, puis interface). Si une carte existe déjà, relis-la ' +
   'avec structure_lire et mets-la à jour avec les mêmes clés. Ensuite, résume-moi la structure en quelques lignes.'
 
 /** Premier message proposé quand la conversation est vide : Claude ouvre le cadrage. */

@@ -51,7 +51,8 @@ export type ResultNodeType = Node<BlockNodeData, 'result'>
 export type MapNoteNodeType = Node<BlockNodeData, 'mapNote'>
 export type FrameNodeType = Node<BlockNodeData, 'frame'>
 /** Élément d'une carte de structure de projet (spec 009). */
-export type ElementNodeType = Node<{ readonly element: ElementView }, 'element'>
+/** Élément de carte de structure, avec son numéro de progression (D17). */
+export type ElementNodeType = Node<{ readonly element: ElementView; readonly number: string }, 'element'>
 
 /** Étape d'un plan d'attaque ou fantôme proposé par Claude (spec 011), teinté par la catégorie de son genesis. */
 export type PlanNodeType = Node<
@@ -395,9 +396,9 @@ export function buildGraph(
     id: entry.element.id,
     type: 'element',
     position: { x: entry.x, y: entry.y },
-    data: { element: entry.element },
+    data: { element: entry.element, number: entry.number },
     draggable: false,
-    ariaLabel: `${entry.element.type} « ${entry.element.title} »${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
+    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
   const structureEdges = structure.edges.map(structureFlowEdge)

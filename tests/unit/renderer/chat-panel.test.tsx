@@ -564,7 +564,10 @@ describe('fichiers d’un élément de carte (spec 017 US7)', () => {
         elementId: ID,
         title: 'Cœur',
         paths: ['src/core'],
-        files: [{ path: 'src/core/orderService.ts', lang: 'ts', lines: 3 }],
+        files: [
+          { path: 'src/core/orderService.ts', lang: 'ts', lines: 3 },
+          { path: 'src/core/README.md', lang: 'other', lines: 0 }
+        ],
         truncated: false,
         analyzed: true
       }),
@@ -583,7 +586,10 @@ describe('fichiers d’un élément de carte (spec 017 US7)', () => {
         <ChatPanel neuronId={ID} onClose={() => undefined} />
       </QueryClientProvider>
     )
-    expect(await screen.findByText('Fichiers (1)')).toBeTruthy()
+    // Un dossier de la carte couvre plusieurs fichiers : le compte dit d'où ils viennent ; pas de « 0 ligne ».
+    expect((await screen.findByText(/^Fichiers \(2/)).textContent).toContain('dans 1 chemin de la carte')
+    expect(screen.getByRole('button', { name: /src\/core\/orderService\.ts/ }).textContent).toContain('3 lignes')
+    expect(screen.getByRole('button', { name: /README\.md/ }).textContent).toBe('src/core/README.md')
     await user.click(screen.getByRole('button', { name: /src\/core\/orderService\.ts/ }))
     expect(api.invoke).toHaveBeenCalledWith('structure:file', { elementId: ID, path: 'src/core/orderService.ts' })
     const symbols = await screen.findByRole('navigation', { name: 'Symboles du fichier' })

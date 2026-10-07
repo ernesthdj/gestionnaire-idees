@@ -63,6 +63,15 @@
 - [x] T052 [US2] Recherche, isolement, guide (`explorer:locate`) et `NodePanel` adaptés aux nouvelles clés (un symbole mène à son fichier, au bon bloc) + tests
 - [x] T053 [US2] Test guidé (D16) — attendre le retour
 
+## Phase 5 quinquies — US7 Carte de structure : disposition alternée et progression (D17)
+**Test indépendant** : `cs-app` cartographié : modules en colonne sous le genesis, enfants en ligne à droite, petits-enfants en colonne dessous ; numéros 1, 1.1, 1.1.1 ; ordre fondations → métier → interface.
+- [x] T054 Spec : D17, FR-035 révisée, FR-038
+- [x] T055 [US7] `ordre` dans `structure_dessiner` (Zod, description de l'outil), `ResolvedElement.order`, rang des éléments écrit et historisé (`neurons.rank`, instantané, Historique), `ElementView.order` + tests
+- [x] T056 [P] [US7] Pur : ordre des frères (Claude → dépendances → dessin) et numéros de progression dans `src/renderer/src/canvas/structureOrder.ts` + tests
+- [x] T057 [US7] Pur : disposition alternée (boîtes de sous-arbres, sans chevauchement) et hiérarchie en chemin dans `structureGraph.ts` + tests
+- [x] T058 [US7] Rendu : pastille du numéro dans `ElementNode` ; consigne de cartographie (`MAP_MESSAGE`) : numéroter selon la progression + tests renderer/axe
+- [x] T059 [US7] Test guidé (D17) — attendre le retour
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)
