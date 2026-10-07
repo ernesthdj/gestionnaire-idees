@@ -81,6 +81,7 @@
 
 ## Phase 7 — US5 Reprendre un projet depuis un dépôt git (P2)
 **Test indépendant** : clone `https://` avec progression ; annulation → dossier partiel supprimé ; `ext::…` refusé sans rien lancer.
+**En pause (2026-10-07)** : décision de mentalyas, US5 non prioritaire pour le moment ; on passe aux tâches suivantes sans elle (rien n'en dépend).
 - [ ] T028 [P] [US5] Pur : contrôle et nettoyage d'URL (`https://`, `git@`, identifiants retirés, options et transports refusés) dans `src/shared/reprise/gitUrl.ts` + tests (URL hostiles)
 - [ ] T029 [US5] `CloneService` dans `src/main/application/reprise/CloneService.ts` : git par chemin absolu, arguments fixes (research R4), `GIT_TERMINAL_PROMPT=0`, progression lue sur stderr, un clone à la fois, délai 30 min, annulation et nettoyage du seul dossier créé, classement des échecs (auth, introuvable, réseau…), clone interrompu nettoyé au démarrage ; clone journalisé dans le journal de l'app (durée, issue, hôte — jamais l'adresse complète ni un identifiant) ; IPC `reprise:clone`, `reprise:cancelClone` + événements + tests (processus simulé)
 - [ ] T030 [US5] Interface : onglet « Depuis GitHub (ou une URL git) » de l'assistant, progression, Annuler, erreurs claires + tests renderer/axe

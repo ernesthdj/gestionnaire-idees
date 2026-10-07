@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md**
 
 ---
 
@@ -24,6 +24,45 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 0000. Amendement du 2026-10-07 — L'Analyste interne : une app qui s'observe, propose et s'améliore
+
+> Détail complet : `docs/brainstorm/L1g-analyste-interne.md` (vision, arbitrages A1–A9), `L2-analyste-{sonde, analyse,
+> appliquer, rythme}.md` (cas d'usage, règles, critères), `L3-analyste-{sonde, analyse, appliquer}.md` (contrats IPC,
+> données, commandes git, séquences, sécurité), `L4e-analyste.md` (parcours, écrans). Ces fichiers priment sur ce résumé.
+
+### 0000.1 Vision
+Un **regard de l'intérieur** : une sonde enregistre le fonctionnement de l'app et l'usage de mentalyas (sans jamais
+garder ce qu'il écrit) ; Claude, dans un rôle d'**Analyste interne** au contexte figé, lit ces observations et le code
+du dépôt, puis **propose** des corrections, des automatisations (une tâche IA répétitive remplacée par du code), des
+simplifications du parcours et des évolutions, chacune justifiée par des preuves. Rien ne change sans accord : une
+proposition acceptée est codée sur une branche à part, vérifiée, puis gardée ou jetée, et reste annulable.
+
+### 0000.2 Arbitrages
+| # | Sujet | Décision |
+|---|-------|----------|
+| A1 | Cible | Le Brainstormer seul (son propre dépôt source) |
+| A2 | Sonde | Événements sans contenu (catalogue fermé) ; empreintes HMAC à clé locale pour repérer le travail IA refait |
+| A3 | Appliquer | Une branche `analyste/*` par mise à jour, dans un worktree ; garder (fusion, sans push) ou jeter ; `git revert` pour annuler |
+| A4 | Rythme | « Analyser maintenant » + automatique réglable (1 h · 1 jour · 1 semaine), seuil d'événements, plafond de propositions ; désactivé par défaut |
+| A5 | Pouvoirs | Analyse en lecture seule (`Read Glob Grep`) ; codage seulement après acceptation |
+| A6 | Placement | Boîte Analyste (navigation) + badges sur la carte de structure du Brainstormer |
+| A7 | Version | Dépôt source désigné seulement ; rien dans l'app installée |
+| A8 | Analyses | Bugs · tâches IA → code · parcours · code mort et redondances · évolutivité |
+| A9 | Constitution | Amendements : II (commit et fusion sur `analyste/*` après accord, jamais de push), IV (tâche `analyste` avec outils de lecture), I (`npm` limité aux vérifications dans un worktree `analyste/*`) |
+
+### 0000.3 Fonctionnalités et lots
+| # | Fonctionnalité | Lot | Spec prévue |
+|---|----------------|-----|-------------|
+| AN-A | Sonde : catalogue d'événements, empreintes, conservation, vue des observations | A | 019 (à confirmer) |
+| AN-B | Analyste : dossier d'analyse, tâche `analyste`, propositions vérifiées, boîte + carte | B | 019 |
+| AN-C | Appliquer : worktree, conversation, vérifications, garder / jeter / annuler | C | 019 |
+| AN-D | Rythme automatique | D | 019 |
+
+Préalable : amendements de la constitution (A9) ; vérification bloquante que la tâche `analyste` ne peut pas lire le
+dossier de données de l'app (L3-analyste-analyse §2). Aucune dépendance externe nouvelle prévue.
 
 ---
 

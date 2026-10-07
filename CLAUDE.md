@@ -10,6 +10,9 @@
 > **Évolution (2026-10-06) :** **reprendre un projet existant** (import dossier / git, analyse statique TS · C# · PHP,
 > explorateur à 4 niveaux, guide de reprise, diagnostic en couleurs). Voir `docs/FOUNDATION.md` §000 et
 > `docs/brainstorm/L1f-reprise-projet.md`. Specs prévues : 017 (Voir), 018 (Juger).
+> **Évolution (2026-10-07) :** **Analyste interne** (sonde sans contenu, Claude en lecture seule qui propose, mise à jour
+> sur une branche `analyste/*` gardée ou jetée, annulable). Voir `docs/FOUNDATION.md` §0000 et
+> `docs/brainstorm/L1g-analyste-interne.md`. Spec prévue : 019 (à confirmer), après amendement de la constitution.
 
 ---
 
@@ -104,6 +107,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 017 « Reprise — Voir » (US1–US4, US7 et D16 livrées ; reste US5 clone T028+, US6, finitions T035–T037) ; en pause : 014 (T014+), 015 (US4–US5), 013 (US3) — 016 livrée
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 017 « Reprise — Voir » (US1–US4, US7, D16 et D17 livrées ; reste US6, finitions T035–T037 ; US5 clone (T028+) en pause) ; en pause : 014 (T014+), 015 (US4–US5), 013 (US3) — 016 livrée
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

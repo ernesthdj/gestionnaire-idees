@@ -751,3 +751,15 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 
 ### [2026-10-07 14:59] DOCS — test guidé validé : spec 017 T059 (D17, carte de structure en disposition alternée)
 **Quoi :** mentalyas valide la disposition alternée sans chevauchement, les numéros de progression et la lecture en chemin, « N chemins » sur le nœud (liste au survol) et le compte de fichiers du volet.
+
+### [2026-10-07 15:08] DOCS — spec 017 : US5 (clone git) mise en pause
+**Quoi :** décision de mentalyas, US5 non prioritaire pour le moment. Note datée dans `tasks.md`, `CLAUDE.md` (Workflows actifs) à jour : reste US6 et les finitions T035–T037.
+
+### [2026-10-07 15:41] DOCS — brainstorm « Analyste interne » (niveaux 1 à 4)
+**Fichiers :** `docs/brainstorm/L1g-analyste-interne.md`, `L2-analyste-{sonde,analyse,appliquer,rythme}.md`, `L3-analyste-{sonde,analyse,appliquer}.md`, `L4e-analyste.md`.
+**Quoi :** idée de mentalyas : une sonde interne et Claude « Analyste » observent l'app en fonctionnement et l'usage, puis proposent (bugs, tâches IA → code, parcours, code mort, évolutivité) ; une proposition acceptée est codée sur une branche `analyste/*` dans un worktree, vérifiée, puis gardée (fusion, sans push) ou jetée, et annulable (`git revert`). Arbitrages A1–A9 : Brainstormer seul, sonde sans contenu (empreintes HMAC), analyse en lecture seule, carte + boîte, dépôt source seulement, rythme manuel + auto réglable. Amendements de la constitution à écrire : II (commit sur `analyste/*`), IV (tâche avec outils de lecture), I (`npm` pour les vérifications).
+**Règle apprise :** une sortie IA n'est fiable que revérifiée par le code (chemins dans le dépôt, clés de preuve existantes) ; le schéma seul ne suffit pas.
+
+### [2026-10-07 15:43] DOCS — export du brainstorm « Analyste interne » (FOUNDATION §0000)
+**Fichiers :** `docs/FOUNDATION.md` (§0000, en-tête), `CLAUDE.md` (évolution du 2026-10-07).
+**Quoi :** résumé de L1g–L4e (vision, arbitrages A1–A9, lots AN-A à AN-D, spec prévue 019 à confirmer) ; préalable : amendements de la constitution.
