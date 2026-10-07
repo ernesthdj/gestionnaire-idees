@@ -90,6 +90,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'explorer:view',
   'explorer:node',
   'explorer:code',
+  'explorer:file',
   'explorer:search',
   'explorer:locate',
   'explorer:savePosition',

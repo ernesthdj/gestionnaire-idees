@@ -54,6 +54,15 @@
 - [x] T046 [US7] Rendu : liens du focus (survolé / ouvert) dans `IdeasCanvas`, liens arrêtés au bord des éléments (`edges/useCenter.ts`), estompage au repos (`canvas.css`) + tests
 - [x] T047 [US7] Test guidé (D14–D15) — attendre le retour
 
+## Phase 5 quater — US2 Explorateur sur un seul écran (D16, retour T027)
+**Test indépendant** : `cs-app` : module → dossiers ; onglet « Fichiers » d'un dossier → code complet à droite avec appelants / appelés par bloc ; clic sur un appel → l'autre fichier, au bon bloc.
+- [x] T048 Spec : D16, FR-020 révisée, FR-037, scénario 8 d'US2
+- [x] T049 [US2] Main : arbre de la carte sans niveau « fonctions » (modules → dossiers, nœud « Racine » des fichiers directs), fichiers directs de chaque dossier dans la vue (`ExplorerNodeView.files`) dans `domain/reprise/aggregate.ts` / `ExplorerService` + tests
+- [x] T050 [US2] Main : `explorer:file` (fichier complet ≤ 1 Mo, hors sensibles, sous la racine réelle ; blocs avec appelants / appelés et fiabilité, lignes d'appel approchées) + IPC + tests
+- [x] T051 [US2] Interface : nœud module, nœud dossier à onglets « Fichiers » / « Sous-dossiers », volet de code (marques par bloc, navigation d'un fichier à l'autre, dossier sélectionné sur la carte) ; vue liste équivalente + tests renderer/axe
+- [x] T052 [US2] Recherche, isolement, guide (`explorer:locate`) et `NodePanel` adaptés aux nouvelles clés (un symbole mène à son fichier, au bon bloc) + tests
+- [x] T053 [US2] Test guidé (D16) — attendre le retour
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)

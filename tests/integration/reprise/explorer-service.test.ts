@@ -75,12 +75,32 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     const domain = top.nodes.find((node) => node.title === 'Domain')
     expect(controllers?.x).toBeLessThan(domain?.x ?? 0)
     expect(top.edges).toContainEqual(expect.objectContaining({ from: controllers?.key, to: domain?.key }))
-    const file = explorer.view(genesis, { parentKey: domain?.key ?? '', filters: DEFAULT_FILTERS })
-    const service = file.nodes.find((node) => node.title === 'OrderService.cs')
-    const classes = explorer.view(genesis, { parentKey: service?.key ?? '', filters: DEFAULT_FILTERS })
-    expect(classes.level).toBe(4)
-    expect(classes.nodes.map((node) => node.title).sort()).toEqual(['IOrderRepository', 'OrderRequest', 'OrderService'])
-    expect(classes.breadcrumb.map((crumb) => crumb.title)).toEqual(['Projet', 'Domain', 'OrderService.cs'])
+    // D16 : le module ouvert montre ses dossiers, et ses fichiers directs dans le nœud « Racine ».
+    const inside = explorer.view(genesis, { parentKey: domain?.key ?? '', filters: DEFAULT_FILTERS })
+    expect(inside.level).toBe(2)
+    expect(inside.nodes).toEqual([
+      expect.objectContaining({ key: `r:${domain?.key ?? ''}`, title: 'Racine · Domain', childCount: 0 })
+    ])
+    expect(inside.nodes[0]?.files.map((file) => file.path)).toContain('Domain/OrderService.cs')
+    expect(inside.breadcrumb.map((crumb) => crumb.title)).toEqual(['Projet', 'Domain'])
+    // Un ancien état ouvert sur un fichier ouvre son module.
+    expect(
+      explorer.view(genesis, { parentKey: 'f:Domain/OrderService.cs', filters: DEFAULT_FILTERS }).breadcrumb.at(-1)
+    ).toEqual({ key: domain?.key, title: 'Domain' })
+  })
+
+  it('should_show_a_whole_file_with_who_calls_each_block_and_what_it_calls', () => {
+    const view = explorer.file(genesis, 'Domain/OrderService.cs')
+    expect(view.lines.join('\n')).toContain('public decimal Place(OrderRequest request)')
+    expect(view.place).toMatchObject({ nodeKey: expect.stringMatching(/^r:m:/), path: 'Domain/OrderService.cs' })
+    const place = view.blocks.find((block) => block.name === 'Place')
+    expect(place?.callers.map((link) => [link.title, link.path, link.provenance])).toEqual([
+      ['Shop.Controllers.OrdersController.Post', 'Controllers/OrdersController.cs', 'syntax']
+    ])
+    const save = place?.callees.find((link) => link.title === 'Shop.Infrastructure.SqlOrderRepository.Save')
+    expect(save?.path).toBe('Infrastructure/SqlOrderRepository.cs')
+    expect(view.lines[(save?.at ?? 0) - 1]).toContain('Save')
+    expect(() => explorer.file(genesis, 'Domain/Invente.cs')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
   })
 
   it('should_tell_who_calls_an_element_and_show_its_code_as_text', () => {
@@ -104,11 +124,12 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
       'Domain/Invente.cs',
       'npm start'
     ])
-    expect(results.map((result) => result.key)).toEqual([
-      'f:Domain/OrderService.cs',
-      `s:${place?.id ?? ''}`,
-      `s:${place?.id ?? ''}`
+    expect(results.map((result) => [result.path, result.symbolId])).toEqual([
+      ['Domain/OrderService.cs', null],
+      ['Domain/OrderService.cs', place?.id],
+      ['Domain/OrderService.cs', place?.id]
     ])
+    expect(results[0]?.key).toMatch(/^r:m:/)
     for (const result of results)
       expect(
         explorer.view(genesis, { parentKey: result.parentKey, filters: DEFAULT_FILTERS }).nodes.length
@@ -220,5 +241,7 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     expect(module.nodes).toHaveLength(7)
     expect(first).toBeLessThan(1000)
     expect(second).toBeLessThan(1000)
-  })
+    // Délai du test : la préparation (50 000 liens écrits en base) dépasse 5 s quand toute la suite tourne en
+    // parallèle ; la mesure, elle, reste bornée à 1 s ci-dessus.
+  }, 20_000)
 })

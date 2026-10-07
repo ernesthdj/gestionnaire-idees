@@ -2,64 +2,38 @@ import {
   applyNodeChanges,
   Background,
   Controls,
-  Handle,
   MarkerType,
-  Position,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   type Edge,
-  type Node,
   type NodeChange,
-  type NodeProps,
   type Viewport
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CodeCategory, CodeLang, ExplorerNodeView, ExplorerView } from '@shared/ipc/reprise'
+import type { CodeCategory, CodeLang, ExplorerLinkView, ExplorerPlaceView, ExplorerView } from '@shared/ipc/reprise'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
 import { call } from '../lib/ipc'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ExplorerList } from './ExplorerList'
+import {
+  ExplorerNodeActionsContext,
+  FolderNode,
+  ModuleNode,
+  type FolderNodeType,
+  type ModuleNodeType
+} from './ExplorerNodes'
+import { FilePanel, type OpenFile } from './FilePanel'
 import { GuidePanel } from './GuidePanel'
 import { CATEGORY_LABELS, KIND_LABELS, LEVEL_NAMES, PROVENANCE_LABELS } from './labels'
 import { NodePanel } from './NodePanel'
 import { semanticZoom } from './semanticZoom'
 import { useExplorer } from './useExplorer'
 
-/** Données d'un nœud : un type recopié (React Flow exige un objet indexable, ce qu'une interface n'est pas). */
-type CodeNodeData = { readonly [K in keyof ExplorerNodeView]: ExplorerNodeView[K] } & { readonly selected: boolean }
-type CodeNodeType = Node<CodeNodeData, 'code'>
-
-function CodeNode({ data }: NodeProps<CodeNodeType>): React.JSX.Element {
-  const category = CATEGORY_LABELS[data.category]
-  return (
-    <div
-      className={`w-56 rounded-lg border-2 bg-surface px-3 py-2 text-xs shadow-sm ${category.tone} ${
-        data.selected ? 'ring-2 ring-accent' : ''
-      }`}
-    >
-      <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
-      <p className="flex items-center gap-1 font-semibold text-content">
-        <span aria-hidden="true">{KIND_LABELS[data.kind].icon}</span>
-        <span className="truncate" title={data.title}>
-          {data.title}
-        </span>
-      </p>
-      <p className="mt-0.5 flex justify-between gap-2">
-        <span>
-          <span aria-hidden="true">{category.icon}</span> {category.text}
-        </span>
-        {data.childCount === 0 ? null : <span className="text-content-muted">▸ {data.childCount}</span>}
-      </p>
-      <Handle type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
-    </div>
-  )
-}
-
-const NODE_TYPES = { code: CodeNode }
+const NODE_TYPES = { module: ModuleNode, folder: FolderNode }
 const ARIA_LABELS = {
   'node.a11yDescription.default': 'Entrée pour voir l’élément ; double-clic pour l’ouvrir.',
   'node.a11yDescription.keyboardDisabled': 'Entrée pour voir l’élément.',
@@ -71,17 +45,19 @@ const ARIA_LABELS = {
   'controls.interactive.ariaLabel': 'Verrouiller la carte'
 }
 
+type CodeNodeType = ModuleNodeType | FolderNodeType
+
 function toFlow(view: ExplorerView, selected: string | null): { nodes: CodeNodeType[]; edges: Edge[] } {
   return {
     nodes: view.nodes.map((node) => ({
       id: node.key,
-      type: 'code',
+      type: node.kind === 'module' ? ('module' as const) : ('folder' as const),
       position: { x: node.x ?? 0, y: node.y ?? 0 },
       data: { ...node, selected: node.key === selected },
       ariaLabel: `${KIND_LABELS[node.kind].text} ${node.title}, ${CATEGORY_LABELS[node.category].text}${
         node.childCount === 0 ? '' : `, ${node.childCount} éléments à l’intérieur`
-      }`
-    })),
+      }${node.files.length === 0 ? '' : `, ${node.files.length} fichiers`}`
+    })) as CodeNodeType[],
     edges: view.edges.map((edge) => ({
       id: `${edge.from}→${edge.to}`,
       source: edge.from,
@@ -225,11 +201,14 @@ export function ExplorerPage({
   const ids = { title: useId(), search: useId(), lang: useId() }
   const [list, setList] = useState(false)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<readonly { key: string; parentKey: string; title: string; path: string }[]>([])
+  const [results, setResults] = useState<
+    readonly (ExplorerPlaceView & { readonly key: string; readonly title: string; readonly where: string })[]
+  >([])
   const view = explorer.view
   const project = explorer.project
-  const [aside, setAside] = useState<'element' | 'guide'>('element')
+  const [aside, setAside] = useState<'element' | 'code' | 'guide'>('element')
   const [centerKey, setCenterKey] = useState<string | null>(null)
+  const [file, setFile] = useState<OpenFile | null>(null)
   const guideId = project?.guide.documentId ?? null
   // Un guide qui vient d'exister (rédigé après la première analyse) s'ouvre dans le panneau (spec 017 US4).
   const knownGuide = useRef<string | null>(null)
@@ -242,6 +221,31 @@ export function ExplorerPage({
     if (key !== null) setAside('element')
   }
   const clearCenter = useCallback(() => setCenterKey(null), [])
+  // Fichier montré dans le volet (D16) ; `show` : passer sur l'onglet « Code » (pas depuis le guide).
+  const openFile = (next: OpenFile, show = true): void => {
+    setFile(next)
+    if (show) setAside('code')
+  }
+  // Le fichier lu : la carte montre le nœud de son dossier, au bon niveau.
+  const placeFile = (place: ExplorerPlaceView): void => {
+    if (place.parentKey === explorer.parentKey) explorer.select(place.nodeKey)
+    else explorer.open(place.parentKey, place.nodeKey)
+  }
+  const goTo = (place: ExplorerPlaceView & { readonly key: string }, show = true): void => {
+    explorer.open(place.parentKey, place.nodeKey)
+    setCenterKey(place.nodeKey)
+    if (place.path !== null) openFile({ path: place.path, line: null, symbolId: place.symbolId }, show)
+  }
+  const linkGo = (link: ExplorerLinkView): void => {
+    if (link.path !== null) {
+      openFile({ path: link.path, line: null, symbolId: link.key.startsWith('s:') ? link.key.slice(2) : null })
+    }
+  }
+  const nodeActions = {
+    openFile: (path: string) => openFile({ path, line: null, symbolId: null }),
+    open: (key: string) => explorer.open(key),
+    openPath: file?.path ?? null
+  }
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -322,7 +326,7 @@ export function ExplorerPage({
               )}
             </span>
           ))}
-          <span className="ml-3 text-content-muted" aria-label={`Niveau ${view?.level ?? 1} sur 4`}>
+          <span className="ml-3 text-content-muted" aria-label={`Niveau ${view?.level ?? 1} sur ${LEVEL_NAMES.length}`}>
             Zoom{' '}
             {LEVEL_NAMES.map((name, index) => (
               <span key={name} className={index + 1 === view?.level ? 'font-semibold text-content' : ''}>
@@ -401,12 +405,12 @@ export function ExplorerPage({
                       type="button"
                       className="w-full rounded px-2 py-1 text-left hover:bg-surface-raised"
                       onClick={() => {
-                        explorer.open(result.parentKey, result.key)
+                        goTo(result)
                         setQuery('')
                       }}
                     >
                       <span className="font-semibold">{result.title}</span>{' '}
-                      <span className="text-content-muted">{result.path}</span>
+                      <span className="text-content-muted">{result.where}</span>
                     </button>
                   </li>
                 ))}
@@ -446,46 +450,59 @@ export function ExplorerPage({
             <ExplorerList
               view={view}
               selected={explorer.selected}
+              openPath={file?.path ?? null}
               onSelect={select}
               onOpen={(key) => explorer.open(key)}
+              onOpenFile={nodeActions.openFile}
             />
           ) : (
-            <ReactFlowProvider>
-              <ExplorerMap
-                genesisId={genesisId}
-                view={view}
-                parentKey={explorer.parentKey}
-                selected={explorer.selected}
-                centerKey={centerKey}
-                onSelect={select}
-                onOpen={(key) => explorer.open(key)}
-                onUp={up}
-                onCentered={clearCenter}
-              />
-            </ReactFlowProvider>
+            <ExplorerNodeActionsContext.Provider value={nodeActions}>
+              <ReactFlowProvider>
+                <ExplorerMap
+                  genesisId={genesisId}
+                  view={view}
+                  parentKey={explorer.parentKey}
+                  selected={explorer.selected}
+                  centerKey={centerKey}
+                  onSelect={select}
+                  onOpen={(key) => explorer.open(key)}
+                  onUp={up}
+                  onCentered={clearCenter}
+                />
+              </ReactFlowProvider>
+            </ExplorerNodeActionsContext.Provider>
           )}
         </div>
         <aside
-          aria-label={aside === 'guide' ? 'Guide de reprise' : 'Élément choisi'}
-          className="flex min-w-0 basis-[38%] flex-col border-l border-content-muted/20"
+          aria-label={aside === 'guide' ? 'Guide de reprise' : aside === 'code' ? 'Code du fichier' : 'Élément choisi'}
+          className={`flex min-w-0 flex-col border-l border-content-muted/20 ${
+            aside === 'code' ? 'basis-[50%]' : 'basis-[38%]'
+          }`}
         >
           <div
             role="tablist"
             aria-label="Panneau de droite"
             className="flex gap-1 border-b border-content-muted/20 px-4 py-2"
           >
-            {(['element', 'guide'] as const).map((value) => (
+            {(['element', 'code', 'guide'] as const).map((value) => (
               <button
                 key={value}
                 type="button"
                 role="tab"
                 aria-selected={aside === value}
+                disabled={value === 'code' && file === null}
                 onClick={() => setAside(value)}
-                className={`rounded-md px-3 py-1 text-xs ${
+                className={`max-w-[50%] truncate rounded-md px-3 py-1 text-xs disabled:opacity-40 ${
                   aside === value ? 'bg-surface-raised font-semibold' : 'text-content-muted'
                 }`}
               >
-                {value === 'element' ? 'Élément' : 'Guide de reprise'}
+                {value === 'element'
+                  ? 'Élément'
+                  : value === 'guide'
+                    ? 'Guide de reprise'
+                    : file === null
+                      ? 'Code'
+                      : `Code · ${file.path.split('/').at(-1) ?? ''}`}
               </button>
             ))}
           </div>
@@ -495,15 +512,17 @@ export function ExplorerPage({
                 genesisId={genesisId}
                 guide={project.guide}
                 analyzed={project.analysis.analyzedAt !== null}
-                onLocate={(parentKey, key) => {
-                  explorer.open(parentKey, key)
-                  setCenterKey(key)
-                }}
+                onLocate={(place) => goTo(place, false)}
               />
+            ) : aside === 'code' && file !== null ? (
+              <FilePanel genesisId={genesisId} file={file} onOpenFile={openFile} onPlaced={placeFile} />
             ) : explorer.selected === null ? (
               <div className="flex flex-col gap-2 p-4 text-sm text-content-muted">
-                <p>Choisis un élément pour voir ce qu’il fait, qui l’appelle et ce qu’il appelle.</p>
-                <p>Double-clic (ou zoom très près) pour entrer dedans ; zoom très loin pour remonter.</p>
+                <p>Choisis un module ou un dossier pour voir ce qu’il fait, qui l’appelle et ce qu’il appelle.</p>
+                <p>
+                  Double-clic (ou zoom très près) sur un module pour voir ses dossiers ; dans un dossier, l’onglet «
+                  Fichiers » ouvre le code ici.
+                </p>
               </div>
             ) : (
               <div className="flex h-full flex-col">
@@ -514,7 +533,7 @@ export function ExplorerPage({
                   <NodePanel
                     genesisId={genesisId}
                     nodeKey={explorer.selected}
-                    onGo={explorer.select}
+                    onGo={linkGo}
                     onOpen={(parentKey, key) => explorer.open(parentKey, key)}
                   />
                 </div>

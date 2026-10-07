@@ -4,6 +4,8 @@ import type { CodeCategory } from '@shared/ipc/reprise'
 export const COLUMNS: readonly CodeCategory[] = ['orchestration', 'domain', 'infrastructure', 'plumbing']
 export const COLUMN_WIDTH = 280
 export const ROW_HEIGHT = 96
+/** Nœud dossier à onglets (D16) : sa liste de fichiers défile dans un nœud de hauteur fixe. */
+export const FOLDER_ROW_HEIGHT = 272
 
 export interface LayoutNode {
   readonly key: string
@@ -18,7 +20,8 @@ export interface LayoutNode {
 export function columnLayout(
   nodes: readonly LayoutNode[],
   edges: readonly { readonly from: string; readonly to: string }[],
-  pinned: ReadonlyMap<string, { readonly x: number; readonly y: number }> = new Map()
+  pinned: ReadonlyMap<string, { readonly x: number; readonly y: number }> = new Map(),
+  rowHeight: number = ROW_HEIGHT
 ): Map<string, { readonly x: number; readonly y: number }> {
   const used = COLUMNS.filter((category) => nodes.some((node) => node.category === category))
   const columnOf = new Map(nodes.map((node) => [node.key, used.indexOf(node.category)] as const))
@@ -50,9 +53,7 @@ export function columnLayout(
   }
   const positions = new Map<string, { x: number; y: number }>()
   columns.forEach((column, index) =>
-    column.forEach((key, row) =>
-      positions.set(key, pinned.get(key) ?? { x: index * COLUMN_WIDTH, y: row * ROW_HEIGHT })
-    )
+    column.forEach((key, row) => positions.set(key, pinned.get(key) ?? { x: index * COLUMN_WIDTH, y: row * rowHeight }))
   )
   return positions
 }

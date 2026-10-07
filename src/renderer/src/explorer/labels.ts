@@ -32,5 +32,5 @@ export const PROVENANCE_LABELS: Readonly<
   uncertain: { text: 'incertain', mark: '┄', dash: '2 4' }
 }
 
-/** Niveaux de l'explorateur (L4d E4 : indicateur de zoom). */
-export const LEVEL_NAMES = ['Modules', 'Dossiers', 'Fichiers', 'Code'] as const
+/** Niveaux de la carte de l'explorateur (D16 : le code est dans le volet, plus sur la carte). */
+export const LEVEL_NAMES = ['Modules', 'Dossiers'] as const

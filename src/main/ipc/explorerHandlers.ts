@@ -3,11 +3,20 @@ import { CODE_CATEGORIES, CODE_LANGS } from '@shared/ipc/reprise'
 import type { ExplorerService } from '../application/reprise/ExplorerService'
 import { defineRoute, type IpcRoute } from './registry'
 
-/** Clé de nœud de l'explorateur : `m:`, `d:`, `f:` (chemins relatifs) ou `s:` (symbole) ; `''` = racine. */
+/**
+ * Clé de nœud de l'explorateur : `m:`, `d:`, `f:` (chemins relatifs), `s:` (symbole) ou `r:` + clé (fichiers posés à la
+ * racine d'un module ou d'un dossier) ; `''` = racine.
+ */
 const NodeKey = z
   .string()
   .max(2000)
-  .refine((key) => key === '' || /^[mdfs]:/.test(key), 'clé de nœud')
+  .refine((key) => key === '' || /^(r:)?[mdfs]:/.test(key), 'clé de nœud')
+/** Chemin relatif d'un fichier du projet (`/`), jamais absolu ni remontant : seul un fichier analysé est lu. */
+const FilePath = z
+  .string()
+  .min(1)
+  .max(1000)
+  .refine((path) => !/^([a-zA-Z]:|\/)/.test(path) && !path.split(/[/\\]/).includes('..'), 'chemin relatif')
 const Filters = z.strictObject({
   categories: z.array(z.enum(CODE_CATEGORIES)).max(4),
   langs: z.array(z.enum(CODE_LANGS)).max(6),
@@ -20,7 +29,7 @@ const SymbolId = z.string().regex(/^[0-9a-f]{32}$/)
 export function createExplorerRoutes(
   explorer: Pick<
     ExplorerService,
-    'view' | 'node' | 'code' | 'search' | 'locate' | 'savePosition' | 'state' | 'saveState'
+    'view' | 'node' | 'code' | 'file' | 'search' | 'locate' | 'savePosition' | 'state' | 'saveState'
   >
 ): IpcRoute[] {
   return [
@@ -44,6 +53,11 @@ export function createExplorerRoutes(
       channel: 'explorer:code',
       input: z.strictObject({ genesisId: z.uuid(), symbolId: SymbolId }),
       handler: async ({ genesisId, symbolId }) => explorer.code(genesisId, symbolId)
+    }),
+    defineRoute({
+      channel: 'explorer:file',
+      input: z.strictObject({ genesisId: z.uuid(), path: FilePath }),
+      handler: async ({ genesisId, path }) => explorer.file(genesisId, path)
     }),
     defineRoute({
       channel: 'explorer:search',

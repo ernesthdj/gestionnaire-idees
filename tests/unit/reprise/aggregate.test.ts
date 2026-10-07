@@ -5,6 +5,8 @@ import {
   buildIndex,
   FILE_SYMBOL,
   levelOf,
+  openableKey,
+  placeOf,
   ROOT_KEY,
   type IndexEdge,
   type IndexSymbol
@@ -73,7 +75,7 @@ describe('explorateur : arbre, niveaux et appels regroupés (spec 017 US2)', () 
 
   it('should_show_modules_at_level_one_with_calls_summed_and_plumbing_hidden_but_counted', () => {
     const view = aggregateView(index, edges, ROOT_KEY, DEFAULT)
-    expect(levelOf(index, ROOT_KEY)).toBe(1)
+    expect(levelOf(ROOT_KEY)).toBe(1)
     expect(view.nodes.map((node) => [node.key, node.category])).toEqual([
       ['m:dir:src/api', 'orchestration'],
       ['m:dir:src/core', 'domain']
@@ -89,38 +91,51 @@ describe('explorateur : arbre, niveaux et appels regroupés (spec 017 US2)', () 
     })
   })
 
-  it('should_open_a_module_then_a_folder_then_a_file_down_to_the_methods', () => {
-    expect(levelOf(index, 'm:dir:src/core')).toBe(2)
+  it('should_open_a_module_on_its_folders_with_their_files_in_the_node_and_a_racine_for_direct_files', () => {
+    expect(levelOf('m:dir:src/core')).toBe(2)
     const core = aggregateView(index, edges, 'm:dir:src/core', DEFAULT)
-    expect(core.nodes.map((node) => [node.key, node.kind])).toEqual([
-      ['d:src/core/orders', 'folder'],
-      ['f:src/core/discount.ts', 'file']
+    expect(core.nodes.map((node) => [node.key, node.kind, node.childCount])).toEqual([
+      ['d:src/core/orders', 'folder', 0],
+      ['r:m:dir:src/core', 'folder', 0]
     ])
+    expect(core.nodes[0]?.files.map((file) => file.path)).toEqual(['src/core/orders/orderService.ts'])
+    expect(core.nodes[1]).toMatchObject({ title: 'Racine · core', files: [{ key: 'f:src/core/discount.ts' }] })
     // Un appel incertain rend le lien regroupé incertain (la plus faible des fiabilités).
     expect(core.edges).toEqual([
-      { from: 'd:src/core/orders', to: 'f:src/core/discount.ts', count: 1, provenance: 'uncertain' }
+      { from: 'd:src/core/orders', to: 'r:m:dir:src/core', count: 1, provenance: 'uncertain' }
     ])
-    expect(levelOf(index, 'd:src/core/orders')).toBe(3)
-    expect(aggregateView(index, edges, 'd:src/core/orders', DEFAULT).nodes.map((node) => node.key)).toEqual([
-      'f:src/core/orders/orderService.ts'
-    ])
-    expect(levelOf(index, 'f:src/core/orders/orderService.ts')).toBe(4)
-    expect(aggregateView(index, edges, 's:svc', DEFAULT).nodes.map((node) => node.title)).toEqual(['place'])
-    expect(breadcrumbOf(index, 's:svc').map((crumb) => crumb.title)).toEqual([
-      'Projet',
-      'core',
-      'orders',
-      'orderService.ts',
-      'OrderService'
-    ])
+    const top = aggregateView(index, edges, ROOT_KEY, DEFAULT)
+    expect(top.nodes.find((node) => node.key === 'm:dir:src/core')).toMatchObject({
+      childCount: 2,
+      files: [],
+      folders: [{ key: 'd:src/core/orders', title: 'orders' }]
+    })
+    expect(breadcrumbOf(index, 'd:src/core/orders').map((crumb) => crumb.title)).toEqual(['Projet', 'core', 'orders'])
   })
 
-  it('should_never_show_the_file_symbol_and_count_its_calls_on_the_file', () => {
+  it('should_place_files_and_symbols_in_their_folder_node_and_open_only_modules_or_folders', () => {
+    const pathOf = (id: string): string | undefined => symbols.find((entry) => entry.id === id)?.path
+    expect(placeOf(index, 's:place', pathOf)).toEqual({
+      parentKey: 'm:dir:src/core',
+      nodeKey: 'd:src/core/orders',
+      path: 'src/core/orders/orderService.ts',
+      symbolId: 'place'
+    })
+    expect(placeOf(index, 'f:src/core/discount.ts', pathOf)).toEqual({
+      parentKey: 'm:dir:src/core',
+      nodeKey: 'r:m:dir:src/core',
+      path: 'src/core/discount.ts',
+      symbolId: null
+    })
+    expect(placeOf(index, 'd:src/core/orders', pathOf)).toMatchObject({ parentKey: 'm:dir:src/core', path: null })
+    expect(placeOf(index, 's:inconnu', pathOf)).toBeNull()
+    expect(openableKey(index, 's:place')).toBe('d:src/core/orders')
+    expect(openableKey(index, 'f:src/core/discount.ts')).toBe('m:dir:src/core')
+  })
+
+  it('should_never_show_the_file_symbol_and_count_its_calls_on_the_racine', () => {
     const api = aggregateView(index, edges, 'm:dir:src/api', DEFAULT)
-    expect(api.nodes.map((node) => node.title)).toEqual(['orderController.ts'])
-    expect(
-      aggregateView(index, edges, 'f:src/api/orderController.ts', DEFAULT).nodes.map((node) => node.title)
-    ).toEqual(['OrderController'])
+    expect(api.nodes.map((node) => node.files.map((file) => file.title))).toEqual([['orderController.ts']])
     expect(aggregateView(index, edges, ROOT_KEY, DEFAULT).edges[0]?.count).toBe(3)
   })
 
@@ -128,7 +143,8 @@ describe('explorateur : arbre, niveaux et appels regroupés (spec 017 US2)', () 
     expect(aggregateView(index, edges, 'm:dir:src/core', { ...DEFAULT, hideUncertain: true }).edges).toEqual([])
     expect(aggregateView(index, edges, ROOT_KEY, { ...DEFAULT, langs: ['cs'] }).nodes).toHaveLength(2)
     expect(aggregateView(index, edges, 'm:dir:src/core', { ...DEFAULT, langs: ['cs'] }).nodes).toEqual([
-      expect.objectContaining({ kind: 'folder' })
+      expect.objectContaining({ kind: 'folder', files: [], hiddenFiles: 1 }),
+      expect.objectContaining({ key: 'r:m:dir:src/core', files: [], hiddenFiles: 1 })
     ])
   })
 
@@ -139,7 +155,7 @@ describe('explorateur : arbre, niveaux et appels regroupés (spec 017 US2)', () 
 
   it('should_group_the_least_connected_children_beyond_one_hundred_fifty', () => {
     const many = Array.from({ length: 200 }, (_, n) => ({
-      path: `src/core/f${n}.ts`,
+      path: `src/core/d${n}/f.ts`,
       lang: 'ts' as const,
       moduleKey: 'dir:src/core'
     }))

@@ -22,7 +22,7 @@ function Links({
 }: {
   readonly title: string
   readonly links: readonly ExplorerLinkView[]
-  readonly onGo: (key: string) => void
+  readonly onGo: (link: ExplorerLinkView) => void
 }): React.JSX.Element {
   return (
     <section aria-label={title}>
@@ -38,7 +38,7 @@ function Links({
               <span aria-hidden="true" title={PROVENANCE_LABELS[link.provenance].text}>
                 {PROVENANCE_LABELS[link.provenance].mark}
               </span>
-              <button type="button" className="min-w-0 truncate text-left underline" onClick={() => onGo(link.key)}>
+              <button type="button" className="min-w-0 truncate text-left underline" onClick={() => onGo(link)}>
                 {link.title}
               </button>
               <span className="shrink-0 text-content-muted">
@@ -65,8 +65,8 @@ export function NodePanel({
 }: {
   readonly genesisId: string
   readonly nodeKey: string
-  /** Sélectionner un autre élément (lien d'appelant / appelé). */
-  readonly onGo: (key: string) => void
+  /** Ouvrir l'élément lié (appelant / appelé) : son fichier dans le volet de code (D16). */
+  readonly onGo: (link: ExplorerLinkView) => void
   /** Ouvrir le niveau qui contient l'élément, ou ses enfants. */
   readonly onOpen: (parentKey: string, select: string) => void
 }): React.JSX.Element {

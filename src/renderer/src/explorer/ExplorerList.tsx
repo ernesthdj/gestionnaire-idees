@@ -3,41 +3,67 @@ import { CATEGORY_LABELS, KIND_LABELS, PROVENANCE_LABELS } from './labels'
 
 /**
  * Vue liste de l'explorateur (spec 017 FR-024) : les mêmes informations que la carte, au clavier et au lecteur
- * d'écran — éléments du niveau, leurs enfants, et les appels entre eux.
+ * d'écran — éléments du niveau, leurs fichiers (un clic ouvre le code dans le volet, D16), leurs sous-dossiers, et
+ * les appels entre eux.
  */
 export function ExplorerList({
   view,
   selected,
+  openPath,
   onSelect,
-  onOpen
+  onOpen,
+  onOpenFile
 }: {
   readonly view: ExplorerView
   readonly selected: string | null
+  readonly openPath: string | null
   readonly onSelect: (key: string) => void
   readonly onOpen: (key: string) => void
+  readonly onOpenFile: (path: string) => void
 }): React.JSX.Element {
   const titleOf = new Map(view.nodes.map((node) => [node.key, node.title] as const))
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 text-sm">
       <section aria-label="Éléments de ce niveau">
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {view.nodes.map((node) => (
-            <li key={node.key} className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                aria-pressed={selected === node.key}
-                onClick={() => onSelect(node.key)}
-                className={`rounded-md px-2 py-1 text-left ${selected === node.key ? 'bg-surface-raised font-semibold' : ''}`}
-              >
-                <span aria-hidden="true">{KIND_LABELS[node.kind].icon}</span> {node.title}
-              </button>
-              <span className="text-xs text-content-muted">
-                {KIND_LABELS[node.kind].text} · {CATEGORY_LABELS[node.category].text}
-              </span>
-              {node.childCount === 0 ? null : (
-                <button type="button" className="text-xs underline" onClick={() => onOpen(node.key)}>
-                  Ouvrir ({node.childCount})
+            <li key={node.key}>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-pressed={selected === node.key}
+                  onClick={() => onSelect(node.key)}
+                  className={`rounded-md px-2 py-1 text-left ${selected === node.key ? 'bg-surface-raised font-semibold' : ''}`}
+                >
+                  <span aria-hidden="true">{KIND_LABELS[node.kind].icon}</span> {node.title}
                 </button>
+                <span className="text-xs text-content-muted">
+                  {KIND_LABELS[node.kind].text} · {CATEGORY_LABELS[node.category].text}
+                </span>
+                {node.childCount === 0 ? null : (
+                  <button type="button" className="text-xs underline" onClick={() => onOpen(node.key)}>
+                    Ouvrir ({node.childCount})
+                  </button>
+                )}
+              </div>
+              {node.files.length === 0 ? null : (
+                <ul aria-label={`Fichiers de ${node.title}`} className="ml-6 mt-1 space-y-0.5 text-xs">
+                  {node.files.map((file) => (
+                    <li key={file.key}>
+                      <button
+                        type="button"
+                        aria-current={openPath === file.path ? 'true' : undefined}
+                        className={`underline ${openPath === file.path ? 'font-semibold' : ''}`}
+                        onClick={() => onOpenFile(file.path)}
+                      >
+                        {file.title}
+                      </button>
+                    </li>
+                  ))}
+                  {node.hiddenFiles === 0 ? null : (
+                    <li className="text-content-muted">+ {node.hiddenFiles} masqués (filtres)</li>
+                  )}
+                </ul>
               )}
             </li>
           ))}

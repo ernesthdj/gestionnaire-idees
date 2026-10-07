@@ -1,17 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useState } from 'react'
 import type { DocumentContentView } from '@shared/ipc/documents'
-import type { RepriseProjectView } from '@shared/ipc/reprise'
+import type { ExplorerPlaceView, RepriseProjectView } from '@shared/ipc/reprise'
 import { documentKey } from '../canvas/nodes/DocumentNode'
 import { Markdown } from '../chat/Markdown'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 
-interface Located {
-  readonly source: string
-  readonly key: string
-  readonly parentKey: string
-}
+type Located = ExplorerPlaceView & { readonly source: string; readonly key: string }
 
 /** Codes en ligne du guide (chemins, modules, symboles cités), sans doublon, bornés comme `explorer:locate`. */
 function inlineCodes(text: string): string[] {
@@ -37,7 +33,7 @@ export function GuidePanel({
   readonly genesisId: string
   readonly guide: RepriseProjectView['guide']
   readonly analyzed: boolean
-  readonly onLocate: (parentKey: string, key: string) => void
+  readonly onLocate: (place: Located) => void
 }): React.JSX.Element {
   const client = useQueryClient()
   const titleId = useId()
@@ -127,7 +123,7 @@ export function GuidePanel({
                     type="button"
                     className="rounded bg-surface px-1 py-0.5 font-mono text-[0.85em] text-accent underline"
                     aria-label={`Voir ${code} dans l’explorateur`}
-                    onClick={() => onLocate(target.parentKey, target.key)}
+                    onClick={() => onLocate(target)}
                   >
                     {code}
                   </button>

@@ -27,6 +27,7 @@ le pont avec la carte de structure sont la spec 018 (MVP 2 — Juger).
 | D13 (2026-10-07) | Lancement | La cartographie par Claude reste **à l'initiative de mentalyas** (bouton « Cartographier ce projet ») : elle consomme son abonnement. |
 | D14 (2026-10-07, retour T043, révisée) | Disposition de la carte | L'**arbre en colonnes** reste (hiérarchie arborescente, traits parent → enfant), **aéré** : plus d'écart entre colonnes et entre nœuds, et un écart supplémentaire entre les sous-arbres de deux modules de niveau 1. Les cadres imbriqués, essayés, sont écartés par mentalyas. |
 | D15 (2026-10-07, retour T043) | Liens de la carte | **Selon le focus** : au repos, seuls les liens entre éléments de niveau 1 (liens de Claude et appels mesurés), agrégés ; un élément sélectionné ou survolé montre ses propres liens en détail, rattachés à l'élément visible de l'autre bout. |
+| D16 (2026-10-07, retour T027) | Organisation de l'explorateur | **Un seul écran, carte + volet** : au niveau 1, un nœud propre à chaque **module** ; zoomer dans un module (ou un dossier) montre ses **dossiers** — chaque nœud dossier a deux onglets, « Fichiers » (ses fichiers de code directs) et « Sous-dossiers » (un clic zoome dedans) ; les fichiers posés à la racine d'un module ou d'un dossier ont un nœud « Racine ». Un clic sur un fichier affiche **tout son code** dans le volet de droite, chaque bloc (classe, fonction, méthode) marqué « ← appelé par » / « → appelle » avec la fiabilité ; un clic sur un appel ouvre l'autre fichier au bon bloc, dans le même volet, et la carte sélectionne son dossier. Le niveau « fonctions » quitte la carte (les fonctions sont les blocs du code). Les lignes d'appel sont repérées de façon approchée (nom appelé dans le bloc) : la base garde le nombre d'appels, pas leur ligne. Remplace la descente en 4 niveaux de FR-020. |
 | D8 (validée 2026-10-06) | Constitution | Amendement **4.1.0** proposé avec cette spec (MINOR) : principe I — git devient un programme que l'app peut lancer (chemin absolu, arguments fixes ; déjà utilisé par la spec 016) ; principe IV — en « Local uniquement », le modèle local remplace Claude pour les tâches d'IA de ce projet ; contraintes techniques — bibliothèque d'analyse syntaxique. |
 
 ## User Scenarios & Testing *(mandatory)*
@@ -89,6 +90,10 @@ et remonter par le fil d'Ariane ; masquer / afficher la plomberie ; isoler un fi
    mêmes informations (niveaux, appelants, appelés) sans la carte.
 7. **Given** un fichier de code, **When** mentalyas ouvre son extrait, **Then** le code s'affiche en lecture seule,
    jamais exécuté ni interprété, et un fichier sensible n'est jamais montré.
+8. **(D16)** **Given** un module ouvert, **When** mentalyas clique l'onglet « Fichiers » d'un dossier puis un fichier,
+   **Then** le volet de droite montre tout le code du fichier, chaque bloc avec « ← appelé par » / « → appelle » ;
+   **When** il clique un appel, **Then** l'autre fichier s'ouvre au bon bloc dans le même volet et la carte
+   sélectionne son dossier — sans autre fenêtre.
 
 ---
 
@@ -292,8 +297,12 @@ l'élément des contrôleurs à celui du domaine ; Claude a lu le graphe (pastil
   être validée (une cible hors des candidats proposés est rejetée).
 
 **Explorateur**
-- **FR-020**: L'explorateur MUST offrir 4 niveaux (modules, dossiers / namespaces, fichiers / classes, fonctions /
-  méthodes avec extrait de code), un fil d'Ariane, le zoom et le double-clic pour descendre.
+- **FR-020** (révisée D16) : La carte de l'explorateur MUST montrer les modules (nœud propre), puis les dossiers d'un
+  module ou d'un dossier (nœuds à onglets « Fichiers » / « Sous-dossiers », nœud « Racine » pour les fichiers directs),
+  avec un fil d'Ariane, le zoom et le double-clic pour descendre ; plus de niveau « fonctions » sur la carte.
+- **FR-037** (D16) : Un fichier choisi MUST s'afficher en entier dans le volet de droite (lecture seule, 1 Mo au plus,
+  jamais un fichier sensible), chaque bloc avec ses appelants et ses appelés (fiabilité comprise) ; un appel ouvre
+  l'autre fichier au bon bloc dans le même volet ; carte et volet restent sur un seul écran.
 - **FR-021**: Les liens vers des éléments non affichés MUST être regroupés sur leur parent visible, avec le nombre
   d'appels ; la fiabilité affichée est la plus faible des liens regroupés.
 - **FR-022**: Au plus un nombre lisible d'éléments (~150) MUST être affiché à la fois ; le reste est regroupé.

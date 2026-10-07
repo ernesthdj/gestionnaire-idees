@@ -16,6 +16,7 @@ function setup() {
     code: vi.fn(() => ({ lines: [] })),
     search: vi.fn(() => ({ results: [] })),
     locate: vi.fn(() => ({ results: [] })),
+    file: vi.fn(() => ({ lines: [] })),
     savePosition: vi.fn(),
     state: vi.fn(),
     saveState: vi.fn()
@@ -24,6 +25,20 @@ function setup() {
 }
 
 describe('canaux explorer:* (spec 017 US2)', () => {
+  it('should_read_a_project_file_by_its_relative_path_only', async () => {
+    const { dispatch, explorer } = setup()
+    expect(await dispatch('explorer:file', { genesisId: ID, path: 'Domain/OrderService.cs' })).toMatchObject({
+      success: true
+    })
+    for (const path of ['../secret.txt', 'C:/Windows/win.ini', '/etc/passwd', 'a/../../b', 'a\\..\\b', '']) {
+      expect(await dispatch('explorer:file', { genesisId: ID, path }), path).toMatchObject({ success: false })
+    }
+    expect(
+      await dispatch('explorer:view', { genesisId: ID, parentKey: 'r:m:dir:src', filters: FILTERS })
+    ).toMatchObject({ success: true })
+    expect(explorer.file).toHaveBeenCalledTimes(1)
+  })
+
   it('should_locate_at_most_a_hundred_cited_names_of_bounded_length', async () => {
     const { dispatch, explorer } = setup()
     expect(await dispatch('explorer:locate', { genesisId: ID, sources: ['Domain/A.cs'] })).toMatchObject({

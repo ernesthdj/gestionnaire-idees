@@ -3,7 +3,12 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExplorerPage } from '../../../src/renderer/src/explorer/ExplorerPage'
-import type { ExplorerNodeDetailView, ExplorerView, RepriseProjectView } from '../../../src/shared/ipc/reprise'
+import type {
+  ExplorerNodeDetailView,
+  ExplorerView,
+  FileCodeView,
+  RepriseProjectView
+} from '../../../src/shared/ipc/reprise'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
@@ -50,6 +55,9 @@ const top: ExplorerView = {
       category: 'orchestration',
       lang: null,
       childCount: 1,
+      files: [],
+      hiddenFiles: 0,
+      folders: [],
       x: 0,
       y: 0
     },
@@ -61,6 +69,9 @@ const top: ExplorerView = {
       category: 'domain',
       lang: null,
       childCount: 2,
+      files: [],
+      hiddenFiles: 0,
+      folders: [{ key: 'd:Domain/Stores', title: 'Stores' }],
       x: 280,
       y: 0
     }
@@ -80,13 +91,24 @@ const domain: ExplorerView = {
   ],
   nodes: [
     {
-      key: `s:${SYMBOL}`,
+      key: 'r:m:dir:Domain',
       level: 2,
-      kind: 'method',
-      title: 'Place',
+      kind: 'folder',
+      title: 'Racine · Domain',
       category: 'domain',
-      lang: 'cs',
+      lang: null,
       childCount: 0,
+      files: [
+        {
+          key: 'f:Domain/OrderService.cs',
+          path: 'Domain/OrderService.cs',
+          title: 'OrderService.cs',
+          lang: 'cs',
+          category: 'domain'
+        }
+      ],
+      hiddenFiles: 0,
+      folders: [],
       x: 0,
       y: 0
     }
@@ -94,27 +116,110 @@ const domain: ExplorerView = {
   edges: []
 }
 const detail: ExplorerNodeDetailView = {
-  key: `s:${SYMBOL}`,
-  parentKey: 'm:dir:Domain',
-  kind: 'method',
-  title: 'Place',
-  path: 'Domain/OrderService.cs',
+  key: 'm:dir:Domain',
+  parentKey: '',
+  kind: 'module',
+  title: 'Domain',
+  path: 'Domain',
   category: 'domain',
   categorySource: 'rules',
-  lang: 'cs',
-  lines: 8,
+  lang: null,
+  lines: null,
   summary: null,
   analogy: null,
-  callers: [{ key: 's:b', title: 'Shop.Controllers.OrdersController.Post', provenance: 'syntax', reason: null }],
-  callees: [{ key: 's:c', title: 'Shop.Domain.Stores.Resolve', provenance: 'uncertain', reason: '4 cibles possibles' }],
+  callers: [
+    {
+      key: 's:b',
+      title: 'Shop.Controllers.OrdersController.Post',
+      path: 'Controllers/OrdersController.cs',
+      provenance: 'syntax',
+      reason: null
+    }
+  ],
+  callees: [
+    {
+      key: 's:c',
+      title: 'Shop.Infrastructure.Stores.Resolve',
+      path: 'Infrastructure/Stores.cs',
+      provenance: 'uncertain',
+      reason: '4 cibles possibles'
+    }
+  ],
   error: null
+}
+const ORDER_SERVICE: FileCodeView = {
+  path: 'Domain/OrderService.cs',
+  lang: 'cs',
+  lines: [
+    'namespace Shop.Domain;',
+    'public class OrderService',
+    '{',
+    '  public decimal Place()',
+    '  {',
+    '    Save();',
+    '  }',
+    '}'
+  ],
+  truncated: false,
+  error: null,
+  place: { parentKey: 'm:dir:Domain', nodeKey: 'r:m:dir:Domain', path: 'Domain/OrderService.cs', symbolId: null },
+  blocks: [
+    {
+      symbolId: SYMBOL,
+      kind: 'method',
+      name: 'Place',
+      startLine: 4,
+      endLine: 7,
+      category: 'domain',
+      corrected: false,
+      callers: [
+        {
+          symbolId: 'b'.repeat(32),
+          title: 'Shop.Controllers.OrdersController.Post',
+          path: 'Controllers/OrdersController.cs',
+          line: 12,
+          kind: 'call',
+          provenance: 'syntax',
+          count: 1,
+          at: null
+        }
+      ],
+      callees: [
+        {
+          symbolId: 'c'.repeat(32),
+          title: 'Shop.Infrastructure.SqlOrderRepository.Save',
+          path: 'Infrastructure/SqlOrderRepository.cs',
+          line: 8,
+          kind: 'call',
+          provenance: 'uncertain',
+          count: 2,
+          at: 6
+        }
+      ],
+      external: 1
+    }
+  ]
 }
 
 function renderExplorer(projectView: RepriseProjectView = project(), nodeDetail: ExplorerNodeDetailView = detail) {
   const api = installFakeApi({
     'document:get': () => ({ id: 'd1', content: GUIDE, hash: 'h', missing: false }),
     'explorer:locate': () => ({
-      results: [{ source: 'Domain/OrderService.cs', key: `s:${SYMBOL}`, parentKey: 'm:dir:Domain' }]
+      results: [
+        {
+          source: 'Domain/OrderService.cs',
+          key: 'r:m:dir:Domain',
+          parentKey: 'm:dir:Domain',
+          nodeKey: 'r:m:dir:Domain',
+          path: 'Domain/OrderService.cs',
+          symbolId: null
+        }
+      ]
+    }),
+    'explorer:file': (payload) => ({
+      ...ORDER_SERVICE,
+      path: (payload as { path: string }).path,
+      place: { ...ORDER_SERVICE.place, path: (payload as { path: string }).path }
     }),
     'reprise:guide': () => ({ documentId: 'd1' }),
     'reprise:get': () => projectView,
@@ -131,7 +236,17 @@ function renderExplorer(projectView: RepriseProjectView = project(), nodeDetail:
       lang: 'cs'
     }),
     'explorer:search': () => ({
-      results: [{ key: `s:${SYMBOL}`, parentKey: 'm:dir:Domain', title: 'Place', path: 'Domain' }]
+      results: [
+        {
+          key: 'r:m:dir:Domain',
+          nodeKey: 'r:m:dir:Domain',
+          parentKey: 'm:dir:Domain',
+          path: 'Domain/OrderService.cs',
+          symbolId: SYMBOL,
+          title: 'Place',
+          where: 'Domain › OrderService.cs'
+        }
+      ]
     }),
     'explorer:saveState': () => ({ ok: true }),
     'reprise:setCategory': () => ({ ok: true }),
@@ -153,7 +268,7 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     const { container } = renderExplorer()
     expect(await screen.findByText('Controllers')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Local uniquement/ })).toBeTruthy()
-    expect(screen.getByLabelText('Niveau 1 sur 4').textContent).toContain('1 Modules')
+    expect(screen.getByLabelText('Niveau 1 sur 2').textContent).toContain('1 Modules')
     expect(await screen.findByText(/1 masqués par les filtres · 4 appels de plomberie masqués/)).toBeTruthy()
     await expectNoAxeViolations(container)
   })
@@ -175,29 +290,57 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     expect(await screen.findByRole('button', { name: 'Projet' })).toBeTruthy()
   })
 
-  it('should_show_who_calls_an_element_its_code_and_let_mentalyas_correct_its_category', async () => {
+  it('should_show_a_file_of_a_folder_with_who_calls_each_block_and_follow_a_call_in_the_same_pane', async () => {
     const user = userEvent.setup()
     const { api, container } = renderExplorer()
     await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
     await user.click(
       within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: 'Ouvrir (2)' })
     )
-    await user.click(
-      within(await screen.findByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', {
-        name: /Place/
-      })
-    )
-    const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
-    expect(await within(panel).findByText('Shop.Controllers.OrdersController.Post')).toBeTruthy()
-    expect(within(panel).getByText(/incertain — 4 cibles possibles/)).toBeTruthy()
-    await user.selectOptions(within(panel).getByLabelText('Corriger la catégorie'), 'infrastructure')
+    const files = await screen.findByRole('list', { name: 'Fichiers de Racine · Domain' })
+    await user.click(within(files).getByRole('button', { name: 'OrderService.cs' }))
+
+    const pane = await screen.findByRole('complementary', { name: 'Code du fichier' })
+    const block = await within(pane).findByRole('group', { name: 'méthode Place' })
+    expect(within(block).getByText('← appelé par :')).toBeTruthy()
+    expect(within(block).getByText('→ appelle :')).toBeTruthy()
+    expect(within(block).getByText(/1 appel hors du projet/)).toBeTruthy()
+    expect(within(pane).getByTitle('Appel repéré sur cette ligne')).toBeTruthy()
+    await user.selectOptions(within(block).getByLabelText('Catégorie de Place'), 'infrastructure')
     expect(api.invoke).toHaveBeenCalledWith('reprise:setCategory', {
       genesisId: GENESIS,
       symbolId: SYMBOL,
       category: 'infrastructure'
     })
-    await user.click(within(panel).getByRole('tab', { name: 'Code' }))
-    expect((await within(panel).findByText(/lecture seule/)).textContent).toContain('lignes 20 à 21')
+    await user.click(
+      within(block).getByRole('button', {
+        name: 'Shop.Controllers.OrdersController.Post (Controllers/OrdersController.cs), sûr : ouvrir'
+      })
+    )
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', {
+      genesisId: GENESIS,
+      path: 'Controllers/OrdersController.cs'
+    })
+    expect(await screen.findByRole('region', { name: 'Code de Controllers/OrdersController.cs' })).toBeTruthy()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_open_a_file_from_the_files_tab_of_a_folder_node_on_the_map', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderExplorer()
+    expect(await screen.findAllByText('Module')).toHaveLength(2)
+    expect(screen.getByText('1 dossier')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Vue liste' }))
+    await user.click(
+      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: 'Ouvrir (2)' })
+    )
+    await user.click(screen.getByRole('button', { name: 'Vue carte' }))
+    const tabs = await screen.findByRole('tablist', { name: 'Contenu de Racine · Domain' })
+    expect(within(tabs).getByRole('tab', { name: 'Fichiers (1)' }).getAttribute('aria-selected')).toBe('true')
+    expect(within(tabs).getByRole('tab', { name: 'Sous-dossiers (0)' })).toHaveProperty('disabled', true)
+    await user.click(screen.getByRole('button', { name: /OrderService\.cs/ }))
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
+    expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
     await expectNoAxeViolations(container)
   })
 
@@ -215,6 +358,8 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     await user.type(screen.getByLabelText('Rechercher un élément'), 'Pla')
     await user.click(await screen.findByRole('button', { name: /^Place/ }))
     expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
+    expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
   })
 
   it('should_open_the_guide_and_turn_each_cited_name_of_the_project_into_a_link_to_the_explorer', async () => {

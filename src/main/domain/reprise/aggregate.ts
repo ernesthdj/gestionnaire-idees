@@ -4,7 +4,9 @@ import type {
   ExplorerEdgeView,
   ExplorerFiltersView,
   ExplorerLevel,
+  ExplorerFileEntryView,
   ExplorerNodeView,
+  ExplorerPlaceView,
   LinkProvenance
 } from '@shared/ipc/reprise'
 import { EXPLORER_LIMITS } from '@shared/ipc/reprise'
@@ -197,11 +199,50 @@ export function buildIndex(
   return { nodes, children, chains, symbolCategory, symbolLang }
 }
 
-/** Niveau montré pour un nœud ouvert : racine → modules (1), module → dossiers (2), dossier → fichiers (3), puis le code (4). */
-export function levelOf(index: ExplorerIndex, parentKey: string): ExplorerLevel {
-  if (parentKey === ROOT_KEY) return 1
-  const kind = index.nodes.get(parentKey)?.kind
-  return kind === 'module' ? 2 : kind === 'folder' ? 3 : 4
+/** Niveau montré pour un nœud ouvert (D16) : racine → modules (1), module ou dossier → ses dossiers (2). */
+export function levelOf(parentKey: string): ExplorerLevel {
+  return parentKey === ROOT_KEY ? 1 : 2
+}
+
+/** Préfixe du nœud « Racine » : les fichiers posés directement dans le module ou le dossier ouvert. */
+export const RACINE_PREFIX = 'r:'
+
+const isOpenable = (node: TreeNode | undefined): boolean => node?.kind === 'module' || node?.kind === 'folder'
+
+/** Nœud ouvrable (module, dossier) le plus proche, la racine sinon : un ancien état ou un lien sur un fichier. */
+export function openableKey(index: ExplorerIndex, key: string): string {
+  let current: string | null = key
+  for (let guard = 0; current !== null && current !== ROOT_KEY && guard < 100; guard++) {
+    const node = index.nodes.get(current)
+    if (node === undefined) return ROOT_KEY
+    if (isOpenable(node)) return current
+    current = node.parentKey
+  }
+  return ROOT_KEY
+}
+
+/**
+ * Où un élément apparaît sur la carte (D16) : un module au niveau 1 ; un dossier chez son parent ; un fichier dans
+ * l'onglet de son dossier (nœud « Racine » s'il est posé dans un module) ; un symbole dans son fichier.
+ */
+export function placeOf(
+  index: ExplorerIndex,
+  key: string,
+  pathOfSymbol: (symbolId: string) => string | undefined
+): ExplorerPlaceView | null {
+  const node = index.nodes.get(key)
+  if (node === undefined) return null
+  if (node.kind === 'module' || node.kind === 'folder') {
+    return { parentKey: node.parentKey ?? ROOT_KEY, nodeKey: key, path: null, symbolId: null }
+  }
+  const symbolId = key.startsWith('s:') ? key.slice(2) : null
+  const path = symbolId === null ? key.slice(2) : pathOfSymbol(symbolId)
+  const folder = path === undefined ? undefined : index.nodes.get(`f:${path}`)?.parentKey
+  if (path === undefined || folder === undefined || folder === null) return null
+  const folderNode = index.nodes.get(folder)
+  return folderNode?.kind === 'module'
+    ? { parentKey: folder, nodeKey: `${RACINE_PREFIX}${folder}`, path, symbolId }
+    : { parentKey: folderNode?.parentKey ?? ROOT_KEY, nodeKey: folder, path, symbolId }
 }
 
 export function breadcrumbOf(
@@ -217,6 +258,14 @@ export function breadcrumbOf(
     current = node.parentKey
   }
   return [{ key: ROOT_KEY, title: 'Projet' }, ...crumbs]
+}
+
+/** Catégorie d'un groupe de fichiers : la plus fréquente, plomberie seulement si tout l'est. */
+function dominantCategory(files: readonly TreeNode[]): CodeCategory {
+  const counts = new Map<CodeCategory, number>()
+  for (const file of files) counts.set(file.category, (counts.get(file.category) ?? 0) + 1)
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  return (sorted.find(([category]) => category !== 'plumbing') ?? sorted[0])?.[0] ?? 'domain'
 }
 
 export interface AggregatedView {
@@ -238,13 +287,40 @@ export function aggregateView(
   filters: ExplorerFiltersView,
   focus?: { readonly key: string; readonly depth: 1 | 2 }
 ): AggregatedView {
-  const level = levelOf(index, parentKey)
+  const level = levelOf(parentKey)
   const shownCategory = (category: CodeCategory): boolean => filters.categories.includes(category)
   const shownLang = (lang: CodeLang | null): boolean =>
     lang === null || filters.langs.length === 0 || filters.langs.includes(lang)
-  const all = (index.children.get(parentKey) ?? [])
-    .map((key) => index.nodes.get(key))
-    .filter((node): node is TreeNode => node !== undefined)
+  const childrenOf = (key: string): TreeNode[] =>
+    (index.children.get(key) ?? [])
+      .map((child) => index.nodes.get(child))
+      .filter((node): node is TreeNode => node !== undefined)
+  const filesOf = (key: string): TreeNode[] => childrenOf(key).filter((node) => node.kind === 'file')
+  const foldersOf = (key: string): TreeNode[] => childrenOf(key).filter((node) => node.kind === 'folder')
+  // Zoomer dans un nœud montre ses dossiers, plus un nœud « Racine » s'il a aussi des fichiers directs.
+  const openCount = (node: TreeNode): number => {
+    if (node.key.startsWith(RACINE_PREFIX)) return 0
+    const folders = foldersOf(node.key).length
+    const files = filesOf(node.key).length > 0 ? 1 : 0
+    return node.kind === 'module' ? folders + files : folders === 0 ? 0 : folders + files
+  }
+
+  // Enfants montrés (D16) : les modules au niveau 1 ; ailleurs les dossiers et la « Racine » des fichiers directs.
+  const racineKey = `${RACINE_PREFIX}${parentKey}`
+  const parentFiles = parentKey === ROOT_KEY ? [] : filesOf(parentKey)
+  const all = parentKey === ROOT_KEY ? childrenOf(ROOT_KEY) : foldersOf(parentKey)
+  if (parentFiles.length > 0) {
+    all.push({
+      key: racineKey,
+      parentKey,
+      kind: 'folder',
+      title: `Racine · ${index.nodes.get(parentKey)?.title ?? ''}`,
+      lang: null,
+      category: dominantCategory(parentFiles),
+      childCount: 0
+    })
+  }
+  const alias = new Map(parentFiles.map((file) => [file.key, racineKey] as const))
   let visible = all.filter((node) => shownCategory(node.category) && shownLang(node.lang))
   const hiddenNodes = all.length - visible.length
   const visibleKeys = new Set(visible.map((node) => node.key))
@@ -266,8 +342,13 @@ export function aggregateView(
       !shownLang(index.symbolLang.get(edge.toSymbolId) ?? null)
     )
       continue
-    const from = index.chains.get(edge.fromSymbolId)?.find((key) => visibleKeys.has(key))
-    const to = index.chains.get(edge.toSymbolId)?.find((key) => visibleKeys.has(key))
+    const visibleIn = (symbolId: string): string | undefined =>
+      index.chains
+        .get(symbolId)
+        ?.map((key) => alias.get(key) ?? key)
+        .find((key) => visibleKeys.has(key))
+    const from = visibleIn(edge.fromSymbolId)
+    const to = visibleIn(edge.toSymbolId)
     if (from === undefined || to === undefined || from === to) continue
     const key = `${from}→${to}`
     const existing = merged.get(key)
@@ -312,6 +393,22 @@ export function aggregateView(
   }
   links = links.sort((a, b) => b.count - a.count).slice(0, EXPLORER_LIMITS.edges)
 
+  const entries = (files: readonly TreeNode[]): { files: ExplorerFileEntryView[]; hiddenFiles: number } => {
+    const shown = files
+      .filter((file) => shownCategory(file.category) && shownLang(file.lang))
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .slice(0, EXPLORER_LIMITS.filesPerNode)
+    return {
+      files: shown.map((file) => ({
+        key: file.key,
+        path: file.key.slice(2),
+        title: file.title,
+        lang: file.lang,
+        category: file.category
+      })),
+      hiddenFiles: files.length - shown.length
+    }
+  }
   return {
     nodes: visible.map((node) => ({
       key: node.key,
@@ -320,7 +417,14 @@ export function aggregateView(
       title: node.title,
       category: node.category,
       lang: node.lang,
-      childCount: node.childCount
+      childCount: openCount(node),
+      ...(node.key === racineKey
+        ? entries(parentFiles)
+        : node.kind === 'folder'
+          ? entries(filesOf(node.key))
+          : { files: [], hiddenFiles: 0 }),
+      folders:
+        node.key === racineKey ? [] : foldersOf(node.key).map((folder) => ({ key: folder.key, title: folder.title }))
     })),
     edges: links,
     grouped,

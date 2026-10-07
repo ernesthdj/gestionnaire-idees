@@ -21,7 +21,15 @@ export const weakestProvenance = (a: LinkProvenance, b: LinkProvenance): LinkPro
   PROVENANCE_STRENGTH[a] <= PROVENANCE_STRENGTH[b] ? a : b
 
 /** Au plus ce nombre d'éléments affichés à la fois dans l'explorateur (spec 017 FR-022). */
-export const EXPLORER_LIMITS = { nodes: 150, edges: 400, callers: 50, excerptLines: 200, search: 30 } as const
+export const EXPLORER_LIMITS = {
+  nodes: 150,
+  edges: 400,
+  callers: 50,
+  excerptLines: 200,
+  search: 30,
+  filesPerNode: 300,
+  fileLines: 20_000
+} as const
 
 /** Aperçu d'un dossier avant l'import : rien n'est créé tant que mentalyas n'a pas choisi la confidentialité. */
 export interface ImportPreviewView {
@@ -80,19 +88,45 @@ export interface ExplorerFiltersView {
   readonly hideUncertain: boolean
 }
 
-export type ExplorerLevel = 1 | 2 | 3 | 4
+/** Carte de l'explorateur (D16) : 1 = modules, 2 = dossiers d'un module ou d'un dossier. */
+export type ExplorerLevel = 1 | 2
+
+/** Fichier de code direct d'un dossier (onglet « Fichiers » de son nœud, D16). */
+export interface ExplorerFileEntryView {
+  /** `f:<chemin>`. */
+  readonly key: string
+  readonly path: string
+  readonly title: string
+  readonly lang: CodeLang | null
+  readonly category: CodeCategory
+}
 
 export interface ExplorerNodeView {
-  /** `m:<module>`, `d:<dossier>`, `f:<fichier>`, `s:<symbole>`. */
+  /** `m:<module>`, `d:<dossier>`, `r:<parent>` (fichiers posés à la racine du parent ouvert) ; ailleurs `f:`, `s:`. */
   readonly key: string
   readonly level: ExplorerLevel
   readonly kind: 'module' | 'folder' | 'file' | 'namespace' | 'class' | 'interface' | 'function' | 'method'
   readonly title: string
   readonly category: CodeCategory
   readonly lang: CodeLang | null
+  /** Éléments montrés en zoomant dedans (0 : rien à ouvrir, ses fichiers sont dans l'onglet). */
   readonly childCount: number
+  /** Fichiers directs (filtres appliqués) ; vide pour un module. */
+  readonly files: readonly ExplorerFileEntryView[]
+  /** Fichiers directs masqués par les filtres ou au-delà de la limite. */
+  readonly hiddenFiles: number
+  /** Sous-dossiers (onglet « Sous-dossiers »). */
+  readonly folders: readonly { readonly key: string; readonly title: string }[]
   readonly x: number | null
   readonly y: number | null
+}
+
+/** Où se trouve un élément sur la carte (D16) : le niveau à ouvrir, le nœud qui le montre, son fichier éventuel. */
+export interface ExplorerPlaceView {
+  readonly parentKey: string
+  readonly nodeKey: string
+  readonly path: string | null
+  readonly symbolId: string | null
 }
 
 export interface ExplorerEdgeView {
@@ -118,6 +152,8 @@ export interface ExplorerView {
 export interface ExplorerLinkView {
   readonly key: string
   readonly title: string
+  /** Fichier de l'élément lié (pour l'ouvrir dans le volet, D16) ; `null` : inconnu. */
+  readonly path: string | null
   readonly provenance: LinkProvenance
   readonly reason: string | null
 }
@@ -140,6 +176,50 @@ export interface ExplorerNodeDetailView {
   readonly callees: readonly ExplorerLinkView[]
   /** Fichier non analysé : sa raison. */
   readonly error: string | null
+}
+
+/** Lien d'un bloc de code vers un autre (D16) : l'autre bloc, et la ligne approchée de l'appel dans ce fichier. */
+export interface CodeBlockLinkView {
+  readonly symbolId: string
+  readonly title: string
+  readonly path: string
+  /** Première ligne de l'autre bloc (pour l'ouvrir au bon endroit). */
+  readonly line: number
+  readonly kind: 'import' | 'call' | 'implements' | 'route' | 'injects'
+  readonly provenance: LinkProvenance
+  readonly count: number
+  /** Ligne de ce fichier où le nom appelé apparaît dans le bloc (approchée) ; `null` : pas trouvée. */
+  readonly at: number | null
+}
+
+/** Bloc d'un fichier (classe, fonction, méthode, ou code de premier niveau) avec ses appelants et appelés. */
+export interface CodeBlockView {
+  readonly symbolId: string
+  readonly kind: ExplorerNodeView['kind']
+  readonly name: string
+  readonly startLine: number
+  readonly endLine: number
+  readonly category: CodeCategory
+  /** La catégorie vient-elle des règles ou d'une correction de mentalyas (FR-018) ? */
+  readonly corrected: boolean
+  readonly callers: readonly CodeBlockLinkView[]
+  readonly callees: readonly CodeBlockLinkView[]
+  /** Appels sans cible dans le projet (bibliothèques, framework). */
+  readonly external: number
+}
+
+/** Fichier complet dans le volet de l'explorateur (D16, FR-037) : texte en lecture seule, jamais interprété. */
+export interface FileCodeView {
+  readonly path: string
+  readonly lang: CodeLang
+  readonly lines: readonly string[]
+  /** Plus de lignes que la limite : seules les premières sont montrées. */
+  readonly truncated: boolean
+  readonly blocks: readonly CodeBlockView[]
+  /** Fichier non analysé : sa raison. */
+  readonly error: string | null
+  /** Où le fichier apparaît sur la carte. */
+  readonly place: ExplorerPlaceView
 }
 
 export interface CodeExcerptView {
