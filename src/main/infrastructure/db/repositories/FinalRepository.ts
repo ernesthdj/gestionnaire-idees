@@ -214,6 +214,11 @@ export class FinalRepository {
     this.db.insert(deliverableFiles).values(row).run()
   }
 
+  /** Retour en arrière appliqué (ou, `null`, plus d'actualité). */
+  setReverted(id: string, revertedAt: string | null): void {
+    this.db.update(deliverableFiles).set({ revertedAt }).where(eq(deliverableFiles.id, id)).run()
+  }
+
   /** Nouveau contenu écrit ; le contenu d'avant la première écriture n'est jamais remplacé. */
   updateFile(
     id: string,

@@ -1,8 +1,14 @@
 import { z } from 'zod'
+import type { DeliverableService } from '../application/finals/DeliverableService'
 import type { DeliverableReader } from '../application/finals/DeliverableReader'
 import type { ExecutionService } from '../application/finals/ExecutionService'
 import type { FinalService } from '../application/finals/FinalService'
-import { DELIVERABLE_SIZE_LIMITS, EDITOR_CHOICES, type DeliverableFileDetailView } from '@shared/ipc/finals'
+import {
+  DELIVERABLE_SIZE_LIMITS,
+  EDITOR_CHOICES,
+  type DeliverableDetailView,
+  type DeliverableFileDetailView
+} from '@shared/ipc/finals'
 import type { EditorService } from '../application/finals/EditorService'
 import { Coordinate } from './canvasHandlers'
 import { defineRoute, type IpcRoute } from './registry'
@@ -12,9 +18,34 @@ export function createFinalRoutes(
   finals: Pick<FinalService, 'decide' | 'demote' | 'move' | 'resize'>,
   executions: Pick<ExecutionService, 'execute' | 'stop'>,
   reader?: Pick<DeliverableReader, 'file'>,
-  editor?: Pick<EditorService, 'view' | 'choose' | 'clear' | 'open'>
+  editor?: Pick<EditorService, 'view' | 'choose' | 'clear' | 'open'>,
+  review?: Pick<DeliverableService, 'get' | 'accept' | 'correct' | 'revert'>
 ): IpcRoute[] {
   return [
+    ...(review === undefined
+      ? []
+      : [
+          defineRoute({
+            channel: 'deliverable:get',
+            input: z.object({ neuronId: z.uuid() }).strict(),
+            handler: async ({ neuronId }): Promise<DeliverableDetailView> => review.get(neuronId)
+          }),
+          defineRoute({
+            channel: 'deliverable:accept',
+            input: z.object({ neuronId: z.uuid() }).strict(),
+            handler: async ({ neuronId }) => review.accept(neuronId)
+          }),
+          defineRoute({
+            channel: 'deliverable:correct',
+            input: z.object({ neuronId: z.uuid(), message: z.string().trim().min(1).max(4000) }).strict(),
+            handler: async ({ neuronId, message }) => review.correct(neuronId, message)
+          }),
+          defineRoute({
+            channel: 'deliverable:revert',
+            input: z.object({ neuronId: z.uuid() }).strict(),
+            handler: async ({ neuronId }) => review.revert(neuronId)
+          })
+        ]),
     ...(editor === undefined
       ? []
       : [

@@ -82,7 +82,13 @@ function documentSummary(entries: readonly ChangeRow[]): string | null {
  */
 function finalSummary(entries: readonly ChangeRow[], undo: boolean): string | null {
   const entry = entries.find((row) => row.entity === 'final_action')
-  if (entry === undefined) return null
+  if (entry === undefined) {
+    // Livrable accepté (l'étape passe à « fait ») : seul le statut de l'étape change.
+    if (!entries.some((row) => row.entity === 'step_status')) return null
+    const done = (undo ? entries[0]?.before : entries[0]?.after)?.['status'] === 'fait'
+    const text = done ? 'Livrable accepté' : 'Acceptation du livrable retirée'
+    return undo ? `Annulé — ${text}` : text
+  }
   // Dans un lot d'annulation, avant et après sont inversés.
   const before = undo ? entry.after : entry.before
   const after = undo ? entry.before : entry.after
@@ -309,6 +315,12 @@ export class HistoryService {
     const head = entries[0] as ChangeRow
     const final = finalSummary(entries, head.kind === 'undo')
     if (final !== null) return final
+    // Retour en arrière d'un livrable (spec 013 US3) : des fichiers du projet, dans un lot `final`.
+    const revertedKind = head.kind === 'undo' ? this.repository.undoneKind(head.batchId) : head.kind
+    if (revertedKind === 'final' && entries.every((entry) => entry.entity === 'project_file')) {
+      const text = `Livrable : retour en arrière (${entries.length} ${entries.length > 1 ? 'fichiers' : 'fichier'})`
+      return head.kind === 'undo' ? `Annulé — ${text}` : text
+    }
     const document = documentSummary(entries)
     if (document !== null) return head.kind === 'undo' ? `Annulé — ${document}` : document
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)

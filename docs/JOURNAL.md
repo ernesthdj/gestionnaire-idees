@@ -839,3 +839,9 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Resume :** spec 019 US1 (sonde sans contenu de l'Analyste interne) codée et validée ; carte de structure : D18 (nœuds selon leur contenu doc / code), lisibilité, D19 (état visuel du statut), D20 (vue Architecture : bascule, bandes par couche, violations en rouge, corrections annulables), D21 (avancement vivant : outil element_avancer, barre de progression) ; corrections des consignes de cartographie (structure_dessiner seulement, couche = attribut). Test guidé T079 (D21) encore à faire.
 **Branche :** main
 **Commits pushes :** 4
+
+### [2026-10-07 22:17] FEAT — spec 013 T018 : revue du livrable (accepter, corriger, revenir en arrière)
+**Fichiers :** `application/finals/DeliverableService.ts` (nouveau) ; `ipc/finalHandlers.ts` (`deliverable:get|accept|correct|revert`) ; `FinalRepository.ts` ; `HistoryService.ts` (libellés « Livrable accepté », « Livrable : retour en arrière ») ; `shared/ipc/finals.ts`, `channels.ts` ; `bootstrap.ts` ; `specs/013-actions-finales/{tasks.md, contracts/interfaces.md}`. Tests : `deliverable-service.test.ts` (13), `deliverable-ipc.test.ts`.
+**Quoi :** codé par Claude dans une conversation du Brainstormer (essai de mentalyas : avancer une tâche depuis la carte), relu ensuite : conforme au contrat — accepter passe l'étape à « fait » (lot annulable) ; corriger relance une passe ; revenir en arrière restaure les fichiers modifiés, met les créés à la corbeille et épargne les fichiers retouchés à la main ; refus pendant une exécution, sans dossier lié, ou déjà accepté.
+**Erreur corrigée :** l'entrée de journal manquait (ajoutée à la relecture).
+

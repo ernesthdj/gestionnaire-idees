@@ -37,7 +37,7 @@
 - [ ] T029 [US2b] Test guidé (projet test avec package.json) — attendre le retour
 
 ## Phase 4 — US3 Revoir le livrable (P1) 🎯
-- [ ] T018 [US3] `deliverable:get` (différences, « modifié depuis »), `deliverable:accept` (→ `fait`), `deliverable:correct`, `deliverable:revert` (restaure, épargne les retouchés, corbeille), `deliverable:move/resize` + tests
+- [x] T018 [US3] `deliverable:get` (différences, « modifié depuis »), `deliverable:accept` (→ `fait`), `deliverable:correct`, `deliverable:revert` (restaure, épargne les retouchés, corbeille), `deliverable:move/resize` + tests
 - [ ] T019 [US3] `DeliverableNode` complet : différences dépliables, Accepter / Corriger / Revenir en arrière, fil de l'exécution + tests renderer/axe
 - [x] T030 [US3] D4 : `deliverable:file` (contenu actuel via `ProjectFiles`, langage, trop gros, binaire, absent) + tests
 - [x] T031 [US3] D4 : volet de lecture (onglets Différences / Fichier, `highlight.js` cœur + langages choisis, numéros de ligne) ouvert au clic sur un fichier du livrable + tests renderer/axe — dépendance `highlight.js` à annoncer

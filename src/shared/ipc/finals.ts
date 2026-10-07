@@ -42,6 +42,52 @@ export interface DeliverableFileDetailView {
   readonly changedSince: boolean
 }
 
+/** Un fichier du livrable dans la revue (spec 013 US3, `deliverable:get`). */
+export interface DeliverableDetailFileView {
+  readonly path: string
+  readonly status: 'cree' | 'modifie'
+  /** Contenu d'avant la première écriture de Claude ; `null` : fichier créé. */
+  readonly before: string | null
+  /** Dernier contenu écrit par Claude. */
+  readonly after: string
+  /** Le fichier sur le disque n'est plus celui écrit par Claude (retouché ailleurs, ou absent). */
+  readonly changedSince: boolean
+  /** Contenu actuel du disque, fourni seulement si `changedSince` (la différence se calcule alors sur le disque). */
+  readonly current: string | null
+  /** Le retour en arrière a été appliqué : le disque est revenu à l'état d'avant. */
+  readonly reverted: boolean
+}
+
+/** Événement du fil d'une exécution : jamais de contenu de fichier. */
+export interface ExecutionEventView {
+  readonly at: string
+  readonly kind: 'lecture' | 'ecriture' | 'refus' | 'message' | 'commande'
+  readonly path: string | null
+  readonly detail: string | null
+}
+
+export interface ExecutionView {
+  readonly id: string
+  readonly startedAt: string
+  readonly endedAt: string | null
+  readonly outcome: 'terminee' | 'arretee' | 'interrompue' | 'echouee' | null
+  /** Phrase de correction de mentalyas ; `null` : exécution initiale. */
+  readonly correction: string | null
+  readonly filesWritten: number
+  readonly events: readonly ExecutionEventView[]
+}
+
+/** Revue d'un livrable (spec 013 US3) : fichiers avec leurs différences, dernières exécutions avec leur fil. */
+export interface DeliverableDetailView {
+  readonly neuronId: string
+  readonly state: FinalState
+  /** L'étape est « fait » : le livrable a été accepté. */
+  readonly accepted: boolean
+  readonly files: readonly DeliverableDetailFileView[]
+  /** Les plus récentes d'abord (5 au plus). */
+  readonly executions: readonly ExecutionView[]
+}
+
 /** Éditeur pour « Ouvrir dans l'éditeur » (spec 013 D4) : réglé, et ceux trouvés sur la machine. */
 export interface EditorSettingsView {
   readonly current: { readonly kind: 'vscode' | 'notepadpp' | 'other'; readonly program: string } | null

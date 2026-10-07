@@ -19,10 +19,10 @@ le livrable (chemins seulement).
 | `final:demote` | `{ neuronId }` | `{}` |
 | `final:execute` | `{ neuronId, force?: boolean }` | `{ executionId }` ; `PREREQUISITES` avec la liste des prérequis non faits si `force` absent ; `BUSY` ; `FOLDER_MISSING` |
 | `final:stop` | `{ neuronId }` | `{}` |
-| `deliverable:get` | `{ neuronId }` | `DeliverableDetailView` |
-| `deliverable:accept` | `{ neuronId }` | `{}` |
-| `deliverable:correct` | `{ neuronId, message: 1..4000 }` | `{ executionId }` |
-| `deliverable:revert` | `{ neuronId }` | `{ restored: string[], skipped: string[] }` |
+| `deliverable:get` | `{ neuronId }` | `DeliverableDetailView` : `{ neuronId, state, accepted, files: [{ path, status, before, after, changedSince, current (si changedSince), reverted }], executions (5 dernières, fil d'événements) }` |
+| `deliverable:accept` | `{ neuronId }` | `{ batchId }` — étape → `fait` ; `INVALID_STATE` si pas à revoir, en cours ou déjà accepté |
+| `deliverable:correct` | `{ neuronId, message: 1..4000 }` | `{ executionId }` — `INVALID_STATE` si accepté ou en cours |
+| `deliverable:revert` | `{ neuronId }` | `{ restored: string[], skipped: string[] }` — épargne les fichiers retouchés ; `FOLDER_MISSING` sans dossier lié |
 | `deliverable:move` / `deliverable:resize` | comme `document:move` / `document:resize` | `{}` |
 
 Événements main → renderer : `final:proposed` (toast), `final:changed { neuronId }` (début/fin d'exécution, écriture)

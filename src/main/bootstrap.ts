@@ -71,6 +71,7 @@ import { maskLocalProjects } from './domain/reprise/maskLocal'
 import { RepriseRepository } from './infrastructure/db/repositories/RepriseRepository'
 import { ProjectFiles } from './infrastructure/finals/ProjectFiles'
 import { DeliverableReader } from './application/finals/DeliverableReader'
+import { DeliverableService } from './application/finals/DeliverableService'
 import { PermissionService } from './application/conversation/PermissionService'
 import { PermissionRepository } from './infrastructure/db/repositories/PermissionRepository'
 import { projectKey } from './domain/conversation/permissions'
@@ -327,6 +328,15 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (neuronId) => broadcast('final:changed', { neuronId })
   })
   executions.recover()
+  // Revue du livrable (spec 013 US3) : accepter, corriger, revenir en arrière.
+  const deliverableReview = new DeliverableService({
+    repository: finalRepository,
+    plan: planRepository,
+    projectDir: projectDirOf,
+    files: projectFiles,
+    executions,
+    emit: (neuronId) => broadcast('final:changed', { neuronId })
+  })
   // Livrable reconstitué à partir des écritures réelles de Claude (hook avant écriture, spec 014 R5).
   const deliverables = new DeliverableTracker({
     finals: finalRepository,
@@ -621,7 +631,8 @@ export function bootstrap(shell: ShellPort): AppContext {
           repository: finalRepository,
           projectDir: projectDirOf,
           files: projectFiles
-        })
+        }),
+        deliverableReview
       ),
       ...createDocumentRoutes({ documents, reveal: (path) => electronShell.showItemInFolder(path) }),
       ...createCanvasRoutes(canvas),
