@@ -64,7 +64,7 @@ ou `:`, `--no-verify`, `rebase`, `reset`, `commit --amend`.
 - **Liste blanche de sous-commandes** (dans le code) : `api user --jq .login` (compte connecté ; on n'utilise pas
   `auth status`, dont la sortie parle du jeton), `repo create`, `repo view --json`,
   `repo fork --clone=false --remote=false` (lot F), `pr list`, `pr view`, `pr create`, `issue list`, `issue view`,
-  `issue create` (lot F). Jamais `auth token`, `auth login`, `extension`, `alias`, `pr checkout` (il lancerait git
+  `issue create`, `pr comment --body-file -` (lot F, sur clic, H12). Jamais `auth token`, `auth login`, `extension`, `alias`, `pr checkout` (il lancerait git
   hors de notre profil sûr : la branche d'une PR se récupère par git), `api` avec un autre chemin que `user`.
 - Valeurs utilisateur en forme collée (`--description=<texte>`) pour qu'aucune ne soit lue comme une option ; nom de
   dépôt vérifié `^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`.
@@ -163,8 +163,8 @@ spec 014 US7 (« Commiter l'étape », par Claude selon le mode de permission) i
 
 **Principe I — liste des programmes, ajout après « git » :**
 > « … **gh** (CLI GitHub de mentalyas, résolu par chemin absolu dans le PATH, sans shell ; seulement une liste
-> blanche de sous-commandes figée dans le code : compte connecté, création / lecture / fork de dépôt, lecture et
-> création de PR et d'issues ; FOUNDATION §000000). Les identifiants restent gérés par git et `gh` du poste : l'app
+> blanche de sous-commandes figée dans le code : compte connecté, création / lecture / fork de dépôt, lecture, création et commentaire de PR, lecture et
+> création d'issues ; FOUNDATION §000000). Les identifiants restent gérés par git et `gh` du poste : l'app
 > MUST NOT demander, lire, stocker ni journaliser un jeton, ni enregistrer une adresse qui en contient. Dans un dépôt
 > non marqué de confiance (tout dépôt cloné), git MUST tourner sans hooks ni programme désigné par la configuration
 > du dépôt (`core.hooksPath` vide, `core.fsmonitor` désactivé, ni diff externe ni textconv) ; dans un dépôt de

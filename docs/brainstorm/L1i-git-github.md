@@ -83,7 +83,7 @@ Principe II : « l'app ne commite jamais d'elle-même » et **ne pousse jamais**
 limité : commit et push **uniquement sur clic de mentalyas**, diff affiché avant (D2). Principe I : ajouter `gh`
 (D3). Les exceptions existantes (branches `analyste/*`, écriture des skills) ne changent pas.
 
-## 8. Questions ouvertes (niveaux 2–3) — tranchées, **proposé, à valider par mentalyas**
+## 8. Questions ouvertes (niveaux 2–3) — tranchées, **validées par mentalyas le 2026-10-07**
 - [x] **Hooks git de mentalyas dans ses propres projets : les exécuter au commit ?** → **Oui, mais seulement dans un
   dépôt marqué « de confiance »** (la marque existante de la spec 014, `trusted_projects`) ; partout ailleurs, et
   toujours pour un dépôt cloné, les hooks sont désactivés (`core.hooksPath` vers un dossier vide, `core.fsmonitor`
@@ -128,3 +128,28 @@ limité : commit et push **uniquement sur clic de mentalyas**, diff affiché ava
 sans le lot E, un pull qui rencontre des conflits **annule proprement la fusion** et explique quoi faire.
 **Ordre de suite ajusté : E, puis D, F, G** (au lieu de D, E, F, G) — la collaboration (G2) rencontre des conflits
 dès le premier pull divergent, alors que la frise (D) n'est qu'en lecture. *Proposé, à valider par mentalyas.*
+
+## 10. Hypothèses des niveaux 2–4 — validées par mentalyas (2026-10-07)
+Toutes retenues telles que proposées, avec deux précisions (H12, ordre des lots).
+| # | Hypothèse | Décision |
+|---|-----------|----------|
+| H1 | Rien de coché d'office dans Changements (bouton « Tout cocher ») | ✅ |
+| H2 | Pas d'« annuler le dernier commit » au MVP ; `revert` à la place (aucune réécriture) | ✅ |
+| H3 | Hooks exécutés seulement dans un dépôt de confiance (`trusted_projects`), jamais contournés | ✅ |
+| H4 | Pas de fetch en tâche de fond : fetch à l'ouverture du volet, sur « Actualiser » et avant tirer / pousser (GB-8) ; âge affiché | ✅ |
+| H5 | Fichier sensible dans les commits à pousser : blocage sans contournement | ✅ |
+| H6 | Divergence : fusion, jamais rebase | ✅ |
+| H7 | Seuls les motifs ambigus (préfixes de jetons) s'acceptent un par un ; noms sensibles et clés privées bloquent | ✅ |
+| H8 | Branche par défaut d'un dépôt d'autrui : refus, branche + PR | ✅ |
+| H9 | Clone partiel `--filter=blob:none` + « Tout télécharger », avertissement à 500 Mo, pas de plafond | ✅ |
+| H10 | Dossier parent choisi, mémorisé ; pas d'inscription d'office au hub | ✅ |
+| H11 | Clone codé une fois, par la première spec qui le livre | ✅ (tranchée par Claude, technique) |
+| H12 | PR : voir, relire avec Claude et **commenter** ; ni approbation ni fusion dans l'app | ✅ **précision** : commenter = `gh pr comment --body-file -` sur clic, ajouté à la liste blanche et à l'amendement |
+| H13 | Liens issue ↔ nœud locaux, rien écrit sur GitHub | ✅ |
+| H14 | Rediffusion : couleur de l'auteur principal (lignes modifiées jusqu'au curseur), autres en pastilles d'initiales | ✅ |
+| H15 | « Raconter la période » : messages de commit envoyés, auteurs pseudonymisés (Auteur A, B…) | ✅ |
+| H16 | Raccourci `Ctrl+Maj+G` libre | ✅ (vérifié dans le code le 2026-10-07) |
+| H17 | Résolution de conflit : vue dédiée qui remplace temporairement la carte | ✅ |
+| H18 | Racine du workspace déduite de la racine des projets (ProjectMaster) | ✅ (tranchée par Claude, technique) |
+
+**MVP** : A + B + C (avec `merge --abort` expliqué tant que E n'existe pas). **Suite** : E, D, F, G.
