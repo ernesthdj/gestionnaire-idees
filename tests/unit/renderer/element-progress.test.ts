@@ -56,4 +56,18 @@ describe('avancement mixte des éléments (spec 017 D21)', () => {
     const progress = progressOf([element('p', 'g'), element('p1', 'p'), element('p2', 'p')])
     expect(progress.has('p')).toBe(false)
   })
+
+  it('should_lower_a_delivered_parent_when_one_of_its_children_is_reopened', () => {
+    const progress = progressOf([
+      element('p', 'g', { status: 'livree' }),
+      element('p1', 'p', { status: 'livree' }),
+      element('p2', 'p', { status: 'en_cours', progress: 40 })
+    ])
+    expect(progress.get('p')).toEqual({ percent: 70, fromChildren: true })
+  })
+
+  it('should_keep_100_for_a_delivered_parent_whose_children_carry_no_information', () => {
+    const progress = progressOf([element('p', 'g', { status: 'livree' }), element('p1', 'p')])
+    expect(progress.get('p')).toEqual({ percent: 100, fromChildren: false })
+  })
 })
