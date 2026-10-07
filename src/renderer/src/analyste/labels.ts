@@ -33,7 +33,8 @@ export const SCREEN_LABELS: Readonly<Record<ProbeScreen, string>> = {
   reglages: 'réglages',
   chat: 'conversation',
   explorateur: 'explorateur',
-  analyste: 'Analyste'
+  analyste: 'Analyste',
+  skills: 'Skills'
 }
 
 export const SUBJECT_LABELS: Readonly<Record<ProbeSubjectKind, string>> = {

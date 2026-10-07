@@ -24,6 +24,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'neuron:archive',
   'neuron:remove',
   'neuron:removeMany',
+  'skills:list',
+  'skills:get',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',
@@ -145,7 +147,8 @@ export const MAIN_WINDOW_EVENTS = [
   'reprise:analysisProgress',
   'reprise:analysisDone',
   'reprise:changed',
-  'analyste:progress'
+  'analyste:progress',
+  'skills:changed'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

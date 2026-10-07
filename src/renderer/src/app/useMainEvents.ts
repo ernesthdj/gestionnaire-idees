@@ -17,7 +17,9 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   // Action finale proposée par Claude (spec 013) : la proposition apparaît sur son étape.
   ['final:proposed', [['canvas']]],
   // Exécution commencée, fichier écrit, exécution finie (spec 013) : l'action et son livrable changent.
-  ['final:changed', [['canvas'], ['history'], ['deliverable'], ['structure']]]
+  ['final:changed', [['canvas'], ['history'], ['deliverable'], ['structure']]],
+  // Dossier de skills modifié (spec 020) : l'arbre et la fiche ouverte se relisent.
+  ['skills:changed', [['skills'], ['skill']]]
 ]
 
 function isMapChanged(payload: unknown): payload is MapChangedPayload {

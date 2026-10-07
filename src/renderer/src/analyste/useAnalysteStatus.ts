@@ -26,6 +26,7 @@ const SCREEN_OF: Readonly<Record<View, ProbeScreen>> = {
   pending: 'a_valider',
   history: 'historique',
   analyste: 'analyste',
+  skills: 'skills',
   settings: 'reglages'
 }
 

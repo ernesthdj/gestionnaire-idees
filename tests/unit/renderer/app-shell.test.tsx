@@ -44,6 +44,8 @@ describe('AppShell', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Historique' }))
     await user.keyboard('{Enter}')
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Historique')
+    await user.tab()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Skills' }))
     // Le choix du thème (3 boutons) précède les réglages dans l'en-tête.
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Thème du système' }))

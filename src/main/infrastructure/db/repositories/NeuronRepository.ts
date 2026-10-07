@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, lt, ne, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, isNull, lt, ne, sql, type SQL } from 'drizzle-orm'
 import type {
   CategoryView,
   ExtensionView,
@@ -122,6 +122,24 @@ export class NeuronRepository {
       this.db.select({ projectDir: neurons.projectDir }).from(neurons).where(eq(neurons.id, id)).get()?.projectDir ??
       null
     )
+  }
+
+  /** Idées visibles liées à un dossier de projet (skills de projet, spec 020) : identifiant, titre, dossier. */
+  linkedProjects(): { genesisId: string; title: string; dir: string }[] {
+    return this.db
+      .select({ genesisId: neurons.id, title: neurons.title, dir: neurons.projectDir })
+      .from(neurons)
+      .where(
+        and(
+          eq(neurons.kind, 'root'),
+          ne(neurons.state, 'archived'),
+          eq(neurons.hidden, false),
+          isNotNull(neurons.projectDir)
+        )
+      )
+      .orderBy(asc(sql`${neurons}.rowid`))
+      .all()
+      .flatMap((row) => (row.dir === null ? [] : [{ genesisId: row.genesisId, title: row.title, dir: row.dir }]))
   }
 
   root(id: string): RootView | undefined {

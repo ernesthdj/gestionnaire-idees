@@ -35,6 +35,8 @@ import { RepoGuard } from './application/analyste/RepoGuard'
 import { AnalysteRepository } from './infrastructure/db/repositories/AnalysteRepository'
 import { ObservationRepository } from './infrastructure/db/repositories/ObservationRepository'
 import { createAnalysteRoutes } from './ipc/analysteHandlers'
+import { createSkillsRoutes } from './ipc/skillsHandlers'
+import { SkillInventory } from './application/skills/SkillInventory'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes, LEGACY_CLAUDE_SECRET } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
@@ -238,6 +240,12 @@ export function bootstrap(shell: ShellPort): AppContext {
     claudeStatus: () => ai.claude.isAvailable()
   })
   const neuronRepository = new NeuronRepository(database.db)
+  // Arbre de skills (spec 020) : inventaire en lecture seule des skills de Claude Code.
+  const skillInventory = new SkillInventory({
+    home: app.getPath('home'),
+    projects: () => neuronRepository.linkedProjects(),
+    onChanged: (scannedAt) => broadcast('skills:changed', { scannedAt })
+  })
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
@@ -724,6 +732,7 @@ export function bootstrap(shell: ShellPort): AppContext {
         analyste,
         store: analysteRepository
       }),
+      ...createSkillsRoutes({ inventory: skillInventory }),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -753,6 +762,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       conversations.stopAll()
       permissions.cancelAll()
       analyste.stop()
+      skillInventory.unwatch()
       probe.stop()
       void pipe.stop()
     }

@@ -8,6 +8,7 @@ import { IdeasPage } from '../pages/IdeasPage'
 import { ExplorerPage } from '../explorer/ExplorerPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
+import { SkillsPage } from '../skills/SkillsPage'
 import { HeaderUsage } from './HeaderUsage'
 import { ThemeSwitch } from './ThemeSwitch'
 import { Toast } from './Toast'
@@ -20,6 +21,7 @@ const NAVIGATION: ReadonlyArray<{ readonly section: Section; readonly label: str
   { section: 'ideas', label: 'Idées' },
   { section: 'pending', label: 'À valider' },
   { section: 'history', label: 'Historique' },
+  { section: 'skills', label: 'Skills' },
   { section: 'analyste', label: 'Analyste' }
 ]
 
@@ -27,6 +29,7 @@ const TITLES: Readonly<Record<View, string>> = {
   ideas: 'Idées',
   pending: 'À valider',
   history: 'Historique',
+  skills: 'Skills',
   analyste: 'Analyste',
   settings: 'Réglages'
 }
@@ -41,6 +44,8 @@ function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
       return <SectionPlaceholder text="Les suggestions de liens et les synthèses en attente apparaîtront ici." />
     case 'history':
       return <HistoryPage />
+    case 'skills':
+      return <SkillsPage />
     case 'analyste':
       return <AnalystePage />
   }
