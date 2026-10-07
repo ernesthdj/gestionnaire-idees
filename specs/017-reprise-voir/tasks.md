@@ -85,6 +85,16 @@
 - [x] T066 [US7] Pastille, bande latérale et contour « bloquée » dans `ElementNode` ; statut dans le libellé accessible + tests renderer/axe
 - [x] T067 [US7] Test guidé (D19) — avec T064
 
+## Phase 5 octies — US7 Carte de structure : vue « Architecture » (D20)
+**Test indépendant** : la carte du Brainstormer cartographiée par Claude en « Clean » ; vue Architecture : bandes Présentation / Infrastructure / Application / Domaine, nœuds inchangés, un appel Domaine → Infrastructure tracé en rouge ; corriger la couche d'un nœud le déplace de bande, « Annuler » le remet.
+- [x] T068 Spec : D20, FR-041
+- [x] T069 [P] [US7] Pur : catalogue des architectures et profondeurs, couche par défaut (catégories, dossiers), violations, dans `src/shared/structure/architecture.ts` + tests — *déduction par les noms de dossiers seulement ; les catégories de l’analyse (projets repris) viendront si la déduction se révèle insuffisante*
+- [x] T070 [US7] Données et outil de Claude : migration 0031 (+ down) — architecture de la carte sur le genesis, couche et source de chaque élément ; `structure_dessiner` (`architecture`, `couche`) validé contre le catalogue ; `StructureService` (écriture, instantané d'Historique) ; `ElementView.layer`, `architecture` de la carte ; consigne de cartographie + tests — *couches et architecture vérifiées contre l’architecture effective (celle de mentalyas prime) ; nouveau type de lot d’Historique `structure`, annulable*
+- [x] T071 [US7] Corrections : `structure:setArchitecture`, `element:setLayer` (source `user`, historisées, annulables) + tests
+- [x] T072 [US7] Vue Architecture : bascule par carte, disposition en bandes (pure, testée), liens en violation en rouge, légende de la règle + tests renderer/axe — *barre de la carte posée à droite du genesis ; violations seulement dans la vue Architecture (la vue Progression validée reste inchangée)*
+- [x] T073 [US7] Puce de couche dans le pied du nœud (« déduite » si besoin), sélecteurs de correction (architecture dans la barre de la carte, couche dans le volet de l'élément) + tests renderer/axe — *la couche se corrige dans la puce même du nœud (menu déroulant du pied) plutôt que dans le volet ; nœud porté à 304 × 152 px pour loger la puce*
+- [x] T074 [US7] Test guidé (D20) — validé par mentalyas
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)

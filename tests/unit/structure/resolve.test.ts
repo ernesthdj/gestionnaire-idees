@@ -102,4 +102,14 @@ describe('résolution d’une carte de structure', () => {
       problem: { code: 'LOT_TROP_GROS' }
     })
   })
+
+  it('should_check_each_layer_against_the_effective_architecture_when_given', () => {
+    const lot = parse({ elements: [{ cle: 'a', type: 'module', titre: 'A', couche: 'viewmodel' }] })
+    const empty = new Map<string, string | null>()
+    const ok = resolveStructure(lot, empty, 'mvvm')
+    expect(ok.ok && ok.elements[0]?.layer).toBe('viewmodel')
+    expect(resolveStructure(lot, empty, 'clean')).toMatchObject({ ok: false, problem: { code: 'LOT_INVALIDE' } })
+    expect(resolveStructure(lot, empty, null)).toMatchObject({ ok: false })
+    expect(resolveStructure(lot, empty, 'aucune')).toMatchObject({ ok: false })
+  })
 })

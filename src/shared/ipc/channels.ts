@@ -99,6 +99,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'element:setCollapsed',
   'structure:files',
   'structure:file',
+  'structure:setArchitecture',
+  'element:setLayer',
   'analyste:repo:status',
   'analyste:repo:choose',
   'analyste:events',

@@ -33,6 +33,7 @@ export type ChangeKind =
   | 'plan'
   | 'document'
   | 'final'
+  | 'structure'
 
 export interface ChangeRow {
   readonly id: string
@@ -76,6 +77,16 @@ const toRow = (row: typeof changeLog.$inferSelect): ChangeRow => ({
  * Historique (spec 003 US6, research R6) : lecture des lots de `change_log` et, pour chaque type d'élément,
  * lecture de l'état actuel (`snapshot`) et application d'un état cible (`apply`).
  */
+/** Couche et source d'un instantané (D20) ; une source inconnue est remise à `null`. */
+function layerFields(target: Readonly<Record<string, unknown>>): {
+  layer: string | null
+  layerSource: 'claude' | 'user' | null
+} {
+  const layer = typeof target['layer'] === 'string' ? target['layer'] : null
+  const source = target['layerSource']
+  return { layer, layerSource: layer !== null && (source === 'claude' || source === 'user') ? source : null }
+}
+
 export class HistoryRepository {
   constructor(private readonly db: AppDatabase) {}
 
@@ -274,7 +285,9 @@ export class HistoryRepository {
             paths: neurons.pathsJson,
             parentId: neurons.parentId,
             depth: neurons.depth,
-            rank: neurons.rank
+            rank: neurons.rank,
+            layer: neurons.layer,
+            layerSource: neurons.layerSource
           })
           .from(neurons)
           .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
@@ -288,8 +301,30 @@ export class HistoryRepository {
           paths: row.paths,
           parentId: row.parentId,
           depth: row.depth,
-          rank: row.rank
+          rank: row.rank,
+          layer: row.layer,
+          layerSource: row.layerSource
         }
+      }
+      case 'element_layer': {
+        const row = this.db
+          .select({ layer: neurons.layer, layerSource: neurons.layerSource })
+          .from(neurons)
+          .where(eq(neurons.id, id))
+          .get()
+        return row === undefined ? null : { layer: row.layer, layerSource: row.layerSource }
+      }
+      case 'structure_architecture': {
+        const row = this.db
+          .select({
+            architecture: neurons.architecture,
+            reason: neurons.architectureReason,
+            source: neurons.architectureSource
+          })
+          .from(neurons)
+          .where(eq(neurons.id, id))
+          .get()
+        return row === undefined ? null : { architecture: row.architecture, reason: row.reason, source: row.source }
       }
       case 'neuron_sheet': {
         const row = this.db.select({ sheetJson: neurons.sheetJson }).from(neurons).where(eq(neurons.id, id)).get()
@@ -524,6 +559,8 @@ export class HistoryRepository {
             ...(typeof target['depth'] === 'number' ? { depth: target['depth'] } : {}),
             // Rang de progression (D17) : absent des instantanés d'avant D17, laissé tel quel.
             ...('rank' in target ? { rank: typeof target['rank'] === 'number' ? target['rank'] : null } : {}),
+            // Couche (D20) : absente des instantanés d'avant D20, laissée telle quelle.
+            ...('layer' in target ? layerFields(target) : {}),
             ...(text('type') === null
               ? {}
               : { elementType: text('type') as (typeof neurons.$inferInsert)['elementType'] })
@@ -562,6 +599,25 @@ export class HistoryRepository {
           .where(and(eq(neurons.id, id), eq(neurons.kind, 'step')))
           .run()
         return
+      case 'element_layer':
+        if (target === null) return
+        this.db.update(neurons).set(layerFields(target)).where(eq(neurons.id, id)).run()
+        return
+      case 'structure_architecture': {
+        if (target === null) return
+        const text = (key: string): string | null => (typeof target[key] === 'string' ? (target[key] as string) : null)
+        const source = text('source')
+        this.db
+          .update(neurons)
+          .set({
+            architecture: text('architecture'),
+            architectureReason: text('reason'),
+            architectureSource: source === 'claude' || source === 'user' ? source : null
+          })
+          .where(eq(neurons.id, id))
+          .run()
+        return
+      }
       case 'step_rank':
         if (target === null || typeof target['rank'] !== 'number') return
         this.db.update(neurons).set({ rank: target['rank'] }).where(eq(neurons.id, id)).run()

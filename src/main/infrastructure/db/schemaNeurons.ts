@@ -112,6 +112,13 @@ export const neurons = sqliteTable(
     lockProposedAt: text('lock_proposed_at'),
     /** Neurone caché (spec 019 R5) : conversation de mise à jour de l'Analyste, absente de la carte et du pont MCP. */
     hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
+    /** Couche d'architecture d'un élément de structure (spec 017 D20) et qui l'a donnée ; la déduction n'est pas stockée. */
+    layer: text('layer'),
+    layerSource: text('layer_source', { enum: ['claude', 'user'] }),
+    /** Architecture de la carte, portée par le genesis (D20), avec sa justification et qui l'a donnée. */
+    architecture: text('architecture'),
+    architectureReason: text('architecture_reason'),
+    architectureSource: text('architecture_source', { enum: ['claude', 'user'] }),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -343,7 +350,8 @@ export const changeLog = sqliteTable(
         'convert',
         'plan',
         'document',
-        'final'
+        'final',
+        'structure'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */

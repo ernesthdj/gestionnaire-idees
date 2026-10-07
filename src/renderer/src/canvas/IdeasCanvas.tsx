@@ -34,6 +34,8 @@ import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { BlockNode } from './nodes/BlockNode'
 import { ElementNode } from './nodes/ElementNode'
+import { LayerBandNode } from './nodes/LayerBandNode'
+import { StructureBarNode } from './nodes/StructureBarNode'
 import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
 import { MapNoteNode } from './nodes/MapNoteNode'
@@ -65,6 +67,8 @@ const NODE_TYPES: NodeTypes = {
   mapNote: MapNoteNode,
   frame: FrameNode,
   element: ElementNode,
+  layerBand: LayerBandNode,
+  structureBar: StructureBarNode,
   widget: WidgetNode,
   result: ResultNode,
   plan: PlanNode,
@@ -156,6 +160,7 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const chatNeuronId = useUiStore((state) => state.chatNeuronId)
+  const structureViews = useUiStore((state) => state.structureViews)
   const openChat = useUiStore((state) => state.openChat)
   const closeChat = useUiStore((state) => state.closeChat)
   const ghostId = useUiStore((state) => state.ghostId)
@@ -220,9 +225,9 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
-    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, chatNeuronId)
+    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, chatNeuronId, structureViews)
     return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
-  }, [view, layout, positions, physics, bornId, chatNeuronId])
+  }, [view, layout, positions, physics, bornId, chatNeuronId, structureViews])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
 

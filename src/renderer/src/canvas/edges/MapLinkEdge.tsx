@@ -12,6 +12,8 @@ export type MapLinkEdgeData = {
   readonly measured?: LinkProvenance
   /** Lien d'une carte de structure : agrégé au niveau 1 (`rest`) ou de l'élément en focus (spec 017 D15). */
   readonly layer?: 'rest' | 'focus'
+  /** Dépendance qui sort du cœur dans la vue Architecture (spec 017 D20). */
+  readonly violation?: boolean
 }
 export type MapLinkEdgeType = Edge<MapLinkEdgeData, 'mapLink'>
 
@@ -29,12 +31,13 @@ export function MapLinkEdge({ id, source, target, data }: EdgeProps<MapLinkEdgeT
         path={path}
         className={`map-link-line${data?.relation === undefined || data.relation === null ? '' : ` relation-${data.relation}`}${
           data?.measured === undefined ? '' : ` measured measured-${data.measured}`
-        }${data?.layer === undefined ? '' : ` structure-${data.layer}`}`}
+        }${data?.layer === undefined ? '' : ` structure-${data.layer}`}${data?.violation === true ? ' violation' : ''}`}
       />
       {label === null || label === '' ? null : (
         <EdgeLabelRenderer>
           <span
             data-layer={data?.layer}
+            data-violation={data?.violation === true ? 'true' : undefined}
             className="map-link-label pointer-events-none absolute rounded bg-surface px-1.5 py-0.5 text-[11px] text-content-muted shadow-sm"
             style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
           >

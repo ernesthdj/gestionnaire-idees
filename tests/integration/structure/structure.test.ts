@@ -131,6 +131,65 @@ describe('carte de structure d’un projet (spec 009)', () => {
     expect(() => draw({ elements: [{ cle: 'module:x', type: 'module', titre: 'X', ordre: 0 }] })).toThrow()
   })
 
+  describe('architecture et couches (spec 017 D20)', () => {
+    const layered = {
+      architecture: { type: 'clean', justification: 'domain/, application/, infrastructure/ séparés' },
+      elements: [
+        { cle: 'module:domaine', type: 'module', titre: 'Domaine', couche: 'domaine' },
+        { cle: 'module:db', type: 'module', titre: 'Base', couche: 'infrastructure' },
+        { cle: 'module:ui', type: 'module', titre: 'Interface', chemins: ['src/renderer/src'] }
+      ]
+    }
+    const layerOf = (key: string) => {
+      const element = view().elements.find((entry) => entry.key === key)
+      return [element?.layer, element?.layerSource]
+    }
+
+    it('should_store_the_architecture_and_layers_given_by_claude_and_infer_the_missing_ones', () => {
+      draw(layered)
+      expect(view().architectures).toEqual([
+        { genesisId: projet, kind: 'clean', reason: 'domain/, application/, infrastructure/ séparés', source: 'claude' }
+      ])
+      expect(layerOf('module:domaine')).toEqual(['domaine', 'claude'])
+      expect(layerOf('module:db')).toEqual(['infrastructure', 'claude'])
+      expect(layerOf('module:ui')).toEqual(['presentation', 'deduite'])
+      expect(changed.at(-1)).toContain('architecture Clean Architecture')
+      expect(structure.read(undefined, { neuronId: projet }).text).toContain('couche domaine')
+    })
+
+    it('should_refuse_a_layer_outside_the_architecture_or_without_any_architecture', () => {
+      expect(() => draw({ elements: [{ cle: 'm', type: 'module', titre: 'M', couche: 'domaine' }] })).toThrow(
+        /architecture/
+      )
+      draw(layered)
+      expect(() => draw({ elements: [{ cle: 'm', type: 'module', titre: 'M', couche: 'viewmodel' }] })).toThrow(
+        /viewmodel/
+      )
+    })
+
+    it('should_keep_the_corrections_of_mentalyas_over_claude_and_undo_them', () => {
+      draw(layered)
+      const db = view().elements.find((entry) => entry.key === 'module:db')?.id ?? ''
+      const { batchId } = structure.setLayer(db, 'application')
+      expect(history.list().items[0]?.summary).toBe('Couche d’un élément : application')
+      structure.setArchitecture(projet, 'clean')
+      // Claude redessine : la couche et l'architecture de mentalyas restent.
+      const text = draw({
+        ...layered,
+        architecture: { type: 'mvvm', justification: 'non' },
+        elements: [layered.elements[1]]
+      })
+      expect(layerOf('module:db')).toEqual(['application', 'user'])
+      expect(view().architectures?.[0]).toMatchObject({ kind: 'clean', source: 'user' })
+      expect(text.text).toContain('est gardée')
+      expect(() => structure.setLayer(db, 'viewmodel')).toThrow()
+      // Annuler les lots les plus récents d'abord : le dernier dessin, l'architecture, puis la couche.
+      for (const item of history.list().items.slice(0, 2)) history.undo(item.batchId)
+      history.undo(batchId)
+      expect(layerOf('module:db')).toEqual(['infrastructure', 'claude'])
+    })
+  })
+
   it('should_remove_absent_elements_only_when_asked_and_undo_everything_in_one_go', () => {
     draw(map)
     draw({ elements: [{ cle: 'module:main', type: 'module', titre: 'main' }], retirer_absents: true })

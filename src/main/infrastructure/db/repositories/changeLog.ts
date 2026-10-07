@@ -16,6 +16,7 @@ export interface ChangeEntry {
     | 'plan'
     | 'document'
     | 'final'
+    | 'structure'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown

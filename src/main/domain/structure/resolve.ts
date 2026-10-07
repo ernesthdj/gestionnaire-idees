@@ -1,5 +1,6 @@
 import type { ElementRelation, ElementStatus, ElementType } from '@shared/ipc/canvas'
 import { STRUCTURE_LIMITS, type StructureDessinerInput } from '@shared/mcp/tools'
+import { ARCHITECTURES, layerOf, type ArchitectureKind } from '@shared/structure/architecture'
 
 export interface ResolvedElement {
   readonly key: string
@@ -12,6 +13,8 @@ export interface ResolvedElement {
   readonly parentKey: string | null
   /** Rang de progression parmi ses frères (D17) ; `null` : non donné. */
   readonly order: number | null
+  /** Couche d'architecture (D20), vérifiée contre l'architecture de la carte ; `null` : non donnée. */
+  readonly layer: string | null
 }
 
 export interface ResolvedStructureLink {
@@ -26,11 +29,13 @@ export type StructureProblem = { readonly code: 'LOT_TROP_GROS' | 'LOT_INVALIDE'
 /**
  * Résout un lot `structure_dessiner` (spec 009, L3 §2) : clés uniques, parent = clé du lot ou d'un élément existant
  * (absent = niveau 1), aucun cycle même en tenant compte des parents déjà enregistrés, liens entre clés connues, sans
- * auto-lien. `existing` : parent actuel de chaque élément du projet, par clé. Rien n'est écrit ici.
+ * auto-lien. `existing` : parent actuel de chaque élément du projet, par clé. Une couche (D20) doit appartenir à
+ * l'architecture effective de la carte (`architecture`, calculée par l'appelant). Rien n'est écrit ici.
  */
 export function resolveStructure(
   input: StructureDessinerInput,
-  existing: ReadonlyMap<string, string | null>
+  existing: ReadonlyMap<string, string | null>,
+  architecture: ArchitectureKind | null = null
 ):
   | {
       readonly ok: true
@@ -55,6 +60,17 @@ export function resolveStructure(
     inBatch.add(element.cle)
   }
   const known = (key: string): boolean => inBatch.has(key) || existing.has(key)
+  const kind = architecture
+  for (const [index, element] of input.elements.entries()) {
+    if (element.couche === undefined) continue
+    if (kind === null || kind === 'aucune') {
+      return invalid(`elements[${index}].couche : donne d'abord l'architecture du projet (champ « architecture »)`)
+    }
+    if (layerOf(kind, element.couche) === null) {
+      const allowed = ARCHITECTURES[kind].layers.map((entry) => entry.id).join(', ')
+      return invalid(`elements[${index}].couche : « ${element.couche} » n'est pas une couche de ${kind} (${allowed})`)
+    }
+  }
 
   const parents = new Map(existing)
   for (const [index, element] of input.elements.entries()) {
@@ -101,7 +117,8 @@ export function resolveStructure(
       status: element.statut ?? null,
       paths: element.chemins ?? null,
       parentKey: element.parent ?? null,
-      order: element.ordre ?? null
+      order: element.ordre ?? null,
+      layer: element.couche ?? null
     })),
     links: resolvedLinks
   }

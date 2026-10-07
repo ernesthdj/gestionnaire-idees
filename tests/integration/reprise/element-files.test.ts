@@ -41,7 +41,9 @@ describe('fichiers d’un élément de carte (spec 017 US7, FR-032)', () => {
       content: null,
       status: null,
       paths,
-      rank: null
+      rank: null,
+      layer: null,
+      layerSource: null
     })
     return id
   }

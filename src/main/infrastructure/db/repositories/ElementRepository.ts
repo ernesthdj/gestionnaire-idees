@@ -1,5 +1,12 @@
-import { and, asc, eq, ne, sql } from 'drizzle-orm'
-import { ELEMENT_STATUSES, type ElementStatus, type ElementType, type ElementView } from '@shared/ipc/canvas'
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
+import {
+  ELEMENT_STATUSES,
+  type ElementStatus,
+  type ElementType,
+  type ElementView,
+  type StructureArchitectureView
+} from '@shared/ipc/canvas'
+import { inferLayer, isArchitectureKind, layerOf } from '@shared/structure/architecture'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
 import { neurons } from '../schemaNeurons'
@@ -20,6 +27,9 @@ export interface ElementRow {
   readonly depth: number
   /** Rang de progression parmi ses frères (D17) ; `null` : non donné. */
   readonly rank: number | null
+  /** Couche d'architecture (D20) et qui l'a donnée ; `null` : aucune couche enregistrée. */
+  readonly layer: string | null
+  readonly layerSource: 'claude' | 'user' | null
 }
 
 export interface NewElement {
@@ -34,6 +44,8 @@ export interface NewElement {
   readonly status: ElementStatus | null
   readonly paths: readonly string[]
   readonly rank: number | null
+  readonly layer: string | null
+  readonly layerSource: 'claude' | 'user' | null
 }
 
 const parsePaths = (json: string | null): string[] => {
@@ -75,7 +87,9 @@ export class ElementRepository {
         collapsed: neurons.collapsed,
         sheetJson: neurons.sheetJson,
         depth: neurons.depth,
-        rank: neurons.rank
+        rank: neurons.rank,
+        layer: neurons.layer,
+        layerSource: neurons.layerSource
       })
       .from(neurons)
       .where(and(...conditions))
@@ -98,7 +112,9 @@ export class ElementRepository {
                 collapsed: row.collapsed,
                 sheetJson: row.sheetJson,
                 depth: row.depth,
-                rank: row.rank
+                rank: row.rank,
+                layer: row.layer,
+                layerSource: row.layerSource
               }
             ]
       )
@@ -107,6 +123,9 @@ export class ElementRepository {
   /** Vues de la carte : avec le nombre d'enfants et le résumé (fiche, sinon résumé de cartographie). */
   views(): ElementView[] {
     const rows = this.list()
+    const architectures = new Map(
+      this.architectures([...new Set(rows.map((row) => row.genesisId))]).map((entry) => [entry.genesisId, entry.kind])
+    )
     const children = new Map<string, number>()
     for (const row of rows) children.set(row.parentId, (children.get(row.parentId) ?? 0) + 1)
     return rows.map((row) => {
@@ -129,9 +148,68 @@ export class ElementRepository {
         paths: row.paths,
         collapsed: row.collapsed,
         childCount: children.get(row.id) ?? 0,
-        order: row.rank
+        order: row.rank,
+        ...this.layerView(row, architectures.get(row.genesisId) ?? null)
       }
     })
+  }
+
+  /** Couche affichée (D20) : celle enregistrée si elle appartient à l'architecture, sinon la déduction de l'app. */
+  private layerView(
+    row: ElementRow,
+    kind: StructureArchitectureView['kind'] | null
+  ): Pick<ElementView, 'layer' | 'layerSource'> {
+    if (kind === null || kind === 'aucune') return { layer: null, layerSource: null }
+    if (row.layer !== null && row.layerSource !== null && layerOf(kind, row.layer) !== null) {
+      return { layer: row.layer, layerSource: row.layerSource }
+    }
+    const inferred = inferLayer(kind, row.paths)
+    return inferred === null ? { layer: null, layerSource: null } : { layer: inferred, layerSource: 'deduite' }
+  }
+
+  /** Architecture des cartes données (D20) ; une valeur inconnue est ignorée. */
+  architectures(genesisIds?: readonly string[]): StructureArchitectureView[] {
+    if (genesisIds !== undefined && genesisIds.length === 0) return []
+    return this.db
+      .select({
+        id: neurons.id,
+        kind: neurons.architecture,
+        reason: neurons.architectureReason,
+        source: neurons.architectureSource
+      })
+      .from(neurons)
+      .where(genesisIds === undefined ? sql`${neurons.architecture} IS NOT NULL` : inArray(neurons.id, [...genesisIds]))
+      .all()
+      .flatMap((row): StructureArchitectureView[] =>
+        row.kind === null || !isArchitectureKind(row.kind) || row.source === null
+          ? []
+          : [{ genesisId: row.id, kind: row.kind, reason: row.reason, source: row.source }]
+      )
+  }
+
+  setArchitecture(
+    genesisId: string,
+    value: { readonly kind: string; readonly reason: string | null; readonly source: 'claude' | 'user' } | null
+  ): void {
+    this.db
+      .update(neurons)
+      .set({
+        architecture: value?.kind ?? null,
+        architectureReason: value?.reason ?? null,
+        architectureSource: value?.source ?? null
+      })
+      .where(eq(neurons.id, genesisId))
+      .run()
+  }
+
+  setLayer(id: string, layer: string | null, source: 'claude' | 'user' | null): boolean {
+    return (
+      this.db
+        .update(neurons)
+        .set({ layer, layerSource: layer === null ? null : source })
+        .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+        .run().changes > 0
+    )
   }
 
   insert(element: NewElement): void {
@@ -153,6 +231,8 @@ export class ElementRepository {
         elementStatus: element.status,
         pathsJson: JSON.stringify(element.paths),
         rank: element.rank,
+        layer: element.layer,
+        layerSource: element.layerSource,
         collapsed: element.depth >= 1
       })
       .run()
@@ -160,7 +240,10 @@ export class ElementRepository {
 
   update(
     id: string,
-    patch: Pick<NewElement, 'parentId' | 'depth' | 'type' | 'title' | 'content' | 'status' | 'paths' | 'rank'>
+    patch: Pick<
+      NewElement,
+      'parentId' | 'depth' | 'type' | 'title' | 'content' | 'status' | 'paths' | 'rank' | 'layer' | 'layerSource'
+    >
   ): void {
     this.db
       .update(neurons)
@@ -173,6 +256,8 @@ export class ElementRepository {
         elementStatus: patch.status,
         pathsJson: JSON.stringify(patch.paths),
         rank: patch.rank,
+        layer: patch.layer,
+        layerSource: patch.layerSource,
         state: 'raw',
         archivedAt: null,
         updatedAt: new Date().toISOString()

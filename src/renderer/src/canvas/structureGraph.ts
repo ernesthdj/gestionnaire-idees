@@ -1,5 +1,6 @@
 import type { ElementRelation, ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
 import { weakestProvenance, type LinkProvenance } from '@shared/ipc/reprise'
+import { ARCHITECTURES, DEPENDENCY_RELATIONS, isViolation, type ArchitectureKind } from '@shared/structure/architecture'
 import { progression } from './structureOrder'
 
 /**
@@ -11,7 +12,7 @@ import { progression } from './structureOrder'
  */
 
 /** Taille d'un élément (D18) : en-tête sur une ligne, titre et résumé sur deux lignes chacun, pied pour les chemins. */
-export const ELEMENT_SIZE = { width: 304, height: 144 } as const
+export const ELEMENT_SIZE = { width: 304, height: 152 } as const
 /**
  * Espacement (D17) : entre deux frères d'une ligne (`across`) ou d'une colonne (`down`), en plus entre deux modules de
  * niveau 1 (`module`), et du centre du genesis au premier module (`genesis`).
@@ -41,7 +42,29 @@ export interface StructureEdge {
   readonly provenance: LinkProvenance | null
   /** Lien de l'élément en focus (détail) plutôt qu'agrégé au niveau 1. */
   readonly focused: boolean
+  /** Vue Architecture (D20) : dépendance d'une couche plus profonde vers une moins profonde. */
+  readonly violation?: boolean
 }
+
+/** Bande d'une couche dans la vue Architecture (D20) ; `layer` null : « Non classés ». Centre, taille. */
+export interface LayerBand {
+  readonly id: string
+  readonly genesisId: string
+  readonly layer: string | null
+  readonly label: string
+  readonly count: number
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+export interface ArchitectureGraph extends StructureGraph {
+  readonly bands: readonly LayerBand[]
+}
+
+/** Vue Architecture (D20) : colonnes par rangée de bande, marge intérieure, colonne du nom de couche. */
+export const BAND = { columns: 4, gap: 48, padding: 24, label: 176, empty: 72 } as const
 
 export interface StructureGraph {
   readonly placed: readonly PlacedElement[]
@@ -234,4 +257,105 @@ function linkEdges(
     })
   }
   return [...grouped.values(), ...calls.values()]
+}
+
+/** Compare deux numéros de progression (« 1.10 » après « 1.9 ») ; sans numéro : à la fin. */
+function byNumber(a: string, b: string): number {
+  if (a === '' || b === '') return a === b ? 0 : a === '' ? 1 : -1
+  const pa = a.split('.').map(Number)
+  const pb = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? -1) - (pb[i] ?? -1)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+/**
+ * Vue Architecture d'une carte (spec 017 D20) : les éléments visibles (mêmes règles de repli que la progression)
+ * rangés en bandes, une par couche, de l'extérieur (haut) vers le cœur (bas), puis « Non classés » s'il en reste ;
+ * dans une bande, dans l'ordre de progression, par rangées de `BAND.columns`. Pas de traits de hiérarchie : les
+ * liens de Claude et les appels mesurés, une dépendance qui sort du cœur marquée en violation. Fonction pure.
+ */
+export function architectureGraph(
+  elements: readonly ElementView[],
+  genesisId: string,
+  center: { readonly x: number; readonly y: number },
+  kind: ArchitectureKind,
+  links: readonly MapLinkView[],
+  measured: readonly MeasuredLinkView[] = []
+): ArchitectureGraph {
+  const own = elements.filter((element) => element.genesisId === genesisId)
+  const tree = treeOf(own, [genesisId])
+  const numbers = progression(own, links, measured).numbers
+  const visible = own.filter((element) => tree.visible.has(element.id))
+  const parents = new Map(own.map((element) => [element.id, element.parentId] as const))
+  const depthOf = (id: string): number => {
+    let depth = 1
+    for (let parent = parents.get(id); parent !== undefined && parents.has(parent) && depth < 100; depth++)
+      parent = parents.get(parent)
+    return depth
+  }
+  const { width: W, height: H } = ELEMENT_SIZE
+  const layers = ARCHITECTURES[kind].layers
+  const known = new Set(layers.map((entry) => entry.id))
+  const groups: { readonly layer: string | null; readonly label: string; readonly members: ElementView[] }[] = [
+    ...layers.map((entry) => ({ layer: entry.id as string | null, label: entry.label, members: [] as ElementView[] })),
+    { layer: null, label: 'Non classés', members: [] }
+  ]
+  for (const element of visible) {
+    const layer = element.layer ?? null
+    const group = groups.find((entry) => entry.layer === (layer !== null && known.has(layer) ? layer : null))
+    group?.members.push(element)
+  }
+  const width = BAND.label + BAND.columns * W + (BAND.columns - 1) * BAND.gap + 2 * BAND.padding
+  const left = center.x - W / 2 - BAND.label - BAND.padding
+  const placed: PlacedElement[] = []
+  const bands: LayerBand[] = []
+  let top = center.y + SPACING.genesis
+  for (const group of groups) {
+    if (group.layer === null && group.members.length === 0) continue
+    const members = [...group.members].sort((a, b) => byNumber(numbers.get(a.id) ?? '', numbers.get(b.id) ?? ''))
+    const rows = Math.ceil(members.length / BAND.columns)
+    const height = rows === 0 ? BAND.empty : rows * H + (rows - 1) * SPACING.down + 2 * BAND.padding
+    members.forEach((element, index) => {
+      const column = index % BAND.columns
+      const row = Math.floor(index / BAND.columns)
+      placed.push({
+        element,
+        depth: depthOf(element.id),
+        number: numbers.get(element.id) ?? '',
+        x: left + BAND.label + BAND.padding + column * (W + BAND.gap) + W / 2,
+        y: top + BAND.padding + row * (H + SPACING.down) + H / 2
+      })
+    })
+    bands.push({
+      id: `band-${genesisId}-${group.layer ?? 'aucune'}`,
+      genesisId,
+      layer: group.layer,
+      label: group.label,
+      count: members.length,
+      x: left + width / 2,
+      y: top + height / 2,
+      width,
+      height
+    })
+    top += height
+  }
+  const byId = new Map(own.map((element) => [element.id, element] as const))
+  const visibleEnd = (id: string): string | null => {
+    let current = byId.get(id)
+    for (let guard = 0; current !== undefined && guard < 100; guard++) {
+      if (tree.visible.has(current.id)) return current.id
+      current = byId.get(current.parentId)
+    }
+    return null
+  }
+  const edges = linkEdges(links, measured, visibleEnd, () => true, false).map((edge) => {
+    const dependency = edge.kind === 'measured' || (edge.relation !== null && DEPENDENCY_RELATIONS.has(edge.relation))
+    const from = byId.get(edge.source)?.layer ?? null
+    const to = byId.get(edge.target)?.layer ?? null
+    return { ...edge, violation: dependency && isViolation(kind, from, to) }
+  })
+  return { placed, edges, bands }
 }

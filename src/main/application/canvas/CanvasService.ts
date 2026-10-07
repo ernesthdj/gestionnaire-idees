@@ -15,7 +15,7 @@ import {
   type StepView
 } from '@shared/ipc/canvas'
 import type { IoLinkView } from '@shared/ipc/widgetIo'
-import type { ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
+import type { ElementView, MapLinkView, MeasuredLinkView, StructureArchitectureView } from '@shared/ipc/canvas'
 import { AppError } from '../../domain/errors'
 import type { BlockPatch, BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
@@ -40,7 +40,7 @@ export interface CanvasDeps {
   /** Résumés des fiches des neurones (spec 008). */
   readonly sheetSummaries?: () => Map<string, string>
   /** Éléments des cartes de structure (spec 009). */
-  readonly elements?: { views(): ElementView[] }
+  readonly elements?: { views(): ElementView[]; architectures?(): StructureArchitectureView[] }
   /** Appels mesurés entre fichiers d'un projet repris analysé (spec 017 US7) ; vide sinon. */
   readonly fileCalls?: (genesisId: string) => readonly FileCall[]
   /** Fichiers du dossier lié à un genesis (chemins relatifs, sans fichier sensible) : contenu des éléments (D18). */
@@ -203,6 +203,7 @@ export class CanvasService {
         (link) => present.has(link.from.id) && present.has(link.to.id)
       ),
       elements,
+      architectures: (this.deps.elements?.architectures?.() ?? []).filter((entry) => visible.has(entry.genesisId)),
       measuredLinks: this.measured(elements),
       steps,
       proposals,

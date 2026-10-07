@@ -1,3 +1,4 @@
+import type { ArchitectureKind } from '../structure/architecture'
 import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
 import type { DocumentView } from './documents'
@@ -81,6 +82,8 @@ export interface IdeasCanvasView {
   readonly mapLinks: readonly MapLinkView[]
   /** Éléments des cartes de structure des projets liés (spec 009). */
   readonly elements: readonly ElementView[]
+  /** Architecture de chaque carte de structure qui en a une (D20). */
+  readonly architectures?: readonly StructureArchitectureView[]
   /** Appels mesurés par l'analyse entre éléments d'une carte de projet repris (spec 017 US7). */
   readonly measuredLinks: readonly MeasuredLinkView[]
   /** Étapes des plans d'attaque des genesis visibles (spec 011). */
@@ -190,6 +193,20 @@ export interface ElementView {
   readonly order: number | null
   /** Contenu réel de ses fichiers (spec 017 D18), calculé par l'app ; absent : aucun fichier couvert. */
   readonly content?: ElementContentView | null
+  /** Couche d'architecture (D20) : donnée par Claude, corrigée par mentalyas ou déduite par l'app ; `null` : non classé. */
+  readonly layer?: string | null
+  readonly layerSource?: LayerSource | null
+}
+
+/** Origine d'une couche ou d'une architecture (D20) ; « deduite » : repère de l'app, jamais stocké. */
+export type LayerSource = 'claude' | 'user' | 'deduite'
+
+/** Architecture d'une carte de structure (D20), portée par son genesis. */
+export interface StructureArchitectureView {
+  readonly genesisId: string
+  readonly kind: ArchitectureKind
+  readonly reason: string | null
+  readonly source: 'claude' | 'user'
 }
 
 /** Ce que contient un élément (D18) : de la doc seulement, ou du code (configuration comprise). */

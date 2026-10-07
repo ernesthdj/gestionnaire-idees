@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ELEMENT_SIZE, focusEdges, SPACING, structureGraph } from '../../../src/renderer/src/canvas/structureGraph'
+import {
+  architectureGraph,
+  BAND,
+  ELEMENT_SIZE,
+  focusEdges,
+  SPACING,
+  structureGraph
+} from '../../../src/renderer/src/canvas/structureGraph'
 import { borderPoint } from '../../../src/renderer/src/canvas/edges/useCenter'
 import type { ElementView, MapLinkView, MeasuredLinkView } from '../../../src/shared/ipc/canvas'
 import { buildGraph, computeLayout } from '../../../src/renderer/src/canvas/buildGraph'
@@ -220,5 +227,74 @@ describe('carte de structure à l’écran : liens selon le focus (spec 017 D15)
     expect(labels.get('d')).toContain('« Docs », bloquée, contient de la documentation')
     expect(labels.get('c')).toContain('« Main », contient du code et 2 fichiers de documentation')
     expect(labels.get('n')).toMatch(/« Vision »$/)
+  })
+})
+
+describe('vue Architecture d’une carte (spec 017 D20)', () => {
+  const layered = [
+    element('ui', G, { layer: 'presentation', layerSource: 'claude', collapsed: false, childCount: 1 }),
+    element('ui-child', 'ui', { layer: 'presentation', layerSource: 'deduite' }),
+    element('db', G, { layer: 'infrastructure', layerSource: 'claude' }),
+    element('core', G, { layer: 'domaine', layerSource: 'user', collapsed: true, childCount: 1 }),
+    element('core-hidden', 'core', { layer: 'domaine' }),
+    element('misc', G)
+  ]
+  const center = { x: 0, y: 0 }
+  const graph = architectureGraph(
+    layered,
+    G,
+    center,
+    'clean',
+    [],
+    [
+      { from: 'core', to: 'db', count: 4, provenance: 'syntax' },
+      { from: 'db', to: 'core', count: 2, provenance: 'syntax' }
+    ]
+  )
+
+  it('should_stack_one_band_per_layer_from_outside_to_core_then_the_unclassified_band', () => {
+    expect(graph.bands.map((band) => [band.label, band.count])).toEqual([
+      ['Présentation', 2],
+      ['Infrastructure', 1],
+      ['Application', 0],
+      ['Domaine', 1],
+      ['Non classés', 1]
+    ])
+    const tops = graph.bands.map((band) => band.y - band.height / 2)
+    expect([...tops].sort((a, b) => a - b)).toEqual(tops)
+    expect(graph.bands.find((band) => band.count === 0)?.height).toBe(BAND.empty)
+  })
+
+  it('should_place_each_visible_element_inside_its_band_without_overlap_and_keep_collapsed_children_hidden', () => {
+    expect(graph.placed.map((entry) => entry.element.id).sort()).toEqual(['core', 'db', 'misc', 'ui', 'ui-child'])
+    for (const entry of graph.placed) {
+      const band = graph.bands.find((candidate) => candidate.layer === (entry.element.layer ?? null))
+      expect(band).toBeDefined()
+      expect(Math.abs(entry.y - (band?.y ?? 0))).toBeLessThanOrEqual((band?.height ?? 0) / 2 - ELEMENT_SIZE.height / 2)
+    }
+    const overlap = graph.placed.some((a, i) =>
+      graph.placed.some(
+        (b, j) => i < j && Math.abs(a.x - b.x) < ELEMENT_SIZE.width && Math.abs(a.y - b.y) < ELEMENT_SIZE.height
+      )
+    )
+    expect(overlap).toBe(false)
+    expect(graph.edges.some((edge) => edge.kind === 'hierarchy')).toBe(false)
+  })
+
+  it('should_flag_only_the_dependency_that_leaves_the_core_as_a_violation', () => {
+    const calls = graph.edges.filter((edge) => edge.kind === 'measured')
+    expect(calls.find((edge) => edge.source === 'core')?.violation).toBe(true)
+    expect(calls.find((edge) => edge.source === 'db')?.violation).toBe(false)
+  })
+
+  it('should_leave_the_progression_layout_unchanged_and_never_flag_violations_there', () => {
+    const progression = structureGraph(
+      layered,
+      new Map([[G, center]]),
+      [],
+      [{ from: 'core', to: 'db', count: 4, provenance: 'syntax' }]
+    )
+    expect(progression.edges.some((edge) => edge.violation === true)).toBe(false)
+    expect(progression.edges.some((edge) => edge.kind === 'hierarchy')).toBe(true)
   })
 })

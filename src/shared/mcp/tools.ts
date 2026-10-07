@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ELEMENT_RELATIONS, ELEMENT_STATUSES, ELEMENT_TYPES } from '../ipc/canvas'
 import { INPUT_PARTS } from '../ipc/widgetIo'
+import { ARCHITECTURE_KINDS } from '../structure/architecture'
 
 /**
  * Outils du pont MCP (spec 007 contracts/mcp-tools.md) : déclarés par le relais à Claude Code, revalidés par le main
@@ -195,7 +196,12 @@ export const StructureElement = z.strictObject({
   chemins: z.array(ProjectPath).max(STRUCTURE_LIMITS.paths).optional(),
   parent: ElementKey.optional(),
   /** Rang de progression parmi ses frères (D17) : 1 = à construire ou lire en premier. */
-  ordre: z.number().int().min(1).max(999).optional()
+  ordre: z.number().int().min(1).max(999).optional(),
+  /** Couche d'architecture (D20) : identifiant d'une couche de l'architecture de la carte. */
+  couche: z
+    .string()
+    .regex(/^[a-z_]{1,24}$/)
+    .optional()
 })
 export type StructureElement = z.infer<typeof StructureElement>
 export const StructureLink = z.strictObject({
@@ -215,7 +221,11 @@ export const StructureDessinerInput = z.strictObject({
     .array(StructureLink)
     .max(STRUCTURE_LIMITS.links * 5)
     .optional(),
-  retirer_absents: z.boolean().optional()
+  retirer_absents: z.boolean().optional(),
+  /** Architecture du projet (D20), avec une justification courte tirée du code. */
+  architecture: z
+    .strictObject({ type: z.enum(ARCHITECTURE_KINDS), justification: z.string().trim().min(1).max(300) })
+    .optional()
 })
 export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
 export const StructureLireInput = z.strictObject({ projet: Id.optional() })
@@ -354,7 +364,13 @@ export const MCP_TOOLS = {
       'donnee, interface, tache, decision) à CLÉ STABLE (ex. « module:main », « composant:src/main/x.ts ») — une clé ' +
       'existante est mise à jour, jamais dupliquée —, parent par clé (absent = niveau 1), chemins relatifs, liens typés ' +
       '(depend_de, appelle, lit_ecrit, implemente, teste, bloque). « ordre » : rang parmi les frères dans la progression ' +
-      'logique de développement (1 = fondations, à construire ou lire en premier). Tout ou rien ; 300 éléments et 600 ' +
+      'logique de développement (1 = fondations, à construire ou lire en premier). « architecture » (type parmi clean, ' +
+      'hexagonale, mvvm, mvc, couches, aucune ; justification tirée du code) et « couche » de chaque élément : clean = ' +
+      'presentation, infrastructure, application, domaine ; hexagonale = entrants, sortants, application, domaine ; ' +
+      'mvvm = vue, viewmodel, modele ; mvc = vue, controleur, modele ; couches = presentation, metier, donnees. ' +
+      'La couche est un attribut : garde la hiérarchie par modules, les statuts et les chemins, ne crée jamais ' +
+      'd’élément par couche (l’app range elle-même les éléments par couche). ' +
+      'Tout ou rien ; 300 éléments et 600 ' +
       'liens par appel. ' +
       'Reste lisible : 12 enfants au plus par élément, regroupe sinon.',
     input: StructureDessinerInput,
@@ -415,6 +431,8 @@ export const MCP_INSTRUCTIONS = [
   'Lis avant de modifier ; ne retire que ce qui est demandé.',
   'Si un outil répond que le Brainstormer n’est pas lancé, dis-le à mentalyas au lieu d’inventer le contenu de la carte.',
   'Un document détaillé sur un neurone (spec, recherche, décision, guide) : `document_ecrire`, jamais `dessiner`.',
+  'Cartographier un projet lié (modules, composants, architecture, couches) : TOUJOURS `structure_dessiner`, jamais ' +
+    '`dessiner` ni `cadre` : l’app en tire elle-même la vue Progression et la vue Architecture, et la bascule entre les deux.',
   'Un nœud mûr (maturité « complet ») : propose son plan d’attaque avec `plan_proposer` ; s’il n’est pas mûr, dis ' +
     'plutôt ce qui manque.',
   'Une étape feuille qui n’a plus besoin d’être découpée : propose-la comme action finale avec `action_proposer` ; ' +

@@ -10,7 +10,7 @@ import type {
 
 /**
  * Types de lots annulables : éclosion, liens, graine acceptée, idée supprimée, écritures de Claude, conversion de
- * l'ancien moteur, et une annulation (qui se rétablit).
+ * l'ancien moteur, corrections de carte de structure (D20), et une annulation (qui se rétablit).
  */
 const UNDOABLE = new Set([
   'confirm_synthesis',
@@ -23,7 +23,8 @@ const UNDOABLE = new Set([
   'convert',
   'plan',
   'document',
-  'final'
+  'final',
+  'structure'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -181,6 +182,20 @@ export interface EntityHandler {
  * Historique et annulation par lot (spec 003 US6, FR-024, research R6). Une annulation écrit un lot inverse
  * (état réel capturé avant restauration) : annuler une annulation rétablit donc exactement l'état défait.
  */
+/**
+ * Correction de carte de structure par mentalyas (D20) : architecture d'une carte ou couche d'un élément, avec la
+ * valeur obtenue après le lot (celle rétablie pour une annulation).
+ */
+function structureSummary(head: ChangeRow, undone: boolean): string {
+  const prefix = undone ? 'Annulé — ' : ''
+  if (head.entity === 'structure_architecture') {
+    const kind = head.after?.['architecture']
+    return `${prefix}Architecture de la carte : ${typeof kind === 'string' ? kind : 'aucune'}`
+  }
+  const layer = head.after?.['layer']
+  return `${prefix}Couche d’un élément : ${typeof layer === 'string' ? layer : 'non classé'}`
+}
+
 export class HistoryService {
   constructor(
     private readonly repository: HistoryRepository,
@@ -340,7 +355,10 @@ export class HistoryService {
         return 'Document'
       case 'final':
         return 'Action finale'
+      case 'structure':
+        return structureSummary(head, false)
       case 'undo': {
+        if (this.repository.undoneKind(head.batchId) === 'structure') return structureSummary(head, true)
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')
         if (placed !== undefined) {
           return placed.after?.['kind'] === 'root'

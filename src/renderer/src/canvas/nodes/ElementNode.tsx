@@ -1,5 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useQueryClient } from '@tanstack/react-query'
+import { ARCHITECTURES } from '@shared/structure/architecture'
+import { useUiStore } from '../../app/uiStore'
 import type { ElementStatus, ElementType } from '@shared/ipc/canvas'
 import { call } from '../../lib/ipc'
 import type { ElementNodeType } from '../buildGraph'
@@ -93,6 +95,9 @@ const SKINS = {
 export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Element {
   const { element, number } = data
   const client = useQueryClient()
+  const showToast = useUiStore((state) => state.showToast)
+  const layers =
+    data.architecture === null || data.architecture === undefined ? [] : ARCHITECTURES[data.architecture].layers
   const style = ELEMENT_STYLES[element.type]
   const content = element.content ?? null
   const skin = SKINS[content?.kind ?? 'none']
@@ -104,6 +109,18 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
     )
   }
   const paths = `${element.paths.length} chemin${element.paths.length > 1 ? 's' : ''}`
+  // Couche (D20) : corrigée ici même, annulable par la notification.
+  const setLayer = (value: string): void => {
+    void call<{ readonly batchId: string }>('element:setLayer', {
+      elementId: element.id,
+      layer: value === '' ? null : value
+    })
+      .then(({ batchId }) => {
+        showToast(`Couche de « ${element.title} » changée.`, { batchId, undoneText: 'Couche remise comme avant.' })
+        return client.invalidateQueries({ queryKey: ['canvas'] })
+      })
+      .catch(() => showToast('La couche n’a pas pu être changée.'))
+  }
   return (
     <article
       className={`relative flex flex-col gap-1 overflow-hidden rounded-lg py-3 pr-3 pl-4 shadow-sm ${skin.article} ${style.tone} ${status?.ring ?? ''}`}
@@ -156,7 +173,33 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
           {element.summary}
         </p>
       )}
-      <footer className={`mt-auto flex h-4 items-center text-[11px] leading-4 whitespace-nowrap ${skin.muted}`}>
+      <footer className={`mt-auto flex h-5 items-center gap-2 text-[11px] leading-4 whitespace-nowrap ${skin.muted}`}>
+        {layers.length === 0 ? null : (
+          <span className="flex shrink-0 items-center gap-1">
+            <select
+              value={element.layer ?? ''}
+              onChange={(event) => setLayer(event.target.value)}
+              onClick={(event) => event.stopPropagation()}
+              aria-label={`Couche de « ${element.title} »`}
+              title={
+                element.layerSource === 'deduite'
+                  ? 'Couche déduite par l’app d’après les dossiers : choisis-la pour la fixer'
+                  : element.layerSource === 'user'
+                    ? 'Couche choisie par toi'
+                    : 'Couche donnée par Claude'
+              }
+              className={`nodrag h-5 max-w-36 rounded border border-current/30 bg-transparent px-1 text-[11px] font-medium ${skin.title}`}
+            >
+              <option value="">Non classé</option>
+              {layers.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.label}
+                </option>
+              ))}
+            </select>
+            {element.layerSource === 'deduite' ? <span className="italic">déduite</span> : null}
+          </span>
+        )}
         {element.paths.length === 0 ? null : (
           <span
             title={`Chemins donnés à l’élément (un dossier couvre tous ses fichiers) :\n${element.paths.join('\n')}`}

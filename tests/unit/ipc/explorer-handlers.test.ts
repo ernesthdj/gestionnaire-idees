@@ -124,3 +124,43 @@ describe('canaux structure:files / structure:file (spec 017 US7)', () => {
     expect(files.file).not.toHaveBeenCalled()
   })
 })
+
+describe('canaux de correction de la carte (spec 017 D20)', () => {
+  const GENESIS = '00000000-0000-4000-8000-0000000000e4'
+  const ELEMENT = '00000000-0000-4000-8000-0000000000e5'
+  const setup = () => {
+    const structure = {
+      setCollapsed: vi.fn(),
+      setArchitecture: vi.fn(() => ({ batchId: 'b1' })),
+      setLayer: vi.fn(() => ({ batchId: 'b2' }))
+    }
+    const files = { files: vi.fn(), file: vi.fn() }
+    return {
+      structure,
+      dispatch: createDispatcher(
+        createStructureRoutes(structure as unknown as StructureService, files as unknown as ElementFilesService)
+      )
+    }
+  }
+
+  it('should_forward_a_known_architecture_and_a_well_formed_layer', async () => {
+    const { dispatch, structure } = setup()
+    expect(await dispatch('structure:setArchitecture', { genesisId: GENESIS, kind: 'mvvm' })).toEqual({
+      success: true,
+      data: { batchId: 'b1' }
+    })
+    await dispatch('element:setLayer', { elementId: ELEMENT, layer: null })
+    expect(structure.setArchitecture).toHaveBeenCalledWith(GENESIS, 'mvvm')
+    expect(structure.setLayer).toHaveBeenCalledWith(ELEMENT, null)
+  })
+
+  it('should_refuse_an_unknown_architecture_or_a_malformed_layer', async () => {
+    const { dispatch } = setup()
+    expect(await dispatch('structure:setArchitecture', { genesisId: GENESIS, kind: 'spaghetti' })).toMatchObject({
+      error: { code: 'VALIDATION' }
+    })
+    expect(await dispatch('element:setLayer', { elementId: ELEMENT, layer: 'Domaine; DROP' })).toMatchObject({
+      error: { code: 'VALIDATION' }
+    })
+  })
+})

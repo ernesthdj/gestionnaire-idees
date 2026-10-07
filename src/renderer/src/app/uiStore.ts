@@ -10,6 +10,9 @@ export interface Toast {
   readonly undoneText?: string
 }
 
+/** Lecture d'une carte de structure (spec 017 D20). */
+export type StructureView = 'progression' | 'architecture'
+
 /** Vue affichée : une section de la navigation, ou les réglages (⚙). */
 export type View = Section | 'settings'
 
@@ -29,6 +32,9 @@ interface UiState {
   readonly viewer: { readonly neuronId: string; readonly path: string } | null
   openViewer(neuronId: string, path: string): void
   closeViewer(): void
+  /** Vue de chaque carte de structure (spec 017 D20) : « architecture » une fois basculée, « progression » sinon. */
+  readonly structureViews: Readonly<Record<string, StructureView>>
+  setStructureView(genesisId: string, view: StructureView): void
   /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
   readonly explorerGenesisId: string | null
   openExplorer(genesisId: string): void
@@ -71,6 +77,9 @@ export const useUiStore = create<UiState>()((set) => ({
     set({ view: 'ideas', viewer: { neuronId, path }, chatNeuronId: null, ghostId: null, finalId: null }),
   closeViewer: () => set({ viewer: null }),
   explorerGenesisId: null,
+  structureViews: {},
+  setStructureView: (genesisId, view) =>
+    set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
   openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),
   closeExplorer: () => set({ explorerGenesisId: null }),
   showToast: (text, undo) =>

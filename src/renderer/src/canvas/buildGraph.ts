@@ -12,7 +12,9 @@ import type {
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { contentLabel } from './elementContent'
-import { structureGraph, type StructureEdge } from './structureGraph'
+import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
+import type { StructureArchitectureView } from '@shared/ipc/canvas'
+import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
 import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
 import type { DocumentView } from '@shared/ipc/documents'
 import { STATUS_LABELS } from './nodes/ElementNode'
@@ -54,7 +56,26 @@ export type MapNoteNodeType = Node<BlockNodeData, 'mapNote'>
 export type FrameNodeType = Node<BlockNodeData, 'frame'>
 /** Élément d'une carte de structure de projet (spec 009). */
 /** Élément de carte de structure, avec son numéro de progression (D17). */
-export type ElementNodeType = Node<{ readonly element: ElementView; readonly number: string }, 'element'>
+export type ElementNodeType = Node<
+  {
+    readonly element: ElementView
+    readonly number: string
+    /** Architecture de sa carte (D20) : couches proposées par la puce ; `null` : aucune. */
+    readonly architecture?: ArchitectureKind | null
+  },
+  'element'
+>
+/** Bande d'une couche dans la vue Architecture (spec 017 D20). */
+export type LayerBandNodeType = Node<{ readonly band: LayerBand }, 'layerBand'>
+/** Barre d'une carte de structure (D20) : bascule Progression / Architecture et architecture de la carte. */
+export type StructureBarNodeType = Node<
+  {
+    readonly genesisId: string
+    readonly view: 'progression' | 'architecture'
+    readonly architecture: StructureArchitectureView | null
+  },
+  'structureBar'
+>
 
 /** Étape d'un plan d'attaque ou fantôme proposé par Claude (spec 011), teinté par la catégorie de son genesis. */
 export type PlanNodeType = Node<
@@ -88,6 +109,8 @@ export type CanvasNode =
   | MapNoteNodeType
   | FrameNodeType
   | ElementNodeType
+  | LayerBandNodeType
+  | StructureBarNodeType
 
 const BLOCK_NODE_TYPES = {
   empty: 'block',
@@ -202,6 +225,18 @@ export function movedPositions(
   })
 }
 
+/** Couche d'un élément dans son libellé accessible (D20) ; vide sans architecture ou sans couche. */
+function layerPhrase(kind: ArchitectureKind | null, layer: string | null): string {
+  const found = kind === null ? null : layerOf(kind, layer)
+  return found === null ? '' : `, couche ${found.label}`
+}
+
+/**
+ * Barre d'une carte de structure (D20) : centrée au-dessus du genesis (positions = centres), assez haut pour ne
+ * recouvrir ni le plus gros genesis (104 px) ni sa pastille ; dessous descendent les modules, à droite part le plan.
+ */
+export const STRUCTURE_BAR_OFFSET = { x: 0, y: -(TIER_SIZE.hatched / 2 + 56) } as const
+
 /** Vue de l'écran Idées → nœuds (idées, blocs) et arêtes (liens) React Flow. Positions = centres (nodeOrigin 0.5). */
 export function buildGraph(
   view: IdeasCanvasView,
@@ -209,7 +244,9 @@ export function buildGraph(
   /** Idée qui vient de naître (double-clic, capture) : elle pousse (250 ms). */
   bornId: string | null = null,
   /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
-  openRootId: string | null = null
+  openRootId: string | null = null,
+  /** Cartes de structure basculées en vue Architecture (spec 017 D20). */
+  structureViews: Readonly<Record<string, 'progression' | 'architecture'>> = {}
 ): {
   nodes: CanvasNode[]
   edges: BranchEdgeType[]
@@ -393,19 +430,82 @@ export function buildGraph(
       })
     }
   }
-  const structure = structureGraph(view.elements, genesisCenters, view.mapLinks, view.measuredLinks)
+  // Vue Architecture (D20) : seulement pour une carte basculée dont l'architecture est connue ; les autres gardent la
+  // vue Progression, inchangée.
+  const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
+  const switched = [...genesisCenters.keys()].filter(
+    (id) => structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
+  )
+  const progressionGraph = structureGraph(
+    view.elements.filter((element) => !switched.includes(element.genesisId)),
+    genesisCenters,
+    view.mapLinks,
+    view.measuredLinks
+  )
+  const layered = switched.map((id) =>
+    architectureGraph(
+      view.elements,
+      id,
+      genesisCenters.get(id) ?? { x: 0, y: 0 },
+      architectureOf.get(id)?.kind ?? 'aucune',
+      view.mapLinks,
+      view.measuredLinks
+    )
+  )
+  const structure = {
+    placed: [...progressionGraph.placed, ...layered.flatMap((graph) => graph.placed)],
+    edges: [...progressionGraph.edges, ...layered.flatMap((graph) => graph.edges)]
+  }
+  const bandNodes = layered.flatMap((graph) =>
+    graph.bands.map((band): LayerBandNodeType => ({
+      id: band.id,
+      type: 'layerBand',
+      position: { x: band.x, y: band.y },
+      data: { band },
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      zIndex: -1,
+      ariaLabel: `Couche ${band.label} : ${band.count} élément${band.count > 1 ? 's' : ''}`,
+      deletable: false
+    }))
+  )
+  const withMap = new Set(view.elements.map((element) => element.genesisId))
+  const barNodes = [...genesisCenters].flatMap(([id, center]): StructureBarNodeType[] =>
+    withMap.has(id)
+      ? [
+          {
+            id: `structure-bar-${id}`,
+            type: 'structureBar',
+            position: { x: center.x + STRUCTURE_BAR_OFFSET.x, y: center.y + STRUCTURE_BAR_OFFSET.y },
+            data: {
+              genesisId: id,
+              view: switched.includes(id) ? 'architecture' : 'progression',
+              architecture: architectureOf.get(id) ?? null
+            },
+            draggable: false,
+            selectable: false,
+            deletable: false
+          }
+        ]
+      : []
+  )
   const elementNodes = structure.placed.map((entry): ElementNodeType => ({
     id: entry.element.id,
     type: 'element',
     position: { x: entry.x, y: entry.y },
-    data: { element: entry.element, number: entry.number },
+    data: {
+      element: entry.element,
+      number: entry.number,
+      architecture: architectureOf.get(entry.element.genesisId)?.kind ?? null
+    },
     draggable: false,
-    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
+    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${layerPhrase(architectureOf.get(entry.element.genesisId)?.kind ?? null, entry.element.layer ?? null)}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
   const structureEdges = structure.edges.map(structureFlowEdge)
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...elementNodes, ...planNodes],
+    nodes: [...neuronNodes, ...blockNodes, ...bandNodes, ...elementNodes, ...barNodes, ...planNodes],
     edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges],
     mapEdges: [...mapEdges, ...structureEdges]
   }
@@ -423,15 +523,19 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
   }
   if (edge.kind === 'hierarchy') return { ...common, type: 'branch', data: { style: 'solid' } }
   const layer = edge.focused ? 'focus' : 'rest'
+  // Vue Architecture (D20) : une dépendance qui sort du cœur est signalée, jamais par la couleur seule.
+  const violation = edge.violation === true ? { violation: true as const } : {}
+  const warn = edge.violation === true ? '⚠ sens interdit · ' : ''
   if (edge.kind === 'measured') {
     const plural = edge.count > 1 ? 's' : ''
     return {
       ...common,
       type: 'mapLink',
       data: {
-        label: `${edge.count} appel${plural} mesuré${plural} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
+        label: `${warn}${edge.count} appel${plural} mesuré${plural} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
         measured: edge.provenance ?? 'uncertain',
-        layer
+        layer,
+        ...violation
       }
     }
   }
@@ -440,6 +544,7 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
     type: 'mapLink',
     data: {
       label: [
+        edge.violation === true ? '⚠ sens interdit' : null,
         edge.relation === null ? null : RELATION_LABELS[edge.relation],
         edge.label,
         edge.count > 1 ? `×${edge.count}` : null
@@ -447,7 +552,8 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
         .filter((part) => part !== null)
         .join(' · '),
       relation: edge.relation,
-      layer
+      layer,
+      ...violation
     }
   }
 }

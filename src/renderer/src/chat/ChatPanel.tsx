@@ -62,13 +62,19 @@ export const FINAL_MESSAGE =
   'découper. N’écris encore aucun fichier.'
 
 export const MAP_MESSAGE =
-  'Cartographie ce projet : lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code ; s’il s’agit ' +
+  'Cartographie ce projet avec l’outil structure_dessiner UNIQUEMENT (jamais dessiner, ni cadre, ni note : l’app ' +
+  'construit elle-même la vue Progression, la vue Architecture et la bascule entre les deux). ' +
+  'Lis CLAUDE.md, la documentation (docs/, specs/) et l’arborescence du code ; s’il s’agit ' +
   'd’un projet repris analysé, lis aussi son graphe mesuré avec code_graphe_lire et fonde dessus les liens appelle / ' +
   'depend_de et les chemins des éléments (des faits, pas des déductions). Puis dessine ' +
   'sa carte de structure avec structure_dessiner (modules, fonctionnalités avec leur statut, composants avec leurs ' +
   'fichiers, données, interfaces, tâches, décisions) et les liens typés entre eux. Donne à chaque élément son « ordre » ' +
   'parmi ses frères selon la progression logique de développement : ce qu’on construit ou lit en premier ' +
-  '(fondations, données, configuration) avant ce qui en dépend (métier, puis interface). Si une carte existe déjà, relis-la ' +
+  '(fondations, données, configuration) avant ce qui en dépend (métier, puis interface). Reconnais l’architecture du ' +
+  'projet (« architecture » : clean, hexagonale, mvvm, mvc, couches ou aucune, avec une justification tirée du code) et ' +
+  'ajoute à chaque élément sa « couche » : c’est un simple attribut, la carte reste organisée par modules et ' +
+  'sous-modules (parents), avec les statuts et les chemins ; ne regroupe jamais les éléments par couche, l’app les ' +
+  'range elle-même dans sa vue Architecture. Si une carte existe déjà, relis-la ' +
   'avec structure_lire et mets-la à jour avec les mêmes clés. Ensuite, résume-moi la structure en quelques lignes.'
 
 /** Premier message proposé quand la conversation est vide : Claude ouvre le cadrage. */
