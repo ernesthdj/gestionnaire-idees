@@ -11,6 +11,7 @@ function provider(reply: { stdout?: string; stderr?: string; timedOut?: boolean 
     claudePath: async () => path ?? undefined,
     model: () => 'claude-sonnet-5-5',
     cwd: () => 'C:/ws',
+    deniedReadDirs: () => ['C:/Users/demo/AppData/Roaming'],
     run: async (input) => {
       calls.push(input)
       return { code: 0, stdout: reply.stdout ?? '', stderr: reply.stderr ?? '', timedOut: reply.timedOut ?? false }

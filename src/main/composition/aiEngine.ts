@@ -30,6 +30,8 @@ export interface AiEngineOptions {
   readonly ollamaUrl: string
   /** Dossier vide où tournent les tâches `claude -p` (aucun projet, aucun réglage). */
   readonly cliSandbox: string
+  /** Dossiers que l'Analyste ne peut jamais lire (spec 019 R1). */
+  readonly deniedReadDirs: readonly string[]
   /** Profil, règles et exemples actifs (import de contexte, US5). */
   readonly contextSource: (kind: TaskKind) => AgentContext | undefined
   /** Demande locale rejouée avec succès : identifiant et données validées. */
@@ -54,7 +56,8 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   const claude = new ClaudeCliProvider({
     claudePath: resolveClaudePath,
     model: () => config.get().claudeModel,
-    cwd: () => options.cliSandbox
+    cwd: () => options.cliSandbox,
+    deniedReadDirs: () => options.deniedReadDirs
   })
 
   const localQueueRef: { current?: LocalQueue } = {}

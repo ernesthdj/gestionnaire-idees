@@ -224,6 +224,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     logger,
     ollamaUrl: ollama.url,
     cliSandbox: join(dataDir, 'cli-sandbox'),
+    deniedReadDirs: protectedDirs(dataDir),
     contextSource: (kind) => contextService.activeContext(kind),
     // Rejeu de la file locale (ex. catégorisation d'une idée capturée pendant qu'Ollama était arrêté).
     onQueuedCompleted: (requestId, data) => neuronsRef.current?.applyQueuedResult(requestId, data),
@@ -756,4 +757,19 @@ export function bootstrap(shell: ShellPort): AppContext {
       void pipe.stop()
     }
   }
+}
+
+/**
+ * Dossiers interdits aux outils de lecture de l'Analyste (spec 019 R1, constitution IV) : le profil courant, tous les
+ * profils et données d'applications, et les dossiers de secrets usuels du dossier personnel.
+ */
+function protectedDirs(dataDir: string): string[] {
+  const home = app.getPath('home')
+  const local = process.env['LOCALAPPDATA']
+  return [
+    dataDir,
+    app.getPath('appData'),
+    ...(local === undefined || local === '' ? [] : [local]),
+    ...['.ssh', '.claude', '.aws', '.azure', '.gnupg', '.config', '.docker', '.kube'].map((dir) => join(home, dir))
+  ]
 }

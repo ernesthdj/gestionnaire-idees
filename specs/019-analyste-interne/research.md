@@ -44,7 +44,19 @@ Aucune donnée réelle n'est lue : seul le canari est visé. Dans **Git Bash** (
    - Si l'étape 5 ou 6 affiche `1` : la lecture hors du dépôt passe → appliquer le repli `--disallowedTools` décrit plus
      haut (chemin du profil construit par le main) et refaire la procédure ; l'Analyste ne doit pas être utilisé d'ici là.
 
-**Résultat** : *(à remplir par mentalyas — version du CLI, étapes 4 / 5 / 6, date)*
+**Résultat (2026-10-07, Claude Code 2.1.293, procédure lancée par Claude à la demande de mentalyas)** :
+1. **Sans repli : ÉCHEC.** Étape 4 = 1 (lecture du dépôt OK) ; étapes 5 et 6 = 1 : `Read` et `Grep` lisent le canari
+   hors du dossier de travail. `--tools` + `cwd` ne bornent PAS la lecture.
+2. **Repli appliqué** : `--disallowedTools` reçoit, pour `Read`, `Glob` et `Grep`, chaque dossier protégé au format des
+   règles de Claude Code (`//c/Users/…/**`) : profil courant, `%APPDATA%` (tous les profils), `%LOCALAPPDATA%`,
+   `~/.ssh`, `~/.claude`, `~/.aws`, `~/.azure`, `~/.gnupg`, `~/.config`, `~/.docker`, `~/.kube` (`protectedDirs` dans
+   `bootstrap.ts`, `denyRules` dans `ClaudeCliProvider.ts`). Liste vide ou chemin invalide → lecture refusée ; dépôt
+   situé dans un dossier protégé → refusé.
+3. **Avec repli : RÉUSSITE** (règles produites par le code de l'app, 33 règles). Étape 4 : `gestionnaire-idees` ;
+   étapes 5 (Read), 6 (Grep), 6b (Glob puis Read sous `%APPDATA%`), 6c (`~/.claude/settings.json`) : refusées, valeur
+   du canari absente de toutes les sorties (comptée sur la valeur, pas sur le mot `CANARI-R1` que Claude répète).
+4. **Limite connue** : les autres dossiers du disque (autres projets) restent lisibles par l'Analyste ; ses outils
+   sont en lecture seule, sans réseau, et sa sortie reste sur le poste. À refaire à chaque version majeure du CLI.
 
 ## R2 — Où mesurer et capter
 - **Décision** : (a) `ipc.call` dans `createDispatcher` (une seule enveloppe : canal, durée, statut) ; (b) le journal

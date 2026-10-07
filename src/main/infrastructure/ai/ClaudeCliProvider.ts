@@ -31,6 +31,11 @@ export interface ClaudeCliOptions {
   readonly model: () => string
   /** Dossier de travail vide propre à l'app : aucune lecture de projet, aucun réglage chargé. */
   readonly cwd: () => string
+  /**
+   * Dossiers interdits aux outils de lecture de l'Analyste (spec 019 R1) : profils de l'app, dossiers de secrets. La
+   * preuve R1 a montré que `Read Glob Grep` lisent hors du dossier de travail : ces dossiers sont refusés par règle.
+   */
+  readonly deniedReadDirs: () => readonly string[]
   readonly run?: RunProcess
   readonly timeoutMs?: number
 }
@@ -45,6 +50,27 @@ export const READ_ONLY_TASK = 'analyste'
 export const READ_ONLY_TOOLS = 'Read Glob Grep'
 /** Tours d'outils au plus pour une analyse (`L3-analyste-analyse.md` §2). */
 export const READ_ONLY_MAX_TURNS = 40
+
+/**
+ * Chemin absolu → motif de règle de permission de Claude Code (`//c/Users/…/**`, `//home/…/**`) ; `null` si le chemin
+ * n'est pas absolu ou contient un caractère qui changerait le sens de la règle.
+ */
+export function denyPattern(dir: string): string | null {
+  const path = dir.replace(/\\/g, '/').replace(/\/+$/, '')
+  if (/[()*?[\]{}\n\r]/.test(path) || path.split('/').includes('..')) return null
+  const drive = /^([A-Za-z]):\/(.*)$/.exec(path)
+  if (drive !== null) return `//${(drive[1] as string).toLowerCase()}/${drive[2] as string}/**`
+  return path.startsWith('/') && path.length > 1 ? `/${path}/**` : null
+}
+
+/** Règles `--disallowedTools` : chaque dossier interdit, pour chacun des trois outils de lecture. */
+export function denyRules(dirs: readonly string[]): string[] {
+  const patterns = dirs.map(denyPattern)
+  if (patterns.length === 0 || patterns.some((pattern) => pattern === null)) {
+    throw new ProviderError('AI_UNAVAILABLE', 'Dossiers protégés absents ou invalides : lecture refusée', false)
+  }
+  return READ_ONLY_TOOLS.split(' ').flatMap((tool) => patterns.map((pattern) => `${tool}(${pattern as string})`))
+}
 
 const ResultLine = z.object({
   is_error: z.boolean().optional(),
@@ -117,6 +143,7 @@ export class ClaudeCliProvider implements AIProvider {
 
   async complete<T>(request: CompletionRequest<T>): Promise<CompletionResponse<T>> {
     const readOnly = this.readOnlyDir(request)
+    const denied = readOnly === null ? [] : this.deniedFor(readOnly)
     const command = await this.options.claudePath()
     if (command === undefined) throw new ProviderError('AI_UNAVAILABLE', 'Claude Code est introuvable', true)
     const model = request.model ?? this.options.model()
@@ -132,7 +159,7 @@ export class ClaudeCliProvider implements AIProvider {
       model,
       '--tools',
       readOnly === null ? '' : READ_ONLY_TOOLS,
-      ...(readOnly === null ? [] : ['--allowedTools', READ_ONLY_TOOLS]),
+      ...(readOnly === null ? [] : ['--allowedTools', READ_ONLY_TOOLS, '--disallowedTools', ...denied]),
       '--setting-sources',
       '',
       '--strict-mcp-config',
@@ -200,5 +227,15 @@ export class ClaudeCliProvider implements AIProvider {
       throw new ProviderError('AI_UNAVAILABLE', 'Dossier de lecture absent ou relatif', false)
     }
     return request.cwd
+  }
+
+  /** Règles de refus ; un dépôt situé dans un dossier protégé est refusé (il serait illisible ou exposerait ce dossier). */
+  private deniedFor(repo: string): string[] {
+    const dirs = this.options.deniedReadDirs()
+    const norm = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() + '/'
+    if (dirs.some((dir) => norm(repo).startsWith(norm(dir)))) {
+      throw new ProviderError('AI_UNAVAILABLE', 'Le dépôt est dans un dossier protégé', false)
+    }
+    return denyRules(dirs)
   }
 }

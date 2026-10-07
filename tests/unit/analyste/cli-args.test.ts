@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { CompletionRequest } from '../../../src/main/application/ai/AIProvider'
 import {
   ClaudeCliProvider,
+  denyPattern,
   READ_ONLY_TOOLS,
   type RunProcess
 } from '../../../src/main/infrastructure/ai/ClaudeCliProvider'
@@ -10,6 +11,7 @@ import type { TaskKind } from '../../../src/main/domain/ai/types'
 
 const Out = z.object({ ok: z.boolean() })
 const REPO = 'D:/dev/brainstormer'
+const DENIED = ['C:\\Users\\demo\\AppData\\Roaming', '/home/demo/.ssh']
 
 function provider() {
   const calls: Parameters<RunProcess>[0][] = []
@@ -17,6 +19,7 @@ function provider() {
     claudePath: async () => 'claude.exe',
     model: () => 'claude-opus-5-5',
     cwd: () => 'C:/sandbox',
+    deniedReadDirs: () => DENIED,
     run: async (input) => {
       calls.push(input)
       const stdout = JSON.stringify({
@@ -109,6 +112,7 @@ describe('arguments du CLI de lâ€™Analyste (spec 019 T017, L3-analyste-analyse Â
       claudePath: async () => 'claude.exe',
       model: () => 'm',
       cwd: () => 'C:/sandbox',
+      deniedReadDirs: () => DENIED,
       run: async (input) => {
         calls.push(input)
         controller.abort()
@@ -119,5 +123,35 @@ describe('arguments du CLI de lâ€™Analyste (spec 019 T017, L3-analyste-analyse Â
       code: 'AI_UNAVAILABLE'
     })
     expect(calls[0]?.signal).toBe(controller.signal)
+  })
+
+  it('should_deny_the_protected_folders_to_each_read_tool_when_the_task_is_analyste', async () => {
+    const { cli, calls } = provider()
+    await cli.complete(request())
+    const { args } = calls[0] as Parameters<RunProcess>[0]
+    const start = args.indexOf('--disallowedTools') + 1
+    const rules = args.slice(start, start + 6)
+    expect(rules).toEqual([
+      'Read(//c/Users/demo/AppData/Roaming/**)',
+      'Read(//home/demo/.ssh/**)',
+      'Glob(//c/Users/demo/AppData/Roaming/**)',
+      'Glob(//home/demo/.ssh/**)',
+      'Grep(//c/Users/demo/AppData/Roaming/**)',
+      'Grep(//home/demo/.ssh/**)'
+    ])
+    expect(args[start + 6]).toBe('--setting-sources')
+  })
+
+  it('should_refuse_the_run_when_the_repository_is_inside_a_protected_folder', async () => {
+    const { cli, calls } = provider()
+    const inside = 'c:/users/demo/appdata/roaming/gestionnaire-idees/depot'
+    await expect(cli.complete(request({ cwd: inside }))).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('should_refuse_a_relative_or_rule_breaking_protected_folder', () => {
+    for (const bad of ['relatif/dossier', 'C:/a/(b)', 'C:/a/../b', 'C:/a/*', '/', ''])
+      expect(denyPattern(bad)).toBeNull()
+    expect(denyPattern('C:\\Users\\demo\\')).toBe('//c/Users/demo/**')
   })
 })

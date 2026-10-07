@@ -273,6 +273,7 @@ describe('AnalysteService', () => {
       claudePath: async () => 'claude.exe',
       model: () => 'claude-opus-5-5',
       cwd: () => join(root, 'sandbox'),
+      deniedReadDirs: () => [join(root, 'profil')],
       run: async (input) => {
         runs.push(input)
         const stdout = JSON.stringify({
