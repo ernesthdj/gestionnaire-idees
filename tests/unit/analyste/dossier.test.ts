@@ -111,4 +111,34 @@ describe('dossier d’analyse (spec 019 T020)', () => {
       uncalled: [{ path: 'src/a.ts', name: 'dead', line: 9 }]
     })
   })
+
+  it('should_not_list_the_constructor_of_an_instantiated_class_when_summarizing_the_code_graph', () => {
+    const summary = summarizeCodeGraph({
+      modules: [],
+      files: [{ moduleId: null, path: 'src/a.ts' }],
+      symbols: [
+        { id: 'c1', kind: 'class', name: 'Used', qualifiedName: 'Used', startLine: 1, path: 'src/a.ts' },
+        {
+          id: 'k1',
+          kind: 'method',
+          name: 'constructor',
+          qualifiedName: 'Used.constructor',
+          startLine: 2,
+          path: 'src/a.ts'
+        },
+        { id: 'c2', kind: 'class', name: 'Dead', qualifiedName: 'Dead', startLine: 9, path: 'src/a.ts' },
+        {
+          id: 'k2',
+          kind: 'method',
+          name: 'constructor',
+          qualifiedName: 'Dead.constructor',
+          startLine: 10,
+          path: 'src/a.ts'
+        }
+      ],
+      edges: [{ toSymbolId: 'c1' }],
+      entryPoints: []
+    })
+    expect(summary.uncalled).toEqual([{ path: 'src/a.ts', name: 'Dead.constructor', line: 10 }])
+  })
 })

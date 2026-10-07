@@ -11,7 +11,8 @@ import {
   useStore,
   type Connection,
   type NodeTypes,
-  type EdgeTypes
+  type EdgeTypes,
+  SelectionMode
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CAPTURE_MAX_CHARS } from '@shared/ipc/app'
@@ -52,7 +53,8 @@ import { DocumentNode } from './nodes/DocumentNode'
 import { DeliverableNode } from './nodes/DeliverableNode'
 import { useCanvasPhysics } from './useCanvasPhysics'
 import { useCreateLink } from './useCreateLink'
-import { useRemoveIdea } from './useRemoveIdea'
+import { RemoveIdeasDialog } from './RemoveIdeasDialog'
+import { useRemoveIdea, useRemoveIdeas } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
 import { ChatPanel } from '../chat/ChatPanel'
 import { GhostPanel } from './GhostPanel'
@@ -85,6 +87,13 @@ const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge }
 type MapNode = CanvasNode
 type MapEdge = BranchEdgeType | MapLinkEdgeType
 const PAN_STEP = 64
+/** Ajouter une idée à la sélection : Ctrl (ou Cmd) + clic, ou Maj + clic. */
+const MULTI_SELECTION_KEYS = ['Control', 'Meta', 'Shift']
+/**
+ * Rectangle de sélection, comme sur un bureau : Ctrl (ou Cmd, ou Maj) + glisser dans le vide (retour de mentalyas,
+ * 2026-10-07) ; glisser sans touche déplace toujours la carte.
+ */
+const SELECTION_BOX_KEYS = ['Control', 'Meta', 'Shift']
 /** Marge du cadrage autour des idées. */
 const FIT_MARGIN = 128
 const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
@@ -175,6 +184,9 @@ function CanvasInner(): React.JSX.Element {
   const showToast = useUiStore((state) => state.showToast)
   const createLink = useCreateLink()
   const removeIdea = useRemoveIdea()
+  const removeIdeas = useRemoveIdeas()
+  // Idées sélectionnées à supprimer après confirmation (touche Suppr).
+  const [pendingRemoval, setPendingRemoval] = useState<readonly { readonly id: string; readonly title: string }[]>([])
   /** Champ posé sur la carte à l'endroit d'un double-clic : nouvelle idée. */
   const [draft, setDraft] = useState<{ at: Point; position: Point } | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
@@ -276,7 +288,17 @@ function CanvasInner(): React.JSX.Element {
     },
     [client, showToast]
   )
-  useEffect(() => setNodes(graph.nodes), [graph, setNodes])
+  // La carte se reconstruit (conversation ouverte, données rechargées) : la sélection en cours est gardée.
+  useEffect(
+    () =>
+      setNodes((current) => {
+        const selected = new Set(current.filter((node) => node.selected === true).map((node) => node.id))
+        return selected.size === 0
+          ? graph.nodes
+          : graph.nodes.map((node) => (selected.has(node.id) ? { ...node, selected: true } : node))
+      }),
+    [graph, setNodes]
+  )
 
   // Idée libérée (menu) : elle se replace en direct parmi les autres, qui restent fixes, puis sa place est mémorisée.
   const frame = useRef(0)
@@ -420,6 +442,20 @@ function CanvasInner(): React.JSX.Element {
   }
 
   const onKeyDown = (event: React.KeyboardEvent): void => {
+    if (event.key === 'Delete' && !isEditable(event.target)) {
+      // Suppr : les idées sélectionnées (Ctrl / Maj + clic, ou rectangle Maj + glisser), sinon celle qui a le focus.
+      const focusedNode = mapNodeOf(event.target)
+      const selected = new Set(
+        nodes.filter((node) => node.selected === true && node.type === 'neuron').map((node) => node.id)
+      )
+      if (selected.size === 0 && focusedNode?.type === 'neuron') selected.add(focusedNode.id)
+      const ideas = (view?.ideas ?? []).filter((idea) => selected.has(idea.id)).map(({ id, title }) => ({ id, title }))
+      if (ideas.length > 0) {
+        event.preventDefault()
+        setPendingRemoval(ideas)
+      }
+      return
+    }
     const target = mapNodeOf(event.target)
     if (target === null || isEditable(event.target)) return
     if (target.type !== 'neuron') return
@@ -499,7 +535,12 @@ function CanvasInner(): React.JSX.Element {
               zoomOnDoubleClick={false}
               // Tab va d'idée en idée.
               edgesFocusable={false}
+              // Suppr passe par la confirmation (onKeyDown) : React Flow ne supprime jamais un nœud lui-même.
               deleteKeyCode={null}
+              multiSelectionKeyCode={MULTI_SELECTION_KEYS}
+              selectionKeyCode={SELECTION_BOX_KEYS}
+              // Une idée touchée par le rectangle est prise, comme une icône sur le bureau.
+              selectionMode={SelectionMode.Partial}
               ariaLabelConfig={ARIA_LABELS}
               colorMode={settings.theme}
               proOptions={{ hideAttribution: true }}
@@ -507,7 +548,9 @@ function CanvasInner(): React.JSX.Element {
               onMoveEnd={() => setInteracting(false)}
               // Un clic (ou un double-clic) sur une idée, ou sur un élément d'une carte de structure (spec 009), ouvre
               // sa conversation Claude Code (spec 008). Un clic dans le vide referme le volet.
-              onNodeClick={(_event, node) => {
+              onNodeClick={(event, node) => {
+                // Ctrl / Cmd / Maj + clic : on compose une sélection (suppression groupée), sans ouvrir de conversation.
+                if (event.ctrlKey || event.metaKey || event.shiftKey) return
                 // Une étape (spec 011) aussi ; un fantôme se décide par ses boutons ✓ / ✗.
                 const conversational =
                   node.type === 'neuron' ||
@@ -666,6 +709,13 @@ function CanvasInner(): React.JSX.Element {
         ) : null}
       </div>
       <WidgetReview />
+      {pendingRemoval.length > 0 ? (
+        <RemoveIdeasDialog
+          ideas={pendingRemoval}
+          onConfirm={() => removeIdeas(pendingRemoval, 'clavier')}
+          onClose={() => setPendingRemoval([])}
+        />
+      ) : null}
     </div>
   )
 }

@@ -18,6 +18,9 @@ export interface Manifest {
   readonly content: string
 }
 
+/** Manifestes de tests ou de fixtures : des exemples, jamais des parties du projet. */
+const TEST_DIR = /(^|\/)(tests?|__tests__|fixtures?|__fixtures__)\//
+
 const dirOf = (path: string): string => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '')
 
 function packageName(content: string, fallback: string): string {
@@ -45,14 +48,15 @@ export function detectModules(
   paths: readonly string[],
   manifests: readonly Manifest[]
 ): { readonly modules: readonly DetectedModule[]; readonly moduleOf: (path: string) => string } {
-  const packages = manifests
+  const realManifests = manifests.filter((manifest) => !TEST_DIR.test(manifest.path))
+  const packages = realManifests
     .filter((manifest) => /(^|\/)package\.json$/.test(manifest.path) && manifest.path !== 'package.json')
     .map((manifest): DetectedModule => {
       const rootPath = dirOf(manifest.path)
       const name = packageName(manifest.content, rootPath.split('/').at(-1) ?? rootPath)
       return { key: `npm:${name}`, name, rootPath, kind: 'package' }
     })
-  const projects = manifests
+  const projects = realManifests
     .filter((manifest) => manifest.path.toLowerCase().endsWith('.csproj'))
     .map((manifest): DetectedModule => {
       const name = (manifest.path.split('/').at(-1) ?? manifest.path).replace(/\.csproj$/i, '')

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { NeuronService } from '../application/neurons/NeuronService'
 import { Coordinate } from './canvasHandlers'
 import { defineRoute, type IpcRoute } from './registry'
+import { AppError } from '../domain/errors'
 
 const Nature = z.enum(['action', 'reflection'])
 const CategorySlug = z.enum(['general', 'achat', 'projet', 'sortie', 'photo', 'it'])
@@ -80,6 +81,16 @@ export function createNeuronRoutes(service: NeuronService, steps?: StepRemoval):
       channel: 'neuron:remove',
       input: z.object({ rootId: Id }).strict(),
       handler: async ({ rootId }) => (steps?.isStep(rootId) === true ? steps.remove(rootId) : service.remove(rootId))
+    }),
+    defineRoute({
+      channel: 'neuron:removeMany',
+      input: z.object({ rootIds: z.array(Id).min(1).max(200) }).strict(),
+      handler: async ({ rootIds }) => {
+        if (rootIds.some((id) => steps?.isStep(id) === true)) {
+          throw new AppError('INVALID_STATE', 'Une étape se supprime depuis son propre menu')
+        }
+        return service.removeMany(rootIds)
+      }
     }),
     defineRoute({
       channel: 'neuron:archive',

@@ -23,6 +23,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'neuron:update',
   'neuron:archive',
   'neuron:remove',
+  'neuron:removeMany',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',

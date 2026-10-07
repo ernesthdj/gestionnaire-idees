@@ -34,7 +34,7 @@ function rootGitignore(root: string): (path: string, isDirectory?: boolean) => b
 
 /**
  * Parcours d'un projet repris (spec 017 R4) : itératif, sans jamais suivre un lien symbolique ni une jonction, sans
- * entrer dans les dossiers exclus ; chaque fichier est classé (retenu, sensible, ignoré, trop gros). Aucun contenu
+ * entrer dans les dossiers exclus ni dans un dépôt imbriqué (sous-dossier avec son `.git`) ; chaque fichier est classé (retenu, sensible, ignoré, trop gros). Aucun contenu
  * n'est lu ici, hors `.gitignore`. Au-delà de `limit` fichiers retenus, le parcours s'arrête.
  */
 export function scanProject(root: string, limit = RETAINED_FILES_MAX): ProjectScan {
@@ -65,7 +65,8 @@ export function scanProject(root: string, limit = RETAINED_FILES_MAX): ProjectSc
         continue
       }
       if (stat.isDirectory()) {
-        if (isExcludedDir(name) || ignoredByGit(path, true)) ignored++
+        // Un sous-dossier avec son propre `.git` est un worktree ou un dépôt imbriqué : une autre copie, pas ce projet.
+        if (isExcludedDir(name) || ignoredByGit(path, true) || existsSync(join(root, path, '.git'))) ignored++
         else pending.push(path)
         continue
       }

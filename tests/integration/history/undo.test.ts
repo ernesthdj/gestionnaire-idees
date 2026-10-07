@@ -83,4 +83,25 @@ describe('historique et annulation (spec 003 T040)', () => {
     expect(t.neurons.getTree(root.id).root.state).toBe('archived')
     expect(() => t.neurons.remove(root.id)).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
   })
+
+  it('should_remove_several_ideas_in_one_batch_and_restore_them_all_with_one_undo', async () => {
+    const a = await t.neurons.create({ text: 'Idée A' })
+    const b = await t.neurons.create({ text: 'Idée B' })
+    const c = await t.neurons.create({ text: 'Idée C' })
+    const { batchId } = t.neurons.removeMany([a.id, b.id, a.id])
+    expect([a, b, c].map((idea) => t.neurons.getTree(idea.id).root.state)).toEqual(['archived', 'archived', 'raw'])
+    expect(history.list().items[0]).toMatchObject({ batchId, kind: 'delete', summary: 'Suppression de 2 idées' })
+
+    history.undo(batchId)
+    expect([a, b].map((idea) => t.neurons.getTree(idea.id).root.state)).toEqual(['raw', 'raw'])
+    expect(history.list().items[0]?.summary).toBe('2 idées restaurées')
+  })
+
+  it('should_change_nothing_when_one_of_the_ideas_is_already_removed', async () => {
+    const a = await t.neurons.create({ text: 'Idée A' })
+    const b = await t.neurons.create({ text: 'Idée B' })
+    t.neurons.remove(b.id)
+    expect(() => t.neurons.removeMany([a.id, b.id])).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
+    expect(t.neurons.getTree(a.id).root.state).toBe('raw')
+  })
 })

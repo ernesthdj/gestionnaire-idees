@@ -80,4 +80,31 @@ describe('sonde de l’interface', () => {
       vi.useRealTimers()
     }
   })
+
+  it('should_locate_an_error_event_without_error_object_and_name_a_non_error_rejection', () => {
+    enableProbe(true)
+    const stop = listenToErrors()
+    window.dispatchEvent(
+      new ErrorEvent('error', {
+        error: null,
+        message: 'ResizeObserver loop « Acheter du pain »',
+        filename: 'http://localhost:5173/src/canvas/IdeasCanvas.tsx?t=1',
+        lineno: 42
+      })
+    )
+    const rejection = new Event('unhandledrejection') as Event & { reason: unknown }
+    rejection.reason = { texte: 'Acheter du pain' }
+    window.dispatchEvent(rejection)
+    const stringRejection = new Event('unhandledrejection') as Event & { reason: unknown }
+    stringRejection.reason = 'Acheter du pain'
+    window.dispatchEvent(stringRejection)
+    stop()
+    flushProbe()
+    expect(sent[0]).toEqual([
+      { event: 'error.renderer', code: 'ErrorEvent', frames: ['src/renderer/src/canvas/IdeasCanvas.tsx:42'] },
+      { event: 'error.renderer', code: 'NonError.Object', frames: [] },
+      { event: 'error.renderer', code: 'NonError.string', frames: [] }
+    ])
+    expect(JSON.stringify(sent)).not.toContain('pain')
+  })
 })

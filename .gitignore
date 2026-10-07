@@ -32,3 +32,7 @@ release/
 
 # Analyste interne (spec 019) : worktrees des mises à jour proposées
 .analyste/
+
+# Worktrees d'agents (Claude Code, Kilo Code) : copies du dépôt
+.claude/worktrees/
+.kilo/

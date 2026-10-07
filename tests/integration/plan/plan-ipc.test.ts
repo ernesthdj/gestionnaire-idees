@@ -92,6 +92,19 @@ describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
     expect((await view()).ideas.some((idea) => idea.id === genesis)).toBe(true)
   })
 
+  it('should_refuse_to_remove_a_step_together_with_ideas', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    const [budget] = (await view()).steps
+    expect(await dispatch('neuron:removeMany', { rootIds: [genesis, budget?.id] })).toMatchObject({
+      success: false,
+      error: { code: 'INVALID_STATE' }
+    })
+    expect((await view()).ideas.some((idea) => idea.id === genesis)).toBe(true)
+    expect(await dispatch('neuron:removeMany', { rootIds: [] })).toMatchObject({ success: false })
+  })
+
   it('should_remember_where_a_step_was_dragged_and_refuse_to_move_a_genesis', async () => {
     const { proposalId } = propose()
     const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []

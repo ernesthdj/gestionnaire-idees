@@ -360,7 +360,10 @@ export class HistoryService {
       case 'seed':
         return `Graine acceptée : ${title()}`
       case 'delete':
-        return `Suppression de ${title()}`
+        // Suppression de plusieurs idées d'un geste (sélection multiple) : un seul lot.
+        return entries.length > 1 && entries.every((entry) => entry.entity === 'neuron')
+          ? `Suppression de ${entries.length} idées`
+          : `Suppression de ${title()}`
       case 'promote':
         return `Idée éclose à part : ${title()}`
       case 'document':
@@ -382,6 +385,14 @@ export class HistoryService {
           return seed.after?.['status'] === 'accepted' ? `Graine rétablie : ${title()}` : `Graine annulée : ${title()}`
         }
         const neuron = entries.find((entry) => entry.entity === 'neuron')
+        if (
+          entries.length > 1 &&
+          entries.every((entry) => entry.entity === 'neuron' && (entry.before === null || entry.after === null))
+        ) {
+          return neuron?.before === null
+            ? `${entries.length} idées restaurées`
+            : `${entries.length} idées supprimées de nouveau`
+        }
         // Annulation d'une suppression : l'idée revient (ou repart, si on annule l'annulation).
         if (neuron !== undefined && entries.length === 1 && (neuron.before === null || neuron.after === null)) {
           return neuron.before === null ? `Idée restaurée : ${title()}` : `Idée supprimée de nouveau : ${title()}`

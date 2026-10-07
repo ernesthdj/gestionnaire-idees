@@ -103,23 +103,42 @@ export class NeuronService {
    * effacée, dans un lot annulable de l'historique (retour de test de mentalyas, avec avertissement côté interface).
    */
   remove(rootId: string): { readonly batchId: string } {
-    const root = this.rootOrThrow(rootId)
-    if (root.state === 'archived') throw new AppError('INVALID_STATE', 'Cette idée est déjà supprimée')
+    return this.removeMany([rootId])
+  }
+
+  /**
+   * Supprime plusieurs idées d'un geste (sélection multiple, proposition de l'Analyste du 2026-10-07) : une seule
+   * transaction et un seul lot, donc un seul « Annuler » les restaure toutes. Une idée absente ou déjà supprimée fait
+   * tout échouer, sans rien changer.
+   */
+  removeMany(rootIds: readonly string[]): { readonly batchId: string } {
+    const unique = [...new Set(rootIds)]
+    const roots = unique.map((rootId) => this.rootOrThrow(rootId))
+    if (roots.some((root) => root.state === 'archived')) {
+      throw new AppError(
+        'INVALID_STATE',
+        unique.length > 1 ? 'Une de ces idées est déjà supprimée' : 'Cette idée est déjà supprimée'
+      )
+    }
     const batchId = randomUUID()
     const { repository } = this.deps
-    // Une idée supprimée ne pointe plus vers son dossier de projet (spec 017 D9) ; « Annuler » le remet.
-    const projectDir = repository.projectDir(rootId)
+    const archivedAt = new Date().toISOString()
     repository.transaction(() => {
-      repository.updateRoot(rootId, { state: 'archived', archivedAt: new Date().toISOString(), projectDir: null })
-      repository.log(batchId, [
-        {
-          kind: 'delete',
-          entity: 'neuron',
-          entityId: rootId,
-          before: { state: root.state, version: root.version, ...(projectDir === null ? {} : { projectDir }) },
-          after: null
-        }
-      ])
+      repository.log(
+        batchId,
+        roots.map((root) => {
+          // Une idée supprimée ne pointe plus vers son dossier de projet (spec 017 D9) ; « Annuler » le remet.
+          const projectDir = repository.projectDir(root.id)
+          repository.updateRoot(root.id, { state: 'archived', archivedAt, projectDir: null })
+          return {
+            kind: 'delete' as const,
+            entity: 'neuron' as const,
+            entityId: root.id,
+            before: { state: root.state, version: root.version, ...(projectDir === null ? {} : { projectDir }) },
+            after: null
+          }
+        })
+      )
     })
     return { batchId }
   }

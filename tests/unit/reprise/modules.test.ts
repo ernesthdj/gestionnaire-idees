@@ -45,4 +45,15 @@ describe('modules d’un projet repris (spec 017 R3)', () => {
     expect(moduleOf('packages/core/src/a.ts')).toBe('npm:@app/core')
     expect(moduleOf('tools/x.ts')).toBe('dir:')
   })
+
+  it('should_ignore_manifests_of_tests_and_fixtures_when_detecting_modules', () => {
+    const paths = ['package.json', 'src/main/a.ts', 'src/renderer/b.tsx', 'tests/fixtures/ts-app/package.json']
+    const { modules } = detectModules(paths, [
+      { path: 'package.json', content: '{"name":"app"}' },
+      { path: 'tests/fixtures/ts-app/package.json', content: '{"name":"ts-app"}' },
+      { path: 'tests/fixtures/cs-app/App.csproj', content: '' },
+      { path: 'src/__fixtures__/demo/package.json', content: '{"name":"demo"}' }
+    ])
+    expect(modules.map((module) => module.key)).toEqual(['dir:src/main', 'dir:src/renderer', 'dir:src', 'dir:'])
+  })
 })

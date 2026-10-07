@@ -97,19 +97,44 @@ export function framesOf(stack: string | undefined): string[] {
   return frames
 }
 
-/** Erreur non rattrapée de l'interface : son nom et ses emplacements, jamais son message. */
-export function probeError(error: unknown): void {
-  const name = error instanceof Error ? error.name : 'NonError'
+/** Sorte d'une valeur rejetée qui n'est pas une `Error` : `NonError.<type>` ou `NonError.<constructeur>`, jamais son contenu. */
+function nonErrorCode(value: unknown): string {
+  const kind =
+    typeof value === 'object' && value !== null
+      ? (Object.getPrototypeOf(value)?.constructor?.name ?? 'object')
+      : typeof value
+  const code = `NonError.${typeof kind === 'string' ? kind : 'object'}`
+  return ProbeCode.safeParse(code).success ? code : 'NonError.object'
+}
+
+/**
+ * Erreur non rattrapée de l'interface : son nom et ses emplacements, jamais son message. `location` = fichier et ligne
+ * d'un `ErrorEvent` sans objet `error` (erreur de script, boucle de `ResizeObserver`).
+ */
+export function probeError(error: unknown, location?: { readonly filename: string; readonly lineno: number }): void {
+  if (error instanceof Error) {
+    push({
+      event: 'error.renderer',
+      code: ProbeCode.safeParse(error.name).success ? error.name : 'Error',
+      frames: framesOf(error.stack)
+    })
+    return
+  }
+  const where =
+    location === undefined || location.filename === '' ? undefined : `${location.filename}:${location.lineno}`
   push({
     event: 'error.renderer',
-    code: ProbeCode.safeParse(name).success ? name : 'Error',
-    frames: framesOf(error instanceof Error ? error.stack : undefined)
+    code: location === undefined ? nonErrorCode(error) : 'ErrorEvent',
+    frames: framesOf(where)
   })
 }
 
 /** Écoute les erreurs globales de la fenêtre ; renvoie la fonction de désabonnement. */
 export function listenToErrors(target: Window = window): () => void {
-  const onError = (event: ErrorEvent): void => probeError(event.error)
+  const onError = (event: ErrorEvent): void =>
+    event.error instanceof Error
+      ? probeError(event.error)
+      : probeError(event.error, { filename: event.filename, lineno: event.lineno })
   const onRejection = (event: PromiseRejectionEvent): void => probeError(event.reason)
   target.addEventListener('error', onError)
   target.addEventListener('unhandledrejection', onRejection)

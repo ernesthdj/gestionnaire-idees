@@ -28,6 +28,12 @@ const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[a-z]+$/
 export function summarizeCodeGraph(rows: CodeGraphRows): CodeSummary {
   const called = new Set(rows.edges.flatMap((edge) => (edge.toSymbolId === null ? [] : [edge.toSymbolId])))
   const entries = new Set(rows.entryPoints.map((entry) => entry.symbolId))
+  // Un `new X()` est un appel vers la classe X, pas vers `X.constructor` : le constructeur d'une classe appelée l'est.
+  const calledClasses = new Set(
+    rows.symbols
+      .filter((symbol) => symbol.kind === 'class' && called.has(symbol.id))
+      .map((symbol) => `${symbol.path}#${symbol.qualifiedName}.constructor`)
+  )
   const filesPerModule = new Map<string, number>()
   for (const file of rows.files) {
     if (file.moduleId !== null) filesPerModule.set(file.moduleId, (filesPerModule.get(file.moduleId) ?? 0) + 1)
@@ -38,6 +44,7 @@ export function summarizeCodeGraph(rows: CodeGraphRows): CodeSummary {
         (symbol.kind === 'function' || symbol.kind === 'method') &&
         !called.has(symbol.id) &&
         !entries.has(symbol.id) &&
+        !calledClasses.has(`${symbol.path}#${symbol.qualifiedName}`) &&
         !TEST_FILE.test(symbol.path)
     )
     .sort((a, b) => (a.path === b.path ? a.startLine - b.startLine : a.path < b.path ? -1 : 1))
