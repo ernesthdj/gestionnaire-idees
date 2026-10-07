@@ -78,4 +78,24 @@ describe('AppShell', () => {
     await waitFor(() => expect(document.documentElement.dataset['theme']).toBe(theme))
     await expectNoAxeViolations(container)
   })
+
+  it('should_show_the_analyst_entry_only_when_the_probe_is_active', async () => {
+    const status = { available: true, repoPath: null, observations: 0, dropped: 0 }
+    installFakeApi({
+      'app:getSettings': () => DEFAULT_APP_SETTINGS,
+      'canvas:get': () => emptyCanvasView(),
+      'analyste:repo:status': () => ({ ...status, active: false, reason: 'NOT_DESIGNATED' })
+    })
+    const { unmount } = render(<App />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Historique' })).toBeDefined())
+    expect(screen.queryByRole('button', { name: 'Analyste' })).toBeNull()
+    unmount()
+    installFakeApi({
+      'app:getSettings': () => DEFAULT_APP_SETTINGS,
+      'canvas:get': () => emptyCanvasView(),
+      'analyste:repo:status': () => ({ ...status, active: true, reason: null })
+    })
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Analyste' })).toBeDefined()
+  })
 })

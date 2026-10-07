@@ -17,6 +17,7 @@ import type {
   PermissionMode
 } from '@shared/ipc/chat'
 import { call, IpcFailure } from '../lib/ipc'
+import { probeAction } from '../analyste/probe'
 
 export interface ChatState {
   readonly loading: boolean
@@ -225,6 +226,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
       setState((current) => ({ ...current, busy: true, partial: '', messages: [...current.messages, optimistic] }))
       try {
         await call('chat:send', { neuronId, text: trimmed })
+        probeAction('chat.send', 'conversation', 'clavier', neuronId)
       } catch (error) {
         const message: ChatMessageView = {
           id: `local-error-${Date.now()}`,

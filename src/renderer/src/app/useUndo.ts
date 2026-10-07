@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 import { call, IpcFailure } from '../lib/ipc'
+import { probeAction } from '../analyste/probe'
 
 export type UndoOutcome = { readonly ok: true } | { readonly ok: false; readonly message: string }
 
@@ -14,6 +15,7 @@ export function useUndo(): (batchId: string) => Promise<UndoOutcome> {
     async (batchId) => {
       try {
         await call('history:undo', { batchId })
+        probeAction('history.undo', 'batch', 'souris', batchId)
         await Promise.all(AFFECTED.map((queryKey) => client.invalidateQueries({ queryKey })))
         return { ok: true }
       } catch (error) {

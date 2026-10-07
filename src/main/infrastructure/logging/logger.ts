@@ -53,6 +53,19 @@ export function createLogger(sink: (record: LogRecord) => void): Logger {
   }
 }
 
+/** Plusieurs sorties pour un même journal (spec 019 : stdout + sonde) ; une sortie qui échoue n'arrête pas les autres. */
+export function teeSink(...sinks: readonly ((record: LogRecord) => void)[]): (record: LogRecord) => void {
+  return (record) => {
+    for (const sink of sinks) {
+      try {
+        sink(record)
+      } catch {
+        // Une sortie défaillante ne doit jamais casser l'app ni les autres sorties.
+      }
+    }
+  }
+}
+
 /** Sortie par défaut : une ligne JSON par événement sur la sortie standard du processus principal. */
 export const stdoutSink = (record: LogRecord): void => {
   process.stdout.write(`${JSON.stringify(record)}\n`)

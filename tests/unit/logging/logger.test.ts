@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createLogger, type LogRecord } from '../../../src/main/infrastructure/logging/logger'
+import { createLogger, teeSink, type LogRecord } from '../../../src/main/infrastructure/logging/logger'
 
 function capture(): { records: LogRecord[]; sink: (record: LogRecord) => void } {
   const records: LogRecord[] = []
@@ -45,5 +45,16 @@ describe('logger', () => {
     const { records, sink } = capture()
     createLogger(sink).info('app.start', {})
     expect(records[0]?.at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+})
+
+describe('teeSink', () => {
+  it('should_feed_every_sink_even_when_one_of_them_throws', () => {
+    const { records, sink } = capture()
+    const broken = (): void => {
+      throw new Error('sonde en panne')
+    }
+    createLogger(teeSink(broken, sink)).warn('ipc.unexpected', { channel: 'canvas:get' })
+    expect(records).toHaveLength(1)
   })
 })

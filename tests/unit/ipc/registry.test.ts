@@ -91,3 +91,25 @@ describe('senderPage', () => {
     expect(senderPage(frameUrl, devUrl, app), reason).toBeNull()
   })
 })
+
+describe('mesure des appels de canal (spec 019)', () => {
+  it('should_report_duration_and_outcome_without_payload_when_a_route_runs', async () => {
+    const calls: unknown[][] = []
+    const failing = defineRoute({
+      channel: 'app:fail',
+      input: z.object({}).strict(),
+      handler: async () => {
+        throw new AppError('NOPE', 'non')
+      }
+    })
+    const dispatch = createDispatcher([echo, failing], undefined, (...args) => calls.push(args))
+    await dispatch('app:ping', { text: 'secret' })
+    await dispatch('app:fail', {})
+    await dispatch('app:unknown', {})
+    expect(calls).toEqual([
+      ['app:ping', expect.any(Number), true],
+      ['app:fail', expect.any(Number), false]
+    ])
+    expect(JSON.stringify(calls)).not.toContain('secret')
+  })
+})

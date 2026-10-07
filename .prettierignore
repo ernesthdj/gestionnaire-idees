@@ -14,3 +14,5 @@ src/main/infrastructure/db/migrations/meta/
 package.json
 # Projets de démonstration de la spec 017 : lus par l'analyse tels quels (fichier cassé compris).
 tests/fixtures/reprise/
+# Analyste interne (spec 019) : worktrees des mises à jour proposées
+.analyste/

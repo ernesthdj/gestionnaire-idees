@@ -24,7 +24,12 @@ import { createPlanRoutes } from './ipc/planHandlers'
 import { createDocumentRoutes } from './ipc/documentHandlers'
 import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
-import { createLogger, stdoutSink, type Logger } from './infrastructure/logging/logger'
+import { createLogger, stdoutSink, teeSink, type Logger } from './infrastructure/logging/logger'
+import { ProbeService } from './application/analyste/ProbeService'
+import { RepoGuard } from './application/analyste/RepoGuard'
+import { AnalysteRepository } from './infrastructure/db/repositories/AnalysteRepository'
+import { ObservationRepository } from './infrastructure/db/repositories/ObservationRepository'
+import { createAnalysteRoutes } from './ipc/analysteHandlers'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
 import { createAiRoutes, LEGACY_CLAUDE_SECRET } from './ipc/aiHandlers'
 import { createAppRoutes } from './ipc/appHandlers'
@@ -90,7 +95,7 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
-import { existsSync, mkdirSync, realpathSync } from 'node:fs'
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 import { SelectionStore } from './application/mcp/SelectionStore'
 import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
 import { pipeNameFor, tokenPathFor } from './infrastructure/mcp/endpoint'
@@ -132,7 +137,9 @@ function migrationsFolder(): string {
 /** Initialise les services du processus principal. Toutes les données vivent dans %APPDATA%. */
 export function bootstrap(shell: ShellPort): AppContext {
   const broadcast = (event: MainWindowEvent, payload: unknown): void => shell.sendToMain(event, payload)
-  const logger = createLogger(stdoutSink)
+  // La sonde de l'Analyste (spec 019) est créée après la base : le journal la rejoint dès qu'elle existe.
+  const probeRef: { current?: ProbeService } = {}
+  const logger = createLogger(teeSink(stdoutSink, (record) => probeRef.current?.recordLog(record.level, record.event)))
   const dataDir = app.getPath('userData')
   const secrets = new SecretStore(join(dataDir, 'secrets'), safeStorage)
 
@@ -141,6 +148,30 @@ export function bootstrap(shell: ShellPort): AppContext {
     key: secrets.getOrCreateRandomKey('db'),
     migrationsFolder: migrationsFolder()
   })
+
+  // Analyste interne (spec 019) : sonde sans contenu, active seulement depuis le dépôt source désigné.
+  const analysteRepository = new AnalysteRepository(database.db)
+  const observationRepository = new ObservationRepository(database.db)
+  const repoGuard = new RepoGuard({
+    isPackaged: app.isPackaged,
+    appPath: app.getAppPath(),
+    git: runGit,
+    storedRepo: () => analysteRepository.repoPath(),
+    storeRepo: (path) => analysteRepository.saveRepoPath(path),
+    secrets
+  })
+  const probe = new ProbeService({
+    key: () => repoGuard.hmacKey(),
+    repository: observationRepository,
+    settings: () => analysteRepository.settings(),
+    timers: { every: (ms, run) => setInterval(run, ms), cancel: (handle) => clearInterval(handle as NodeJS.Timeout) },
+    recheck: () => repoGuard.check()
+  })
+  probeRef.current = probe
+  if (!app.isPackaged) {
+    probe.start()
+    void repoGuard.check().catch(() => logger.warn('analyste.repo_check_failed', {}))
+  }
 
   // Spec 010 US3 : les idées de l'ancien moteur reçoivent une fiche, une seule fois (annulable dans l'Historique).
   const conversion = convertLegacyIdeas(new LegacyRepository(database.db))
@@ -601,6 +632,28 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createRepriseRoutes(reprise, analysis, guide),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
+      ...createAnalysteRoutes({
+        guard: repoGuard,
+        probe,
+        observations: observationRepository,
+        settings: analysteRepository,
+        pickRepo: async () => {
+          const result = await dialog.showOpenDialog({
+            title: 'Choisir le dépôt source du Brainstormer',
+            properties: ['openDirectory']
+          })
+          return result.canceled ? undefined : result.filePaths[0]
+        },
+        pickExportFile: async () => {
+          const result = await dialog.showSaveDialog({
+            title: 'Exporter les observations de la sonde',
+            defaultPath: 'observations-analyste.json',
+            filters: [{ name: 'JSON', extensions: ['json'] }]
+          })
+          return result.canceled ? undefined : result.filePath
+        },
+        writeFile: (path, content) => writeFileSync(path, content, 'utf8')
+      }),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -611,7 +664,8 @@ export function bootstrap(shell: ShellPort): AppContext {
       })
     ],
     logger,
-    rendererFileUrl
+    rendererFileUrl,
+    (channel, durationMs, ok) => probe.recordCall(channel, durationMs, ok)
   )
   logger.info('app.ready', { version: app.getVersion() })
   return {
@@ -628,6 +682,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ai.stop()
       conversations.stopAll()
       permissions.cancelAll()
+      probe.stop()
       void pipe.stop()
     }
   }

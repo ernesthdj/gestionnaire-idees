@@ -35,7 +35,10 @@ export function defineRoute<I, O>({ channel, page = 'main', input, handler }: Ro
 export type Dispatcher = (channel: string, payload: unknown) => Promise<IpcResult<unknown>>
 
 /** Exécute la route du canal et convertit toute issue au format `IpcResult`. */
-export function createDispatcher(routes: readonly IpcRoute[], logger?: Logger): Dispatcher {
+/** Mesure d'un appel de canal (spec 019 FR-008) : durée et issue, jamais la charge utile. */
+export type CallObserver = (channel: string, durationMs: number, ok: boolean) => void
+
+export function createDispatcher(routes: readonly IpcRoute[], logger?: Logger, observe?: CallObserver): Dispatcher {
   const table = new Map<string, IpcRoute>()
   for (const route of routes) {
     if (table.has(route.channel)) throw new Error(`Canal IPC dupliqué : ${route.channel}`)
@@ -45,9 +48,14 @@ export function createDispatcher(routes: readonly IpcRoute[], logger?: Logger): 
   return async (channel, payload) => {
     const route = table.get(channel)
     if (route === undefined) return { success: false, error: { code: 'UNKNOWN_CHANNEL', message: 'Canal inconnu' } }
+    const started = performance.now()
+    const measure = (ok: boolean): void => observe?.(channel, Math.round(performance.now() - started), ok)
     try {
-      return { success: true, data: await route.run(payload) }
+      const data = await route.run(payload)
+      measure(true)
+      return { success: true, data }
     } catch (error) {
+      measure(false)
       if (error instanceof AppError) {
         const { code, message, details } = error
         return { success: false, error: { code, message, ...(details === undefined ? {} : { details }) } }
@@ -92,9 +100,10 @@ export function registerRoutes(
   ipcMain: IpcMain,
   routes: readonly IpcRoute[],
   logger: Logger,
-  rendererFileUrl: string
+  rendererFileUrl: string,
+  observe?: CallObserver
 ): void {
-  const dispatch = createDispatcher(routes, logger)
+  const dispatch = createDispatcher(routes, logger, observe)
   const devServerUrl = process.env['ELECTRON_RENDERER_URL']
   for (const route of routes) {
     ipcMain.handle(route.channel, (event, payload: unknown) => {

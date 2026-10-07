@@ -29,3 +29,6 @@ release/
 
 # Réglages d'éditeur (Obsidian)
 .obsidian/
+
+# Analyste interne (spec 019) : worktrees des mises à jour proposées
+.analyste/

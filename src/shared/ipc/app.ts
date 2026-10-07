@@ -9,7 +9,7 @@ export type Theme = (typeof THEMES)[number]
 export const MOTION_MODES = ['auto', 'reduced'] as const
 export type MotionMode = (typeof MOTION_MODES)[number]
 
-export const SECTIONS = ['ideas', 'pending', 'history'] as const
+export const SECTIONS = ['ideas', 'pending', 'history', 'analyste'] as const
 export type Section = (typeof SECTIONS)[number]
 
 export const CAPTURE_MAX_CHARS = 2000

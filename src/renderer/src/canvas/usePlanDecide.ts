@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
+import { probeAction } from '../analyste/probe'
 
 /**
  * Décision de mentalyas sur une couche proposée par Claude (spec 011) : valider ou refuser des fantômes. Valider
@@ -22,6 +23,7 @@ export function usePlanDecide(): {
           'plan:decide',
           input
         )
+        probeAction('plan.decide', 'step', 'souris', input.proposalId)
         if (result.batchId !== null) {
           const count = result.born.length
           showToast(`${count} étape${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''} au plan.`, {

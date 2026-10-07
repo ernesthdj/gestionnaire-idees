@@ -23,11 +23,15 @@ export const aiCalls = sqliteTable(
     status: text('status', { enum: ['ok', 'invalid', 'error', 'refusal', 'blocked_budget'] }).notNull(),
     errorCode: text('error_code'),
     durationMs: integer('duration_ms').notNull().default(0),
+    /** Empreintes HMAC de l'entrée et de la sortie validée (spec 019), seulement quand la sonde est active. */
+    inputFp: text('input_fp'),
+    outputFp: text('output_fp'),
     createdAt: createdAt()
   },
   (t) => [
     index('ai_calls_created_at_idx').on(t.createdAt),
-    index('ai_calls_engine_created_at_idx').on(t.engine, t.createdAt)
+    index('ai_calls_engine_created_at_idx').on(t.engine, t.createdAt),
+    index('ai_calls_kind_input_fp_idx').on(t.kind, t.inputFp)
   ]
 )
 

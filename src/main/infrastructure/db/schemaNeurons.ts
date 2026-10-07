@@ -110,6 +110,8 @@ export const neurons = sqliteTable(
     lockedAt: text('locked_at'),
     /** Verrou proposé par Claude, en attente de la décision de mentalyas. */
     lockProposedAt: text('lock_proposed_at'),
+    /** Neurone caché (spec 019 R5) : conversation de mise à jour de l'Analyste, absente de la carte et du pont MCP. */
+    hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()

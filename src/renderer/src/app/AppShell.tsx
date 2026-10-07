@@ -1,5 +1,6 @@
 import { MotionConfig } from 'motion/react'
 import type { Section } from '@shared/ipc/app'
+import { useAnalysteStatus, useProbe } from '../analyste/useAnalysteStatus'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
@@ -17,13 +18,15 @@ import { useMainEvents } from './useMainEvents'
 const NAVIGATION: ReadonlyArray<{ readonly section: Section; readonly label: string }> = [
   { section: 'ideas', label: 'Idées' },
   { section: 'pending', label: 'À valider' },
-  { section: 'history', label: 'Historique' }
+  { section: 'history', label: 'Historique' },
+  { section: 'analyste', label: 'Analyste' }
 ]
 
 const TITLES: Readonly<Record<View, string>> = {
   ideas: 'Idées',
   pending: 'À valider',
   history: 'Historique',
+  analyste: 'Analyste',
   settings: 'Réglages'
 }
 
@@ -37,6 +40,10 @@ function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
       return <SectionPlaceholder text="Les suggestions de liens et les synthèses en attente apparaîtront ici." />
     case 'history':
       return <HistoryPage />
+    case 'analyste':
+      return (
+        <SectionPlaceholder text="La sonde observe l’app. Les propositions de l’Analyste arriveront ici ; ce qu’elle garde est dans Réglages › Analyste." />
+      )
   }
 }
 
@@ -53,6 +60,10 @@ export function AppShell(): React.JSX.Element {
   const closeExplorer = useUiStore((state) => state.closeExplorer)
   useApplyTheme(settings.theme)
   useMainEvents()
+  useProbe()
+  // L'entrée Analyste n'apparaît que lorsque la sonde est active (spec 019 FR-022).
+  const analysteActive = useAnalysteStatus()?.active === true
+  const navigation = NAVIGATION.filter(({ section }) => section !== 'analyste' || analysteActive || view === 'analyste')
 
   return (
     <MotionConfig reducedMotion={reduced ? 'always' : 'never'}>
@@ -60,7 +71,7 @@ export function AppShell(): React.JSX.Element {
         <nav aria-label="Navigation principale" className="flex w-56 shrink-0 flex-col gap-4 bg-surface-raised p-4">
           <p className="px-2 text-sm font-semibold text-content-muted">Brainstormer</p>
           <ul className="flex flex-col gap-1">
-            {NAVIGATION.map(({ section, label }) => (
+            {navigation.map(({ section, label }) => (
               <li key={section}>
                 <button
                   type="button"

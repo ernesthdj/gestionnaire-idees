@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
+import { probeAction } from '../analyste/probe'
 
 /**
  * Supprime une idée et tout son contenu de la carte (après l'avertissement affiché par l'appelant), referme sa
@@ -15,6 +16,7 @@ export function useRemoveIdea(): (idea: { readonly id: string; readonly title: s
     async (idea) => {
       try {
         const { batchId } = await call<{ readonly batchId: string }>('neuron:remove', { rootId: idea.id })
+        probeAction('neuron.remove', 'neuron', 'souris', idea.id)
         if (useUiStore.getState().chatNeuronId === idea.id) closeChat()
         showToast(`« ${idea.title} » est supprimée.`, { batchId, undoneText: 'Idée restaurée, avec tout son contenu.' })
         await Promise.all([

@@ -789,3 +789,17 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Resume :** spec 017 D17 validée au test guidé (T059) et commitée ; US5 (clone git) mise en pause ; brainstorm complet « Analyste interne » (L1g, L2 ×4, L3 ×3, L4e) exporté en FOUNDATION §0000 ; constitution 4.2.0 puis 4.2.1 (branche `analyste/*`, tâche `analyste` en lecture, npm de vérification) ; spec 019 rédigée, planifiée (10+2 points de recherche, migration 0030), découpée en 43 tâches et analysée (13 constats corrigés).
 **Branche :** main
 **Commits pushes :** 4
+
+### [2026-10-07 16:48] FEAT — spec 019 lots 1–2 et US1 (T002, T004–T015) : la sonde sans contenu de l’Analyste interne
+**Fichiers :** migration `0030_analyste` (+ down) et `schemaAnalyste.ts` (`observations`, `analyses`, `proposals`, `analyst_updates` ; `ai_calls.input_fp/output_fp` ; `neurons.hidden`) ; `shared/analyste/events.ts` (catalogue fermé Zod) ; `shared/ipc/analyste.ts` ; `domain/analyste/fingerprint.ts` (JSON canonique, HMAC-SHA256) ; `application/analyste/RepoGuard.ts` (dépôt source désigné, revérifié chaque heure) et `ProbeService.ts` (file, pseudonymes, rafales, purge) ; `ObservationRepository`, `AnalysteRepository` ; `logger.ts` (`teeSink`) ; `ipc/registry.ts` (mesure de chaque canal) ; `ipc/analysteHandlers.ts` (8 canaux) ; `bootstrap.ts` ; renderer : `analyste/probe.ts` (lots, navigation, erreurs sans message), `useAnalysteStatus.ts`, `labels.ts`, `pages/settings/AnalysteSettings.tsx` + `ObservationsPage.tsx`, entrée Analyste de `AppShell`, 6 actions instrumentées ; exclusions `.analyste/`. Tests : +53 (1232).
+**Quoi :** la sonde n’existe que si l’app tourne depuis le dépôt désigné (rien dans l’app installée) ; elle garde écran, action, type d’objet par pseudonyme, type et emplacement d’erreur, durée des canaux ; jamais un texte ni un identifiant réel (test SC-001 sur le profil démo, textes piégés compris). Réglages › Analyste : désigner le dépôt, ce qui est gardé ou jamais gardé, conservation, observations (voir, exporter, effacer avec confirmation).
+**Erreur corrigée :** (1) un point-virgule dans un commentaire de la migration d’annulation coupait l’instruction (le test découpe sur `;`) ; (2) `DROP COLUMN` exige de retirer l’index de la colonne d’abord.
+**Règle apprise :** une donnée « sans contenu » se prouve par un test qui cherche les vrais textes du profil démo dans tout ce qui est stocké, pas par la relecture du schéma.
+
+### [2026-10-07 16:59] FIX — spec 019 US1 : Réglages › Analyste chargeait sans fin (retour du test T016)
+**Erreur corrigée :** les canaux sans paramètre de l'Analyste exigeaient un objet vide alors que l'interface n'envoie rien (convention de l'app : `z.undefined()`) ; la réponse « Données invalides » laissait la page sur « Chargement… ». Canaux alignés, page qui affiche l'erreur au lieu de charger sans fin, tests des canaux appelés comme l'interface les appelle.
+**Règle apprise :** tester un canal IPC avec la charge utile exacte qu'envoie l'interface (ici `undefined`), pas avec une valeur « raisonnable » ; et toute vue qui attend une requête doit avoir un état d'erreur.
+
+### [2026-10-07 17:09] DOCS — test guidé validé : spec 019 T016 (US1, sonde)
+**Quoi :** après correction, mentalyas confirme que la sonde s'active sur le dépôt désigné et récupère les observations.
+

@@ -7,7 +7,8 @@ export default defineConfig({
   schema: [
     './src/main/infrastructure/db/schema.ts',
     './src/main/infrastructure/db/schemaNeurons.ts',
-    './src/main/infrastructure/db/schemaReprise.ts'
+    './src/main/infrastructure/db/schemaReprise.ts',
+    './src/main/infrastructure/db/schemaAnalyste.ts'
   ],
   out: './src/main/infrastructure/db/migrations'
 })

@@ -14,3 +14,4 @@ out/
 node_modules/
 .kilo/
 .obsidian/
+.analyste/

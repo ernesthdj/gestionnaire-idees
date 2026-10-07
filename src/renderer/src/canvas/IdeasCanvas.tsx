@@ -20,6 +20,7 @@ import type { RootView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
+import { probeAction } from '../analyste/probe'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { buildGraph, computeLayout, ideaLinks, structureFlowEdge, type CanvasNode } from './buildGraph'
@@ -357,6 +358,7 @@ function CanvasInner(): React.JSX.Element {
     }
     try {
       const block = await call<BlockView>('canvas:createBlock', { kind: tool, x: position.x, y: position.y })
+      probeAction('block.create', 'block', 'souris', block.id)
       markBorn(block.id)
       await client.invalidateQueries({ queryKey: ['canvas'] })
     } catch (error) {
@@ -367,6 +369,7 @@ function CanvasInner(): React.JSX.Element {
   const createIdea = async (text: string, position: Point): Promise<boolean> => {
     try {
       const root = await call<RootView>('neuron:create', { text, position })
+      probeAction('neuron.create', 'neuron', 'souris', root.id)
       markBorn(root.id)
       setDraft(null)
       await client.invalidateQueries({ queryKey: ['canvas'] })

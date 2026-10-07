@@ -13,6 +13,7 @@ export default tseslint.config(
       '.specify/**',
       '.claude/**',
       '.kilo/**',
+      '.analyste/**',
       'docs/**',
       'scripts/**/*.cjs'
     ]

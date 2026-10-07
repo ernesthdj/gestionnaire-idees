@@ -211,6 +211,13 @@
       "when": 1791357917513,
       "tag": "0029_reprise_guide",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1791383657688,
+      "tag": "0030_analyste",
+      "breakpoints": true
     }
   ]
 }

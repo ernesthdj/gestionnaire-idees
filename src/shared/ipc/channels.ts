@@ -98,7 +98,15 @@ export const MAIN_WINDOW_CHANNELS = [
   'explorer:saveState',
   'element:setCollapsed',
   'structure:files',
-  'structure:file'
+  'structure:file',
+  'analyste:repo:status',
+  'analyste:repo:choose',
+  'analyste:events',
+  'analyste:observations',
+  'analyste:observations:export',
+  'analyste:purge',
+  'analyste:settings:get',
+  'analyste:settings:set'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
