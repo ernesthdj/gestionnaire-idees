@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
-- Version change: 4.2.0 → 4.2.1 (2026-10-07, clarification, /speckit-analyze spec 019 C1 — validée par mentalyas)
+- Version change: 4.2.1 → 4.3.0 (2026-10-07, « Arbre de skills », FOUNDATION §00000, L1h A9 — validée par mentalyas)
+- Modified principles: I (l'app peut écrire dans les dossiers de skills de Claude Code, seulement sur « Installer » ou
+  « Revenir » de mentalyas, version remplacée sauvegardée ; jamais d'exécutable depuis un brouillon de Claude ; un script
+  d'import seulement s'il est autorisé fichier par fichier, jamais exécuté par l'app)
+- Motif : page Skills (arbre de compétences), brouillons de skills par Claude, import GitHub en quarantaine (L1h–L4f)
+- Impact : spec 020 prévue (Arbre de skills) ; aucune spec existante contredite ; aucun retrait
+- Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
+- Historique : 4.2.0 → 4.2.1 (2026-10-07, clarification, /speckit-analyze spec 019 C1 — validée par mentalyas)
 - Modified principles: I (npm est un programme Node : lancé par `node` avec `npm-cli.js`, chacun par chemin absolu,
   sans shell ; ce n'est pas un interpréteur intermédiaire au sens de I, qui vise les shells)
 - Impact : spec 019 research R7 / T031 conformes ; aucun retrait
@@ -89,6 +96,10 @@ Sync Impact Report
 - Ce que Claude Code fait **dans les fichiers et les commandes** de mentalyas relève de Claude Code et du mode de
   permission choisi (II) ; l'app MUST relayer fidèlement chaque demande de permission et ne jamais répondre à la
   place de mentalyas hors des règles qu'il a posées. Le dossier de données de l'app MUST NOT être ouvert à Claude.
+- Skills de Claude Code (FOUNDATION §00000) : l'app MAY écrire dans les dossiers de skills (`~/.claude/skills`, et
+  `.claude/skills` d'un projet lié) seulement sur un clic « Installer » ou « Revenir » de mentalyas, après avoir
+  sauvegardé la version remplacée ; elle MUST NOT y écrire un fichier exécutable venu d'un brouillon de Claude ; un
+  script venu d'un import n'y est écrit que s'il a été autorisé fichier par fichier, et l'app ne l'exécute jamais.
 Rationale : l'app manipule des idées personnelles, des données financières et des accès à un compte
 Microsoft, dans un dépôt visible de tous.
 
@@ -221,4 +232,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.2.1 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.3.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
