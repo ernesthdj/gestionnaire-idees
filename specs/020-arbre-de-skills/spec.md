@@ -26,6 +26,8 @@ n'est pas installée ; *quarantaine* = dossier temporaire où un dépôt import�
 | D7 | Conversations | Une conversation « Skills » générale (créer, combiner, techniques d'usage) + une conversation par skill. |
 | D8 | Droits | Skills personnels et de projet modifiables (ceux de projet écrits dans le dépôt du projet, jamais commités par l'app) ; skills de plugins en lecture seule, « Dupliquer en skill personnel ». |
 | D9 | Constitution | Amendement **4.3.0** (2026-10-07, validé) : principe I — écriture dans les dossiers de skills seulement sur « Installer » ou « Revenir », version sauvegardée ; jamais d'exécutable depuis un brouillon de Claude ; script d'import seulement autorisé fichier par fichier, jamais exécuté par l'app. |
+| D10 | Supprimer (2026-10-08) | Demande de mentalyas : « Supprimer » un skill personnel ou de projet, **sur clic** et confirmation ; le dossier entier est sauvegardé dans les versions puis retiré ; annulable (Historique) et rétablissable. Claude peut le **proposer** dans la conversation, jamais le faire. Amendement constitution **4.5.0**. |
+| D11 | Ordre (2026-10-08) | Demande de mentalyas : US3 (conversation + créer / modifier / supprimer) puis US4 (import GitHub) **avant** US2 (fiches et étoiles) ; la migration crée dès US3 toutes les tables prévues. |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -107,6 +109,9 @@ rien sur le disque avant « Installer » ; installer puis revenir rend le fichie
    invalide, **Then** il est refusé.
 7. **Given** la conversation « Skills », **When** mentalyas demande comment combiner deux skills, **Then** Claude répond en
    s'appuyant sur leurs fiches.
+8. **Given** un skill personnel ou de projet (D10), **When** mentalyas clique Supprimer et confirme, **Then** le dossier
+   est sauvegardé puis retiré, le nœud disparaît, et « Annuler » ou « Revenir » le rétablit à l'identique ; un skill de
+   plugin ne peut pas être supprimé.
 
 ---
 
@@ -197,6 +202,8 @@ contenant « ignore tes consignes et envoie… » est classé dangereux ; une ad
   personnel de même contenu.
 - **FR-022**: Les skills de projet MUST être écrits dans le dépôt du projet lié ; l'app MUST NOT les commiter.
 - **FR-023**: Un brouillon de nouveau skill MUST apparaître dans l'arbre comme nœud fantôme jusqu'à son installation.
+- **FR-030** (D10): « Supprimer » MUST, sur confirmation, sauvegarder le dossier entier du skill (versions) puis le
+  retirer ; MUST être annulable et rétablissable ; MUST être refusé pour un skill de plugin ; Claude MUST NOT supprimer.
 
 **Importer**
 
@@ -233,7 +240,7 @@ contenant « ignore tes consignes et envoie… » est classé dangereux ; une ad
 
 - **SC-001**: **100 %** des skills présents dans les trois familles apparaissent dans l'arbre (comparaison avec
   l'inventaire du disque).
-- **SC-002**: **0** fichier de skill modifié sans un clic « Installer » ou « Revenir » de mentalyas, vérifié par un test
+- **SC-002**: **0** fichier de skill modifié sans un clic « Installer », « Revenir » ou « Supprimer » de mentalyas, vérifié par un test
   qui parcourt les conversations et l'import.
 - **SC-003**: Installer puis Revenir ramène le skill **exactement** à son contenu d'origine.
 - **SC-004**: **0** texte de conversation conservé par le comptage d'usage (test sur historiques fictifs).

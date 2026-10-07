@@ -1,6 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 4.4.0 → 4.4.1 (2026-10-08, clarification, /speckit-analyze spec 021 H3 — décision D11 de mentalyas)
+- Version change: 4.4.1 → 4.5.0 (2026-10-08, « Supprimer un skill », spec 020 D10 — validée par mentalyas)
+- Modified principles: I (écriture dans les dossiers de skills aussi sur « Supprimer », dossier sauvegardé avant ;
+  Claude peut proposer une suppression, jamais la faire)
+- Impact : spec 020 FR-030 ; aucun retrait · Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
+- Historique : 4.4.0 → 4.4.1 (2026-10-08, clarification, /speckit-analyze spec 021 H3 — décision D11 de mentalyas)
 - Modified principles: II (« dépôt tiers » défini : ni au compte GitHub connecté, ni un dépôt où ce compte a le droit
   `admin` ou `maintain` ; un dépôt d'organisation administré par mentalyas n'est donc pas tiers)
 - Impact : spec 021 FR-015 alignée ; aucun retrait · Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
@@ -116,8 +120,8 @@ Sync Impact Report
   permission choisi (II) ; l'app MUST relayer fidèlement chaque demande de permission et ne jamais répondre à la
   place de mentalyas hors des règles qu'il a posées. Le dossier de données de l'app MUST NOT être ouvert à Claude.
 - Skills de Claude Code (FOUNDATION §00000) : l'app MAY écrire dans les dossiers de skills (`~/.claude/skills`, et
-  `.claude/skills` d'un projet lié) seulement sur un clic « Installer » ou « Revenir » de mentalyas, après avoir
-  sauvegardé la version remplacée ; elle MUST NOT y écrire un fichier exécutable venu d'un brouillon de Claude ; un
+  `.claude/skills` d'un projet lié) seulement sur un clic « Installer », « Revenir » ou « Supprimer » de mentalyas,
+  après avoir sauvegardé la version remplacée ou supprimée (Claude MAY proposer une suppression, jamais la faire) ; elle MUST NOT y écrire un fichier exécutable venu d'un brouillon de Claude ; un
   script venu d'un import n'y est écrit que s'il a été autorisé fichier par fichier, et l'app ne l'exécute jamais.
 - Git et GitHub (FOUNDATION §000000) : les identifiants restent gérés par git et `gh` du poste ; l'app MUST NOT
   demander, lire, stocker ni journaliser un jeton, ni enregistrer une adresse qui en contient. Dans un dépôt non marqué
@@ -266,4 +270,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.4.1 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.5.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
