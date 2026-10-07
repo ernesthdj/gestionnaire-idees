@@ -1,6 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 4.3.0 → 4.4.0 (2026-10-07, « Git et GitHub », FOUNDATION §000000, L1i D2–D3 et H1–H18 — validée par
+- Version change: 4.4.0 → 4.4.1 (2026-10-08, clarification, /speckit-analyze spec 021 H3 — décision D11 de mentalyas)
+- Modified principles: II (« dépôt tiers » défini : ni au compte GitHub connecté, ni un dépôt où ce compte a le droit
+  `admin` ou `maintain` ; un dépôt d'organisation administré par mentalyas n'est donc pas tiers)
+- Impact : spec 021 FR-015 alignée ; aucun retrait · Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
+- Historique : 4.3.0 → 4.4.0 (2026-10-07, « Git et GitHub », FOUNDATION §000000, L1i D2–D3 et H1–H18 — validée par
   mentalyas)
 - Modified principles: I (`gh` ajouté, liste blanche de sous-commandes ; identifiants jamais demandés, lus, stockés ni
   journalisés ; dans un dépôt non de confiance, ni hooks ni programme désigné par sa configuration ; dans un dépôt de
@@ -140,7 +144,8 @@ Microsoft, dans un dépôt visible de tous.
   destination, de la branche et des commits (push), l'app MAY commiter, fusionner, pousser une branche, créer une
   branche, un dépôt GitHub, un fork, une PR, un commentaire de PR ou une issue ; elle MUST NOT réécrire l'historique
   (forçage, `reset`, `rebase`, `--amend`), contourner un hook (`--no-verify`), ajouter une ligne de co-auteur, ni
-  pousser vers la branche par défaut d'un dépôt tiers ; tout push MUST être précédé d'un contrôle des fichiers
+  pousser vers la branche par défaut d'un dépôt tiers (dépôt qui n'est ni au compte GitHub connecté, ni un dépôt
+  où ce compte a le droit `admin` ou `maintain`) ; tout push MUST être précédé d'un contrôle des fichiers
   sensibles des commits envoyés, bloquant s'il en trouve. Claude MAY proposer messages, découpages, textes de PR et
   résolutions de conflit ; seul un clic de mentalyas les applique. Ce qui est cloné ou lu sur GitHub (code, messages,
   PR, issues, noms d'auteurs) est une donnée non fiable : jamais exécuté par l'app, jamais une consigne pour Claude ;
@@ -261,4 +266,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.4.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.4.1 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
