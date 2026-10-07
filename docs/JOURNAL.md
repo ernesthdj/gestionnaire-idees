@@ -767,3 +767,20 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 ### [2026-10-07 15:48] DOCS — constitution 4.1.0 → 4.2.0 (Analyste interne)
 **Fichiers :** `.specify/memory/constitution.md`.
 **Quoi :** trois ajouts (L1g A9) : I (`npm` limité aux scripts de vérification dans un worktree `analyste/*`), II (branche `analyste/*` créée, commitée, fusionnée sur « Garder » et révocable après acceptation explicite ; jamais de push ni de réécriture), IV (tâche `analyste` : seule tâche automatique avec outils, lecture et recherche dans le dépôt désigné). Aucun retrait.
+
+### [2026-10-07 15:51] DOCS — spec 019 « Analyste interne » (/speckit-specify)
+**Fichiers :** `specs/019-analyste-interne/spec.md`, `checklists/requirements.md`, `.specify/feature.json` (spec en cours : 019).
+**Quoi :** 9 décisions (D1–D9), 6 user stories (P1 : sonde, analyse, tri ; P2 : appliquer, annuler ; P3 : rythme), 43 exigences, 9 critères de succès ; checklist de qualité validée, aucune clarification ouverte.
+
+### [2026-10-07 15:54] DOCS — spec 019 : plan (/speckit-plan)
+**Fichiers :** `specs/019-analyste-interne/{plan,research,data-model,quickstart}.md`, `contracts/interfaces.md`.
+**Quoi :** constitution 4.2.0 vérifiée (I–VI ✅, IV sous réserve de la preuve R1) ; aucune dépendance nouvelle ; migration 0030 (4 tables + empreintes sur `ai_calls`) ; 7 lots ; 10 points de recherche (R1 lecture seule bloquante, R5 neurone de mise à jour, R6 worktree + jonction `node_modules`, R7 npm sans shell via `npm-cli.js`, R8 fusion et rechargement à chaud).
+
+### [2026-10-07 15:58] DOCS — spec 019 : tâches (/speckit-tasks)
+**Fichiers :** `specs/019-analyste-interne/tasks.md`.
+**Quoi :** 43 tâches en 9 phases (T001 constitution déjà faite) ; MVP = US1 + US2 + US3 (observer, analyser, trier) ; T017 preuve R1 bloquante (lecture de %APPDATA% refusée) avec retour de mentalyas ; un test guidé par histoire.
+
+### [2026-10-07 16:08] DOCS — spec 019 : /speckit-analyze et remédiation ; constitution 4.2.1
+**Fichiers :** `specs/019-analyste-interne/{analysis-report,spec,research,data-model,quickstart,tasks}.md`, `contracts/interfaces.md`, `.specify/memory/constitution.md`.
+**Quoi :** 13 constats (1 CRITICAL, 2 HIGH, 6 MEDIUM, 4 LOW), corrigés après validation : C1 constitution 4.2.1 (npm = programme Node lancé par `node` + `npm-cli.js`, sans shell) ; I1 profil d'essai distinct pour « Essayer » (verrou d'instance unique de `src/main/index.ts`, research R11) ; I2 analyse du dépôt via le genesis qui le lie déjà (pas de réimport `ALREADY_LINKED`) ; U1 écritures sous `node_modules` refusées ; U2 `neurons.hidden` ; G1 `ia_vers_code` exige une preuve de répétition ; G2 revérification du dépôt (R12) ; G3 mesure SC-009 ; refus réversible.
+**Règle apprise :** une analyse croisée qui lit aussi le code (verrou d'instance, refus de réimport) trouve des conflits qu'aucun document ne montre seul.

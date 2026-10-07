@@ -1,6 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 4.1.0 → 4.2.0 (2026-10-07, « Analyste interne », FOUNDATION §0000, L1g A9 — validée par mentalyas)
+- Version change: 4.2.0 → 4.2.1 (2026-10-07, clarification, /speckit-analyze spec 019 C1 — validée par mentalyas)
+- Modified principles: I (npm est un programme Node : lancé par `node` avec `npm-cli.js`, chacun par chemin absolu,
+  sans shell ; ce n'est pas un interpréteur intermédiaire au sens de I, qui vise les shells)
+- Impact : spec 019 research R7 / T031 conformes ; aucun retrait
+- Historique : 4.1.0 → 4.2.0 (2026-10-07, « Analyste interne », FOUNDATION §0000, L1g A9 — validée par mentalyas)
 - Modified principles: I (`npm` ajouté aux programmes lancés, limité aux scripts de vérification dans un worktree
   `analyste/*` ; Analyste seulement depuis le dépôt source désigné, jamais dans l'app installée), II (l'app peut créer,
   commiter, fusionner et révoquer une branche `analyste/*` après acceptation explicite ; jamais de push ni de réécriture),
@@ -76,8 +80,9 @@ Sync Impact Report
   authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
 - L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main,
   l'éditeur réglé par mentalyas (spec 013 D4), **git** (résolu par chemin absolu dans le PATH ; specs 016, 017)
-  et **npm** (résolu par chemin absolu ; seulement les scripts `typecheck`, `lint`, `test` et `prettier --check`,
-  dans un worktree `analyste/*` ; Analyste interne, FOUNDATION §0000),
+  et **npm** (programme Node : lancé par `node` avec le `npm-cli.js` installé à côté de `npm.cmd`, tous deux résolus
+  par chemin absolu, sans shell ; seulement les scripts `typecheck`, `lint`, `test` et `prettier --check`, dans un
+  worktree `analyste/*` ; Analyste interne, FOUNDATION §0000),
   sans interpréteur intermédiaire ni shell ; les arguments sont construits
   par le main (valeurs fixes, mode validé par schéma, dossiers choisis par mentalyas dans un dialogue natif
   puis vérifiés) ; les messages passent par stdin, jamais en argument.
@@ -216,4 +221,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.2.1 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07

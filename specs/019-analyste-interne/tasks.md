@@ -1,0 +1,90 @@
+# Tasks: Analyste interne (spec 019)
+
+**Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md),
+[contracts/interfaces.md](contracts/interfaces.md), [quickstart.md](quickstart.md)
+**Tests** : demandés (constitution V) — nommage `should_<comportement>_when_<condition>` ; interface : renderer + axe
+(`expectNoAxeViolations`) ; git réel sur dépôt temporaire ; CLI `claude`, npm et horloge simulés.
+
+## Phase 1 — Mise en place
+- [x] T001 Constitution 4.2.0 (D9) : principes I (`npm` de vérification), II (branche `analyste/*`), IV (tâche `analyste` en lecture) dans `.specify/memory/constitution.md` (commit `00435da`)
+- [ ] T002 [P] Exclure `.analyste/` : `.gitignore`, `tsconfig.node.json` / `tsconfig.web.json` (`exclude`), `vitest.config.ts`, `eslint.config.*`, `.prettierignore`, `.graphifyignore` s'il existe
+- [ ] T003 [P] Fixture **fictive** `tests/fixtures/analyste/observations-semaine.json` : une semaine d'observations (erreur `TypeError` répétée dans `canvas/buildGraph.ts`, appels `ipc.call` lents sur un canal, tâche IA `categorize` avec 23 fois la même empreinte d'entrée et de sortie, allers-retours explorateur ↔ carte, écran `widgets` jamais ouvert, séquence fréquente de 3 actions)
+
+## Phase 2 — Fondations (bloquant)
+- [ ] T004 Migration `0030_analyste` (tables `observations`, `analyses`, `proposals`, `analyst_updates` ; `ai_calls.input_fp` / `output_fp` + index `(kind, input_fp)` ; `neurons.hidden` (research R5) ; index partiel unique `analyses(status='running')`) via `npm run db:generate`, schéma dans `src/main/infrastructure/db/schemaAnalyste.ts` + `src/main/infrastructure/db/migrations/down/0030_analyste.down.sql` écrit à la main + aller-retour testé dans `tests/integration/db/`
+- [ ] T005 [P] Catalogue fermé `src/shared/analyste/events.ts` (union Zod discriminée sur `event`, énumérations `screen`, `subjectKind`, `via`, familles ; chaînes ≤ 48 ; `frames` ≤ 5 relatifs) + tests (événement inconnu, champ en trop, texte long, cadre absolu → rejetés)
+- [ ] T006 [P] Vues et contrats `src/shared/ipc/analyste.ts` (ObservationView, AnalysisView, ProposalView, UpdateView, réglages, codes d'erreur de `contracts/interfaces.md`) ; canaux et événements `analyste:*` dans `src/shared/ipc/channels.ts` au fil des gestionnaires
+- [ ] T007 [P] Pur : empreintes et pseudonymes `src/main/domain/analyste/fingerprint.ts` (JSON canonique récursif, `trim`, HMAC-SHA256 tronqué 16 / 12 hex, clé injectée) + tests (même entrée → même empreinte, ordre des clés indifférent, autre clé → autre empreinte)
+- [ ] T008 `RepoGuard` `src/main/application/analyste/RepoGuard.ts` : `app.isPackaged` ⇒ `PACKAGED_APP` ; dossier du dialogue natif → `git rev-parse --show-toplevel` (via `runGit`) = dossier, `package.json` au nom attendu, `src/main/bootstrap.ts` présent, `app.getAppPath()` dans le dossier (chemins réels) ; statut `available / active / reason` ; revérification au démarrage et toutes les heures (`REPO_MOVED`, `NOT_A_REPO` → sonde en pause, research R12) ; clé HMAC créée à l'activation dans `SecretStore` (`analyste.hmac`) + tests (installée, mauvais dossier, autre dépôt, bon dépôt, dépôt déplacé)
+- [ ] T009 Dépôts `src/main/infrastructure/db/repositories/ObservationRepository.ts` (insertion par lots en transaction, filtres paginés, totaux, purge âge puis volume, agrégats SQL) et `AnalysteRepository.ts` (analyses, propositions, mises à jour, réglages Zod sur la table clé/valeur) + tests d'intégration
+
+## Phase 3 — US1 Activer la sonde et voir ce qu'elle garde (P1) 🎯 MVP
+**Test indépendant** : désigner le dépôt, parcourir le profil démo, ouvrir Observations → événements présents, aucun texte du profil démo.
+- [ ] T010 [US1] `ProbeService` `src/main/application/analyste/ProbeService.ts` : inactif sans `RepoGuard` actif, en pause quand la revérification échoue ; file 2 000 (fusion des `action` / `navigation` identiques consécutives, abandon compté au-delà de 5 000), écriture toutes les 2 s en une transaction, erreurs avalées et comptées, pseudonyme calculé dans le main puis identifiant jeté, purge au démarrage + toutes les heures (research R10) + tests (horloge simulée)
+- [ ] T011 [US1] Captures côté main : `teeSink(stdoutSink, probeSink)` dans `src/main/infrastructure/logging/logger.ts` (réutilise `sanitize`, `warn`/`error` → famille erreur) ; mesure `ipc.call` (canal, durée, statut) dans `createDispatcher` de `src/main/ipc/registry.ts` sans toucher les routes ; câblage `src/main/bootstrap.ts` + tests (le journal stdout inchangé ; une route lente produit une observation)
+- [ ] T012 [US1] Captures côté renderer `src/renderer/src/analyste/probe.ts` : file locale (lots 2 s / 100), navigation (section, panneau, durée), `error` / `unhandledrejection` (type + cadres du dépôt, **jamais le message**), `probe.action(event, kind, id, via)` ; appels posés aux points d'action existants (création d'idée, lien, déplacement, annulation, envoi de chat, ouverture de structure, pose de widget) ; preload `analyste.events` + tests
+- [ ] T013 [US1] IPC `src/main/ipc/analysteHandlers.ts` : `analyste:events`, `analyste:observations`, `analyste:observations:export` (dialogue natif dans le main), `analyste:purge`, `analyste:repo:choose`, `analyste:repo:status`, `analyste:settings:get|set` + tests des canaux (Zod, `PACKAGED_APP`, `PROBE_INACTIVE`)
+- [ ] T014 [US1] Interface : `src/renderer/src/pages/settings/AnalysteSettings.tsx` (désigner le dépôt + contrôle, sonde, conservation, « Ce que la sonde garde » avec la liste de ce qui n'est jamais gardé, « Effacer » confirmé ; app installée → explication) et `ObservationsPage.tsx` (tableau filtrable, compteurs, export) ; entrée **Analyste** de la navigation de `AppShell.tsx` visible seulement si la sonde est active + tests renderer/axe
+- [ ] T015 [US1] Test SC-001 `tests/integration/analyste/probe-no-content.test.ts` : parcours scripté du profil démo par les services, puis aucun de ses textes (titres, notes, messages) dans `observations` ni dans `ai_calls` ; SC-002 : `isPackaged = true` ⇒ 0 ligne
+- [ ] T016 [US1] Test guidé (quickstart §1) — attendre le retour
+
+## Phase 4 — US2 Analyser et recevoir des propositions justifiées (P1) 🎯 MVP
+**Test indépendant** : semaine simulée chargée → analyse → propositions des catégories attendues, preuves existantes.
+- [ ] T017 [US2] **Preuve R1 (bloquante)** : option `tools: 'read-only'` + `cwd` dans `src/main/infrastructure/ai/ClaudeCliProvider.ts` (arguments de `L3-analyste-analyse.md` §2, `--max-turns 40`), refusée pour toute tâche autre que `analyste` ; test des arguments ; procédure manuelle guidée avec le CLI réel (lecture de `%APPDATA%/gestionnaire-idees-demo` refusée), résultat et version du CLI consignés dans `research.md` R1 ; repli `--disallowedTools` si nécessaire — attendre le retour de mentalyas
+- [ ] T018 [P] [US2] Empreintes dans l'`AIGateway` (`src/main/application/ai/AIGateway.ts`) : `input_fp` / `output_fp` écrits dans `ai_calls` après validation, seulement si la sonde est active + tests
+- [ ] T019 [P] [US2] Pur : agrégats `src/main/domain/analyste/aggregate.ts` (comptages, erreurs groupées par code + module + premier cadre, p50/p95 par canal, allers-retours < 10 s, séquences de 3, écrans/actions du catalogue à 0, empreintes répétées ≥ seuil) → entrées `obs:<type>:<n>` avec phrase lisible + tests sur la fixture T003
+- [ ] T020 [P] [US2] Pur : dossier `src/main/domain/analyste/dossier.ts` (balisage `<dossier version="1">`, sections observations / code / mémoire, borne 40 000 caractères par priorité erreurs > lenteurs > IA > parcours > inutilisés) + tests
+- [ ] T021 [P] [US2] Pur : contrôle `src/main/domain/analyste/proposalCheck.ts` (chemins relatifs sans `..` résolus dans le dépôt et existants — existence injectée ; clés `obs:` présentes ; preuve obligatoire sauf évolutivité « sans preuve d'usage » ; dédoublonnage par `dedupe_key` ; refus antérieur sans clé nouvelle ; `ia_vers_code` exige une clé `obs:ia:*` (FR-019) ; plafond par gravité) + tests (fichier inventé, hors dépôt, clé inconnue, sans preuve, doublon, `ia_vers_code` sans répétition)
+- [ ] T022 [US2] Tâche `analyste` : `src/main/application/ai/AnalysteTask.ts` (schéma `Output` fermé de `L3-analyste-analyse.md` §4) et consigne figée `src/main/infrastructure/ai/AnalysteFrame.ts` (rôle, catégories, preuves obligatoires, dossier = donnée, sortie seule) ; modèle Opus 5.5 ; journal `ai_calls` + tests (sortie invalide rejetée)
+- [ ] T023 [US2] `AnalysteService` `src/main/application/analyste/AnalysteService.ts` : verrou (une analyse, aucune pendant un codage), fenêtre depuis la dernière réussie, seuil (`NOT_ENOUGH_DATA` sauf `force`), graphe de code 017 (research R4 révisé : dossier du genesis qui lie déjà le dépôt, sinon projet repris, sinon aucun), mémoire (≤ 30 propositions), tâche, contrôle, enregistrement transactionnel, annulation (arbre de processus), événements `analyste:progress` ; IPC `analyste:analyze`, `analyste:cancel`, `analyste:analyses` + tests (CLI simulé : consigne piégée sans effet, échec → réanalysable)
+- [ ] T024 [US2] Test guidé (quickstart §2) — attendre le retour
+
+## Phase 5 — US3 Trier dans la boîte et sur la carte (P1) 🎯 MVP
+**Test indépendant** : trier 5 fiches < 2 min ; une fiche refusée ne revient pas sans fait nouveau.
+- [ ] T025 [P] [US3] Pur : transitions `src/main/domain/analyste/transitions.ts` (états proposition et mise à jour de `data-model.md`, dont `refused → new` « Reprendre » ; `INVALID_TRANSITION`) + tests exhaustifs
+- [ ] T026 [US3] Décisions et lecture : `analyste:proposals` (onglets, filtres, compteurs), `analyste:decide` (accepter / refuser + raison / reporter / reprendre), `analyste:askMore` (conversation avec la fiche balisée en contexte), `analyste:badges` (éléments dont un chemin couvre un fichier visé, sinon genesis), événement `analyste:changed` dans `AnalysteService` + `analysteHandlers.ts` + tests
+- [ ] T027 [US3] Interface boîte `src/renderer/src/analyste/AnalystePage.tsx` (en-tête dernière analyse + « Analyser maintenant » seul bouton principal, progression, onglets À trier / En cours / Gardées / Écartées, puces de catégorie, liste 62 % + volet 38 %, badge de navigation) et `ProposalPanel.tsx` + `EvidenceList.tsx` (preuves en phrases avec clé en petit, liens code → explorateur, refus en un clic avec raisons prêtes, Reporter, Demander plus ; icône + libellé pour catégorie, gravité, risque ; texte jamais interprété) + tests renderer/axe
+- [ ] T028 [US3] Carte : badge « N propositions » dans `src/renderer/src/canvas/nodes/ElementNode.tsx` (libellé accessible, clic → fiche), « Lier et cartographier le Brainstormer » dans la boîte seulement si aucun genesis ne lie le dépôt (research R4 : un genesis déjà lié est utilisé tel quel, jamais réimporté) + tests renderer/axe
+- [ ] T029 [US3] Test guidé (quickstart §3) — attendre le retour
+
+## Phase 6 — US4 Appliquer, essayer, garder ou jeter (P2)
+**Test indépendant** : dépôt propre → branche + commit + 4 vérifications vertes, `main` et app ouverte inchangés ; Garder → fusion sans push ; Jeter → seulement la branche et le worktree supprimés.
+- [ ] T030 [P] [US4] Pur : `src/main/domain/analyste/branchName.ts` (`analyste/<id8>-<slug ≤ 30 [a-z0-9-]>`, chemin `<repo>/.analyste/worktrees/<id8>`) + tests (titres hostiles : `..`, `-`, espaces, unicode)
+- [ ] T031 [P] [US4] `NpmCli` `src/main/infrastructure/analyste/NpmCli.ts` : `node` + `npm-cli.js` résolus par chemin absolu (research R7), `shell: false`, scripts fermés (`run typecheck`, `run lint`, `exec -- prettier --check src tests`, `test`, `ci` sur demande), `CI=1`, délai 10 min, 50 dernières lignes + tests (processus simulé ; script hors liste refusé)
+- [ ] T032 [US4] `UpdateService` `src/main/application/analyste/UpdateService.ts` — démarrage : pré-contrôles (`status --porcelain`, `symbolic-ref`, `rev-parse`), `worktree add -b`, jonction `node_modules` (`fs.symlink` `junction`), neurone de mise à jour (research R5 : `projectDir` = worktree, `acceptEdits`, `hidden = 1`) ; écritures sous `node_modules` refusées sans demande par le hook d'avant-écriture (U1, test) ; annulation du codage = `worktree remove --force` + `branch -D` ; une seule mise à jour en codage + tests git réels sur dépôt temporaire
+- [ ] T033 [US4] `UpdateService` — fin et décision : `finish` (`add -A` + `commit --trailer "Analyste-Proposal: <id>"` dans le worktree, sans co-auteur ; `NOTHING_CHANGED`), vérifications `NpmCli` une à une (`analyste:update:progress`), `deps_changed` (jonction retirée, `installDeps` confirmé), `diff` (≤ 500 Ko), `keep` (pré-contrôles, `keeping` écrit avant `merge --no-ff`, `merge --abort` sur conflit → `MERGE_CONFLICT`, `worktree remove`, `branch -d`, `kept`), `discard` (confirmation si travail non commité), réconciliation au démarrage (`keeping` ↔ `git log`, worktrees orphelins via `worktree list --porcelain`) + tests git réels (fusion, conflit, jeter, rechargement simulé)
+- [ ] T034 [US4] Test d'inspection SC-005 `tests/integration/analyste/git-commands.test.ts` : sur Garder, Jeter, Annuler, aucune commande `push`, `reset`, `rebase`, `--force`, `checkout` dans le dépôt, ni commit hors worktree ; nom de branche ou chemin proposés par Claude ignorés
+- [ ] T035 [US4] IPC `analyste:update:start|finish|diff|installDeps|try|keep|discard` + interface `src/renderer/src/analyste/UpdatePanel.tsx` (étapes Codage → Vérifications → Prête → Gardée, conversation dans le volet, 4 pastilles icône + libellé, diff fichiers / changements, Essayer = `npm run seed:demo -- --profile essai` dans le worktree (research R11 : `--profile` et dossier de profil fixé avant `requestSingleInstanceLock()` dans `src/main/index.ts`, verrou vérifié par profil ; profil d'essai recréé par copie du démo), montrée ou lancée dans le terminal intégré, Garder actif seulement si tout est vert + confirmation « l'app va se recharger », Jeter, bandeau dépendances, dépôt sale → message + acceptation gardée) + tests renderer/axe
+- [ ] T036 [US4] Test guidé (quickstart §4) — attendre le retour
+
+## Phase 7 — US5 Annuler une mise à jour gardée (P2)
+**Test indépendant** : garder puis annuler → code identique à l'état d'avant, historique avec la mise à jour et sa révocation.
+- [ ] T037 [US5] `revert` dans `UpdateService` (pré-contrôles, `revert -m 1 --no-edit <merge_sha>`, `revert --abort` sur conflit → `REVERT_CONFLICT`, `reverted`) + IPC `analyste:update:revert` + action « Annuler cette mise à jour » (confirmation) dans l'onglet Gardées + tests git réels (SC-006 : `git diff <base_sha>` vide sur les fichiers concernés) et renderer/axe
+- [ ] T038 [US5] Test guidé (quickstart §5) — attendre le retour
+
+## Phase 8 — US6 Laisser l'app proposer d'elle-même (P3)
+**Test indépendant** : horloge simulée, rythme 1 h, seuil 50 : sans activité rien ; 50 événements → une analyse et une notification.
+- [ ] T039 [P] [US6] Pur : `src/main/domain/analyste/schedule.ts` (`decide` → run / wait / postpone / skip : désactivé, seuil, analyse ou codage en cours, conversation en réponse, ≥ 10 à trier, échéances manquées → une seule) + tests
+- [ ] T040 [US6] `RhythmService` `src/main/application/analyste/RhythmService.ts` (minuterie persistée `analyste.nextRunAt`, réarmement au démarrage + 2 min, réessai 15 min, déclencheur `auto`, notification discrète via `analyste:changed`) + réglages rythme / seuil / plafond dans `AnalysteSettings.tsx` (« Prochaine analyse : … ») + tests (horloge simulée) et renderer/axe
+- [ ] T041 [US6] Test guidé (quickstart §6) — attendre le retour
+
+## Phase 9 — Finitions
+- [ ] T042 Mesures consignées dans `research.md` : SC-008 (rafale de 10 000 événements, blocage de l'interface < 100 ms), dossier < 2 s sur 50 000 observations, SC-009 (3 analyses sur la semaine simulée : la tâche `categorize` répétée et l'erreur `TypeError` repérées dans au moins 2)
+- [ ] T043 Démo : `npm run seed:demo` charge la semaine simulée (T003) quand la sonde est active sur le profil démo ; `docs/FOUNDATION.md` (§0000 : 019 livrée), `CLAUDE.md` (spec en cours, Analyste dans les commandes), `docs/JOURNAL.md`
+
+## Dépendances
+T001 ✅ → T002, T003 → T004 → (T005, T006, T007 en parallèle) → T008 → T009 → US1 (T010 → T011, T012 → T013 → T014 → T015 → T016)
+→ US2 (T017 bloquant ; T018–T021 en parallèle → T022 → T023 → T024) → US3 (T025 → T026 → T027, T028 → T029)
+→ US4 (T030, T031 en parallèle → T032 → T033 → T034 → T035 → T036) → US5 (T037 → T038) → US6 (T039 → T040 → T041)
+→ T042, T043. US6 ne dépend que d'US2 (peut avancer après T024 si besoin).
+
+## Parallélisme
+- Phase 1 : T002 et T003.
+- Fondations : T005, T006, T007 (fichiers distincts).
+- US2 : T018 (gateway), T019, T020, T021 (purs) pendant que la preuve T017 attend mentalyas.
+- US4 : T030 et T031.
+
+## Stratégie
+MVP = US1 + US2 + US3 (observer, analyser, trier : l'Analyste ne touche encore à rien) ; test guidé à la fin de chaque
+histoire. Puis US4 + US5 (appliquer et annuler : la partie sensible, isolée), puis US6 (rythme). Commit après chaque
+test guidé validé, sur confirmation.
