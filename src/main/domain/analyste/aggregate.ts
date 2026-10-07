@@ -33,7 +33,16 @@ export interface AggregateOptions {
   readonly repeatThreshold: number
   /** Durée de la fenêtre, pour les phrases (« sur 7 jours »). */
   readonly windowMs: number
+  /**
+   * Observations de toute la période de rétention et durée réellement couverte (première observation → fin), pour les
+   * faits « jamais ouvert / jamais faite » : la fenêtre depuis la dernière analyse peut ne durer que quelques minutes.
+   * Absent : la fenêtre elle-même.
+   */
+  readonly history?: { readonly records: readonly ObservationRecord[]; readonly spanMs: number }
 }
+
+/** Durée d'observation en dessous de laquelle « jamais utilisé » ne veut rien dire : aucun fait `inutil`. */
+export const UNUSED_MIN_SPAN_MS = 3 * 86_400_000
 
 /** Seuils des agrégats de parcours et de lenteur. */
 export const AGGREGATE_LIMITS = {
@@ -61,7 +70,12 @@ const seconds = (ms: number): string => {
   return `${(ms / 1000).toFixed(1).replace('.', ',')} s`
 }
 
-const days = (windowMs: number): string => plural(Math.max(1, Math.round(windowMs / DAY_MS)), 'jour')
+/** Durée réelle, dans l'unité qui lui convient (minutes, heures, jours) : jamais arrondie à « 1 jour ». */
+export const duration = (ms: number): string => {
+  if (ms < 3_600_000) return plural(Math.max(1, Math.round(ms / 60_000)), 'minute')
+  if (ms < DAY_MS) return plural(Math.round(ms / 3_600_000), 'heure')
+  return plural(Math.round(ms / DAY_MS), 'jour')
+}
 
 const SCREEN_NAMES: Readonly<Record<ProbeScreen, string>> = {
   carte: 'la carte',
@@ -123,7 +137,7 @@ function errors(records: readonly ObservationRecord[], windowMs: number): Draft[
       type: 'err',
       weight: g.n,
       signature: `err|${id}`,
-      line: `erreur ${g.code}${g.module === '' ? '' : ` module=${g.module}`}${g.frame === '' ? '' : ` cadre=${g.frame}`} ×${g.n} (${plural(g.days.size, 'jour')} distincts sur ${days(windowMs)})`,
+      line: `erreur ${g.code}${g.module === '' ? '' : ` module=${g.module}`}${g.frame === '' ? '' : ` cadre=${g.frame}`} ×${g.n} (${plural(g.days.size, 'jour')} distincts sur ${duration(windowMs)})`,
       sentence: `L’erreur ${g.code}${where === '' ? '' : ` (${where})`} est survenue ${plural(g.n, 'fois', 'fois')}, sur ${plural(g.days.size, 'jour')}.`
     }
   })
@@ -229,11 +243,11 @@ function sequences(records: readonly ObservationRecord[]): Draft[] {
     }))
 }
 
-function unused(records: readonly ObservationRecord[], windowMs: number): Draft[] {
-  if (records.length === 0) return []
+function unused(records: readonly ObservationRecord[], spanMs: number): Draft[] {
+  if (records.length === 0 || spanMs < UNUSED_MIN_SPAN_MS) return []
   const opened = new Set(records.filter((r) => r.event === 'screen.open').map((r) => r.screen))
   const done = new Set(records.filter((r) => r.family === 'action').map((r) => r.event))
-  const span = days(windowMs)
+  const span = duration(spanMs)
   return [
     ...PROBE_SCREENS.filter((screen) => !opened.has(screen)).map((screen): Draft => ({
       type: 'inutil',
@@ -280,7 +294,7 @@ export function aggregate(
     ia: repeatedAi(aiCalls, options.repeatThreshold),
     aller: backAndForth(sorted),
     seq: sequences(sorted),
-    inutil: unused(sorted, options.windowMs),
+    inutil: unused(options.history?.records ?? sorted, options.history?.spanMs ?? options.windowMs),
     compte: counts(sorted)
   }
   return AGGREGATE_TYPES.flatMap((type) =>

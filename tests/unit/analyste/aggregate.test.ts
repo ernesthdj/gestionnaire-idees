@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   aggregate,
+  duration,
   percentile,
   type AggregateEntry,
   type AiCallFingerprint
@@ -66,6 +67,32 @@ describe('agrégats de la sonde (spec 019 T019)', () => {
       expect.arrayContaining(['inutil|screen|a_valider', 'inutil|action|plan.decide', 'inutil|action|neuron.remove'])
     )
     expect(unused).not.toContain('inutil|screen|carte')
+  })
+
+  it('should_not_claim_never_used_when_the_window_lasts_only_minutes', () => {
+    const recent = week.observations.slice(-20)
+    const short = aggregate(recent, [], { ...OPTIONS, windowMs: 23 * 60_000 })
+    expect(short.filter((entry) => entry.type === 'inutil')).toEqual([])
+  })
+
+  it('should_judge_never_used_on_the_whole_retention_when_history_is_given', () => {
+    const recent = week.observations.slice(-20)
+    const withHistory = aggregate(recent, [], {
+      ...OPTIONS,
+      windowMs: 23 * 60_000,
+      history: { records: week.observations, spanMs: 5 * 86_400_000 }
+    })
+    const unused = withHistory.filter((entry) => entry.type === 'inutil')
+    expect(unused.map((entry) => entry.signature)).toContain('inutil|screen|a_valider')
+    expect(unused.map((entry) => entry.signature)).not.toContain('inutil|screen|carte')
+    expect(unused[0]?.sentence).toContain('sur 5 jours')
+  })
+
+  it('should_say_the_real_duration_in_minutes_hours_or_days', () => {
+    expect(duration(23 * 60_000)).toBe('23 minutes')
+    expect(duration(20_000)).toBe('1 minute')
+    expect(duration(5 * 3_600_000)).toBe('5 heures')
+    expect(duration(7 * 86_400_000)).toBe('7 jours')
   })
 
   it('should_give_unique_citable_keys_and_stable_signatures', () => {

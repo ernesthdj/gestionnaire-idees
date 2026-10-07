@@ -164,9 +164,13 @@ export class AnalysteService {
     }
     try {
       this.deps.emit({ analysisId: id, step: 'dossier' })
+      // « Jamais utilisé » se juge sur toute la rétention, pas sur la fenêtre depuis la dernière analyse.
+      const retained = this.deps.observations.between(to - settings.retentionDays * DAY_MS, to)
+      const firstAt = retained.reduce((min, record) => Math.min(min, record.at), to)
       const entries = aggregate(this.deps.observations.between(from, to), this.deps.aiCalls.fingerprints(from, to), {
         repeatThreshold: settings.repeatThreshold,
-        windowMs: to - from
+        windowMs: to - from,
+        history: { records: retained, spanMs: to - firstAt }
       })
       const dossier = buildDossier({
         window: { from, to, events: this.deps.observations.countBetween(from, to) },
