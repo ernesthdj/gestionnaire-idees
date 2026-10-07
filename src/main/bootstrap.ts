@@ -342,7 +342,17 @@ export function bootstrap(shell: ShellPort): AppContext {
     finals: finalRepository,
     projectDir: projectDirOf,
     files: projectFiles,
-    record: (neuronId, relative, before, next) => executions.recordWrite(neuronId, relative, before, next)
+    record: (neuronId, relative, before, next) => executions.recordWrite(neuronId, relative, before, next),
+    // Conversation d'un élément de carte : ses fichiers écrits restent consultables pendant le travail.
+    elements: {
+      projectDir: (neuronId) => {
+        const neuron = conversationRepository.neuron(neuronId)
+        return neuron?.kind === 'element' && neuron.genesisId !== null ? projectDirOf(neuron.genesisId) : null
+      },
+      addPath: (neuronId, relative) => {
+        if (elementRepository.addPath(neuronId, relative)) broadcast('final:changed', { neuronId })
+      }
+    }
   })
   // Graphe des projets repris (spec 017) ; l'explorateur le charge une fois, vidé du cache à chaque analyse ou
   // correction, et donne aussi à la carte les appels mesurés entre ses éléments (US7).

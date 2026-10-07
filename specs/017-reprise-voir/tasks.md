@@ -103,6 +103,9 @@
 - [x] T078 [US7] Rendu : barre de progression et % dans `ElementNode`, reste à faire au survol, % dans le libellé accessible + tests renderer/axe
 - [ ] T079 [US7] Test guidé (D21) — attendre le retour
 
+## Phase 5 decies — US7 Carte de structure : fichiers écrits pendant le travail (D22)
+- [x] T080 [US7] Hook d'avant-écriture : dans la conversation d'un élément, le chemin relatif du fichier écrit (sous le dossier lié, hors sensible) rejoint ses chemins (`ElementRepository.addPath`, ajout seulement), carte rafraîchie (`final:changed` → `structure`) + tests (`element-add-path.test.ts`, `deliverable-tracker.test.ts`) — écrit par Claude dans le Brainstormer, relu et spécifié ensuite
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)

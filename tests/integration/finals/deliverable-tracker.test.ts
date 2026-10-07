@@ -154,4 +154,49 @@ describe('livrable reconstitué par le hook avant écriture (spec 014 R5, FR-010
     write(step, 't1', 'README.md', '# Site\n')
     expect(repository.files(step)).toEqual([])
   })
+
+  describe('conversation d’un élément de carte', () => {
+    const ELEMENT = '11111111-1111-4111-8111-111111111111'
+    let added: [string, string][]
+    let elementTracker: DeliverableTracker
+
+    beforeEach(() => {
+      added = []
+      elementTracker = new DeliverableTracker({
+        finals: repository,
+        projectDir: () => project,
+        files: new ProjectFiles({ profileDir: join(root, 'profil') }),
+        record: () => undefined,
+        elements: {
+          projectDir: (id) => (id === ELEMENT ? project : null),
+          addPath: (id, relative) => added.push([id, relative])
+        }
+      })
+    })
+
+    const elementWrite = (neuronId: string, file: string, ok = true): void => {
+      elementTracker.before(neuronId, { tool: 'Write', file_path: file, tool_use_id: 't1' })
+      elementTracker.after(neuronId, 't1', ok)
+    }
+
+    it('should_add_the_written_file_path_to_the_element', () => {
+      elementWrite(ELEMENT, join(project, 'src', 'a.ts'))
+      expect(added).toEqual([[ELEMENT, 'src/a.ts']])
+      expect(elementTracker.pendingCount()).toBe(0)
+    })
+
+    it.each([
+      ['a_refused_write', (): string => join(project, 'a.ts'), false],
+      ['a_file_outside_the_project', (): string => join(root, 'hors.txt'), true],
+      ['a_secret_file', (): string => join(project, '.env'), true]
+    ])('should_not_add_%s', (_label, file, ok) => {
+      elementWrite(ELEMENT, file(), ok)
+      expect(added).toEqual([])
+    })
+
+    it('should_ignore_a_conversation_that_is_neither_an_action_nor_an_element', () => {
+      elementWrite(other, join(project, 'x.ts'))
+      expect(added).toEqual([])
+    })
+  })
 })

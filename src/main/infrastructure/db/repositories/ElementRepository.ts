@@ -9,6 +9,7 @@ import {
 import { inferLayer, isArchitectureKind, layerOf } from '@shared/structure/architecture'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
+import { covers, normalizeElementPath } from '../../../domain/reprise/measured'
 import { neurons } from '../schemaNeurons'
 
 export interface ElementRow {
@@ -292,6 +293,28 @@ export class ElementRepository {
       })
       .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
       .run()
+  }
+
+  /**
+   * Ajoute un fichier écrit par Claude aux chemins de l'élément (ses fichiers restent consultables pendant le travail) ;
+   * rien si un chemin de l'élément le couvre déjà. Renvoie vrai si la liste a changé.
+   */
+  addPath(id: string, path: string): boolean {
+    const row = this.db
+      .select({ pathsJson: neurons.pathsJson })
+      .from(neurons)
+      .where(and(eq(neurons.id, id), eq(neurons.kind, 'element')))
+      .get()
+    if (row === undefined) return false
+    const paths = parsePaths(row.pathsJson)
+    const normalized = normalizeElementPath(path)
+    if (normalized === '' || covers(paths.map(normalizeElementPath), normalized)) return false
+    this.db
+      .update(neurons)
+      .set({ pathsJson: JSON.stringify([...paths, normalized]), updatedAt: new Date().toISOString() })
+      .where(eq(neurons.id, id))
+      .run()
+    return true
   }
 
   archive(id: string): void {
