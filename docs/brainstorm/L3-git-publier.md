@@ -157,7 +157,7 @@ sequenceDiagram
 | Programme piégé | `gh.exe` ou `git.exe` dans le dossier du projet | Résolution par chemin absolu dans les dossiers absolus du PATH (comme `resolveGit`) |
 | Hook `pre-push` d'un tiers | Dépôt cloné | Hooks désactivés hors confiance (socle) |
 
-## 7. Amendement proposé de la constitution (4.3.0 → 4.4.0, MINOR) — à valider par mentalyas
+## 7. Amendement de la constitution (4.3.0 → 4.4.0, MINOR) — validé et appliqué le 2026-10-07
 Motif : G4–G5 (publier, synchroniser) et D2–D3 de `L1i-git-github.md`. Impact : spec « Git et GitHub » à venir ;
 spec 014 US7 (« Commiter l'étape », par Claude selon le mode de permission) inchangée ; Analyste interne inchangé.
 

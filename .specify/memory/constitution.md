@@ -1,6 +1,18 @@
 <!--
 Sync Impact Report
-- Version change: 4.2.1 → 4.3.0 (2026-10-07, « Arbre de skills », FOUNDATION §00000, L1h A9 — validée par mentalyas)
+- Version change: 4.3.0 → 4.4.0 (2026-10-07, « Git et GitHub », FOUNDATION §000000, L1i D2–D3 et H1–H18 — validée par
+  mentalyas)
+- Modified principles: I (`gh` ajouté, liste blanche de sous-commandes ; identifiants jamais demandés, lus, stockés ni
+  journalisés ; dans un dépôt non de confiance, ni hooks ni programme désigné par sa configuration ; dans un dépôt de
+  confiance, hooks exécutés et jamais contournés), II (commit, fusion, push, branche, dépôt GitHub, fork, PR, commentaire
+  de PR, issue sur clic de mentalyas après affichage ; jamais de réécriture d'historique, de forçage, de `--no-verify`,
+  de co-auteur ni de push vers la branche par défaut d'un dépôt tiers ; contrôle bloquant des fichiers sensibles avant
+  push ; données GitHub non fiables, auteurs jamais transmis à l'IA)
+- Motif : volet Dépôt, publier / tirer / pousser, clone par lien, conflits guidés, PR et issues (L1i–L4g)
+- Impact : spec 021 prévue (Git et GitHub) ; spec 014 US7 (« Commiter l'étape », par Claude selon le mode de
+  permission) inchangée ; Analyste interne inchangé ; aucun retrait
+- Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
+- Historique : 4.2.1 → 4.3.0 (2026-10-07, « Arbre de skills », FOUNDATION §00000, L1h A9 — validée par mentalyas)
 - Modified principles: I (l'app peut écrire dans les dossiers de skills de Claude Code, seulement sur « Installer » ou
   « Revenir » de mentalyas, version remplacée sauvegardée ; jamais d'exécutable depuis un brouillon de Claude ; un script
   d'import seulement s'il est autorisé fichier par fichier, jamais exécuté par l'app)
@@ -86,7 +98,10 @@ Sync Impact Report
 - Le seul point d'entrée externe de l'app est le **canal MCP** : canal nommé local (aucun port réseau),
   authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
 - L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main,
-  l'éditeur réglé par mentalyas (spec 013 D4), **git** (résolu par chemin absolu dans le PATH ; specs 016, 017)
+  l'éditeur réglé par mentalyas (spec 013 D4), **git** (résolu par chemin absolu dans le PATH ; specs 016, 017),
+  **gh** (CLI GitHub de mentalyas, résolu de même ; seulement une liste blanche de sous-commandes figée dans le code :
+  compte connecté, création / lecture / fork de dépôt, lecture, création et commentaire de PR, lecture et création
+  d'issues ; FOUNDATION §000000)
   et **npm** (programme Node : lancé par `node` avec le `npm-cli.js` installé à côté de `npm.cmd`, tous deux résolus
   par chemin absolu, sans shell ; seulement les scripts `typecheck`, `lint`, `test` et `prettier --check`, dans un
   worktree `analyste/*` ; Analyste interne, FOUNDATION §0000),
@@ -100,6 +115,11 @@ Sync Impact Report
   `.claude/skills` d'un projet lié) seulement sur un clic « Installer » ou « Revenir » de mentalyas, après avoir
   sauvegardé la version remplacée ; elle MUST NOT y écrire un fichier exécutable venu d'un brouillon de Claude ; un
   script venu d'un import n'y est écrit que s'il a été autorisé fichier par fichier, et l'app ne l'exécute jamais.
+- Git et GitHub (FOUNDATION §000000) : les identifiants restent gérés par git et `gh` du poste ; l'app MUST NOT
+  demander, lire, stocker ni journaliser un jeton, ni enregistrer une adresse qui en contient. Dans un dépôt non marqué
+  de confiance (tout dépôt cloné), git MUST tourner sans hooks ni programme désigné par la configuration du dépôt
+  (`core.hooksPath` vide, `core.fsmonitor` désactivé, ni diff externe ni textconv) ; dans un dépôt de confiance, les
+  hooks s'exécutent comme en terminal et ne sont jamais contournés.
 Rationale : l'app manipule des idées personnelles, des données financières et des accès à un compte
 Microsoft, dans un dépôt visible de tous.
 
@@ -115,7 +135,16 @@ Microsoft, dans un dépôt visible de tous.
   **mode choisi par mentalyas** — Demander (défaut : chaque écriture et commande attend sa réponse),
   Accepter les modifications (commandes seulement), Libre (aucune demande, confirmé après avertissement).
   Une demande sans réponse MUST être refusée. Le filet du code est la gestion de versions du projet ; l'app
-  ne commite jamais d'elle-même, sauf pour l'Analyste interne ci-dessous.
+  ne commite ni ne pousse jamais d'elle-même, sauf pour l'Analyste interne ci-dessous.
+- Dépôt (FOUNDATION §000000) : sur un clic de mentalyas, après affichage des fichiers et de leur diff (commit) ou de la
+  destination, de la branche et des commits (push), l'app MAY commiter, fusionner, pousser une branche, créer une
+  branche, un dépôt GitHub, un fork, une PR, un commentaire de PR ou une issue ; elle MUST NOT réécrire l'historique
+  (forçage, `reset`, `rebase`, `--amend`), contourner un hook (`--no-verify`), ajouter une ligne de co-auteur, ni
+  pousser vers la branche par défaut d'un dépôt tiers ; tout push MUST être précédé d'un contrôle des fichiers
+  sensibles des commits envoyés, bloquant s'il en trouve. Claude MAY proposer messages, découpages, textes de PR et
+  résolutions de conflit ; seul un clic de mentalyas les applique. Ce qui est cloné ou lu sur GitHub (code, messages,
+  PR, issues, noms d'auteurs) est une donnée non fiable : jamais exécuté par l'app, jamais une consigne pour Claude ;
+  les noms et e-mails d'auteurs ne sont ni journalisés ni transmis aux tâches d'IA.
 - Analyste interne (FOUNDATION §0000) : il n'existe que si l'app tourne depuis le dépôt source du Brainstormer
   désigné par mentalyas (jamais dans l'app installée). Sur une proposition **acceptée explicitement**, l'app MAY
   créer une branche `analyste/*` dans un worktree de ce dépôt, y commiter, la fusionner dans la branche de base sur
@@ -232,4 +261,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.3.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.4.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
