@@ -1,6 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 4.0.0 → 4.1.0 (2026-10-06, spec 017 « Reprise — Voir », D8 — validée par mentalyas)
+- Version change: 4.1.0 → 4.2.0 (2026-10-07, « Analyste interne », FOUNDATION §0000, L1g A9 — validée par mentalyas)
+- Modified principles: I (`npm` ajouté aux programmes lancés, limité aux scripts de vérification dans un worktree
+  `analyste/*` ; Analyste seulement depuis le dépôt source désigné, jamais dans l'app installée), II (l'app peut créer,
+  commiter, fusionner et révoquer une branche `analyste/*` après acceptation explicite ; jamais de push ni de réécriture),
+  IV (la tâche `analyste` est la seule tâche automatique dotée d'outils : lecture et recherche dans le dépôt désigné)
+- Motif : une sonde sans contenu et Claude en lecture seule proposent des améliorations de l'app ; une proposition
+  acceptée est codée sur une branche à part, gardée ou jetée, annulable (L1g–L4e)
+- Impact : spec 019 prévue (Analyste interne) ; aucune spec existante contredite ; aucun retrait
+- Templates requiring updates: aucun (plan/spec/tasks lisent la constitution à l'exécution) ✅
+- Deferred TODOs: aucun
+- Historique : 4.0.0 → 4.1.0 (2026-10-06, spec 017 « Reprise — Voir », D8 — validée par mentalyas)
 - Modified principles: I (git devient un programme que l'app peut lancer : chemin absolu, sans shell, arguments fixes —
   régularise la spec 016, qui l'utilisait déjà), IV (projet repris « Local uniquement » : rien n'est envoyé à Claude,
   le modèle local fait les tâches d'IA de ce projet)
@@ -65,7 +75,9 @@ Sync Impact Report
 - Le seul point d'entrée externe de l'app est le **canal MCP** : canal nommé local (aucun port réseau),
   authentifié par jeton (comparaison à temps constant), entrées validées par Zod, bornées, tout-ou-rien.
 - L'app ne lance aucun programme choisi par le renderer : seuls le CLI `claude`, résolu par le main,
-  l'éditeur réglé par mentalyas (spec 013 D4) et **git** (résolu par chemin absolu dans le PATH ; specs 016, 017),
+  l'éditeur réglé par mentalyas (spec 013 D4), **git** (résolu par chemin absolu dans le PATH ; specs 016, 017)
+  et **npm** (résolu par chemin absolu ; seulement les scripts `typecheck`, `lint`, `test` et `prettier --check`,
+  dans un worktree `analyste/*` ; Analyste interne, FOUNDATION §0000),
   sans interpréteur intermédiaire ni shell ; les arguments sont construits
   par le main (valeurs fixes, mode validé par schéma, dossiers choisis par mentalyas dans un dialogue natif
   puis vérifiés) ; les messages passent par stdin, jamais en argument.
@@ -87,7 +99,12 @@ Microsoft, dans un dépôt visible de tous.
   **mode choisi par mentalyas** — Demander (défaut : chaque écriture et commande attend sa réponse),
   Accepter les modifications (commandes seulement), Libre (aucune demande, confirmé après avertissement).
   Une demande sans réponse MUST être refusée. Le filet du code est la gestion de versions du projet ; l'app
-  ne commite jamais d'elle-même.
+  ne commite jamais d'elle-même, sauf pour l'Analyste interne ci-dessous.
+- Analyste interne (FOUNDATION §0000) : il n'existe que si l'app tourne depuis le dépôt source du Brainstormer
+  désigné par mentalyas (jamais dans l'app installée). Sur une proposition **acceptée explicitement**, l'app MAY
+  créer une branche `analyste/*` dans un worktree de ce dépôt, y commiter, la fusionner dans la branche de base sur
+  « Garder » et la révoquer par `git revert` ; elle MUST NOT pousser, réécrire l'historique (reset, rebase, force) ni
+  commiter ailleurs. Aucune analyse, automatique ou non, ne code ni ne fusionne d'elle-même.
 - Le fil d'une conversation MUST refléter le résultat réel de chaque action de Claude (réussie, refusée,
   échouée).
 Rationale : une IA peut se tromper ; l'utilisateur reste maître de ses données — par validation préalable
@@ -127,7 +144,9 @@ sable, annulation), pas un rôle imposé à l'IA.
   Claude (tâches, conversations, pont MCP compris) ; le modèle local fait ses tâches d'IA, ou elles ne sont pas faites.
 - Claude est joint **uniquement par le CLI officiel `claude`** de mentalyas (abonnement), jamais par l'API
   Anthropic ni un SDK ; les tâches automatiques (`claude -p`) tournent sans outil, sans serveur MCP et sans
-  réglage utilisateur. Les conversations chargent les réglages Claude Code de mentalyas seulement s'il l'a
+  réglage utilisateur — seule exception : la tâche `analyste` (FOUNDATION §0000) dispose des outils de lecture et
+  de recherche (`Read`, `Glob`, `Grep`), dans le dépôt source désigné seulement ; le dossier de données de l'app
+  MUST NOT lui être lisible. Les conversations chargent les réglages Claude Code de mentalyas seulement s'il l'a
   activé, et ceux d'un dépôt lié seulement s'il l'a marqué de confiance (spec 014). Pas d'anonymisation sur ce chemin (L1c n°2) ; les données sont minimisées (seul le
   nécessaire à la tâche).
 - La capture d'une idée MUST fonctionner sans aucune IA disponible (aucune idée perdue).
@@ -197,4 +216,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-06
+**Version**: 4.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07

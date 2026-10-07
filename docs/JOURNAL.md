@@ -763,3 +763,7 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 ### [2026-10-07 15:43] DOCS — export du brainstorm « Analyste interne » (FOUNDATION §0000)
 **Fichiers :** `docs/FOUNDATION.md` (§0000, en-tête), `CLAUDE.md` (évolution du 2026-10-07).
 **Quoi :** résumé de L1g–L4e (vision, arbitrages A1–A9, lots AN-A à AN-D, spec prévue 019 à confirmer) ; préalable : amendements de la constitution.
+
+### [2026-10-07 15:48] DOCS — constitution 4.1.0 → 4.2.0 (Analyste interne)
+**Fichiers :** `.specify/memory/constitution.md`.
+**Quoi :** trois ajouts (L1g A9) : I (`npm` limité aux scripts de vérification dans un worktree `analyste/*`), II (branche `analyste/*` créée, commitée, fusionnée sur « Garder » et révocable après acceptation explicite ; jamais de push ni de réécriture), IV (tâche `analyste` : seule tâche automatique avec outils, lecture et recherche dans le dépôt désigné). Aucun retrait.
