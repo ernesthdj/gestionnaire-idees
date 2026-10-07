@@ -11,9 +11,11 @@ import type {
 } from '@shared/ipc/canvas'
 import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
+import { contentLabel } from './elementContent'
 import { structureGraph, type StructureEdge } from './structureGraph'
 import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
 import type { DocumentView } from '@shared/ipc/documents'
+import { STATUS_LABELS } from './nodes/ElementNode'
 import { finalStateLabel, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 import { PROVENANCE_LABELS } from '../explorer/labels'
@@ -398,7 +400,7 @@ export function buildGraph(
     position: { x: entry.x, y: entry.y },
     data: { element: entry.element, number: entry.number },
     draggable: false,
-    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
+    ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
   const structureEdges = structure.edges.map(structureFlowEdge)

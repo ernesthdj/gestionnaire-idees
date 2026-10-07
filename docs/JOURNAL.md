@@ -803,3 +803,15 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 ### [2026-10-07 17:09] DOCS — test guidé validé : spec 019 T016 (US1, sonde)
 **Quoi :** après correction, mentalyas confirme que la sonde s'active sur le dépôt désigné et récupère les observations.
 
+### [2026-10-07 17:16] FEAT — spec 017 D18 (T060–T063) : nœuds de la carte de structure selon leur contenu
+**Fichiers :** `specs/017-reprise-voir/spec.md` (D18, FR-039), `tasks.md` (Phase 5 sexies) ; `domain/reprise/content.ts` (pur : doc / code) ; `infrastructure/reprise/ProjectFileIndex.ts` (inventaire du dossier gardé 30 s) ; `CanvasService` (`ElementView.content`) ; `bootstrap.ts` ; `shared/ipc/canvas.ts` (`ElementContentView`) ; renderer `canvas/elementContent.ts`, `nodes/ElementNode.tsx` (aspects), `buildGraph.ts` (libellé accessible). Tests : +14 (1247).
+**Quoi :** demande de mentalyas, choix validés : aspect « page » + badge « 📄 Doc » pour un élément qui ne couvre que de la documentation (.md, .mdx, .markdown, .txt, .rst, .adoc) ; aspect « éditeur » + badge « </> Code » dès un seul autre fichier, configuration comprise, avec « + N doc » ; calculé par l'app depuis les fichiers du dossier lié (jamais par Claude), fichiers sensibles exclus ; libellé accessible « contient de la documentation / du code ».
+**Règle apprise :** pas de nombre de fichiers sur le nœud : le volet compte depuis le graphe analysé, l'inventaire compte aussi la doc ; afficher deux comptes différents recréerait la confusion « 3 fichiers / 37 » corrigée en D17.
+
+### [2026-10-07 17:24] FEAT — spec 017 D18 (lisibilité) et D19 (T065–T066) : nœuds lisibles, état visuel du statut
+**Fichiers :** `spec.md` (D18 complétée, D19, FR-040), `tasks.md` (Phase 5 septies) ; `canvas/structureGraph.ts` (`ELEMENT_SIZE` 304 × 144) ; `nodes/ElementNode.tsx` (en-tête sur une ligne, titre et résumé sur deux lignes entières avec texte complet au survol, pied chemins + repli ; pastille, bande et contour du statut) ; `buildGraph.ts` (statut dans le libellé accessible). Tests : +4 (1251).
+**Quoi :** retours de mentalyas sur capture : le badge « </> Code » et « 1 chemin » passaient à la ligne, titre et résumé coupés. Puis : distinguer en cours / livrée / bloquée. Statut : pastille couleur + icône + libellé (◐ bleu en cours, ✓ vert livrée/faite, ⛔ rouge bloquée, ○/◇ gris sinon), bande de 4 px à gauche, contour pointillé rouge si bloquée. Titre sans police à chasse fixe (illisible sur les titres longs) ; l’aspect éditeur reste porté par le fond et le badge.
+**Règle apprise :** sur un nœud de taille fixe, chaque zone a une hauteur réservée (en-tête, 2 lignes, 2 lignes, pied) et rien ne passe à la ligne sans limite ; le texte complet reste accessible au survol.
+
+### [2026-10-07 18:23] DOCS — test guidé validé : spec 017 T064 et T067 (D18 nœuds selon leur contenu, lisibilité, D19 statut)
+**Quoi :** mentalyas : « tout ce qu'on a mis en place sur les nœuds c'est parfait ».

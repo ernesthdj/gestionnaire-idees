@@ -188,6 +188,15 @@ export interface ElementView {
   readonly childCount: number
   /** Rang de progression parmi ses frères donné par Claude (D17) ; `null` : non donné. */
   readonly order: number | null
+  /** Contenu réel de ses fichiers (spec 017 D18), calculé par l'app ; absent : aucun fichier couvert. */
+  readonly content?: ElementContentView | null
+}
+
+/** Ce que contient un élément (D18) : de la doc seulement, ou du code (configuration comprise). */
+export interface ElementContentView {
+  readonly kind: 'doc' | 'code'
+  readonly code: number
+  readonly doc: number
 }
 
 export interface SizeLimits {

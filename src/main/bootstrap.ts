@@ -62,6 +62,7 @@ import { createExplorerRoutes } from './ipc/explorerHandlers'
 import { analysisWorker } from './infrastructure/reprise/AnalysisWorker'
 import { CodeGraphRepository } from './infrastructure/db/repositories/CodeGraphRepository'
 import { scanProject } from './infrastructure/reprise/ProjectScanner'
+import { ProjectFileIndex } from './infrastructure/reprise/ProjectFileIndex'
 import { createRepriseRoutes } from './ipc/repriseHandlers'
 import { GuideService } from './application/reprise/GuideService'
 import { runRepriseGuide } from './application/ai/RepriseGuideTask'
@@ -337,6 +338,8 @@ export function bootstrap(shell: ShellPort): AppContext {
   // correction, et donne aussi à la carte les appels mesurés entre ses éléments (US7).
   const codeGraph = new CodeGraphRepository(database.db)
   const explorer = new ExplorerService({ reprise: repriseRepository, graph: codeGraph })
+  // Contenu des éléments de carte (spec 017 D18) : inventaire du dossier lié, fichiers sensibles déjà exclus.
+  const projectFileIndex = new ProjectFileIndex({ scan: (root) => scanProject(root).retained.map((file) => file.path) })
   const canvas = new CanvasService({
     plan: planRepository,
     documents: documentRepository,
@@ -351,7 +354,11 @@ export function bootstrap(shell: ShellPort): AppContext {
     mapLinks: mapLinkRepository,
     sheetSummaries: () => conversationRepository.sheetSummaries(),
     elements: elementRepository,
-    fileCalls: (genesisId) => explorer.fileCalls(genesisId)
+    fileCalls: (genesisId) => explorer.fileCalls(genesisId),
+    projectFiles: (genesisId) => {
+      const dir = projectDirOf(genesisId)
+      return dir === null ? [] : projectFileIndex.files(dir)
+    }
   })
 
   // Cartes de structure des projets liés (spec 009) : un élément appartient au projet de son genesis.

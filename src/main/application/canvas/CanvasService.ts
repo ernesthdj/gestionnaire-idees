@@ -24,7 +24,8 @@ import type { PlanRepository, ProposalRow } from '../../infrastructure/db/reposi
 import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
 import type { DocumentView } from '@shared/ipc/documents'
 import { fileLabel } from '../mcp/DocumentTools'
-import { measuredLinks, type FileCall } from '../../domain/reprise/measured'
+import { contentOf } from '../../domain/reprise/content'
+import { measuredLinks, normalizeElementPath, type FileCall } from '../../domain/reprise/measured'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
@@ -42,6 +43,8 @@ export interface CanvasDeps {
   readonly elements?: { views(): ElementView[] }
   /** Appels mesurés entre fichiers d'un projet repris analysé (spec 017 US7) ; vide sinon. */
   readonly fileCalls?: (genesisId: string) => readonly FileCall[]
+  /** Fichiers du dossier lié à un genesis (chemins relatifs, sans fichier sensible) : contenu des éléments (D18). */
+  readonly projectFiles?: (genesisId: string) => readonly string[]
   /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
   readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
   /** Documents des neurones (spec 012). */
@@ -173,7 +176,9 @@ export class CanvasService {
       })
     const blocks = this.visibleBlocks()
     // Un élément de structure n'apparaît que si son genesis est sur la carte.
-    const elements = (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
+    const elements = this.withContent(
+      (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
+    )
     const present = new Set([...visible, ...blocks.map((block) => block.id), ...elements.map((element) => element.id)])
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
@@ -204,6 +209,22 @@ export class CanvasService {
       documents,
       deliverables
     }
+  }
+
+  /** Contenu réel de chaque élément (spec 017 D18) : doc ou code, d'après les fichiers que couvrent ses chemins. */
+  private withContent(elements: readonly ElementView[]): ElementView[] {
+    const filesOf = this.deps.projectFiles
+    if (filesOf === undefined) return [...elements]
+    const byGenesis = new Map<string, readonly string[]>()
+    return elements.map((element) => {
+      if (element.paths.length === 0) return { ...element, content: null }
+      let files = byGenesis.get(element.genesisId)
+      if (files === undefined) {
+        files = filesOf(element.genesisId)
+        byGenesis.set(element.genesisId, files)
+      }
+      return { ...element, content: contentOf(element.paths.map(normalizeElementPath), files) }
+    })
   }
 
   /** Appels mesurés entre les éléments de chaque carte de projet repris (spec 017 FR-033). */

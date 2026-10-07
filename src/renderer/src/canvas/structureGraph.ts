@@ -10,7 +10,8 @@ import { progression } from './structureOrder'
  * l'élément visible de l'autre bout. Fonctions pures.
  */
 
-export const ELEMENT_SIZE = { width: 240, height: 96 } as const
+/** Taille d'un élément (D18) : en-tête sur une ligne, titre et résumé sur deux lignes chacun, pied pour les chemins. */
+export const ELEMENT_SIZE = { width: 304, height: 144 } as const
 /**
  * Espacement (D17) : entre deux frères d'une ligne (`across`) ou d'une colonne (`down`), en plus entre deux modules de
  * niveau 1 (`module`), et du centre du genesis au premier module (`genesis`).

@@ -201,4 +201,24 @@ describe('carte de structure à l’écran : liens selon le focus (spec 017 D15)
     expect(borderPoint({ x: 0, y: 0 }, 200, 100, { x: 0, y: -300 })).toEqual({ x: 0, y: -50 })
     expect(borderPoint({ x: 0, y: 0 }, 200, 100, { x: 10, y: 10 })).toEqual({ x: 0, y: 0 })
   })
+
+  it('should_say_what_an_element_contains_in_its_accessible_label_when_its_content_is_known', () => {
+    const view = {
+      ...canvasView(),
+      elements: [
+        element('d', RAW_ID, {
+          genesisId: RAW_ID,
+          title: 'Docs',
+          status: 'bloquee',
+          content: { kind: 'doc', code: 0, doc: 3 }
+        }),
+        element('c', RAW_ID, { genesisId: RAW_ID, title: 'Main', content: { kind: 'code', code: 9, doc: 2 } }),
+        element('n', RAW_ID, { genesisId: RAW_ID, title: 'Vision', content: null })
+      ]
+    }
+    const labels = new Map(buildGraph(view, computeLayout(view)).nodes.map((node) => [node.id, node.ariaLabel]))
+    expect(labels.get('d')).toContain('« Docs », bloquée, contient de la documentation')
+    expect(labels.get('c')).toContain('« Main », contient du code et 2 fichiers de documentation')
+    expect(labels.get('n')).toMatch(/« Vision »$/)
+  })
 })

@@ -72,6 +72,19 @@
 - [x] T058 [US7] Rendu : pastille du numéro dans `ElementNode` ; consigne de cartographie (`MAP_MESSAGE`) : numéroter selon la progression + tests renderer/axe
 - [x] T059 [US7] Test guidé (D17) — attendre le retour
 
+## Phase 5 sexies — US7 Carte de structure : nœuds selon leur contenu (D18)
+**Test indépendant** : sur la carte du Brainstormer, un élément qui ne couvre que `docs/` a l'aspect « page » et le badge « Doc » ; un élément sur `src/main/` l'aspect « éditeur », le badge « Code » et « + N doc » s'il contient un `.md`.
+- [x] T060 Spec : D18, FR-039
+- [x] T061 [P] [US7] Pur : classement doc / code des fichiers d'un élément dans `src/main/domain/reprise/content.ts` (extensions de documentation, couverture par les chemins, compteurs) + tests
+- [x] T062 [US7] `ElementView.content` calculé par `CanvasService` à partir des fichiers du dossier lié (inventaire du projet mis en cache 30 s par dossier, fichiers sensibles exclus) + tests
+- [x] T063 [US7] Rendu : aspect « page » / « éditeur » et badges dans `ElementNode` (libellé accessible « contient de la documentation / du code ») + tests renderer/axe
+- [x] T064 [US7] Test guidé (D18 + lisibilité) — attendre le retour
+
+## Phase 5 septies — US7 Carte de structure : état visuel du statut (D19)
+- [x] T065 Spec : D19, FR-040
+- [x] T066 [US7] Pastille, bande latérale et contour « bloquée » dans `ElementNode` ; statut dans le libellé accessible + tests renderer/axe
+- [x] T067 [US7] Test guidé (D19) — avec T064
+
 ## Phase 6 — US4 Le guide de reprise (P2)
 **Test indépendant** : `cs-app` : 9 sections avec analogies, lien vers l'explorateur, chemin inventé signalé.
 - [x] T024 [US4] Tâche `reprise_guide` dans `src/main/application/ai/` (entrée bornée, sortie Zod : 9 sections + résumés-analogies des modules) ; routage forcé vers Ollama pour un projet local ; `AI_UNAVAILABLE` + tests (moteurs simulés)

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { ElementStatus, ElementType } from '@shared/ipc/canvas'
 import { call } from '../../lib/ipc'
 import type { ElementNodeType } from '../buildGraph'
+import { contentLabel } from '../elementContent'
 import { ELEMENT_SIZE } from '../structureGraph'
 
 /** Pastille de chaque type d'élément (L1e §3) : symbole et couleur, toujours accompagnés du libellé (pas la couleur seule). */
@@ -34,6 +35,58 @@ export const STATUS_LABELS: Readonly<Record<ElementStatus, string>> = {
 }
 
 /**
+ * État visuel du statut (spec 017 D19) : pastille (icône + libellé, jamais la couleur seule) et bande latérale ; un
+ * élément bloqué a en plus un contour en pointillés.
+ */
+const STATUS_STYLES: Readonly<
+  Record<
+    ElementStatus,
+    { readonly icon: string; readonly pill: string; readonly stripe: string; readonly ring?: string }
+  >
+> = {
+  idee: { icon: '○', pill: 'bg-zinc-200 text-zinc-800', stripe: 'bg-zinc-400' },
+  specifiee: { icon: '◇', pill: 'bg-zinc-200 text-zinc-800', stripe: 'bg-zinc-400' },
+  a_faire: { icon: '○', pill: 'bg-zinc-200 text-zinc-800', stripe: 'bg-zinc-400' },
+  en_cours: { icon: '◐', pill: 'bg-blue-600 text-white', stripe: 'bg-blue-500' },
+  livree: { icon: '✓', pill: 'bg-green-700 text-white', stripe: 'bg-green-500' },
+  faite: { icon: '✓', pill: 'bg-green-700 text-white', stripe: 'bg-green-500' },
+  bloquee: {
+    icon: '⛔',
+    pill: 'bg-red-700 text-white',
+    stripe: 'bg-red-500',
+    ring: 'outline-2 outline-offset-2 outline-dashed outline-red-500'
+  }
+}
+
+/**
+ * Aspect selon le contenu réel (spec 017 D18) : une page pour la documentation, un éditeur pour le code. Les couleurs
+ * de texte sont fixées par aspect pour garder le contraste dans les deux thèmes ; le type de Claude reste affiché.
+ */
+const SKINS = {
+  none: {
+    article: 'border-2 bg-surface-raised',
+    header: '',
+    title: 'text-content',
+    muted: 'text-content-muted',
+    pill: 'bg-surface text-content-muted'
+  },
+  code: {
+    article: 'border-2 bg-zinc-900',
+    header: 'text-zinc-100',
+    title: 'text-zinc-50',
+    muted: 'text-zinc-300',
+    pill: 'bg-zinc-700 text-zinc-100'
+  },
+  doc: {
+    article: 'border bg-stone-50 dark:bg-stone-100',
+    header: 'text-stone-800',
+    title: 'text-stone-900',
+    muted: 'text-stone-600',
+    pill: 'bg-stone-200 text-stone-700'
+  }
+} as const
+
+/**
  * Élément d'une carte de structure (spec 009) : type, titre, statut, résumé, fichiers, et « ▸ N » pour déplier ses
  * enfants. Un clic sur la carte ouvre sa conversation (géré par la carte) ; le bouton de repli ne l'ouvre pas.
  */
@@ -41,57 +94,88 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
   const { element, number } = data
   const client = useQueryClient()
   const style = ELEMENT_STYLES[element.type]
+  const content = element.content ?? null
+  const skin = SKINS[content?.kind ?? 'none']
+  const status = element.status === null ? null : STATUS_STYLES[element.status]
   const toggle = (event: React.MouseEvent): void => {
     event.stopPropagation()
     void call('element:setCollapsed', { elementId: element.id, collapsed: !element.collapsed }).then(() =>
       client.invalidateQueries({ queryKey: ['canvas'] })
     )
   }
+  const paths = `${element.paths.length} chemin${element.paths.length > 1 ? 's' : ''}`
   return (
     <article
-      className={`relative flex flex-col gap-1 overflow-hidden rounded-lg border-2 bg-surface-raised px-3 py-2 shadow-sm ${style.tone}`}
+      className={`relative flex flex-col gap-1 overflow-hidden rounded-lg py-3 pr-3 pl-4 shadow-sm ${skin.article} ${style.tone} ${status?.ring ?? ''}`}
       style={{ width: ELEMENT_SIZE.width, height: ELEMENT_SIZE.height }}
+      data-content={content?.kind ?? 'none'}
+      data-status={element.status ?? 'none'}
     >
-      <header className="flex items-center gap-2 text-[11px] font-medium">
+      {status === null ? null : (
+        // Bande du statut, sur toute la hauteur du bord gauche.
+        <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${status.stripe}`} />
+      )}
+      {content?.kind === 'doc' ? (
+        // Coin replié de la page.
+        <span
+          aria-hidden="true"
+          className="absolute top-0 right-0 h-4 w-4 bg-stone-300 [clip-path:polygon(0_0,100%_100%,0_100%)]"
+        />
+      ) : null}
+      {/* Une seule ligne : rien ne passe à la ligne, le badge de contenu reste entier à droite. */}
+      <header className={`flex h-5 items-center gap-2 text-xs font-medium whitespace-nowrap ${skin.header}`}>
         {number === '' ? null : (
           <span
-            className="rounded bg-content px-1.5 py-0.5 font-mono text-[10px] font-semibold text-surface"
+            className="shrink-0 rounded bg-content px-1.5 font-mono text-[11px] leading-5 font-semibold text-surface"
             title="Numéro de progression : ordre logique de développement"
           >
             {number}
           </span>
         )}
         <span aria-hidden="true">{style.icon}</span>
-        <span>{style.label}</span>
-        {element.status === null ? null : (
-          <span className="rounded-full bg-surface px-1.5 py-0.5 text-content-muted">
-            {STATUS_LABELS[element.status]}
+        <span className="truncate">{style.label}</span>
+        {element.status === null || status === null ? null : (
+          <span className={`shrink-0 rounded-full px-1.5 leading-5 font-semibold ${status.pill}`}>
+            <span aria-hidden="true">{status.icon}</span> {STATUS_LABELS[element.status]}
           </span>
         )}
-        {element.paths.length === 0 ? null : (
+        {content === null ? null : (
           <span
-            className="ml-auto text-content-muted"
-            title={`Chemins donnés à l’élément (un dossier couvre tous ses fichiers) :\n${element.paths.join('\n')}`}
+            className={`ml-auto shrink-0 rounded px-1.5 font-mono text-[11px] leading-5 ${skin.pill}`}
+            title={`Cet élément ${contentLabel(content)}`}
           >
-            {element.paths.length} chemin{element.paths.length > 1 ? 's' : ''}
+            {content.kind === 'doc' ? '📄 Doc' : `</> Code${content.doc > 0 ? ` + ${content.doc} doc` : ''}`}
           </span>
         )}
       </header>
-      <h3 className="truncate text-sm font-semibold text-content">{element.title}</h3>
+      <h3 className={`line-clamp-2 text-sm leading-5 font-semibold break-words ${skin.title}`} title={element.title}>
+        {element.title}
+      </h3>
       {element.summary === null ? null : (
-        <p className="line-clamp-2 text-xs leading-snug text-content-muted">{element.summary}</p>
+        <p className={`line-clamp-2 min-h-0 text-xs leading-4 break-words ${skin.muted}`} title={element.summary}>
+          {element.summary}
+        </p>
       )}
-      {element.childCount === 0 ? null : (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={!element.collapsed}
-          aria-label={`${element.collapsed ? 'Déplier' : 'Replier'} « ${element.title} » (${element.childCount} éléments)`}
-          className="nodrag absolute right-2 bottom-1 rounded px-1.5 text-xs text-content hover:bg-surface"
-        >
-          {element.collapsed ? `▸ ${element.childCount}` : '▾'}
-        </button>
-      )}
+      <footer className={`mt-auto flex h-4 items-center text-[11px] leading-4 whitespace-nowrap ${skin.muted}`}>
+        {element.paths.length === 0 ? null : (
+          <span
+            title={`Chemins donnés à l’élément (un dossier couvre tous ses fichiers) :\n${element.paths.join('\n')}`}
+          >
+            {paths}
+          </span>
+        )}
+        {element.childCount === 0 ? null : (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={!element.collapsed}
+            aria-label={`${element.collapsed ? 'Déplier' : 'Replier'} « ${element.title} » (${element.childCount} éléments)`}
+            className={`nodrag ml-auto rounded px-1.5 text-xs hover:opacity-80 ${skin.title}`}
+          >
+            {element.collapsed ? `▸ ${element.childCount}` : '▾'}
+          </button>
+        )}
+      </footer>
       <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
       <Handle type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
     </article>
