@@ -44,8 +44,15 @@
       "output_tokens": 0,
       "files": 50,
       "note": "subagent total tokens (in+out combined)"
+    },
+    {
+      "date": "2026-10-07T19:55:21.999378+00:00",
+      "input_tokens": 110788,
+      "output_tokens": 0,
+      "files": 115,
+      "note": "subagent tokens, chunk 2 not reported"
     }
   ],
-  "total_input_tokens": 1716996,
+  "total_input_tokens": 1827784,
   "total_output_tokens": 213371
 }

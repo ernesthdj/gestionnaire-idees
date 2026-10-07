@@ -118,3 +118,8 @@ Suite côté éclosion (« Approfondir ») : bloc du 30/09 de [[Éclosion atomiq
 - **Lots « par Claude »** (`mcp_write`, spec 007) : chaque appel d'outil d'écriture du pont = un lot marqué, annulable d'un clic.
 - **Lots `convert`** (spec 010) et **`plan`** (spec 011) ; ce dernier porte la **garde D6** : une annulation qui déverrouillerait un parent est refusée si des sous-nœuds nés hors du lot existent.
 - **Gestionnaires d'entités externes** (spec 012) : un document se restaure **en base ET sur le disque**, sans mettre d'accès fichier dans `HistoryRepository` (le service du document fournit `snapshot` et `apply`). Voir [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]].
+
+## Évolution du 07/10 (soir) — corriger la carte de structure, c'est aussi annulable
+- **Nouveau type de lot `structure`** (D20) : les corrections de mentalyas (architecture d'une carte, couche d'un élément) étaient d'abord enregistrées comme « modification manuelle », **non annulables** — corrigé. Entités historisées : `element_layer`, `structure_architecture`.
+- **`element_progress`** (D21) : chaque appel de Claude à `element_avancer` est un lot « par Claude » avec l'avant/après (statut, %, reste) — annulable comme ses autres écritures.
+- **Récupération par l'Historique** : quand Claude a réorganisé une carte par couches (consigne ambiguë), le remède conseillé a été d'**annuler son lot**, pas de réparer à la main → [[Consigne pour un agent outillé — dire ce qui ne change pas, nommer l'outil et l'anti-outil]].

@@ -17,6 +17,8 @@ prerequis: ["[[Glossaire — Empreinte SHA-256]]", "[[Anonymisation en deux couc
 > **En 30 secondes** — Pour que Claude puisse améliorer l'app en la regardant tourner, il faut une **sonde** qui note *ce qui se passe* (écran ouvert, action, erreur, durée, tâche d'IA) **sans jamais garder ce que mentalyas écrit**. Trois outils : un **catalogue fermé** (tout champ inconnu est jeté), des **empreintes HMAC** (repérer « même travail refait » sans lire le texte) et des **pseudonymes** (suivre « le même neurone ouvert 6 fois » sans pointer la donnée).
 >
 > ⚠️ **Statut** : conçu et planifié le 07/10 (spec 019, tâches T004–T016), **pas encore codé**. Tout ce qui suit décrit la conception ; les extraits de code sont **⚠️ Probables** (tirés des documents L3 et research).
+>
+> ⚠️ **Correction du 07/10 (soir)** — la sonde est maintenant **codée et validée** au test guidé T016 (commit `a8616d2`). Les sections 1 à 4 restent la conception ; ce qui a changé dans le code réel (catalogue resserré, empreintes d'IA pas encore branchées, bug du canal sans paramètre) est dans le bloc **« Évolution du 07/10 (soir) »** en bas de note.
 
 ```mermaid
 flowchart LR
@@ -112,3 +114,22 @@ Toute erreur de la sonde est **avalée et comptée** (jamais remontée à l'app)
 - [[Anonymisation en deux couches]] — l'ancienne approche (retirer le sensible d'un texte envoyé) ; ici, aucun texte ne part.
 - [[Stockage local chiffré — SQLite, SQLCipher et DPAPI]] — DPAPI protège aussi la clé HMAC.
 - [[Glossaire — Throttle et debounce (regrouper des événements)]] — les lots de 2 s sont un regroupement de même famille.
+
+## Évolution du 07/10 (soir) — ce qui est codé (spec 019 US1, T002–T016)
+
+> **En une phrase** : la conception tient ; le code ajoute une **garde du dépôt**, resserre le catalogue aux actions réellement branchées, et laisse les empreintes d'IA pour l'US2.
+
+| Pièce | Fichier | Ce que le code fait vraiment |
+|---|---|---|
+| Garde du dépôt | `application/analyste/RepoGuard.ts` | `app.isPackaged` ⇒ `PACKAGED_APP` (aucun service). Sinon le dossier désigné doit être la **racine git** (`git rev-parse --show-toplevel`), avoir `package.json` au nom `gestionnaire-idees` **et** `src/main/bootstrap.ts`, et **contenir** `app.getAppPath()` (chemins réels, casse ignorée sous Windows). Revérifié au démarrage et chaque heure : dépôt déplacé ⇒ sonde en **pause**, rien d'effacé. La clé HMAC (secret `analyste-hmac`) est créée à la désignation ; `hmacKey()` ne la rend que si la sonde est active. |
+| Catalogue fermé | `shared/analyste/events.ts` | Union discriminée Zod, 7 actions seulement (`neuron.create`, `neuron.remove`, `link.create`, `block.create`, `history.undo`, `chat.send`, `plan.decide`) ; `neuron.move` **écarté** (la physique de la carte déplace aussi les nœuds, sans geste humain). Cadre de pile : regex qui refuse `/`, `C:`, `..`. Détail → [[Glossaire — Union discriminée et catalogue fermé]]. |
+| Empreintes | `domain/analyste/fingerprint.ts` | `canonicalJson` (clés triées, `trim`, `undefined` retirés) ; `fingerprint(clé, kind, version, entrée)` avec séparateur `\u0000` (aucun texte ne peut « déborder » d'un champ sur l'autre) ; `pseudonym` = HMAC de `"ref:" + id`, 12 hex. |
+| File et lots | `application/analyste/ProbeService.ts` | 2 s, fusion au-delà de 2 000, abandon compté au-delà de 5 000, purge chaque heure ; chaque événement de l'interface validé **seul** (un fautif n'invalide pas le lot). Détail → [[Glossaire — File et écriture par lots (batching)]]. |
+| Captures du main | `ipc/registry.ts`, `logging/logger.ts` | Mesure `ipc.call` posée **une fois** dans `createDispatcher` ; journal dédoublé par `teeSink(stdoutSink, sonde)`. Détail → [[Glossaire — Préoccupation transverse (point unique et tee)]]. |
+| Interface | `renderer/src/analyste/probe.ts`, `AnalysteSettings.tsx`, `ObservationsPage.tsx` | Erreur = `error.name` + cadres `src/renderer/src/…:ligne` (dépendances ignorées), **jamais** `message` ; Réglages › Analyste (désigner, ce qui est gardé / jamais gardé, conservation, voir, exporter, effacer avec confirmation). |
+
+- ⚠️ **Écart avec la conception** : les empreintes `input_fp` / `output_fp` **existent** dans `ai_calls` (migration 0030, index `(kind, input_fp)`) mais l'`AIGateway` **ne les calcule pas encore** — c'est la tâche T018 (US2). Le paragraphe « Empreinte HMAC d'une tâche d'IA » ci-dessus reste donc *Probable*.
+- ✅ **Preuve « sans contenu »** (SC-001, `tests/integration/analyste/probe-no-content.test.ts`) : parcours du profil démo, puis recherche de **chacun** de ses textes (pièges compris) dans tout ce qui est stocké → 0. Règle du journal : *une donnée « sans contenu » se prouve par un test qui cherche les vrais textes, pas par la relecture du schéma*.
+- 🐞 **Bug du test guidé** : Réglages › Analyste restait sur « Chargement… ». Les canaux **sans paramètre** attendaient `{}` alors que l'interface envoie `undefined` (convention de l'app : `z.undefined()`) → `VALIDATION` → aucune vue d'erreur. Deux leçons : **tester un canal avec la charge exacte qu'envoie l'interface**, et **toute vue qui attend une requête a un état d'erreur** (voir le bloc « Évolution du 07/10 (soir) » de [[IPC typé — le guichet unique entre interface et moteur]]).
+
+> **Q :** Tu lances l'app installée (`.exe`) : que garde la sonde ? **R :** Rien : `isPackaged` ⇒ `PACKAGED_APP`, le service n'est même pas démarré (SC-002 : 0 ligne).

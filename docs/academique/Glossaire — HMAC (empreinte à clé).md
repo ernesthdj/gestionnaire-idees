@@ -37,3 +37,6 @@ const fp = createHmac('sha256', key)
 > **Q :** Pourquoi tronquer l'empreinte à 16 hexadécimaux (64 bits) n'est-il pas un problème ici ? **R :** On ne s'en sert que pour **comparer** des tâches d'une même app sur 30 jours ; 2⁶⁴ valeurs rendent une collision accidentelle négligeable, et la clé empêche de fabriquer une collision exprès.
 
 **Pièges** : ⚠️ `sha256(clé + message)` « fait maison » au lieu de `createHmac` — vulnérable à l'extension de longueur ; ⚠️ stocker la clé dans la même base que les empreintes — le voleur aurait les deux.
+
+## Évolution du 07/10 (soir) — dans le code
+`src/main/domain/analyste/fingerprint.ts` utilise bien `createHmac('sha256', clé)` (pas de concaténation « maison »), tronqué à 16 hex (empreintes) ou 12 (pseudonymes). Les champs sont séparés par le caractère nul `\u0000`, qu'un texte saisi ne contient pas en pratique : `("ab", "c")` et `("a", "bc")` ne donnent pas la même chaîne. La clé vit dans le `SecretStore` (secret `analyste-hmac`), jamais dans la base. ⚠️ Le calcul des empreintes de tâches d'IA dans l'`AIGateway` (T018) n'est pas encore branché ; seuls les pseudonymes servent déjà.

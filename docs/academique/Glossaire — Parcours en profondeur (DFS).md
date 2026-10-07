@@ -56,3 +56,6 @@ Sur un **graphe orienté**, le DFS détecte un cycle en marquant chaque nœud bl
 
 ## Évolution du 07/10 — numéroter comme un sommaire
 Les numéros de progression de la carte de structure (1, 1.1, 1.1.1, 1.2, 2…) sont un DFS **préfixe** : on numérote un élément, puis on descend dans ses enfants **avant** de passer à son frère suivant. → [[Carte de structure ordonnée — ordre de progression, tri par dépendances et disposition alternée]]
+
+## Évolution du 07/10 (soir) — post-ordre : les enfants d'abord
+La numérotation 1.2.1 est un parcours **préfixe** (le parent avant ses enfants). L'avancement d'un parent (D21) est l'inverse, un parcours **post-ordre** : on ne connaît sa moyenne qu'**après** avoir calculé tous ses enfants. Deux garde-fous dans `progressOf` : une `Map` de mémo (chaque nœud calculé une fois) et un `Set` « en cours de visite » (un cycle rend `null` au lieu de déborder la pile). Voir [[Avancement vivant — agrégation récursive, outil dédié et consigne au bon endroit]].

@@ -46,7 +46,11 @@
 		{"id":"label_019","type":"text","text":"Spec 019 — Analyste interne (conçue le 07/10, pas encore codée)\nParcours 33 à 35 : observer → analyser → appliquer\nNouveaux glossaires : HMAC, Pseudonymisation, Moindre privilège, Versionnage sémantique — voir MOC\nBlocs « Évolution du 07/10 » dans 10 notes existantes","x":-720,"y":15600,"width":320,"height":240},
 		{"id":"c_sonde","type":"file","file":"docs/academique/Sonde sans contenu — télémétrie minimisée, empreintes HMAC et pseudonymes.md","x":-160,"y":15600,"width":380,"height":320,"color":"3"},
 		{"id":"c_analyste","type":"file","file":"docs/academique/Analyste en lecture seule — moindre privilège et propositions vérifiées.md","x":-160,"y":16000,"width":380,"height":320,"color":"3"},
-		{"id":"c_maj","type":"file","file":"docs/academique/Mise à jour réversible — worktree, branche, fusion no-ff et git revert.md","x":-160,"y":16400,"width":380,"height":320,"color":"3"}
+		{"id":"c_maj","type":"file","file":"docs/academique/Mise à jour réversible — worktree, branche, fusion no-ff et git revert.md","x":-160,"y":16400,"width":380,"height":320,"color":"3"},
+		{"id":"label_017_soir","type":"text","text":"Spec 017 D18-D21 — la carte de structure se lit autrement (07/10 soir)\nBranche de la note 32, parcours 36 à 38 : vue Architecture → avancement vivant → consigne d'agent outillé\nNouveaux glossaires : Union discriminée, File et lots, Préoccupation transverse, Couleur seule — voir MOC\nSonde (note 33) : codée, voir son bloc « Évolution du 07/10 (soir) »","x":740,"y":15200,"width":320,"height":260},
+		{"id":"c_archi","type":"file","file":"docs/academique/Vue Architecture — règle de dépendance, couches déduites et deux dispositions pures.md","x":290,"y":15200,"width":380,"height":320,"color":"6"},
+		{"id":"c_avance","type":"file","file":"docs/academique/Avancement vivant — agrégation récursive, outil dédié et consigne au bon endroit.md","x":290,"y":15600,"width":380,"height":320,"color":"6"},
+		{"id":"c_consigne","type":"file","file":"docs/academique/Consigne pour un agent outillé — dire ce qui ne change pas, nommer l'outil et l'anti-outil.md","x":290,"y":16000,"width":380,"height":320,"color":"6"}
 	],
 	"edges":[
 		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
@@ -86,6 +90,9 @@
 		{"id":"e_c_explorateur_c_ordre","fromNode":"c_explorateur","fromSide":"bottom","toNode":"c_ordre","toSide":"top","label":"32 lire la structure dans l'ordre"},
 		{"id":"e_c_ordre_c_sonde","fromNode":"c_ordre","fromSide":"bottom","toNode":"c_sonde","toSide":"top","label":"33 l'app s'observe elle-même"},
 		{"id":"e_c_sonde_c_analyste","fromNode":"c_sonde","fromSide":"bottom","toNode":"c_analyste","toSide":"top","label":"34 Claude analyse sans pouvoir agir"},
-		{"id":"e_c_analyste_c_maj","fromNode":"c_analyste","fromSide":"bottom","toNode":"c_maj","toSide":"top","label":"35 appliquer, garder, annuler"}
+		{"id":"e_c_analyste_c_maj","fromNode":"c_analyste","fromSide":"bottom","toNode":"c_maj","toSide":"top","label":"35 appliquer, garder, annuler"},
+		{"id":"e_c_ordre_c_archi","fromNode":"c_ordre","fromSide":"right","toNode":"c_archi","toSide":"left","label":"36 lire les couches"},
+		{"id":"e_c_archi_c_avance","fromNode":"c_archi","fromSide":"bottom","toNode":"c_avance","toSide":"top","label":"37 où en est-on"},
+		{"id":"e_c_avance_c_consigne","fromNode":"c_avance","fromSide":"bottom","toNode":"c_consigne","toSide":"top","label":"38 bien guider l'agent"}
 	]
 }

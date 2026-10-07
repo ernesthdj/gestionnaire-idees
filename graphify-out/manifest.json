@@ -1,8 +1,8 @@
 {
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\drizzle.config.ts": {
-    "mtime": 1791317210.0491655,
-    "ast_hash": "9436b50549764af2a892a70d16521d43",
-    "semantic_hash": "9436b50549764af2a892a70d16521d43"
+    "mtime": 1791383599.1827989,
+    "ast_hash": "7136e339fb90d7f93b38d041164a50da",
+    "semantic_hash": "7136e339fb90d7f93b38d041164a50da"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\electron.vite.config.ts": {
     "mtime": 1791323748.1169548,
@@ -10,9 +10,9 @@
     "semantic_hash": "a7269e48daaa9ff92e8d2cab11648a63"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\eslint.config.js": {
-    "mtime": 1791317013.673182,
-    "ast_hash": "4e91c305e81ca9fee30cac5c75d5e2b4",
-    "semantic_hash": "4e91c305e81ca9fee30cac5c75d5e2b4"
+    "mtime": 1791383558.3794675,
+    "ast_hash": "599ece3eb2ffe64b8bd454016c77d853",
+    "semantic_hash": "599ece3eb2ffe64b8bd454016c77d853"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\package.json": {
     "mtime": 1791317837.3956344,
@@ -75,9 +75,9 @@
     "semantic_hash": "ca3b7d888bfa077ff12d74fc774060de"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\bootstrap.ts": {
-    "mtime": 1791358612.2208388,
-    "ast_hash": "b966bd238be2c323ce58a96ff55b06ef",
-    "semantic_hash": "b966bd238be2c323ce58a96ff55b06ef"
+    "mtime": 1791386001.08629,
+    "ast_hash": "6e344497fdd9676fba89f251ad11348b",
+    "semantic_hash": "6e344497fdd9676fba89f251ad11348b"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\index.ts": {
     "mtime": 1790715441.3537364,
@@ -124,10 +124,20 @@
     "ast_hash": "b2d93ec4734feadad1a55d194c076c4b",
     "semantic_hash": "b2d93ec4734feadad1a55d194c076c4b"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\analyste\\ProbeService.ts": {
+    "mtime": 1791384414.1757374,
+    "ast_hash": "492a6684f766ae3e51fe57fb6ed601e9",
+    "semantic_hash": "492a6684f766ae3e51fe57fb6ed601e9"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\analyste\\RepoGuard.ts": {
+    "mtime": 1791383773.3775556,
+    "ast_hash": "af00b0224aea5d241074b6c991b63a97",
+    "semantic_hash": "af00b0224aea5d241074b6c991b63a97"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\canvas\\CanvasService.ts": {
-    "mtime": 1791327241.6737776,
-    "ast_hash": "3d9aa6fabf75d703e88fd805423390a7",
-    "semantic_hash": "3d9aa6fabf75d703e88fd805423390a7"
+    "mtime": 1791390690.4246418,
+    "ast_hash": "d01f319e4c3924f67b605e56eaf920ad",
+    "semantic_hash": "d01f319e4c3924f67b605e56eaf920ad"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\capture\\CaptureService.ts": {
     "mtime": 1790626255.9737296,
@@ -140,9 +150,9 @@
     "semantic_hash": "0d6504180b38bc65790d8a329435576d"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\conversation\\frame.ts": {
-    "mtime": 1791327465.832261,
-    "ast_hash": "a0bdb2a7e2c3e874137265be17d28e45",
-    "semantic_hash": "a0bdb2a7e2c3e874137265be17d28e45"
+    "mtime": 1791399378.7065096,
+    "ast_hash": "42d9e4ac5fa4bab2a5f2bb80e39c992d",
+    "semantic_hash": "42d9e4ac5fa4bab2a5f2bb80e39c992d"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\conversation\\LegacyConversion.ts": {
     "mtime": 1791190548.4940562,
@@ -185,9 +195,9 @@
     "semantic_hash": "6dd284e67fb5511c42e39f9188956925"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\history\\HistoryService.ts": {
-    "mtime": 1791238448.097545,
-    "ast_hash": "98357ff713ab7799715733412b28c2e2",
-    "semantic_hash": "98357ff713ab7799715733412b28c2e2"
+    "mtime": 1791391011.1985288,
+    "ast_hash": "86f0bcc67058f1b9491a2b765dd8e68e",
+    "semantic_hash": "86f0bcc67058f1b9491a2b765dd8e68e"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\mcp\\DocumentTools.ts": {
     "mtime": 1791225871.266347,
@@ -200,9 +210,9 @@
     "semantic_hash": "b9507193a462edad78ebd37a104f7ee6"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\mcp\\MapService.ts": {
-    "mtime": 1791327443.9880195,
-    "ast_hash": "32890980e5a04468667dac4c63f5427a",
-    "semantic_hash": "32890980e5a04468667dac4c63f5427a"
+    "mtime": 1791399378.686996,
+    "ast_hash": "6cbbf93cf726c26441c516bc08023572",
+    "semantic_hash": "6cbbf93cf726c26441c516bc08023572"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\mcp\\NeuronTools.ts": {
     "mtime": 1791236322.5723634,
@@ -225,9 +235,9 @@
     "semantic_hash": "1e368e9eb7bbf73d2fc5113d0bdfb550"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\mcp\\toolHandler.ts": {
-    "mtime": 1791327440.3570194,
-    "ast_hash": "0f0c9f865aa69696bed87f78bbd3afe1",
-    "semantic_hash": "0f0c9f865aa69696bed87f78bbd3afe1"
+    "mtime": 1791399378.705511,
+    "ast_hash": "c76429769613c399d60ca70a593f4025",
+    "semantic_hash": "c76429769613c399d60ca70a593f4025"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\neurons\\NeuronService.ts": {
     "mtime": 1791325864.8931673,
@@ -280,9 +290,9 @@
     "semantic_hash": "697a5f17b51f9e7d7fe060a131b39721"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\structure\\StructureService.ts": {
-    "mtime": 1791365360.6869712,
-    "ast_hash": "157b45e69d3f9a0bece253804b940ab0",
-    "semantic_hash": "157b45e69d3f9a0bece253804b940ab0"
+    "mtime": 1791399412.042197,
+    "ast_hash": "3d9aae8bdd6b58a6d73ce424f17e2159",
+    "semantic_hash": "3d9aae8bdd6b58a6d73ce424f17e2159"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\application\\widgets\\GenericResultView.ts": {
     "mtime": 1790788239.751321,
@@ -348,6 +358,11 @@
     "mtime": 1791357500.0454538,
     "ast_hash": "842202125f27b2a59c95648ae7760cf8",
     "semantic_hash": "842202125f27b2a59c95648ae7760cf8"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\analyste\\fingerprint.ts": {
+    "mtime": 1791383720.3056407,
+    "ast_hash": "f18f28edf76d39e60b89992ae05ce746",
+    "semantic_hash": "f18f28edf76d39e60b89992ae05ce746"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\context\\bundle.ts": {
     "mtime": 1791192029.6811543,
@@ -469,6 +484,11 @@
     "ast_hash": "e34bf340fa09e6bfaf89d0cb3d69efac",
     "semantic_hash": "e34bf340fa09e6bfaf89d0cb3d69efac"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\reprise\\content.ts": {
+    "mtime": 1791385964.079052,
+    "ast_hash": "30b7a33610545be17884e157731ba875",
+    "semantic_hash": "30b7a33610545be17884e157731ba875"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\reprise\\fileFilter.ts": {
     "mtime": 1791318203.9100544,
     "ast_hash": "39518a47739be8eea5b295421387c72e",
@@ -510,9 +530,9 @@
     "semantic_hash": "a4b47ae1da93c3e0e691037778a15e99"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\structure\\resolve.ts": {
-    "mtime": 1791365347.1271188,
-    "ast_hash": "100c760262724a743120a60122124355",
-    "semantic_hash": "100c760262724a743120a60122124355"
+    "mtime": 1791390768.2260222,
+    "ast_hash": "13a98b424e34c8e71f256f16687ac547",
+    "semantic_hash": "13a98b424e34c8e71f256f16687ac547"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\domain\\widgets\\inputParts.ts": {
     "mtime": 1791274789.645984,
@@ -580,19 +600,24 @@
     "semantic_hash": "680303116104dc0165e2c49f3455f5a7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\client.ts": {
-    "mtime": 1791317208.5333025,
-    "ast_hash": "7e2933115362ae7aa6605bcd5c7b0eb0",
-    "semantic_hash": "7e2933115362ae7aa6605bcd5c7b0eb0"
+    "mtime": 1791383653.437428,
+    "ast_hash": "51a55f5a4f5387f389628ce93efa3fc8",
+    "semantic_hash": "51a55f5a4f5387f389628ce93efa3fc8"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\schema.ts": {
-    "mtime": 1790596847.9037633,
-    "ast_hash": "08469b8d9f287a94dc353ddc3c576f21",
-    "semantic_hash": "08469b8d9f287a94dc353ddc3c576f21"
+    "mtime": 1791383599.1827989,
+    "ast_hash": "6428b6954f998c548a12df67f8283873",
+    "semantic_hash": "6428b6954f998c548a12df67f8283873"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\schemaAnalyste.ts": {
+    "mtime": 1791384414.2089167,
+    "ast_hash": "fe243766cbee2f50efd3b6a4e53e7e0a",
+    "semantic_hash": "fe243766cbee2f50efd3b6a4e53e7e0a"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\schemaNeurons.ts": {
-    "mtime": 1791304615.5306985,
-    "ast_hash": "61f6eb7612cfab1c7e3933fd1bb69694",
-    "semantic_hash": "61f6eb7612cfab1c7e3933fd1bb69694"
+    "mtime": 1791399378.6645334,
+    "ast_hash": "c8fe4705a8e36762b2f75504a677ab85",
+    "semantic_hash": "c8fe4705a8e36762b2f75504a677ab85"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\schemaReprise.ts": {
     "mtime": 1791357913.1539774,
@@ -754,6 +779,21 @@
     "ast_hash": "5f1e1ecb42e438d253983472571df66c",
     "semantic_hash": "5f1e1ecb42e438d253983472571df66c"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\0030_analyste.sql": {
+    "mtime": 1791383657.6893399,
+    "ast_hash": "044de73b680598662a90f6b28fbb3ab5",
+    "semantic_hash": "044de73b680598662a90f6b28fbb3ab5"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\0031_architecture.sql": {
+    "mtime": 1791390499.9307272,
+    "ast_hash": "b299f4f55cd950cf914a686e483a251d",
+    "semantic_hash": "b299f4f55cd950cf914a686e483a251d"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\0032_element_progress.sql": {
+    "mtime": 1791399380.4144523,
+    "ast_hash": "5be0f5123da0c56e62e7da769bf47a2a",
+    "semantic_hash": "5be0f5123da0c56e62e7da769bf47a2a"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\down\\0000_init_ai.down.sql": {
     "mtime": 1790592239.596463,
     "ast_hash": "daf085219a8c9dbac109acc115bd1f4f",
@@ -904,6 +944,21 @@
     "ast_hash": "39df955480e72217d6ff513c55323845",
     "semantic_hash": "39df955480e72217d6ff513c55323845"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\down\\0030_analyste.down.sql": {
+    "mtime": 1791383686.4493854,
+    "ast_hash": "36a9d1f18b321f9c19a268ce40245b1b",
+    "semantic_hash": "36a9d1f18b321f9c19a268ce40245b1b"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\down\\0031_architecture.down.sql": {
+    "mtime": 1791390512.653241,
+    "ast_hash": "25474c1530112c30277254afe3be6985",
+    "semantic_hash": "25474c1530112c30277254afe3be6985"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\migrations\\down\\0032_element_progress.down.sql": {
+    "mtime": 1791399380.4783142,
+    "ast_hash": "f5f76f6e650561d7f4d97125614bf4a7",
+    "semantic_hash": "f5f76f6e650561d7f4d97125614bf4a7"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\AiCallRepository.ts": {
     "mtime": 1791192322.0911174,
     "ast_hash": "5483f98354e3a0dc652ce46555c6ecae",
@@ -913,6 +968,11 @@
     "mtime": 1791192029.6811543,
     "ast_hash": "b73413135f9f2828c152a6a94ae3aaae",
     "semantic_hash": "b73413135f9f2828c152a6a94ae3aaae"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\AnalysteRepository.ts": {
+    "mtime": 1791383835.716177,
+    "ast_hash": "b04f93b32f92b72e4988b8dabaf27c61",
+    "semantic_hash": "b04f93b32f92b72e4988b8dabaf27c61"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\AppSettingsRepository.ts": {
     "mtime": 1791304615.5096838,
@@ -925,9 +985,9 @@
     "semantic_hash": "b4446e6467c61003476d24cb5f9b623f"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\changeLog.ts": {
-    "mtime": 1791236211.8008218,
-    "ast_hash": "83187245599a4494b8b1f9ec6cb3b9fc",
-    "semantic_hash": "83187245599a4494b8b1f9ec6cb3b9fc"
+    "mtime": 1791390874.6220548,
+    "ast_hash": "c45a94421dc59db9fbf19f20e583f17f",
+    "semantic_hash": "c45a94421dc59db9fbf19f20e583f17f"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\CodeGraphRepository.ts": {
     "mtime": 1791323579.9797356,
@@ -950,9 +1010,9 @@
     "semantic_hash": "cf9a27e9a71fe30e96c0153ab912fb79"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\ElementRepository.ts": {
-    "mtime": 1791365360.6859715,
-    "ast_hash": "0730de9e2ea5b7fc37e4d211c095e86e",
-    "semantic_hash": "0730de9e2ea5b7fc37e4d211c095e86e"
+    "mtime": 1791399410.2635858,
+    "ast_hash": "b8868781bf8a3c3d5c02d04f3fcafdb4",
+    "semantic_hash": "b8868781bf8a3c3d5c02d04f3fcafdb4"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\FinalRepository.ts": {
     "mtime": 1791240924.2593284,
@@ -965,9 +1025,9 @@
     "semantic_hash": "918de47637b94b32007502705ce974bd"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\HistoryRepository.ts": {
-    "mtime": 1791365360.6869712,
-    "ast_hash": "709ae02ad2e9b8d577815cbbe4c93431",
-    "semantic_hash": "709ae02ad2e9b8d577815cbbe4c93431"
+    "mtime": 1791399410.3062673,
+    "ast_hash": "dd5d581ee71d6665c903f5251bbd6f76",
+    "semantic_hash": "dd5d581ee71d6665c903f5251bbd6f76"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\LegacyRepository.ts": {
     "mtime": 1791190505.8166206,
@@ -983,6 +1043,11 @@
     "mtime": 1791325900.8648944,
     "ast_hash": "ba5f1f3ee70cf855b958f09d0db4e4f2",
     "semantic_hash": "ba5f1f3ee70cf855b958f09d0db4e4f2"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\ObservationRepository.ts": {
+    "mtime": 1791383835.5145297,
+    "ast_hash": "b493301982bcd1a9bbf678f319f2f3a7",
+    "semantic_hash": "b493301982bcd1a9bbf678f319f2f3a7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\db\\repositories\\PendingRequestRepository.ts": {
     "mtime": 1790592885.8451827,
@@ -1035,9 +1100,9 @@
     "semantic_hash": "5af393c147aff045f69b6cd83e1dfda1"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\logging\\logger.ts": {
-    "mtime": 1790592215.8830018,
-    "ast_hash": "90d592fe322bde4a3d302d4ffb16d0f2",
-    "semantic_hash": "90d592fe322bde4a3d302d4ffb16d0f2"
+    "mtime": 1791383945.5271394,
+    "ast_hash": "b31163738a958885390eefe9e0ec6465",
+    "semantic_hash": "b31163738a958885390eefe9e0ec6465"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\mcp\\endpoint.ts": {
     "mtime": 1791116029.049237,
@@ -1074,6 +1139,11 @@
     "ast_hash": "4dfe37e607b357874530bfdb45ab7e44",
     "semantic_hash": "4dfe37e607b357874530bfdb45ab7e44"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\reprise\\ProjectFileIndex.ts": {
+    "mtime": 1791386000.930834,
+    "ast_hash": "ee97886030aa944f67bcf8633f979d9f",
+    "semantic_hash": "ee97886030aa944f67bcf8633f979d9f"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\infrastructure\\reprise\\ProjectScanner.ts": {
     "mtime": 1791318273.218827,
     "ast_hash": "60c26f7f335b3d76928d9f79970e0906",
@@ -1093,6 +1163,11 @@
     "mtime": 1791130404.7238607,
     "ast_hash": "4d8b8887957ecc39a46a4b565bd64371",
     "semantic_hash": "4d8b8887957ecc39a46a4b565bd64371"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\analysteHandlers.ts": {
+    "mtime": 1791385104.5619848,
+    "ast_hash": "effa32fd42f606c5ef96f1594e800121",
+    "semantic_hash": "effa32fd42f606c5ef96f1594e800121"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\appHandlers.ts": {
     "mtime": 1791304615.5186832,
@@ -1160,9 +1235,9 @@
     "semantic_hash": "8e4ccbbaffdf1e5fce54bbc941139c22"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\registry.ts": {
-    "mtime": 1790624756.8381097,
-    "ast_hash": "4f25a18f046977e3ba10b01e9cc6f2e8",
-    "semantic_hash": "4f25a18f046977e3ba10b01e9cc6f2e8"
+    "mtime": 1791383945.5537176,
+    "ast_hash": "25bcbe6f2e9be399f4ef9f119718799f",
+    "semantic_hash": "25bcbe6f2e9be399f4ef9f119718799f"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\repriseHandlers.ts": {
     "mtime": 1791358015.773522,
@@ -1170,9 +1245,9 @@
     "semantic_hash": "fe995a43aef042320ce5278ac63ecc28"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\structureHandlers.ts": {
-    "mtime": 1791327568.3205738,
-    "ast_hash": "e509492d58c807b8384ad01b6c583919",
-    "semantic_hash": "e509492d58c807b8384ad01b6c583919"
+    "mtime": 1791390899.7856817,
+    "ast_hash": "44fc1e3631161056c354c188d847b123",
+    "semantic_hash": "44fc1e3631161056c354c188d847b123"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\main\\ipc\\widgetHandlers.ts": {
     "mtime": 1791191555.9873185,
@@ -1254,10 +1329,25 @@
     "ast_hash": "c8a46d53769f4e1b6432f340d30c863f",
     "semantic_hash": "c8a46d53769f4e1b6432f340d30c863f"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\analyste\\labels.ts": {
+    "mtime": 1791384236.6421995,
+    "ast_hash": "45294d00c772d0d0b7bc7f0e37125d0a",
+    "semantic_hash": "45294d00c772d0d0b7bc7f0e37125d0a"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\analyste\\probe.ts": {
+    "mtime": 1791384414.2661622,
+    "ast_hash": "e11eeb6b3393e4c60ff2dea75687c52e",
+    "semantic_hash": "e11eeb6b3393e4c60ff2dea75687c52e"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\analyste\\useAnalysteStatus.ts": {
+    "mtime": 1791385119.3737023,
+    "ast_hash": "08396c8e9c3d31b5ca3b7ed41024a3f0",
+    "semantic_hash": "08396c8e9c3d31b5ca3b7ed41024a3f0"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\app\\AppShell.tsx": {
-    "mtime": 1791324826.1104836,
-    "ast_hash": "98edfc9a3cfdc94cf56899b50bdd7cfc",
-    "semantic_hash": "98edfc9a3cfdc94cf56899b50bdd7cfc"
+    "mtime": 1791384250.7304113,
+    "ast_hash": "c8e8a2c4190c71a62919750ed01059d2",
+    "semantic_hash": "c8e8a2c4190c71a62919750ed01059d2"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\app\\HeaderUsage.tsx": {
     "mtime": 1791275452.569205,
@@ -1275,9 +1365,9 @@
     "semantic_hash": "0c125b704d8622dcffbe0a13c1a15bd3"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\app\\uiStore.ts": {
-    "mtime": 1791324821.1488202,
-    "ast_hash": "42335e69f750d8e3833579f4c9471e82",
-    "semantic_hash": "42335e69f750d8e3833579f4c9471e82"
+    "mtime": 1791391210.467801,
+    "ast_hash": "6e830e8c209a82c829cfd1ff69daa3d7",
+    "semantic_hash": "6e830e8c209a82c829cfd1ff69daa3d7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\app\\useApplyTheme.ts": {
     "mtime": 1790624891.5789778,
@@ -1295,14 +1385,14 @@
     "semantic_hash": "1670e15a7aaf01e425481ece0fa10a32"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\app\\useUndo.ts": {
-    "mtime": 1790778491.6934166,
-    "ast_hash": "859fb75397077bc97c7ec7eace1f26ee",
-    "semantic_hash": "859fb75397077bc97c7ec7eace1f26ee"
+    "mtime": 1791384180.8379054,
+    "ast_hash": "a6ddf0c6d7da542b0924c1335b0791f1",
+    "semantic_hash": "a6ddf0c6d7da542b0924c1335b0791f1"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\buildGraph.ts": {
-    "mtime": 1791365591.7016704,
-    "ast_hash": "752caae7401c13d605fe931206639934",
-    "semantic_hash": "752caae7401c13d605fe931206639934"
+    "mtime": 1791399523.1812959,
+    "ast_hash": "f151b0d146c141300e007868a57fc1e4",
+    "semantic_hash": "f151b0d146c141300e007868a57fc1e4"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\CanvasToolbar.tsx": {
     "mtime": 1791318484.7798321,
@@ -1318,6 +1408,11 @@
     "mtime": 1790628032.1551127,
     "ast_hash": "c5f328e329730f6571e1baf7f9d881b6",
     "semantic_hash": "c5f328e329730f6571e1baf7f9d881b6"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\elementContent.ts": {
+    "mtime": 1791386114.7875543,
+    "ast_hash": "a9bbacdacb4f8955bbf59ea779f17dbe",
+    "semantic_hash": "a9bbacdacb4f8955bbf59ea779f17dbe"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\FileViewer.tsx": {
     "mtime": 1791324834.8055737,
@@ -1340,9 +1435,9 @@
     "semantic_hash": "57744d40691803776a71772e4cfd86ed"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\IdeasCanvas.tsx": {
-    "mtime": 1791329169.4613113,
-    "ast_hash": "3e76d33a4d88458b5350a0bbdb984409",
-    "semantic_hash": "3e76d33a4d88458b5350a0bbdb984409"
+    "mtime": 1791391302.4855573,
+    "ast_hash": "2402b3ed11f69336eeadc0b6862c3c87",
+    "semantic_hash": "2402b3ed11f69336eeadc0b6862c3c87"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\InlinePrompt.tsx": {
     "mtime": 1790671878.3950176,
@@ -1364,10 +1459,15 @@
     "ast_hash": "bf9f90a12b62c2e5dbc1eded4fe662d6",
     "semantic_hash": "bf9f90a12b62c2e5dbc1eded4fe662d6"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\progress.ts": {
+    "mtime": 1791399489.695536,
+    "ast_hash": "90f5de89db47cd4c1293a7071a20de5f",
+    "semantic_hash": "90f5de89db47cd4c1293a7071a20de5f"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\structureGraph.ts": {
-    "mtime": 1791365503.3764029,
-    "ast_hash": "aa9d92e9381632009b049e7fcb185d0b",
-    "semantic_hash": "aa9d92e9381632009b049e7fcb185d0b"
+    "mtime": 1791391402.156272,
+    "ast_hash": "c4bd3e2b90044a5831fb873690a018c7",
+    "semantic_hash": "c4bd3e2b90044a5831fb873690a018c7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\structureOrder.ts": {
     "mtime": 1791365489.0759995,
@@ -1390,9 +1490,9 @@
     "semantic_hash": "be8f6df8fc8ed714f1be4dd53c55c0a8"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\useCreateLink.ts": {
-    "mtime": 1791191434.7410321,
-    "ast_hash": "83502617fa4d6c64f6d269e74311fe43",
-    "semantic_hash": "83502617fa4d6c64f6d269e74311fe43"
+    "mtime": 1791384180.8263607,
+    "ast_hash": "d3c77fe917d13a32a11b0a701e2faab1",
+    "semantic_hash": "d3c77fe917d13a32a11b0a701e2faab1"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\useFinalDecide.ts": {
     "mtime": 1791238689.1117797,
@@ -1400,14 +1500,14 @@
     "semantic_hash": "43329898e0dd03327f569b2e24d91432"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\usePlanDecide.ts": {
-    "mtime": 1791196743.3490453,
-    "ast_hash": "ccebd815f49295d1303dcbb9faf8e4cb",
-    "semantic_hash": "ccebd815f49295d1303dcbb9faf8e4cb"
+    "mtime": 1791384180.866547,
+    "ast_hash": "3eac98c7c74725a924bae21e86889fc2",
+    "semantic_hash": "3eac98c7c74725a924bae21e86889fc2"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\useRemoveIdea.ts": {
-    "mtime": 1791191434.7420354,
-    "ast_hash": "8482508e4a1c1eb9919aaf3ca8dc363a",
-    "semantic_hash": "8482508e4a1c1eb9919aaf3ca8dc363a"
+    "mtime": 1791384180.8786037,
+    "ast_hash": "a790bb109a112d89a2d1791aec848362",
+    "semantic_hash": "a790bb109a112d89a2d1791aec848362"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\useSelectionSync.ts": {
     "mtime": 1791110439.704561,
@@ -1420,9 +1520,9 @@
     "semantic_hash": "dd298ca37fa6362c199888c0703f9eea"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\edges\\MapLinkEdge.tsx": {
-    "mtime": 1791328541.8840537,
-    "ast_hash": "fde50326174efeab16aefc73b8d3f5d7",
-    "semantic_hash": "fde50326174efeab16aefc73b8d3f5d7"
+    "mtime": 1791391210.5675392,
+    "ast_hash": "4caf8670de929df3df1b00f3410c4bc3",
+    "semantic_hash": "4caf8670de929df3df1b00f3410c4bc3"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\edges\\useCenter.ts": {
     "mtime": 1791329169.4623106,
@@ -1450,9 +1550,9 @@
     "semantic_hash": "68054e877530178511d3c7d58c052288"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\ElementNode.tsx": {
-    "mtime": 1791365762.2997549,
-    "ast_hash": "ad8973cf698e6f36cdc6a1adadb4e659",
-    "semantic_hash": "ad8973cf698e6f36cdc6a1adadb4e659"
+    "mtime": 1791399523.2018197,
+    "ast_hash": "ec49825591d9b2940485c3e9ebc0f634",
+    "semantic_hash": "ec49825591d9b2940485c3e9ebc0f634"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\FrameNode.tsx": {
     "mtime": 1791109947.2506094,
@@ -1463,6 +1563,11 @@
     "mtime": 1790714695.7360785,
     "ast_hash": "b73e6b20fff3edf8c89b648345386b31",
     "semantic_hash": "b73e6b20fff3edf8c89b648345386b31"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\LayerBandNode.tsx": {
+    "mtime": 1791391301.6707034,
+    "ast_hash": "f692613e7224e6b21403f25c20dbad54",
+    "semantic_hash": "f692613e7224e6b21403f25c20dbad54"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\MapNoteNode.tsx": {
     "mtime": 1791109947.1311562,
@@ -1484,6 +1589,11 @@
     "ast_hash": "d0d5af5522adb1a6a835ae8c716e90c3",
     "semantic_hash": "d0d5af5522adb1a6a835ae8c716e90c3"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\StructureBarNode.tsx": {
+    "mtime": 1791391303.8016367,
+    "ast_hash": "5a4f9a37669b5b57a5d27abab8c09c92",
+    "semantic_hash": "5a4f9a37669b5b57a5d27abab8c09c92"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\canvas\\nodes\\WidgetNode.tsx": {
     "mtime": 1791191486.3239977,
     "ast_hash": "e995bff1c715c0e405325ca1cac4282f",
@@ -1500,9 +1610,9 @@
     "semantic_hash": "1a13c8293bdc5204b18ea43dcafc7014"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\chat\\ChatPanel.tsx": {
-    "mtime": 1791365591.7142456,
-    "ast_hash": "84005932d9a2666846de6b49acbdc41e",
-    "semantic_hash": "84005932d9a2666846de6b49acbdc41e"
+    "mtime": 1791393611.5119674,
+    "ast_hash": "ef7c4e099b15870e6a152141d5746e73",
+    "semantic_hash": "ef7c4e099b15870e6a152141d5746e73"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\chat\\ElementFiles.tsx": {
     "mtime": 1791365754.5866609,
@@ -1525,9 +1635,9 @@
     "semantic_hash": "73e464f06e0adbf1bd6b31af1c5b57d2"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\chat\\useChat.ts": {
-    "mtime": 1791318502.989113,
-    "ast_hash": "ad9ea36f8e424c583c7bccdfee8895bc",
-    "semantic_hash": "ad9ea36f8e424c583c7bccdfee8895bc"
+    "mtime": 1791384180.8514552,
+    "ast_hash": "0fb1ef1f9ea2950b03f77c7a879c5589",
+    "semantic_hash": "0fb1ef1f9ea2950b03f77c7a879c5589"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\components\\atoms\\Button.tsx": {
     "mtime": 1790671262.0280445,
@@ -1635,14 +1745,24 @@
     "semantic_hash": "cd9e1996208555beaf79d49e632513f6"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\pages\\SettingsPage.tsx": {
-    "mtime": 1791290811.3731902,
-    "ast_hash": "330ee6ed64348a6cdf4ff6c9a71ce5d1",
-    "semantic_hash": "330ee6ed64348a6cdf4ff6c9a71ce5d1"
+    "mtime": 1791384250.7620394,
+    "ast_hash": "f1ce7b195282722e5e1e17ac9ded9b9f",
+    "semantic_hash": "f1ce7b195282722e5e1e17ac9ded9b9f"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\pages\\settings\\AnalysteSettings.tsx": {
+    "mtime": 1791385119.3960516,
+    "ast_hash": "678fa42c4bb4d8c7000542e97ce71bd7",
+    "semantic_hash": "678fa42c4bb4d8c7000542e97ce71bd7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\pages\\settings\\EditorSettings.tsx": {
     "mtime": 1791273143.446389,
     "ast_hash": "962a9046c75b0ac1ad06e730f9539bea",
     "semantic_hash": "962a9046c75b0ac1ad06e730f9539bea"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\pages\\settings\\ObservationsPage.tsx": {
+    "mtime": 1791384414.3289793,
+    "ast_hash": "a12f904e7e8fd107ff454dd4d957e454",
+    "semantic_hash": "a12f904e7e8fd107ff454dd4d957e454"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\renderer\\src\\pages\\settings\\ProjectSettings.tsx": {
     "mtime": 1791290811.3671882,
@@ -1729,6 +1849,11 @@
     "ast_hash": "2b757fd8f4b4db9339126125c4a68b2f",
     "semantic_hash": "2b757fd8f4b4db9339126125c4a68b2f"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\analyste\\events.ts": {
+    "mtime": 1791384180.777704,
+    "ast_hash": "7ad6f0f1b23bc219c172a716423aedf7",
+    "semantic_hash": "7ad6f0f1b23bc219c172a716423aedf7"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\app\\accelerator.ts": {
     "mtime": 1790624756.9000218,
     "ast_hash": "2df295ccf05158edbb5cfe7ff6963259",
@@ -1749,20 +1874,25 @@
     "ast_hash": "18143c0bc4f5cbb6297239399dc34b38",
     "semantic_hash": "18143c0bc4f5cbb6297239399dc34b38"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\analyste.ts": {
+    "mtime": 1791383773.1361954,
+    "ast_hash": "1004639bfcd22b43e6dd1ea0997ad7a3",
+    "semantic_hash": "1004639bfcd22b43e6dd1ea0997ad7a3"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\app.ts": {
-    "mtime": 1791304689.3429482,
-    "ast_hash": "843bdce365ddb1703365a16b9dcb4066",
-    "semantic_hash": "843bdce365ddb1703365a16b9dcb4066"
+    "mtime": 1791384250.6682272,
+    "ast_hash": "147e8943e01761530bf167c758f009b8",
+    "semantic_hash": "147e8943e01761530bf167c758f009b8"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\canvas.ts": {
-    "mtime": 1791365374.733634,
-    "ast_hash": "ea6439e423a0462e82b10fdb487cf320",
-    "semantic_hash": "ea6439e423a0462e82b10fdb487cf320"
+    "mtime": 1791399410.215686,
+    "ast_hash": "592e5f8dfe31f8d7eb84c5733f9a611a",
+    "semantic_hash": "592e5f8dfe31f8d7eb84c5733f9a611a"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\channels.ts": {
-    "mtime": 1791361451.464263,
-    "ast_hash": "ba8c2c7cbba9cd2740543d2e73ed6b9b",
-    "semantic_hash": "ba8c2c7cbba9cd2740543d2e73ed6b9b"
+    "mtime": 1791390899.7856817,
+    "ast_hash": "c8e357608e34ac2f9561fa5321e42b75",
+    "semantic_hash": "c8e357608e34ac2f9561fa5321e42b75"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\chat.ts": {
     "mtime": 1791318422.5352767,
@@ -1785,9 +1915,9 @@
     "semantic_hash": "59402d0806ae3b2967a01599cb4342f8"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\history.ts": {
-    "mtime": 1791236211.7998228,
-    "ast_hash": "75cad39a942b93cc3e9b901fd9894155",
-    "semantic_hash": "75cad39a942b93cc3e9b901fd9894155"
+    "mtime": 1791390988.519213,
+    "ast_hash": "dcd319bef080d7ec8b876a3dfa8a1176",
+    "semantic_hash": "dcd319bef080d7ec8b876a3dfa8a1176"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\ipc\\mcp.ts": {
     "mtime": 1791110383.057683,
@@ -1835,9 +1965,9 @@
     "semantic_hash": "f2f25252f3fad49b344f9d77f0fdabc2"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\mcp\\tools.ts": {
-    "mtime": 1791365347.1271188,
-    "ast_hash": "fc854cb5ca119a425c9a6b14c0ad81c7",
-    "semantic_hash": "fc854cb5ca119a425c9a6b14c0ad81c7"
+    "mtime": 1791399378.686996,
+    "ast_hash": "794b55e406db49ae4e8c650cd7912097",
+    "semantic_hash": "794b55e406db49ae4e8c650cd7912097"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\plan\\rankLabel.ts": {
     "mtime": 1791196458.816969,
@@ -1848,6 +1978,11 @@
     "mtime": 1791290593.6695676,
     "ast_hash": "f9cb556226bb2586a76ae020c2cdc8c4",
     "semantic_hash": "f9cb556226bb2586a76ae020c2cdc8c4"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\structure\\architecture.ts": {
+    "mtime": 1791390662.3582544,
+    "ast_hash": "20b70766df0c3bab07be2b12df8102f3",
+    "semantic_hash": "20b70766df0c3bab07be2b12df8102f3"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\src\\shared\\widgets\\genericResultView.ts": {
     "mtime": 1790788239.75032,
@@ -1869,10 +2004,25 @@
     "ast_hash": "803ceeec197969f996710b3ae887b7ec",
     "semantic_hash": "803ceeec197969f996710b3ae887b7ec"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\analyste\\probe-no-content.test.ts": {
+    "mtime": 1791384414.3536146,
+    "ast_hash": "15aa5dfdcde8a435d8a0af3e204cf0bc",
+    "semantic_hash": "15aa5dfdcde8a435d8a0af3e204cf0bc"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\analyste\\repositories.test.ts": {
+    "mtime": 1791383836.3549776,
+    "ast_hash": "1a21e849673edca7754a5899659b75e5",
+    "semantic_hash": "1a21e849673edca7754a5899659b75e5"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\canvas\\canvas.test.ts": {
     "mtime": 1791195251.9163775,
     "ast_hash": "a2060c428f1990c56025d05e4f4794b4",
     "semantic_hash": "a2060c428f1990c56025d05e4f4794b4"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\canvas\\element-content.test.ts": {
+    "mtime": 1791386039.5312512,
+    "ast_hash": "1bbe2a08cb807950f594e0dba36262ff",
+    "semantic_hash": "1bbe2a08cb807950f594e0dba36262ff"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\capture\\capture.test.ts": {
     "mtime": 1790626078.420107,
@@ -2000,9 +2150,9 @@
     "semantic_hash": "51b44123e4f1716276d6ba53ebf56129"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\neurons\\migrations.test.ts": {
-    "mtime": 1791357928.1910222,
-    "ast_hash": "52a6e0718fe80439718e7ed01215cae4",
-    "semantic_hash": "52a6e0718fe80439718e7ed01215cae4"
+    "mtime": 1791399459.710818,
+    "ast_hash": "d7b6063ebe4bd1c83abbec2405d4178e",
+    "semantic_hash": "d7b6063ebe4bd1c83abbec2405d4178e"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\neurons\\neuron-service.test.ts": {
     "mtime": 1790597951.8315046,
@@ -2040,9 +2190,9 @@
     "semantic_hash": "2fda7b3995bc94917b24ba65a89a6f54"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\reprise\\element-files.test.ts": {
-    "mtime": 1791365395.819958,
-    "ast_hash": "cc9dca328bb024deeb010dcf9647424e",
-    "semantic_hash": "cc9dca328bb024deeb010dcf9647424e"
+    "mtime": 1791399410.3062673,
+    "ast_hash": "ea44abd3f77fc08be0d0ecbee2e1d286",
+    "semantic_hash": "ea44abd3f77fc08be0d0ecbee2e1d286"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\reprise\\explorer-service.test.ts": {
     "mtime": 1791361955.855947,
@@ -2070,9 +2220,9 @@
     "semantic_hash": "63c5861be295e36412c54ee30f0dd388"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\structure\\structure.test.ts": {
-    "mtime": 1791365734.5296257,
-    "ast_hash": "2a177fdf8446dd11241a59dc6bb7f856",
-    "semantic_hash": "2a177fdf8446dd11241a59dc6bb7f856"
+    "mtime": 1791399459.7118187,
+    "ast_hash": "9b5e00e244f7647da4fc555e4a42d7c7",
+    "semantic_hash": "9b5e00e244f7647da4fc555e4a42d7c7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\integration\\widgets\\widget-io-steps.test.ts": {
     "mtime": 1791274872.567047,
@@ -2194,6 +2344,26 @@
     "ast_hash": "c59115af42779b5b58f28713d43e262f",
     "semantic_hash": "c59115af42779b5b58f28713d43e262f"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\analyste\\events.test.ts": {
+    "mtime": 1791384414.3686824,
+    "ast_hash": "bab7515157d7cc7ac01c5d21ce536ab9",
+    "semantic_hash": "bab7515157d7cc7ac01c5d21ce536ab9"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\analyste\\fingerprint.test.ts": {
+    "mtime": 1791383721.0029209,
+    "ast_hash": "d403b7e42150a133ca7dcbaefc997975",
+    "semantic_hash": "d403b7e42150a133ca7dcbaefc997975"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\analyste\\probe-service.test.ts": {
+    "mtime": 1791384414.3918364,
+    "ast_hash": "ffbeb7e98a12938140415c86e7726b34",
+    "semantic_hash": "ffbeb7e98a12938140415c86e7726b34"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\analyste\\repo-guard.test.ts": {
+    "mtime": 1791383789.567485,
+    "ast_hash": "e4b5c2ed44706f5e5b0759cc368d5b70",
+    "semantic_hash": "e4b5c2ed44706f5e5b0759cc368d5b70"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\app\\accelerator.test.ts": {
     "mtime": 1790624532.682693,
     "ast_hash": "b60c708b34165db0ff0bb748cf9d8efc",
@@ -2264,6 +2434,11 @@
     "ast_hash": "a2426d27293bdab7206739f080caac98",
     "semantic_hash": "a2426d27293bdab7206739f080caac98"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\analyste-handlers.test.ts": {
+    "mtime": 1791385129.7389886,
+    "ast_hash": "51386dfcdab5b55eab5eb4be38b8f241",
+    "semantic_hash": "51386dfcdab5b55eab5eb4be38b8f241"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\app-handlers.test.ts": {
     "mtime": 1791304689.5100276,
     "ast_hash": "e96c0e7470c1962deb2a3726a8cedddb",
@@ -2275,9 +2450,9 @@
     "semantic_hash": "74045f4a109abaac39fec46aa68f4e9e"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\explorer-handlers.test.ts": {
-    "mtime": 1791361503.8414176,
-    "ast_hash": "b45d33ecd6806aa49a267bbf714d5122",
-    "semantic_hash": "b45d33ecd6806aa49a267bbf714d5122"
+    "mtime": 1791390912.215155,
+    "ast_hash": "3129491af722e0d61bd745fd4b4417c6",
+    "semantic_hash": "3129491af722e0d61bd745fd4b4417c6"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\ollama-guidance.test.ts": {
     "mtime": 1790594091.5115237,
@@ -2285,9 +2460,9 @@
     "semantic_hash": "f22e40505f8fa741bcebb7dfb83adf78"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\registry.test.ts": {
-    "mtime": 1790624748.603043,
-    "ast_hash": "ef050e25632ad93bd70a64d92e1431b5",
-    "semantic_hash": "ef050e25632ad93bd70a64d92e1431b5"
+    "mtime": 1791383978.5649722,
+    "ast_hash": "0fa4fe065c3c6163faa5eb727bc73c39",
+    "semantic_hash": "0fa4fe065c3c6163faa5eb727bc73c39"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ipc\\reprise-handlers.test.ts": {
     "mtime": 1791358225.2877612,
@@ -2295,9 +2470,9 @@
     "semantic_hash": "73177df3b720d1dcd71cc2fc3c179bd8"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\logging\\logger.test.ts": {
-    "mtime": 1790592329.0395627,
-    "ast_hash": "7550fb8bb6493ecb2af38f32c873db36",
-    "semantic_hash": "7550fb8bb6493ecb2af38f32c873db36"
+    "mtime": 1791383978.7331595,
+    "ast_hash": "a108cfe3d31bff62a5369c612d34b377",
+    "semantic_hash": "a108cfe3d31bff62a5369c612d34b377"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\mcp\\batch-layout.test.ts": {
     "mtime": 1791110574.2931352,
@@ -2359,10 +2534,25 @@
     "ast_hash": "4b47f5edf12bc43275490a92040120db",
     "semantic_hash": "4b47f5edf12bc43275490a92040120db"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\analyste-probe.test.ts": {
+    "mtime": 1791384321.6750612,
+    "ast_hash": "dd8f044d97c8d8d1287218f67e03df93",
+    "semantic_hash": "dd8f044d97c8d8d1287218f67e03df93"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\analyste-settings.test.tsx": {
+    "mtime": 1791385128.0587292,
+    "ast_hash": "ca8ae6f6ade33904e1be3382b0ef78f5",
+    "semantic_hash": "ca8ae6f6ade33904e1be3382b0ef78f5"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\app-shell.test.tsx": {
-    "mtime": 1791192686.9423974,
-    "ast_hash": "710eafd64dfdf2dbeb14a60920f5e744",
-    "semantic_hash": "710eafd64dfdf2dbeb14a60920f5e744"
+    "mtime": 1791384345.326054,
+    "ast_hash": "9606448016ef6fd4472e91d6bebc90a5",
+    "semantic_hash": "9606448016ef6fd4472e91d6bebc90a5"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\architecture-view.test.tsx": {
+    "mtime": 1791391447.236084,
+    "ast_hash": "6923e64d1c0375bb78f8bde12fc4890b",
+    "semantic_hash": "6923e64d1c0375bb78f8bde12fc4890b"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\button.test.tsx": {
     "mtime": 1791192686.9513996,
@@ -2414,6 +2604,21 @@
     "ast_hash": "16b1238eaa22a3052c710a527b55527c",
     "semantic_hash": "16b1238eaa22a3052c710a527b55527c"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\element-node.test.tsx": {
+    "mtime": 1791386611.884249,
+    "ast_hash": "4fe2ffeeca0379d407ad0ba867e6f0f4",
+    "semantic_hash": "4fe2ffeeca0379d407ad0ba867e6f0f4"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\element-progress-node.test.tsx": {
+    "mtime": 1791399547.4201472,
+    "ast_hash": "d1b2bfa6f993b40a43a7a6e107d8e4b8",
+    "semantic_hash": "d1b2bfa6f993b40a43a7a6e107d8e4b8"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\element-progress.test.ts": {
+    "mtime": 1791399489.8992405,
+    "ast_hash": "5284bc20c6472b363a730e2232a8c592",
+    "semantic_hash": "5284bc20c6472b363a730e2232a8c592"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\explorer-page.test.tsx": {
     "mtime": 1791361857.5822763,
     "ast_hash": "b9a5062de6f87e9fc5a198962c2b652f",
@@ -2460,9 +2665,9 @@
     "semantic_hash": "a59e28a7733d0a0413dc850868d81262"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\structure-graph.test.ts": {
-    "mtime": 1791365663.6251752,
-    "ast_hash": "cbb9530303b13f79d41ae71da90ca351",
-    "semantic_hash": "cbb9530303b13f79d41ae71da90ca351"
+    "mtime": 1791391148.93411,
+    "ast_hash": "46ce4dbdb9f0ed45b96e4f739ba40e0c",
+    "semantic_hash": "46ce4dbdb9f0ed45b96e4f739ba40e0c"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\renderer\\structure-order.test.ts": {
     "mtime": 1791365567.5787535,
@@ -2514,6 +2719,11 @@
     "ast_hash": "86452d16ffdda419eb9d9720503eef34",
     "semantic_hash": "86452d16ffdda419eb9d9720503eef34"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\reprise\\content.test.ts": {
+    "mtime": 1791385964.0992582,
+    "ast_hash": "32c9e2c4092accee841bed2fb91fafaf",
+    "semantic_hash": "32c9e2c4092accee841bed2fb91fafaf"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\reprise\\engine.test.ts": {
     "mtime": 1791316842.7027154,
     "ast_hash": "6efd708e3e7e7f17094ca03f5c359acc",
@@ -2544,6 +2754,11 @@
     "ast_hash": "4c3003e4d1a4ac280b5696397bec96bc",
     "semantic_hash": "4c3003e4d1a4ac280b5696397bec96bc"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\reprise\\project-file-index.test.ts": {
+    "mtime": 1791386039.7010524,
+    "ast_hash": "a432d6b0f4bd92d901a92cdae0d51d3b",
+    "semantic_hash": "a432d6b0f4bd92d901a92cdae0d51d3b"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\reprise\\resolve.test.ts": {
     "mtime": 1791319602.7064779,
     "ast_hash": "c45cc7626cf6678311a26447ee630628",
@@ -2559,10 +2774,15 @@
     "ast_hash": "199d0003655197ad761e882eaa59722d",
     "semantic_hash": "199d0003655197ad761e882eaa59722d"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\structure\\architecture.test.ts": {
+    "mtime": 1791390447.8815455,
+    "ast_hash": "24a06b99422d514b711f03a23e826621",
+    "semantic_hash": "24a06b99422d514b711f03a23e826621"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\structure\\resolve.test.ts": {
-    "mtime": 1791238715.2332525,
-    "ast_hash": "789ac6f7e228df6b87b73c1d96e7fa61",
-    "semantic_hash": "789ac6f7e228df6b87b73c1d96e7fa61"
+    "mtime": 1791390808.4337888,
+    "ast_hash": "de53bfd7e2712c84b415625be9d30621",
+    "semantic_hash": "de53bfd7e2712c84b415625be9d30621"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\tests\\unit\\ui\\crossings.test.ts": {
     "mtime": 1790672009.6791422,
@@ -2640,14 +2860,19 @@
     "semantic_hash": "d2227f058b0e58823dd43dc582192688"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\JOURNAL.md": {
-    "mtime": 1791382193.255871,
-    "ast_hash": "a80877affc74d9563d267bb7d11a0d49",
-    "semantic_hash": "a80877affc74d9563d267bb7d11a0d49"
+    "mtime": 1791402544.6310935,
+    "ast_hash": "503ed6be8f3bf064e4b55391d8f85852",
+    "semantic_hash": "503ed6be8f3bf064e4b55391d8f85852"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\SECURITY-REVIEW-001.md": {
     "mtime": 1790597689.5118072,
     "ast_hash": "2254d5b498786dc9b00cbcc130b2b1e0",
     "semantic_hash": "2254d5b498786dc9b00cbcc130b2b1e0"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Analyste en lecture seule \u2014 moindre privil\u00e8ge et propositions v\u00e9rifi\u00e9es.md": {
+    "mtime": 1791382778.1329634,
+    "ast_hash": "0302a02d4a9d21659398cead8ee12d92",
+    "semantic_hash": "0302a02d4a9d21659398cead8ee12d92"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Annuler par lot \u2014 journal avant-apr\u00e8s, conflit et lot inverse.md": {
     "mtime": 1791300232.9639084,
@@ -2655,9 +2880,9 @@
     "semantic_hash": "07e026ec471658e7055a65535addc7ed"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Anonymisation en deux couches.md": {
-    "mtime": 1791300229.0598657,
-    "ast_hash": "e55df81a611543a085b0b63292ec38ef",
-    "semantic_hash": "e55df81a611543a085b0b63292ec38ef"
+    "mtime": 1791382974.8458178,
+    "ast_hash": "f7418a71f7649a402c0ddcf8455f3d5f",
+    "semantic_hash": "f7418a71f7649a402c0ddcf8455f3d5f"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Architecture Electron \u2014 trois processus cloisonn\u00e9s.md": {
     "mtime": 1791300229.0695765,
@@ -2674,6 +2899,11 @@
     "ast_hash": "67b3eceb661de8bb518059c4adbc8ff6",
     "semantic_hash": "67b3eceb661de8bb518059c4adbc8ff6"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Carte de structure ordonn\u00e9e \u2014 ordre de progression, tri par d\u00e9pendances et disposition altern\u00e9e.md": {
+    "mtime": 1791382687.2196095,
+    "ast_hash": "59899757503aecf05999f112bbc70a27",
+    "semantic_hash": "59899757503aecf05999f112bbc70a27"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Carte des id\u00e9es \u2014 simulation de forces et croisements de liens.md": {
     "mtime": 1791300229.065065,
     "ast_hash": "930ff8c50d97da2930c5040c814bc1ae",
@@ -2685,9 +2915,9 @@
     "semantic_hash": "d4872559e981f0d820d8a6ab30164da2"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Coquille de bureau \u2014 zone de notification, instance unique et fen\u00eatres cach\u00e9es.md": {
-    "mtime": 1790669121.5721602,
-    "ast_hash": "4c1e8da0fd63c6601bd0d053d73ba5ec",
-    "semantic_hash": "4c1e8da0fd63c6601bd0d053d73ba5ec"
+    "mtime": 1791382974.843817,
+    "ast_hash": "59342e623cd35f92f2e5bc8972663681",
+    "semantic_hash": "59342e623cd35f92f2e5bc8972663681"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Croissance d'un neurone \u2014 arbre, garde-fous et jauge.md": {
     "mtime": 1791300229.0608666,
@@ -2700,9 +2930,9 @@
     "semantic_hash": "86a9dfe633ec6db95faf4bc8dacd4480"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Du brainstorm au code \u2014 sp\u00e9cifications et constitution.md": {
-    "mtime": 1791300229.0685792,
-    "ast_hash": "27e34c0aae206185e5ec51e3d753b350",
-    "semantic_hash": "27e34c0aae206185e5ec51e3d753b350"
+    "mtime": 1791382974.8418114,
+    "ast_hash": "7b7b65c5b2a2c25c1220d74c0d00c0dc",
+    "semantic_hash": "7b7b65c5b2a2c25c1220d74c0d00c0dc"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Explorateur de code \u2014 du module au bloc, appelants et appel\u00e9s.md": {
     "mtime": 1791363191.5162432,
@@ -2710,9 +2940,9 @@
     "semantic_hash": "a0d37a254ec3d60f2edffc4a6549c239"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Fichiers \u00e9crits par l'app \u2014 chemin choisi par le main, \u00e9criture atomique, corbeille.md": {
-    "mtime": 1791363223.9176977,
-    "ast_hash": "8713fe0fcc2788641ac32bf5d9c0c80c",
-    "semantic_hash": "8713fe0fcc2788641ac32bf5d9c0c80c"
+    "mtime": 1791382979.9065902,
+    "ast_hash": "453f3729dcd313211f1c4c186c9e1955",
+    "semantic_hash": "453f3729dcd313211f1c4c186c9e1955"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Canal nomm\u00e9 et flux standard.md": {
     "mtime": 1791300157.7426245,
@@ -2735,9 +2965,9 @@
     "semantic_hash": "980017923573134332b97745bd3e097d"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Empreinte SHA-256.md": {
-    "mtime": 1791300229.0705764,
-    "ast_hash": "fab9e3911aae0f95457e4ce9876c70bb",
-    "semantic_hash": "fab9e3911aae0f95457e4ce9876c70bb"
+    "mtime": 1791382974.843318,
+    "ast_hash": "fb9f07c6ddfb68807b40c95239ce9d6f",
+    "semantic_hash": "fb9f07c6ddfb68807b40c95239ce9d6f"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Expression r\u00e9guli\u00e8re.md": {
     "mtime": 1790605585.8338773,
@@ -2763,6 +2993,11 @@
     "mtime": 1790669293.8299532,
     "ast_hash": "e1fa15dec73eeb018de9d5aea80433d3",
     "semantic_hash": "e1fa15dec73eeb018de9d5aea80433d3"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 HMAC (empreinte \u00e0 cl\u00e9).md": {
+    "mtime": 1791382890.7658582,
+    "ast_hash": "f2c3430965890385cd7f681868710305",
+    "semantic_hash": "f2c3430965890385cd7f681868710305"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Idempotence.md": {
     "mtime": 1791300229.0705764,
@@ -2795,9 +3030,19 @@
     "semantic_hash": "78a8d47bcdc23687f0482c56b1158789"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Parcours en profondeur (DFS).md": {
-    "mtime": 1791300229.0705764,
-    "ast_hash": "e6ffd610a54d45daf49ccc0276280dde",
-    "semantic_hash": "e6ffd610a54d45daf49ccc0276280dde"
+    "mtime": 1791382974.846823,
+    "ast_hash": "b97a24d5bc918317783b76843e8f0ee4",
+    "semantic_hash": "b97a24d5bc918317783b76843e8f0ee4"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Principe du moindre privil\u00e8ge.md": {
+    "mtime": 1791382890.8351502,
+    "ast_hash": "155a026bc20378f42c0d0da44847aadb",
+    "semantic_hash": "155a026bc20378f42c0d0da44847aadb"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Pseudonymisation et minimisation des donn\u00e9es.md": {
+    "mtime": 1791382890.8045425,
+    "ast_hash": "2b4d47a4a3c9460c98cc9efa2d6bf9b7",
+    "semantic_hash": "2b4d47a4a3c9460c98cc9efa2d6bf9b7"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Suppression douce (soft delete).md": {
     "mtime": 1790763382.8027236,
@@ -2815,14 +3060,19 @@
     "semantic_hash": "ee4f71d5391bcd0f789628e676655f98"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Travers\u00e9e de chemin et lien symbolique.md": {
-    "mtime": 1791300157.8001764,
-    "ast_hash": "df4ea6e0b126d5c88a2c376cc5359bba",
-    "semantic_hash": "df4ea6e0b126d5c88a2c376cc5359bba"
+    "mtime": 1791382974.8458178,
+    "ast_hash": "fbf6a66fa77a84407460dc21c5a03bf5",
+    "semantic_hash": "fbf6a66fa77a84407460dc21c5a03bf5"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Tri topologique de Kahn.md": {
-    "mtime": 1790605585.8125298,
-    "ast_hash": "32d9d892144e3845b55e226f3de9b580",
-    "semantic_hash": "32d9d892144e3845b55e226f3de9b580"
+    "mtime": 1791382974.8428185,
+    "ast_hash": "ddcf9195a302c39e57dfae91ad308ed7",
+    "semantic_hash": "ddcf9195a302c39e57dfae91ad308ed7"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 Versionnage s\u00e9mantique (MAJOR.MINOR.PATCH).md": {
+    "mtime": 1791382890.8652296,
+    "ast_hash": "609194cf249def30fed2a21f30fb72e9",
+    "semantic_hash": "609194cf249def30fed2a21f30fb72e9"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Glossaire \u2014 \u00c9criture atomique (temporaire puis renommage).md": {
     "mtime": 1791300157.771203,
@@ -2850,19 +3100,24 @@
     "semantic_hash": "a9994fba54ef4c6d4a91006c7c47842e"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Lancer un programme sans shell \u2014 chemin absolu, arguments s\u00e9par\u00e9s, listes blanches.md": {
-    "mtime": 1791300046.1581109,
-    "ast_hash": "f955122bcf4297d65d440fa7e581e1d6",
-    "semantic_hash": "f955122bcf4297d65d440fa7e581e1d6"
+    "mtime": 1791382974.844317,
+    "ast_hash": "fe0364e93dbe56be868f9fa6ee63b7dd",
+    "semantic_hash": "fe0364e93dbe56be868f9fa6ee63b7dd"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Liens entre id\u00e9es \u2014 graphe local de mots-cl\u00e9s.md": {
     "mtime": 1791300229.0630648,
     "ast_hash": "8b22002641894744b8e6c8a732a51d13",
     "semantic_hash": "8b22002641894744b8e6c8a732a51d13"
   },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Mise \u00e0 jour r\u00e9versible \u2014 worktree, branche, fusion no-ff et git revert.md": {
+    "mtime": 1791382825.5744798,
+    "ast_hash": "5187b848ae5aab18e05dca026370c148",
+    "semantic_hash": "5187b848ae5aab18e05dca026370c148"
+  },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\MOC \u2014 Gestionnaire id\u00e9es.md": {
-    "mtime": 1791363265.935138,
-    "ast_hash": "640259b2a412ca4fb4ccbc90ca27216c",
-    "semantic_hash": "640259b2a412ca4fb4ccbc90ca27216c"
+    "mtime": 1791383027.2151475,
+    "ast_hash": "7a8e1b76dc6e44979587dfbfcd918ffa",
+    "semantic_hash": "7a8e1b76dc6e44979587dfbfcd918ffa"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Outils propos\u00e9s au verrouillage \u2014 cr\u00e9er dans la transaction, g\u00e9n\u00e9rer hors transaction.md": {
     "mtime": 1791300229.064065,
@@ -2885,14 +3140,19 @@
     "semantic_hash": "91656390dfc9c64860fa98ce7caf5c5b"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Plan d'attaque \u2014 \u00e9tapes ordonn\u00e9es, d\u00e9pendances sans cycle et verrou.md": {
-    "mtime": 1791299941.1269903,
-    "ast_hash": "e15335c54e8eae518c8807b5e8db9f80",
-    "semantic_hash": "e15335c54e8eae518c8807b5e8db9f80"
+    "mtime": 1791382974.8478296,
+    "ast_hash": "27554b6e156eb6d85f3f6f2db7dd72f5",
+    "semantic_hash": "27554b6e156eb6d85f3f6f2db7dd72f5"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Plong\u00e9e radiale \u2014 couronne sur un arc et affichage optimiste.md": {
     "mtime": 1791300229.064065,
     "ast_hash": "75a58432d8e86b47535827bc0e63c925",
     "semantic_hash": "75a58432d8e86b47535827bc0e63c925"
+  },
+  "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Sonde sans contenu \u2014 t\u00e9l\u00e9m\u00e9trie minimis\u00e9e, empreintes HMAC et pseudonymes.md": {
+    "mtime": 1791382731.005903,
+    "ast_hash": "cbf51e05dd4aa8de1a0166571a05b997",
+    "semantic_hash": "cbf51e05dd4aa8de1a0166571a05b997"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Stockage local chiffr\u00e9 \u2014 SQLite, SQLCipher et DPAPI.md": {
     "mtime": 1790605085.8927498,
@@ -2900,9 +3160,9 @@
     "semantic_hash": "48e9d027f8cb8e8c6ef1674993031587"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\Synth\u00e8se v\u00e9rifi\u00e9e \u2014 contr\u00f4les d\u00e9terministes et provenance.md": {
-    "mtime": 1791363223.9176977,
-    "ast_hash": "2cca481f5631d15622d25e30fb6404ae",
-    "semantic_hash": "2cca481f5631d15622d25e30fb6404ae"
+    "mtime": 1791382974.8453176,
+    "ast_hash": "f18419ef3782592d96eb9a7e7dfd07bb",
+    "semantic_hash": "f18419ef3782592d96eb9a7e7dfd07bb"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\docs\\academique\\TanStack Query et Zustand \u2194 cache de donn\u00e9es et \u00e9tat d'interface.md": {
     "mtime": 1790669265.9526532,
@@ -3785,14 +4045,14 @@
     "semantic_hash": "60ebafc43b5177c95ccd75b62f1c8e37"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\specs\\017-reprise-voir\\spec.md": {
-    "mtime": 1791365335.409577,
-    "ast_hash": "cc25462e5991e49bba4ae285f3af44ec",
-    "semantic_hash": "cc25462e5991e49bba4ae285f3af44ec"
+    "mtime": 1791399378.6635334,
+    "ast_hash": "6d677e81315a10c87d900d42e2817d95",
+    "semantic_hash": "6d677e81315a10c87d900d42e2817d95"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\specs\\017-reprise-voir\\tasks.md": {
-    "mtime": 1791378516.6438785,
-    "ast_hash": "3778e1013f2983a1e93d936797be4b3d",
-    "semantic_hash": "3778e1013f2983a1e93d936797be4b3d"
+    "mtime": 1791399611.157799,
+    "ast_hash": "dc123f9c9f2c4a72b23d86b1342a1c4c",
+    "semantic_hash": "dc123f9c9f2c4a72b23d86b1342a1c4c"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\specs\\017-reprise-voir\\checklists\\requirements.md": {
     "mtime": 1791315542.4386942,
@@ -3835,9 +4095,9 @@
     "semantic_hash": "65cc4cd22ef4ca6613df2e136f2cb615"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\specs\\019-analyste-interne\\tasks.md": {
-    "mtime": 1791382083.857438,
-    "ast_hash": "3310b290370b5b0e8d0a27739cac9862",
-    "semantic_hash": "3310b290370b5b0e8d0a27739cac9862"
+    "mtime": 1791385759.4855714,
+    "ast_hash": "3a6fcb6f803d7ef6b77e3ffd0e72cbeb",
+    "semantic_hash": "3a6fcb6f803d7ef6b77e3ffd0e72cbeb"
   },
   "C:\\Users\\ernes\\Desktop\\ProjectsMaster\\projects\\gestionnaire-idees\\specs\\019-analyste-interne\\checklists\\requirements.md": {
     "mtime": 1791381070.9918377,

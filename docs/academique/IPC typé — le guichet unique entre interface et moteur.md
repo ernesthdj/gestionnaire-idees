@@ -107,3 +107,7 @@ catch (error) {
 
 ## Évolution du 04/10 — un deuxième guichet
 Le main a désormais **deux** entrées : l'IPC (l'interface) et le **canal nommé** du pont MCP (Claude Code, via un relais). Même doctrine : schéma Zod à la frontière, appelant identifié, erreurs métier traduites en codes lisibles. Voir [[Pont MCP — relais stdio, canal nommé et secret partagé]].
+
+## Évolution du 07/10 (soir) — le guichet mesure, et le piège du « rien »
+- **Mesure au point unique** : `createDispatcher` reçoit un observateur `(canal, durée, ok)` et chronomètre **chaque** appel autour de `route.run` — sans toucher aucun handler, sans jamais transmettre la charge utile. Le guichet unique, déjà point de validation et de traduction des erreurs, devient aussi point de **mesure** → [[Glossaire — Préoccupation transverse (point unique et tee)]].
+- 🐞 **Le piège du « rien »** : un canal sans paramètre doit valider `z.undefined()`, car l'interface appelle le canal **sans** charge utile. Les canaux de l'Analyste exigeaient `{}` → `VALIDATION` à chaque appel → la page restait sur « Chargement… ». Deux leçons : **tester un canal avec la charge exacte de l'interface**, et **une vue qui attend une requête doit afficher son échec** (Réglages › Analyste affiche maintenant le message d'erreur).

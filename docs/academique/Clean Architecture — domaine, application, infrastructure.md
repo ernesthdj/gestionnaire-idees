@@ -112,3 +112,6 @@ const growth = new GrowthService({
 **Connexions**
 - [[Passerelle IA hybride — un seul point d'accès à l'IA]] — l'orchestrateur qui utilise le port `AIProvider`.
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que cachent les adaptateurs `*Repository`.
+
+## Évolution du 07/10 (soir) — la règle de dépendance devient un outil de lecture
+Cette note décrivait l'architecture **de l'app**. Depuis la spec 017 D20, l'app **vérifie la même règle sur les projets des autres** : chaque architecture connue (Clean, hexagonale, MVVM, MVC, en couches) est réduite à des **couches avec une profondeur** (Clean : présentation et infrastructure = 1, application = 2, domaine = 3), et toute dépendance d'une couche **plus profonde** vers une **moins profonde** est tracée en rouge, « ⚠ sens interdit ». C'est exactement le piège « importer un repository dans le domaine » cité plus haut, rendu **visible**. Détail → [[Vue Architecture — règle de dépendance, couches déduites et deux dispositions pures]]. Au passage, le fichier du catalogue (`src/shared/structure/architecture.ts`) est **partagé** main + interface : une fonction pure n'appartient à aucun processus.

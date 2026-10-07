@@ -48,3 +48,12 @@ export function nextStepOf(result: HatchedResultView | null): string | null {
 > **Q :** Pourquoi l'étiquette « prochaine étape » n'est-elle pas modifiable sur la carte ? **R :** Parce qu'elle n'existe pas en tant que donnée : c'est une **lecture** du document. La modifier voudrait dire modifier le document (nouveau verrouillage).
 
 **Pièges** : ⚠️ « dénormaliser pour aller plus vite » sans mesurer — on paie en bugs d'incohérence ; ⚠️ confondre **affichage** et **donnée** : dessiner un trait depuis l'étape ne doit pas réécrire le lien en base (graines de liens et Historique en dépendent).
+
+## Évolution du 07/10 (soir) — trois nouvelles données calculées sur la carte de structure
+| Donnée | Stockée ? | Calculée par |
+|---|---|---|
+| Contenu d'un élément (doc / code, D18) | non | `contentOf(chemins, fichiers du dossier)` à chaque lecture, inventaire gardé 30 s |
+| Couche « déduite » (D20) | non — seules les couches de Claude ou de mentalyas sont stockées, avec leur **source** | `inferLayer` (vote des dossiers) |
+| Avancement d'un parent (D21) | non — seul celui des feuilles, déclaré par Claude | `progressOf` (moyenne récursive) |
+
+Règle commune : on stocke ce qui est une **décision** (de Claude ou de mentalyas), on calcule ce qui s'en **déduit**.
