@@ -36,3 +36,6 @@ isInside(realpathSync(projectDir), realpathSync(join(projectDir, 'docs', 'brains
 > **Q :** Un chemin sans aucun `..` peut-il sortir du projet ? **R :** Oui, si l'un de ses dossiers est un lien symbolique ou une jonction ; seul `realpath` le révèle.
 
 **Pièges** : ⚠️ `startsWith('C:\\projet')` accepte `C:\\projet-bis` ; ⚠️ vérifier puis écrire longtemps après — le lien peut être créé entre-temps (on vérifie juste avant d'écrire).
+
+## Évolution du 07/10 — une jonction voulue, et son garde-fou
+La spec 019 (conçue) **crée** volontairement une jonction : `<worktree>/node_modules` → `node_modules` du dépôt principal, pour ne pas réinstaller les dépendances dans chaque copie de travail (`fs.symlink(cible, chemin, 'junction')` : une jonction ne demande pas de droits administrateur, contrairement à un lien symbolique sous Windows, mais ne vise que des **dossiers locaux**). Revers attendu : écrire dans `<worktree>/node_modules` écrirait **chez l'app ouverte** → le hook d'avant-écriture refuse tout chemin sous `node_modules` (constat U1), et la jonction est retirée **avant** `git worktree remove`. → [[Mise à jour réversible — worktree, branche, fusion no-ff et git revert]]

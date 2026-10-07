@@ -784,3 +784,8 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Fichiers :** `specs/019-analyste-interne/{analysis-report,spec,research,data-model,quickstart,tasks}.md`, `contracts/interfaces.md`, `.specify/memory/constitution.md`.
 **Quoi :** 13 constats (1 CRITICAL, 2 HIGH, 6 MEDIUM, 4 LOW), corrigés après validation : C1 constitution 4.2.1 (npm = programme Node lancé par `node` + `npm-cli.js`, sans shell) ; I1 profil d'essai distinct pour « Essayer » (verrou d'instance unique de `src/main/index.ts`, research R11) ; I2 analyse du dépôt via le genesis qui le lie déjà (pas de réimport `ALREADY_LINKED`) ; U1 écritures sous `node_modules` refusées ; U2 `neurons.hidden` ; G1 `ia_vers_code` exige une preuve de répétition ; G2 revérification du dépôt (R12) ; G3 mesure SC-009 ; refus réversible.
 **Règle apprise :** une analyse croisée qui lit aussi le code (verrou d'instance, refus de réimport) trouve des conflits qu'aucun document ne montre seul.
+
+### [2026-10-07 16:09] SESSION — End
+**Resume :** spec 017 D17 validée au test guidé (T059) et commitée ; US5 (clone git) mise en pause ; brainstorm complet « Analyste interne » (L1g, L2 ×4, L3 ×3, L4e) exporté en FOUNDATION §0000 ; constitution 4.2.0 puis 4.2.1 (branche `analyste/*`, tâche `analyste` en lecture, npm de vérification) ; spec 019 rédigée, planifiée (10+2 points de recherche, migration 0030), découpée en 43 tâches et analysée (13 constats corrigés).
+**Branche :** main
+**Commits pushes :** 4

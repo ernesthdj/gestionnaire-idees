@@ -53,3 +53,6 @@ const walk = (node: GrowthNode, depth: number): void => {
 
 ## Évolution du 05/10 — les trois couleurs
 Sur un **graphe orienté**, le DFS détecte un cycle en marquant chaque nœud blanc (jamais vu), **gris** (sur le chemin en cours) ou **noir** (fini) : retomber sur un gris = boucle. Utilisé pour les dépendances entre étapes : [[Plan d'attaque — étapes ordonnées, dépendances sans cycle et verrou]].
+
+## Évolution du 07/10 — numéroter comme un sommaire
+Les numéros de progression de la carte de structure (1, 1.1, 1.1.1, 1.2, 2…) sont un DFS **préfixe** : on numérote un élément, puis on descend dans ses enfants **avant** de passer à son frère suivant. → [[Carte de structure ordonnée — ordre de progression, tri par dépendances et disposition alternée]]

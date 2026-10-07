@@ -102,3 +102,6 @@ replace(accelerator: string): boolean {
 - [[Architecture Electron — trois processus cloisonnés]] — le main qui survit sans fenêtre.
 - [[IPC typé — le guichet unique entre interface et moteur]] — canaux autorisés **par page** (principale / capture).
 - [[Glossaire — Mise à jour optimiste]] — la capture crée l'idée sans attendre l'IA.
+
+## Évolution du 07/10 — le verrou d'instance unique rattrape une conception
+En concevant « Essayer une mise à jour » (spec 019), le plan prévoyait de lancer la version d'une branche sur le **profil démo**, à côté de l'app ouverte. L'analyse croisée a relu `src/main/index.ts` : `requestSingleInstanceLock()` refuserait le second processus (ou, sans verrou, deux processus ouvriraient **la même base**). Décision (research R11) : un **profil d'essai** distinct, dont le dossier (`app.setPath('userData', …)`) est fixé **avant** la prise du verrou. ⚠️ Probable, **à vérifier en T035** : que le verrou dépend bien du dossier de profil (deux profils = deux instances possibles). → [[Mise à jour réversible — worktree, branche, fusion no-ff et git revert]]

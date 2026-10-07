@@ -101,3 +101,6 @@ async anonymize(text: string): Promise<string> {
 
 ## Évolution du 05/10 — couche retirée
 > ⚠️ **Correction du 05/10** — L'anonymisation a été **retirée** (amendement L1c du 04/10, spec 010, constitution 3.0.0) : Claude Code travaille sur l'abonnement de mentalyas et lit directement ses projets, l'anonymisation n'avait plus d'objet. Le code (`Anonymizer`) et ses tests sont supprimés. La note reste un bon cours sur les **expressions régulières** et la combinaison déterministe + IA locale ; la protection s'est déplacée vers le **contrôle de ce que Claude peut faire** : [[Permissions relayées — l'humain dans la boucle d'un agent]].
+
+## Évolution du 07/10 — la vie privée revient, autrement
+Avec l'Analyste interne (spec 019, conçue), une sonde observe l'usage de l'app. Plutôt que de **nettoyer** un texte avant envoi (cette note), elle **ne collecte jamais** de texte (minimisation par catalogue fermé), suit les objets par **pseudonymes HMAC** et n'envoie à Claude que des **agrégats**. → [[Glossaire — Pseudonymisation et minimisation des données]], [[Sonde sans contenu — télémétrie minimisée, empreintes HMAC et pseudonymes]]

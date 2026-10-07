@@ -41,7 +41,12 @@
 		{"id":"c_ipc","type":"file","file":"academique/IPC typé — le guichet unique entre interface et moteur.md","x":-160,"y":4400,"width":380,"height":300,"color":"4"},
 		{"id":"label_017","type":"text","text":"Spec 017 — reprendre un projet existant (07/10)\nParcours 30 à 31 : guide de reprise puis explorateur de code\nNouveaux glossaires : Fenêtre de contexte, Graphe d'appels — voir MOC\nBlocs « Évolution du 07/10 » dans 4 notes existantes","x":-720,"y":14400,"width":320,"height":220},
 		{"id":"c_guide","type":"file","file":"docs/academique/Guide de reprise — contexte borné, sections fixes et sources vérifiées.md","x":-160,"y":14400,"width":380,"height":320,"color":"6"},
-		{"id":"c_explorateur","type":"file","file":"docs/academique/Explorateur de code — du module au bloc, appelants et appelés.md","x":-160,"y":14800,"width":380,"height":320,"color":"6"}
+		{"id":"c_explorateur","type":"file","file":"docs/academique/Explorateur de code — du module au bloc, appelants et appelés.md","x":-160,"y":14800,"width":380,"height":320,"color":"6"},
+		{"id":"c_ordre","type":"file","file":"docs/academique/Carte de structure ordonnée — ordre de progression, tri par dépendances et disposition alternée.md","x":-160,"y":15200,"width":380,"height":320,"color":"6"},
+		{"id":"label_019","type":"text","text":"Spec 019 — Analyste interne (conçue le 07/10, pas encore codée)\nParcours 33 à 35 : observer → analyser → appliquer\nNouveaux glossaires : HMAC, Pseudonymisation, Moindre privilège, Versionnage sémantique — voir MOC\nBlocs « Évolution du 07/10 » dans 10 notes existantes","x":-720,"y":15600,"width":320,"height":240},
+		{"id":"c_sonde","type":"file","file":"docs/academique/Sonde sans contenu — télémétrie minimisée, empreintes HMAC et pseudonymes.md","x":-160,"y":15600,"width":380,"height":320,"color":"3"},
+		{"id":"c_analyste","type":"file","file":"docs/academique/Analyste en lecture seule — moindre privilège et propositions vérifiées.md","x":-160,"y":16000,"width":380,"height":320,"color":"3"},
+		{"id":"c_maj","type":"file","file":"docs/academique/Mise à jour réversible — worktree, branche, fusion no-ff et git revert.md","x":-160,"y":16400,"width":380,"height":320,"color":"3"}
 	],
 	"edges":[
 		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
@@ -77,6 +82,10 @@
 		{"id":"e_c_plan_c_fichiers","fromNode":"c_plan","fromSide":"bottom","toNode":"c_fichiers","toSide":"top","label":"28 écrire de vrais fichiers"},
 		{"id":"e_c_fichiers_c_lancer","fromNode":"c_fichiers","fromSide":"bottom","toNode":"c_lancer","toSide":"top","label":"29 lancer des programmes"},
 		{"id":"e_c_lancer_c_guide","fromNode":"c_lancer","fromSide":"bottom","toNode":"c_guide","toSide":"top","label":"30 lire le projet d'un autre"},
-		{"id":"e_c_guide_c_explorateur","fromNode":"c_guide","fromSide":"bottom","toNode":"c_explorateur","toSide":"top","label":"31 du guide au code"}
+		{"id":"e_c_guide_c_explorateur","fromNode":"c_guide","fromSide":"bottom","toNode":"c_explorateur","toSide":"top","label":"31 du guide au code"},
+		{"id":"e_c_explorateur_c_ordre","fromNode":"c_explorateur","fromSide":"bottom","toNode":"c_ordre","toSide":"top","label":"32 lire la structure dans l'ordre"},
+		{"id":"e_c_ordre_c_sonde","fromNode":"c_ordre","fromSide":"bottom","toNode":"c_sonde","toSide":"top","label":"33 l'app s'observe elle-même"},
+		{"id":"e_c_sonde_c_analyste","fromNode":"c_sonde","fromSide":"bottom","toNode":"c_analyste","toSide":"top","label":"34 Claude analyse sans pouvoir agir"},
+		{"id":"e_c_analyste_c_maj","fromNode":"c_analyste","fromSide":"bottom","toNode":"c_maj","toSide":"top","label":"35 appliquer, garder, annuler"}
 	]
 }

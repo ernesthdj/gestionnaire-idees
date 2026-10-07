@@ -110,3 +110,7 @@ export function isSafeToOpen(path: string): boolean {
 - [[Permissions relayées — l'humain dans la boucle d'un agent]] — règles de commande au texte exact, même philosophie.
 - [[Widget branché — autorisation par empreinte et pont postMessage]] — consentir à un contenu précis.
 - [[Glossaire — Traversée de chemin et lien symbolique]] — les chemins passés en argument sont contrôlés avant.
+
+## Évolution du 07/10 — npm écrit dans la constitution, et des commandes git jamais lancées
+- **Constitution 4.2.0 puis 4.2.1** : `npm` rejoint la liste des programmes que l'app peut lancer, **limité** aux scripts `typecheck`, `lint`, `test` et à `prettier --check`, dans un worktree `analyste/*`. La 4.2.1 **clarifie** que `node` + `npm-cli.js` (chacun par chemin absolu) n'est pas un « interpréteur intermédiaire » au sens du principe I, qui vise les **shells** — exactement le mécanisme décrit plus haut pour `npm.cmd`.
+- **Spec 019 (conçue, pas codée)** : en plus de la liste blanche, une **liste de commandes git jamais lancées** (`push`, `reset`, `rebase`, `--force`, `checkout` dans le dépôt principal), vérifiée par un test qui inspecte **toutes** les commandes d'un parcours ; noms de branche **générés par l'app** (slug `[a-z0-9-]`), jamais fournis par Claude. → [[Mise à jour réversible — worktree, branche, fusion no-ff et git revert]]

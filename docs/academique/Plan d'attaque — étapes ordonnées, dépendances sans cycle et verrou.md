@@ -118,3 +118,6 @@ export function assertUnlocked(neuron: { readonly lockedAt: string | null }): vo
 - [[Glossaire — Parcours en profondeur (DFS)]] — la version « trois couleurs » pour les graphes orientés.
 - [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]] — place de base calculée, décalage stocké.
 - [[Glossaire — Clé stable et upsert]] — la carte de structure, voisine, recartographie un projet sans doublon.
+
+## Évolution du 07/10 — la carte de structure adopte la même discipline
+La carte de structure (spec 017 D17) reçoit à son tour une **disposition pure** et un **ordre entre frères** (rang de Claude, sinon dépendances, sinon dessin), avec une différence clé : un cycle n'y est pas refusé (on lit une carte, on n'exécute pas un plan). → [[Carte de structure ordonnée — ordre de progression, tri par dépendances et disposition alternée]]

@@ -41,3 +41,6 @@ createHash('sha256').update(`${a}|${b}|${normalizeLabel(label)}`).digest('hex')
 ## Évolution du 04→06/10
 - [[Pont MCP — relais stdio, canal nommé et secret partagé]] — le **nom** du canal est tiré d'une empreinte du chemin du profil (un canal par profil).
 - [[Fichiers écrits par l'app — chemin choisi par le main, écriture atomique, corbeille]] — l'empreinte du dernier contenu connu révèle qu'un document a été modifié hors de l'app.
+
+## Évolution du 07/10 — la limite : un texte court se devine
+Pour **comparer sans garder le contenu** (la sonde de l'Analyste repère une tâche d'IA refaite à l'identique), un SHA-256 simple ne suffit pas : il est public, donc un attaquant hache un **dictionnaire** de phrases courtes et compare. La spec 019 utilise un **HMAC** (empreinte **à clé** locale) → [[Glossaire — HMAC (empreinte à clé)]]. SHA-256 reste le bon outil pour l'**intégrité** (fichier modifié ?), où le contenu n'est pas secret.

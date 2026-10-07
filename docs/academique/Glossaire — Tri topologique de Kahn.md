@@ -47,3 +47,10 @@ export function isAcyclic(ids: readonly string[], edges: readonly (readonly [str
 > **Q :** Graphe A→B, B→C, C→A. Combien de nœuds visités ? **R :** Zéro : aucun n'a 0 prérequis au départ, donc cycle détecté.
 
 **Pièges** : ⚠️ confondre « arbre » (un seul parent, jamais de cycle par construction) et « graphe de dépendances » (plusieurs prérequis possibles, cycles possibles).
+
+## Évolution du 07/10 — la variante stable, qui ne refuse pas les cycles
+Le tri revient dans la carte de structure (spec 017 D17, `canvas/structureOrder.ts`) pour **ordonner des frères** par dépendances. Deux différences avec la version « détecteur de cycle » ci-dessus :
+- **Stable** : parmi les nœuds prêts, on prend toujours **le premier dans l'ordre du dessin** (au lieu de « n'importe lequel de la pile ») → même entrée, même ordre.
+- **Tolérante** : s'il ne reste que des nœuds bloqués (cycle), on **fait passer le premier dessiné** au lieu de rejeter — une carte à **lire** doit toujours s'afficher, contrairement à un plan à **exécuter**.
+
+→ [[Carte de structure ordonnée — ordre de progression, tri par dépendances et disposition alternée]]
