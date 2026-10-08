@@ -57,7 +57,7 @@ arborescences et dépôts git temporaires ; CLI `claude` simulé.
 - [x] T031b [US4] Migration `0034_skill_library` (+ down) : `skill_imports.folder|updated_at|truncated`, `skill_import_candidates.content_hash|claude_verdict|claude_reasons|claude_hash` ; `SkillRepository` (dépôts de la bibliothèque, report des audits)
 - [x] T031c [US4] `SkillImportService` : copie gardée (renommage du temporaire, échange à la mise à jour, ancienne copie gardée sur échec), repérage 300 skills / profondeur 6, règles fixes à l'import, audit Claude à l'installation (empreinte), `library`, `librarySkill`, `install`, `remove` ; canaux `skills:library|librarySkill|libraryInstall|libraryRemove` (remplacent `importView|importChoose`) + tests d'intégration
 - [x] T031d [US4] Interface : branche Bibliothèque (grappe par dépôt, nœuds « disponible » avec verdict), volet d'un skill disponible (SKILL.md, verdict et raisons, scripts, déverrouillage, Installer → brouillon), volet d'un dépôt (Mettre à jour, Retirer), `ImportDialog` réduit (adresse → progression → résumé) + tests renderer/axe
-- [ ] T032 [US4] Test guidé (quickstart §4) — attendre le retour ; cocher aussi T028–T029 de la spec 017 (livrées ici)
+- [x] T032 [US4] Test guidé (quickstart §4) — validé par mentalyas le 2026-10-08 (import, mise à jour, Installer, Retirer) ; spec 017 : T028 cochée, T029 partielle (IPC `reprise:*` à faire)
 
 ## Phase 7 — Finitions
 - [ ] T033 Mesure SC-007 (150 skills fictifs : page utilisable < 2 s), consignée dans `research.md`
