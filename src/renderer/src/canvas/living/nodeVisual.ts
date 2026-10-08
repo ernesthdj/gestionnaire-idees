@@ -20,6 +20,10 @@ export type NodeIconKey =
   | 'skillPlugin'
   | 'project'
   | 'you'
+  | 'feature'
+  | 'interface'
+  | 'decision'
+  | 'operation'
 
 /** Statut affiché en pastille (pleine, à moitié, vide ; rouge si bloqué). */
 export type NodeStatus = 'done' | 'doing' | 'todo' | 'blocked'

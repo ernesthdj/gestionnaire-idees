@@ -12,13 +12,13 @@ import { progression } from './structureOrder'
  * l'élément visible de l'autre bout. Fonctions pures.
  */
 
-/** Taille d'un élément (D18) : en-tête sur une ligne, titre et résumé sur deux lignes chacun, pied pour les chemins. */
-export const ELEMENT_SIZE = { width: 304, height: 152 } as const
+/** Case d'un élément (spec 022 US3) : un petit cercle vivant et son titre dessous, avec de l'air. */
+export const ELEMENT_SIZE = { width: 176, height: 148 } as const
 /**
  * Espacement (D17) : entre deux frères d'une ligne (`across`) ou d'une colonne (`down`), en plus entre deux modules de
  * niveau 1 (`module`), et du centre du genesis au premier module (`genesis`).
  */
-export const SPACING = { across: 96, down: 48, module: 72, genesis: 120 } as const
+export const SPACING = { across: 24, down: 8, module: 16, genesis: 120 } as const
 
 export interface PlacedElement {
   readonly element: ElementView
@@ -98,7 +98,9 @@ export function structureGraph(
   elements: readonly ElementView[],
   genesisCenters: ReadonlyMap<string, { readonly x: number; readonly y: number }>,
   links: readonly MapLinkView[],
-  measured: readonly MeasuredLinkView[] = []
+  measured: readonly MeasuredLinkView[] = [],
+  /** « Réorganiser » (spec 022 D22) : les modules partent en ligne à droite du genesis, le sens alterne ensuite. */
+  transposed = false
 ): StructureGraph {
   const genesisIds = [...new Set(elements.map((element) => element.genesisId))].filter((id) => genesisCenters.has(id))
   const tree = treeOf(elements, genesisIds)
@@ -130,6 +132,7 @@ export function structureGraph(
     sizeOf: () => ELEMENT_SIZE,
     across: SPACING.across,
     down: SPACING.down,
+    transposed,
     visit: (id, depth, center, kids) => {
       const element = tree.byId.get(id) as ElementView
       placed.push({ element, depth, number: order.numbers.get(id) ?? '', x: center.x, y: center.y })

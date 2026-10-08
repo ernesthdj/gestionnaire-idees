@@ -4,10 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   activate,
   closeCard,
+  closeUnpinned,
   EMPTY_CARDS,
   moveCard,
   openCard,
   setSide,
+  togglePin,
   toggleSheet
 } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { dampStep, wheelFactor, zoomAround, ZOOM_BOUNDS } from '../../../src/renderer/src/canvas/useSmoothZoom'
@@ -54,6 +56,17 @@ describe('cardsStore', () => {
     let state = openCard(EMPTY_CARDS, 'a', { side: 'chat' })
     state = toggleSheet(moveCard(state, 'a', { x: 40, y: -12 }), 'a')
     expect(state.cards[0]).toMatchObject({ sheet: true, side: 'chat', offset: { x: 40, y: -12 } })
+  })
+})
+
+describe('ancrage des cartes (D28)', () => {
+  it('should_close_unpinned_cards_but_keep_pinned_ones_and_the_one_being_opened_when_clicking_outside', () => {
+    let state = openCard(openCard(openCard(EMPTY_CARDS, 'a'), 'b'), 'c')
+    state = togglePin(state, 'b')
+    state = closeUnpinned(state, 'c')
+    expect(state.cards.map((card) => card.id)).toEqual(['b', 'c'])
+    expect(closeUnpinned(state).cards.map((card) => card.id)).toEqual(['b'])
+    expect(togglePin(state, 'b').cards.find((card) => card.id === 'b')?.pinned).toBe(false)
   })
 })
 

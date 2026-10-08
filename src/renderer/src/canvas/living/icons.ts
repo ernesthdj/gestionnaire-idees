@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Boxes,
   Database,
   FileText,
@@ -11,9 +12,12 @@ import {
   ListOrdered,
   Package,
   Plug,
+  Signpost,
   Sparkles,
   SquareCheck,
+  Star,
   UserRound,
+  Wrench,
   type LucideIcon
 } from 'lucide-react'
 import type { NodeIconKey } from './nodeVisual'
@@ -37,5 +41,9 @@ export const NODE_ICONS: Readonly<Record<NodeIconKey, LucideIcon>> = {
   skillProjet: FolderGit2,
   skillPlugin: Plug,
   project: FolderKanban,
-  you: UserRound
+  you: UserRound,
+  feature: Star,
+  interface: ArrowLeftRight,
+  decision: Signpost,
+  operation: Wrench
 }

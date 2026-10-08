@@ -56,8 +56,8 @@ vérifiée à la main dans l'app.
 
 ## Phase 5 — US3 Carte de structure (P3)
 **Test indépendant** : éléments en cercles, Progression / Architecture glisse, ▸ N inchangé, carte avec fichiers liés dans le lecteur.
-- [ ] T036 [US3] Amendement daté de la spec 017 : clic sur un élément = carte de détails
-- [ ] T037 [US3] `src/renderer/src/canvas/nodes/ElementNode.tsx` via `LivingNode` (type → icône, numéro de progression, statut, ▸ N avec `element:setCollapsed` inchangé, focus des liens au survol gardé) ; carte : résumé, couche, chemins, fichiers liés dans le lecteur (`CodeLines`) ; `StructureBarNode` et `LayerBandNode` inchangés + tests
+- [x] T036 [US3] Amendement daté de la spec 017 : clic sur un élément = carte de détails
+- [x] T037 [US3] `src/renderer/src/canvas/nodes/ElementNode.tsx` via `LivingNode` (type → icône, numéro de progression, statut, ▸ N avec `element:setCollapsed` inchangé, focus des liens au survol gardé) ; carte : résumé, couche, chemins, fichiers liés dans le lecteur (`CodeLines`) ; `StructureBarNode` et `LayerBandNode` inchangés + tests
 - [ ] T038 [US3] Vérification D23 (éléments, barre de structure) ; test guidé — attendre le retour
 
 ## Phase 6 — US4 Blocs du canevas (P4)

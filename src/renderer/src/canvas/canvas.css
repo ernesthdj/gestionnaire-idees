@@ -597,9 +597,13 @@
  * Liens d'une carte de structure selon le focus (spec 017 D15) : quand un élément est survolé ou ouvert, ses liens
  * passent devant, épaissis ; les liens agrégés au niveau 1 s'estompent sans disparaître.
  */
-[data-structure-focus='on'] .react-flow__edge .structure-rest,
-[data-structure-focus='on'] .map-link-label[data-layer='rest'] {
+[data-structure-focus='on'] .react-flow__edge .structure-rest {
   opacity: 0.2;
+}
+/* Spec 022 US3 : au repos, les étiquettes des liens agrégés se cachent (elles couvraient les cercles et les titres) ;
+   celles de l'élément survolé ou dont la carte est active s'affichent ; une alerte « sens interdit » reste visible. */
+.map-link-label[data-layer='rest']:not([data-violation='true']) {
+  display: none;
 }
 .react-flow__edge .structure-focus {
   stroke-width: 3;

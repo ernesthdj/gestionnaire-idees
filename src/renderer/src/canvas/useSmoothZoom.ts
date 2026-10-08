@@ -9,7 +9,7 @@ import type { ReactFlowInstance, Viewport } from '@xyflow/react'
 
 export const ZOOM_BOUNDS = { min: 0.2, max: 2 } as const
 /** Fraction de l'écart parcourue à chaque image. */
-export const DAMPING = 0.14
+export const DAMPING = 0.2
 /** Sensibilité de la molette : facteur `exp(-deltaY × WHEEL_RATE)`. */
 export const WHEEL_RATE = 0.0012
 

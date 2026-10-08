@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 
 /**
- * Cartes de détails ouvertes (spec 022 D15, D16, D18) : plusieurs à la fois, une discussion par carte ; la dernière
- * touchée est active (au premier plan, Échap n'agit que sur elle). Décalage en unités de la carte : la carte suit son
+ * Cartes de détails ouvertes (spec 022 D15, D16, D18, D28) : un clic à l'extérieur ferme les cartes, sauf celles
+ * épinglées (plusieurs discussions à la fois) ; la dernière touchée est active (au premier plan, Échap n'agit que sur
+ * elle). Décalage en unités de la carte : la carte suit son
  * nœud et le zoom. À droite, la discussion et le lecteur se remplacent l'un l'autre ; la fiche (bas) est indépendante.
  * Règles pures (testées) + magasin zustand.
  */
@@ -27,6 +28,8 @@ export interface OpenCard {
   readonly reader: ReaderTarget | null
   /** Ordre d'empilement : la plus grande valeur est devant. */
   readonly z: number
+  /** Épinglée (D28) : elle reste ouverte malgré un clic à l'extérieur (travail à plusieurs discussions). */
+  readonly pinned: boolean
 }
 
 /** Ouverture directe sur la discussion, le lecteur ou la fiche (action finale, étape proposée). */
@@ -66,7 +69,7 @@ export function openCard(state: CardsState, id: string, options: OpenOptions = {
         ...state,
         cards: [
           ...state.cards,
-          { id, offset: { x: 0, y: 0 }, sheet: false, side: null, reader: null, z: topZ(state) + 1 }
+          { id, offset: { x: 0, y: 0 }, sheet: false, side: null, reader: null, z: topZ(state) + 1, pinned: false }
         ]
       }
   const active = activate(opened, id)
@@ -83,6 +86,18 @@ export function closeCard(state: CardsState, id: string): CardsState {
       ? state.activeId
       : (cards.reduce<OpenCard | null>((top, card) => (top === null || card.z > top.z ? card : top), null)?.id ?? null)
   return { cards, activeId }
+}
+
+/** Épingle ou détache une carte (D28). */
+export function togglePin(state: CardsState, id: string): CardsState {
+  return update(state, id, (card) => ({ ...card, pinned: !card.pinned }))
+}
+
+/** Clic à l'extérieur (D28) : les cartes non épinglées se ferment, sauf `keep` (la carte qu'on ouvre). */
+export function closeUnpinned(state: CardsState, keep?: string): CardsState {
+  return state.cards
+    .filter((card) => !card.pinned && card.id !== keep)
+    .reduce((next, card) => closeCard(next, card.id), state)
 }
 
 export function closeAll(): CardsState {
@@ -118,6 +133,8 @@ interface CardsStore extends CardsState {
   activate(id: string): void
   move(id: string, offset: Offset): void
   toggleSheet(id: string): void
+  togglePin(id: string): void
+  closeUnpinned(keep?: string): void
   setSide(id: string, side: 'chat' | 'reader' | null, reader?: ReaderTarget): void
 }
 
@@ -129,5 +146,7 @@ export const useCards = create<CardsStore>()((set) => ({
   activate: (id) => set((state) => activate(state, id)),
   move: (id, offset) => set((state) => moveCard(state, id, offset)),
   toggleSheet: (id) => set((state) => toggleSheet(state, id)),
+  togglePin: (id) => set((state) => togglePin(state, id)),
+  closeUnpinned: (keep) => set((state) => closeUnpinned(state, keep)),
   setSide: (id, side, reader) => set((state) => setSide(state, id, side, reader))
 }))

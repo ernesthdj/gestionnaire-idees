@@ -33,6 +33,9 @@ interface UiState {
   openViewer(neuronId: string, path: string): void
   /** Vue de chaque carte de structure (spec 017 D20) : « architecture » une fois basculée, « progression » sinon. */
   readonly structureViews: Readonly<Record<string, StructureView>>
+  /** Liens d'analyse des cartes de structure affichés au repos (spec 022 D29) ; masqués par défaut (allège la carte). */
+  readonly analysisLinks: boolean
+  toggleAnalysisLinks(): void
   setStructureView(genesisId: string, view: StructureView): void
   /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
   readonly explorerGenesisId: string | null
@@ -104,6 +107,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   },
   explorerGenesisId: null,
   structureViews: {},
+  analysisLinks: false,
+  toggleAnalysisLinks: () => set((state) => ({ analysisLinks: !state.analysisLinks })),
   setStructureView: (genesisId, view) =>
     set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
   openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),

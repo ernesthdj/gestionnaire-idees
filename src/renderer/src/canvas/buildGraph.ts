@@ -19,22 +19,22 @@ import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
 import { deliverableNodeId, documentNodeId, PLAN_BAR_SIZE, planLayout, type PlacedPlanItem } from './planLayout'
 import { nodeVisuals, type NodeIconKey, type NodeVisual, type TreeNodeInput } from './living/nodeVisual'
 import type { DocumentView } from '@shared/ipc/documents'
-import { STATUS_LABELS } from './nodes/ElementNode'
+import { ELEMENT_ICONS, ELEMENT_NODE_STATUS, STATUS_LABELS } from './nodes/ElementNode'
 import { finalStateLabel, STEP_NODE_STATUS, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
-import { PROVENANCE_LABELS } from '../explorer/labels'
 
 /**
  * Taille d'une idée selon son niveau de contexte (FR-029) : plus elle est complète, plus elle est grande.
- * Cinq paliers nets, multiples de 8 : brute (jamais travaillée), insuffisant, suffisant, complet, éclose.
+ * Cinq paliers nets, multiples de 8 : brute (jamais travaillée), insuffisant, suffisant, complet, éclose. Spec 022 :
+ * l'orbe d'une idée de départ reste nettement plus gros que tout sous-nœud (58 px au plus), même brut.
  */
 export type Tier = 'raw' | 'insufficient' | 'sufficient' | 'complete' | 'hatched'
 export const TIER_SIZE: Readonly<Record<Tier, number>> = {
-  raw: 40,
-  insufficient: 56,
-  sufficient: 72,
-  complete: 88,
-  hatched: 104
+  raw: 72,
+  insufficient: 80,
+  sufficient: 96,
+  complete: 104,
+  hatched: 120
 }
 /** Aspect selon l'état : pointillés (brute), plein (en développement), double anneau + halo (éclose). */
 type CanvasState = 'raw' | 'developing' | 'hatched'
@@ -78,6 +78,9 @@ export type ElementNodeType = Node<
     readonly architecture?: ArchitectureKind | null
     /** Avancement affiché (D21) : déclaré, ou moyenne des sous-éléments ; absent sans information. */
     readonly progress?: ElementProgress | null
+    /** Aspect vivant (spec 022 US3) et carte de détails ouverte. */
+    readonly visual: NodeVisual
+    readonly open: boolean
   },
   'element'
 >
@@ -110,7 +113,14 @@ export type PlanNodeType = Node<
 export type PlanBarNodeType = Node<{ readonly proposal: ProposalView }, 'planBar'>
 /** Document Markdown rattaché à un neurone (spec 012), dans la colonne de ses enfants. */
 export type DocumentNodeType = Node<
-  { readonly document: DocumentView; readonly dimmed: boolean; readonly visual: NodeVisual; readonly open: boolean },
+  {
+    readonly document: DocumentView
+    readonly dimmed: boolean
+    readonly visual: NodeVisual
+    readonly open: boolean
+    /** Parent dans le plan (genesis ou étape). */
+    readonly parentId?: string
+  },
   'document'
 >
 /** Livrable d'une action finale (spec 013), annexe sous son action. */
@@ -121,6 +131,8 @@ export type DeliverableNodeType = Node<
     readonly dimmed: boolean
     readonly visual: NodeVisual
     readonly open: boolean
+    /** Parent dans le plan (l'action finale). */
+    readonly parentId?: string
   },
   'deliverable'
 >
@@ -278,6 +290,9 @@ const HIDDEN_NODE = {
   domAttributes: { 'aria-hidden': true }
 } as const
 
+/** Genesis qui portent une carte de structure. */
+const withMapIds = (view: IdeasCanvasView): Set<string> => new Set(view.elements.map((element) => element.genesisId))
+
 /** Identifiant du nœud React Flow d'un élément de plan (hors barre). */
 export function planItemId(item: Exclude<PlacedPlanItem, { kind: 'bar' }>): string {
   if (item.kind === 'step') return item.step.id
@@ -323,7 +338,12 @@ export function buildGraph(
   /** Cartes de structure basculées en vue Architecture (spec 017 D20). */
   structureViews: Readonly<Record<string, 'progression' | 'architecture'>> = {},
   /** « Réorganiser » (spec 022 D22) : les plans partent en ligne au premier niveau. */
-  transposed = false
+  transposed = false,
+  /**
+   * Liens d'analyse des cartes de structure (appels mesurés, relations) au repos (spec 022 D29) ; sans eux, restent la
+   * hiérarchie, les alertes « sens interdit » et les liens de l'élément en focus (ajoutés par la carte).
+   */
+  analysisLinks = true
 ): {
   nodes: CanvasNode[]
   edges: BranchEdgeType[]
@@ -350,9 +370,11 @@ export function buildGraph(
         documents,
         deliverables,
         rootRadius: TIER_SIZE[tierOf(genesis)] / 2,
-        beside: elementGenesis.has(genesis.id),
+        // Avec une carte de structure, le plan prend le côté qu'elle laisse libre : à droite quand elle descend, dessous
+        // quand « Réorganiser » la fait partir à droite ; il n'est alors pas transposé lui-même.
+        beside: elementGenesis.has(genesis.id) && !transposed,
         rootCollapsed: genesis.planCollapsed === true,
-        transposed
+        transposed: transposed && !elementGenesis.has(genesis.id)
       })
       return [[genesis.id, { genesis, steps, plan }] as const]
     })
@@ -494,7 +516,14 @@ export function buildGraph(
           width: size,
           height: size,
           position: { x: placed.x, y: placed.y },
-          data: { deliverable: placed.deliverable, title, dimmed, visual, open: openIds.has(id) },
+          data: {
+            deliverable: placed.deliverable,
+            title,
+            dimmed,
+            visual,
+            open: openIds.has(id),
+            parentId: placed.parentId
+          },
           draggable: true,
           ariaLabel: `Livrable de « ${title} » : ${placed.deliverable.files.length} fichier${placed.deliverable.files.length > 1 ? 's' : ''}${placed.deliverable.executing ? ', exécution en cours' : ''}`,
           deletable: false,
@@ -509,7 +538,7 @@ export function buildGraph(
           width: size,
           height: size,
           position: { x: placed.x, y: placed.y },
-          data: { document: placed.document, dimmed, visual, open: openIds.has(id) },
+          data: { document: placed.document, dimmed, visual, open: openIds.has(id), parentId: placed.parentId },
           // Glissable : sa place devient un décalage par rapport à sa place d'annexe (spec 012 D4).
           draggable: true,
           ariaLabel: `Document « ${placed.document.title} » (${placed.document.fileLabel})${placed.document.origin === 'claude' ? ', par Claude' : ''}`,
@@ -567,7 +596,8 @@ export function buildGraph(
     view.elements.filter((element) => !switched.includes(element.genesisId)),
     genesisCenters,
     view.mapLinks,
-    view.measuredLinks
+    view.measuredLinks,
+    transposed
   )
   const layered = switched.map((id) =>
     architectureGraph(
@@ -617,21 +647,37 @@ export function buildGraph(
         ]
       : []
   )
+  // Aspect vivant des éléments (spec 022 US3) : couleur de leur module (enfant direct du genesis), taille par niveau.
+  const elementVisuals = nodeVisuals([
+    ...[...withMapIds(view)].map((id): TreeNodeInput => ({ id, parentId: null, icon: 'project' })),
+    ...view.elements.map((element): TreeNodeInput => ({
+      id: element.id,
+      parentId: element.parentId,
+      icon: ELEMENT_ICONS[element.type],
+      ...(element.status === null ? {} : { status: ELEMENT_NODE_STATUS[element.status] })
+    }))
+  ])
   const elementNodes = structure.placed.map((entry): ElementNodeType => ({
     id: entry.element.id,
     type: 'element',
     position: { x: entry.x, y: entry.y },
+    width: elementVisuals.get(entry.element.id)?.size ?? 44,
+    height: elementVisuals.get(entry.element.id)?.size ?? 44,
     data: {
       element: entry.element,
       number: entry.number,
       architecture: architectureOf.get(entry.element.genesisId)?.kind ?? null,
-      progress: progress.get(entry.element.id) ?? null
+      progress: progress.get(entry.element.id) ?? null,
+      visual: elementVisuals.get(entry.element.id) ?? FALLBACK_VISUAL,
+      open: openIds.has(entry.element.id)
     },
     draggable: false,
     ariaLabel: `${entry.number === '' ? '' : `Étape ${entry.number} : `}${entry.element.type} « ${entry.element.title} »${entry.element.status === null ? '' : `, ${STATUS_LABELS[entry.element.status]}`}${contentLabel(entry.element.content) === '' ? '' : `, ${contentLabel(entry.element.content)}`}${layerPhrase(architectureOf.get(entry.element.genesisId)?.kind ?? null, entry.element.layer ?? null)}${progress.has(entry.element.id) ? `, avancement ${progress.get(entry.element.id)?.percent ?? 0} %` : ''}${entry.element.childCount > 0 ? `, ${entry.element.childCount} éléments ${entry.element.collapsed ? 'repliés' : 'dépliés'}` : ''}`,
     deletable: false
   }))
-  const structureEdges = structure.edges.map(structureFlowEdge)
+  const structureEdges = structure.edges
+    .filter((edge) => analysisLinks || edge.kind === 'hierarchy' || edge.violation === true)
+    .map(structureFlowEdge)
   return {
     nodes: [...neuronNodes, ...blockNodes, ...bandNodes, ...elementNodes, ...barNodes, ...planNodes],
     edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges],
@@ -660,7 +706,8 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
       ...common,
       type: 'mapLink',
       data: {
-        label: `${warn}${edge.count} appel${plural} mesuré${plural} · ${PROVENANCE_LABELS[edge.provenance ?? 'uncertain'].text}`,
+        // Étiquette courte (spec 022 US3) : elles se chevauchaient ; la fiabilité se lit au style du trait.
+        label: `${warn}${edge.count} appel${plural}`,
         measured: edge.provenance ?? 'uncertain',
         layer,
         ...violation

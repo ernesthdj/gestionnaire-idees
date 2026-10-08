@@ -107,6 +107,18 @@ describe('carte de structure à l’écran : disposition alternée et progressio
     )
   })
 
+  it('should_send_the_modules_in_a_row_to_the_right_and_their_children_in_a_column_when_transposed', () => {
+    const graph = structureGraph(unfold(elements, 'main'), centers, [], [], true)
+    const place = at(graph)
+    // « Réorganiser » (spec 022 D22) : les modules partent à droite du genesis, leurs enfants descendent.
+    expect(place.get('main')?.y).toBe(0)
+    expect(place.get('main')?.x).toBeGreaterThan(0)
+    expect(place.get('renderer')?.x).toBeGreaterThan(place.get('main')?.x ?? 0)
+    expect(place.get('a')).toMatchObject({ x: place.get('main')?.x })
+    expect(place.get('a')?.y).toBeGreaterThan(place.get('main')?.y ?? 0)
+    expect(overlaps(graph)).toBe(false)
+  })
+
   it('should_follow_the_order_of_claude_then_the_dependencies_then_the_drawing', () => {
     const rows = [element('ui', G), element('core', G), element('db', G, { order: 1 }), element('api', G)]
     const dependsOn = (id: string, from: string, to: string): MapLinkView => ({
@@ -198,7 +210,8 @@ describe('carte de structure à l’écran : liens selon le focus (spec 017 D15)
         source: 'm1',
         target: 'm2',
         type: 'mapLink',
-        data: { label: '1 appel mesuré · sûr', measured: 'syntax', layer: 'rest' }
+        // Spec 022 US3 : étiquette courte ; la fiabilité (« sûr ») se lit au style du trait (`measured`).
+        data: { label: '1 appel', measured: 'syntax', layer: 'rest' }
       })
     )
   })

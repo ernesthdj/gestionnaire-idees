@@ -1,3 +1,4 @@
+import { Pin, PinOff } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { CardHead } from './cardContent'
 import type { Offset, OpenCard } from './cardsStore'
@@ -36,11 +37,19 @@ export interface DetailCardProps {
   readonly canChat: boolean
   /** Contenu de l'étirement de droite (discussion ou lecteur), quand il est ouvert. */
   readonly side?: ReactNode
-  readonly fold?: { readonly collapsed: boolean; readonly count: number; readonly onToggle: () => void }
+  readonly fold?: {
+    readonly collapsed: boolean
+    readonly count: number
+    readonly onToggle: () => void
+    /** Ce que le repli cache : « sous-étapes » (plan), « sous-éléments » (carte de structure). */
+    readonly noun?: string
+  }
   readonly onActivate: () => void
   readonly onClose: () => void
   readonly onMove: (offset: Offset) => void
   readonly onToggleSheet: () => void
+  /** Épingler / détacher (D28). */
+  readonly onTogglePin: () => void
   readonly onToggleChat: () => void
   /** Échap : replie d'abord le lecteur, puis ferme la carte. */
   readonly onEscape: () => void
@@ -83,6 +92,7 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
     fold
   } = props
   const root = useRef<HTMLElement>(null)
+  const tether = useRef<SVGPathElement>(null)
   // À l'ouverture (et seulement là), le focus entre dans la carte : Entrée sur un nœud, puis Tab dans la carte.
   const openedActive = useRef(active)
   useEffect(() => {
@@ -102,15 +112,32 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
     event.preventDefault()
     const target = event.currentTarget
     target.setPointerCapture(event.pointerId)
-    const start = { x: event.clientX, y: event.clientY, offset: card.offset }
-    const move = (next: PointerEvent): void =>
-      props.onMove({
-        x: start.offset.x + (next.clientX - start.x) / zoom,
-        y: start.offset.y + (next.clientY - start.y) / zoom
-      })
+    const start = { x: event.clientX, y: event.clientY }
+    let delta = { x: 0, y: 0 }
+    let frame = 0
+    // Pendant le glisser, la carte se déplace directement à l'écran (une transformation par image, sans redessiner la
+    // carte ni sa discussion) ; sa nouvelle place n'est enregistrée qu'au lâcher.
+    const paint = (): void => {
+      frame = 0
+      const section = root.current
+      if (section !== null) section.style.translate = `${delta.x}px ${delta.y}px`
+      const path = tether.current
+      if (path !== null) {
+        const end = { x: stem.x + delta.x, y: stem.y + delta.y }
+        const mid = (center.x + end.x) / 2
+        path.setAttribute('d', `M${center.x},${center.y} C${mid},${center.y} ${mid},${end.y} ${end.x},${end.y}`)
+      }
+    }
+    const move = (next: PointerEvent): void => {
+      delta = { x: (next.clientX - start.x) / zoom, y: (next.clientY - start.y) / zoom }
+      if (frame === 0) frame = requestAnimationFrame(paint)
+    }
     const up = (): void => {
+      cancelAnimationFrame(frame)
       target.removeEventListener('pointermove', move as EventListener)
       target.removeEventListener('pointerup', up)
+      if (root.current !== null) root.current.style.translate = ''
+      if (delta.x !== 0 || delta.y !== 0) props.onMove({ x: card.offset.x + delta.x, y: card.offset.y + delta.y })
     }
     target.addEventListener('pointermove', move as EventListener)
     target.addEventListener('pointerup', up)
@@ -121,6 +148,7 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
       {moved ? (
         <svg className="card-tether" aria-hidden="true">
           <path
+            ref={tether}
             d={`M${center.x},${center.y} C${(center.x + stem.x) / 2},${center.y} ${(center.x + stem.x) / 2},${stem.y} ${stem.x},${stem.y}`}
           />
         </svg>
@@ -130,7 +158,7 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
         role="dialog"
         aria-label={`Détails : ${head.title}`}
         tabIndex={-1}
-        className={`detail-card nodrag nopan nowheel${active ? ' detail-card-active' : ''}${moved ? ' detail-card-moved' : ''}`}
+        className={`detail-card nodrag nopan nowheel${active ? ' detail-card-active' : ''}${moved ? ' detail-card-moved' : ''}${card.pinned ? ' detail-card-pinned' : ''}`}
         // La couche de la carte de React Flow ignore la souris (`pointer-events: none`, seuls les nœuds la
         // réactivent) : la carte la réactive pour elle-même, sinon clics, saisie et glisser la traversent.
         style={{ left, top, zIndex: 1000 + card.z, pointerEvents: 'all' }}
@@ -155,6 +183,20 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
             <Grip />
             <span className="detail-card-badge">{head.badge}</span>
             {head.meta === null ? null : <span className="detail-card-meta">{head.meta}</span>}
+            <button
+              type="button"
+              className="detail-card-pin"
+              aria-pressed={card.pinned}
+              aria-label={card.pinned ? 'Détacher la carte' : 'Épingler la carte'}
+              title={
+                card.pinned
+                  ? 'Épinglée : elle reste ouverte malgré un clic à l’extérieur'
+                  : 'Épingler : garder la carte ouverte malgré un clic à l’extérieur'
+              }
+              onClick={props.onTogglePin}
+            >
+              {card.pinned ? <PinOff aria-hidden="true" size={14} /> : <Pin aria-hidden="true" size={14} />}
+            </button>
             <button type="button" className="detail-card-close" aria-label="Fermer la carte" onClick={props.onClose}>
               ✕
             </button>
@@ -229,7 +271,7 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
           {actions === undefined ? null : <div className="detail-card-extra">{actions}</div>}
           {fold === undefined || fold.count === 0 ? null : (
             <button type="button" className="card-button card-button-ghost detail-card-fold" onClick={fold.onToggle}>
-              {fold.collapsed ? 'Afficher' : 'Masquer'} les sous-étapes ({fold.count})
+              {fold.collapsed ? 'Afficher' : 'Masquer'} les {fold.noun ?? 'sous-étapes'} ({fold.count})
             </button>
           )}
         </div>

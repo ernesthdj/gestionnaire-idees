@@ -9,6 +9,13 @@ diagramme visuel, comme une map. » — mentalyas. Brainstorm complet : `docs/FO
 `L3-reprise-{import, analyse, explorateur}.md`, `L4d-reprise.md`. Lot **MVP 1 — Voir** (R1 à R4) ; le diagnostic et
 le pont avec la carte de structure sont la spec 018 (MVP 2 — Juger).
 
+
+**Amendement (2026-10-09, spec 022 « Nœuds vivants », US3)** : les éléments d'une carte de structure sont de petits
+cercles vivants (couleur de leur module, pictogramme du type, numéro de progression, pastille de statut, contour en
+pointillés si bloqué, badge Code / Doc, repli « ▸ N » inchangé). Un clic sur un élément ouvre sa **carte de détails**
+(type, statut, résumé, avancement et reste à faire, couche corrigible et annulable, fichiers lus dans le lecteur,
+« Discuter » pour sa conversation) ; le double-clic ouvre directement la conversation. La disposition alternée (D17), la
+bascule Progression / Architecture (D20, avec glissement) et le focus des liens au survol (D15) sont conservés.
 ## Décisions (2026-10-06, brainstorm validé)
 
 | # | Sujet | Décision |

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /** Durée d'un glissement vers une nouvelle place (spec 022 D4). */
-export const GLIDE_MS = 700
+export const GLIDE_MS = 450
 
 /**
  * Glissements (spec 022 D4) : quand `signature` (la disposition) change, renvoie `on` pendant {@link GLIDE_MS} ms —

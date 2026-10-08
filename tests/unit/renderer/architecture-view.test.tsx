@@ -7,11 +7,10 @@ import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import {
   buildGraph,
   computeLayout,
-  type ElementNodeType,
   type LayerBandNodeType,
   type StructureBarNodeType
 } from '../../../src/renderer/src/canvas/buildGraph'
-import { ElementNode } from '../../../src/renderer/src/canvas/nodes/ElementNode'
+import { ElementLayerSelect } from '../../../src/renderer/src/canvas/nodes/ElementNode'
 import { LayerBandNode } from '../../../src/renderer/src/canvas/nodes/LayerBandNode'
 import { StructureBarNode } from '../../../src/renderer/src/canvas/nodes/StructureBarNode'
 import type { ElementView, StructureArchitectureView } from '../../../src/shared/ipc/canvas'
@@ -108,15 +107,15 @@ describe('vue Architecture à l’écran (spec 017 D20)', () => {
     await expectNoAxeViolations(container)
   })
 
-  it('should_correct_the_layer_from_the_node_chip_and_say_when_it_was_inferred', async () => {
+  it('should_correct_the_layer_from_the_detail_card_and_say_when_it_was_inferred', async () => {
     const user = userEvent.setup()
     const api = installFakeApi({ 'element:setLayer': () => ({ batchId: 'b2' }) })
-    const data = {
-      element: element('e1', { layer: 'presentation', layerSource: 'deduite', paths: ['src/ui'] }),
-      number: '1',
-      architecture: 'clean'
-    }
-    const { container } = wrap(<ElementNode {...({ data } as unknown as NodeProps<ElementNodeType>)} />)
+    const { container } = wrap(
+      <ElementLayerSelect
+        element={element('e1', { layer: 'presentation', layerSource: 'deduite', paths: ['src/ui'] })}
+        architecture="clean"
+      />
+    )
     expect(screen.getByText('déduite')).toBeTruthy()
     await user.selectOptions(screen.getByRole('combobox', { name: 'Couche de « e1 »' }), 'domaine')
     expect(api.invoke).toHaveBeenCalledWith('element:setLayer', { elementId: 'e1', layer: 'domaine' })

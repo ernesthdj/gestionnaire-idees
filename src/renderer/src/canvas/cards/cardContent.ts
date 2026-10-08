@@ -22,9 +22,13 @@ export type CardSubject =
       readonly kind: 'element'
       readonly element: ElementView
       readonly number: string
-      /** Libellé du statut et avancement affiché (déclaré ou moyenne des sous-éléments), s'ils existent. */
+      /** Libellé du type, du statut et avancement affiché (déclaré ou moyenne des sous-éléments), s'ils existent. */
+      readonly typeLabel: string
       readonly statusLabel: string | null
       readonly percent: number | null
+      /** Ce qu'il contient (« contient du code »…) et ce qui reste à faire, s'ils sont connus. */
+      readonly contentText: string | null
+      readonly note: string | null
     }
 
 export interface CardGauge {
@@ -106,13 +110,17 @@ export function cardHead(subject: CardSubject): CardHead {
       }
     case 'element': {
       const { element } = subject
+      const summary = [nonEmpty(element.summary), subject.note === null ? null : `Reste : ${subject.note}`]
+        .filter((part): part is string => part !== null)
+        .join(' ')
       return {
-        badge: element.type,
+        badge: subject.typeLabel,
         meta:
-          [subject.number === '' ? null : `n° ${subject.number}`, subject.statusLabel].filter(Boolean).join(' · ') ||
-          null,
+          [subject.number === '' ? null : `n° ${subject.number}`, subject.statusLabel, subject.contentText]
+            .filter((part): part is string => part !== null && part !== '')
+            .join(' · ') || null,
         title: element.title,
-        summary: nonEmpty(element.summary),
+        summary: summary === '' ? null : summary,
         gauge:
           subject.percent === null
             ? null

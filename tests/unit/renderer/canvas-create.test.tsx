@@ -105,7 +105,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     expect(api.invoke).not.toHaveBeenCalledWith('neuron:create', expect.anything())
   })
 
-  it('should_open_the_detail_card_of_an_idea_with_a_click_then_its_conversation_and_keep_it_on_a_click_in_the_void', async () => {
+  it('should_open_the_detail_card_of_an_idea_with_a_click_then_its_conversation_and_close_it_on_a_click_outside_unless_pinned', async () => {
     const idea = canvasView().ideas[0]
     if (idea === undefined) throw new Error('fixture')
     const chat = {
@@ -138,10 +138,12 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     // La carte des idées reste affichée autour de la carte de détails.
     expect(screen.getByRole('group', { name: /Mission mariage/ })).toBeDefined()
 
-    // Un clic dans le vide ne ferme rien (des conversations peuvent tourner, D15) ; ✕ ferme la carte.
+    // D28 : épinglée, la carte reste malgré un clic à l'extérieur ; détachée, un clic à l'extérieur la ferme.
+    fireEvent.click(within(panel).getByRole('button', { name: 'Épingler la carte' }))
     fireEvent.click(await pane(container))
     expect(screen.getByRole('dialog', { name: `Détails : ${idea.title}` })).toBeDefined()
-    fireEvent.click(within(panel).getByRole('button', { name: 'Fermer la carte' }))
+    fireEvent.click(within(panel).getByRole('button', { name: 'Détacher la carte' }))
+    fireEvent.click(await pane(container))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: `Détails : ${idea.title}` })).toBeNull())
     expect(useUiStore.getState().chatNeuronId).toBeNull()
   })

@@ -24,6 +24,10 @@ export interface LivingNodeProps {
   readonly rank?: string
   /** Le nœud a des fichiers à lire dans sa carte (trombone). */
   readonly hasFiles?: boolean
+  /** Contenu connu de ces fichiers : la pastille montre « </> » (code) ou « Doc » au lieu du trombone. */
+  readonly fileKind?: 'code' | 'doc'
+  /** Infobulle de la pastille de fichiers. */
+  readonly fileTitle?: string
   /** Repli de ses sous-nœuds (D14) : pastille ▸ N / ▾. */
   readonly fold?: { readonly collapsed: boolean; readonly count: number; readonly onToggle: () => void }
   /** Sa carte de détails est ouverte : le nœud grossit et s'éclaire. */
@@ -44,6 +48,8 @@ export function LivingNode({
   orb,
   rank,
   hasFiles = false,
+  fileKind,
+  fileTitle = 'Fichiers à lire dans la carte',
   fold,
   open = false,
   children
@@ -84,8 +90,13 @@ export function LivingNode({
               {rank}
             </span>
           )}
-          {hasFiles ? (
-            <span className="living-clip" title="Fichiers à lire dans la carte">
+          {hasFiles && fileKind !== undefined ? (
+            <span className="living-clip living-clip-kind" title={fileTitle}>
+              <span aria-hidden="true">{fileKind === 'code' ? '</>' : 'Doc'}</span>
+              <span className="sr-only">Fichiers à lire</span>
+            </span>
+          ) : hasFiles ? (
+            <span className="living-clip" title={fileTitle}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>

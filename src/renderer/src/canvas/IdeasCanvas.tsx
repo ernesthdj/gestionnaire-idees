@@ -101,6 +101,14 @@ const SELECTION_BOX_KEYS = ['Control', 'Meta', 'Shift']
 const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'document', 'deliverable'])
 /** Attente avant d'ouvrir une carte au clic : un double-clic ouvre directement la discussion. */
 const CLICK_DELAY_MS = 220
+/** Parent d'un nœud dans son arbre (étape, élément) ; `null` pour une racine ou un bloc. */
+function parentOf(node: MapNode): string | null {
+  if (node.type === 'element') return node.data.element.parentId
+  if (node.type === 'plan') return node.data.item.parentId
+  if (node.type === 'document' || node.type === 'deliverable') return node.data.parentId ?? null
+  return null
+}
+
 /** Courbe douce d'un glissement (accélère puis ralentit). */
 const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 /** Marge du cadrage autour des idées. */
@@ -178,6 +186,8 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const structureViews = useUiStore((state) => state.structureViews)
+  const analysisLinks = useUiStore((state) => state.analysisLinks)
+  const toggleAnalysisLinks = useUiStore((state) => state.toggleAnalysisLinks)
   const openChat = useUiStore((state) => state.openChat)
   // Cartes de détails (spec 022 D15) : plusieurs à la fois, une discussion par carte ; plus de volet de droite.
   const cards = useCards((state) => state.cards)
@@ -245,9 +255,17 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
-    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, openIds, structureViews, transposed)
+    const built = buildGraph(
+      view,
+      { area: layout.area, positions: live },
+      bornId,
+      openIds,
+      structureViews,
+      transposed,
+      analysisLinks
+    )
     return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
-  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed])
+  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed, analysisLinks])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
 
@@ -259,14 +277,21 @@ function CanvasInner(): React.JSX.Element {
     (activeCardId !== null && view?.elements.some((element) => element.id === activeCardId) === true
       ? activeCardId
       : null)
+  // Liens d'analyse éteints (D29) : aucun, même au survol ; seules les alertes « sens interdit » restent.
   const focused = useMemo(
     () =>
       view === undefined
         ? []
-        : focusEdges(view.elements, view.mapLinks, view.measuredLinks, focusId).map(structureFlowEdge),
-    [view, focusId]
+        : focusEdges(view.elements, view.mapLinks, view.measuredLinks, focusId)
+            .filter((edge) => analysisLinks || edge.violation === true)
+            .map(structureFlowEdge),
+    [view, focusId, analysisLinks]
   )
-  const edges = useMemo(() => [...graph.edges, ...focused], [graph.edges, focused])
+  // Liens des nœuds qui se replient : gardés le temps du glissement, ils suivent leurs nœuds jusqu'au parent.
+  const [leavingEdges, setLeavingEdges] = useState<readonly MapEdge[]>([])
+  const edges = useMemo(() => [...graph.edges, ...focused, ...leavingEdges], [graph.edges, focused, leavingEdges])
+  const edgesRef = useRef(edges)
+  edgesRef.current = edges
 
   // Glisser une étape ou un document (spec 011 D7, 012 D4) : le déplacement s'ajoute à son décalage mémorisé ;
   // la disposition le réapplique (une étape entraîne sa branche et ses annexes).
@@ -347,15 +372,18 @@ function CanvasInner(): React.JSX.Element {
         : `${transposed}|${view.steps.map((step) => `${step.id}:${step.rank}:${step.collapsed === true}`).join(',')}|${view.ideas
             .filter((idea) => idea.planCollapsed === true)
             .map((idea) => idea.id)
-            .join(',')}`,
-    [view, transposed]
+            .join(',')}|${view.elements
+            .map((element) => `${element.id}:${element.collapsed}`)
+            .join(',')}|${JSON.stringify(structureViews)}`,
+    [view, transposed, structureViews]
   )
   const glide = useGlide(glideSignature, reduced)
 
   // La carte se reconstruit (carte ouverte, données rechargées) : la sélection en cours est gardée. Quand la disposition
-  // change (repli, « Réorganiser », étapes), les positions glissent de l'ancienne place à la nouvelle en 700 ms, image
-  // par image : React Flow redessine les liens, les cartes et leurs fils à chaque pas (D4) — une transition CSS ne
-  // déplacerait que les nœuds, les liens sauteraient.
+  // change (repli, dépli, « Réorganiser », étapes), les positions glissent de l'ancienne place à la nouvelle (D4, D27),
+  // image par image : React Flow redessine les liens, les cartes et leurs fils à chaque pas — une transition CSS ne
+  // déplacerait que les nœuds, les liens sauteraient. Au dépli, les nouveaux nœuds sortent de leur parent ; au repli,
+  // ceux qui disparaissent y rentrent en s'effaçant.
   const nodesRef = useRef(nodes)
   nodesRef.current = nodes
   const glideFrame = useRef(0)
@@ -375,28 +403,77 @@ function CanvasInner(): React.JSX.Element {
       return
     }
     const from = new Map(nodesRef.current.map((node) => [node.id, node.position] as const))
+    // Un nœud qui apparaît (dépli) part de la place de son ancêtre visible le plus proche.
+    const parents = new Map(graph.nodes.map((node) => [node.id, parentOf(node)] as const))
+    const startOf = (id: string): { x: number; y: number } | undefined => {
+      for (let current = parents.get(id); current !== null && current !== undefined; current = parents.get(current)) {
+        const known = from.get(current)
+        if (known !== undefined) return known
+      }
+      return undefined
+    }
+    const entering = new Set(graph.nodes.filter((node) => !from.has(node.id)).map((node) => node.id))
+    // Un nœud qui disparaît (repli) rentre dans son ancêtre encore affiché, en s'effaçant, avec ses liens.
+    const target = new Map(graph.nodes.map((node) => [node.id, node.position] as const))
+    const previous = new Map(nodesRef.current.map((node) => [node.id, node] as const))
+    const leaving = nodesRef.current.flatMap((node) => {
+      if (target.has(node.id)) return []
+      for (let up = parentOf(node); up !== null;) {
+        const shown = target.get(up)
+        if (shown !== undefined) return [{ node, to: shown }]
+        const above = previous.get(up)
+        up = above === undefined ? null : parentOf(above)
+      }
+      return []
+    })
+    const leavingIds = new Set(leaving.map((entry) => entry.node.id))
+    setLeavingEdges(edgesRef.current.filter((edge) => leavingIds.has(edge.source) || leavingIds.has(edge.target)))
+    // Ce qui bouge est préparé une fois ; à chaque image, seuls ces nœuds sont recréés (les autres gardent leur objet).
+    const moving = graph.nodes.flatMap((node) => {
+      const before = from.get(node.id) ?? startOf(node.id)
+      if (before === undefined || (before.x === node.position.x && before.y === node.position.y)) return []
+      return [{ node, before, className: entering.has(node.id) ? `${node.className ?? ''} living-enter`.trim() : null }]
+    })
+    // Rien à animer (premier chargement, rien qui bouge ni ne disparaît) : la carte se met à jour d'un coup.
+    if (moving.length === 0 && leaving.length === 0) {
+      setLeavingEdges([])
+      setNodes((current) => keepSelection(current, graph.nodes))
+      return
+    }
+    const movingById = new Map(moving.map((entry) => [entry.node.id, entry] as const))
+    const at = (a: { x: number; y: number }, b: { x: number; y: number }, k: number): { x: number; y: number } => ({
+      x: a.x + (b.x - a.x) * k,
+      y: a.y + (b.y - a.y) * k
+    })
     const start = performance.now()
     const step = (now: number): void => {
       const t = Math.min(1, (now - start) / GLIDE_MS)
+      if (t === 1) {
+        setNodes((current) => keepSelection(current, graph.nodes))
+        setLeavingEdges([])
+        return
+      }
       const eased = easeInOut(t)
-      setNodes((current) =>
-        keepSelection(
-          current,
-          graph.nodes.map((node) => {
-            const before = from.get(node.id)
-            return before === undefined || t === 1
-              ? node
-              : {
-                  ...node,
-                  position: {
-                    x: before.x + (node.position.x - before.x) * eased,
-                    y: before.y + (node.position.y - before.y) * eased
-                  }
-                }
-          })
-        )
-      )
-      if (t < 1) glideFrame.current = requestAnimationFrame(step)
+      const frame = graph.nodes.map((node) => {
+        const entry = movingById.get(node.id)
+        if (entry === undefined) return node
+        return {
+          ...node,
+          ...(entry.className === null ? {} : { className: entry.className }),
+          position: at(entry.before, node.position, eased)
+        }
+      })
+      for (const { node, to } of leaving)
+        frame.push({
+          ...node,
+          className: `${node.className ?? ''} living-leave`.trim(),
+          draggable: false,
+          selectable: false,
+          focusable: false,
+          position: at(node.position, to, eased)
+        })
+      setNodes((current) => keepSelection(current, frame))
+      glideFrame.current = requestAnimationFrame(step)
     }
     glideFrame.current = requestAnimationFrame(step)
   }, [graph, glideSignature, reduced, setNodes])
@@ -422,6 +499,13 @@ function CanvasInner(): React.JSX.Element {
     await call('canvas:createBlock', { x: Math.round(center.x), y: Math.round(center.y) })
     await client.invalidateQueries({ queryKey: ['canvas'] })
   }, [flow, client])
+
+  // Gestes stables d'une image à l'autre : la barre d'outils et les cartes (mémoïsées) ne se redessinent pas pendant
+  // un glissement (spec 022 D27).
+  const reorder = useCallback(() => setTransposed((current) => !current), [])
+  const addBlockSafely = useCallback(() => void addBlock().catch(() => undefined), [addBlock])
+  const startImport = useCallback(() => setImporting(true), [])
+  const openMenu = useCallback((id: string, at: { x: number; y: number }) => setMenu({ id, at }), [])
 
   /** Position à l'écran (relative à la surface de la carte) d'un point de la carte. */
   const toSurface = useCallback(
@@ -560,11 +644,13 @@ function CanvasInner(): React.JSX.Element {
         filter={filter}
         onFilter={setFilter}
         onRecenter={recenter}
-        onReorder={() => setTransposed((current) => !current)}
+        onReorder={reorder}
+        analysisLinks={analysisLinks}
+        onToggleAnalysisLinks={toggleAnalysisLinks}
         openCards={cards.length}
         onCloseCards={cardsApi.closeAll}
-        onAddBlock={() => void addBlock().catch(() => undefined)}
-        onImport={() => setImporting(true)}
+        onAddBlock={addBlockSafely}
+        onImport={startImport}
       />
       {importing ? (
         <ImportWizard
@@ -581,7 +667,9 @@ function CanvasInner(): React.JSX.Element {
         <div
           ref={surface}
           className="relative min-h-0 min-w-0 flex-1"
-          data-drift={reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0) ? 'on' : 'paused'}
+          data-drift={
+            reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0 || glide === 'on') ? 'on' : 'paused'
+          }
           data-glide={glide}
           data-structure-focus={focused.length > 0 ? 'on' : 'off'}
           onKeyDownCapture={onKeyDownCapture}
@@ -639,8 +727,12 @@ function CanvasInner(): React.JSX.Element {
                 if (node.type === undefined || !CARD_TYPES.has(node.type) || node.className === 'living-gone') return
                 window.clearTimeout(clickTimer.current)
                 clickTimer.current = window.setTimeout(() => {
+                  // Clic sur un autre nœud = clic à l'extérieur des cartes ouvertes (D28) : les non épinglées se ferment.
                   if (useCards.getState().cards.some((card) => card.id === node.id)) cardsApi.close(node.id)
-                  else cardsApi.open(node.id)
+                  else {
+                    cardsApi.closeUnpinned(node.id)
+                    cardsApi.open(node.id)
+                  }
                 }, CLICK_DELAY_MS)
               }}
               onNodeDoubleClick={(_event, node) => {
@@ -649,8 +741,13 @@ function CanvasInner(): React.JSX.Element {
                   node.type === 'neuron' ||
                   node.type === 'element' ||
                   (node.type === 'plan' && node.data.item.kind === 'step')
-                if (conversational) cardsApi.open(node.id, { side: 'chat' })
+                if (conversational) {
+                  cardsApi.closeUnpinned(node.id)
+                  cardsApi.open(node.id, { side: 'chat' })
+                }
               }}
+              // Clic dans le vide : les cartes non épinglées se ferment (D28) ; une carte épinglée reste.
+              onPaneClick={() => cardsApi.closeUnpinned()}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
                 event.preventDefault()
@@ -704,7 +801,7 @@ function CanvasInner(): React.JSX.Element {
                   ⤢
                 </ControlButton>
               </Controls>
-              {view === undefined ? null : <IdeaCards view={view} onMenu={(id, at) => setMenu({ id, at })} />}
+              {view === undefined ? null : <IdeaCards view={view} onMenu={openMenu} />}
             </ReactFlow>
           )}
           {empty && draft === null ? (

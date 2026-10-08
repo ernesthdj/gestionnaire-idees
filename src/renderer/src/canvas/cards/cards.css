@@ -23,7 +23,7 @@
     0 0 0 1px color-mix(in oklab, var(--color-accent) 12%, transparent);
   cursor: default;
   transform-origin: left top;
-  animation: card-unfold 380ms var(--ease-soft) both;
+  animation: card-unfold 240ms var(--ease-soft) both;
 }
 .detail-card:focus-visible {
   outline: 2px solid var(--color-focus);
@@ -143,8 +143,31 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.detail-card-close {
+.detail-card-pin {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
   margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-content-muted);
+  cursor: pointer;
+}
+.detail-card-pin:hover {
+  color: var(--color-content);
+  background: var(--color-surface-raised);
+}
+.detail-card-pin[aria-pressed='true'] {
+  color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 14%, transparent);
+}
+/* Carte épinglée : un liseré d'accent la distingue des cartes qui se ferment au clic extérieur. */
+.detail-card-pinned {
+  border-color: color-mix(in oklab, var(--color-accent) 60%, transparent);
+}
+.detail-card-close {
   border: 0;
   background: none;
   color: var(--color-content-muted);
@@ -185,7 +208,7 @@
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--color-seed), var(--color-accent));
-  transition: width 700ms var(--ease-soft);
+  transition: width 450ms var(--ease-soft);
 }
 .detail-card-related {
   display: flex;
@@ -208,7 +231,7 @@
   margin-top: 10px;
   max-height: 420px;
   overflow-y: auto;
-  animation: card-drop 520ms var(--ease-soft) both;
+  animation: card-drop 320ms var(--ease-soft) both;
 }
 .detail-card-actions {
   display: flex;
@@ -256,7 +279,7 @@
   padding-left: 14px;
   overflow: hidden;
   border-left: 1px solid color-mix(in oklab, var(--color-content-muted) 25%, transparent);
-  animation: card-stretch 520ms var(--ease-soft) both;
+  animation: card-stretch 320ms var(--ease-soft) both;
 }
 .detail-card-side-chat {
   /* La discussion garde sa taille : son fil défile à l'intérieur. */
@@ -309,10 +332,10 @@
     linear-gradient(#000 0 0);
   mask-composite: exclude;
   pointer-events: none;
-  animation: card-shine 9s linear infinite;
 }
+/* L'éclat ne tourne que sur la carte active : il repeint le bord à chaque image (coût multiplié par les cartes). */
 [data-theme='carbon'] .detail-card-active::after {
-  animation-duration: 4.5s;
+  animation: card-shine 5s linear infinite;
 }
 @keyframes card-shine {
   to {

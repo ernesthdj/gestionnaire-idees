@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { memo } from 'react'
 import { useInternalNode, useReactFlow, useStore, ViewportPortal } from '@xyflow/react'
 import type { ChatView } from '@shared/ipc/chat'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
@@ -8,7 +9,9 @@ import type { CanvasNode } from '../buildGraph'
 import { FileViewer } from '../FileViewer'
 import { FinalPanel } from '../FinalPanel'
 import { GhostPanel } from '../GhostPanel'
-import { STATUS_LABELS } from '../nodes/ElementNode'
+import { ElementFileReader, ElementFiles } from '../../chat/ElementFiles'
+import { contentLabel } from '../elementContent'
+import { ELEMENT_STYLES, ElementLayerSelect, STATUS_LABELS } from '../nodes/ElementNode'
 import { DeliverableFiles } from '../nodes/DeliverableNode'
 import { DocumentReader } from '../nodes/DocumentNode'
 import { GhostDecision, StepFinalActions } from '../nodes/PlanNode'
@@ -50,8 +53,11 @@ export function subjectOf(node: CanvasNode, view: IdeasCanvasView): CardSubject 
         kind: 'element',
         element,
         number,
+        typeLabel: ELEMENT_STYLES[element.type].label,
         statusLabel: element.status === null ? null : STATUS_LABELS[element.status],
-        percent: progress === undefined || progress === null ? null : progress.percent
+        percent: progress === undefined || progress === null ? null : progress.percent,
+        contentText: contentLabel(element.content),
+        note: progress?.fromChildren === true ? null : (element.progressNote ?? null)
       }
     }
     default:
@@ -113,8 +119,8 @@ function IdeaCard({
   const cards = useCards()
   const flow = useReactFlow()
   const toggleFold = usePlanFold()
+  const client = useQueryClient()
   if (node === undefined) return null
-  // Le nœud interne porte les mêmes données que le nœud de la carte (plus sa mesure).
   const subject = subjectOf(node as CanvasNode, view)
   if (subject === null) return null
   const anchor: NodeBox = {
@@ -124,10 +130,24 @@ function IdeaCard({
     height: node.measured.height ?? node.height ?? 0
   }
   const neuronId = neuronOf(subject)
+  // Le nœud interne porte les mêmes données que le nœud de la carte (plus sa mesure).
+  const mapNode = node as CanvasNode
   const fold =
-    node.type === 'neuron' || node.type === 'plan'
-      ? (node.data as { readonly fold: { collapsed: boolean; count: number } | null }).fold
-      : null
+    mapNode.type === 'neuron' || mapNode.type === 'plan'
+      ? mapNode.data.fold
+      : mapNode.type === 'element' && mapNode.data.element.childCount > 0
+        ? { collapsed: mapNode.data.element.collapsed, count: mapNode.data.element.childCount }
+        : null
+  // Repli depuis la carte : même geste que la pastille du nœud (élément : repli de la carte de structure).
+  const onFold = (collapsed: boolean): void => {
+    if (mapNode.type !== 'element') {
+      void toggleFold(card.id, collapsed)
+      return
+    }
+    void call('element:setCollapsed', { elementId: card.id, collapsed }).then(() =>
+      client.invalidateQueries({ queryKey: ['canvas'] })
+    )
+  }
 
   // Nœud lié : la vue glisse jusqu'à lui (même zoom), puis sa carte s'ouvre ; les autres restent ouvertes.
   const goto = (id: string): void => {
@@ -171,6 +191,11 @@ function IdeaCard({
       <StepFinalActions step={subject.step} />
     ) : subject.kind === 'ghost' ? (
       <GhostDecision title={subject.ghost.title} proposalId={subject.proposalId} ghostId={subject.ghost.id} />
+    ) : subject.kind === 'element' ? (
+      <ElementLayerSelect
+        element={subject.element}
+        architecture={mapNode.type === 'element' ? (mapNode.data.architecture ?? null) : null}
+      />
     ) : subject.kind === 'document' ? (
       <button
         type="button"
@@ -198,6 +223,13 @@ function IdeaCard({
         path={card.reader.path}
         onClose={() => cards.setSide(card.id, null)}
       />
+    ) : card.side === 'reader' && subject.kind === 'element' && card.reader !== null ? (
+      <ElementFileReader
+        key={card.reader.path}
+        elementId={subject.element.id}
+        path={card.reader.path}
+        onBack={() => cards.setSide(card.id, null)}
+      />
     ) : card.side === 'reader' && subject.kind === 'document' ? (
       <>
         <div className="flex justify-end">
@@ -222,17 +254,37 @@ function IdeaCard({
       zoom={zoom}
       head={cardHead(subject)}
       related={relatedOf(subject, view)}
-      {...(subject.kind === 'deliverable' ? { files: <DeliverableFiles deliverable={subject.deliverable} /> } : {})}
+      {...(subject.kind === 'deliverable'
+        ? { files: <DeliverableFiles deliverable={subject.deliverable} /> }
+        : subject.kind === 'element' && subject.element.paths.length > 0
+          ? {
+              files: (
+                <ElementFiles
+                  elementId={subject.element.id}
+                  onOpen={(path) => cards.setSide(card.id, 'reader', { source: 'element', path, tab: 'file' })}
+                />
+              )
+            }
+          : {})}
       {...(actions === undefined ? {} : { actions })}
       {...(sheet === undefined ? {} : { sheet })}
       {...(subject.kind === 'ghost' ? { sheetLabel: 'Pourquoi' } : {})}
       canChat={canChat(subject)}
       {...(side === undefined ? {} : { side })}
-      {...(fold === null ? {} : { fold: { ...fold, onToggle: () => void toggleFold(card.id, !fold.collapsed) } })}
+      {...(fold === null
+        ? {}
+        : {
+            fold: {
+              ...fold,
+              onToggle: () => onFold(!fold.collapsed),
+              noun: mapNode.type === 'element' ? 'sous-éléments' : 'sous-étapes'
+            }
+          })}
       onActivate={() => cards.activate(card.id)}
       onClose={() => cards.close(card.id)}
       onMove={(offset) => cards.move(card.id, offset)}
       onToggleSheet={() => cards.toggleSheet(card.id)}
+      onTogglePin={() => cards.togglePin(card.id)}
       onToggleChat={() => cards.setSide(card.id, card.side === 'chat' ? null : 'chat')}
       onEscape={() => (card.side === 'reader' ? cards.setSide(card.id, null) : cards.close(card.id))}
       onGoto={goto}
@@ -244,7 +296,7 @@ function IdeaCard({
  * Cartes de détails ouvertes sur la carte des idées (spec 022) : dans la couche de la carte (elles suivent leur nœud
  * et le zoom). Une carte dont le nœud a disparu (supprimé, filtré, replié) n'est pas dessinée.
  */
-export function IdeaCards({
+export const IdeaCards = memo(function IdeaCards({
   view,
   onMenu
 }: {
@@ -261,4 +313,4 @@ export function IdeaCards({
       ))}
     </ViewportPortal>
   )
-}
+})

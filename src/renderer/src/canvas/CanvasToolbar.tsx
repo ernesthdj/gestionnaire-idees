@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { memo, useEffect, useId, useState } from 'react'
 import type { CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
 import { Button } from '../components/atoms/Button'
 
@@ -9,6 +9,9 @@ interface CanvasToolbarProps {
   readonly onRecenter: () => void
   /** « Réorganiser » (spec 022 D22) : les nœuds glissent vers l'autre disposition. */
   readonly onReorder: () => void
+  /** Liens d'analyse des cartes de structure (spec 022 D29) : masqués par défaut. */
+  readonly analysisLinks: boolean
+  readonly onToggleAnalysisLinks: () => void
   /** Cartes de détails ouvertes ; « Fermer les cartes » apparaît s'il y en a. */
   readonly openCards: number
   readonly onCloseCards: () => void
@@ -28,12 +31,14 @@ function withOption(filter: CanvasFilterInput, key: keyof CanvasFilterInput, val
 }
 
 /** En-tête de l'écran Idées (FR-011) : compteurs, filtres, recherche, recentrer (une idée se crée au double-clic). */
-export function CanvasToolbar({
+export const CanvasToolbar = memo(function CanvasToolbar({
   view,
   filter,
   onFilter,
   onRecenter,
   onReorder,
+  analysisLinks,
+  onToggleAnalysisLinks,
   openCards,
   onCloseCards,
   onAddBlock,
@@ -113,6 +118,15 @@ export function CanvasToolbar({
             Fermer les cartes ({openCards})
           </Button>
         ) : null}
+        {view !== undefined && view.elements.length > 0 ? (
+          <Button
+            onClick={onToggleAnalysisLinks}
+            aria-pressed={analysisLinks}
+            title="Appels mesurés et relations entre éléments des cartes de structure, au repos et au survol (masqués par défaut : la carte reste légère)"
+          >
+            Liens d’analyse
+          </Button>
+        ) : null}
         <Button onClick={onReorder} title="Les nœuds glissent vers l’autre disposition (plans transposés)">
           Réorganiser
         </Button>
@@ -120,4 +134,4 @@ export function CanvasToolbar({
       </div>
     </div>
   )
-}
+})

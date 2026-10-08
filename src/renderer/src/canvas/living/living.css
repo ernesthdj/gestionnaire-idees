@@ -11,7 +11,6 @@
 
 .living-float {
   position: relative;
-  will-change: transform;
 }
 
 @keyframes living-drift {
@@ -22,21 +21,10 @@
     transform: translate(var(--float-ax), var(--float-ay)) rotate(var(--float-rot));
   }
 }
-@keyframes living-depth {
-  from {
-    opacity: 0.86;
-    scale: 0.97;
-  }
-  to {
-    opacity: 1;
-    scale: 1.02;
-  }
-}
 [data-drift='on'] .living-float,
 [data-drift='paused'] .living-float {
-  animation:
-    living-drift var(--float-dur) ease-in-out var(--float-delay) infinite alternate,
-    living-depth calc(var(--float-dur) * 1.7) ease-in-out var(--float-delay) infinite alternate;
+  /* Une seule animation, de transformation seulement (composée par la carte graphique, sans repeindre). */
+  animation: living-drift var(--float-dur) ease-in-out var(--float-delay) infinite alternate;
 }
 [data-drift='paused'] .living-float {
   animation-play-state: paused;
@@ -67,12 +55,19 @@
   box-shadow: 0 0 28px color-mix(in oklab, var(--orb-b) 45%, transparent);
 }
 .living-orb[data-state='raw'] {
-  background: radial-gradient(
-    circle at 30% 28%,
-    color-mix(in oklab, var(--orb-a) 45%, var(--color-surface-raised)),
-    color-mix(in oklab, var(--orb-b) 35%, var(--color-surface-raised))
-  );
-  box-shadow: none;
+  /* Brute : même orbe, un peu moins saturé, anneau en pointillés ; il reste le nœud le plus marquant de sa branche. */
+  filter: saturate(0.7);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--orb-b) 30%, transparent);
+}
+/* L'idée de départ domine son arbre (spec 022) : halo plus large, titre plus grand. */
+.living-genesis .living-orb {
+  box-shadow:
+    0 0 0 6px color-mix(in oklab, var(--orb-b) 14%, transparent),
+    0 0 40px color-mix(in oklab, var(--orb-b) 50%, transparent);
+}
+.living-genesis .living-orb + .living-label {
+  max-width: 220px;
+  font-size: 14px;
 }
 .living-core {
   display: grid;
@@ -138,12 +133,16 @@
 }
 
 .living-label {
-  /* Hors de la boîte du nœud : la boîte reste le cercle, les liens partent de son centre. */
+  /* Hors de la boîte du nœud : la boîte reste le cercle, les liens partent de son centre. Petite pastille de fond :
+     un trait qui passe dessous ne coupe pas le texte. */
   position: absolute;
   top: calc(100% + 8px);
   left: 50%;
   width: max-content;
-  max-width: 132px;
+  max-width: 140px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--color-surface) 82%, transparent);
   transform: translateX(-50%);
   text-align: center;
   font-size: 11px;
@@ -300,13 +299,42 @@
   outline-offset: 6px;
 }
 
+/* Nœud qui apparaît par un dépli : il sort de son parent en fondu, pendant qu'il glisse vers sa place. */
+@keyframes living-enter {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+.react-flow__node.living-enter .living {
+  animation: living-enter 450ms var(--ease-soft) both;
+}
+[data-reduced-motion='true'] .react-flow__node.living-enter .living {
+  animation: none;
+}
+
+/* Nœud qui disparaît par un repli : il rentre dans son parent en s'effaçant (il est retiré à la fin du glissement). */
+@keyframes living-leave {
+  to {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+.react-flow__node.living-leave {
+  pointer-events: none;
+}
+.react-flow__node.living-leave .living {
+  animation: living-leave 450ms var(--ease-soft) both;
+}
+
 /* Nœud caché par le repli d'un ancêtre (D14) : posé à la place de celui-ci, invisible et inerte. */
 .react-flow__node.living-gone {
   opacity: 0;
   pointer-events: none;
 }
 [data-glide='on'] .react-flow__node {
-  transition: opacity 450ms var(--ease-soft);
+  /* Pas de calque par nœud (`will-change`) : à plus de 100 nœuds avec halo, la carte graphique saturait. */
+  transition: opacity 300ms var(--ease-soft);
 }
 
 /* Lien d'arbre à la couleur de la grande branche (D17), fin et sans lueur (canevas sobre, D21). */
@@ -376,4 +404,21 @@
 .living-mapping-chip-failed {
   color: var(--color-idea);
   border-color: color-mix(in oklab, var(--color-idea) 50%, transparent);
+}
+
+/* Élément de carte de structure (spec 022 US3). */
+.living-clip-kind {
+  width: auto;
+  min-width: 18px;
+  padding: 0 4px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9px;
+  font-weight: 600;
+}
+.living-blocked .living-face {
+  outline: 2px dashed var(--color-con);
+  outline-offset: 4px;
+}
+.living-rank {
+  padding: 0 4px;
 }
