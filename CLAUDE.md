@@ -14,8 +14,8 @@
 > sur une branche `analyste/*` gardée ou jetée, annulable). Voir `docs/FOUNDATION.md` §0000 et
 > `docs/brainstorm/L1g-analyste-interne.md`. Spec prévue : 019 (à confirmer), après amendement de la constitution.
 > **Évolution (2026-10-07) :** **Arbre de skills** (page Skills : skills de Claude en arbre de compétences, fiche
-> technique, brouillon → installation, import GitHub en quarantaine). Voir `docs/FOUNDATION.md` §00000 et
-> `docs/brainstorm/L1h-arbre-de-skills.md`. Spec prévue : 020.
+> technique, brouillon → installation, bibliothèque de dépôts GitHub). Voir `docs/FOUNDATION.md` §00000 et
+> `docs/brainstorm/L1h-arbre-de-skills.md`. Spec 020 livrée le 2026-10-08 (US5 « mes-skills » prévue).
 > **Évolution (2026-10-07) :** **Git et GitHub** (volet Dépôt : commit, branches, publier, tirer, pousser sur clic ;
 > clone par lien ; frise des contributions ; conflits guidés ; PR et issues). Voir `docs/FOUNDATION.md` §000000 et
 > `docs/brainstorm/L1i-git-github.md`. Spec prévue : 021, après amendement 4.4.0 de la constitution.
@@ -113,6 +113,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 017 « Reprise — Voir » (US1–US4, US7, D16 et D17 livrées ; reste US6, finitions T035–T037 ; US5 clone (T028+) en pause) ; en pause : 014 (T014+), 015 (US4–US5), 013 (US3) — 016 livrée
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 017 « Reprise — Voir » (US1–US4, US7, D16 et D17 livrées ; reste US6, finitions T035–T037 ; US5 clone (T028+) en pause) ; en pause : 014 (T014+), 015 (US4–US5), 013 (US3) — 016 et 020 « Arbre de skills » livrées (US5 « mes-skills » prévue) ; 021 « Git et GitHub » planifiée
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

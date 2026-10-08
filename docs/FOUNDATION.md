@@ -103,6 +103,13 @@ comprendre, les améliorer, en créer, en importer depuis GitHub — et voir sa 
 
 Aucune dépendance externe nouvelle prévue. Migration prévue : 0033 (tables `skill_*`).
 
+### 00000.4 État (2026-10-08) — spec 020 livrée
+Lots A à D livrés et validés par mentalyas (US1, US3, US4, US2), migrations 0033–0035. Écart principal avec A5 :
+**bibliothèque de skills** (spec 020 D12) — l'import garde une copie locale par version du dépôt
+(`<profil>/skill-library/<hôte>/<auteur>/<dépôt>@<version>`, jamais renommée), ses skills apparaissent en nœuds
+« disponible » ; règles fixes à l'import, audit par Claude au clic Installer. Suivant prévu : US5 « mes-skills »
+(pousser ses skills vers un dépôt GitHub à soi, pour les retrouver sur une autre machine), avec la spec 021.
+
 ---
 
 ## 0000. Amendement du 2026-10-07 — L'Analyste interne : une app qui s'observe, propose et s'améliore

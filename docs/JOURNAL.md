@@ -977,3 +977,8 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Erreur corrigée :** aucune en production ; test `ui/layout` (déterminisme) qui dépasse 5 s sous la charge de la suite complète, vert seul (préexistant).
 **Règle apprise :** une sortie d'IA qui alimente un affichage chiffré (étoiles) se calcule à partir d'éléments justifiés (la grille), jamais d'une valeur déclarée : une consigne cachée ne peut alors agir qu'à travers des notes qu'il faut justifier, et que mentalyas corrige.
 
+### [2026-10-08 17:00] PERF — spec 020 T033–T034 : mesure à 150 skills, liens 60× plus rapides ; spec 020 livrée
+**Fichiers :** `src/main/domain/skills/links.ts` (pré-filtre) ; `tests/integration/skills/skills-scale.test.ts` (nouveau) ; `specs/020-arbre-de-skills/{research,tasks}.md` ; `docs/FOUNDATION.md` §00000.4 ; `CLAUDE.md`.
+**Quoi :** mesure SC-007 : le calcul des liens « appelle » essayait chaque nom de skill sur chaque ligne de chaque skill (150 × 150 × ~85 lignes ≈ 1,9 million d'expressions régulières, ~1 s) ; un `includes` du nom sur le texte entier l'écarte d'abord : 17 ms. Inventaire réel 130–300 ms ; dans Electron, le dépliage des 296 skills de la bibliothèque est « rapide et fluide ». Spec 020 close (US1–US4 + D12 livrées et validées ; US5 « mes-skills » prévue).
+**Erreur corrigée :** premières mesures à 2–3 s faussées par des fichiers tout juste écrits (antivirus à la première ouverture) : mesurer aussi sur des données réelles avant de conclure.
+**Règle apprise :** un test de performance permanent ne chronomètre que du calcul pur ; les lectures disque se mesurent sur le poste réel, une fois, et se consignent.

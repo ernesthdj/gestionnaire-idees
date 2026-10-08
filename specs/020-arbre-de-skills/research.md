@@ -74,3 +74,13 @@
   angles répartis sur 360° ; le long d'une branche, rangées de 3 nœuds (208 × 104) perpendiculaires, espacement 200 px ;
   grappe de plugins = un nœud « N skills de plugins » tant qu'elle est repliée.
 - **Raison** : image stable, sans chevauchement (test).
+
+## Mesure SC-007 (T033, 2026-10-08)
+- **Liens « appelle »** (150 skills fictifs) : ~1 s → **17 ms** après un pré-filtre (`includes` du nom avant les
+  expressions régulières ligne à ligne : ~1,9 million d'essais évités) ; test permanent `skills-scale` (< 300 ms).
+- **Inventaire** de la toile réelle (63 skills : 19 personnels, 44 de plugins) : **130 à 300 ms**. Sur 150 skills
+  fictifs écrits juste avant : 0,4 à 3 s, variable, dominé par la première ouverture de fichiers neufs (analyse par
+  l'antivirus) — non représentatif.
+- **Rendu** : 3,1 s dans jsdom (borne haute, React Flow simulé) ; **dans Electron**, page Skills puis dépliage des
+  296 skills disponibles du dépôt `affaan-m/ecc` : « rapide et fluide » (mentalyas). SC-007 tenu.
+

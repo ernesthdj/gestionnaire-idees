@@ -34,8 +34,10 @@ export function writtenLinks(skills: readonly LinkSource[]): SkillLinkView[] {
   const links: SkillLinkView[] = []
   for (const source of skills) {
     const lines = source.text.split(/\r?\n/).map(withoutUrls)
+    // Pré-filtre (SC-007) : l'expression n'est essayée ligne à ligne que si le nom figure dans le texte.
+    const lower = source.text.toLowerCase()
     for (const target of targets) {
-      if (target.id === source.id || target.name === source.name) continue
+      if (target.id === source.id || target.name === source.name || !lower.includes(target.name.toLowerCase())) continue
       const index = lines.findIndex((line) => target.pattern.test(line))
       if (index !== -1) links.push({ from: source.id, to: target.id, kind: 'appelle', line: index + 1 })
     }

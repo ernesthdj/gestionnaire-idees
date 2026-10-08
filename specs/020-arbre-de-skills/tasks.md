@@ -60,8 +60,8 @@ arborescences et dépôts git temporaires ; CLI `claude` simulé.
 - [x] T032 [US4] Test guidé (quickstart §4) — validé par mentalyas le 2026-10-08 (import, mise à jour, Installer, Retirer) ; spec 017 : T028 cochée, T029 partielle (IPC `reprise:*` à faire)
 
 ## Phase 7 — Finitions
-- [ ] T033 Mesure SC-007 (150 skills fictifs : page utilisable < 2 s), consignée dans `research.md`
-- [ ] T034 `docs/FOUNDATION.md` (§00000 : 020 livrée), `CLAUDE.md` (spec en cours, workflow), `docs/JOURNAL.md`
+- [x] T033 Mesure SC-007 (150 skills fictifs : page utilisable < 2 s), consignée dans `research.md` — *mesures consignées dans `research.md` (liens 17 ms, inventaire réel 130–300 ms, Electron avec 296 nœuds de bibliothèque : rapide et fluide)*
+- [x] T034 `docs/FOUNDATION.md` (§00000 : 020 livrée), `CLAUDE.md` (spec en cours, workflow), `docs/JOURNAL.md` — *FOUNDATION §00000.4, `CLAUDE.md` (évolution, workflows), JOURNAL*
 
 ## Ordre amendé (D11, 2026-10-08)
 T012 (migration complète) → T013 → US3 (T020 → T021 → T022 → T022b → T023 → T024 → T025) → US4 (T026–T028 en cours
