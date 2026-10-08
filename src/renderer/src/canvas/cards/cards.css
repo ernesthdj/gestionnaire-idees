@@ -15,9 +15,12 @@
   color: var(--color-content);
   background: var(--color-surface);
   border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
+  /* Ombre douce : plusieurs couches légères et très diffuses plutôt qu'une ombre dense. */
   box-shadow:
-    0 14px 40px rgb(0 0 0 / 0.18),
-    0 0 0 1px color-mix(in oklab, var(--color-accent) 14%, transparent);
+    0 1px 2px rgb(0 0 0 / 0.05),
+    0 8px 24px rgb(0 0 0 / 0.07),
+    0 28px 72px rgb(0 0 0 / 0.1),
+    0 0 0 1px color-mix(in oklab, var(--color-accent) 12%, transparent);
   cursor: default;
   transform-origin: left top;
   animation: card-unfold 380ms var(--ease-soft) both;
@@ -28,8 +31,10 @@
 }
 .detail-card-active {
   box-shadow:
-    0 18px 48px rgb(0 0 0 / 0.24),
-    0 0 0 1.5px color-mix(in oklab, var(--color-accent) 55%, transparent);
+    0 2px 4px rgb(0 0 0 / 0.06),
+    0 12px 32px rgb(0 0 0 / 0.09),
+    0 36px 90px rgb(0 0 0 / 0.13),
+    0 0 0 1.5px color-mix(in oklab, var(--color-accent) 50%, transparent);
 }
 /* Trait horizontal vers le nœud ; remplacé par un fil quand la carte a été déplacée. */
 .detail-card::before {
@@ -254,10 +259,18 @@
   animation: card-stretch 520ms var(--ease-soft) both;
 }
 .detail-card-side-chat {
+  /* La discussion garde sa taille : son fil défile à l'intérieur. */
   width: 460px;
 }
+/* Lecteur (D24) : il prend la taille de son contenu, entre un minimum et un maximum ; au-delà, il défile. Pas de
+   redimensionnement manuel. */
 .detail-card-side-reader {
-  width: 600px;
+  width: max-content;
+  min-width: 360px;
+  max-width: 720px;
+  height: auto;
+  max-height: 600px;
+  overflow: auto;
 }
 
 /* ---------- Thème Carbone ---------- */
@@ -271,8 +284,9 @@
   border-radius: 16px;
   background: var(--carbon-panel);
   box-shadow:
-    0 30px 70px rgb(0 0 0 / 0.6),
-    0 0 0 1px rgb(0 0 0 / 0.8),
+    0 2px 6px rgb(0 0 0 / 0.18),
+    0 16px 44px rgb(0 0 0 / 0.24),
+    0 44px 110px rgb(0 0 0 / 0.28),
     inset 0 1px 0 color-mix(in oklab, var(--silver-hi) 25%, transparent);
 }
 /* Liseré argenté : bordure en dégradé masquée, avec un éclat qui en fait le tour. */

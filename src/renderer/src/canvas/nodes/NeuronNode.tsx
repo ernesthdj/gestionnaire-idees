@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { canvasState, TIER_SIZE, tierOf, type NeuronNodeType } from '../buildGraph'
 import { LivingNode } from '../living/LivingNode'
+import { useMapping } from '../mapping/mappingStore'
 import { usePlanFold } from '../usePlanFold'
 
 /** Action = triangle « avancer », Réflexion = losange ; dessinés (un caractère ▶ s'afficherait en émoji). */
@@ -22,6 +23,7 @@ export function NatureIcon({ nature }: { readonly nature: 'action' | 'reflection
 export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Element {
   const { neuron, dimmed, visual, open, fold } = data
   const toggleFold = usePlanFold()
+  const mapping = useMapping((state) => state.phases[neuron.id])
   const aiProposed = neuron.natureSource === 'ai' || neuron.categorySource === 'ai'
   const style = { '--cat': neuron.category?.color ?? 'var(--color-content-muted)' } as CSSProperties
   return (
@@ -34,6 +36,18 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
         open={open}
         {...(fold === null ? {} : { fold: { ...fold, onToggle: () => void toggleFold(neuron.id, !fold.collapsed) } })}
       >
+        {mapping === undefined ? null : (
+          <>
+            <span className={`living-mapping living-mapping-${mapping}`} aria-hidden="true" />
+            <span className={`living-mapping-chip living-mapping-chip-${mapping}`} role="status">
+              {mapping === 'running'
+                ? 'Cartographie en cours…'
+                : mapping === 'done'
+                  ? '✓ Cartographie terminée'
+                  : 'Cartographie interrompue'}
+            </span>
+          </>
+        )}
         <span className="living-nature" aria-hidden="true">
           <NatureIcon nature={neuron.nature} />
         </span>

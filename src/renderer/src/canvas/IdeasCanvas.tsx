@@ -48,6 +48,7 @@ import { ResultNode } from './nodes/ResultNode'
 import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
+import { stillNode } from './nodes/stillNode'
 import { NeuronNode } from './nodes/NeuronNode'
 import { PlanBarNode, PlanNode } from './nodes/PlanNode'
 import { DocumentNode } from './nodes/DocumentNode'
@@ -60,24 +61,25 @@ import { useSelectionSync } from './useSelectionSync'
 import { IdeaCards } from './cards/IdeaCards'
 import { useCards } from './cards/cardsStore'
 import { useSmoothZoom } from './useSmoothZoom'
-import { useGlide } from './useGlide'
+import { GLIDE_MS, useGlide } from './useGlide'
 import { connectionIntent } from './connection'
 
+/** Types de nœuds ; chacun ne se redessine que si son contenu change (glissements fluides, spec 022). */
 const NODE_TYPES: NodeTypes = {
-  neuron: NeuronNode,
-  block: BlockNode,
-  label: LabelNode,
-  mapNote: MapNoteNode,
-  frame: FrameNode,
-  element: ElementNode,
-  layerBand: LayerBandNode,
-  structureBar: StructureBarNode,
-  widget: WidgetNode,
-  result: ResultNode,
-  plan: PlanNode,
-  planBar: PlanBarNode,
-  document: DocumentNode,
-  deliverable: DeliverableNode
+  neuron: stillNode(NeuronNode),
+  block: stillNode(BlockNode),
+  label: stillNode(LabelNode),
+  mapNote: stillNode(MapNoteNode),
+  frame: stillNode(FrameNode),
+  element: stillNode(ElementNode),
+  layerBand: stillNode(LayerBandNode),
+  structureBar: stillNode(StructureBarNode),
+  widget: stillNode(WidgetNode),
+  result: stillNode(ResultNode),
+  plan: stillNode(PlanNode),
+  planBar: stillNode(PlanBarNode),
+  document: stillNode(DocumentNode),
+  deliverable: stillNode(DeliverableNode)
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -99,6 +101,8 @@ const SELECTION_BOX_KEYS = ['Control', 'Meta', 'Shift']
 const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'document', 'deliverable'])
 /** Attente avant d'ouvrir une carte au clic : un double-clic ouvre directement la discussion. */
 const CLICK_DELAY_MS = 220
+/** Courbe douce d'un glissement (accélère puis ralentit). */
+const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 /** Marge du cadrage autour des idées. */
 const FIT_MARGIN = 128
 const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
@@ -293,17 +297,6 @@ function CanvasInner(): React.JSX.Element {
     },
     [client, showToast]
   )
-  // La carte se reconstruit (conversation ouverte, données rechargées) : la sélection en cours est gardée.
-  useEffect(
-    () =>
-      setNodes((current) => {
-        const selected = new Set(current.filter((node) => node.selected === true).map((node) => node.id))
-        return selected.size === 0
-          ? graph.nodes
-          : graph.nodes.map((node) => (selected.has(node.id) ? { ...node, selected: true } : node))
-      }),
-    [graph, setNodes]
-  )
 
   // Idée libérée (menu) : elle se replace en direct parmi les autres, qui restent fixes, puis sa place est mémorisée.
   const frame = useRef(0)
@@ -358,6 +351,56 @@ function CanvasInner(): React.JSX.Element {
     [view, transposed]
   )
   const glide = useGlide(glideSignature, reduced)
+
+  // La carte se reconstruit (carte ouverte, données rechargées) : la sélection en cours est gardée. Quand la disposition
+  // change (repli, « Réorganiser », étapes), les positions glissent de l'ancienne place à la nouvelle en 700 ms, image
+  // par image : React Flow redessine les liens, les cartes et leurs fils à chaque pas (D4) — une transition CSS ne
+  // déplacerait que les nœuds, les liens sauteraient.
+  const nodesRef = useRef(nodes)
+  nodesRef.current = nodes
+  const glideFrame = useRef(0)
+  const glidedSignature = useRef(glideSignature)
+  useEffect(() => {
+    const keepSelection = (current: readonly MapNode[], next: MapNode[]): MapNode[] => {
+      const selected = new Set(current.filter((node) => node.selected === true).map((node) => node.id))
+      return selected.size === 0
+        ? next
+        : next.map((node) => (selected.has(node.id) ? { ...node, selected: true } : node))
+    }
+    cancelAnimationFrame(glideFrame.current)
+    const changed = glidedSignature.current !== glideSignature
+    glidedSignature.current = glideSignature
+    if (!changed || reduced) {
+      setNodes((current) => keepSelection(current, graph.nodes))
+      return
+    }
+    const from = new Map(nodesRef.current.map((node) => [node.id, node.position] as const))
+    const start = performance.now()
+    const step = (now: number): void => {
+      const t = Math.min(1, (now - start) / GLIDE_MS)
+      const eased = easeInOut(t)
+      setNodes((current) =>
+        keepSelection(
+          current,
+          graph.nodes.map((node) => {
+            const before = from.get(node.id)
+            return before === undefined || t === 1
+              ? node
+              : {
+                  ...node,
+                  position: {
+                    x: before.x + (node.position.x - before.x) * eased,
+                    y: before.y + (node.position.y - before.y) * eased
+                  }
+                }
+          })
+        )
+      )
+      if (t < 1) glideFrame.current = requestAnimationFrame(step)
+    }
+    glideFrame.current = requestAnimationFrame(step)
+  }, [graph, glideSignature, reduced, setNodes])
+  useEffect(() => () => cancelAnimationFrame(glideFrame.current), [])
   // Zoom fluide (D20) : molette et boutons avec amorti.
   const { zoomBy } = useSmoothZoom(flow, surface, reduced)
   // Une carte dont le nœud a disparu (supprimé, filtré) ou qu'un repli a caché se referme.

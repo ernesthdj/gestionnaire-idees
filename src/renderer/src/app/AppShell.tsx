@@ -14,6 +14,7 @@ import { ThemeSwitch } from './ThemeSwitch'
 import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
 import { useEffectiveSettings } from './useAppSettings'
+import { useMappingWatch } from '../canvas/mapping/mappingStore'
 import { useApplyTheme } from './useApplyTheme'
 import { useMainEvents } from './useMainEvents'
 
@@ -65,6 +66,8 @@ export function AppShell(): React.JSX.Element {
   useApplyTheme(settings.theme)
   useMainEvents()
   useProbe()
+  // Fin des cartographies de projet suivie partout dans l'app (spec 022).
+  useMappingWatch()
   // L'entrée Analyste n'apparaît que lorsque la sonde est active (spec 019 FR-022).
   const analysteActive = useAnalysteStatus()?.active === true
   const navigation = NAVIGATION.filter(({ section }) => section !== 'analyste' || analysteActive || view === 'analyste')

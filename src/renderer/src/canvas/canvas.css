@@ -623,16 +623,8 @@
   font-weight: 600;
 }
 
-/* Canevas sobre (spec 022 D21) : points très discrets, bords légèrement assombris (vignette fixe, sous les nœuds). */
+/* Canevas sobre (spec 022 D21) : points très discrets, sans vignette sur les bords (retour de mentalyas). */
 .react-flow__background.canvas-sober .react-flow__background-pattern circle,
 .react-flow__background.canvas-sober circle {
   fill: var(--canvas-dot);
-}
-.react-flow:has(.canvas-sober)::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, transparent 55%, var(--canvas-edge));
 }

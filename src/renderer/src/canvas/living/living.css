@@ -42,10 +42,8 @@
   animation-play-state: paused;
 }
 
-/* Glissement vers une nouvelle place (D4), jamais pendant un glisser à la souris. */
-[data-glide='on'] .react-flow__node:not(.dragging) {
-  transition: transform 700ms var(--ease-soft);
-}
+/* Glissement vers une nouvelle place (D4) : les positions sont interpolées par la carte (les liens suivent) ; seul le
+   fondu d'un nœud qui se cache ou réapparaît par un repli est une transition CSS. */
 
 .living-face {
   position: relative;
@@ -307,11 +305,8 @@
   opacity: 0;
   pointer-events: none;
 }
-[data-glide='on'] .react-flow__node.living-gone,
-[data-glide='on'] .react-flow__node:not(.dragging) {
-  transition:
-    transform 700ms var(--ease-soft),
-    opacity 450ms var(--ease-soft);
+[data-glide='on'] .react-flow__node {
+  transition: opacity 450ms var(--ease-soft);
 }
 
 /* Lien d'arbre à la couleur de la grande branche (D17), fin et sans lueur (canevas sobre, D21). */
@@ -323,4 +318,62 @@
   position: absolute;
   top: -10px;
   right: -14px;
+}
+
+/* Cartographie d'un projet par Claude (spec 022) : anneau qui balaie autour de l'orbe pendant qu'elle tourne, puis
+   anneau plein vert (terminée) ou ambre (interrompue) ; étiquette sous le titre. Statique en animations réduites. */
+.living-mapping {
+  position: absolute;
+  inset: -16px;
+  border-radius: 999px;
+  pointer-events: none;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+}
+.living-mapping-running {
+  background: conic-gradient(from 0deg, transparent 0 62%, var(--color-accent) 100%);
+  animation: living-sweep 1.4s linear infinite;
+}
+.living-mapping-done {
+  background: var(--color-pro);
+  animation: living-settle 600ms var(--ease-soft) both;
+}
+.living-mapping-failed {
+  background: var(--color-idea);
+}
+@keyframes living-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes living-settle {
+  from {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+[data-reduced-motion='true'] .living-mapping {
+  animation: none;
+}
+.living-mapping-chip {
+  position: absolute;
+  top: calc(100% + 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-accent) 50%, transparent);
+  pointer-events: none;
+}
+.living-mapping-chip-done {
+  color: var(--color-pro);
+  border-color: color-mix(in oklab, var(--color-pro) 50%, transparent);
+}
+.living-mapping-chip-failed {
+  color: var(--color-idea);
+  border-color: color-mix(in oklab, var(--color-idea) 50%, transparent);
 }

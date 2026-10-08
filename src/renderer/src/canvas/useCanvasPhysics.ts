@@ -3,13 +3,17 @@ import type { IdeasCanvasView } from '@shared/ipc/canvas'
 import { MIN_FOOTPRINT } from './forceLayout'
 import { ideaLinks, TIER_SIZE, tierOf, type CanvasLayout } from './buildGraph'
 import { CanvasPhysics, type Body, type Point, type Spring } from './physics'
+import { treeReach } from './treeReach'
 
 /** Ressort d'un lien entre idées : souple, il garde la disposition sans croisement du départ. */
 const IDEA_LINK = { distance: 240, strength: 0.08 } as const
 
-/** Encombrement d'une idée : son cercle, et son titre de 160 px sous le cercle. */
-function ideaRadius(neuron: IdeasCanvasView['ideas'][number]): number {
-  return Math.max(TIER_SIZE[tierOf(neuron)] / 2 + 8, MIN_FOOTPRINT)
+/**
+ * Encombrement d'une idée : son cercle et son titre, ou la portée de son arbre (plan, carte de structure) s'il en a un
+ * (spec 022) — une idée nouvelle ou libérée ne pose pas son arbre sur celui d'une voisine.
+ */
+function ideaRadius(neuron: IdeasCanvasView['ideas'][number], reach: number): number {
+  return Math.max(TIER_SIZE[tierOf(neuron)] / 2 + 8, MIN_FOOTPRINT, reach)
 }
 
 interface PhysicsInput {
@@ -40,7 +44,7 @@ export function useCanvasPhysics(input: PhysicsInput): {
       const start = neuron.position ?? seed.positions.get(neuron.id) ?? { x: 0, y: 0 }
       bodies.push({
         id: neuron.id,
-        radius: ideaRadius(neuron),
+        radius: ideaRadius(neuron, treeReach(view, neuron.id)),
         x: start.x,
         y: start.y,
         pinned: neuron.pinned || neuron.position !== null,

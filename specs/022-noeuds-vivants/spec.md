@@ -38,6 +38,10 @@ continu d'un nœud au repos ; *énergie* = jauge propre à chaque sorte de nœud
 | D22 | Barre d'outils | Le bouton **« Réorganiser »** est dans la barre d'outils de chaque carte (à côté de « Recentrer ») : les nœuds glissent vers l'autre disposition (arbre transposé ; éventail tourné pour les skills). |
 | D23 | Aucune fonctionnalité retirée (2026-10-08, priorité) | **Priorité aux fonctionnalités présentes dans l'app** : on peut ajouter, on ne retire **rien**. Tout ce qu'offrent aujourd'hui les quatre cartes et leurs volets (menus contextuels, actions des nœuds, panneaux de fiche, de livrable, d'élément, de skill et de bibliothèque, filtres, recherche, compteurs, blocs, barre de structure, reprise de projet, raccourcis…) MUST rester accessible, à sa place actuelle ou dans la carte de détails. Le plan commence par un **inventaire** de ces fonctionnalités et la place de chacune après la refonte ; une fonctionnalité sans place prévue bloque la livraison de sa carte. |
 
+| D24 | Taille des cartes (2026-10-09, après le test d'US1) | Une carte de détails **prend la taille de son contenu** (fiche, discussion, lecteur), entre un minimum et un maximum, et défile au-delà ; **aucun redimensionnement manuel** (« l'utilisateur va faire un carnage »). Les documents et livrables, devenus des cercles, ne se redimensionnent plus : leur contenu se lit dans le lecteur de la carte. |
+| D25 | Estompage (2026-10-09) | Les autres idées **ne s'estompent plus** quand une discussion est ouverte (plusieurs cartes peuvent l'être) ; l'estompage par un filtre est conservé. |
+| D26 | Arbres voisins (2026-10-09) | La physique compte la **portée de l'arbre** de chaque idée (plan, carte de structure) : une idée nouvelle ou libérée se place hors de portée des arbres voisins. Une idée déjà posée ne bouge toujours pas d'elle-même (« Libérer » la replace). |
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Une carte des idées qui flotte et se consulte au clic (Priority: P1) 🎯 MVP

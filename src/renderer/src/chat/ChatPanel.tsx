@@ -11,6 +11,7 @@ import type {
 import { BYPASS_WARNING, CHAT_MESSAGE_MAX, PERMISSION_MODES } from '@shared/ipc/chat'
 import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { Button } from '../components/atoms/Button'
+import { useMapping } from '../canvas/mapping/mappingStore'
 import { useUiStore } from '../app/uiStore'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ElementFileReader, ElementFiles } from './ElementFiles'
@@ -493,7 +494,11 @@ export function ChatPanel({
                   )}
                   <button
                     type="button"
-                    onClick={() => void chat.send(MAP_MESSAGE)}
+                    onClick={() => {
+                      // L'orbe de l'idée montre la cartographie en cours, puis terminée (spec 022).
+                      useMapping.getState().start(neuronId)
+                      void chat.send(MAP_MESSAGE)
+                    }}
                     disabled={chat.busy || localOnly}
                     className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
                   >

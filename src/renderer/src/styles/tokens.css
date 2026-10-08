@@ -102,7 +102,6 @@
   --on-hue: #ffffff;
   --node-bg: #ffffff;
   --canvas-dot: rgb(0 0 0 / 0.08);
-  --canvas-edge: rgb(0 0 0 / 0.03);
   /* Glissement d'un nœud vers sa nouvelle place (D4). */
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -114,7 +113,6 @@
     --orb-c: #2dd4bf;
     --node-bg: #0b0b0c;
     --canvas-dot: rgb(255 255 255 / 0.05);
-    --canvas-edge: rgb(0 0 0 / 0.35);
   }
 }
 
@@ -125,7 +123,6 @@
   --orb-c: #2dd4bf;
   --node-bg: #0b0b0c;
   --canvas-dot: rgb(255 255 255 / 0.05);
-  --canvas-edge: rgb(0 0 0 / 0.35);
 }
 
 @theme inline {
