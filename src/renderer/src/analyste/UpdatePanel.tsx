@@ -80,6 +80,9 @@ export function UpdatePanel({ proposalId }: { readonly proposalId: string }): Re
 
   if (query.isPending) return <p className="text-sm text-content-muted">Lecture de la mise à jour…</p>
   if (update === null) return <p className="text-sm text-content-muted">Pas de mise à jour pour cette proposition.</p>
+  if (update.status === 'kept' || update.status === 'reverted') {
+    return <KeptUpdate update={update} busy={busy} error={error} act={act} />
+  }
 
   const checksDone = UPDATE_CHECKS.every((name) => update.checks[name].status === 'ok')
   const checking = UPDATE_CHECKS.some((name) => update.checks[name].status === 'running')
@@ -251,6 +254,69 @@ export function UpdatePanel({ proposalId }: { readonly proposalId: string }): Re
         </div>
       )}
 
+      {error === '' ? null : (
+        <p role="alert" className="text-xs text-red-700 dark:text-red-400">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Mise à jour gardée (spec 019 US5, T037) : « Annuler cette mise à jour » ajoute un commit qui défait la fusion,
+ * après confirmation ; une mise à jour annulée le reste.
+ */
+function KeptUpdate({
+  update,
+  busy,
+  error,
+  act
+}: {
+  readonly update: UpdateView
+  readonly busy: boolean
+  readonly error: string
+  readonly act: (action: () => Promise<void>) => Promise<void>
+}): React.JSX.Element {
+  const [confirming, setConfirming] = useState(false)
+  const reverted = update.status === 'reverted'
+  return (
+    <section aria-label="Mise à jour" className="space-y-3 rounded-md border border-content-muted/30 p-3 text-sm">
+      <p>
+        {reverted
+          ? 'Mise à jour annulée : un commit a défait sa fusion, le code est revenu à l’état d’avant.'
+          : 'Mise à jour gardée : sa branche a été fusionnée dans la branche de base (rien n’a été publié).'}
+      </p>
+      {reverted ? null : (
+        <Button variant="danger" disabled={busy} onClick={() => setConfirming(true)}>
+          Annuler cette mise à jour…
+        </Button>
+      )}
+      {confirming && !reverted ? (
+        <div role="alert" className="space-y-2 rounded-md border border-red-500/40 p-2 text-xs">
+          <p>
+            Annuler cette mise à jour ? Un nouveau commit défait sa fusion ; l’historique garde les deux, rien n’est
+            publié. L’app va se recharger avec le code d’avant.
+          </p>
+          <div className="flex gap-2">
+            <Button autoFocus onClick={() => setConfirming(false)}>
+              Ne pas annuler
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  setConfirming(false)
+                  await call('analyste:update:revert', { updateId: update.id, confirm: true })
+                })
+              }
+            >
+              Annuler la mise à jour
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {error === '' ? null : (
         <p role="alert" className="text-xs text-red-700 dark:text-red-400">
           {error}

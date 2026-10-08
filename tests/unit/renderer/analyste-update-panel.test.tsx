@@ -74,4 +74,18 @@ describe('volet de mise à jour de l’Analyste (spec 019 T035)', () => {
     expect(screen.getByText(/L’app n’installe rien elle-même/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Relancer les vérifications' })).toBeTruthy()
   })
+
+  it('should_revert_a_kept_update_only_after_confirmation', async () => {
+    const revert = vi.fn(() => view({ status: 'reverted' }))
+    installFakeApi({ 'analyste:update:get': () => view({ status: 'kept' }), 'analyste:update:revert': revert })
+    const { container } = render(wrap(<UpdatePanel proposalId={PROPOSAL} />))
+    await userEvent.click(await screen.findByRole('button', { name: 'Annuler cette mise à jour…' }))
+    await expectNoAxeViolations(container)
+    expect(screen.queryByRole('button', { name: 'Garder…' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Ne pas annuler' }))
+    expect(revert).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler cette mise à jour…' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler la mise à jour' }))
+    expect(revert).toHaveBeenCalledWith({ updateId: UPDATE, confirm: true })
+  })
 })

@@ -191,7 +191,7 @@ export interface UpdateView {
 
 export interface UpdateProgressEvent {
   readonly updateId: string
-  readonly step: 'commit' | 'checks' | 'ready' | 'to_fix' | 'keeping' | 'kept' | 'discarded' | 'failed'
+  readonly step: 'commit' | 'checks' | 'ready' | 'to_fix' | 'keeping' | 'kept' | 'discarded' | 'reverted' | 'failed'
   readonly check?: { readonly name: UpdateCheckName; readonly status: UpdateCheckStatus }
 }
 

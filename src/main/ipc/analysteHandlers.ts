@@ -70,6 +70,7 @@ export interface AnalysteRoutesDeps {
     tryCommand(updateId: string): { command: string; folder: string }
     keep(updateId: string): Promise<UpdateView>
     discard(updateId: string, reason?: string): Promise<UpdateView>
+    revert(updateId: string): Promise<UpdateView>
   }
 }
 
@@ -320,6 +321,14 @@ function updateRoutes(updates: AnalysteRoutesDeps['updates'], active: () => void
       handler: async ({ updateId, reason }) => {
         active()
         return updates.discard(updateId, reason)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:revert',
+      input: z.strictObject({ updateId: Id, confirm: z.literal(true) }),
+      handler: async ({ updateId }) => {
+        active()
+        return updates.revert(updateId)
       }
     })
   ]

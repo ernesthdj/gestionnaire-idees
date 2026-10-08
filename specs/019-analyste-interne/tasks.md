@@ -60,7 +60,7 @@
 
 ## Phase 7 — US5 Annuler une mise à jour gardée (P2)
 **Test indépendant** : garder puis annuler → code identique à l'état d'avant, historique avec la mise à jour et sa révocation.
-- [ ] T037 [US5] `revert` dans `UpdateService` (pré-contrôles, `revert -m 1 --no-edit <merge_sha>`, `revert --abort` sur conflit → `REVERT_CONFLICT`, `reverted`) + IPC `analyste:update:revert` + action « Annuler cette mise à jour » (confirmation) dans l'onglet Gardées + tests git réels (SC-006 : `git diff <base_sha>` vide sur les fichiers concernés) et renderer/axe
+- [x] T037 [US5] `revert` dans `UpdateService` (pré-contrôles, `revert -m 1 --no-edit <merge_sha>`, `revert --abort` sur conflit → `REVERT_CONFLICT`, `reverted`) + IPC `analyste:update:revert` + action « Annuler cette mise à jour » (confirmation) dans l'onglet Gardées + tests git réels (SC-006 : `git diff <base_sha>` vide sur les fichiers concernés) et renderer/axe — *2026-10-09 : `UpdateService.revert` (+ `reconcile` retrouve la fusion d'une garde interrompue), `analyste:update:revert`, volet « Gardée / Annulée » ; 3 tests git réels + 1 renderer/axe*
 - [ ] T038 [US5] Test guidé (quickstart §5) — attendre le retour
 
 ## Phase 8 — US6 Laisser l'app proposer d'elle-même (P3)

@@ -11,7 +11,8 @@ import type { CheckRunner } from '../../../src/main/infrastructure/analyste/NpmC
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 const PROPOSAL = '7b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f'
 
-describe('mises à jour de l’Analyste (spec 019 US4, T032–T034)', () => {
+// git réel (worktree, commit, fusion, revert) : une quinzaine de commandes par test, lentes quand toute la suite tourne.
+describe('mises à jour de l’Analyste (spec 019 US4–US5, T032–T037)', { timeout: 30_000 }, () => {
   let root: string
   let repo: string
   let handle: DatabaseHandle
@@ -197,12 +198,62 @@ describe('mises à jour de l’Analyste (spec 019 US4, T032–T034)', () => {
     expect(existsSync(update.folder)).toBe(false)
   })
 
+  const keepWith = async (content: string): Promise<{ id: string; baseSha: string }> => {
+    const baseSha = (await sh(['rev-parse', 'HEAD'])).trim()
+    const update = await service.start(PROPOSAL)
+    writeFileSync(join(update.folder, 'src', 'a.ts'), content)
+    writeFileSync(join(update.folder, 'src', 'b.ts'), 'export const b = 1\n')
+    await service.finish(update.id)
+    await waitStatus(update.id, 'ready')
+    await service.keep(update.id)
+    return { id: update.id, baseSha }
+  }
+
+  it('should_revert_a_kept_update_back_to_the_code_before_and_keep_both_in_history', async () => {
+    const { id, baseSha } = await keepWith('export const a = 2\n')
+    await expect(service.revert(id)).resolves.toMatchObject({ status: 'reverted' })
+    expect(store.proposal(PROPOSAL)?.status).toBe('reverted')
+    // SC-006 : le code est revenu à l'état d'avant, l'historique garde la fusion et sa révocation.
+    expect((await sh(['diff', baseSha, 'HEAD'])).trim()).toBe('')
+    expect((await sh(['log', '-1', '--format=%s'])).trim()).toMatch(/^Revert /)
+    expect((await sh(['rev-list', '--count', `${baseSha}..HEAD`])).trim()).toBe('3')
+    expect((await sh(['status', '--porcelain'])).trim()).toBe('')
+    await expect(service.revert(id)).rejects.toMatchObject({ code: 'INVALID_TRANSITION' })
+  })
+
+  it('should_refuse_to_revert_on_a_dirty_repo_and_abort_cleanly_on_conflict', async () => {
+    const { id } = await keepWith('export const a = 2\n')
+    writeFileSync(join(repo, 'src', 'a.ts'), 'export const a = 5\n')
+    await expect(service.revert(id)).rejects.toMatchObject({ code: 'REPO_DIRTY' })
+    // Le même fichier modifié depuis la fusion : le revert entre en conflit, tout est remis en l'état.
+    await sh(['commit', '-q', '-am', 'Changement fictif après la fusion'])
+    const head = (await sh(['rev-parse', 'HEAD'])).trim()
+    await expect(service.revert(id)).rejects.toMatchObject({ code: 'REVERT_CONFLICT' })
+    expect((await sh(['rev-parse', 'HEAD'])).trim()).toBe(head)
+    expect((await sh(['status', '--porcelain'])).trim()).toBe('')
+    expect(service.view(id).status).toBe('kept')
+  })
+
+  it('should_record_the_merge_of_an_interrupted_keep_so_it_can_be_reverted', async () => {
+    const update = await service.start(PROPOSAL)
+    const baseSha = (await sh(['rev-parse', 'HEAD'])).trim()
+    writeFileSync(join(update.folder, 'src', 'a.ts'), 'export const a = 2\n')
+    await service.finish(update.id)
+    await waitStatus(update.id, 'ready')
+    store.patchUpdate(update.id, { status: 'keeping' })
+    await sh(['merge', '--no-ff', '-q', '-m', 'Fusion fictive', update.branch])
+    await make().reconcile()
+    await service.revert(update.id)
+    expect((await sh(['diff', baseSha, 'HEAD'])).trim()).toBe('')
+  })
+
   it('should_never_push_reset_rebase_or_force_a_branch_in_any_flow', async () => {
     const first = await service.start(PROPOSAL)
     writeFileSync(join(first.folder, 'src', 'a.ts'), 'export const a = 2\n')
     await service.finish(first.id)
     await waitStatus(first.id, 'ready')
     await service.keep(first.id)
+    await service.revert(first.id)
     const forbidden = gitCalls.filter(
       (args) =>
         ['push', 'reset', 'rebase', 'filter-branch', 'update-ref'].includes(args[0] ?? '') ||

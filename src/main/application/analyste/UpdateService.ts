@@ -280,6 +280,44 @@ export class UpdateService {
   }
 
   /**
+   * « Annuler cette mise à jour » (US5) : un commit qui défait la fusion (`revert -m 1`), sur la branche de base
+   * propre ; l'historique garde la mise à jour et sa révocation. Conflit → `revert --abort`, rien n'est changé.
+   */
+  async revert(updateId: string): Promise<UpdateView> {
+    const row = this.row(updateId)
+    if (row.status !== 'kept')
+      throw new AppError('INVALID_TRANSITION', 'Seule une mise à jour gardée peut être annulée')
+    if (row.mergeSha === null) {
+      throw new AppError('NOT_FOUND', 'Fusion introuvable : annule-la à la main avec git revert')
+    }
+    const repo = this.repo()
+    if ((await this.git(repo, ['status', '--porcelain'])).output.trim() !== '') {
+      throw new AppError('REPO_DIRTY', 'Le dépôt a des changements non enregistrés : commite-les ou mets-les de côté')
+    }
+    const current = (await this.deps.git(repo, ['symbolic-ref', '--short', '-q', 'HEAD'])).output.trim()
+    if (current !== row.baseBranch) {
+      throw new AppError('NOT_ON_BASE', `Le dépôt doit être sur ${row.baseBranch ?? 'sa branche de base'} pour annuler`)
+    }
+    const present = await this.deps.git(repo, ['merge-base', '--is-ancestor', row.mergeSha, 'HEAD'])
+    if (present.code !== 0) {
+      throw new AppError('NOT_FOUND', 'La fusion n’est plus dans l’historique de la branche de base')
+    }
+    const reverted = await this.deps.git(repo, ['revert', '-m', '1', '--no-edit', row.mergeSha], 120_000)
+    if (reverted.code !== 0) {
+      await this.deps.git(repo, ['revert', '--abort'])
+      throw new AppError(
+        'REVERT_CONFLICT',
+        'Conflit à l’annulation : du code a changé depuis ; tout est remis en l’état, rien n’est annulé'
+      )
+    }
+    const revertSha = (await this.git(repo, ['rev-parse', 'HEAD'])).output.trim()
+    this.deps.store.patchUpdate(row.id, { revertSha, status: 'reverted', updatedAt: this.now() })
+    this.deps.store.setStatus(row.proposalId, 'reverted', null, this.now())
+    this.deps.emit({ updateId, step: 'reverted' })
+    return this.view(updateId)
+  }
+
+  /**
    * Garde d'écriture de la conversation de codage (FR-030) : une écriture hors de la copie de travail, ou dans
    * `node_modules` (jonction vers le dépôt principal), est refusée. `null` = autorisée (ou pas une conversation de
    * mise à jour).
@@ -309,7 +347,20 @@ export class UpdateService {
       const merged = await this.deps.git(repo, ['merge-base', '--is-ancestor', row.headSha ?? row.branch, 'HEAD'])
       if (merged.code === 0) {
         await this.removeCopy(repo, row.worktreePath, row.branch, false)
-        this.deps.store.patchUpdate(row.id, { status: 'kept', updatedAt: this.now() })
+        // La première fusion qui contient la branche : sans elle, « Annuler » ne saurait pas quoi défaire.
+        const merges = await this.deps.git(repo, [
+          'rev-list',
+          '--merges',
+          '--ancestry-path',
+          '--reverse',
+          `${row.headSha ?? row.baseSha}..HEAD`
+        ])
+        const mergeSha = merges.code === 0 ? (merges.output.trim().split(/\r?\n/)[0] ?? '') : ''
+        this.deps.store.patchUpdate(row.id, {
+          status: 'kept',
+          ...(mergeSha === '' ? {} : { mergeSha }),
+          updatedAt: this.now()
+        })
         this.deps.store.setStatus(row.proposalId, 'kept', null, this.now())
       } else this.setStatus(row, 'ready')
     }

@@ -75,7 +75,7 @@ const ACTION_LABELS: Readonly<Record<ProposalDecision, string>> = {
 }
 
 /** Statuts où la proposition a une mise à jour vivante (US4) : le volet de mise à jour s'affiche. */
-const UPDATING: readonly ProposalView['status'][] = ['coding', 'to_fix', 'ready']
+const UPDATING: readonly ProposalView['status'][] = ['coding', 'to_fix', 'ready', 'kept', 'reverted']
 /** Statuts d'où « Coder avec Claude » peut partir (FR-027 : sur un clic seulement). */
 const CODABLE: readonly ProposalView['status'][] = ['new', 'postponed', 'accepted']
 

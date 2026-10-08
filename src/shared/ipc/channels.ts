@@ -151,7 +151,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'analyste:update:diff',
   'analyste:update:try',
   'analyste:update:keep',
-  'analyste:update:discard'
+  'analyste:update:discard',
+  'analyste:update:revert'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
