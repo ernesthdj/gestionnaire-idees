@@ -6,8 +6,8 @@ import type { GitLauncher, GitProcessResult } from '../../infrastructure/project
 
 /**
  * Clone contrôlé d'un dépôt (spec 021 research R6 = spec 020 T027 = spec 017 T029) : UN service, deux profils.
- * - `superficiel` (import de skills) : `--depth 1 --single-branch`, dans une quarantaine du profil, délai 5 min,
- *   bornes 50 Mo / 2 000 fichiers mesurées après le clone ;
+ * - `superficiel` (bibliothèque de skills, spec 020 D12) : `--depth 1 --single-branch`, dans un dossier temporaire du
+ *   profil (renommé ensuite par l'appelant), délai 15 min, garde-fou de 1 Go mesuré après le clone ;
  * - `historique` (reprise par lien) : `--filter=blob:none` (ou rien si « tout télécharger »), dossier choisi, 30 min.
  *
  * Sécurité (constitution I) : adresse contrôlée avant tout lancement (`gitUrl.ts`), git par chemin absolu sans shell,
@@ -47,7 +47,10 @@ export interface CloneProgress {
 export interface CloneRequest {
   readonly url: string
   readonly profile: CloneProfile
-  /** `historique` : dossier cible absolu, absent, dans un parent existant. `superficiel` : ignoré (quarantaine). */
+  /**
+   * Dossier cible absolu, absent, dans un parent existant ; `historique` : obligatoire ; `superficiel` : facultatif
+   * (bibliothèque de skills, D12), une quarantaine du profil sinon.
+   */
   readonly target?: string
   /** `historique` : « Tout télécharger » (clone sans filtre). */
   readonly full?: boolean
@@ -97,7 +100,7 @@ export interface CloneServiceDeps {
   readonly launch: GitLauncher
   /** `<profil>/git-empty-hooks` : créé s'il manque, refusé s'il n'est pas vide. */
   readonly emptyHooksDir: string
-  /** `<profil>/skill-quarantine` : un sous-dossier par clone superficiel. */
+  /** `<profil>/skill-library/.tmp` : un sous-dossier temporaire par clone superficiel. */
   readonly quarantineRoot: string
   readonly registry?: CloneRegistry
   readonly baseEnv?: Readonly<Record<string, string | undefined>>
@@ -116,10 +119,11 @@ export interface ShallowLimits {
 
 export const PRODUCTION_TRANSPORTS: readonly string[] = ['https', 'ssh']
 export const CLONE_TIMEOUTS_MS: Readonly<Record<CloneProfile, number>> = {
-  superficiel: 5 * 60_000,
+  superficiel: 15 * 60_000,
   historique: 30 * 60_000
 }
-export const SHALLOW_LIMITS: ShallowLimits = { bytes: 50 * 1024 * 1024, files: 2_000 }
+/** D12 : la bibliothèque garde le dépôt entier ; seul un garde-fou de taille reste (aucune borne de fichiers). */
+export const SHALLOW_LIMITS: ShallowLimits = { bytes: 1024 ** 3, files: Number.POSITIVE_INFINITY }
 
 /** Variables `GIT_*` héritées gardées : configuration et SSH propres au poste de mentalyas. */
 const KEPT_GIT_ENV = new Set([
@@ -285,7 +289,7 @@ export class CloneService {
 
   private async resolveTarget(id: string, request: CloneRequest): Promise<string | CloneResult> {
     let target: string
-    if (request.profile === 'superficiel') {
+    if (request.profile === 'superficiel' && request.target === undefined) {
       await mkdir(this.deps.quarantineRoot, { recursive: true })
       target = join(this.deps.quarantineRoot, id)
     } else {

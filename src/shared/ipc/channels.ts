@@ -34,6 +34,12 @@ export const MAIN_WINDOW_CHANNELS = [
   'skills:restore',
   'skills:remove',
   'skills:duplicate',
+  'skills:import',
+  'skills:library',
+  'skills:librarySkill',
+  'skills:libraryInstall',
+  'skills:libraryRemove',
+  'skills:importCancel',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',
@@ -156,7 +162,8 @@ export const MAIN_WINDOW_EVENTS = [
   'reprise:analysisDone',
   'reprise:changed',
   'analyste:progress',
-  'skills:changed'
+  'skills:changed',
+  'skills:importProgress'
 ] as const
 
 export type MainWindowEvent = (typeof MAIN_WINDOW_EVENTS)[number]

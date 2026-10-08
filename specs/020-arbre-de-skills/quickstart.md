@@ -27,11 +27,13 @@ avec `.claude/skills` (le Brainstormer lui-même) ; au moins un plugin installé
 5. Clic dans le vide → conversation « Skills » : « crée un skill pour préparer mes séances photo » → nœud fantôme.
 6. Automatique : `npm test -- skills/installer skills/draft` (chemins, exécutables, conflit, écriture atomique).
 
-## §4 Importer (US4)
-1. « Importer depuis GitHub » → adresse d'un dépôt public de skills → progression → liste avec verdicts.
+## §4 Importer dans la bibliothèque (US4, D12)
+1. « Importer depuis GitHub… » → adresse d'un dépôt public de skills → progression → résumé (N skills, verdicts des
+   règles fixes) → « Voir sur la toile » : branche Bibliothèque, grappe du dépôt dépliée, nœuds « disponible ».
 2. Adresse piégée (`ext::sh -c …`) : refus immédiat.
-3. Dépôt de démonstration (`tests/fixtures/skills/demo-repo`, servi en local) : le skill malveillant est « dangereux »,
-   verrouillé ; ses scripts décochés.
-4. Garde un skill sûr → brouillon → Installer.
-5. Ferme l'app pendant une analyse → au redémarrage, la quarantaine a disparu.
-6. Automatique : `npm test -- reprise/git-url skills/import skills/audit-rules`.
+3. Clic sur un skill disponible : verdict « (règles) », SKILL.md, scripts décochés ; « Installer… » → audit par Claude →
+   brouillon → différences → Installer. Un verdict aggravé par Claude arrête tout et demande un second clic.
+4. Clic sur le dépôt : « Mettre à jour » (la copie est remplacée ; les skills inchangés gardent l'audit de Claude) ;
+   « Retirer de la bibliothèque… » (copie supprimée, skills installés intacts).
+5. Ferme l'app pendant une copie → au redémarrage, seule la copie courante reste sous `skill-library/<hôte>/<auteur>/`.
+6. Automatique : `npm test -- reprise/git-url reprise/clone-service skills/skill-import skill-import-dialog`.

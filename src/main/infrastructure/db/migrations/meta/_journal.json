@@ -239,6 +239,20 @@
       "when": 1791413120975,
       "tag": "0033_skills",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1791449285829,
+      "tag": "0034_skill_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1791451262338,
+      "tag": "0035_skill_library_copies",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   CLONE_TIMEOUTS_MS,
+  SHALLOW_LIMITS,
   CloneService,
   MemoryCloneRegistry,
   PRODUCTION_TRANSPORTS,
@@ -80,6 +81,21 @@ describe('service de clone, processus simulé (spec 020 T027 / spec 021 T028)', 
     expect(readdirSync(hooks)).toEqual([])
   })
 
+  it('should_clone_shallow_into_an_explicit_target_when_one_is_given', async () => {
+    // Bibliothèque de skills (spec 020 D12) : la version est clonée directement à sa place, jamais renommée ensuite.
+    const library = join(base, 'profil', 'skill-library', 'github.com', 'exemple')
+    mkdirSync(library, { recursive: true })
+    const target = join(library, 'projet@v1')
+    const result = await service((request) => {
+      partialClone(request)
+      return ok()
+    }).clone({ url: URL, profile: 'superficiel', target })
+    expect(result).toMatchObject({ ok: true, dir: target })
+    expect(requests[0]?.args.slice(-2)).toEqual([URL, target])
+    expect(requests[0]?.args).toContain('--depth')
+    expect(readdirSync(join(base, 'profil')).includes('skill-quarantine')).toBe(false)
+  })
+
   it('should_use_the_partial_filter_or_nothing_when_the_profile_is_historique', () => {
     const input = { hooksDir: 'h', transports: PRODUCTION_TRANSPORTS, url: URL, target: 't' }
     expect(cloneArgs({ ...input, profile: 'historique', full: false })).toContain('--filter=blob:none')
@@ -91,7 +107,9 @@ describe('service de clone, processus simulé (spec 020 T027 / spec 021 T028)', 
 
   it('should_keep_production_values_when_nothing_is_injected', () => {
     expect(PRODUCTION_TRANSPORTS).toEqual(['https', 'ssh'])
-    expect(CLONE_TIMEOUTS_MS).toEqual({ superficiel: 300_000, historique: 1_800_000 })
+    expect(CLONE_TIMEOUTS_MS).toEqual({ superficiel: 900_000, historique: 1_800_000 })
+    // D12 : la bibliothèque garde le dépôt entier, seul le garde-fou de 1 Go reste.
+    expect(SHALLOW_LIMITS).toEqual({ bytes: 1024 ** 3, files: Number.POSITIVE_INFINITY })
     expect(
       () =>
         new CloneService({

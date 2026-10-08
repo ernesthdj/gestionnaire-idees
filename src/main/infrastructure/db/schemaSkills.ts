@@ -49,12 +49,20 @@ export const skillImports = sqliteTable('skill_imports', {
   /** Adresse sans identifiant. */
   repo: text('repo').notNull(),
   commit: text('commit'),
+  /** `ready` = dépôt présent dans la bibliothèque (D12) ; `done` = ancien import en quarantaine (avant D12). */
   status: text('status', {
     enum: ['clone', 'reperage', 'audit', 'ready', 'done', 'cancelled', 'failed']
   }).notNull(),
   errorCode: text('error_code'),
   createdAt: integer('created_at').notNull(),
-  finishedAt: integer('finished_at')
+  finishedAt: integer('finished_at'),
+  /** Copie gardée, relative à la racine de la bibliothèque (`<hôte>/<auteur>/<dépôt>`, migration 0034). */
+  folder: text('folder'),
+  updatedAt: integer('updated_at'),
+  /** Plus de skills trouvés que la limite de repérage. */
+  truncated: integer('truncated', { mode: 'boolean' }).notNull().default(false),
+  /** Copies d'un même skill écartées au repérage (traductions, autres outils ; migration 0035). */
+  skippedCopies: integer('skipped_copies').notNull().default(0)
 })
 
 export const skillImportCandidates = sqliteTable(
@@ -69,9 +77,15 @@ export const skillImportCandidates = sqliteTable(
     /** `{ path, size, executable }[]` (JSON). */
     files: text('files').notNull(),
     verdict: text('verdict', { enum: ['sur', 'a_revoir', 'dangereux'] }).notNull(),
-    /** `{ text, line? }[]` ≤ 8 (JSON). */
+    /** Verdict des règles fixes ; `{ text, line? }[]` ≤ 8 (JSON), la première entrée porte la description. */
     reasons: text('reasons').notNull(),
-    kept: integer('kept', { mode: 'boolean' }).notNull().default(false)
+    kept: integer('kept', { mode: 'boolean' }).notNull().default(false),
+    /** Empreinte des fichiers du skill (migration 0034) : un audit de Claude ne vaut que pour cette empreinte. */
+    contentHash: text('content_hash'),
+    claudeVerdict: text('claude_verdict', { enum: ['sur', 'a_revoir', 'dangereux'] }),
+    /** `{ text, line? }[]` (JSON). */
+    claudeReasons: text('claude_reasons'),
+    claudeHash: text('claude_hash')
   },
   (t) => [index('skill_import_candidates_import_idx').on(t.importId)]
 )

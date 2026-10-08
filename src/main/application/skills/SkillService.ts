@@ -75,14 +75,20 @@ export class SkillService {
   }
 
   /** Brouillon déposé par Claude : créé ou remplacé, historisé « par Claude », jamais écrit sur le disque. */
-  writeDraft(input: DraftInput, origin: 'claude' | 'duplicate' = 'claude'): { draftId: string; created: boolean } {
+  writeDraft(
+    input: DraftInput,
+    origin: 'claude' | 'duplicate' | 'import' = 'claude',
+    importOptions?: { readonly importId: string; readonly scripts: readonly string[]; readonly source: string }
+  ): { draftId: string; created: boolean } {
     const genesisId = input.famille === 'projet' ? (input.projet ?? null) : null
     if (!isSkillName(input.skill)) throw new AppError('VALIDATION', 'Nom de skill invalide (minuscules, chiffres, -)')
     if (input.famille === 'projet' && genesisId === null) {
       throw new AppError('VALIDATION', 'Un skill de projet demande l’identifiant du projet lié')
     }
     const dir = this.dirFor(input.famille, genesisId, input.skill)
-    const annexes = checkAnnexes(input.annexes ?? [])
+    // Seul un import peut porter des scripts, autorisés un par un par mentalyas (constitution I).
+    const scripts = new Set(origin === 'import' ? (importOptions?.scripts ?? []) : [])
+    const annexes = checkAnnexes(input.annexes ?? [], scripts)
     const { repository } = this.deps
     const now = this.now()
     const existing = repository.openDraft(input.famille, genesisId, input.skill)
@@ -90,9 +96,11 @@ export class SkillService {
       description: input.description.trim(),
       content: input.contenu,
       annexes: JSON.stringify(annexes),
-      // Réécrit par Claude : aucun script d'import ne reste autorisé (analyse H2).
-      allowedScripts: '[]',
+      // Réécrit par Claude (ou dupliqué) : aucun script d'import ne reste autorisé (analyse H2).
+      allowedScripts: JSON.stringify([...scripts]),
       origin,
+      importId: origin === 'import' ? (importOptions?.importId ?? null) : null,
+      source: origin === 'import' ? (importOptions?.source ?? null) : null,
       updatedAt: now
     }
     const batchId = randomUUID()
@@ -409,13 +417,18 @@ function draftSnapshot(draft: SkillDraftRow): Record<string, unknown> {
 }
 
 /** Annexes d'un brouillon de Claude : chemins sûrs, jamais exécutables, bornées (FR-018). */
-function checkAnnexes(annexes: readonly { readonly chemin: string; readonly contenu: string }[]): DraftFile[] {
+function checkAnnexes(
+  annexes: readonly { readonly chemin: string; readonly contenu: string }[],
+  allowedScripts: ReadonlySet<string> = new Set()
+): DraftFile[] {
   if (annexes.length > MAX_ANNEXES) throw new AppError('VALIDATION', `${MAX_ANNEXES} fichiers annexes au plus`)
   const seen = new Set<string>()
   return annexes.map((annex) => {
     const path = safeRelativePath(annex.chemin)
     if (path === null || path === 'SKILL.md') throw new AppError('VALIDATION', `Chemin refusé : ${annex.chemin}`)
-    if (isExecutablePath(path)) throw new AppError('VALIDATION', `Fichier exécutable refusé : ${path}`)
+    if (isExecutablePath(path) && !allowedScripts.has(path)) {
+      throw new AppError('VALIDATION', `Fichier exécutable refusé : ${path}`)
+    }
     if (seen.has(path)) throw new AppError('VALIDATION', `Fichier en double : ${path}`)
     if (annex.contenu.length > MAX_ANNEX_CHARS) throw new AppError('VALIDATION', `Fichier trop long : ${path}`)
     seen.add(path)

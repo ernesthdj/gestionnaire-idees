@@ -38,6 +38,11 @@ import { createAnalysteRoutes } from './ipc/analysteHandlers'
 import { createSkillsRoutes } from './ipc/skillsHandlers'
 import { SkillInventory } from './application/skills/SkillInventory'
 import { SkillService } from './application/skills/SkillService'
+import { SkillImportService } from './application/skills/SkillImportService'
+import { runSkillAudit } from './application/ai/SkillAuditTask'
+import { CloneService } from './application/reprise/CloneService'
+import { launchGit } from './infrastructure/projects/GitProcess'
+import { resolveGit } from './infrastructure/projects/GitCli'
 import { SKILLS_FRAME } from './application/skills/skillsFrame'
 import { SkillTools } from './application/mcp/SkillTools'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
@@ -109,7 +114,7 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
-import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { SelectionStore } from './application/mcp/SelectionStore'
 import { MapLinkRepository } from './infrastructure/db/repositories/MapLinkRepository'
 import { pipeNameFor, tokenPathFor } from './infrastructure/mcp/endpoint'
@@ -261,6 +266,31 @@ export function bootstrap(shell: ShellPort): AppContext {
     workspace: join(dataDir, 'skills-workspace'),
     onChanged: () => broadcast('skills:changed', { scannedAt: Date.now() })
   })
+  // Bibliothèque de skills importés depuis GitHub (spec 020 US4, D12) : clone superficiel directement dans le dossier
+  // de sa version sous `skill-library` ; règles fixes à l'import, audit de Claude à l'installation.
+  const emptyHooksDir = join(dataDir, 'empty-hooks')
+  mkdirSync(emptyHooksDir, { recursive: true })
+  const libraryRoot = join(dataDir, 'skill-library')
+  const cloneService = new CloneService({
+    git: () => resolveGit(),
+    launch: launchGit,
+    emptyHooksDir,
+    quarantineRoot: join(libraryRoot, '.tmp')
+  })
+  // Avant D12, les imports passaient par une quarantaine jetable : son reste éventuel est retiré.
+  rmSync(join(dataDir, 'skill-quarantine'), { recursive: true, force: true })
+  void cloneService.cleanupOrphans().catch(() => logger.warn('skills.quarantine_cleanup_failed', {}))
+  const skillImports = new SkillImportService({
+    repository: new SkillRepository(database.db),
+    libraryRoot,
+    clone: (request) => cloneService.clone(request),
+    audit: (input, requestId, signal) => runSkillAudit(ai.gateway, input, requestId, signal),
+    writeDraft: (input, origin, options) => skillService.writeDraft(input, origin, options),
+    personalExists: (name) => skillInventory.list().skills.some((skill) => skill.id === `perso:${name}`),
+    emit: (event) => broadcast('skills:importProgress', event),
+    logFailure: (fields) => logger.warn('skills.import_failed', fields)
+  })
+  skillImports.recover()
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
@@ -757,7 +787,7 @@ export function bootstrap(shell: ShellPort): AppContext {
         analyste,
         store: analysteRepository
       }),
-      ...createSkillsRoutes({ inventory: skillInventory, skills: skillService }),
+      ...createSkillsRoutes({ inventory: skillInventory, skills: skillService, imports: skillImports }),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -788,6 +818,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       permissions.cancelAll()
       analyste.stop()
       skillInventory.unwatch()
+      skillImports.stop()
       probe.stop()
       void pipe.stop()
     }

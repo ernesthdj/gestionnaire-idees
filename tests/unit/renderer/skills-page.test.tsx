@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { SkillsPage } from '../../../src/renderer/src/skills/SkillsPage'
-import type { SkillDetailView, SkillsView, SkillView } from '../../../src/shared/ipc/skills'
+import type { LibraryRepoView, SkillDetailView, SkillsView, SkillView } from '../../../src/shared/ipc/skills'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
@@ -89,5 +89,42 @@ describe('page Skills (spec 020 T010)', () => {
     await userEvent.click(within(sheet).getByRole('tab', { name: 'Fichiers' }))
     expect(within(sheet).getByText('2,0 Ko')).toBeTruthy()
     await expectNoAxeViolations(container)
+  })
+  it('should_show_library_repos_as_clusters_that_unfold_into_available_skills', async () => {
+    const repoId = '9b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f'
+    const library: LibraryRepoView[] = [
+      {
+        repoId,
+        repo: 'https://github.com/demo/skills',
+        commit: 'b'.repeat(40),
+        updatedAt: 1,
+        truncated: false,
+        skippedCopies: 0,
+        skills: [
+          {
+            candidateId: '1b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f',
+            repoId,
+            name: 'resume-reunion',
+            description: 'Résume une réunion fictive.',
+            files: [{ path: 'SKILL.md', size: 10, executable: false }],
+            verdict: 'a_revoir',
+            reasons: [],
+            auditedByClaude: false,
+            installed: false
+          }
+        ]
+      }
+    ]
+    installFakeApi({ 'skills:list': () => VIEW, 'skills:library': () => library })
+    const { container } = renderPage()
+    expect(await screen.findByText(/Bibliothèque \(1\)/)).toBeTruthy()
+    expect(screen.queryByText('resume-reunion')).toBeNull()
+    fireEvent.click(screen.getByText('demo/skills'))
+    expect(await screen.findByRole('region', { name: 'Dépôt de la bibliothèque' })).toBeTruthy()
+    expect(await screen.findByText('resume-reunion')).toBeTruthy()
+    expect(screen.getByText(/à revoir \(règles\)/)).toBeTruthy()
+    await expectNoAxeViolations(container)
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bibliothèque/ }))
+    expect(screen.queryByText('resume-reunion')).toBeNull()
   })
 })

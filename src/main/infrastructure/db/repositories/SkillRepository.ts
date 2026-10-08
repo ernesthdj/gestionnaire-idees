@@ -1,12 +1,14 @@
-import { and, asc, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { neurons } from '../schemaNeurons'
-import { skillDrafts, skillVersions } from '../schemaSkills'
+import { skillDrafts, skillImportCandidates, skillImports, skillVersions } from '../schemaSkills'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export type SkillDraftRow = typeof skillDrafts.$inferSelect
 export type NewSkillDraft = typeof skillDrafts.$inferInsert
 export type SkillVersionRow = typeof skillVersions.$inferSelect
+export type SkillImportRow = typeof skillImports.$inferSelect
+export type SkillCandidateRow = typeof skillImportCandidates.$inferSelect
 
 /** Versions gardées par skill (FR-019) : au-delà, les plus anciennes sont retirées. */
 export const VERSIONS_KEPT = 10
@@ -161,6 +163,77 @@ export class SkillRepository {
         elementKey: input.key,
         projectDir: input.dir
       })
+      .run()
+  }
+
+  // --- Imports et bibliothèque (US4, D12) ---------------------------------------------------------------------
+
+  insertImport(row: typeof skillImports.$inferInsert): void {
+    this.db.insert(skillImports).values(row).run()
+  }
+
+  importRow(id: string): SkillImportRow | undefined {
+    return this.db.select().from(skillImports).where(eq(skillImports.id, id)).get()
+  }
+
+  updateImport(id: string, patch: Partial<Omit<SkillImportRow, 'id'>>): void {
+    this.db.update(skillImports).set(patch).where(eq(skillImports.id, id)).run()
+  }
+
+  /** Retire un dépôt : ses skills disponibles partent avec lui ; les brouillons gardent leur origine (`source`). */
+  deleteImport(id: string): void {
+    this.db.delete(skillImports).where(eq(skillImports.id, id)).run()
+  }
+
+  /** Imports restés « en cours » (app fermée pendant l'import) : marqués échoués au démarrage. */
+  failRunningImports(at: number): number {
+    return this.db
+      .update(skillImports)
+      .set({ status: 'failed', errorCode: 'INTERRUPTED', finishedAt: at })
+      .where(inArray(skillImports.status, ['clone', 'reperage', 'audit']))
+      .run().changes
+  }
+
+  /** Dépôts présents dans la bibliothèque (copie gardée), par adresse. */
+  libraryRepos(): SkillImportRow[] {
+    return this.db
+      .select()
+      .from(skillImports)
+      .where(and(eq(skillImports.status, 'ready'), isNotNull(skillImports.folder)))
+      .orderBy(asc(skillImports.repo))
+      .all()
+  }
+
+  insertCandidates(rows: readonly SkillCandidateRow[]): void {
+    if (rows.length > 0)
+      this.db
+        .insert(skillImportCandidates)
+        .values([...rows])
+        .run()
+  }
+
+  candidates(importId: string): SkillCandidateRow[] {
+    return this.db
+      .select()
+      .from(skillImportCandidates)
+      .where(eq(skillImportCandidates.importId, importId))
+      .orderBy(asc(skillImportCandidates.name))
+      .all()
+  }
+
+  candidate(id: string): SkillCandidateRow | undefined {
+    return this.db.select().from(skillImportCandidates).where(eq(skillImportCandidates.id, id)).get()
+  }
+
+  /** Audit de Claude d'un skill disponible, valable pour l'empreinte donnée. */
+  setClaudeAudit(
+    id: string,
+    audit: { readonly verdict: 'sur' | 'a_revoir' | 'dangereux'; readonly reasons: string; readonly hash: string }
+  ): void {
+    this.db
+      .update(skillImportCandidates)
+      .set({ claudeVerdict: audit.verdict, claudeReasons: audit.reasons, claudeHash: audit.hash })
+      .where(eq(skillImportCandidates.id, id))
       .run()
   }
 }

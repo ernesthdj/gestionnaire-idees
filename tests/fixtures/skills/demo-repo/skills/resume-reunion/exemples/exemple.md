@@ -1,0 +1,1 @@
+Exemple fictif de résumé.

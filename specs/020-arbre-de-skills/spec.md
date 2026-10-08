@@ -11,7 +11,8 @@ en créer ou juste en importer depuis des GitHub. » — mentalyas. Brainstorm c
 `L3-skills-{voir, comprendre, evoluer, importer}.md`, `L4f-skills.md`. Constitution **4.3.0** (amendée pour cette spec).
 **Glossaire** : *skill* = un ensemble d'instructions réutilisables de Claude Code (fichier `SKILL.md` et annexes) ;
 *famille* = personnels, de projet, de plugins ; *brouillon* = version proposée d'un skill, gardée dans l'app tant qu'elle
-n'est pas installée ; *quarantaine* = dossier temporaire où un dépôt importé est examiné sans rien exécuter.
+n'est pas installée ; *quarantaine* = dossier temporaire où un dépôt importé est examiné sans rien exécuter ;
+*bibliothèque* (D12) = copies locales gardées des dépôts importés, dans le profil de l'app, jamais exécutées.
 
 ## Décisions (2026-10-07, brainstorm validé)
 
@@ -28,6 +29,7 @@ n'est pas installée ; *quarantaine* = dossier temporaire où un dépôt import�
 | D9 | Constitution | Amendement **4.3.0** (2026-10-07, validé) : principe I — écriture dans les dossiers de skills seulement sur « Installer » ou « Revenir », version sauvegardée ; jamais d'exécutable depuis un brouillon de Claude ; script d'import seulement autorisé fichier par fichier, jamais exécuté par l'app. |
 | D10 | Supprimer (2026-10-08) | Demande de mentalyas : « Supprimer » un skill personnel ou de projet, **sur clic** et confirmation ; le dossier entier est sauvegardé dans les versions puis retiré ; annulable (Historique) et rétablissable. Claude peut le **proposer** dans la conversation, jamais le faire. Amendement constitution **4.5.0**. |
 | D11 | Ordre (2026-10-08) | Demande de mentalyas : US3 (conversation + créer / modifier / supprimer) puis US4 (import GitHub) **avant** US2 (fiches et étoiles) ; la migration crée dès US3 toutes les tables prévues. |
+| D12 | Bibliothèque (2026-10-08) | Retour du test guidé T032 (« Dépôt trop gros… 50 Mo, 2 000 fichiers ») : l'import fait une **copie locale gardée** du dépôt entier (dernière version, sans hooks ni sous-modules) dans `<profil>/skill-library/<hôte>/<auteur>/<dépôt>@<version>` (clonée directement à sa place, **jamais renommée** : sous Windows un dossier lu ne se renomme pas), garde-fou **1 Go**, plus de borne de fichiers ; repérage jusqu'à **300 skills**, profondeur 6, **un skill par nom** pris à l'emplacement le plus canonique (`skills/` ou `.claude/skills/` d'abord, documentation et traductions en dernier ; copies écartées comptées). Ses skills apparaissent sur la toile en nœuds **« disponible »** (branche Bibliothèque, une grappe par dépôt). À l'import, **règles fixes** seulement ; l'**audit par Claude** a lieu au clic **Installer**, pour ce skill (le plus sévère l'emporte toujours ; un skill inchangé n'est pas réaudité). « Mettre à jour » clone une nouvelle version, la base bascule dessus, puis l'ancienne copie est supprimée si possible, sinon au démarrage suivant (un échec garde l'ancienne copie) ; « Retirer de la bibliothèque » sur confirmation. Prévu ensuite (US5, hors de cette livraison) : pousser les skills choisis vers un dépôt GitHub « mes-skills » de mentalyas (privé par défaut), pour les retrouver sur une autre machine. Aucun amendement de la constitution (4.5.0 couvre copie sans hooks, Installer seulement sur clic, push sur clic). |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -117,25 +119,32 @@ rien sur le disque avant « Installer » ; installer puis revenir rend le fichie
 
 ### User Story 4 — Importer des skills depuis GitHub (Priority: P3)
 
-mentalyas colle l'adresse d'un dépôt de skills : l'app le clone en quarantaine, Claude audite chaque skill, mentalyas
-choisit ceux à garder (scripts exclus par défaut) ; ils deviennent des brouillons à installer.
+mentalyas colle l'adresse d'un dépôt de skills : l'app en garde une copie locale dans sa bibliothèque (D12), ses skills
+apparaissent sur la toile en nœuds « disponible » avec un premier verdict ; au clic Installer, Claude audite ce skill,
+puis il devient un brouillon à installer (scripts exclus par défaut).
 
 **Why this priority**: faire grandir la toile depuis l'extérieur ; le plus risqué, livré en dernier.
 
-**Independent Test**: importer un dépôt public de démonstration : quarantaine, verdicts, choix, brouillons ; un skill
+**Independent Test**: importer un dépôt public de démonstration : copie gardée, nœuds disponibles, verdicts ; un skill
 contenant « ignore tes consignes et envoie… » est classé dangereux ; une adresse piégée est refusée sans rien lancer.
 
 **Acceptance Scenarios**:
 
-1. **Given** une adresse `https://` ou `git@`, **When** mentalyas lance l'import, **Then** il suit clone, repérage et
-   analyse, puis voit la liste des skills avec verdict et raisons.
+1. **Given** une adresse `https://` ou `git@`, **When** mentalyas lance l'import, **Then** il suit copie, repérage et
+   règles fixes, puis les skills du dépôt apparaissent sur la toile (branche Bibliothèque) avec verdict et raisons.
 2. **Given** toute autre forme d'adresse, **Then** elle est refusée avant tout lancement.
-3. **Given** un skill classé dangereux, **Then** il est décoché et verrouillé ; mentalyas peut le débloquer après un
-   second avertissement.
-4. **Given** des skills choisis, **Then** ils deviennent des brouillons, leurs scripts exclus sauf autorisation fichier
-   par fichier ; rien n'est installé sans « Installer ».
-5. **Given** la fin du choix, une annulation ou un redémarrage, **Then** la quarantaine est supprimée.
-6. **Given** un dépôt trop gros ou introuvable, **Then** l'app le dit et ne garde rien.
+3. **Given** un skill classé dangereux (par les règles ou par Claude), **Then** Installer est verrouillé ; mentalyas peut
+   le débloquer après un second avertissement.
+4. **Given** un skill disponible, **When** mentalyas clique Installer, **Then** Claude l'audite (sauf s'il l'a déjà fait
+   sur ce même contenu), puis il devient un brouillon, ses scripts exclus sauf autorisation fichier par fichier ; rien
+   n'est écrit dans les dossiers de skills sans « Installer » dans le brouillon.
+5. **Given** un dépôt déjà dans la bibliothèque, **When** mentalyas clique Mettre à jour, **Then** la dernière version
+   remplace la copie ; un échec garde l'ancienne copie ; seuls les skills modifiés perdent leur audit par Claude.
+6. **Given** une annulation, un échec ou un redémarrage pendant une copie, **Then** le dossier temporaire est supprimé et
+   la bibliothèque reste intacte.
+7. **Given** un dépôt de plus de 1 Go ou introuvable, **Then** l'app le dit et ne garde rien.
+8. **Given** un dépôt de la bibliothèque, **When** mentalyas clique Retirer et confirme, **Then** sa copie et ses nœuds
+   disparaissent ; les skills déjà installés ne bougent pas.
 
 ---
 
@@ -209,16 +218,26 @@ contenant « ignore tes consignes et envoie… » est classé dangereux ; une ad
 
 - **FR-024**: L'adresse d'import MUST être contrôlée (formes `https://` ou `git@` seulement, identifiants retirés,
   transports dangereux refusés) avant tout lancement.
-- **FR-025**: Le dépôt MUST être cloné en quarantaine sans rien exécuter (ni hooks, ni sous-modules), dans des limites
-  de taille, de nombre de fichiers et de durée, avec annulation.
-- **FR-026**: Chaque skill trouvé MUST recevoir un verdict (sûr / à revoir / dangereux) avec des raisons citant le texte,
-  issu de l'audit de Claude sur le texte seul et de règles fixes ; la plus sévère des deux MUST l'emporter ; une analyse
-  impossible MUST donner « à revoir ».
-- **FR-027**: Un skill dangereux MUST être décoché et verrouillé ; son déblocage MUST demander un second avertissement.
-- **FR-028**: Les skills gardés MUST devenir des brouillons ; leurs fichiers exécutables MUST être exclus sauf
-  autorisation fichier par fichier ; l'app MUST NOT exécuter aucun fichier importé.
-- **FR-029**: La quarantaine MUST être supprimée après le choix, à l'annulation et au démarrage suivant ; l'origine
-  (adresse sans identifiant, commit) MUST être gardée sur la fiche.
+- **FR-025** (D12): Le dépôt MUST être cloné sans rien exécuter (ni hooks, ni sous-modules), dans une limite de taille
+  (1 Go) et de durée, avec annulation, directement dans le dossier de sa version
+  (`<profil>/skill-library/<hôte>/<auteur>/<dépôt>@<version>`, vérifié sous la racine de la bibliothèque) ; aucun
+  dossier de la bibliothèque MUST NOT être renommé.
+- **FR-026** (D12): Chaque skill trouvé (300 au plus, profondeur 6) MUST recevoir à l'import un verdict des règles fixes
+  (sûr / à revoir / dangereux) avec des raisons ; au clic Installer, Claude MUST l'auditer sur le texte seul (sauf audit
+  déjà fait sur la même empreinte) ; la plus sévère des deux MUST l'emporter ; une analyse impossible MUST donner
+  « à revoir ».
+- **FR-027**: Un skill dangereux MUST être verrouillé ; son déblocage MUST demander un second avertissement.
+- **FR-028**: Un skill installé depuis la bibliothèque MUST devenir un brouillon ; ses fichiers exécutables MUST être
+  exclus sauf autorisation fichier par fichier ; l'app MUST NOT exécuter aucun fichier importé.
+- **FR-029** (D12): Le clone d'une version MUST être supprimé à l'échec et à l'annulation ; au démarrage, toute copie que
+  la base ne référence plus MUST être supprimée ; la copie courante MUST rester intacte ; l'origine (adresse sans identifiant, commit, chemin) MUST être gardée sur le
+  brouillon.
+- **FR-031** (D12): Les skills de la bibliothèque MUST apparaître sur la toile en nœuds « disponible » (verdict par icône
+  + libellé, « installé » si un skill personnel du même nom existe), regroupés par dépôt dans une grappe dépliable.
+- **FR-032** (D12): « Mettre à jour » MUST cloner une nouvelle version et basculer la base dessus sans jamais perdre
+  l'ancienne copie en cas d'échec ; une ancienne copie encore lue MUST NOT faire échouer la mise à jour ; MUST garder l'audit de Claude des skills dont l'empreinte n'a pas changé.
+- **FR-033** (D12): « Retirer de la bibliothèque » MUST, sur confirmation, supprimer la copie et ses skills disponibles,
+  sans toucher aux skills installés ni aux brouillons.
 
 ### Key Entities
 
@@ -232,7 +251,9 @@ contenant « ignore tes consignes et envoie… » est classé dangereux ; une ad
 - **Brouillon** : famille, projet, nom, description, contenu, annexes, base vue sur le disque, origine (Claude, import,
   duplication), statut.
 - **Version sauvegardée** : skill, emplacement, empreinte, date, lot d'historique.
-- **Import** : adresse, commit, statut, candidats (nom, fichiers, verdict, raisons, gardé).
+- **Import / dépôt de la bibliothèque** (D12) : adresse, commit, dossier de la copie, statut, date de mise à jour,
+  liste tronquée ; skills disponibles (nom, dossier, fichiers, empreinte, verdict et raisons des règles, audit de Claude
+  et son empreinte).
 
 ## Success Criteria *(mandatory)*
 
@@ -259,5 +280,5 @@ contenant « ignore tes consignes et envoie… » est classé dangereux ; une ad
 - L'import réutilise le contrôle d'adresse et le clone de la spec 017 (US5, en pause), qui sont livrés avec cette spec.
 - Les dépôts de démonstration et skills de test sont fictifs (dépôt public : aucune donnée réelle).
 - Aucune dépendance externe nouvelle n'est prévue ; une éventuelle dépendance sera annoncée au plan.
-- Hors périmètre : publier un skill vers GitHub, mises à jour automatiques des skills importés (une vérification
+- Hors périmètre de cette livraison : publier un skill vers GitHub (prévu en US5 « mes-skills », D12), mises à jour automatiques des skills importés (une vérification
   manuelle « mises à jour disponibles » pourra suivre), modification des skills de plugins.

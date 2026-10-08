@@ -40,10 +40,12 @@ contentHash, domainId?, stars?, starsSource?, usage?: { calls30d, lastAt } }`.
 ## Importer
 | Canal | Entrée | Sortie | Erreurs |
 |---|---|---|---|
-| `skills:import` | `{ url: string ≤ 500 }` | `{ importId }` | `URL_REFUSED`, `IMPORT_RUNNING` |
+| `skills:import` | `{ url: string ≤ 500 }` (dépôt déjà présent : mise à jour) | `{ importId }` | `URL_REFUSED`, `IMPORT_RUNNING` |
 | `skills:importProgress` (événement) | — | `{ importId, step, done?, total?, errorCode? }` | — |
-| `skills:importView` | `{ importId }` | `{ repo, commit, candidates: ImportedSkillView[] }` | `NOT_FOUND` |
-| `skills:importChoose` | `{ importId, keep: { candidateId, scripts: string[] }[], unlockDangerous?: string[] }` | `{ draftIds }` | `VALIDATION`, `DANGEROUS_LOCKED` |
+| `skills:library` | `{}` | `LibraryRepoView[]` (dépôts de la bibliothèque et leurs skills disponibles, D12) | — |
+| `skills:librarySkill` | `{ candidateId }` | `{ skill: LibrarySkillView, markdown }` | `NOT_FOUND` |
+| `skills:libraryInstall` | `{ candidateId, scripts: string[], unlockDangerous?: true }` | `{ draftId }` (audit de Claude d'abord si besoin) | `VALIDATION`, `DANGEROUS_LOCKED`, `IMPORT_RUNNING` |
+| `skills:libraryRemove` | `{ repoId, confirm: true }` | `{}` | `NOT_FOUND`, `IMPORT_RUNNING` |
 | `skills:importCancel` | `{ importId }` | `{}` | — |
 
 ## Outils MCP
@@ -59,5 +61,5 @@ contentHash, domainId?, stars?, starsSource?, usage?: { calls30d, lastAt } }`.
   `{ verdict, raisons, role }` (voir `docs/brainstorm/L3-skills-importer.md` §3).
 
 ## Commandes git
-`git clone --depth 1 --no-recurse-submodules -c core.hooksPath=<vide> -- <url> <quarantaine>` ;
-`git -C <quarantaine> rev-parse HEAD`. Aucune autre commande.
+`git clone --depth 1 --no-recurse-submodules -c core.hooksPath=<vide> -- <url> <skill-library/<hôte>/<auteur>/<dépôt>@<version>>` ;
+`git -C <même dossier> rev-parse HEAD` (D12 : aucun renommage). Aucune autre commande.

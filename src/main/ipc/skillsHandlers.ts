@@ -1,5 +1,13 @@
 import { z } from 'zod'
-import type { SkillDetailView, SkillDraftDiffView, SkillDraftView, SkillsView } from '@shared/ipc/skills'
+import type {
+  LibraryRepoView,
+  LibrarySkillDetailView,
+  LibraryVerdict,
+  SkillDetailView,
+  SkillDraftDiffView,
+  SkillDraftView,
+  SkillsView
+} from '@shared/ipc/skills'
 import { defineRoute, type IpcRoute } from './registry'
 
 export interface SkillsRoutesDeps {
@@ -18,6 +26,19 @@ export interface SkillsRoutesDeps {
     restore(skillId: string): { batchId: string }
     remove(skillId: string): { batchId: string }
     duplicate(skillId: string): { draftId: string }
+  }
+  readonly imports?: {
+    start(url: string): { importId: string }
+    cancel(importId: string): void
+    library(): LibraryRepoView[]
+    librarySkill(candidateId: string): LibrarySkillDetailView
+    install(input: {
+      readonly candidateId: string
+      readonly scripts: readonly string[]
+      readonly seen: LibraryVerdict
+      readonly unlockDangerous?: boolean
+    }): Promise<{ draftId: string; verdict: LibraryVerdict }>
+    remove(repoId: string): void
   }
 }
 
@@ -97,6 +118,62 @@ export function createSkillsRoutes(deps: SkillsRoutesDeps): IpcRoute[] {
       channel: 'skills:duplicate',
       input: z.object({ skillId: SkillId }).strict(),
       handler: async ({ skillId }) => skills.duplicate(skillId)
+    }),
+    ...importRoutes(deps.imports)
+  ]
+}
+
+/**
+ * Import depuis GitHub et bibliothèque (US4, D12) : l'adresse est contrôlée par le main ; le reste ne porte que des
+ * identifiants. Retirer un dépôt demande `confirm: true`.
+ */
+function importRoutes(imports: SkillsRoutesDeps['imports']): IpcRoute[] {
+  if (imports === undefined) return []
+  const Id = z.uuid()
+  return [
+    defineRoute({
+      channel: 'skills:import',
+      input: z.object({ url: z.string().min(1).max(500) }).strict(),
+      handler: async ({ url }) => imports.start(url)
+    }),
+    defineRoute({
+      channel: 'skills:importCancel',
+      input: z.object({ importId: Id }).strict(),
+      handler: async ({ importId }) => {
+        imports.cancel(importId)
+        return {}
+      }
+    }),
+    defineRoute({
+      channel: 'skills:library',
+      input: z.object({}).strict(),
+      handler: async () => imports.library()
+    }),
+    defineRoute({
+      channel: 'skills:librarySkill',
+      input: z.object({ candidateId: Id }).strict(),
+      handler: async ({ candidateId }) => imports.librarySkill(candidateId)
+    }),
+    defineRoute({
+      channel: 'skills:libraryInstall',
+      input: z
+        .object({
+          candidateId: Id,
+          scripts: z.array(z.string().min(1).max(260)).max(50),
+          seen: z.enum(['sur', 'a_revoir', 'dangereux']),
+          unlockDangerous: z.literal(true).optional()
+        })
+        .strict(),
+      handler: async ({ candidateId, scripts, seen, unlockDangerous }) =>
+        imports.install({ candidateId, scripts, seen, ...(unlockDangerous === undefined ? {} : { unlockDangerous }) })
+    }),
+    defineRoute({
+      channel: 'skills:libraryRemove',
+      input: z.object({ repoId: Id, confirm: z.literal(true) }).strict(),
+      handler: async ({ repoId }) => {
+        imports.remove(repoId)
+        return {}
+      }
     })
   ]
 }

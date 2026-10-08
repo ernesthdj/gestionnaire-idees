@@ -1,0 +1,1 @@
+ALTER TABLE `skill_imports` ADD `skipped_copies` integer DEFAULT 0 NOT NULL;

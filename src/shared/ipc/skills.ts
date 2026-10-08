@@ -92,3 +92,52 @@ export interface SkillVersionView {
   readonly id: string
   readonly createdAt: number
 }
+
+/** Verdict d'audit d'un skill de la bibliothèque, icône + libellé à l'affichage. */
+export type LibraryVerdict = 'sur' | 'a_revoir' | 'dangereux'
+
+/**
+ * Skill disponible dans la bibliothèque (US4, D12) : copie gardée d'un dépôt importé, pas encore installé. Le verdict est
+ * le plus sévère des règles fixes et, s'il a eu lieu sur ce contenu, de l'audit de Claude (fait au clic Installer).
+ */
+export interface LibrarySkillView {
+  readonly candidateId: string
+  readonly repoId: string
+  readonly name: string
+  readonly description: string
+  readonly files: readonly SkillFileView[]
+  readonly verdict: LibraryVerdict
+  readonly reasons: readonly { readonly text: string; readonly line?: number }[]
+  /** Claude a audité ce contenu (sinon, l'audit aura lieu au clic Installer). */
+  readonly auditedByClaude: boolean
+  /** Un skill personnel du même nom existe : l'installer le remplacerait (version gardée). */
+  readonly installed: boolean
+}
+
+/** Dépôt de la bibliothèque et ses skills disponibles. */
+export interface LibraryRepoView {
+  readonly repoId: string
+  /** Adresse sans identifiant. */
+  readonly repo: string
+  readonly commit: string | null
+  readonly updatedAt: number
+  /** Plus de skills trouvés que la limite de repérage (300). */
+  readonly truncated: boolean
+  /** Copies d'un même skill écartées (traductions dans `docs/`, dossiers d'autres outils). */
+  readonly skippedCopies: number
+  readonly skills: readonly LibrarySkillView[]
+}
+
+export interface LibrarySkillDetailView {
+  readonly skill: LibrarySkillView
+  /** Texte du `SKILL.md` (≤ 200 Ko) ; jamais interprété comme du HTML. */
+  readonly markdown: string
+}
+
+export interface SkillImportProgressEvent {
+  readonly importId: string
+  readonly step: 'clone' | 'reperage' | 'audit' | 'pret' | 'echec'
+  readonly done?: number
+  readonly total?: number
+  readonly errorCode?: string
+}

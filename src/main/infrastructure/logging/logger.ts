@@ -10,6 +10,7 @@ const ALLOWED_FIELDS = new Set([
   'engine',
   'kind',
   'model',
+  'stage',
   'status',
   'version'
 ])

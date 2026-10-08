@@ -1,6 +1,16 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
-import type { SkillView } from '@shared/ipc/skills'
+import type { LibrarySkillView, LibraryVerdict, SkillView } from '@shared/ipc/skills'
 import { FAMILY_LABELS, type SkillFamily } from '@shared/skills/model'
+
+/** Verdict d'audit : icône + libellé, jamais la couleur seule (spec 020 FR-031). */
+export const VERDICTS: Readonly<Record<LibraryVerdict, { icon: string; label: string; tone: string }>> = {
+  sur: { icon: '✓', label: 'sûr', tone: 'border-emerald-600/60' },
+  a_revoir: { icon: '!', label: 'à revoir', tone: 'border-amber-600/70' },
+  dangereux: { icon: '✕', label: 'dangereux', tone: 'border-red-600' }
+}
+
+/** Icône de la bibliothèque (dépôts importés, D12). */
+export const LIBRARY_ICON = '⇩'
 
 /** Icône de chaque famille : toujours accompagnée de son libellé (jamais la couleur ni l'icône seules). */
 export const FAMILY_ICONS: Readonly<Record<SkillFamily, string>> = { perso: '◆', projet: '▣', plugin: '⬡' }
@@ -20,6 +30,11 @@ export type GhostNodeType = Node<
   { readonly name: string; readonly description: string; readonly selected: boolean },
   'ghost'
 >
+export type RepoNodeType = Node<
+  { readonly label: string; readonly count: number; readonly open: boolean; readonly selected: boolean },
+  'repo'
+>
+export type AvailableNodeType = Node<{ readonly skill: LibrarySkillView; readonly selected: boolean }, 'available'>
 
 function Handles(): React.JSX.Element {
   return (
@@ -111,6 +126,52 @@ export function GhostNode({ data }: NodeProps<GhostNodeType>): React.JSX.Element
       </p>
       <p className="line-clamp-2 text-content-muted">{data.description}</p>
       <p className="font-semibold text-accent">Brouillon · à installer</p>
+    </div>
+  )
+}
+
+/** Dépôt de la bibliothèque (D12) : grappe de ses skills disponibles, dépliée au clic. */
+export function RepoNode({ data }: NodeProps<RepoNodeType>): React.JSX.Element {
+  return (
+    <div
+      className={`flex h-[104px] w-[208px] flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-content-muted bg-surface-raised px-3 text-xs ${
+        data.selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : ''
+      }`}
+    >
+      <Handles />
+      <span className="max-w-full truncate text-sm font-semibold" title={data.label}>
+        <span aria-hidden="true">{LIBRARY_ICON}</span> {data.label}
+      </span>
+      <span className="text-content-muted">
+        {data.count} skill{data.count > 1 ? 's' : ''} disponible{data.count > 1 ? 's' : ''} ·{' '}
+        {data.open ? 'déplié' : 'Déplier'}
+      </span>
+    </div>
+  )
+}
+
+/** Skill disponible dans la bibliothèque (FR-031) : estompé, verdict (icône + libellé), « installé » le cas échéant. */
+export function AvailableNode({ data }: NodeProps<AvailableNodeType>): React.JSX.Element {
+  const { skill } = data
+  const verdict = VERDICTS[skill.verdict]
+  return (
+    <div
+      className={`flex h-[104px] w-[208px] flex-col justify-between rounded-xl border-2 border-dashed bg-surface px-3 py-2 text-xs ${
+        verdict.tone
+      } ${data.selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : 'opacity-90'}`}
+    >
+      <Handles />
+      <p className="truncate text-sm font-semibold text-content" title={skill.name}>
+        {skill.name}
+      </p>
+      <p className="line-clamp-2 text-content-muted">{skill.description === '' ? '—' : skill.description}</p>
+      <p className="flex items-center justify-between gap-2">
+        <span className="font-semibold">
+          <span aria-hidden="true">{verdict.icon}</span> {verdict.label}
+          {skill.auditedByClaude ? '' : ' (règles)'}
+        </span>
+        <span className="text-content-muted">{skill.installed ? 'installé' : 'disponible'}</span>
+      </p>
     </div>
   )
 }
