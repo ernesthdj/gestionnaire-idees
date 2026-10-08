@@ -37,3 +37,7 @@ writeFileSync(path, scaffold, { encoding: 'utf8', flag: 'wx' })    // créer san
 > **Q :** Pourquoi `if (!existsSync(p)) writeFileSync(p, …)` n'est-il pas équivalent à `flag: 'wx'` ? **R :** Entre le test et l'écriture, un autre processus peut créer le fichier ; `wx` fait les deux en une seule opération du système.
 
 **Pièges** : ⚠️ temporaire dans le dossier temporaire du système puis renommage vers le projet — sur un autre lecteur, ce n'est plus atomique.
+
+## Évolution du 08/10 — un dossier entier, et la limite de Windows
+- **Dossier atomique** (skills, `SkillStore.replace`) : préparer le dossier complet dans `.tmp-<uuid>` **à côté**, renommer l'ancien en `.old-<uuid>`, mettre le nouveau à sa place, supprimer l'ancien ; échec au milieu → l'ancien reprend sa place. → [[Brouillon puis installation — trois verrous, versions par empreinte et retour arrière]]
+- **Limite** : sous Windows, un dossier dont un fichier est **ouvert** ne se renomme pas (`EPERM`). Pour la bibliothèque de skills, lue par l'app, on a donc abandonné le renommage : nouvelle version écrite à côté, **référence basculée en base**, ancienne supprimée au mieux. → [[Glossaire — Verrou de fichier sous Windows (EPERM, EBUSY)]]

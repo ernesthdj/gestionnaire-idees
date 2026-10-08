@@ -43,3 +43,8 @@ Conversation ordinaire   : lecture et carte d'office            — le reste dem
 > **Q :** Pourquoi l'Analyste n'a-t-il pas l'outil `Bash` « juste pour lancer les tests » ? **R :** Lancer les tests n'est pas sa tâche (il analyse) ; avec `Bash`, une injection pourrait lancer n'importe quelle commande. Les tests sont lancés plus tard, par l'app elle-même, dans le worktree.
 
 **Pièges** : ⚠️ accorder « tout, pour être tranquille » pendant le développement et oublier de restreindre ; ⚠️ croire qu'un dossier de travail (`cwd`) est une barrière — un chemin absolu en sort.
+
+## Évolution du 08/10 — deux nouveaux étages
+- **Conversations Skills** : ni `Write`, ni `Edit`, ni `Bash`, **quel que soit le mode de permission** ; seuls les outils MCP `skills_lire` et `skill_brouillon` répondent → [[Brouillon puis installation — trois verrous, versions par empreinte et retour arrière]].
+- **Audit d'un skill importé** : Claude **sans aucun outil**, le texte en donnée → [[Audit d'un contenu importé — règles fixes, IA sans outil et le plus sévère l'emporte]].
+- ⚠️ Le piège « un `cwd` n'est pas une barrière » est désormais **prouvé** : `--tools` ne borne pas les chemins, seules des règles de refus le font (preuve R1, bloc « Évolution du 07→08/10 » de [[Analyste en lecture seule — moindre privilège et propositions vérifiées]]).

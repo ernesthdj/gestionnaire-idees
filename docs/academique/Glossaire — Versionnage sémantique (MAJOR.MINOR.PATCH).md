@@ -44,3 +44,6 @@ Pourquoi PATCH et pas MINOR ? La règle I interdisait déjà tout « interpréte
 > **Q :** On ajoute à la constitution un principe VII. Quelle version après 4.2.1 ? **R :** 4.3.0 (ajout = MINOR, PATCH remis à 0).
 
 **Pièges** : ⚠️ monter MINOR pour « un gros changement » qui retire une règle — c'est MAJOR ; ⚠️ croire que `4.10.0 < 4.9.0` — on compare position par position, en nombres.
+
+## Évolution du 07→08/10 — quatre amendements en une nuit
+`4.2.1 → 4.3.0` (MINOR : droit **ajouté**, écrire dans les dossiers de skills sur Installer / Revenir) → `4.4.0` (MINOR : git et `gh` sur clic) → `4.4.1` (PATCH : « dépôt tiers » **défini** — ni au compte connecté, ni avec droits `admin` / `maintain` ; aucun droit nouveau, une lecture rendue explicite) → `4.5.0` (MINOR : « Supprimer » un skill). Aucun MAJOR : rien n'a été **retiré**. → [[Du brainstorm au code — spécifications et constitution]]

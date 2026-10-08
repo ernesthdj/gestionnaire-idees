@@ -116,3 +116,10 @@ La règle « tiens l'élément à jour à chaque étape franchie, “livree” q
 - [[Glossaire — Donnée dérivée (calculer plutôt que stocker)]] — l'avancement des parents n'existe pas en base.
 - [[Explorateur de code — du module au bloc, appelants et appelés]] — autre agrégation qui **remonte** vers l'ancêtre.
 - [[Vue Architecture — règle de dépendance, couches déduites et deux dispositions pures]] — même carte, autre lecture.
+
+## Évolution du 08/10 — les enfants priment sur l'étiquette du parent
+> ⚠️ **Correction du 08/10** — Le bloc 1 ③ disait : « livrée court-circuite tout : 100 % ». C'était le code du 07/10, et le **test guidé T079** a montré le défaut : un sous-élément repassé à 40 % laissait son parent à 100 %, parce que le parent était marqué « livrée ». **D21 amendée** : un élément **qui a des sous-éléments** affiche toujours **leur moyenne** (un enfant rouvert fait baisser le parent) ; « livrée » ne vaut 100 % que pour une **feuille**, ou pour un parent dont **aucun** enfant n'a d'information.
+
+Nouvel ordre des cas dans `progressOf` : ① enfants avec information → moyenne ; ② sinon statut livrée / faite → 100 ; ③ sinon valeur déclarée bornée ; ④ sinon pas de barre.
+
+> **Règle apprise (JOURNAL)** : dans un calcul agrégé, la donnée la plus fine (les enfants) doit primer sur l'étiquette posée plus haut, sinon une étiquette périmée masque le travail rouvert. Rappel actif ajouté : *module « livré » dont un enfant passe de 100 % à 40 % (deux enfants) → le module affiche (100 + 40) / 2 = 70 %.*
