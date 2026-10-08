@@ -89,6 +89,8 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     await userEvent.type(field, 'Un studio à Liège{Enter}')
     expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: 'Un studio à Liège' })
     expect(screen.getByRole('button', { name: 'Arrêter' })).toBeTruthy()
+    // Pendant le tour, la zone de saisie est devenue l'orbe : elle n'est plus là.
+    expect(screen.queryByLabelText('Message à Claude')).toBeNull()
     act(() => api.emit('chat:delta', { neuronId: ID, text: 'Bonne ' }))
     act(() => api.emit('chat:delta', { neuronId: ID, text: 'idée.' }))
     act(() => api.emit('chat:delta', { neuronId: 'autre', text: 'IGNORÉ' }))
@@ -110,6 +112,8 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     )
     expect(screen.getByText('Bonne idée. Pour qui ?')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Envoyer' })).toBeTruthy()
+    // La réponse est finie : la zone de saisie revient.
+    expect(screen.getByLabelText('Message à Claude')).toBeTruthy()
   })
 
   it('should_stop_a_turn_on_request', async () => {
@@ -117,6 +121,10 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
       view({ busy: true, partial: 'Je réfl', messages: [{ id: 'u', role: 'user', text: 'x', createdAt: '' }] })
     )
     await userEvent.click(await screen.findByRole('button', { name: 'Arrêter' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:stop', { neuronId: ID })
+    api.invoke.mockClear()
+    // Échap interrompt aussi, comme dans la référence 21st.dev.
+    await userEvent.keyboard('{Escape}')
     expect(api.invoke).toHaveBeenCalledWith('chat:stop', { neuronId: ID })
   })
 

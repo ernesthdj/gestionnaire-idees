@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import {
@@ -336,7 +337,8 @@ export function AnalystePage(): React.JSX.Element {
   const counts = proposals.data?.counts
   const closed = (counts?.kept ?? 0) + (counts?.dismissed ?? 0)
   return (
-    <div className="h-full overflow-y-auto">
+    // `layoutScroll` : les animations de vol du chat (morphing vers l'orbe) tiennent compte du défilement de la page.
+    <motion.div layoutScroll className="h-full overflow-y-auto">
       <div className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
         <section aria-labelledby="analyste-run" className="space-y-3 rounded-lg bg-surface-raised p-4">
           <h2 id="analyste-run" className="text-base font-semibold">
@@ -458,6 +460,6 @@ export function AnalystePage(): React.JSX.Element {
           </p>
         </section>
       </div>
-    </div>
+    </motion.div>
   )
 }

@@ -15,10 +15,17 @@ import { useUiStore } from '../app/uiStore'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ElementFileReader, ElementFiles } from './ElementFiles'
 import { Markdown } from './Markdown'
-import { ThinkingIndicator } from './ThinkingIndicator'
+import { motion } from 'motion/react'
+import { useEffectiveSettings } from '../app/useAppSettings'
+import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
+import { LiveReply } from './LiveReply'
+import './thinking.css'
 import { ProjectForm } from './ProjectForm'
 import { UsageMeter } from './UsageMeter'
 import { useChat } from './useChat'
+
+/** Durée de la rétraction de la zone de saisie en bille (morphing, référence 21st.dev). */
+const COLLAPSE_MS = 380
 
 const MATURITY_LABELS: Readonly<Record<string, string>> = {
   insufficient: 'insuffisant',
@@ -324,20 +331,56 @@ export function ChatPanel({
   const brainstormed = chat.maturity === 'sufficient' || chat.maturity === 'complete'
   // Projet repris « Local uniquement » (spec 017 FR-004) : aucune conversation avec Claude.
   const localOnly = chat.reprise?.confidentiality === 'local'
+  const reduced = useReducedMotionPreference(useEffectiveSettings().motion)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  /** Hauteur de la bande de saisie au moment de l'envoi : la bande reste à sa place pendant le tour. */
+  const [footerHeight, setFooterHeight] = useState<number | null>(null)
+  /** Zone de saisie en train de se rétracter en bille (dimensions au moment de l'envoi). */
+  const [morph, setMorph] = useState<{ readonly width: number; readonly height: number } | null>(null)
+  const [arriving, setArriving] = useState(false)
+  /** La réponse est finie : la zone de saisie revient en se reformant. */
+  const [returning, setReturning] = useState(false)
+  const orbLayoutId = `chat-orb-${neuronId}`
+  useEffect(() => {
+    if (!chat.busy) setArriving(false)
+    // Un tour commence (envoi ici ou reprise) : la bande reviendra avec l'animation de retour à la fin.
+    else setReturning(true)
+  }, [chat.busy])
 
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: 'end' })
-  }, [chat.messages.length, chat.partial])
+    end.current?.scrollIntoView?.({ block: 'end', behavior: reduced ? 'auto' : 'smooth' })
+    // La bulle de l'orbe apparaît après le morphing : on la garde entièrement visible.
+  }, [chat.messages.length, chat.partial, chat.busy, morph])
 
   const submit = (): void => {
     if (chat.busy || draft.trim() === '') return
     const text = draft
     setDraft('')
+    // Morphing (référence 21st.dev) : la zone de saisie se rétracte en bille, qui vole ensuite jusqu'à l'orbe.
+    const box = inputRef.current?.getBoundingClientRect()
+    setFooterHeight(formRef.current?.offsetHeight ?? null)
+    setReturning(true)
+    if (!reduced && box !== undefined && box.width > 0 && box.height > 0) {
+      setMorph({ width: box.width, height: Math.min(box.height, 44) })
+      setArriving(true)
+      window.setTimeout(() => setMorph(null), COLLAPSE_MS)
+    }
     void chat.send(text)
   }
 
   return (
-    <section aria-label={`Conversation : ${chat.title}`} className="relative flex h-full flex-col">
+    <section
+      aria-label={`Conversation : ${chat.title}`}
+      className="relative flex h-full flex-col"
+      onKeyDown={(event) => {
+        // Échap interrompt Claude pendant le tour (la zone de saisie est alors devenue l'orbe).
+        if (event.key === 'Escape' && chat.busy) {
+          event.stopPropagation()
+          chat.stop()
+        }
+      }}
+    >
       {reading === null ? null : (
         <div className="absolute inset-0 z-10 bg-surface">
           <ElementFileReader elementId={neuronId} path={reading} onBack={() => setReading(null)} />
@@ -560,7 +603,7 @@ export function ChatPanel({
 
       {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
+      <motion.div layoutScroll className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-4">
         {chat.role === 'element' ? <ElementFiles elementId={neuronId} onOpen={setReading} /> : null}
         {chat.sheet === null ? null : <Sheet sheet={chat.sheet} />}
         {chat.problem === null ? null : (
@@ -573,9 +616,14 @@ export function ChatPanel({
             <Message key={message.id} message={message} />
           ))}
           {chat.busy ? (
-            <div className="max-w-[85%] self-start rounded-2xl bg-surface-raised px-3 py-2 text-sm leading-relaxed">
-              {chat.partial === '' ? <ThinkingIndicator messages={chat.messages} /> : <Markdown text={chat.partial} />}
-            </div>
+            <LiveReply
+              waiting={morph !== null}
+              messages={chat.messages}
+              partial={chat.partial}
+              orbLayoutId={orbLayoutId}
+              arriving={arriving}
+              reduced={reduced}
+            />
           ) : null}
         </div>
         {!chat.loading && chat.messages.length === 0 && !chat.busy && chat.role === 'skills' ? (
@@ -600,7 +648,7 @@ export function ChatPanel({
           </div>
         ) : null}
         <div ref={end} />
-      </div>
+      </motion.div>
 
       {nextRequest === undefined ? null : (
         <PermissionCard
@@ -616,18 +664,64 @@ export function ChatPanel({
           Projet repris « Local uniquement » : rien de ce projet n’est transmis à Claude, la conversation est donc
           indisponible. Change le niveau depuis le badge 🔒 pour discuter avec Claude.
         </p>
+      ) : chat.busy && morph === null ? (
+        // Pendant le tour, la bande du bas reste délimitée à sa hauteur : le champ est devenu l'orbe (dans la bulle
+        // de réponse), « Arrêter » prend la place de « Envoyer ».
+        <div
+          className="flex items-end justify-end gap-2 border-t border-content-muted/20 p-3"
+          style={footerHeight === null ? undefined : { minHeight: footerHeight }}
+        >
+          <Button onClick={chat.stop}>Arrêter</Button>
+        </div>
       ) : (
-        <form
-          className="flex items-end gap-2 border-t border-content-muted/20 p-3"
+        <motion.form
+          ref={formRef}
+          key="composer"
+          className="relative flex items-end gap-2 border-t border-content-muted/20 p-3"
+          // Retour après la réponse : la zone se reforme depuis une bille au centre (inverse du morphing).
+          initial={
+            returning && !reduced
+              ? { opacity: 0, clipPath: 'inset(0% 46% 0% 46% round 999px)' }
+              : returning
+                ? { opacity: 0 }
+                : false
+          }
+          animate={{ opacity: 1, clipPath: 'inset(0% 0% 0% 0% round 0px)' }}
+          transition={{ duration: reduced ? 0.15 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+          onAnimationComplete={() => {
+            if (returning) inputRef.current?.focus({ preventScroll: true })
+          }}
           onSubmit={(event) => {
             event.preventDefault()
             submit()
           }}
         >
+          {returning && !reduced && morph === null ? (
+            <motion.span
+              aria-hidden="true"
+              className="chat-orb-ball pointer-events-none absolute top-1/2 left-1/2"
+              style={{ width: 40, height: 40, marginLeft: -20, marginTop: -20, borderRadius: 999 }}
+              initial={{ opacity: 1, scaleX: 1 }}
+              animate={{ opacity: 0, scaleX: 6 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            />
+          ) : null}
+          {morph === null ? null : (
+            <motion.div
+              aria-hidden="true"
+              layoutId={orbLayoutId}
+              className="chat-orb-ball pointer-events-none absolute top-3 left-3"
+              style={{ borderRadius: 999 }}
+              initial={{ width: morph.width, height: morph.height, x: 0 }}
+              animate={{ width: morph.height, height: morph.height, x: (morph.width - morph.height) / 2 }}
+              transition={{ duration: COLLAPSE_MS / 1000, ease: [0.65, 0, 0.35, 1] }}
+            />
+          )}
           <label htmlFor={fieldId} className="sr-only">
             Message à Claude
           </label>
           <textarea
+            ref={inputRef}
             id={fieldId}
             value={draft}
             rows={2}
@@ -641,16 +735,17 @@ export function ChatPanel({
                 submit()
               }
             }}
-            className="min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm outline-none"
+            className={`min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm outline-none ${morph === null ? '' : 'chat-input-morphing'}`}
           />
-          {chat.busy ? (
-            <Button onClick={chat.stop}>Arrêter</Button>
-          ) : (
-            <Button type="submit" variant="primary" disabled={draft.trim() === ''}>
-              Envoyer
-            </Button>
-          )}
-        </form>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={draft.trim() === '' || chat.busy}
+            className={morph === null ? '' : 'chat-input-morphing'}
+          >
+            Envoyer
+          </Button>
+        </motion.form>
       )}
     </section>
   )

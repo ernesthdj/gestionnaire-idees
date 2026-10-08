@@ -95,3 +95,19 @@
   animation: none;
   opacity: 0.6;
 }
+
+/* Bille du morphing : la zone de saisie se rétracte en sphère lumineuse qui vole jusqu'à l'orbe. */
+.chat-orb-ball {
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--color-content) 85%, transparent) 0%,
+    var(--color-accent) 45%,
+    color-mix(in srgb, var(--color-accent) 35%, transparent) 100%
+  );
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+.chat-input-morphing {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
