@@ -156,3 +156,47 @@ export interface ProposalView {
   readonly refusalReason: string | null
   readonly createdAt: number
 }
+
+/** États d'une mise à jour de l'Analyste (spec 019 US4, data-model `analyst_updates`). */
+export const UPDATE_STATUSES = [
+  'coding',
+  'to_fix',
+  'ready',
+  'keeping',
+  'kept',
+  'discarded',
+  'reverted',
+  'failed'
+] as const
+export type UpdateStatus = (typeof UPDATE_STATUSES)[number]
+
+export const UPDATE_CHECKS = ['typecheck', 'lint', 'prettier', 'test'] as const
+export type UpdateCheckName = (typeof UPDATE_CHECKS)[number]
+export type UpdateCheckStatus = 'pending' | 'running' | 'ok' | 'fail'
+
+/** Mise à jour d'une proposition : branche `analyste/*`, copie de travail, vérifications, conversation de codage. */
+export interface UpdateView {
+  readonly id: string
+  readonly proposalId: string
+  readonly branch: string
+  /** Dossier de la copie de travail (affiché pour « Essayer » et les dépendances). */
+  readonly folder: string
+  readonly status: UpdateStatus
+  readonly checks: Readonly<Record<UpdateCheckName, { readonly status: UpdateCheckStatus; readonly tail?: string }>>
+  /** `package.json` / `package-lock.json` touchés : dépendances à installer à la main dans la copie (D12). */
+  readonly depsChanged: boolean
+  readonly conversationNeuronId: string | null
+  readonly createdAt: number
+}
+
+export interface UpdateProgressEvent {
+  readonly updateId: string
+  readonly step: 'commit' | 'checks' | 'ready' | 'to_fix' | 'keeping' | 'kept' | 'discarded' | 'failed'
+  readonly check?: { readonly name: UpdateCheckName; readonly status: UpdateCheckStatus }
+}
+
+export interface UpdateDiffView {
+  readonly files: readonly { readonly path: string; readonly added: number; readonly removed: number }[]
+  readonly patch: string
+  readonly truncated: boolean
+}

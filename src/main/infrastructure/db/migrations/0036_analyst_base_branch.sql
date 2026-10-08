@@ -1,0 +1,1 @@
+ALTER TABLE `analyst_updates` ADD `base_branch` text;

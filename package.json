@@ -20,7 +20,8 @@
     "db:generate": "drizzle-kit generate",
     "bench:local": "tsx scripts/bench-local-model.ts",
     "seed:demo": "electron-vite dev -- --demo",
-    "seed:demo:reset": "electron-vite dev -- --demo --reset"
+    "seed:demo:reset": "electron-vite dev -- --demo --reset",
+    "essai": "electron-vite dev -- --essai"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

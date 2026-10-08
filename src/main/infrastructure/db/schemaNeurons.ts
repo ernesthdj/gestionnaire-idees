@@ -46,7 +46,9 @@ export const neurons = sqliteTable(
         'element',
         'step',
         // Conversation Skills (spec 020 US3) : neurone caché, jamais sur la carte ni dans le pont.
-        'skills_chat'
+        'skills_chat',
+        // Conversation de codage d'une mise à jour de l'Analyste (spec 019 R5) : cachée, dossier = copie de travail.
+        'analyst_update'
       ]
     }).notNull(),
     title: text('title').notNull(),

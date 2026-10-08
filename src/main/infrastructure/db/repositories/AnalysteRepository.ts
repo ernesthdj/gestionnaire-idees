@@ -6,6 +6,10 @@ import {
   PROPOSAL_STATUSES,
   PROPOSAL_TABS,
   type ProposalTab,
+  type UpdateCheckName,
+  type UpdateCheckStatus,
+  type UpdateStatus,
+  type UpdateView,
   type AnalysisView,
   type AnalysteSettingsView,
   type ProposalStatus,
@@ -16,7 +20,7 @@ import type { CheckedProposal, ProposalMemory } from '../../../domain/analyste/p
 import { OPEN_STATUSES } from '../../../domain/analyste/proposalCheck'
 import type { AppDatabase } from '../client'
 import { analyses, analystUpdates, proposals } from '../schemaAnalyste'
-import { settings } from '../schemaNeurons'
+import { neurons, settings } from '../schemaNeurons'
 
 const LIMITS = ANALYSTE_SETTINGS_LIMITS
 
@@ -285,6 +289,60 @@ export class AnalysteRepository {
     })
   }
 
+  // --- Mises à jour (US4) ---------------------------------------------------------------------------------------
+
+  insertUpdate(row: typeof analystUpdates.$inferInsert): void {
+    this.db.insert(analystUpdates).values(row).run()
+  }
+
+  updateRow(id: string): UpdateRow | undefined {
+    return this.db.select().from(analystUpdates).where(eq(analystUpdates.id, id)).get()
+  }
+
+  patchUpdate(id: string, patch: Partial<Omit<UpdateRow, 'id'>>): void {
+    this.db.update(analystUpdates).set(patch).where(eq(analystUpdates.id, id)).run()
+  }
+
+  /** Dernière mise à jour d'une proposition. */
+  updateOf(proposalId: string): UpdateRow | undefined {
+    return this.db
+      .select()
+      .from(analystUpdates)
+      .where(eq(analystUpdates.proposalId, proposalId))
+      .orderBy(desc(analystUpdates.createdAt))
+      .get()
+  }
+
+  updatesIn(statuses: readonly UpdateStatus[]): UpdateRow[] {
+    return this.db
+      .select()
+      .from(analystUpdates)
+      .where(inArray(analystUpdates.status, [...statuses]))
+      .all()
+  }
+
+  /** Mise à jour dont ce neurone est la conversation de codage. */
+  updateByConversation(neuronId: string): UpdateRow | undefined {
+    return this.db.select().from(analystUpdates).where(eq(analystUpdates.conversationNeuronId, neuronId)).get()
+  }
+
+  /** Neurone caché de la conversation de codage : dossier = copie de travail, « Accepter les modifications ». */
+  insertUpdateChat(input: { readonly id: string; readonly title: string; readonly dir: string }): void {
+    this.db
+      .insert(neurons)
+      .values({
+        id: input.id,
+        rootId: input.id,
+        kind: 'analyst_update',
+        title: input.title,
+        origin: 'user',
+        hidden: true,
+        projectDir: input.dir,
+        chatPermissionMode: 'acceptEdits'
+      })
+      .run()
+  }
+
   /** Propositions de ces statuts, les plus graves puis les plus récentes d'abord. */
   proposals(statuses: readonly ProposalStatus[], limit: number): ProposalView[] {
     return this.db
@@ -357,6 +415,36 @@ function proposalView(row: typeof proposals.$inferSelect): ProposalView {
     withoutEvidence: row.withoutEvidence,
     status: (PROPOSAL_STATUSES as readonly string[]).includes(row.status) ? row.status : 'new',
     refusalReason: row.refusalReason,
+    createdAt: row.createdAt
+  }
+}
+
+export type UpdateRow = typeof analystUpdates.$inferSelect
+
+type ChecksJson = Partial<Record<UpdateCheckName, { status?: UpdateCheckStatus; tail?: string }>>
+
+/** Ligne de mise à jour → vue (vérifications lues prudemment : un JSON abîmé vaut « en attente »). */
+export function updateView(row: UpdateRow): UpdateView {
+  let checks: ChecksJson = {}
+  try {
+    checks = JSON.parse(row.checks) as ChecksJson
+  } catch {
+    checks = {}
+  }
+  const one = (name: UpdateCheckName): { status: UpdateCheckStatus; tail?: string } => {
+    const value = checks[name]
+    const status = value?.status ?? 'pending'
+    return value?.tail === undefined || value.tail === '' ? { status } : { status, tail: value.tail }
+  }
+  return {
+    id: row.id,
+    proposalId: row.proposalId,
+    branch: row.branch,
+    folder: row.worktreePath,
+    status: row.status,
+    checks: { typecheck: one('typecheck'), lint: one('lint'), prettier: one('prettier'), test: one('test') },
+    depsChanged: row.depsChanged,
+    conversationNeuronId: row.conversationNeuronId,
     createdAt: row.createdAt
   }
 }

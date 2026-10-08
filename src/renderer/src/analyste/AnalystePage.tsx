@@ -21,6 +21,7 @@ import {
   STEP_LABELS,
   TAB_LABELS
 } from './labels'
+import { UpdatePanel } from './UpdatePanel'
 
 const ANALYSES_KEY = ['analyste', 'analyses'] as const
 const PROPOSALS_KEY = ['analyste', 'proposals'] as const
@@ -72,14 +73,21 @@ const ACTION_LABELS: Readonly<Record<ProposalDecision, string>> = {
   applied: 'Déjà appliquée'
 }
 
+/** Statuts où la proposition a une mise à jour vivante (US4) : le volet de mise à jour s'affiche. */
+const UPDATING: readonly ProposalView['status'][] = ['coding', 'to_fix', 'ready']
+/** Statuts d'où « Coder avec Claude » peut partir (FR-027 : sur un clic seulement). */
+const CODABLE: readonly ProposalView['status'][] = ['new', 'postponed', 'accepted']
+
 function ProposalCard({
   proposal,
   busy,
-  onDecide
+  onDecide,
+  onStart
 }: {
   readonly proposal: ProposalView
   readonly busy: boolean
   readonly onDecide: (decision: ProposalDecision, reason?: string) => void
+  readonly onStart: () => void
 }): React.JSX.Element {
   const [refusing, setRefusing] = useState(false)
   const status = STATUS_LABELS[proposal.status]
@@ -161,9 +169,10 @@ function ProposalCard({
       {proposal.refusalReason === null ? null : <p className="text-xs">Raison du refus : {proposal.refusalReason}</p>}
       {proposal.status === 'accepted' ? (
         <p className="text-xs text-content-muted">
-          Le codage par l’Analyste arrive avec la prochaine étape ; en attendant, « Déjà appliquée » quand c’est fait.
+          Acceptée : « Coder avec Claude » ouvre une copie de travail séparée, ou « Déjà appliquée » si c’est fait.
         </p>
       ) : null}
+      {UPDATING.includes(proposal.status) ? <UpdatePanel proposalId={proposal.id} /> : null}
       {actions.length === 0 ? null : refusing ? (
         <div role="group" aria-label="Raison du refus" className="flex flex-wrap items-center gap-2 text-xs">
           <span>Raison (facultative) :</span>
@@ -181,10 +190,15 @@ function ProposalCard({
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
+          {CODABLE.includes(proposal.status) ? (
+            <Button variant="primary" disabled={busy} onClick={onStart}>
+              Coder avec Claude
+            </Button>
+          ) : null}
           {actions.map((decision) => (
             <Button
               key={decision}
-              variant={decision === 'accept' ? 'primary' : 'secondary'}
+              variant="secondary"
               disabled={busy}
               onClick={() => (decision === 'refuse' ? setRefusing(true) : onDecide(decision))}
             >
@@ -284,6 +298,20 @@ export function AnalystePage(): React.JSX.Element {
         text: error instanceof IpcFailure ? error.message : 'La décision n’a pas pu être appliquée.'
       })
     } finally {
+      setBusy(false)
+    }
+  }
+
+  const startUpdate = async (proposalId: string): Promise<void> => {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await call('analyste:update:start', { proposalId })
+      setTab('progress')
+    } catch (error) {
+      setNotice({ kind: 'error', text: error instanceof IpcFailure ? error.message : 'Le codage n’a pas pu démarrer.' })
+    } finally {
+      await client.invalidateQueries({ queryKey: ['analyste'] })
       setBusy(false)
     }
   }
@@ -421,6 +449,7 @@ export function AnalystePage(): React.JSX.Element {
                 proposal={proposal}
                 busy={busy}
                 onDecide={(decision, reason) => void decide(proposal.id, decision, reason)}
+                onStart={() => void startUpdate(proposal.id)}
               />
             ))
           )}

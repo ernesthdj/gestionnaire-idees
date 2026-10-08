@@ -143,7 +143,14 @@ export const MAIN_WINDOW_CHANNELS = [
   'analyste:analyses',
   'analyste:proposals',
   'analyste:decide',
-  'analyste:proposals:clear'
+  'analyste:proposals:clear',
+  'analyste:update:get',
+  'analyste:update:start',
+  'analyste:update:finish',
+  'analyste:update:diff',
+  'analyste:update:try',
+  'analyste:update:keep',
+  'analyste:update:discard'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
@@ -172,6 +179,7 @@ export const MAIN_WINDOW_EVENTS = [
   'reprise:analysisDone',
   'reprise:changed',
   'analyste:progress',
+  'analyste:update:progress',
   'skills:changed',
   'skills:importProgress',
   'skills:analyzeProgress'

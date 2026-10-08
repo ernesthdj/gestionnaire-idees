@@ -32,6 +32,8 @@ import { runAnalyste } from './application/ai/AnalysteTask'
 import { summarizeCodeGraph } from './domain/analyste/codeSummary'
 import { AiCallRepository } from './infrastructure/db/repositories/AiCallRepository'
 import { RepoGuard } from './application/analyste/RepoGuard'
+import { UpdateService } from './application/analyste/UpdateService'
+import { createCheckRunner, resolveNpm } from './infrastructure/analyste/NpmCli'
 import { AnalysteRepository } from './infrastructure/db/repositories/AnalysteRepository'
 import { ObservationRepository } from './infrastructure/db/repositories/ObservationRepository'
 import { createAnalysteRoutes } from './ipc/analysteHandlers'
@@ -190,9 +192,29 @@ export function bootstrap(shell: ShellPort): AppContext {
     recheck: () => repoGuard.check()
   })
   probeRef.current = probe
+  // Mises à jour de l'Analyste (spec 019 US4) : branche analyste/*, copie de travail, conversation, vérifications.
+  const conversationsRef: { current?: { send(neuronId: string, text: string): Promise<void> } } = {}
+  const npm = resolveNpm()
+  const updates = new UpdateService({
+    store: analysteRepository,
+    repoPath: () => {
+      const state = repoGuard.current()
+      return state.active ? (state.repoPath ?? null) : null
+    },
+    git: runGit,
+    checks: npm === null ? null : createCheckRunner(npm),
+    sendToConversation: (neuronId, text) => conversationsRef.current?.send(neuronId, text) ?? Promise.resolve(),
+    emit: (event) => broadcast('analyste:update:progress', event)
+  })
   if (!app.isPackaged) {
     probe.start()
-    void repoGuard.check().catch(() => logger.warn('analyste.repo_check_failed', {}))
+    void repoGuard
+      .check()
+      .then(() => updates.reconcile())
+      .then(({ orphansKept }) => {
+        if (orphansKept > 0) logger.warn('analyste.orphan_worktrees', { count: orphansKept })
+      })
+      .catch(() => logger.warn('analyste.repo_check_failed', {}))
   }
 
   // Spec 010 US3 : les idées de l'ancien moteur reçoivent une fiche, une seule fois (annulable dans l'Historique).
@@ -547,7 +569,8 @@ export function bootstrap(shell: ShellPort): AppContext {
             projects: () => neuronRepository.linkedProjects()
           }),
           isSkillsChat: (neuronId) => conversationRepository.neuron(neuronId)?.kind === 'skills_chat'
-        }
+        },
+        (neuronId, filePath) => updates.guardWrite(neuronId, filePath)
       )
     ),
     logger
@@ -559,7 +582,7 @@ export function bootstrap(shell: ShellPort): AppContext {
   // Conversations Claude Code des neurones (spec 008) : le vrai CLI, dans le dossier de travail de l'app.
   const workspace = join(dataDir, 'workspace')
   mkdirSync(workspace, { recursive: true })
-  const conversations = new ConversationService({
+  const conversations: ConversationService = new ConversationService({
     repository: conversationRepository,
     spawn: spawnClaudeConversation,
     claudePath: resolveClaudePath,
@@ -598,6 +621,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     },
     isGitRepo: (dir) => existsSync(join(dir, '.git'))
   })
+  conversationsRef.current = conversations
   // Genesis → projet (spec 016) : racine choisie au sélecteur natif, dossier construit par le main.
   const projects = new ProjectService({
     settings: appSettings,
@@ -779,6 +803,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createStructureRoutes(structure, elementFiles),
       ...createAnalysteRoutes({
         guard: repoGuard,
+        updates,
         probe,
         observations: observationRepository,
         settings: analysteRepository,

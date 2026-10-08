@@ -253,6 +253,13 @@
       "when": 1791451262338,
       "tag": "0035_skill_library_copies",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1791464458229,
+      "tag": "0036_analyst_base_branch",
+      "breakpoints": true
     }
   ]
 }

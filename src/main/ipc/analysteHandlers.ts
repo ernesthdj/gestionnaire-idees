@@ -13,6 +13,8 @@ import {
   type ProposalStatus,
   type ProposalTab,
   type ProposalView,
+  type UpdateDiffView,
+  type UpdateView,
   type AnalysteStatusView,
   type ObservationsPageView,
   type ObservationView
@@ -59,6 +61,16 @@ export interface AnalysteRoutesDeps {
     clearClosed(): number
   }
   readonly now?: () => number
+  /** Mises à jour (spec 019 US4). */
+  readonly updates?: {
+    ofProposal(proposalId: string): UpdateView | null
+    start(proposalId: string): Promise<UpdateView>
+    finish(updateId: string): Promise<UpdateView>
+    diff(updateId: string): Promise<UpdateDiffView>
+    tryCommand(updateId: string): { command: string; folder: string }
+    keep(updateId: string): Promise<UpdateView>
+    discard(updateId: string, reason?: string): Promise<UpdateView>
+  }
 }
 
 // Canal sans paramètre : l'interface n'envoie rien (convention des autres canaux).
@@ -234,12 +246,80 @@ export function createAnalysteRoutes(deps: AnalysteRoutesDeps): IpcRoute[] {
         return deps.store.proposal(id) as ProposalView
       }
     }),
+    ...updateRoutes(deps.updates, active),
     defineRoute({
       channel: 'analyste:proposals:clear',
       input: z.strictObject({ confirm: z.literal(true) }),
       handler: async () => {
         active()
         return { deleted: deps.store.clearClosed() }
+      }
+    })
+  ]
+}
+
+/**
+ * Mises à jour (US4, FR-027 à FR-039) : le renderer ne donne que des identifiants ; Garder et Jeter exigent
+ * `confirm: true` (geste de mentalyas).
+ */
+function updateRoutes(updates: AnalysteRoutesDeps['updates'], active: () => void): IpcRoute[] {
+  if (updates === undefined) return []
+  const Id = z.uuid()
+  return [
+    defineRoute({
+      channel: 'analyste:update:get',
+      input: z.strictObject({ proposalId: Id }),
+      handler: async ({ proposalId }) => {
+        active()
+        return updates.ofProposal(proposalId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:start',
+      input: z.strictObject({ proposalId: Id }),
+      handler: async ({ proposalId }) => {
+        active()
+        return updates.start(proposalId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:finish',
+      input: z.strictObject({ updateId: Id }),
+      handler: async ({ updateId }) => {
+        active()
+        return updates.finish(updateId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:diff',
+      input: z.strictObject({ updateId: Id }),
+      handler: async ({ updateId }) => {
+        active()
+        return updates.diff(updateId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:try',
+      input: z.strictObject({ updateId: Id }),
+      handler: async ({ updateId }) => {
+        active()
+        return updates.tryCommand(updateId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:keep',
+      input: z.strictObject({ updateId: Id, confirm: z.literal(true) }),
+      handler: async ({ updateId }) => {
+        active()
+        return updates.keep(updateId)
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:update:discard',
+      input: z.strictObject({ updateId: Id, confirm: z.literal(true), reason: z.string().trim().max(200).optional() }),
+      handler: async ({ updateId, reason }) => {
+        active()
+        return updates.discard(updateId, reason)
       }
     })
   ]

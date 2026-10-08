@@ -2,7 +2,7 @@ import { connect, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { parseHookInput } from '@shared/mcp/hook'
+import { parseHookInput, WRITE_REFUSED_PREFIX } from '@shared/mcp/hook'
 import { HelloReply, PROTOCOL_VERSION, ResponseFrame, type ToolResult } from '@shared/mcp/protocol'
 import { MCP_INSTRUCTIONS, MCP_PUBLIC_TOOL_NAMES, MCP_TOOLS, type McpErrorCode } from '@shared/mcp/tools'
 import { pipeNameFor, tokenPathFor } from '../main/infrastructure/mcp/endpoint'
@@ -171,13 +171,23 @@ function readStdin(max: number): Promise<string | null> {
   })
 }
 
-/** Hook avant écriture : ne bloque jamais Claude Code (code 0 dans tous les cas, app fermée comprise). */
+/**
+ * Hook avant écriture : ne bloque Claude Code que sur un refus explicite du main (code 2, message sur la sortie
+ * d'erreur : conversation de codage de l'Analyste) ; code 0 dans tous les autres cas, app fermée comprise.
+ */
 async function runHook(neuron: string | undefined): Promise<void> {
   try {
     const input = neuron === undefined ? null : parseHookInput((await readStdin(HOOK_STDIN_MAX)) ?? '')
     if (input !== null && neuron !== undefined) {
       const profile = profileDir()
-      await new PipeClient(pipeNameFor(profile), tokenPathFor(profile), neuron).call('ecriture_avant', input)
+      const result = await new PipeClient(pipeNameFor(profile), tokenPathFor(profile), neuron).call(
+        'ecriture_avant',
+        input
+      )
+      if (result.text.startsWith(WRITE_REFUSED_PREFIX)) {
+        process.stderr.write(result.text.slice(WRITE_REFUSED_PREFIX.length))
+        process.exit(2)
+      }
     }
   } catch {
     // Livrable incomplet plutôt qu'une écriture bloquée : le main le saura (pas de contenu d'avant).

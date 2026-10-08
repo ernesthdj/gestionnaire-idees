@@ -13,13 +13,15 @@ import { installWidgetProtocol, registerWidgetScheme } from './shell/widgetProto
 registerWidgetScheme()
 
 // Profil de démonstration (développement uniquement) : données FICTIVES dans un dossier séparé, jamais le vrai profil.
-const demoProfile = !app.isPackaged && process.argv.includes('--demo')
-const demoData = join(app.getPath('appData'), 'gestionnaire-idees-demo')
+// Profil d'essai d'une mise à jour de l'Analyste (spec 019 D13) : recréé et semé de données fictives à chaque lancement.
+const trialProfile = !app.isPackaged && process.argv.includes('--essai')
+const demoProfile = !app.isPackaged && (trialProfile || process.argv.includes('--demo'))
+const demoData = join(app.getPath('appData'), trialProfile ? 'gestionnaire-idees-essai' : 'gestionnaire-idees-demo')
 if (demoProfile) app.setPath('userData', demoData)
 
 /** `--reset` : repartir d'un jeu de démonstration neuf (uniquement ce dossier fictif, jamais le vrai profil). */
 function resetDemoProfile(): void {
-  if (!demoProfile || !process.argv.includes('--reset')) return
+  if (!demoProfile || !(trialProfile || process.argv.includes('--reset'))) return
   for (const entry of ['gestionnaire-idees.db', 'gestionnaire-idees.db-wal', 'gestionnaire-idees.db-shm']) {
     rmSync(join(demoData, entry), { force: true })
   }

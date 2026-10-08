@@ -1,3 +1,4 @@
+import { WRITE_REFUSED_PREFIX } from '@shared/mcp/hook'
 import type { ToolResult } from '@shared/mcp/protocol'
 import type {
   ActionProposerInput,
@@ -48,7 +49,9 @@ export function createToolHandler(
     readonly tools: Pick<SkillTools, 'read' | 'draft'>
     /** Conversation Skills (spec 020 H1) : seuls les outils des skills et les demandes de permission. */
     readonly isSkillsChat: (neuronId: string) => boolean
-  }
+  },
+  /** Garde d'écriture (conversation de codage de l'Analyste) : un message = écriture refusée. */
+  writeGuard?: (neuronId: string, filePath: string) => string | null
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
     if (caller.neuronId !== null && skills?.isSkillsChat(caller.neuronId) === true && !SKILLS_CHAT_TOOLS.has(tool)) {
@@ -82,6 +85,10 @@ export function createToolHandler(
         // Hook de l’app (spec 014 R5) : seulement depuis une conversation du Brainstormer.
         if (caller.neuronId === null || deliverables === undefined) {
           throw new McpToolError('NON_MODIFIABLE', 'Hook d’écriture hors d’une conversation du Brainstormer.')
+        }
+        {
+          const refusal = writeGuard?.(caller.neuronId, (args as EcritureAvantInput).file_path) ?? null
+          if (refusal !== null) return { text: `${WRITE_REFUSED_PREFIX}${refusal}` }
         }
         return deliverables.before(caller.neuronId, args as EcritureAvantInput)
       case 'permission_demander': {

@@ -42,8 +42,8 @@ n'est **jamais stocké** : le main calcule le pseudonyme (lui seul a la clé) pu
 | `analyste:update:start` | `{ proposalId }` | `UpdateView` | `REPO_DIRTY`, `NOT_ON_BASE`, `UPDATE_CODING`, `INVALID_TRANSITION` |
 | `analyste:update:finish` | `{ updateId }` | `UpdateView` (commit + vérifications lancées) | `NOTHING_CHANGED`, `GIT_FAILED` |
 | `analyste:update:diff` | `{ updateId }` | `{ files: { path, added, removed }[], patch ≤ 500 Ko, truncated }` | `NOT_FOUND` |
-| `analyste:update:installDeps` | `{ updateId, confirm: true }` | `UpdateView` | `NOT_FOUND` |
-| `analyste:update:try` | `{ updateId }` | `{ command }` (`npm run seed:demo -- --profile essai` dans le worktree ; affichée, lancée dans le terminal intégré si présent ; research R11) | `NOT_READY` |
+| `analyste:update:try` | `{ updateId }` | `{ command, folder }` (`npm run essai` dans la copie de travail, affichée ; D13) | `NOT_READY` |
+| `analyste:update:get` | `{ proposalId }` | `UpdateView \| null` | — |
 | `analyste:update:keep` | `{ updateId, confirm: true }` | `UpdateView` | `CHECKS_NOT_GREEN`, `REPO_DIRTY`, `NOT_ON_BASE`, `MERGE_CONFLICT` |
 | `analyste:update:discard` | `{ updateId, confirm: true, reason? }` | `UpdateView` | `NOT_FOUND` |
 | `analyste:update:revert` | `{ updateId, confirm: true }` | `UpdateView` | `REPO_DIRTY`, `REVERT_CONFLICT` |

@@ -1,5 +1,11 @@
 import { EcritureAvantInput } from './tools'
 
+/**
+ * Réponse du main au hook quand une écriture est refusée (conversation de codage de l'Analyste, spec 019 FR-030) :
+ * le relais sort avec le code 2, et Claude Code bloque l'outil en lui donnant le message.
+ */
+export const WRITE_REFUSED_PREFIX = 'REFUS:'
+
 /** Outils d'écriture de Claude Code surveillés par le hook `PreToolUse` de l'app (spec 014 R5). */
 export const WRITE_TOOLS = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'] as const
 

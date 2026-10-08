@@ -116,6 +116,8 @@ export const analystUpdates = sqliteTable(
     branch: text('branch').notNull(),
     worktreePath: text('worktree_path').notNull(),
     baseSha: text('base_sha').notNull(),
+    /** Branche de base où « Garder » fusionne (migration 0036). */
+    baseBranch: text('base_branch'),
     headSha: text('head_sha'),
     mergeSha: text('merge_sha'),
     revertSha: text('revert_sha'),
