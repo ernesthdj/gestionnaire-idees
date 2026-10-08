@@ -421,6 +421,18 @@ ${text}`
     live.process.kill()
   }
 
+  /**
+   * Fin immédiate d'une conversation (mise à jour de l'Analyste gardée ou jetée) : demandes de permission refusées,
+   * processus arrêté tout de suite — sous Windows, un processus dont le dossier courant est la copie de travail
+   * empêcherait de la supprimer.
+   */
+  end(neuronId: string): void {
+    this.deps.permissions?.cancel(neuronId)
+    const live = this.live.get(neuronId)
+    if (live !== undefined) live.stopping = true
+    this.dispose(neuronId)
+  }
+
   /** Un tour est-il en cours dans cette conversation ? */
   isBusy(neuronId: string): boolean {
     return this.live.get(neuronId)?.busy === true

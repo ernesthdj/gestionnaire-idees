@@ -147,6 +147,19 @@ describe('mises à jour de l’Analyste (spec 019 US4, T032–T034)', () => {
     expect(existsSync(join(repo, 'node_modules', 'fictif'))).toBe(true)
   })
 
+  it('should_end_the_coding_conversation_before_removing_the_copy_and_sweep_empty_folders', async () => {
+    const ended: string[] = []
+    service = make({ endConversation: (neuronId) => void ended.push(neuronId) })
+    const update = await service.start(PROPOSAL)
+    await service.discard(update.id)
+    expect(ended).toEqual([update.conversationNeuronId])
+    // Un dossier de copie resté vide (processus qui le tenait) est retiré au démarrage.
+    const empty = join(repo, '.analyste', 'worktrees', 'deadbeef')
+    mkdirSync(empty, { recursive: true })
+    await make().reconcile()
+    expect(existsSync(empty)).toBe(false)
+  })
+
   it('should_discard_only_the_copy_and_its_branch', async () => {
     const update = await service.start(PROPOSAL)
     writeFileSync(join(update.folder, 'src', 'a.ts'), 'export const a = 9\n')

@@ -193,7 +193,9 @@ export function bootstrap(shell: ShellPort): AppContext {
   })
   probeRef.current = probe
   // Mises à jour de l'Analyste (spec 019 US4) : branche analyste/*, copie de travail, conversation, vérifications.
-  const conversationsRef: { current?: { send(neuronId: string, text: string): Promise<void> } } = {}
+  const conversationsRef: {
+    current?: { send(neuronId: string, text: string): Promise<void>; end(neuronId: string): void }
+  } = {}
   const npm = resolveNpm()
   const updates = new UpdateService({
     store: analysteRepository,
@@ -204,6 +206,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     git: runGit,
     checks: npm === null ? null : createCheckRunner(npm),
     sendToConversation: (neuronId, text) => conversationsRef.current?.send(neuronId, text) ?? Promise.resolve(),
+    endConversation: (neuronId) => conversationsRef.current?.end(neuronId),
     emit: (event) => broadcast('analyste:update:progress', event)
   })
   if (!app.isPackaged) {

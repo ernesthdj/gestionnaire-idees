@@ -44,6 +44,8 @@ export interface UpdateServiceDeps {
   readonly checks: CheckRunner | null
   /** Premier message de la conversation de codage (la fiche, comme donnée). */
   readonly sendToConversation: (neuronId: string, text: string) => Promise<void>
+  /** Arrête le processus de la conversation de codage (il tient la copie de travail ouverte sous Windows). */
+  readonly endConversation?: (neuronId: string) => void
   readonly emit: (event: UpdateProgressEvent) => void
   readonly now?: () => number
   readonly newId?: () => string
@@ -254,6 +256,7 @@ export class UpdateService {
       )
     }
     const mergeSha = (await this.git(repo, ['rev-parse', 'HEAD'])).output.trim()
+    this.endConversation(row)
     await this.removeCopy(repo, row.worktreePath, row.branch, false)
     this.deps.store.patchUpdate(row.id, { mergeSha, status: 'kept', updatedAt: this.now() })
     this.deps.store.setStatus(row.proposalId, 'kept', null, this.now())
@@ -268,6 +271,7 @@ export class UpdateService {
       throw new AppError('INVALID_TRANSITION', 'Cette mise à jour ne peut plus être jetée')
     }
     this.running.get(updateId)?.abort()
+    this.endConversation(row)
     await this.removeCopy(this.repo(), row.worktreePath, row.branch, true)
     this.deps.store.patchUpdate(row.id, { status: 'discarded', discardReason: reason ?? null, updatedAt: this.now() })
     this.deps.store.setStatus(row.proposalId, 'discarded', null, this.now())
@@ -322,6 +326,10 @@ export class UpdateService {
     for (const name of existsSync(dir) ? readdirSync(dir) : []) {
       const folder = join(dir, name)
       if (live.has(resolve(folder).toLowerCase())) continue
+      if (isEmptyDir(folder)) {
+        removeDirQuietly(folder)
+        continue
+      }
       const dirty = await this.deps.git(folder, ['status', '--porcelain'])
       if (dirty.code === 0 && dirty.output.trim() !== '') {
         orphansKept += 1
@@ -412,8 +420,19 @@ export class UpdateService {
       const removed = await this.deps.git(repo, ['worktree', 'remove', ...(discard ? ['--force'] : []), folder])
       if (removed.code !== 0 && discard) rmSync(folder, { recursive: true, force: true })
     }
+    // Un dossier resté vide (processus encore en train de le libérer) est retiré avec quelques essais.
+    if (isEmptyDir(folder)) removeDirQuietly(folder)
     await this.deps.git(repo, ['worktree', 'prune'])
     if (isAnalystBranch(branch)) await this.deps.git(repo, ['branch', discard ? '-D' : '-d', branch])
+  }
+
+  private endConversation(row: UpdateRow): void {
+    if (row.conversationNeuronId === null) return
+    try {
+      this.deps.endConversation?.(row.conversationNeuronId)
+    } catch {
+      // Conversation déjà terminée : rien à arrêter.
+    }
   }
 
   private async git(cwd: string, args: readonly string[], timeoutMs?: number): Promise<GitOutcome> {
@@ -459,6 +478,22 @@ export function codingBrief(proposal: ProposalView, branch: string): string {
     `Preuves de code : ${proposal.evidence.code.map((item) => `${item.path}${item.start === undefined ? '' : `:${item.start}`}`).join(', ') || '(aucune)'}`,
     '</proposition>'
   ].join('\n')
+}
+
+function isEmptyDir(path: string): boolean {
+  try {
+    return readdirSync(path).length === 0
+  } catch {
+    return false
+  }
+}
+
+function removeDirQuietly(path: string): void {
+  try {
+    rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  } catch {
+    // Encore tenu : le démarrage suivant le retirera.
+  }
 }
 
 function pathPresent(path: string): boolean {
