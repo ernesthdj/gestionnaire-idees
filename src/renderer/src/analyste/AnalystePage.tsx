@@ -1,12 +1,29 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { ANALYSIS_STEPS, type AnalysisProgressEvent, type AnalysisView, type ProposalView } from '@shared/ipc/analyste'
+import {
+  ANALYSIS_STEPS,
+  PROPOSAL_TAB_NAMES,
+  type AnalysisProgressEvent,
+  type AnalysisView,
+  type ProposalDecision,
+  type ProposalTab,
+  type ProposalView
+} from '@shared/ipc/analyste'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
-import { analysisErrorLabel, CATEGORY_LABELS, RISK_LABELS, SEVERITY_LABELS, STEP_LABELS } from './labels'
+import {
+  analysisErrorLabel,
+  CATEGORY_LABELS,
+  REFUSAL_REASONS,
+  RISK_LABELS,
+  SEVERITY_LABELS,
+  STATUS_LABELS,
+  STEP_LABELS,
+  TAB_LABELS
+} from './labels'
 
 const ANALYSES_KEY = ['analyste', 'analyses'] as const
-const PROPOSALS_KEY = ['analyste', 'proposals', 'todo'] as const
+const PROPOSALS_KEY = ['analyste', 'proposals'] as const
 /** Relecture de l'état pendant une analyse : un événement manqué ne laisse jamais la page en attente. */
 const POLL_MS = 5_000
 
@@ -40,7 +57,37 @@ function lastAnalysisText(analysis: AnalysisView | undefined): string {
   }
 }
 
-function ProposalCard({ proposal }: { readonly proposal: ProposalView }): React.JSX.Element {
+/** Gestes de tri possibles selon le statut (data-model « Transitions », D10). */
+const ACTIONS: Readonly<Partial<Record<ProposalView['status'], readonly ProposalDecision[]>>> = {
+  new: ['accept', 'postpone', 'refuse', 'applied'],
+  postponed: ['resume', 'accept', 'refuse', 'applied'],
+  accepted: ['applied'],
+  refused: ['resume']
+}
+const ACTION_LABELS: Readonly<Record<ProposalDecision, string>> = {
+  accept: 'Accepter',
+  postpone: 'Reporter',
+  refuse: 'Refuser…',
+  resume: 'Reprendre',
+  applied: 'Déjà appliquée'
+}
+
+function ProposalCard({
+  proposal,
+  busy,
+  onDecide
+}: {
+  readonly proposal: ProposalView
+  readonly busy: boolean
+  readonly onDecide: (decision: ProposalDecision, reason?: string) => void
+}): React.JSX.Element {
+  const [refusing, setRefusing] = useState(false)
+  const status = STATUS_LABELS[proposal.status]
+  const actions = ACTIONS[proposal.status] ?? []
+  const refuse = (reason?: string): void => {
+    setRefusing(false)
+    onDecide('refuse', reason)
+  }
   const category = CATEGORY_LABELS[proposal.category]
   const severity = SEVERITY_LABELS[proposal.severity] ?? { icon: '·', label: String(proposal.severity) }
   const titleId = `proposal-${proposal.id}`
@@ -48,6 +95,10 @@ function ProposalCard({ proposal }: { readonly proposal: ProposalView }): React.
     <article aria-labelledby={titleId} className="space-y-3 rounded-lg bg-surface-raised p-4">
       <header className="space-y-1">
         <p className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-md bg-surface px-2 py-0.5 font-semibold">
+            <span aria-hidden="true">{status.icon} </span>
+            {status.label}
+          </span>
           <span className="rounded-md border border-content-muted/40 px-2 py-0.5">
             <span aria-hidden="true">{category.icon} </span>
             {category.label}
@@ -107,6 +158,41 @@ function ProposalCard({ proposal }: { readonly proposal: ProposalView }): React.
           Fichiers visés : <code>{proposal.files.join(', ')}</code>
         </p>
       )}
+      {proposal.refusalReason === null ? null : <p className="text-xs">Raison du refus : {proposal.refusalReason}</p>}
+      {proposal.status === 'accepted' ? (
+        <p className="text-xs text-content-muted">
+          Le codage par l’Analyste arrive avec la prochaine étape ; en attendant, « Déjà appliquée » quand c’est fait.
+        </p>
+      ) : null}
+      {actions.length === 0 ? null : refusing ? (
+        <div role="group" aria-label="Raison du refus" className="flex flex-wrap items-center gap-2 text-xs">
+          <span>Raison (facultative) :</span>
+          {REFUSAL_REASONS.map((reason) => (
+            <Button key={reason} disabled={busy} onClick={() => refuse(reason)}>
+              {reason}
+            </Button>
+          ))}
+          <Button disabled={busy} onClick={() => refuse()}>
+            Sans raison
+          </Button>
+          <Button disabled={busy} onClick={() => setRefusing(false)}>
+            Garder
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {actions.map((decision) => (
+            <Button
+              key={decision}
+              variant={decision === 'accept' ? 'primary' : 'secondary'}
+              disabled={busy}
+              onClick={() => (decision === 'refuse' ? setRefusing(true) : onDecide(decision))}
+            >
+              {ACTION_LABELS[decision]}
+            </Button>
+          ))}
+        </div>
+      )}
     </article>
   )
 }
@@ -126,9 +212,11 @@ export function AnalystePage(): React.JSX.Element {
     queryFn: () => call<AnalysisView[]>('analyste:analyses', { limit: 5 }),
     refetchInterval: (query) => (query.state.data?.[0]?.status === 'running' ? POLL_MS : false)
   })
+  const [tab, setTab] = useState<ProposalTab>('todo')
+  const [confirmingClear, setConfirmingClear] = useState(false)
   const proposals = useQuery({
-    queryKey: PROPOSALS_KEY,
-    queryFn: () => call<{ items: ProposalView[] }>('analyste:proposals', { tab: 'todo' })
+    queryKey: [...PROPOSALS_KEY, tab],
+    queryFn: () => call<{ items: ProposalView[]; counts: Record<ProposalTab, number> }>('analyste:proposals', { tab })
   })
 
   useEffect(
@@ -184,7 +272,41 @@ export function AnalystePage(): React.JSX.Element {
     }
   }
 
+  const decide = async (id: string, decision: ProposalDecision, reason?: string): Promise<void> => {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await call('analyste:decide', { id, decision, ...(reason === undefined ? {} : { reason }) })
+      await client.invalidateQueries({ queryKey: PROPOSALS_KEY })
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        text: error instanceof IpcFailure ? error.message : 'La décision n’a pas pu être appliquée.'
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const clearHistory = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      await call('analyste:proposals:clear', { confirm: true })
+      await client.invalidateQueries({ queryKey: PROPOSALS_KEY })
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        text: error instanceof IpcFailure ? error.message : 'L’historique n’a pas pu être vidé.'
+      })
+    } finally {
+      setBusy(false)
+      setConfirmingClear(false)
+    }
+  }
+
   const items = proposals.data?.items ?? []
+  const counts = proposals.data?.counts
+  const closed = (counts?.kept ?? 0) + (counts?.dismissed ?? 0)
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
@@ -235,9 +357,50 @@ export function AnalystePage(): React.JSX.Element {
         </section>
 
         <section aria-labelledby="analyste-proposals" className="space-y-3">
-          <h2 id="analyste-proposals" className="text-base font-semibold">
-            Propositions à trier
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="analyste-proposals" className="text-base font-semibold">
+              Propositions
+            </h2>
+            <Button disabled={busy || closed === 0} onClick={() => setConfirmingClear(true)}>
+              Vider l’historique…
+            </Button>
+          </div>
+          {confirmingClear ? (
+            <div role="alert" className="space-y-2 rounded-md border border-red-500/40 p-3 text-sm">
+              <p>
+                Retirer {plural(closed, 'proposition')} close{closed > 1 ? 's' : ''} (installées, refusées, jetées) ?
+                Celles à trier ou en cours restent ; aucune branche ni aucun commit n’est touché. Une proposition
+                retirée pourra revenir lors d’une prochaine analyse.
+              </p>
+              <div className="flex gap-2">
+                <Button autoFocus onClick={() => setConfirmingClear(false)}>
+                  Garder
+                </Button>
+                <Button variant="danger" disabled={busy} onClick={() => void clearHistory()}>
+                  Vider l’historique
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          <div
+            role="tablist"
+            aria-label="Statut des propositions"
+            className="flex flex-wrap gap-1 border-b border-content-muted/20"
+          >
+            {PROPOSAL_TAB_NAMES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                role="tab"
+                aria-selected={tab === name}
+                onClick={() => setTab(name)}
+                className={`h-10 px-3 text-sm ${tab === name ? 'border-b-2 border-accent font-semibold' : 'text-content-muted'}`}
+              >
+                {TAB_LABELS[name]}
+                {counts === undefined ? '' : ` (${counts[name]})`}
+              </button>
+            ))}
+          </div>
           {proposals.isError ? (
             <p role="alert" className="text-sm">
               Les propositions sont illisibles :{' '}
@@ -247,15 +410,22 @@ export function AnalystePage(): React.JSX.Element {
             <p className="text-sm text-content-muted">Chargement…</p>
           ) : items.length === 0 ? (
             <p className="text-sm text-content-muted">
-              Aucune proposition à trier. Lance une analyse : chaque proposition dira ce qui a été constaté, avec ses
-              preuves.
+              {tab === 'todo'
+                ? 'Aucune proposition à trier. Lance une analyse : chaque proposition dira ce qui a été constaté, avec ses preuves.'
+                : 'Rien dans cet onglet.'}
             </p>
           ) : (
-            items.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} />)
+            items.map((proposal) => (
+              <ProposalCard
+                key={proposal.id}
+                proposal={proposal}
+                busy={busy}
+                onDecide={(decision, reason) => void decide(proposal.id, decision, reason)}
+              />
+            ))
           )}
           <p className="text-xs text-content-muted">
-            L’Analyste ne modifie rien : il propose. Le tri (garder, refuser, reporter) arrive dans une prochaine
-            version.
+            L’Analyste ne modifie rien de lui-même : il propose, tu tranches.
           </p>
         </section>
       </div>

@@ -141,7 +141,9 @@ export const MAIN_WINDOW_CHANNELS = [
   'analyste:analyze',
   'analyste:cancel',
   'analyste:analyses',
-  'analyste:proposals'
+  'analyste:proposals',
+  'analyste:decide',
+  'analyste:proposals:clear'
 ] as const
 
 export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]

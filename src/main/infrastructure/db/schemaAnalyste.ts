@@ -80,7 +80,19 @@ export const proposals = sqliteTable(
     withoutEvidence: integer('without_evidence', { mode: 'boolean' }).notNull().default(false),
     dedupeKey: text('dedupe_key').notNull(),
     status: text('status', {
-      enum: ['new', 'postponed', 'refused', 'accepted', 'coding', 'to_fix', 'ready', 'kept', 'discarded', 'reverted']
+      enum: [
+        'new',
+        'postponed',
+        'refused',
+        'accepted',
+        'coding',
+        'to_fix',
+        'ready',
+        'kept',
+        'discarded',
+        'reverted',
+        'applied'
+      ]
     })
       .notNull()
       .default('new'),

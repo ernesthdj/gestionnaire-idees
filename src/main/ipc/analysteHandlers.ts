@@ -4,12 +4,14 @@ import {
   ANALYSES_LIMIT,
   ANALYSTE_SETTINGS_LIMITS as LIMITS,
   OBSERVATIONS_PAGE_LIMIT,
+  PROPOSAL_DECISIONS,
   PROPOSAL_TAB_NAMES,
   PROPOSAL_TABS,
   PROPOSALS_PAGE_LIMIT,
   type AnalysisView,
   type AnalysteSettingsView,
   type ProposalStatus,
+  type ProposalTab,
   type ProposalView,
   type AnalysteStatusView,
   type ObservationsPageView,
@@ -17,6 +19,7 @@ import {
 } from '@shared/ipc/analyste'
 import type { ProbeFamily } from '@shared/analyste/events'
 import type { RepoState } from '../application/analyste/RepoGuard'
+import { nextStatus } from '../domain/analyste/transitions'
 import { AppError } from '../domain/errors'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -50,7 +53,12 @@ export interface AnalysteRoutesDeps {
   readonly store: {
     analyses(limit: number): AnalysisView[]
     proposals(statuses: readonly ProposalStatus[], limit: number): ProposalView[]
+    proposal(id: string): ProposalView | undefined
+    setStatus(id: string, status: ProposalStatus, refusalReason: string | null, at: number): void
+    counts(): Record<ProposalTab, number>
+    clearClosed(): number
   }
+  readonly now?: () => number
 }
 
 // Canal sans paramètre : l'interface n'envoie rien (convention des autres canaux).
@@ -197,7 +205,41 @@ export function createAnalysteRoutes(deps: AnalysteRoutesDeps): IpcRoute[] {
       }),
       handler: async ({ tab, limit }) => {
         active()
-        return { items: deps.store.proposals(PROPOSAL_TABS[tab], limit) }
+        return { items: deps.store.proposals(PROPOSAL_TABS[tab], limit), counts: deps.store.counts() }
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:decide',
+      input: z.strictObject({
+        id: z.uuid(),
+        decision: z.enum(PROPOSAL_DECISIONS),
+        reason: z.string().trim().max(200).optional()
+      }),
+      handler: async ({ id, decision, reason }) => {
+        active()
+        const proposal = deps.store.proposal(id)
+        if (proposal === undefined) throw new AppError('NOT_FOUND', 'Proposition introuvable')
+        const next = nextStatus(proposal.status, decision)
+        if (next === null) throw new AppError('INVALID_TRANSITION', 'Cette décision n’est pas possible dans cet état')
+        // La raison d'un refus est gardée ; reprendre une proposition l'efface.
+        const reasonText =
+          decision === 'refuse'
+            ? reason === undefined || reason === ''
+              ? null
+              : reason
+            : decision === 'resume'
+              ? null
+              : proposal.refusalReason
+        deps.store.setStatus(id, next, reasonText, (deps.now ?? Date.now)())
+        return deps.store.proposal(id) as ProposalView
+      }
+    }),
+    defineRoute({
+      channel: 'analyste:proposals:clear',
+      input: z.strictObject({ confirm: z.literal(true) }),
+      handler: async () => {
+        active()
+        return { deleted: deps.store.clearClosed() }
       }
     })
   ]

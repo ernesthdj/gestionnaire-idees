@@ -1,6 +1,6 @@
 import type { ProbeFamily, ProbeScreen, ProbeSubjectKind, ProbeVia } from '@shared/analyste/events'
 import type { ProposalCategory, ProposalRisk } from '@shared/analyste/proposals'
-import type { AnalysisStep, AnalysteInactiveReason } from '@shared/ipc/analyste'
+import type { AnalysisStep, AnalysteInactiveReason, ProposalStatus, ProposalTab } from '@shared/ipc/analyste'
 
 /** Libellés lisibles de la sonde (spec 019 FR-010) : ce que mentalyas voit à la place des noms techniques. */
 
@@ -109,3 +109,28 @@ export const ANALYSIS_ERROR_LABELS: Readonly<Record<string, string>> = {
 export function analysisErrorLabel(code: string | null | undefined): string {
   return ANALYSIS_ERROR_LABELS[code ?? ''] ?? `L’analyse a échoué (${code ?? 'cause inconnue'}).`
 }
+
+/** Statut d'une proposition (spec 019 FR-024a) : icône + libellé, jamais la couleur seule. */
+export const STATUS_LABELS: Readonly<Record<ProposalStatus, { readonly icon: string; readonly label: string }>> = {
+  new: { icon: '●', label: 'À trier' },
+  postponed: { icon: '⏸', label: 'Reportée' },
+  accepted: { icon: '✓', label: 'Acceptée — en attente d’application' },
+  coding: { icon: '⚙', label: 'En codage' },
+  to_fix: { icon: '!', label: 'À corriger' },
+  ready: { icon: '▶', label: 'Prête à essayer' },
+  kept: { icon: '✔', label: 'Installée' },
+  applied: { icon: '✔', label: 'Installée (hors app)' },
+  refused: { icon: '✕', label: 'Refusée' },
+  discarded: { icon: '–', label: 'Jetée' },
+  reverted: { icon: '↺', label: 'Annulée' }
+}
+
+export const TAB_LABELS: Readonly<Record<ProposalTab, string>> = {
+  todo: 'À trier',
+  progress: 'En cours',
+  kept: 'Installées',
+  dismissed: 'Écartées'
+}
+
+/** Raisons de refus prêtes (FR-024) ; un refus sans raison reste possible. */
+export const REFUSAL_REASONS: readonly string[] = ['Pas utile', 'Déjà prévu', 'Trop risqué', 'Constat inexact']

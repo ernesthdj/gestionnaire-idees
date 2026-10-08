@@ -1,8 +1,11 @@
-import { and, desc, eq, inArray, max } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, max } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   ANALYSTE_SETTINGS_LIMITS,
+  CLOSED_STATUSES,
   PROPOSAL_STATUSES,
+  PROPOSAL_TABS,
+  type ProposalTab,
   type AnalysisView,
   type AnalysteSettingsView,
   type ProposalStatus,
@@ -12,7 +15,7 @@ import type { MemoryItem } from '../../../domain/analyste/dossier'
 import type { CheckedProposal, ProposalMemory } from '../../../domain/analyste/proposalCheck'
 import { OPEN_STATUSES } from '../../../domain/analyste/proposalCheck'
 import type { AppDatabase } from '../client'
-import { analyses, proposals } from '../schemaAnalyste'
+import { analyses, analystUpdates, proposals } from '../schemaAnalyste'
 import { settings } from '../schemaNeurons'
 
 const LIMITS = ANALYSTE_SETTINGS_LIMITS
@@ -242,6 +245,46 @@ export class AnalysteRepository {
       }))
   }
 
+  /** Une proposition, `undefined` si elle n'existe pas. */
+  proposal(id: string): ProposalView | undefined {
+    const row = this.db.select().from(proposals).where(eq(proposals.id, id)).get()
+    return row === undefined ? undefined : proposalView(row)
+  }
+
+  /** Statut décidé par mentalyas (raison de refus gardée ; effacée à la reprise). */
+  setStatus(id: string, status: ProposalStatus, refusalReason: string | null, at: number): void {
+    this.db.update(proposals).set({ status, refusalReason, updatedAt: at }).where(eq(proposals.id, id)).run()
+  }
+
+  /** Nombre de propositions par onglet de la boîte. */
+  counts(): Record<ProposalTab, number> {
+    const rows = this.db
+      .select({ status: proposals.status, total: count() })
+      .from(proposals)
+      .groupBy(proposals.status)
+      .all()
+    const byStatus = new Map(rows.map((row) => [row.status, row.total]))
+    const tabs = Object.entries(PROPOSAL_TABS) as [ProposalTab, readonly ProposalStatus[]][]
+    return Object.fromEntries(
+      tabs.map(([tab, statuses]) => [tab, statuses.reduce((sum, status) => sum + (byStatus.get(status) ?? 0), 0)])
+    ) as Record<ProposalTab, number>
+  }
+
+  /** « Vider l'historique » (D11) : propositions closes et leurs fiches de mise à jour ; rien d'autre. */
+  clearClosed(): number {
+    return this.db.transaction((tx) => {
+      const ids = tx
+        .select({ id: proposals.id })
+        .from(proposals)
+        .where(inArray(proposals.status, [...CLOSED_STATUSES]))
+        .all()
+        .map((row) => row.id)
+      if (ids.length === 0) return 0
+      tx.delete(analystUpdates).where(inArray(analystUpdates.proposalId, ids)).run()
+      return tx.delete(proposals).where(inArray(proposals.id, ids)).run().changes
+    })
+  }
+
   /** Propositions de ces statuts, les plus graves puis les plus récentes d'abord. */
   proposals(statuses: readonly ProposalStatus[], limit: number): ProposalView[] {
     return this.db
@@ -251,34 +294,7 @@ export class AnalysteRepository {
       .orderBy(desc(proposals.severity), desc(proposals.createdAt))
       .limit(limit)
       .all()
-      .map((row) => {
-        const evidence = evidenceOf(row.evidence)
-        return {
-          id: row.id,
-          analysisId: row.analysisId,
-          category: row.category,
-          title: row.title,
-          finding: row.finding,
-          proposal: row.proposal,
-          gain: row.gain,
-          risk: row.risk,
-          severity: row.severity,
-          confidence: row.confidence,
-          evidence: {
-            observations: evidence.observations.map(({ key, sentence }) => ({ key, sentence })),
-            code: evidence.code.map(({ path, start, end }) => ({
-              path,
-              ...(start === undefined ? {} : { start }),
-              ...(end === undefined ? {} : { end })
-            }))
-          },
-          files: filesOf(row.files),
-          withoutEvidence: row.withoutEvidence,
-          status: (PROPOSAL_STATUSES as readonly string[]).includes(row.status) ? row.status : 'new',
-          refusalReason: row.refusalReason,
-          createdAt: row.createdAt
-        }
-      })
+      .map(proposalView)
   }
 
   /** Mémoire transmise à l'analyse suivante : les dernières propositions, leur statut et la raison d'un refus. */
@@ -312,5 +328,35 @@ export class AnalysteRepository {
           .observations.map((item) => item.signature)
           .filter((signature) => signature !== '')
       }))
+  }
+}
+
+/** Ligne de la table → fiche (texte de Claude affiché comme texte, FR-026). */
+function proposalView(row: typeof proposals.$inferSelect): ProposalView {
+  const evidence = evidenceOf(row.evidence)
+  return {
+    id: row.id,
+    analysisId: row.analysisId,
+    category: row.category,
+    title: row.title,
+    finding: row.finding,
+    proposal: row.proposal,
+    gain: row.gain,
+    risk: row.risk,
+    severity: row.severity,
+    confidence: row.confidence,
+    evidence: {
+      observations: evidence.observations.map(({ key, sentence }) => ({ key, sentence })),
+      code: evidence.code.map(({ path, start, end }) => ({
+        path,
+        ...(start === undefined ? {} : { start }),
+        ...(end === undefined ? {} : { end })
+      }))
+    },
+    files: filesOf(row.files),
+    withoutEvidence: row.withoutEvidence,
+    status: (PROPOSAL_STATUSES as readonly string[]).includes(row.status) ? row.status : 'new',
+    refusalReason: row.refusalReason,
+    createdAt: row.createdAt
   }
 }

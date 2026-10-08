@@ -122,6 +122,39 @@ describe('dépôts de l’Analyste', () => {
     ])
   })
 
+  it('should_count_by_tab_set_statuses_and_clear_only_closed_proposals', () => {
+    const store = new AnalysteRepository(handle.db)
+    store.startAnalysis({ id: 'a1', trigger: 'manual', windowFrom: 0, windowTo: 100, events: 3, startedAt: 100 })
+    const base = {
+      category: 'bug' as const,
+      finding: 'Constat',
+      proposal: 'Proposition',
+      gain: 'Gain',
+      risk: 'faible' as const,
+      severity: 2,
+      confidence: 0.5,
+      evidence: { observations: [], code: [] },
+      files: [],
+      withoutEvidence: false
+    }
+    store.finishAnalysis(
+      'a1',
+      200,
+      null,
+      ['p1', 'p2', 'p3', 'p4'].map((id) => ({ ...base, id, title: `Proposition ${id}`, dedupeKey: id }))
+    )
+    store.setStatus('p2', 'refused', 'Pas utile', 300)
+    store.setStatus('p3', 'applied', null, 300)
+    store.setStatus('p4', 'postponed', null, 300)
+    expect(store.counts()).toEqual({ todo: 1, progress: 1, kept: 1, dismissed: 1 })
+    expect(store.proposal('p2')).toMatchObject({ status: 'refused', refusalReason: 'Pas utile' })
+    // D11 : seules les closes partent (refusée, installée hors app) ; à trier et reportée restent.
+    expect(store.clearClosed()).toBe(2)
+    expect(store.proposal('p2')).toBeUndefined()
+    expect(store.counts()).toEqual({ todo: 1, progress: 1, kept: 0, dismissed: 0 })
+    expect(store.clearClosed()).toBe(0)
+  })
+
   it('should_end_a_failed_analysis_without_moving_the_window_and_interrupt_a_stale_one', () => {
     const store = new AnalysteRepository(handle.db)
     store.startAnalysis({ id: 'a1', trigger: 'manual', windowFrom: 0, windowTo: 100, events: 0, startedAt: 1 })

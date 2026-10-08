@@ -107,9 +107,18 @@ export const PROPOSAL_STATUSES = [
   'ready',
   'kept',
   'discarded',
-  'reverted'
+  'reverted',
+  // Appliquée par mentalyas hors de l'app (spec 019 D10).
+  'applied'
 ] as const
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
+
+/** Décisions de tri (FR-024, D10). */
+export const PROPOSAL_DECISIONS = ['accept', 'refuse', 'postpone', 'resume', 'applied'] as const
+export type ProposalDecision = (typeof PROPOSAL_DECISIONS)[number]
+
+/** Propositions closes, retirées par « Vider l'historique » (D11). */
+export const CLOSED_STATUSES: readonly ProposalStatus[] = ['kept', 'applied', 'refused', 'discarded', 'reverted']
 
 /** Onglets de la boîte (spec 019 FR-022) et statuts qu'ils regroupent. */
 export const PROPOSAL_TAB_NAMES = ['todo', 'progress', 'kept', 'dismissed'] as const
@@ -117,7 +126,7 @@ export type ProposalTab = (typeof PROPOSAL_TAB_NAMES)[number]
 export const PROPOSAL_TABS: Readonly<Record<ProposalTab, readonly ProposalStatus[]>> = {
   todo: ['new'],
   progress: ['postponed', 'accepted', 'coding', 'to_fix', 'ready'],
-  kept: ['kept'],
+  kept: ['kept', 'applied'],
   dismissed: ['refused', 'discarded', 'reverted']
 }
 

@@ -28,7 +28,8 @@ n'est **jamais stocké** : le main calcule le pseudonyme (lui seul a la clé) pu
 | `analyste:cancel` | `{ analysisId }` | `ok` | `NOT_FOUND` |
 | `analyste:analyses` | `{ limit ≤ 20 }` | `AnalysisView[]` | — |
 | `analyste:proposals` | `{ tab: 'todo' \| 'progress' \| 'kept' \| 'dismissed', category?, cursor?, limit ≤ 50 }` | `{ items: ProposalView[], next?, counts }` | — |
-| `analyste:decide` | `{ id, decision: 'accept' \| 'refuse' \| 'postpone' \| 'resume', reason? ≤ 200 }` | `ProposalView` | `NOT_FOUND`, `INVALID_TRANSITION` |
+| `analyste:decide` | `{ id, decision: 'accept' \| 'refuse' \| 'postpone' \| 'resume' \| 'applied', reason? ≤ 200 }` | `ProposalView` | `NOT_FOUND`, `INVALID_TRANSITION` |
+| `analyste:proposals:clear` | `{ confirm: true }` (D11) | `{ deleted }` | `UPDATE_RUNNING` |
 | `analyste:askMore` | `{ id }` | `{ neuronId }` (conversation ouverte avec la fiche) | `NOT_FOUND` |
 | `analyste:badges` | `{ genesisId }` | `{ byElement: Record<elementId, number>, onGenesis: number }` | — |
 

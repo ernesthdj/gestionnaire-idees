@@ -89,7 +89,12 @@ stateDiagram-v2
     to_fix --> discarded: Jeter
     ready --> discarded: Jeter
     kept --> reverted: Annuler
+    new --> applied: Déjà appliquée (D10)
+    postponed --> applied: Déjà appliquée (D10)
+    accepted --> applied: Déjà appliquée (D10)
 ```
+D11 : « Vider l'historique » supprime les propositions `kept`, `applied`, `refused`, `discarded`, `reverted` et leurs
+`analyst_updates` (aucune commande git).
 Toute autre transition → `INVALID_TRANSITION`. `accepted` sans mise à jour = acceptation en attente (dépôt sale).
 
 ## analyst_updates

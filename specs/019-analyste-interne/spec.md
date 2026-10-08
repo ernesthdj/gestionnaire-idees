@@ -25,6 +25,8 @@ version antérieure. » — mentalyas. Brainstorm complet : `docs/FOUNDATION.md`
 | D7 | Version de l'app | L'Analyste n'existe que si l'app tourne depuis le **dépôt source désigné** par mentalyas ; dans l'app installée, rien n'est collecté et la fonctionnalité est absente. |
 | D8 | Analyses | Cinq catégories dès la première version : **bug**, **tâche IA → code**, **parcours**, **code mort / redondance**, **évolutivité**. |
 | D9 | Constitution | Amendement **4.2.0** (2026-10-07, validé) : I (`npm` limité aux vérifications dans une branche `analyste/*`), II (branche `analyste/*` créée, commitée, fusionnée et révocable après acceptation explicite ; jamais de publication ni de réécriture), IV (la tâche `analyste` est la seule tâche automatique avec outils, en lecture seule). |
+| D10 | Déjà appliquée (2026-10-08) | Demande de mentalyas (il a appliqué des propositions avec Claude hors de l'app) : « Déjà appliquée » sur une proposition à trier, reportée ou acceptée la passe à **installée hors app** (`applied`), rangée avec les gardées et traitée comme elles : si le problème persiste, une analyse peut le reproposer (seul un refus bloque sans fait nouveau). |
+| D11 | Vider l'historique (2026-10-08) | Demande de mentalyas : « Vider l'historique », sur confirmation, retire les propositions **closes** (gardées, installées hors app, refusées, jetées, annulées) et leurs fiches de mise à jour ; celles à trier, reportées ou en cours restent ; aucune branche ni aucun commit git n'est touché. Effet assumé : la mémoire des refus retirés est perdue, une proposition retirée peut revenir. |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -279,6 +281,10 @@ nouvelles. L'app lance l'analyse à l'échéance, seulement si c'est utile, et l
   liens vers l'explorateur.
 - **FR-024**: Chaque proposition MUST pouvoir être acceptée, refusée (raison prête ou libre, facultative) ou reportée ;
   « Demander plus » ouvre une conversation avec la fiche en contexte.
+- **FR-024a** (D10): « Déjà appliquée » MUST passer une proposition à trier, reportée ou acceptée à « installée hors
+  app », visible dans l'onglet des gardées ; chaque fiche MUST afficher son statut par une icône et un libellé.
+- **FR-024b** (D11): « Vider l'historique » MUST, sur confirmation, retirer les seules propositions closes et leurs
+  fiches de mise à jour, sans aucune commande git.
 - **FR-025**: Sur la carte de structure du genesis lié au dépôt désigné, chaque élément dont les chemins couvrent un
   fichier visé MUST porter un badge « N propositions » qui ouvre la fiche ; sinon la proposition s'accroche au genesis.
   Si ce genesis n'existe pas, la boîte propose de le lier et de le cartographier.

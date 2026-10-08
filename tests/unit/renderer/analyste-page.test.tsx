@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { AnalystePage } from '../../../src/renderer/src/analyste/AnalystePage'
 import type { AnalysisView, ProposalView } from '../../../src/shared/ipc/analyste'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -137,5 +137,35 @@ describe('page Analyste (spec 019 US2)', () => {
     })
     renderPage()
     expect((await screen.findByRole('alert')).textContent).toContain('La sonde est inactive')
+  })
+
+  it('should_show_status_tabs_and_send_triage_decisions_then_clear_closed_history', async () => {
+    const counts = { todo: 1, progress: 0, kept: 1, dismissed: 1 }
+    const decide = vi.fn((payload: unknown) => ({ ...PROPOSAL, status: 'refused', ...(payload as object) }))
+    const clear = vi.fn(() => ({ deleted: 2 }))
+    installFakeApi({
+      'analyste:analyses': () => [DONE],
+      'analyste:proposals': (payload) =>
+        (payload as { tab: string }).tab === 'kept'
+          ? { items: [{ ...PROPOSAL, id: 'p2', title: 'Proposition appliquée', status: 'applied' }], counts }
+          : { items: [PROPOSAL], counts },
+      'analyste:decide': decide,
+      'analyste:proposals:clear': clear
+    })
+    const { container } = renderPage()
+    expect(await screen.findByRole('tab', { name: 'À trier (1)' })).toBeTruthy()
+    expect(screen.getByText('À trier', { selector: 'span' })).toBeTruthy()
+    await expectNoAxeViolations(container)
+    await userEvent.click(screen.getByRole('button', { name: 'Refuser…' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Pas utile' }))
+    expect(decide).toHaveBeenCalledWith({ id: 'p1', decision: 'refuse', reason: 'Pas utile' })
+    await userEvent.click(screen.getByRole('button', { name: 'Déjà appliquée' }))
+    expect(decide).toHaveBeenLastCalledWith({ id: 'p1', decision: 'applied' })
+    await userEvent.click(screen.getByRole('tab', { name: 'Installées (1)' }))
+    expect(await screen.findByText('Installée (hors app)')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Vider l’historique…' }))
+    expect(clear).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Vider l’historique' }))
+    expect(clear).toHaveBeenCalledWith({ confirm: true })
   })
 })

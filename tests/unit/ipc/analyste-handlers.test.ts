@@ -2,6 +2,26 @@ import { describe, expect, it } from 'vitest'
 import type { RepoState } from '../../../src/main/application/analyste/RepoGuard'
 import { createAnalysteRoutes, type AnalysteRoutesDeps } from '../../../src/main/ipc/analysteHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
+import type { ProposalStatus, ProposalView } from '../../../src/shared/ipc/analyste'
+
+const PROPOSAL: ProposalView = {
+  id: '',
+  analysisId: '6b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f',
+  category: 'bug',
+  title: 'Proposition fictive',
+  finding: 'Constat fictif.',
+  proposal: 'Proposition fictive.',
+  gain: 'Gain fictif.',
+  risk: 'faible',
+  severity: 2,
+  confidence: 0.8,
+  evidence: { observations: [], code: [] },
+  files: [],
+  withoutEvidence: false,
+  status: 'new',
+  refusalReason: null,
+  createdAt: 1
+}
 
 const ACTIVE: RepoState = { available: true, active: true, repoPath: 'D:/dev/brainstormer', reason: null }
 const PACKAGED: RepoState = { available: false, active: false, repoPath: null, reason: 'PACKAGED_APP' }
@@ -50,7 +70,11 @@ const setup = (state: RepoState, overrides: Partial<AnalysteRoutesDeps> = {}) =>
       proposals: (statuses) => {
         listed.push(statuses)
         return []
-      }
+      },
+      proposal: () => undefined,
+      setStatus: () => undefined,
+      counts: () => ({ todo: 0, progress: 0, kept: 0, dismissed: 0 }),
+      clearClosed: () => 0
     },
     ...overrides
   }
@@ -173,11 +197,55 @@ describe('canaux analyste:*', () => {
 
   it('should_list_the_statuses_of_the_requested_tab_when_reading_proposals', async () => {
     const { dispatch, listed } = setup(ACTIVE)
-    await expect(dispatch('analyste:proposals', {})).resolves.toEqual({ success: true, data: { items: [] } })
+    await expect(dispatch('analyste:proposals', {})).resolves.toEqual({
+      success: true,
+      data: { items: [], counts: { todo: 0, progress: 0, kept: 0, dismissed: 0 } }
+    })
     await dispatch('analyste:proposals', { tab: 'dismissed', limit: 10 })
-    expect(listed).toEqual([['new'], ['refused', 'discarded', 'reverted']])
+    await dispatch('analyste:proposals', { tab: 'kept' })
+    expect(listed).toEqual([['new'], ['refused', 'discarded', 'reverted'], ['kept', 'applied']])
     await expect(dispatch('analyste:proposals', { tab: 'tout' })).resolves.toMatchObject({
       error: { code: 'VALIDATION' }
+    })
+  })
+
+  it('should_apply_allowed_decisions_and_refuse_impossible_ones', async () => {
+    const id = '4b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f'
+    let status: ProposalStatus = 'new'
+    let reason: string | null = null
+    const proposal = (): ProposalView => ({ ...PROPOSAL, id, status, refusalReason: reason })
+    const { dispatch } = setup(ACTIVE, {
+      store: {
+        analyses: () => [],
+        proposals: () => [],
+        proposal: (wanted) => (wanted === id ? proposal() : undefined),
+        setStatus: (_id, next, why) => {
+          status = next
+          reason = why
+        },
+        counts: () => ({ todo: 0, progress: 0, kept: 0, dismissed: 0 }),
+        clearClosed: () => 3
+      }
+    })
+    await expect(dispatch('analyste:decide', { id, decision: 'refuse', reason: 'Pas utile' })).resolves.toMatchObject({
+      data: { status: 'refused', refusalReason: 'Pas utile' }
+    })
+    await expect(dispatch('analyste:decide', { id, decision: 'applied' })).resolves.toMatchObject({
+      error: { code: 'INVALID_TRANSITION' }
+    })
+    await expect(dispatch('analyste:decide', { id, decision: 'resume' })).resolves.toMatchObject({
+      data: { status: 'new', refusalReason: null }
+    })
+    await expect(dispatch('analyste:decide', { id, decision: 'applied' })).resolves.toMatchObject({
+      data: { status: 'applied' }
+    })
+    await expect(
+      dispatch('analyste:decide', { id: '5b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f', decision: 'accept' })
+    ).resolves.toMatchObject({ error: { code: 'NOT_FOUND' } })
+    await expect(dispatch('analyste:proposals:clear', {})).resolves.toMatchObject({ error: { code: 'VALIDATION' } })
+    await expect(dispatch('analyste:proposals:clear', { confirm: true })).resolves.toEqual({
+      success: true,
+      data: { deleted: 3 }
     })
   })
 })
