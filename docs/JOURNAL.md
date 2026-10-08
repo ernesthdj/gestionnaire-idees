@@ -1025,3 +1025,10 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Ajustement (00:10, retours visuels) :** la bulle de réponse est réservée dès l'envoi (place vide, défilement doux) : la bille vole jusqu'à sa place définitive et l'orbe s'y ouvre sans rien pousser. Retour du champ : le drapeau « on revient d'une réponse » était posé après la réapparition (effet), l'animation d'entrée ne jouait jamais ; il est posé à l'envoi, et une bille au centre de la bande s'étire pendant que la pilule se redessine (0,55 s).
 **Règle apprise :** une valeur qui commande l'animation d'entrée d'un élément doit être connue avant son montage : un état posé dans un `useEffect` après le rendu arrive trop tard.
 
+
+### [2026-10-09 00:30] DOCS — spec 022 « Nœuds vivants » : prototype validé, spec, inventaire, plan, tâches
+**Fichiers :** `specs/022-noeuds-vivants/` (`spec.md` D1–D23, `inventory.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/interfaces.md`, `quickstart.md`, `tasks.md`).
+**Quoi :** 23 versions d'un prototype HTML (artifact privé, données fictives) avec mentalyas : orbes et petits cercles à pictogramme, couleur par grande branche, taille par niveau, plans en sens alterné, cartes de détails multiples, déplaçables et zoomées avec la toile, fiche / discussion / lecteur par étirement, repli, Main et agents, zoom fluide, style carbone. Écartés après essai : parallaxe et lentille de zoom (« le chaos »), cadres colorés autour des groupes, verre aéré, canevas « tech ». Décision D23 : aucune fonctionnalité retirée — l'inventaire relève chaque geste, nœud, volet et menu actuels et leur place après la refonte.
+**Erreur corrigée :** en retirant la parallaxe du prototype, une découpe de texte a effacé tout le bloc de la barre (dont `reduced()`) : la boucle d'affichage plantait à chaque image, le glisser semblait mort. Le prototype est maintenant exécuté dans jsdom (glisser simulé, carte ouverte) avant chaque publication.
+**Règle apprise :** une vérification de syntaxe ne prouve pas qu'une page tourne : exécuter (même dans un DOM simulé) avant de livrer.
+
