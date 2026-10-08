@@ -18,6 +18,8 @@ export interface CanvasNeuronView extends RootView {
   readonly lockProposed: boolean
   /** Tout son plan d'attaque est replié sur la carte (spec 022 D14) ; absent sinon. */
   readonly planCollapsed?: boolean
+  /** Rattaché à un dossier de projet (genesis projet ou projet repris) : vue Workflow possible (spec 023) ; absent sinon. */
+  readonly linkedProject?: boolean
 }
 
 /** Statuts d'avancement d'une étape (spec 011 FR-009). */

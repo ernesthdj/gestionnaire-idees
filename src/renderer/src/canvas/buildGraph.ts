@@ -22,6 +22,8 @@ import type { DocumentView } from '@shared/ipc/documents'
 import { ELEMENT_ICONS, ELEMENT_NODE_STATUS, STATUS_LABELS } from './nodes/ElementNode'
 import { finalStateLabel, STEP_NODE_STATUS, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
+import { workflowGraph } from './workflow/workflowGraph'
+import { workflowTree, type WorkflowEntry, type WorkflowItem } from './workflow/workflowTree'
 
 /**
  * Taille d'une idée selon son niveau de contexte (FR-029) : plus elle est complète, plus elle est grande.
@@ -86,14 +88,33 @@ export type ElementNodeType = Node<
 >
 /** Bande d'une couche dans la vue Architecture (spec 017 D20). */
 export type LayerBandNodeType = Node<{ readonly band: LayerBand }, 'layerBand'>
-/** Barre d'une carte de structure (D20) : bascule Progression / Architecture et architecture de la carte. */
+/** Lecture d'une carte de projet lié : Workflow (spec 023), Progression ou Architecture (spec 017 D20). */
+export type StructureViewKind = 'workflow' | 'progression' | 'architecture'
+
+/**
+ * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule Workflow / Progression / Architecture et
+ * architecture de la carte ; `hasMap` : une carte de structure est dessinée.
+ */
 export type StructureBarNodeType = Node<
   {
     readonly genesisId: string
-    readonly view: 'progression' | 'architecture'
+    /** Vue affichée ; `null` : aucune (projet lié sans carte dessinée, Workflow pas encore choisi). */
+    readonly view: StructureViewKind | null
+    readonly hasMap: boolean
     readonly architecture: StructureArchitectureView | null
   },
   'structureBar'
+>
+
+/** Nœud de la vue Workflow (spec 023) : branche, spec, user story, socle, tâche, idée à brainstormer ou message. */
+export type WorkflowNodeType = Node<
+  {
+    readonly item: WorkflowItem
+    readonly visual: NodeVisual
+    readonly genesisId: string
+    readonly open: boolean
+  },
+  'workflow'
 >
 
 /** Étape d'un plan d'attaque ou fantôme proposé par Claude (spec 011), teinté par la catégorie de son genesis. */
@@ -152,6 +173,7 @@ export type CanvasNode =
   | ElementNodeType
   | LayerBandNodeType
   | StructureBarNodeType
+  | WorkflowNodeType
 
 const BLOCK_NODE_TYPES = {
   empty: 'block',
@@ -336,14 +358,16 @@ export function buildGraph(
   /** Nœuds dont la carte de détails est ouverte (spec 022 D15) : ils grossissent et s'éclairent. */
   openIds: ReadonlySet<string> = new Set(),
   /** Cartes de structure basculées en vue Architecture (spec 017 D20). */
-  structureViews: Readonly<Record<string, 'progression' | 'architecture'>> = {},
+  structureViews: Readonly<Record<string, StructureViewKind>> = {},
   /** « Réorganiser » (spec 022 D22) : les plans partent en ligne au premier niveau. */
   transposed = false,
   /**
    * Liens d'analyse des cartes de structure (appels mesurés, relations) au repos (spec 022 D29) ; sans eux, restent la
    * hiérarchie, les alertes « sens interdit » et les liens de l'élément en focus (ajoutés par la carte).
    */
-  analysisLinks = true
+  analysisLinks = true,
+  /** Vues Workflow lues (spec 023), par genesis basculé en Workflow. */
+  workflows: Readonly<Record<string, WorkflowEntry>> = {}
 ): {
   nodes: CanvasNode[]
   edges: BranchEdgeType[]
@@ -351,8 +375,14 @@ export function buildGraph(
 } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
   const isDimmed = (id: string): boolean => highlighted !== null && !highlighted.has(id)
+  // Vue Workflow (spec 023) : un projet lié basculé en Workflow montre ses specs à la place de sa carte de structure.
+  const workflowIds = new Set(
+    view.ideas
+      .filter((idea) => idea.linkedProject === true && structureViews[idea.id] === 'workflow')
+      .map((idea) => idea.id)
+  )
   // Plans d'attaque (spec 011, spec 022 R4) : disposés d'abord, pour connaître le repli de chaque genesis.
-  const elementGenesis = new Set(view.elements.map((element) => element.genesisId))
+  const elementGenesis = new Set([...view.elements.map((element) => element.genesisId), ...workflowIds])
   const plans = new Map(
     view.ideas.flatMap((genesis) => {
       const center = layout.positions.get(genesis.id)
@@ -593,7 +623,7 @@ export function buildGraph(
     (id) => structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
   )
   const progressionGraph = structureGraph(
-    view.elements.filter((element) => !switched.includes(element.genesisId)),
+    view.elements.filter((element) => !switched.includes(element.genesisId) && !workflowIds.has(element.genesisId)),
     genesisCenters,
     view.mapLinks,
     view.measuredLinks,
@@ -628,8 +658,9 @@ export function buildGraph(
     }))
   )
   const withMap = new Set(view.elements.map((element) => element.genesisId))
+  const linked = new Set(view.ideas.filter((idea) => idea.linkedProject === true).map((idea) => idea.id))
   const barNodes = [...genesisCenters].flatMap(([id, center]): StructureBarNodeType[] =>
-    withMap.has(id)
+    withMap.has(id) || linked.has(id)
       ? [
           {
             id: `structure-bar-${id}`,
@@ -637,7 +668,14 @@ export function buildGraph(
             position: { x: center.x + STRUCTURE_BAR_OFFSET.x, y: center.y + STRUCTURE_BAR_OFFSET.y },
             data: {
               genesisId: id,
-              view: switched.includes(id) ? 'architecture' : 'progression',
+              view: workflowIds.has(id)
+                ? 'workflow'
+                : !withMap.has(id)
+                  ? null
+                  : switched.includes(id)
+                    ? 'architecture'
+                    : 'progression',
+              hasMap: withMap.has(id),
               architecture: architectureOf.get(id) ?? null
             },
             draggable: false,
@@ -678,9 +716,44 @@ export function buildGraph(
   const structureEdges = structure.edges
     .filter((edge) => analysisLinks || edge.kind === 'hierarchy' || edge.violation === true)
     .map(structureFlowEdge)
+  // Vue Workflow (spec 023) : branches, specs, user stories et tâches restantes sous le genesis, en sens alterné.
+  const workflowNodes: WorkflowNodeType[] = []
+  const workflowEdges: BranchEdgeType[] = []
+  for (const id of workflowIds) {
+    const entry = workflows[id]
+    const center = genesisCenters.get(id)
+    const genesis = view.ideas.find((idea) => idea.id === id)
+    if (entry === undefined || center === undefined || genesis === undefined) continue
+    const graph = workflowGraph(workflowTree(entry, id), id, center, TIER_SIZE[tierOf(genesis)] / 2, transposed)
+    for (const placed of graph.placed) {
+      const message = placed.item.subject.kind === 'message'
+      workflowNodes.push({
+        id: placed.item.key,
+        type: 'workflow',
+        position: { x: placed.x, y: placed.y },
+        ...(message ? {} : { width: placed.visual.size, height: placed.visual.size }),
+        data: { item: placed.item, visual: placed.visual, genesisId: id, open: openIds.has(placed.item.key) },
+        draggable: false,
+        ariaLabel: placed.item.label,
+        deletable: false
+      })
+    }
+    for (const edge of graph.edges) {
+      workflowEdges.push({
+        id: edge.id,
+        type: 'branch',
+        source: edge.source,
+        target: edge.target,
+        data: { style: 'solid', branch: edge.branch },
+        deletable: false,
+        selectable: false,
+        focusable: false
+      })
+    }
+  }
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...bandNodes, ...elementNodes, ...barNodes, ...planNodes],
-    edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges],
+    nodes: [...neuronNodes, ...blockNodes, ...bandNodes, ...elementNodes, ...barNodes, ...planNodes, ...workflowNodes],
+    edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges, ...workflowEdges],
     mapEdges: [...mapEdges, ...structureEdges]
   }
 }

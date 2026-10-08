@@ -1,0 +1,16 @@
+/* Vue Workflow (spec 023) : message d'un projet vide ou introuvable, en pastille de texte sous le genesis. */
+.workflow-message {
+  max-width: 260px;
+  padding: 8px 12px;
+  border: 1px dashed color-mix(in oklab, var(--color-content-muted) 50%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-surface-raised) 88%, transparent);
+  color: var(--color-content-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+.workflow-message[data-missing] {
+  border-color: color-mix(in oklab, var(--color-con) 55%, transparent);
+  color: var(--color-content);
+}

@@ -24,6 +24,14 @@ export type NodeIconKey =
   | 'interface'
   | 'decision'
   | 'operation'
+  | 'branchActive'
+  | 'branchUpcoming'
+  | 'branchDelivered'
+  | 'branchBrainstorm'
+  | 'spec'
+  | 'story'
+  | 'socle'
+  | 'info'
 
 /** Statut affiché en pastille (pleine, à moitié, vide ; rouge si bloqué). */
 export type NodeStatus = 'done' | 'doing' | 'todo' | 'blocked'

@@ -52,6 +52,19 @@ describe('écran Idées', () => {
     expect(view.highlighted).toBeNull()
   })
 
+  it('should_mark_linked_projects_when_a_genesis_has_a_project_folder', async () => {
+    const linked = demoId('root', 61)
+    const withFolder = new CanvasService({
+      neurons: new NeuronRepository(harness.handle.db),
+      blocks: new BlockRepository(harness.handle.db),
+      io: { links: () => [] },
+      finals: { list: () => [], files: () => [], projectLinked: (genesisId) => genesisId === linked }
+    })
+    const ideas = withFolder.get().ideas
+    expect(ideas.find((idea) => idea.id === linked)?.linkedProject).toBe(true)
+    expect(ideas.filter((idea) => idea.linkedProject === true)).toHaveLength(1)
+  })
+
   it('should_link_two_ideas_with_a_free_link_and_undo_it', async () => {
     const [a, b] = [demoId('root', 1), demoId('root', 2)]
     const created = await dispatch('canvas:createLink', { aRootId: a, bRootId: b, label: '  même budget ' })

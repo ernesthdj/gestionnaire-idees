@@ -157,6 +157,13 @@
   font-weight: 700;
   color: var(--color-content);
 }
+.living-meta {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-content-muted);
+  font-variant-numeric: tabular-nums;
+}
 .living[data-open] .living-label {
   color: var(--color-content);
   font-weight: 600;

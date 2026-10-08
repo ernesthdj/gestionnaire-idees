@@ -74,6 +74,10 @@ export interface BrainstormDocView {
   readonly coveredBy: readonly string[]
 }
 
+/** Idée à brainstormer (D11) : un document de niveau 1 qu'aucune spec ne cite, hors fondation. */
+export const isToBrainstorm = (doc: BrainstormDocView): boolean =>
+  doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md'
+
 export interface WorkflowView {
   readonly genesisId: string
   readonly foundation: { readonly path: string; readonly summary: string } | null

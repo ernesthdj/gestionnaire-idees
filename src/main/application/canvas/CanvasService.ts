@@ -102,7 +102,8 @@ export class CanvasService {
         ...(summary === undefined ? {} : { sheetSummary: summary }),
         locked: locks.get(root.id)?.locked ?? false,
         lockProposed: locks.get(root.id)?.lockProposed ?? false,
-        ...(folded.has(root.id) ? { planCollapsed: true } : {})
+        ...(folded.has(root.id) ? { planCollapsed: true } : {}),
+        ...(this.deps.finals?.projectLinked(root.id) === true ? { linkedProject: true } : {})
       }
     })
     const visible = new Set(roots.map((root) => root.id))

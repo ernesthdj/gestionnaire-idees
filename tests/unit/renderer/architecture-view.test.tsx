@@ -73,7 +73,7 @@ describe('vue Architecture à l’écran (spec 017 D20)', () => {
   it('should_switch_views_and_set_the_architecture_from_the_map_bar', async () => {
     const user = userEvent.setup()
     const api = installFakeApi({ 'structure:setArchitecture': () => ({ batchId: 'b1' }) })
-    const props = { data: { genesisId: RAW_ID, view: 'progression', architecture: CLEAN } }
+    const props = { data: { genesisId: RAW_ID, view: 'progression', hasMap: true, architecture: CLEAN } }
     const { container } = wrap(<StructureBarNode {...(props as unknown as NodeProps<StructureBarNodeType>)} />)
     await user.click(screen.getByRole('button', { name: 'Architecture' }))
     expect(useUiStore.getState().structureViews[RAW_ID]).toBe('architecture')
@@ -84,7 +84,7 @@ describe('vue Architecture à l’écran (spec 017 D20)', () => {
   })
 
   it('should_disable_the_architecture_view_when_no_architecture_is_known', () => {
-    const props = { data: { genesisId: RAW_ID, view: 'progression', architecture: null } }
+    const props = { data: { genesisId: RAW_ID, view: 'progression', hasMap: true, architecture: null } }
     wrap(<StructureBarNode {...(props as unknown as NodeProps<StructureBarNodeType>)} />)
     expect((screen.getByRole('button', { name: 'Architecture' }) as HTMLButtonElement).disabled).toBe(true)
   })

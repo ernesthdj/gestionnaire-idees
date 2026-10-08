@@ -32,6 +32,8 @@ export interface LivingNodeProps {
   readonly fold?: { readonly collapsed: boolean; readonly count: number; readonly onToggle: () => void }
   /** Sa carte de détails est ouverte : le nœud grossit et s'éclaire. */
   readonly open?: boolean
+  /** Ligne discrète sous le titre (avancement « 33/49 », lecture partielle…). */
+  readonly meta?: string
   /** Contenu ajouté dans la couche flottante, posé sur le cercle (poignées React Flow, pastilles…). */
   readonly children?: ReactNode
 }
@@ -52,6 +54,7 @@ export function LivingNode({
   fileTitle = 'Fichiers à lire dans la carte',
   fold,
   open = false,
+  meta,
   children
 }: LivingNodeProps): React.JSX.Element {
   const Icon = NODE_ICONS[orb?.inner ?? visual.icon]
@@ -120,7 +123,10 @@ export function LivingNode({
             </button>
           )}
         </div>
-        <span className="living-label">{title}</span>
+        <span className="living-label">
+          {title}
+          {meta === undefined ? null : <span className="living-meta">{meta}</span>}
+        </span>
         {children}
       </div>
     </div>

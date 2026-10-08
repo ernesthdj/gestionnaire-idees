@@ -63,6 +63,8 @@ import { useCards } from './cards/cardsStore'
 import { useSmoothZoom } from './useSmoothZoom'
 import { GLIDE_MS, useGlide } from './useGlide'
 import { connectionIntent } from './connection'
+import { useWorkflows } from './workflow/useWorkflow'
+import { WorkflowNode } from './workflow/WorkflowNode'
 
 /** Types de nœuds ; chacun ne se redessine que si son contenu change (glissements fluides, spec 022). */
 const NODE_TYPES: NodeTypes = {
@@ -79,7 +81,8 @@ const NODE_TYPES: NodeTypes = {
   plan: stillNode(PlanNode),
   planBar: stillNode(PlanBarNode),
   document: stillNode(DocumentNode),
-  deliverable: stillNode(DeliverableNode)
+  deliverable: stillNode(DeliverableNode),
+  workflow: stillNode(WorkflowNode)
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -106,6 +109,7 @@ function parentOf(node: MapNode): string | null {
   if (node.type === 'element') return node.data.element.parentId
   if (node.type === 'plan') return node.data.item.parentId
   if (node.type === 'document' || node.type === 'deliverable') return node.data.parentId ?? null
+  if (node.type === 'workflow') return node.data.item.parentKey
   return null
 }
 
@@ -251,6 +255,16 @@ function CanvasInner(): React.JSX.Element {
   )
   useEffect(() => persist(), [positions, persist])
 
+  // Vue Workflow (spec 023) : lue seulement pour les projets liés basculés en Workflow.
+  const workflowIds = useMemo(
+    () =>
+      (view?.ideas ?? [])
+        .filter((idea) => idea.linkedProject === true && structureViews[idea.id] === 'workflow')
+        .map((idea) => idea.id),
+    [view, structureViews]
+  )
+  const workflows = useWorkflows(workflowIds)
+
   const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[] } => {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
@@ -262,10 +276,11 @@ function CanvasInner(): React.JSX.Element {
       openIds,
       structureViews,
       transposed,
-      analysisLinks
+      analysisLinks,
+      workflows
     )
     return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
-  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed, analysisLinks])
+  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed, analysisLinks, workflows])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
 
@@ -374,8 +389,11 @@ function CanvasInner(): React.JSX.Element {
             .map((idea) => idea.id)
             .join(',')}|${view.elements
             .map((element) => `${element.id}:${element.collapsed}`)
-            .join(',')}|${JSON.stringify(structureViews)}`,
-    [view, transposed, structureViews]
+            .join(',')}|${JSON.stringify(structureViews)}|${graph.nodes
+            .filter((node) => node.type === 'workflow')
+            .map((node) => node.id)
+            .join(',')}`,
+    [view, transposed, structureViews, graph]
   )
   const glide = useGlide(glideSignature, reduced)
 

@@ -1,4 +1,4 @@
-import type { BrainstormDocView } from '@shared/ipc/workflow'
+import { isToBrainstorm, type BrainstormDocView } from '@shared/ipc/workflow'
 import { clip, WORKFLOW_LIMITS } from './limits'
 
 const NAME = /^L(\d)([a-z]?)(?:-([a-z0-9-]+))?\.md$/i
@@ -64,5 +64,4 @@ export function brainstormDocs(
 }
 
 /** Idées à brainstormer : les L1 qu'aucune spec ne cite, hors fondation (D11). */
-export const toBrainstorm = (docs: readonly BrainstormDocView[]): BrainstormDocView[] =>
-  docs.filter((doc) => doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md')
+export const toBrainstorm = (docs: readonly BrainstormDocView[]): BrainstormDocView[] => docs.filter(isToBrainstorm)
