@@ -17,6 +17,7 @@ contentHash, domainId?, stars?, starsSource?, usage?: { calls30d, lastAt } }`.
 ## Comprendre
 | Canal | Entrée | Sortie | Erreurs |
 |---|---|---|---|
+| `skills:cards` | `{}` | `{ cards: Record<skillId, SkillCardView>, domains, links }` (fiches, domaines, liens de sens) | — |
 | `skills:analyze` | `{ skillIds?: string[] ≤ 30 }` | `{ analysisId }` | `ANALYSIS_RUNNING`, `AI_UNAVAILABLE` |
 | `skills:analyzeProgress` (événement) | — | `{ analysisId, done, total, failed }` | — |
 | `skills:setStars` | `{ skillId, stars: 1..5 \| null }` | `{ batchId }` | `NOT_FOUND` |

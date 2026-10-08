@@ -42,6 +42,8 @@ export interface AiEngineOptions {
 
 /** Modèle de l'Analyste interne (spec 019 T022) : lecture du dépôt et raisonnement sur le code. */
 export const ANALYSTE_MODEL = 'claude-opus-5-5'
+/** Fiches techniques des skills (spec 020 US2) : Sonnet 5.5 par défaut, une fiche par skill. */
+export const SKILL_CARD_MODEL = 'claude-sonnet-5-5'
 
 /**
  * Racine de composition du moteur IA (spec 010) : Ollama pour les tâches locales, Claude par le CLI officiel de
@@ -68,7 +70,13 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       return {
         allowClaudeFallback: current.allowClaudeFallback,
         claudeModelFor: (kind) =>
-          kind === 'widget' ? current.widgetModel : kind === 'analyste' ? ANALYSTE_MODEL : undefined
+          kind === 'widget'
+            ? current.widgetModel
+            : kind === 'analyste'
+              ? ANALYSTE_MODEL
+              : kind === 'skill_card'
+                ? SKILL_CARD_MODEL
+                : undefined
       }
     },
     context: async (kind) => options.contextSource(kind),

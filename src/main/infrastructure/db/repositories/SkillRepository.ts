@@ -1,7 +1,15 @@
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { neurons } from '../schemaNeurons'
-import { skillDrafts, skillImportCandidates, skillImports, skillVersions } from '../schemaSkills'
+import {
+  skillCards,
+  skillDomains,
+  skillDrafts,
+  skillImportCandidates,
+  skillImports,
+  skillLinks,
+  skillVersions
+} from '../schemaSkills'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export type SkillDraftRow = typeof skillDrafts.$inferSelect
@@ -9,6 +17,9 @@ export type NewSkillDraft = typeof skillDrafts.$inferInsert
 export type SkillVersionRow = typeof skillVersions.$inferSelect
 export type SkillImportRow = typeof skillImports.$inferSelect
 export type SkillCandidateRow = typeof skillImportCandidates.$inferSelect
+export type SkillCardRow = typeof skillCards.$inferSelect
+export type SkillDomainRow = typeof skillDomains.$inferSelect
+export type SkillLinkRow = typeof skillLinks.$inferSelect
 
 /** Versions gardées par skill (FR-019) : au-delà, les plus anciennes sont retirées. */
 export const VERSIONS_KEPT = 10
@@ -235,5 +246,84 @@ export class SkillRepository {
       .set({ claudeVerdict: audit.verdict, claudeReasons: audit.reasons, claudeHash: audit.hash })
       .where(eq(skillImportCandidates.id, id))
       .run()
+  }
+
+  // --- Fiches, domaines et liens de sens (US2) ------------------------------------------------------------------
+
+  domains(): SkillDomainRow[] {
+    return this.db.select().from(skillDomains).orderBy(asc(skillDomains.position), asc(skillDomains.id)).all()
+  }
+
+  /** Domaine proposé par Claude : ajouté en attente, à la suite des autres ; sans effet s'il existe déjà. */
+  proposeDomain(id: string, label: string): void {
+    const position = this.domains().reduce((max, row) => Math.max(max, row.position), -1) + 1
+    this.db.insert(skillDomains).values({ id, label, position, pending: true }).onConflictDoNothing().run()
+  }
+
+  acceptDomain(id: string): boolean {
+    return this.db.update(skillDomains).set({ pending: false }).where(eq(skillDomains.id, id)).run().changes > 0
+  }
+
+  card(skillId: string): SkillCardRow | undefined {
+    return this.db.select().from(skillCards).where(eq(skillCards.skillId, skillId)).get()
+  }
+
+  cards(): SkillCardRow[] {
+    return this.db.select().from(skillCards).all()
+  }
+
+  upsertCard(row: SkillCardRow): void {
+    this.db.insert(skillCards).values(row).onConflictDoUpdate({ target: skillCards.skillId, set: row }).run()
+  }
+
+  updateCard(skillId: string, patch: Partial<Omit<SkillCardRow, 'skillId'>>): void {
+    this.db.update(skillCards).set(patch).where(eq(skillCards.skillId, skillId)).run()
+  }
+
+  /** Liens de sens affichés (retirés exclus). */
+  links(): SkillLinkRow[] {
+    return this.db.select().from(skillLinks).where(eq(skillLinks.removed, false)).all()
+  }
+
+  link(id: string): SkillLinkRow | undefined {
+    return this.db.select().from(skillLinks).where(eq(skillLinks.id, id)).get()
+  }
+
+  linkBetween(fromId: string, toId: string, kind: SkillLinkRow['kind']): SkillLinkRow | undefined {
+    return this.db
+      .select()
+      .from(skillLinks)
+      .where(and(eq(skillLinks.fromId, fromId), eq(skillLinks.toId, toId), eq(skillLinks.kind, kind)))
+      .get()
+  }
+
+  /**
+   * Nouvelle analyse d'un skill : ses liens proposés par Claude sont remplacés ; un lien que mentalyas a retiré n'est
+   * jamais reproposé, un lien de mentalyas n'est jamais touché.
+   */
+  replaceClaudeLinks(fromId: string, links: readonly Omit<SkillLinkRow, 'fromId' | 'origin' | 'removed'>[]): void {
+    this.db
+      .delete(skillLinks)
+      .where(and(eq(skillLinks.fromId, fromId), eq(skillLinks.origin, 'claude'), eq(skillLinks.removed, false)))
+      .run()
+    for (const link of links) {
+      if (this.linkBetween(fromId, link.toId, link.kind) !== undefined) continue
+      this.db
+        .insert(skillLinks)
+        .values({ ...link, fromId, origin: 'claude', removed: false })
+        .run()
+    }
+  }
+
+  insertLink(row: SkillLinkRow): void {
+    this.db.insert(skillLinks).values(row).run()
+  }
+
+  updateLink(id: string, patch: Partial<Omit<SkillLinkRow, 'id'>>): void {
+    this.db.update(skillLinks).set(patch).where(eq(skillLinks.id, id)).run()
+  }
+
+  deleteLink(id: string): void {
+    this.db.delete(skillLinks).where(eq(skillLinks.id, id)).run()
   }
 }

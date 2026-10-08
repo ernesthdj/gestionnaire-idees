@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { SkillDetailView, SkillDraftView, SkillsView } from '@shared/ipc/skills'
+import type { SkillCardsView, SkillDetailView, SkillDraftView, SkillsView, SkillUsageView } from '@shared/ipc/skills'
 import { FAMILY_LABELS } from '@shared/skills/model'
 import { useUiStore } from '../app/uiStore'
 import { ChatPanel } from '../chat/ChatPanel'
@@ -8,6 +8,7 @@ import { Markdown } from '../chat/Markdown'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { DraftPanel } from './DraftPanel'
+import { SkillCardSheet } from './SkillCardSheet'
 import { FAMILY_ICONS } from './SkillNodes'
 
 type Tab = 'fiche' | 'conversation' | 'brouillon' | 'source' | 'fichiers'
@@ -37,6 +38,11 @@ export function SkillPanel({
   const drafts = useQuery({
     queryKey: ['skillDrafts', skillId],
     queryFn: () => call<SkillDraftView[]>('skills:drafts', { skillId })
+  })
+  const cards = useQuery({ queryKey: ['skillCards'], queryFn: () => call<SkillCardsView>('skills:cards', {}) })
+  const usage = useQuery({
+    queryKey: ['skillUsage'],
+    queryFn: () => call<Record<string, SkillUsageView>>('skills:usage', {})
   })
   const draft = drafts.data?.[0]
   const names = new Map(view.skills.map((skill) => [skill.id, skill.name]))
@@ -138,6 +144,13 @@ export function SkillPanel({
                       Même nom qu’un autre skill : {detail.skill.sameNameAs.map((id) => id.split(':')[0]).join(', ')}.
                     </p>
                   ) : null}
+                  <SkillCardSheet
+                    skillId={skillId}
+                    view={view}
+                    cards={cards.data}
+                    usage={usage.data?.[skillId]}
+                    onSelect={onSelect}
+                  />
                   <LinkList title="Appelle" ids={calls.map((link) => link.to)} names={names} onSelect={onSelect} />
                   <LinkList
                     title="Appelé par"

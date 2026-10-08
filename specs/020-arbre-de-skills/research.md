@@ -33,6 +33,10 @@
   plugin espacé (`vercel:deploy`) relié au skill de plugin correspondant.
 - **Raison** : minimisation (constitution IV), fil principal libre.
 - **Alternatives** : index persistant — inutile au volume constaté.
+- **Amendement (2026-10-08, US2)** : lecture en flux **asynchrone dans le main** (`createReadStream` + `readline`)
+  plutôt qu'un `worker_threads` : mesuré à 241 Mo / 89 fichiers sur 30 jours, la lecture asynchrone ne bloque pas la
+  boucle d'événements, et un fil de travail exigerait un quatrième point d'entrée au build. Agrégat recalculé au plus
+  une fois par heure ; commande comptée seulement sur une ligne `user`.
 
 ## R5 — Conversations Skills
 - **Décision** : neurones cachés (`neurons.hidden`, migration 0030) : un neurone « Skills » unique et un par skill ouvert

@@ -10,7 +10,8 @@ const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   // Ollama quand le projet repris est « Local uniquement » (`localOnly` de la passerelle, spec 017 R6).
   reprise_guide: 'claude',
   analyste: 'claude',
-  skill_audit: 'claude'
+  skill_audit: 'claude',
+  skill_card: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
@@ -18,7 +19,8 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   widget: 'medium',
   reprise_guide: 'medium',
   analyste: 'high',
-  skill_audit: 'medium'
+  skill_audit: 'medium',
+  skill_card: 'medium'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
@@ -26,7 +28,8 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   widget: 20000,
   reprise_guide: 16000,
   analyste: 16000,
-  skill_audit: 4000
+  skill_audit: 4000,
+  skill_card: 6000
 }
 
 /**
@@ -37,7 +40,8 @@ const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
   reprise_guide: 10 * 60 * 1000,
   // L'Analyste lit le dépôt avec ses outils (spec 019, `L3-analyste-analyse.md` §2).
   analyste: 15 * 60 * 1000,
-  skill_audit: 3 * 60 * 1000
+  skill_audit: 3 * 60 * 1000,
+  skill_card: 3 * 60 * 1000
 }
 const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 32768 }
 

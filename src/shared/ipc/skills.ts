@@ -1,3 +1,4 @@
+import type { SemanticLinkKind, SkillCard } from '../skills/card'
 import type { SkillFamily } from '../skills/model'
 
 /** Vues de l'arbre de skills (spec 020, contrats `skills:*`). Aucun chemin absolu n'y figure. */
@@ -140,4 +141,57 @@ export interface SkillImportProgressEvent {
   readonly done?: number
   readonly total?: number
   readonly errorCode?: string
+}
+
+/** Fiche technique d'un skill (US2) : rédigée par Claude, note et domaine corrigeables par mentalyas. */
+export interface SkillCardView {
+  readonly skillId: string
+  readonly card: SkillCard
+  /** Étoiles affichées : celles de mentalyas si elle en a donné, sinon celles de la grille. */
+  readonly stars: number
+  readonly starsClaude: number
+  readonly starsUser: number | null
+  readonly domainId: string | null
+  readonly domainSource: 'claude' | 'user'
+  readonly analyzedAt: number
+  readonly model: string
+  /** Le skill a changé depuis l'analyse : fiche à refaire. */
+  readonly stale: boolean
+}
+
+export interface SkillDomainView {
+  readonly id: string
+  readonly label: string
+  readonly position: number
+  /** Proposé par Claude, pas encore validé. */
+  readonly pending: boolean
+}
+
+/** Lien de sens entre deux skills (« appelle » reste calculé depuis le texte, voir `SkillLinkView`). */
+export interface SkillSemanticLinkView {
+  readonly id: string
+  readonly from: string
+  readonly to: string
+  readonly kind: SemanticLinkKind
+  readonly origin: 'claude' | 'user'
+  readonly reason: string | null
+}
+
+export interface SkillCardsView {
+  readonly cards: Readonly<Record<string, SkillCardView>>
+  readonly domains: readonly SkillDomainView[]
+  readonly links: readonly SkillSemanticLinkView[]
+}
+
+export interface SkillAnalyzeProgressEvent {
+  readonly analysisId: string
+  readonly done: number
+  readonly total: number
+  readonly failed: number
+}
+
+/** Usage réel d'un skill sur 30 jours (noms de skills appelés seulement, aucun texte de conversation). */
+export interface SkillUsageView {
+  readonly calls30d: number
+  readonly lastAt: number
 }

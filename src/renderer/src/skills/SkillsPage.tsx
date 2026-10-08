@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Background,
   Controls,
@@ -10,7 +10,17 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import type { LibraryRepoView, LibrarySkillView, SkillDraftView, SkillsView, SkillView } from '@shared/ipc/skills'
+import type {
+  LibraryRepoView,
+  LibrarySkillView,
+  SkillAnalyzeProgressEvent,
+  SkillCardsView,
+  SkillDraftView,
+  SkillsView,
+  SkillUsageView,
+  SkillView
+} from '@shared/ipc/skills'
+import { LINK_KIND_LABELS } from '@shared/skills/card'
 import { FAMILY_LABELS, SKILL_FAMILIES, type SkillFamily } from '@shared/skills/model'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
@@ -79,23 +89,55 @@ interface TreeInput {
   readonly openRepos: ReadonlySet<string>
   readonly selectedId: string | null
   readonly onToggleCluster: () => void
+  /** Fiches (US2) : dès qu'une existe, les skills personnels et de projet se rangent par domaine. */
+  readonly cards?: SkillCardsView | undefined
+  readonly usage?: Readonly<Record<string, SkillUsageView>> | undefined
 }
+
+/** Branche des skills sans fiche (et des brouillons de nouveaux skills) quand l'arbre est rangé par domaine. */
+const UNSORTED_GROUP = 'domain:_'
 
 /** Nœuds et liens de l'arbre (une branche par famille, plus la Bibliothèque), à partir de la toile filtrée. */
 function buildTree(input: TreeInput): { readonly nodes: TreeNode[]; readonly edges: Edge[] } {
   const { view, ghosts, library, families, search, pluginsOpen, openRepos, selectedId, onToggleCluster } = input
+  const { cards, usage } = input
   const visible = view.skills.filter((skill) => families.has(skill.family) && matches(skill, search))
   const collapsed = !pluginsOpen && search.trim() === ''
-  const groups: TreeGroup[] = SKILL_FAMILIES.filter((family) => families.has(family)).map((family) => {
-    const skills = visible.filter((skill) => skill.family === family).sort((a, b) => (a.name < b.name ? -1 : 1))
+  const starsOf = (skill: SkillView): number => cards?.cards[skill.id]?.stars ?? 0
+  // Note décroissante, puis nom.
+  const ordered = (skills: readonly SkillView[]): string[] =>
+    [...skills].sort((a, b) => starsOf(b) - starsOf(a) || (a.name < b.name ? -1 : 1)).map((skill) => skill.id)
+  const byDomain = cards !== undefined && Object.keys(cards.cards).length > 0
+  const familyGroup = (family: SkillFamily): TreeGroup => {
+    const skills = visible.filter((skill) => skill.family === family)
     const folded = family === 'plugin' && collapsed && skills.length > 0
     const drafts = ghosts.filter((draft) => draft.family === family).map((draft) => `${GHOST_PREFIX}${draft.id}`)
     return {
       id: family,
       label: FAMILY_LABELS[family],
-      items: [...drafts, ...(folded ? [CLUSTER_ID] : skills.map((skill) => skill.id))]
+      items: [...drafts, ...(folded ? [CLUSTER_ID] : ordered(skills))]
     }
-  })
+  }
+  const groups: TreeGroup[] = []
+  if (!byDomain) {
+    groups.push(...SKILL_FAMILIES.filter((family) => families.has(family)).map(familyGroup))
+  } else {
+    // Rangement par domaine (lot B) pour les skills personnels et de projet ; les plugins gardent leur grappe.
+    const own = visible.filter((skill) => skill.family !== 'plugin')
+    const known = new Set(cards.domains.map((domain) => domain.id))
+    for (const domain of cards.domains) {
+      const items = ordered(own.filter((skill) => cards.cards[skill.id]?.domainId === domain.id))
+      if (items.length > 0) {
+        groups.push({ id: `domain:${domain.id}`, label: `${domain.label}${domain.pending ? ' (proposé)' : ''}`, items })
+      }
+    }
+    const unsorted = own.filter((skill) => !known.has(cards.cards[skill.id]?.domainId ?? ''))
+    const drafts = ghosts.filter((draft) => families.has(draft.family)).map((draft) => `${GHOST_PREFIX}${draft.id}`)
+    if (unsorted.length + drafts.length > 0) {
+      groups.push({ id: UNSORTED_GROUP, label: 'À analyser', items: [...drafts, ...ordered(unsorted)] })
+    }
+    if (families.has('plugin')) groups.push(familyGroup('plugin'))
+  }
   // Une recherche déplie les dépôts pour montrer leurs skills qui correspondent.
   const libraryVisible = library.map((repo) => ({
     repo,
@@ -121,7 +163,9 @@ function buildTree(input: TreeInput): { readonly nodes: TreeNode[]; readonly edg
     const count =
       group.id === LIBRARY_GROUP
         ? library.reduce((total, repo) => total + repo.skills.length, 0)
-        : visible.filter((skill) => skill.family === group.id).length
+        : group.id.startsWith('domain:')
+          ? group.items.length
+          : visible.filter((skill) => skill.family === group.id).length
     nodes.push({
       id: `branch:${group.id}`,
       type: 'branch',
@@ -189,10 +233,15 @@ function buildTree(input: TreeInput): { readonly nodes: TreeNode[]; readonly edg
       id,
       type: 'skill',
       position,
-      data: { skill, selected: id === selectedId },
+      data: {
+        skill,
+        selected: id === selectedId,
+        ...(cards?.cards[id] === undefined ? {} : { stars: cards.cards[id].stars }),
+        ...(usage?.[id] === undefined ? {} : { calls: usage[id].calls30d })
+      },
       ariaLabel: `${skill.name}, skill ${FAMILY_LABELS[skill.family].toLowerCase()}${
-        skill.hasScripts ? ', contient des scripts' : ''
-      }${skill.damaged ? ', abîmé' : ''}`
+        cards?.cards[id] === undefined ? '' : `, ${cards.cards[id].stars} étoiles sur 5`
+      }${skill.hasScripts ? ', contient des scripts' : ''}${skill.damaged ? ', abîmé' : ''}`
     })
   }
   for (const link of view.links) {
@@ -204,6 +253,18 @@ function buildTree(input: TreeInput): { readonly nodes: TreeNode[]; readonly edg
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { strokeWidth: 1.5 },
       ariaLabel: `${link.from.split(':').at(-1) ?? ''} appelle ${link.to.split(':').at(-1) ?? ''}`
+    })
+  }
+  // Liens de sens (US2) : en pointillés, la sorte dans le libellé accessible.
+  for (const link of cards?.links ?? []) {
+    if (!layout.items.has(link.from) || !layout.items.has(link.to)) continue
+    edges.push({
+      id: `sens:${link.id}`,
+      source: link.from,
+      target: link.to,
+      markerEnd: { type: MarkerType.ArrowClosed },
+      style: { strokeWidth: 1.5, strokeDasharray: '6 4' },
+      ariaLabel: `${link.from.split(':').at(-1) ?? ''} ${LINK_KIND_LABELS[link.kind]} ${link.to.split(':').at(-1) ?? ''}`
     })
   }
   return { nodes, edges }
@@ -218,6 +279,42 @@ function SkillsTree(): React.JSX.Element {
     queryFn: () => call<SkillDraftView[]>('skills:drafts', {})
   })
   const ghosts = useMemo(() => (drafts.data ?? []).filter((draft) => draft.isNew), [drafts.data])
+  const client = useQueryClient()
+  const cardsQuery = useQuery({ queryKey: ['skillCards'], queryFn: () => call<SkillCardsView>('skills:cards', {}) })
+  const usageQuery = useQuery({
+    queryKey: ['skillUsage'],
+    queryFn: () => call<Record<string, SkillUsageView>>('skills:usage', {})
+  })
+  const [analysis, setAnalysis] = useState<SkillAnalyzeProgressEvent | null>(null)
+  const [analyzeError, setAnalyzeError] = useState('')
+  useEffect(
+    () =>
+      window.api.on('skills:analyzeProgress', (payload) => {
+        const event = payload as SkillAnalyzeProgressEvent
+        if (event.done < event.total) {
+          setAnalysis(event)
+          return
+        }
+        setAnalysis(null)
+        void client.invalidateQueries({ queryKey: ['skillCards'] })
+        if (event.failed > 0) {
+          setAnalyzeError(
+            `${event.failed} fiche${event.failed > 1 ? 's' : ''} sur ${event.total} n’ont pas pu être rédigées.`
+          )
+        }
+      }),
+    [client]
+  )
+  const analyze = async (): Promise<void> => {
+    setAnalyzeError('')
+    try {
+      const { analysisId, total } = await call<{ analysisId: string; total: number }>('skills:analyze', {})
+      if (total === 0) setAnalyzeError('Toutes les fiches sont à jour.')
+      else setAnalysis({ analysisId, done: 0, total, failed: 0 })
+    } catch (failure) {
+      setAnalyzeError(failure instanceof IpcFailure ? failure.message : 'L’analyse n’a pas pu démarrer.')
+    }
+  }
   const libraryQuery = useQuery({
     queryKey: ['skillLibrary'],
     queryFn: () => call<LibraryRepoView[]>('skills:library', {})
@@ -275,9 +372,23 @@ function SkillsTree(): React.JSX.Element {
             pluginsOpen,
             openRepos,
             selectedId,
-            onToggleCluster: () => setPluginsOpen(true)
+            onToggleCluster: () => setPluginsOpen(true),
+            cards: cardsQuery.data,
+            usage: usageQuery.data
           }),
-    [view, ghosts, library, showLibrary, families, search, pluginsOpen, openRepos, selectedId]
+    [
+      view,
+      ghosts,
+      library,
+      showLibrary,
+      families,
+      search,
+      pluginsOpen,
+      openRepos,
+      selectedId,
+      cardsQuery.data,
+      usageQuery.data
+    ]
   )
   const selectable = (id: string): boolean =>
     id.startsWith(GHOST_PREFIX) || inLibrary(id) || (view?.skills.some((skill) => skill.id === id) ?? false)
@@ -333,12 +444,25 @@ function SkillsTree(): React.JSX.Element {
           ) : null}
           <button
             type="button"
+            disabled={analysis !== null}
+            onClick={() => void analyze()}
+            className="ml-auto h-8 rounded-md border border-content-muted/40 px-3 hover:bg-surface-raised disabled:opacity-60"
+          >
+            {analysis === null ? 'Analyser les skills' : `Analyse… ${analysis.done} / ${analysis.total}`}
+          </button>
+          <button
+            type="button"
             onClick={() => setImportUrl('')}
-            className="ml-auto h-8 rounded-md border border-accent px-3 text-accent hover:bg-surface-raised"
+            className="h-8 rounded-md border border-accent px-3 text-accent hover:bg-surface-raised"
           >
             Importer depuis GitHub…
           </button>
         </div>
+        {analyzeError === '' ? null : (
+          <p role="status" className="border-b border-content-muted/20 px-4 py-1 text-xs">
+            {analyzeError}
+          </p>
+        )}
         <div className="relative min-h-0 flex-1">
           {query.isError ? (
             <p role="alert" className="p-8 text-center text-sm">

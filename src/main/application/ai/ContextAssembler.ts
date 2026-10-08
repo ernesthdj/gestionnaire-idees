@@ -2,6 +2,7 @@ import type { TaskKind } from '../../domain/ai/types'
 import { ANALYSTE_FRAME, ANALYSTE_FRAME_VERSION } from '../../infrastructure/ai/AnalysteFrame'
 import { REPRISE_GUIDE_FRAME, REPRISE_GUIDE_FRAME_VERSION } from '../../infrastructure/ai/RepriseGuideFrame'
 import { SKILL_AUDIT_FRAME, SKILL_AUDIT_FRAME_VERSION } from '../../infrastructure/ai/SkillAuditFrame'
+import { SKILL_CARD_FRAME, SKILL_CARD_FRAME_VERSION } from '../../infrastructure/ai/SkillCardFrame'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
 import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
 import { WIDGET_FRAME } from '../../infrastructure/ai/WidgetFrame'
@@ -15,14 +16,16 @@ const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
   widget: WIDGET_FRAME,
   reprise_guide: REPRISE_GUIDE_FRAME,
   analyste: ANALYSTE_FRAME,
-  skill_audit: SKILL_AUDIT_FRAME
+  skill_audit: SKILL_AUDIT_FRAME,
+  skill_card: SKILL_CARD_FRAME
 }
 
 /** Version du cadre figé d'une tâche, mêlée à ses empreintes (spec 019 R3) : changer de cadre change d'empreinte. */
 const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
   reprise_guide: REPRISE_GUIDE_FRAME_VERSION,
   analyste: ANALYSTE_FRAME_VERSION,
-  skill_audit: SKILL_AUDIT_FRAME_VERSION
+  skill_audit: SKILL_AUDIT_FRAME_VERSION,
+  skill_card: SKILL_CARD_FRAME_VERSION
 }
 
 export function frameVersionOf(kind: TaskKind): string {

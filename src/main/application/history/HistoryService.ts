@@ -188,6 +188,8 @@ function skillsSummary(entries: readonly ChangeRow[]): string | null {
     const draftName = head.after?.['name'] ?? head.before?.['name']
     return `Brouillon de skill « ${typeof draftName === 'string' ? draftName : '?'} »`
   }
+  if (head.entity === 'skill_card_user') return `Note ou domaine du skill « ${name} »`
+  if (head.entity === 'skill_link') return 'Lien entre skills'
   if (head.entity !== 'skill_files') return null
   if (head.after === null) return `Skill « ${name} » supprimé`
   if (head.before === null) return `Skill « ${name} » installé`

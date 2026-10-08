@@ -21,7 +21,14 @@ const FAMILY_TONES: Readonly<Record<SkillFamily, string>> = {
   plugin: 'border-content-muted'
 }
 
-export type SkillNodeData = { readonly skill: SkillView; readonly selected: boolean }
+export type SkillNodeData = {
+  readonly skill: SkillView
+  readonly selected: boolean
+  /** Étoiles affichées (US2), absentes tant que le skill n'a pas de fiche. */
+  readonly stars?: number
+  /** Appels sur 30 jours. */
+  readonly calls?: number
+}
 export type SkillNodeType = Node<SkillNodeData, 'skill'>
 export type TrunkNodeType = Node<{ readonly count: number }, 'trunk'>
 export type BranchNodeType = Node<{ readonly label: string; readonly count: number }, 'branch'>
@@ -66,6 +73,12 @@ export function SkillNode({ data }: NodeProps<SkillNodeType>): React.JSX.Element
           <span aria-hidden="true">{FAMILY_ICONS[skill.family]}</span> {FAMILY_LABELS[skill.family]}
         </span>
         <span className="flex gap-1">
+          {data.stars === undefined ? null : (
+            <span title={`${data.stars} étoiles sur 5`}>
+              <span aria-hidden="true">★</span> {data.stars}
+            </span>
+          )}
+          {data.calls === undefined ? null : <span title="Appels sur 30 jours">{data.calls}×</span>}
           {skill.hasScripts ? <span title="Contient des scripts">⚠ scripts</span> : null}
           {skill.damaged ? <span title="En-tête absent ou invalide">abîmé</span> : null}
         </span>

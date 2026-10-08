@@ -40,6 +40,9 @@ import { SkillInventory } from './application/skills/SkillInventory'
 import { SkillService } from './application/skills/SkillService'
 import { SkillImportService } from './application/skills/SkillImportService'
 import { runSkillAudit } from './application/ai/SkillAuditTask'
+import { runSkillCard } from './application/ai/SkillCardTask'
+import { SkillCardService } from './application/skills/SkillCardService'
+import { SkillUsageScanner } from './application/skills/SkillUsageScanner'
 import { CloneService } from './application/reprise/CloneService'
 import { launchGit } from './infrastructure/projects/GitProcess'
 import { resolveGit } from './infrastructure/projects/GitCli'
@@ -291,6 +294,16 @@ export function bootstrap(shell: ShellPort): AppContext {
     logFailure: (fields) => logger.warn('skills.import_failed', fields)
   })
   skillImports.recover()
+  // Fiches techniques, notes et domaines (spec 020 US2) : Claude sans outil, à la demande ; usage lu dans les
+  // historiques de Claude Code (noms de skills seulement).
+  const skillCards = new SkillCardService({
+    repository: new SkillRepository(database.db),
+    inventory: skillInventory,
+    card: (input, requestId, signal) => runSkillCard(ai.gateway, input, requestId, signal),
+    emit: (event) => broadcast('skills:analyzeProgress', event),
+    onChanged: () => broadcast('skills:changed', { scannedAt: Date.now() })
+  })
+  const skillUsage = new SkillUsageScanner({ projectsDir: join(app.getPath('home'), '.claude', 'projects') })
   const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
@@ -753,7 +766,8 @@ export function bootstrap(shell: ShellPort): AppContext {
           ...documents.historyHandlers(),
           ...finals.historyHandlers(),
           ...executions.historyHandlers(),
-          ...skillService.historyHandlers()
+          ...skillService.historyHandlers(),
+          ...skillCards.historyHandlers()
         })
       ),
       ...createWidgetRoutes(widgets),
@@ -787,7 +801,21 @@ export function bootstrap(shell: ShellPort): AppContext {
         analyste,
         store: analysteRepository
       }),
-      ...createSkillsRoutes({ inventory: skillInventory, skills: skillService, imports: skillImports }),
+      ...createSkillsRoutes({
+        inventory: skillInventory,
+        skills: skillService,
+        imports: skillImports,
+        cards: {
+          view: () => skillCards.view(),
+          analyze: (skillIds) => skillCards.analyze(skillIds),
+          setStars: (skillId, stars) => skillCards.setStars(skillId, stars),
+          setDomain: (skillId, domainId) => skillCards.setDomain(skillId, domainId),
+          acceptDomain: (domainId) => skillCards.acceptDomain(domainId),
+          link: (from, to, kind) => skillCards.link(from, to, kind),
+          unlink: (linkId) => skillCards.unlink(linkId),
+          usage: () => skillUsage.usage(skillInventory.list().skills)
+        }
+      }),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -819,6 +847,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       analyste.stop()
       skillInventory.unwatch()
       skillImports.stop()
+      skillCards.stop()
       probe.stop()
       void pipe.stop()
     }

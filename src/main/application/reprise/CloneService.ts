@@ -6,8 +6,9 @@ import type { GitLauncher, GitProcessResult } from '../../infrastructure/project
 
 /**
  * Clone contrôlé d'un dépôt (spec 021 research R6 = spec 020 T027 = spec 017 T029) : UN service, deux profils.
- * - `superficiel` (bibliothèque de skills, spec 020 D12) : `--depth 1 --single-branch`, dans un dossier temporaire du
- *   profil (renommé ensuite par l'appelant), délai 15 min, garde-fou de 1 Go mesuré après le clone ;
+ * - `superficiel` (bibliothèque de skills, spec 020 D12) : `--depth 1 --single-branch`, directement dans le dossier
+ *   de version donné par l'appelant (jamais renommé ensuite), sinon une quarantaine du profil ; délai 15 min, garde-fou
+ *   de 1 Go mesuré après le clone ;
  * - `historique` (reprise par lien) : `--filter=blob:none` (ou rien si « tout télécharger »), dossier choisi, 30 min.
  *
  * Sécurité (constitution I) : adresse contrôlée avant tout lancement (`gitUrl.ts`), git par chemin absolu sans shell,

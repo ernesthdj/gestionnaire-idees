@@ -1,12 +1,15 @@
 import { z } from 'zod'
+import { SEMANTIC_LINK_KINDS, type SemanticLinkKind } from '@shared/skills/card'
 import type {
   LibraryRepoView,
   LibrarySkillDetailView,
   LibraryVerdict,
   SkillDetailView,
   SkillDraftDiffView,
+  SkillCardsView,
   SkillDraftView,
-  SkillsView
+  SkillsView,
+  SkillUsageView
 } from '@shared/ipc/skills'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -26,6 +29,16 @@ export interface SkillsRoutesDeps {
     restore(skillId: string): { batchId: string }
     remove(skillId: string): { batchId: string }
     duplicate(skillId: string): { draftId: string }
+  }
+  readonly cards?: {
+    view(): SkillCardsView
+    analyze(skillIds?: readonly string[]): { analysisId: string; total: number }
+    setStars(skillId: string, stars: number | null): { batchId: string }
+    setDomain(skillId: string, domainId: string): { batchId: string }
+    acceptDomain(domainId: string): void
+    link(from: string, to: string, kind: SemanticLinkKind): { batchId: string }
+    unlink(linkId: string): { batchId: string }
+    usage(): Promise<Record<string, SkillUsageView>>
   }
   readonly imports?: {
     start(url: string): { importId: string }
@@ -119,7 +132,8 @@ export function createSkillsRoutes(deps: SkillsRoutesDeps): IpcRoute[] {
       input: z.object({ skillId: SkillId }).strict(),
       handler: async ({ skillId }) => skills.duplicate(skillId)
     }),
-    ...importRoutes(deps.imports)
+    ...importRoutes(deps.imports),
+    ...cardRoutes(deps.cards)
   ]
 }
 
@@ -175,5 +189,48 @@ function importRoutes(imports: SkillsRoutesDeps['imports']): IpcRoute[] {
         return {}
       }
     })
+  ]
+}
+
+/** Fiches, notes, domaines et liens de sens (US2) : le renderer ne donne que des identifiants. */
+function cardRoutes(cards: SkillsRoutesDeps['cards']): IpcRoute[] {
+  if (cards === undefined) return []
+  const DomainId = z.string().regex(/^[a-z0-9_]{2,32}$/)
+  return [
+    defineRoute({ channel: 'skills:cards', input: z.object({}).strict(), handler: async () => cards.view() }),
+    defineRoute({
+      channel: 'skills:analyze',
+      input: z.object({ skillIds: z.array(SkillId).min(1).max(30).optional() }).strict(),
+      handler: async ({ skillIds }) => cards.analyze(skillIds)
+    }),
+    defineRoute({
+      channel: 'skills:setStars',
+      input: z.object({ skillId: SkillId, stars: z.int().min(1).max(5).nullable() }).strict(),
+      handler: async ({ skillId, stars }) => cards.setStars(skillId, stars)
+    }),
+    defineRoute({
+      channel: 'skills:setDomain',
+      input: z.object({ skillId: SkillId, domainId: DomainId }).strict(),
+      handler: async ({ skillId, domainId }) => cards.setDomain(skillId, domainId)
+    }),
+    defineRoute({
+      channel: 'skills:acceptDomain',
+      input: z.object({ domainId: DomainId }).strict(),
+      handler: async ({ domainId }) => {
+        cards.acceptDomain(domainId)
+        return {}
+      }
+    }),
+    defineRoute({
+      channel: 'skills:link',
+      input: z.object({ from: SkillId, to: SkillId, kind: z.enum(SEMANTIC_LINK_KINDS) }).strict(),
+      handler: async ({ from, to, kind }) => cards.link(from, to, kind)
+    }),
+    defineRoute({
+      channel: 'skills:unlink',
+      input: z.object({ linkId: z.uuid() }).strict(),
+      handler: async ({ linkId }) => cards.unlink(linkId)
+    }),
+    defineRoute({ channel: 'skills:usage', input: z.object({}).strict(), handler: async () => cards.usage() })
   ]
 }

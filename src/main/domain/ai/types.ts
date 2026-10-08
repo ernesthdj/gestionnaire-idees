@@ -8,8 +8,8 @@ export const REMOTE_TASK_KINDS = ['widget'] as const
 export const REPRISE_TASK_KINDS = ['reprise_guide'] as const
 /** Analyste interne (spec 019) : seule tâche automatique dotée d'outils, en lecture seule (constitution IV). */
 export const ANALYSTE_TASK_KINDS = ['analyste'] as const
-/** Arbre de skills (spec 020) : audit d'un skill importé, sans outil (le texte du skill est une donnée). */
-export const SKILLS_TASK_KINDS = ['skill_audit'] as const
+/** Arbre de skills (spec 020) : audit d'un skill importé et fiche technique, sans outil (le texte du skill est une donnée). */
+export const SKILLS_TASK_KINDS = ['skill_audit', 'skill_card'] as const
 
 export type TaskKind =
   | (typeof LOCAL_TASK_KINDS)[number]
