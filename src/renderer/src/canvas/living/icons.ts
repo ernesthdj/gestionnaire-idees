@@ -1,0 +1,41 @@
+import {
+  Boxes,
+  Database,
+  FileText,
+  Flag,
+  FolderGit2,
+  FolderKanban,
+  GitBranch,
+  LayoutGrid,
+  Lightbulb,
+  ListOrdered,
+  Package,
+  Plug,
+  Sparkles,
+  SquareCheck,
+  UserRound,
+  type LucideIcon
+} from 'lucide-react'
+import type { NodeIconKey } from './nodeVisual'
+
+/**
+ * Pictogramme du type d'un nœud (spec 022 D11, D12) : bibliothèque Lucide, imports nommés (seules ces icônes sont
+ * embarquées). Toujours décoratif (`aria-hidden`) : le type est aussi dans le nom accessible du nœud.
+ */
+export const NODE_ICONS: Readonly<Record<NodeIconKey, LucideIcon>> = {
+  step: ListOrdered,
+  idea: Lightbulb,
+  document: FileText,
+  final: Flag,
+  deliverable: Package,
+  module: Boxes,
+  component: LayoutGrid,
+  data: Database,
+  task: SquareCheck,
+  family: GitBranch,
+  skillPerso: Sparkles,
+  skillProjet: FolderGit2,
+  skillPlugin: Plug,
+  project: FolderKanban,
+  you: UserRound
+}

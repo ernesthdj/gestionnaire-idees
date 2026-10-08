@@ -1,9 +1,12 @@
+import { colorSchemeOf, type Theme } from '@shared/ipc/app'
+
 /** Jetons de couleur transmis au widget : ceux que le cadre système de Claude lui demande d'utiliser. */
 const TOKENS = ['surface', 'surface-raised', 'content', 'content-muted', 'accent', 'pro', 'con'] as const
 
 /** Thème réellement affiché : réglage de l'app, ou préférence système. */
-export function resolvedScheme(theme: 'light' | 'dark' | 'system'): 'light' | 'dark' {
-  if (theme !== 'system') return theme
+export function resolvedScheme(theme: Theme): 'light' | 'dark' {
+  const scheme = colorSchemeOf(theme)
+  if (scheme !== 'system') return scheme
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 

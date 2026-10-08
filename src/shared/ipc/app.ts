@@ -2,8 +2,13 @@
 
 import type { DefaultPermissionMode } from './chat'
 
-export const THEMES = ['system', 'light', 'dark'] as const
+export const THEMES = ['system', 'light', 'dark', 'carbon'] as const
 export type Theme = (typeof THEMES)[number]
+
+/** Schéma de couleurs d'un thème (React Flow, widgets) : Carbone est un thème sombre (spec 022 D21). */
+export function colorSchemeOf(theme: Theme): 'system' | 'light' | 'dark' {
+  return theme === 'carbon' ? 'dark' : theme
+}
 
 /** `auto` suit la préférence système « réduire les animations » ; `reduced` les réduit toujours. */
 export const MOTION_MODES = ['auto', 'reduced'] as const

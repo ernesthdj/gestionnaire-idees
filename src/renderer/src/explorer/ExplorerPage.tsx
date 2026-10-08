@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CodeCategory, CodeLang, ExplorerLinkView, ExplorerPlaceView, ExplorerView } from '@shared/ipc/reprise'
+import { colorSchemeOf } from '@shared/ipc/app'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
@@ -175,7 +176,7 @@ function ExplorerMap({
         minZoom={0.2}
         maxZoom={2.5}
         ariaLabelConfig={ARIA_LABELS}
-        colorMode={settings.theme}
+        colorMode={colorSchemeOf(settings.theme)}
         proOptions={{ hideAttribution: true }}
       >
         <Background />

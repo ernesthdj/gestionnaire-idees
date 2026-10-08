@@ -1,0 +1,240 @@
+/*
+ * Nœuds vivants (spec 022) : flottaison sur une couche intérieure (la position reste à React Flow), orbes et petits
+ * cercles colorés par grande branche, pastilles. Pause et arrêt par `data-drift` sur la surface de la carte
+ * (`on` | `paused` | `off`) ; glissements par `data-glide`.
+ */
+
+.living {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.living-float {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  will-change: transform;
+}
+
+@keyframes living-drift {
+  from {
+    transform: translate(calc(var(--float-ax) * -1), calc(var(--float-ay) * -1)) rotate(calc(var(--float-rot) * -1));
+  }
+  to {
+    transform: translate(var(--float-ax), var(--float-ay)) rotate(var(--float-rot));
+  }
+}
+@keyframes living-depth {
+  from {
+    opacity: 0.86;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1.02;
+  }
+}
+[data-drift='on'] .living-float,
+[data-drift='paused'] .living-float {
+  animation:
+    living-drift var(--float-dur) ease-in-out var(--float-delay) infinite alternate,
+    living-depth calc(var(--float-dur) * 1.7) ease-in-out var(--float-delay) infinite alternate;
+}
+[data-drift='paused'] .living-float {
+  animation-play-state: paused;
+}
+
+/* Glissement vers une nouvelle place (D4), jamais pendant un glisser à la souris. */
+[data-glide='on'] .react-flow__node:not(.dragging) {
+  transition: transform 700ms var(--ease-soft);
+}
+
+.living-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--living-size);
+  height: var(--living-size);
+  border-radius: 999px;
+  transition:
+    transform 300ms var(--ease-soft),
+    filter 300ms var(--ease-soft);
+}
+.living[data-open] .living-face {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--living-hue, var(--color-accent)) 55%, transparent));
+}
+
+/* Racine : orbe en dégradé, disque clair au centre, anneau fin ; onde si éclose, pâle et pointillé si brute. */
+.living-orb {
+  background: radial-gradient(circle at 30% 28%, var(--orb-a), var(--orb-b) 55%, var(--orb-c));
+  box-shadow: 0 0 28px color-mix(in oklab, var(--orb-b) 45%, transparent);
+}
+.living-orb[data-state='raw'] {
+  background: radial-gradient(
+    circle at 30% 28%,
+    color-mix(in oklab, var(--orb-a) 45%, var(--color-surface-raised)),
+    color-mix(in oklab, var(--orb-b) 35%, var(--color-surface-raised))
+  );
+  box-shadow: none;
+}
+.living-core {
+  display: grid;
+  place-items: center;
+  width: 44%;
+  height: 44%;
+  border-radius: 999px;
+  color: var(--orb-core-ink);
+  background: var(--orb-core);
+  box-shadow: 0 0 12px var(--orb-core);
+}
+.living-halo,
+.living-ping {
+  position: absolute;
+  inset: -9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-content) 28%, transparent);
+  pointer-events: none;
+}
+.living-orb[data-state='raw'] .living-halo {
+  border-style: dashed;
+}
+.living-ping {
+  border-color: var(--orb-b);
+  animation: living-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes living-ping {
+  75%,
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+[data-reduced-motion='true'] .living-ping {
+  display: none;
+}
+
+/* Sous-nœud : petit cercle teinté par sa branche, contour plus marqué au premier niveau. */
+.living-sat {
+  color: var(--color-content);
+  background: color-mix(in oklab, var(--living-hue, var(--color-content-muted)) 10%, var(--node-bg));
+  border: 1.5px solid color-mix(in oklab, var(--living-hue, var(--color-content-muted)) 60%, transparent);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--living-hue, transparent) 25%, transparent);
+}
+.living-d1 {
+  border-width: 2.5px;
+  border-color: var(--living-hue, var(--color-content-muted));
+  background: color-mix(in oklab, var(--living-hue, var(--color-content-muted)) 22%, var(--node-bg));
+  color: color-mix(in oklab, var(--living-hue, var(--color-content)) 55%, var(--color-content));
+}
+[data-theme='carbon'] .living-sat {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 0 8px color-mix(in oklab, var(--living-hue, transparent) 25%, transparent);
+}
+.living-icon {
+  width: calc(var(--living-size) * 0.42);
+  height: calc(var(--living-size) * 0.42);
+}
+.living-orb .living-icon {
+  width: 60%;
+  height: 60%;
+}
+
+.living-label {
+  margin-top: 8px;
+  max-width: 132px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-content-muted);
+}
+.living-orb + .living-label,
+.living-d1 + .living-label {
+  max-width: 180px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-content);
+}
+.living[data-open] .living-label {
+  color: var(--color-content);
+  font-weight: 600;
+}
+
+/* Pastilles : statut (bas gauche), rang (haut droite), trombone (haut gauche), repli (bas droite). */
+.living-status {
+  position: absolute;
+  left: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-surface);
+}
+.living-status-done {
+  background: var(--color-seed);
+}
+.living-status-doing {
+  background: conic-gradient(var(--color-accent) 0 55%, var(--color-surface-raised) 0);
+}
+.living-status-todo {
+  background: var(--color-surface);
+  border-color: var(--color-content-muted);
+}
+.living-rank {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--on-hue);
+  background: var(--living-hue, var(--color-content-muted));
+}
+.living-clip {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--color-content);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 40%, transparent);
+}
+.living-clip svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.living-fold {
+  position: absolute;
+  left: calc(100% - 8px);
+  bottom: -4px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-content-muted);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 40%, transparent);
+  cursor: pointer;
+}
+.living-fold[data-collapsed='true'] {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}

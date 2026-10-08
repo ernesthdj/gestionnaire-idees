@@ -54,6 +54,80 @@
   --color-action: #fb923c;
 }
 
+/*
+ * Thème Carbone (spec 022 D21) : surfaces presque noires, liserés argentés. Placé après le thème sombre pour l'emporter
+ * quand le système est en sombre ; il s'ajoute aux autres thèmes, il n'en remplace aucun.
+ */
+:root[data-theme='carbon'] {
+  --color-surface: #0d0d0f;
+  --color-surface-raised: #141416;
+  --color-content: #ededef;
+  --color-content-muted: #9a9aa3;
+  --color-accent: #cfd3da;
+  --color-focus: #e4e4e7;
+  --color-idea: #fbbf24;
+  --color-seed: #2dd4bf;
+  --color-pro: #4ade80;
+  --color-con: #f87171;
+  --color-action: #fb923c;
+  --silver-hi: rgb(255 255 255 / 0.34);
+  --silver-lo: rgb(255 255 255 / 0.05);
+  --carbon-field: linear-gradient(180deg, #131315, #0d0d0f);
+  --carbon-panel: linear-gradient(180deg, #151517, #0c0c0e);
+  color-scheme: dark;
+}
+
+/*
+ * Nœuds vivants (spec 022) : une couleur par grande branche (D17), transmise à sa descendance ; canevas sobre (D21).
+ * Teintes moyennes lisibles sur fond clair comme sombre ; l'information ne passe jamais par la seule couleur.
+ */
+:root {
+  --color-branch-1: #8b5cf6;
+  --color-branch-2: #3b82f6;
+  --color-branch-3: #06b6d4;
+  --color-branch-4: #14b8a6;
+  --color-branch-5: #22c55e;
+  --color-branch-6: #eab308;
+  --color-branch-7: #f97316;
+  --color-branch-8: #f43f5e;
+  --color-branch-9: #ec4899;
+  --color-branch-10: #a855f7;
+  /* Orbe d'une racine (idée de départ, projet, « Toi ») : dégradé violet → bleu → sarcelle. */
+  --orb-a: #8b5cf6;
+  --orb-b: #3b82f6;
+  --orb-c: #14b8a6;
+  /* Disque clair au centre de l'orbe et texte posé sur une teinte de branche (pastille de rang). */
+  --orb-core: rgb(255 255 255 / 0.82);
+  --orb-core-ink: #18181b;
+  --on-hue: #ffffff;
+  --node-bg: #ffffff;
+  --canvas-dot: rgb(0 0 0 / 0.08);
+  --canvas-edge: rgb(0 0 0 / 0.03);
+  /* Glissement d'un nœud vers sa nouvelle place (D4). */
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --orb-a: #a78bfa;
+    --orb-b: #60a5fa;
+    --orb-c: #2dd4bf;
+    --node-bg: #0b0b0c;
+    --canvas-dot: rgb(255 255 255 / 0.05);
+    --canvas-edge: rgb(0 0 0 / 0.35);
+  }
+}
+
+:root[data-theme='dark'],
+:root[data-theme='carbon'] {
+  --orb-a: #a78bfa;
+  --orb-b: #60a5fa;
+  --orb-c: #2dd4bf;
+  --node-bg: #0b0b0c;
+  --canvas-dot: rgb(255 255 255 / 0.05);
+  --canvas-edge: rgb(0 0 0 / 0.35);
+}
+
 @theme inline {
   --color-surface: var(--color-surface);
   --color-surface-raised: var(--color-surface-raised);

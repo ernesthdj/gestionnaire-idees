@@ -15,7 +15,7 @@ import {
   SelectionMode
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CAPTURE_MAX_CHARS } from '@shared/ipc/app'
+import { CAPTURE_MAX_CHARS, colorSchemeOf } from '@shared/ipc/app'
 import type { BlockView, CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
 import type { RootView } from '@shared/ipc/neurons'
 import { useUiStore } from '../app/uiStore'
@@ -542,7 +542,7 @@ function CanvasInner(): React.JSX.Element {
               // Une idée touchée par le rectangle est prise, comme une icône sur le bureau.
               selectionMode={SelectionMode.Partial}
               ariaLabelConfig={ARIA_LABELS}
-              colorMode={settings.theme}
+              colorMode={colorSchemeOf(settings.theme)}
               proOptions={{ hideAttribution: true }}
               onMoveStart={() => setInteracting(true)}
               onMoveEnd={() => setInteracting(false)}

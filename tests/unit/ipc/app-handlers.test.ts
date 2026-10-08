@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_APP_SETTINGS, type AppSettingsView } from '../../../src/shared/ipc/app'
+import { colorSchemeOf, DEFAULT_APP_SETTINGS, type AppSettingsView } from '../../../src/shared/ipc/app'
 import { createAppRoutes } from '../../../src/main/ipc/appHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
 import { GlobalShortcut, type ShortcutRegistry } from '../../../src/main/shell/GlobalShortcut'
@@ -33,6 +33,19 @@ describe('canaux app:*', () => {
     const result = await dispatch('app:setSettings', { theme: 'dark', motion: 'reduced' })
     expect(result).toMatchObject({ success: true, data: { theme: 'dark', motion: 'reduced' } })
     expect(stored().theme).toBe('dark')
+  })
+
+  it('should_save_the_carbon_theme_when_chosen', async () => {
+    const { dispatch, stored } = setup()
+    const result = await dispatch('app:setSettings', { theme: 'carbon' })
+    expect(result).toMatchObject({ success: true, data: { theme: 'carbon' } })
+    expect(stored().theme).toBe('carbon')
+  })
+
+  it('should_draw_carbon_as_a_dark_scheme_when_mapping_themes', () => {
+    expect(colorSchemeOf('carbon')).toBe('dark')
+    expect(colorSchemeOf('light')).toBe('light')
+    expect(colorSchemeOf('system')).toBe('system')
   })
 
   it.each([

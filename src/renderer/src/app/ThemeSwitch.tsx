@@ -7,10 +7,11 @@ import { APP_SETTINGS_KEY, useEffectiveSettings } from './useAppSettings'
 const OPTIONS: ReadonlyArray<{ readonly theme: Theme; readonly label: string; readonly icon: string }> = [
   { theme: 'system', label: 'Thème du système', icon: '◐' },
   { theme: 'light', label: 'Thème clair', icon: '☀' },
-  { theme: 'dark', label: 'Thème sombre', icon: '☾' }
+  { theme: 'dark', label: 'Thème sombre', icon: '☾' },
+  { theme: 'carbon', label: 'Thème carbone', icon: '◈' }
 ]
 
-/** Choix du thème (système, clair, sombre) : appliqué aussitôt, enregistré par le main. */
+/** Choix du thème (système, clair, sombre, carbone) : appliqué aussitôt, enregistré par le main. */
 export function ThemeSwitch(): React.JSX.Element {
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)

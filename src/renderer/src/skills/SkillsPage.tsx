@@ -20,6 +20,7 @@ import type {
   SkillUsageView,
   SkillView
 } from '@shared/ipc/skills'
+import { colorSchemeOf } from '@shared/ipc/app'
 import { LINK_KIND_LABELS } from '@shared/skills/card'
 import { FAMILY_LABELS, SKILL_FAMILIES, type SkillFamily } from '@shared/skills/model'
 import { useEffectiveSettings } from '../app/useAppSettings'
@@ -485,7 +486,7 @@ function SkillsTree(): React.JSX.Element {
               fitView
               minZoom={0.1}
               maxZoom={1.5}
-              colorMode={settings.theme}
+              colorMode={colorSchemeOf(settings.theme)}
               ariaLabelConfig={ARIA_LABELS}
               proOptions={{ hideAttribution: true }}
               onNodeClick={(_event, node) => {

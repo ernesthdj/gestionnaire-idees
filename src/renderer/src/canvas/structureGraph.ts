@@ -1,6 +1,7 @@
 import type { ElementRelation, ElementView, MapLinkView, MeasuredLinkView } from '@shared/ipc/canvas'
 import { weakestProvenance, type LinkProvenance } from '@shared/ipc/reprise'
 import { ARCHITECTURES, DEPENDENCY_RELATIONS, isViolation, type ArchitectureKind } from '@shared/structure/architecture'
+import { layoutUnder, type AlternateOptions } from './layout/alternateLayout'
 import { progression } from './structureOrder'
 
 /**
@@ -122,43 +123,31 @@ export function structureGraph(
         focused: false
       })
     )
-  const { width: W, height: H } = ELEMENT_SIZE
-  // Boîte d'un sous-arbre posé à (x, y) (coin haut gauche) : les enfants d'un niveau impair partent en ligne à droite,
-  // ceux d'un niveau pair en colonne dessous ; chaque enfant occupe toute sa boîte, donc rien ne se chevauche.
-  const layout = (element: ElementView, depth: number, x: number, y: number): { width: number; height: number } => {
-    placed.push({ element, depth, number: order.numbers.get(element.id) ?? '', x: x + W / 2, y: y + H / 2 })
-    const kids = visibleKids(element)
-    chain(element.id, kids)
-    let width: number = W
-    let height: number = H
-    if (depth % 2 === 1) {
-      let cursor = x + W + SPACING.across
-      for (const kid of kids) {
-        const box = layout(kid, depth + 1, cursor, y)
-        cursor += box.width + SPACING.across
-        height = Math.max(height, box.height)
-      }
-      if (kids.length > 0) width = cursor - SPACING.across - x
-    } else {
-      let cursor = y + H + SPACING.down
-      for (const kid of kids) {
-        const box = layout(kid, depth + 1, x, cursor)
-        cursor += box.height + SPACING.down
-        width = Math.max(width, box.width)
-      }
-      if (kids.length > 0) height = cursor - SPACING.down - y
+  // Disposition alternée partagée (spec 022) : boîtes par sous-arbre, rien ne se chevauche ; la hiérarchie se trace en
+  // chemin au fil du placement.
+  const options: AlternateOptions = {
+    childrenOf: (id) => visibleKids({ id, collapsed: tree.byId.get(id)?.collapsed ?? false }).map((kid) => kid.id),
+    sizeOf: () => ELEMENT_SIZE,
+    across: SPACING.across,
+    down: SPACING.down,
+    visit: (id, depth, center, kids) => {
+      const element = tree.byId.get(id) as ElementView
+      placed.push({ element, depth, number: order.numbers.get(id) ?? '', x: center.x, y: center.y })
+      chain(
+        id,
+        kids.map((kid) => tree.byId.get(kid) as ElementView)
+      )
     }
-    return { width, height }
   }
   // Les modules (niveau 1) descendent sous le genesis, alignés sur lui, avec de l'air en plus entre deux modules.
   for (const genesisId of genesisIds) {
     const center = genesisCenters.get(genesisId) as { x: number; y: number }
-    const modules = visibleKids({ id: genesisId })
-    chain(genesisId, modules)
-    let cursor = center.y + SPACING.genesis
-    for (const module of modules) {
-      cursor += layout(module, 1, center.x - W / 2, cursor).height + SPACING.down + SPACING.module
-    }
+    // Le genesis n'est pas un élément : jamais replié.
+    const modules = layoutUnder(genesisId, center, SPACING.genesis, SPACING.module, options)
+    chain(
+      genesisId,
+      modules.map((id) => tree.byId.get(id) as ElementView)
+    )
   }
   const topOf = (id: string): string | null => {
     let current = tree.byId.get(id)
