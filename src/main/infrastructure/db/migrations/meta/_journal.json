@@ -260,6 +260,13 @@
       "when": 1791464458229,
       "tag": "0036_analyst_base_branch",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1791476025408,
+      "tag": "0037_plan_fold",
+      "breakpoints": true
     }
   ]
 }

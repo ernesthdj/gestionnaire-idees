@@ -105,7 +105,7 @@ const SECTIONS: ReadonlyArray<readonly [keyof Omit<ChatSheetView, 'resume'>, str
   ['manques', 'Manques']
 ]
 
-function Sheet({ sheet }: { readonly sheet: ChatSheetView }): React.JSX.Element {
+export function Sheet({ sheet }: { readonly sheet: ChatSheetView }): React.JSX.Element {
   const empty = sheet.resume === '' && SECTIONS.every(([key]) => sheet[key].length === 0)
   return (
     <details className="rounded-lg bg-surface-raised px-3 py-2 text-sm" open={!empty}>
@@ -386,22 +386,34 @@ export function ChatPanel({
           <ElementFileReader elementId={neuronId} path={reading} onBack={() => setReading(null)} />
         </div>
       )}
-      <header className="flex items-center gap-2 border-b border-content-muted/20 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
-          <p className="text-xs text-content-muted">
-            {chat.role === 'skills'
-              ? 'Conversation Skills · Claude ne dépose que des brouillons'
-              : chat.role === 'element'
-                ? `${chat.elementType ?? 'Élément'} du projet`
-                : chat.role === 'step'
-                  ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                  : chat.folder === null
-                    ? 'Genesis'
-                    : 'Projet'}{' '}
-            · conversation Claude Code
-            {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
-          </p>
+      <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-3">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
+            <p className="text-xs text-content-muted">
+              {chat.role === 'skills'
+                ? 'Conversation Skills · Claude ne dépose que des brouillons'
+                : chat.role === 'element'
+                  ? `${chat.elementType ?? 'Élément'} du projet`
+                  : chat.role === 'step'
+                    ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
+                    : chat.folder === null
+                      ? 'Genesis'
+                      : 'Projet'}{' '}
+              · conversation Claude Code
+              {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Fermer la conversation"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-surface-raised"
+          >
+            ×
+          </button>
+        </div>
+        <div className="min-w-0">
           {chat.reprise === null ? null : (
             <div className="mt-1 flex flex-wrap items-start gap-2">
               <ConfidentialityBadge
@@ -522,58 +534,52 @@ export function ChatPanel({
             </div>
           )}
         </div>
-        {chat.role === 'skills' ? null : (
-          <>
-            <label className="sr-only" htmlFor={`${fieldId}-mode`}>
-              Mode de permission de cette conversation
-            </label>
-            <select
-              id={`${fieldId}-mode`}
-              value={chat.permissionMode}
-              disabled={chat.loading}
-              onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
-              title="Mode de permission : ce que Claude peut faire sans te demander"
-              className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
-                // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
-                chat.permissionMode === 'bypassPermissions'
-                  ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
-                  : 'border-content-muted/40'
-              }`}
-            >
-              {PERMISSION_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-        <label className="sr-only" htmlFor={`${fieldId}-model`}>
-          Modèle de cette conversation
-        </label>
-        <select
-          id={`${fieldId}-model`}
-          value={chat.modelChoice ?? ''}
-          disabled={chat.busy || chat.loading}
-          onChange={(event) => void chat.setModel(event.target.value === '' ? null : event.target.value)}
-          title="Modèle de cette conversation"
-          className="h-8 max-w-44 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
-        >
-          <option value="">Défaut ({SHORT_MODEL_NAMES[chat.model] ?? chat.model})</option>
-          {CLAUDE_MODELS.map((model) => (
-            <option key={model} value={model}>
-              {SHORT_MODEL_NAMES[model] ?? model}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          aria-label="Fermer la conversation"
-          onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-surface-raised"
-        >
-          ×
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {chat.role === 'skills' ? null : (
+            <>
+              <label className="sr-only" htmlFor={`${fieldId}-mode`}>
+                Mode de permission de cette conversation
+              </label>
+              <select
+                id={`${fieldId}-mode`}
+                value={chat.permissionMode}
+                disabled={chat.loading}
+                onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
+                title="Mode de permission : ce que Claude peut faire sans te demander"
+                className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
+                  // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
+                  chat.permissionMode === 'bypassPermissions'
+                    ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
+                    : 'border-content-muted/40'
+                }`}
+              >
+                {PERMISSION_MODES.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          <label className="sr-only" htmlFor={`${fieldId}-model`}>
+            Modèle de cette conversation
+          </label>
+          <select
+            id={`${fieldId}-model`}
+            value={chat.modelChoice ?? ''}
+            disabled={chat.busy || chat.loading}
+            onChange={(event) => void chat.setModel(event.target.value === '' ? null : event.target.value)}
+            title="Modèle de cette conversation"
+            className="h-8 max-w-44 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
+          >
+            <option value="">Défaut ({SHORT_MODEL_NAMES[chat.model] ?? chat.model})</option>
+            {CLAUDE_MODELS.map((model) => (
+              <option key={model} value={model}>
+                {SHORT_MODEL_NAMES[model] ?? model}
+              </option>
+            ))}
+          </select>
+        </div>
       </header>
 
       {projectForm && chat.role === 'genesis' && chat.folder === null ? (

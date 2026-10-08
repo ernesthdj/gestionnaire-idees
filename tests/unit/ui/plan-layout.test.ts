@@ -49,63 +49,75 @@ const idOf = (item: PlacedPlanItem): string =>
 const positions = (items: readonly PlacedPlanItem[]): Map<string, { x: number; y: number }> =>
   new Map(items.map((item) => [idOf(item), { x: item.x, y: item.y }]))
 
-describe('disposition d’un plan avec ses documents (spec 011 R4, spec 012 R1)', () => {
-  it('should_keep_the_historic_step_columns_when_there_is_no_document', () => {
-    const plan = planLayout({ genesisId: G, center, steps: [step('a', G, 1), step('a1', 'a', 1, 2)], proposals: [] })
-    const at = positions(plan.items)
-    expect(at.get('a')?.x).toBe(240)
-    expect(at.get('a1')?.x).toBe(520)
+describe('disposition d’un plan en sens alterné (spec 022 D11, R4 ; spec 011 R4, spec 012 R1)', () => {
+  const steps = [step('a', G, 1), step('b', G, 2), step('a1', 'a', 1, 2), step('a1x', 'a1', 1, 3)]
+
+  it('should_stack_steps_under_the_genesis_then_alternate_row_and_column_when_going_down', () => {
+    const at = positions(planLayout({ genesisId: G, center, steps, proposals: [] }).items)
+    const p = (id: string): { x: number; y: number } => at.get(id) ?? { x: NaN, y: NaN }
+    expect(p('a').x).toBe(center.x)
+    expect(p('a').y).toBeGreaterThan(center.y)
+    expect(p('b').x).toBe(center.x)
+    expect(p('a1').y).toBe(p('a').y)
+    expect(p('a1').x).toBeGreaterThan(p('a').x)
+    // Niveau 3 : en colonne sous son parent, et il pousse « b » plus bas.
+    expect(p('a1x').x).toBe(p('a1').x)
+    expect(p('a1x').y).toBeGreaterThan(p('a1').y)
+    expect(p('b').y).toBeGreaterThan(p('a1x').y)
   })
 
-  it('should_annex_a_step_document_just_below_the_step_on_the_same_left_edge_and_push_its_siblings_down', () => {
-    const plan = planLayout({
-      genesisId: G,
-      center,
-      steps: [step('a', G, 1), step('b', G, 2)],
-      proposals: [],
-      documents: [document('cdc', 'a', 360, 200)]
-    })
+  it('should_place_annexes_after_the_steps_of_their_node_and_link_them', () => {
+    const plan = planLayout({ genesisId: G, center, steps, proposals: [], documents: [document('d', 'a')] })
     const at = positions(plan.items)
-    const a = at.get('a')
-    const doc = at.get(documentNodeId('cdc'))
-    const b = at.get('b')
-    // Juste sous la carte de l'étape (72 px de haut), calé sur son bord gauche.
-    expect((doc?.y ?? 0) - 100).toBe((a?.y ?? 0) + 36 + 24)
-    expect((doc?.x ?? 0) - 180).toBe((a?.x ?? 0) - 120)
-    // L'étape suivante passe sous l'annexe.
-    expect((b?.y ?? 0) - 36).toBeGreaterThan((doc?.y ?? 0) + 100)
+    const doc = at.get(documentNodeId('d'))
+    expect(doc?.y).toBe(at.get('a')?.y)
+    expect(doc?.x).toBeGreaterThan(at.get('a1')?.x ?? 0)
     expect(plan.edges).toContainEqual(
-      expect.objectContaining({ source: 'a', target: documentNodeId('cdc'), annex: true })
+      expect.objectContaining({ source: 'a', target: documentNodeId('d'), annex: true })
     )
   })
 
-  it('should_annex_a_genesis_document_below_the_genesis_without_entering_the_steps_column', () => {
-    const plan = planLayout({
-      genesisId: G,
-      center,
-      steps: [step('a', G, 1)],
-      proposals: [],
-      documents: [document('cdc', G, 360, 200)]
-    })
-    const at = positions(plan.items)
-    const doc = at.get(documentNodeId('cdc'))
-    const a = at.get('a')
-    expect((doc?.y ?? 0) - 100).toBeGreaterThan(center.y)
-    expect((doc?.x ?? 0) + 180).toBeLessThan((a?.x ?? 0) - 120)
+  it('should_put_a_genesis_document_in_its_column_after_its_steps', () => {
+    const at = positions(
+      planLayout({ genesisId: G, center, steps, proposals: [], documents: [document('g', G)] }).items
+    )
+    expect(at.get(documentNodeId('g'))?.x).toBe(center.x)
+    expect(at.get(documentNodeId('g'))?.y).toBeGreaterThan(at.get('b')?.y ?? 0)
   })
 
-  it('should_widen_a_column_to_its_widest_annex_and_push_the_next_column_without_overlap', () => {
-    const plan = planLayout({
+  it('should_start_beside_the_genesis_when_it_carries_a_structure_map', () => {
+    const at = positions(planLayout({ genesisId: G, center, steps, proposals: [], beside: true }).items)
+    expect(at.get('a')?.x).toBeGreaterThan(center.x)
+    expect(at.get('a')?.y).toBe(center.y)
+  })
+
+  it('should_swap_rows_and_columns_when_transposed', () => {
+    const at = positions(planLayout({ genesisId: G, center, steps, proposals: [], transposed: true }).items)
+    expect(at.get('a')?.y).toBe(center.y)
+    expect(at.get('b')?.x).toBeGreaterThan(at.get('a')?.x ?? 0)
+    expect(at.get('a1')?.x).toBe(at.get('a')?.x)
+    expect(at.get('a1')?.y).toBeGreaterThan(at.get('a')?.y ?? 0)
+  })
+
+  it('should_hide_the_descendants_of_a_folded_step_at_its_place_and_bring_the_next_steps_closer', () => {
+    const open = planLayout({ genesisId: G, center, steps, proposals: [] })
+    const folded = planLayout({
       genesisId: G,
       center,
-      steps: [step('a', G, 1), step('a1', 'a', 1, 2)],
-      proposals: [],
-      documents: [document('large', 'a', 800, 300)]
+      steps: steps.map((entry) => (entry.id === 'a1' ? { ...entry, collapsed: true } : entry)),
+      proposals: []
     })
-    const at = positions(plan.items)
-    const large = at.get(documentNodeId('large'))
-    const child = at.get('a1')
-    expect((child?.x ?? 0) - 100).toBeGreaterThanOrEqual((large?.x ?? 0) + 400)
+    const hidden = folded.items.find((item) => item.kind === 'step' && item.step.id === 'a1x')
+    expect(hidden?.folded).toBe(true)
+    expect(positions(folded.items).get('a1x')).toEqual(positions(folded.items).get('a1'))
+    expect(folded.edges.some((edge) => edge.target === 'a1x')).toBe(false)
+    expect(positions(folded.items).get('b')?.y).toBeLessThan(positions(open.items).get('b')?.y ?? 0)
+  })
+
+  it('should_fold_the_whole_plan_into_the_genesis_when_the_root_is_collapsed', () => {
+    const plan = planLayout({ genesisId: G, center, steps, proposals: [], rootCollapsed: true })
+    expect(plan.items.every((item) => item.folded && item.x === center.x && item.y === center.y)).toBe(true)
+    expect(plan.edges).toEqual([])
   })
 
   it('should_move_a_dragged_step_with_its_whole_branch_and_annexes', () => {
@@ -128,7 +140,7 @@ describe('disposition d’un plan avec ses documents (spec 011 R4, spec 012 R1)'
     expect(after.get('a')).toEqual(before.get('a'))
   })
 
-  it('should_put_the_deliverable_of_an_action_first_below_it_and_its_documents_after', () => {
+  it('should_put_the_deliverable_of_an_action_before_its_documents', () => {
     const deliverable: DeliverableView = {
       neuronId: 'a',
       genesisId: G,
@@ -147,18 +159,15 @@ describe('disposition d’un plan avec ses documents (spec 011 R4, spec 012 R1)'
       deliverables: [deliverable]
     })
     const at = positions(plan.items)
-    const a = at.get('a')
-    const livrable = at.get(deliverableNodeId('a'))
-    const doc = at.get(documentNodeId('cdc'))
-    expect((livrable?.y ?? 0) - 150).toBe((a?.y ?? 0) + 36 + 24)
-    expect((doc?.y ?? 0) - 100).toBe((livrable?.y ?? 0) + 150 + 24)
+    expect(at.get(deliverableNodeId('a'))?.y).toBe(at.get('a')?.y)
+    expect(at.get(deliverableNodeId('a'))?.x).toBeLessThan(at.get(documentNodeId('cdc'))?.x ?? 0)
     expect(plan.edges).toContainEqual(
       expect.objectContaining({ source: 'a', target: deliverableNodeId('a'), annex: true })
     )
   })
 
   it('should_be_deterministic', () => {
-    const input = { genesisId: G, center, steps: [step('a', G, 1)], proposals: [], documents: [document('d', G)] }
+    const input = { genesisId: G, center, steps, proposals: [], documents: [document('d', G)] }
     expect(planLayout(input)).toEqual(planLayout(input))
   })
 })

@@ -6,15 +6,11 @@
 
 .living {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: max-content;
 }
 
 .living-float {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: relative;
   will-change: transform;
 }
 
@@ -144,12 +140,18 @@
 }
 
 .living-label {
-  margin-top: 8px;
+  /* Hors de la boîte du nœud : la boîte reste le cercle, les liens partent de son centre. */
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  width: max-content;
   max-width: 132px;
+  transform: translateX(-50%);
   text-align: center;
   font-size: 11px;
   line-height: 1.3;
   color: var(--color-content-muted);
+  pointer-events: none;
 }
 .living-orb + .living-label,
 .living-d1 + .living-label {
@@ -179,6 +181,9 @@
 }
 .living-status-doing {
   background: conic-gradient(var(--color-accent) 0 55%, var(--color-surface-raised) 0);
+}
+.living-status-blocked {
+  background: var(--color-con);
 }
 .living-status-todo {
   background: var(--color-surface);
@@ -237,4 +242,85 @@
 .living-fold[data-collapsed='true'] {
   color: var(--color-accent);
   border-color: var(--color-accent);
+}
+
+/* Contenus posés sur le cercle par les nœuds de la carte (nature d'une idée, pastilles d'étape). */
+.living-nature {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--orb-core-ink);
+  pointer-events: none;
+}
+.living-genesis .living-halo {
+  border-color: color-mix(in oklab, var(--cat) 70%, transparent);
+}
+.living-badge {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--color-action);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-action) 55%, transparent);
+}
+.living-lock {
+  position: absolute;
+  left: -8px;
+  bottom: -6px;
+  color: var(--color-content-muted);
+}
+.living-ghost .living-sat {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.85;
+}
+.living-ghost-actions {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  display: flex;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+
+/* Focus clavier et sélection sur le cercle (la boîte du nœud est le cercle). */
+.react-flow__node:focus-visible {
+  outline: none;
+}
+.react-flow__node:focus-visible .living-face {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+.react-flow__node.selected .living-face {
+  outline: 2px dashed var(--color-focus);
+  outline-offset: 6px;
+}
+
+/* Nœud caché par le repli d'un ancêtre (D14) : posé à la place de celui-ci, invisible et inerte. */
+.react-flow__node.living-gone {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-glide='on'] .react-flow__node.living-gone,
+[data-glide='on'] .react-flow__node:not(.dragging) {
+  transition:
+    transform 700ms var(--ease-soft),
+    opacity 450ms var(--ease-soft);
+}
+
+/* Lien d'arbre à la couleur de la grande branche (D17), fin et sans lueur (canevas sobre, D21). */
+.branch-line.branch-line-hued {
+  stroke: color-mix(in oklab, var(--edge-hue) 55%, transparent);
+  stroke-width: 1.5;
+}
+.living-badge-claude {
+  position: absolute;
+  top: -10px;
+  right: -14px;
 }

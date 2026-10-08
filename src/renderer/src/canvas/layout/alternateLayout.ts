@@ -37,20 +37,23 @@ export function layoutSubtree(id: string, depth: number, x: number, y: number, o
   let width = W
   let height = H
   const inRow = (depth % 2 === 1) !== (options.transposed === true)
+  // Un enfant plus petit que son parent est centré sur lui : en ligne, même ligne médiane ; en colonne, même axe.
   if (inRow) {
     let cursor = x + W + options.across
     for (const kid of kids) {
-      const box = layoutSubtree(kid, depth + 1, cursor, y, options)
+      const top = y + (H - options.sizeOf(kid).height) / 2
+      const box = layoutSubtree(kid, depth + 1, cursor, top, options)
       cursor += box.width + options.across
-      height = Math.max(height, box.height)
+      height = Math.max(height, top - y + box.height)
     }
     if (kids.length > 0) width = cursor - options.across - x
   } else {
     let cursor = y + H + options.down
     for (const kid of kids) {
-      const box = layoutSubtree(kid, depth + 1, x, cursor, options)
+      const left = x + (W - options.sizeOf(kid).width) / 2
+      const box = layoutSubtree(kid, depth + 1, left, cursor, options)
       cursor += box.height + options.down
-      width = Math.max(width, box.width)
+      width = Math.max(width, left - x + box.width)
     }
     if (kids.length > 0) height = cursor - options.down - y
   }

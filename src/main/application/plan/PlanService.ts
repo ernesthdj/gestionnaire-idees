@@ -27,6 +27,7 @@ export interface PlanDeps {
     | 'setArchived'
     | 'setRank'
     | 'setOffset'
+    | 'setFolded'
     | 'addDependency'
     | 'removeDependency'
     | 'dependenciesTouching'
@@ -185,6 +186,12 @@ export class PlanService {
   move(stepId: string, x: number, y: number): void {
     if (!this.isStep(stepId)) throw new AppError('NOT_FOUND', 'Étape introuvable')
     this.deps.repository.setOffset(stepId, x, y)
+  }
+
+  /** Replie ou déplie les sous-étapes d'une étape, ou tout le plan d'un genesis (spec 022 D14, non historisé). */
+  setFolded(id: string, folded: boolean): void {
+    if (this.deps.repository.node(id) === undefined) throw new AppError('NOT_FOUND', 'Étape introuvable')
+    this.deps.repository.setFolded(id, folded)
   }
 
   isStep(id: string): boolean {

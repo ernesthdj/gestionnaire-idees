@@ -1,12 +1,13 @@
-import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { StepStatus } from '@shared/ipc/canvas'
+import type { StepStatus, StepView } from '@shared/ipc/canvas'
 import type { FinalState } from '@shared/ipc/finals'
 import { useUiStore } from '../../app/uiStore'
 import type { PlanBarNodeType, PlanNodeType } from '../buildGraph'
-import { planSize } from '../planLayout'
+import { LivingNode } from '../living/LivingNode'
+import type { NodeStatus } from '../living/nodeVisual'
 import { useFinalDecide } from '../useFinalDecide'
 import { usePlanDecide } from '../usePlanDecide'
+import { usePlanFold } from '../usePlanFold'
 
 export const STEP_STATUS_LABELS: Readonly<Record<StepStatus, string>> = {
   a_faire: 'à faire',
@@ -52,116 +53,84 @@ function PlanHandles(): React.JSX.Element {
     <>
       <Handle id="left" type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
       <Handle id="right" type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
-      {/* Haut et bas : connectiques des annexes (documents) placées au-dessus ou en dessous (spec 012 D4). */}
       <Handle id="top" type="target" position={Position.Top} isConnectable={false} className="neuron-handle" />
       <Handle id="bottom" type="source" position={Position.Bottom} isConnectable={false} className="neuron-handle" />
     </>
   )
 }
 
-/**
- * Étape d'un plan d'attaque, ou fantôme proposé par Claude (spec 011). Étape : carte arrondie, pastille de rang,
- * statut, cadenas ; un clic ouvre sa conversation (géré par la carte). Fantôme : pointillés, ✓ / ✗.
- */
-export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
-  const { item, color, dimmed } = data
+/** Statut d'avancement d'une étape → pastille d'un nœud vivant. */
+export const STEP_NODE_STATUS: Readonly<Record<StepStatus, NodeStatus>> = {
+  a_faire: 'todo',
+  en_cours: 'doing',
+  fait: 'done',
+  bloque: 'blocked'
+}
+
+/** Valider ou refuser une étape proposée par Claude (✓ / ✗) : sur le nœud du fantôme et dans sa carte de détails. */
+export function GhostDecision({
+  title,
+  proposalId,
+  ghostId
+}: {
+  readonly title: string
+  readonly proposalId: string
+  readonly ghostId: string
+}): React.JSX.Element {
   const { decide, busy } = usePlanDecide()
+  return (
+    <span className="flex shrink-0 gap-1">
+      <button
+        type="button"
+        className="nodrag plan-decide"
+        aria-label={`Valider l’étape « ${title} »`}
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation()
+          void decide({ proposalId, accept: [ghostId], reject: [] })
+        }}
+      >
+        ✓
+      </button>
+      <button
+        type="button"
+        className="nodrag plan-decide"
+        aria-label={`Refuser l’étape « ${title} »`}
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation()
+          void decide({ proposalId, accept: [], reject: [ghostId] })
+        }}
+      >
+        ✗
+      </button>
+    </span>
+  )
+}
+
+/**
+ * Gestes d'une action finale (spec 013) : lire, exécuter ou arrêter, accepter ou refuser la proposition. Mêmes
+ * libellés qu'avant la refonte ; ils vivent dans la carte de détails de l'étape (spec 022, inventaire §4).
+ */
+export function StepFinalActions({ step }: { readonly step: StepView }): React.JSX.Element | null {
   const finals = useFinalDecide()
   const openFinal = useUiStore((state) => state.openFinal)
-  const depth = item.kind === 'step' ? item.step.depth : item.depth
-  const size = planSize(depth)
-  const style = { width: size.width, height: size.height, '--cat': color } as CSSProperties
-  const compact = depth > 1
-
-  if (item.kind === 'ghost') {
-    const { ghost } = item
-    return (
-      <div
-        className={`nopan plan-card plan-ghost${compact ? ' plan-card-compact' : ''}${dimmed ? ' plan-dimmed' : ''}`}
-        style={style}
-        title={ghost.why}
-      >
-        <PlanHandles />
-        <span className="plan-rank">{item.label}</span>
-        <span className="plan-title">{ghost.title}</span>
-        <span className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            className="nodrag plan-decide"
-            aria-label={`Valider l’étape « ${ghost.title} »`}
-            disabled={busy}
-            onClick={(event) => {
-              event.stopPropagation()
-              void decide({ proposalId: item.proposalId, accept: [ghost.id], reject: [] })
-            }}
-          >
-            ✓
-          </button>
-          <button
-            type="button"
-            className="nodrag plan-decide"
-            aria-label={`Refuser l’étape « ${ghost.title} »`}
-            disabled={busy}
-            onClick={(event) => {
-              event.stopPropagation()
-              void decide({ proposalId: item.proposalId, accept: [], reject: [ghost.id] })
-            }}
-          >
-            ✗
-          </button>
-        </span>
-      </div>
-    )
-  }
-
-  const { step } = item
   const { final } = step
-  const finalClass =
-    final === undefined
-      ? ''
-      : final.state === 'proposee'
-        ? ' plan-final-proposed'
-        : ` plan-final plan-final-${step.status === 'fait' ? 'fait' : final.state}`
+  if (final === undefined) return null
   return (
-    <div
-      className={`nopan plan-card plan-step plan-status-${step.status}${finalClass}${compact ? ' plan-card-compact' : ''}${dimmed ? ' plan-dimmed' : ''}`}
-      style={style}
-      title={final === undefined ? undefined : `${finalStateLabel(final.state, step.status)} — ${final.deliverable}`}
-    >
-      <PlanHandles />
-      {/* Point d'accroche visible au survol : on le tire vers un widget pour lui transmettre l'étape (spec 015). */}
-      <Handle
-        id="connect"
-        type="source"
-        position={Position.Right}
-        isConnectableEnd={false}
-        className="neuron-connector"
-        title="Tirer vers un widget pour lui transmettre cette étape"
-      />
-      <span className="plan-rank">{item.label}</span>
-      <span className="min-w-0 flex-1">
-        <span className="plan-title">{step.title}</span>
-        {compact ? null : (
-          <span className="plan-status">
-            {final === undefined ? STEP_STATUS_LABELS[step.status] : finalStateLabel(final.state, step.status)}
-          </span>
-        )}
-      </span>
-      {step.locked ? <LockIcon className="shrink-0 text-content-muted" /> : null}
-      {final === undefined ? null : (
-        <button
-          type="button"
-          className="nodrag plan-final-badge"
-          aria-label={`Lire l’action finale de « ${step.title} »`}
-          onClick={(event) => {
-            event.stopPropagation()
-            openFinal(step.id)
-          }}
-        >
-          <BoltIcon />
-        </button>
-      )}
-      {final !== undefined && final.state !== 'proposee' && step.status !== 'fait' ? (
+    <span className="flex flex-wrap items-center gap-1">
+      <button
+        type="button"
+        className="nodrag plan-final-badge"
+        aria-label={`Lire l’action finale de « ${step.title} »`}
+        onClick={(event) => {
+          event.stopPropagation()
+          openFinal(step.id)
+        }}
+      >
+        <BoltIcon />
+      </button>
+      {final.state !== 'proposee' && step.status !== 'fait' ? (
         final.state === 'en_cours' ? (
           <button
             type="button"
@@ -193,8 +162,8 @@ export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
           </button>
         )
       ) : null}
-      {final?.state === 'proposee' ? (
-        <span className="flex shrink-0 gap-1">
+      {final.state === 'proposee' ? (
+        <>
           <button
             type="button"
             className="nodrag plan-decide plan-decide-small"
@@ -219,8 +188,68 @@ export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
           >
             ✗
           </button>
-        </span>
+        </>
       ) : null}
+    </span>
+  )
+}
+
+/**
+ * Étape d'un plan d'attaque, ou fantôme proposé par Claude (spec 011), en **petit cercle** vivant (spec 022 D11, D17) :
+ * couleur de sa grande branche, rang, pastille de statut, cadenas, éclair d'action finale, repli de ses sous-étapes.
+ * Un clic ouvre sa carte de détails (gérée par la carte), qui porte les gestes de l'action finale. Fantôme : cercle en
+ * pointillés, ✓ / ✗ à côté.
+ */
+export function PlanNode({ data }: NodeProps<PlanNodeType>): React.JSX.Element {
+  const { item, dimmed, visual, open, fold } = data
+  const toggleFold = usePlanFold()
+
+  if (item.kind === 'ghost') {
+    const { ghost } = item
+    return (
+      <div className={`nopan living-ghost${dimmed ? ' plan-dimmed' : ''}`} title={ghost.why}>
+        <LivingNode id={ghost.id} title={ghost.title} visual={visual} rank={item.label} open={open}>
+          <PlanHandles />
+          <span className="living-ghost-actions">
+            <GhostDecision title={ghost.title} proposalId={item.proposalId} ghostId={ghost.id} />
+          </span>
+        </LivingNode>
+      </div>
+    )
+  }
+
+  const { step } = item
+  const { final } = step
+  return (
+    <div
+      className={`nopan living-step plan-status-${step.status}${dimmed ? ' plan-dimmed' : ''}`}
+      title={final === undefined ? undefined : `${finalStateLabel(final.state, step.status)} — ${final.deliverable}`}
+    >
+      <LivingNode
+        id={step.id}
+        title={step.title}
+        visual={visual}
+        rank={item.label}
+        open={open}
+        {...(fold === null ? {} : { fold: { ...fold, onToggle: () => void toggleFold(step.id, !fold.collapsed) } })}
+      >
+        <PlanHandles />
+        {/* Point d'accroche visible au survol : on le tire vers un widget pour lui transmettre l'étape (spec 015). */}
+        <Handle
+          id="connect"
+          type="source"
+          position={Position.Right}
+          isConnectableEnd={false}
+          className="neuron-connector"
+          title="Tirer vers un widget pour lui transmettre cette étape"
+        />
+        {step.locked ? <LockIcon className="living-lock" /> : null}
+        {final === undefined ? null : (
+          <span className="living-badge" title={finalStateLabel(final.state, step.status)}>
+            <BoltIcon />
+          </span>
+        )}
+      </LivingNode>
     </div>
   )
 }

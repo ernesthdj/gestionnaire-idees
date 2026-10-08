@@ -75,10 +75,10 @@
   36, 30) ; pastille de statut avec libellé accessible.
 
 ## R11 — Repli des sous-nœuds
-- **Decision** : la colonne `neurons.collapsed` existe déjà (éléments de structure, défaut `true`). On la réutilise pour
-  les étapes et les genesis (repli de leur plan) : migration `0037_plan_fold` qui met `collapsed = 0` pour les étapes et
-  genesis existants (+ down qui remet 1), et création des étapes avec `collapsed = false` ; IPC `plan:setCollapsed`
-  (Zod). Arbre de skills : la grappe de plugins garde son repli actuel.
+- **Decision** (amendée le 2026-10-09) : nouvelle colonne `neurons.plan_folded` (booléen, défaut faux) pour les étapes et
+  les genesis, migration `0037_plan_fold` (+ down qui la retire) ; la colonne `collapsed` (éléments de structure, défaut
+  vrai) n'est pas réutilisée, pour ne pas réécrire les données existantes. IPC `plan:setCollapsed` (Zod). Arbre de
+  skills : la grappe de plugins garde son repli actuel.
 
 ## R12 — Lecteur dans la carte
 - **Decision** : le lecteur réutilise `FileViewer` (livrables : différence et contenu), `CodeLines` (fichiers liés d'un

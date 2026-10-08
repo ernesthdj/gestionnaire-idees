@@ -116,6 +116,12 @@ describe('migrations du modèle de neurones', () => {
     expect(columns('final_actions').some((name) => name.startsWith('committed_'))).toBe(false)
   })
 
+  it('should_add_the_plan_fold_column_then_remove_it_with_the_down_migration', () => {
+    expect(columns('neurons')).toContain('plan_folded')
+    runDown('0037_plan_fold')
+    expect(columns('neurons')).not.toContain('plan_folded')
+  })
+
   it('should_add_the_progress_columns_then_remove_them_with_the_down_migration', () => {
     expect(columns('neurons')).toEqual(expect.arrayContaining(['progress', 'progress_note']))
     runDown('0032_element_progress')

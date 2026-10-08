@@ -7,6 +7,11 @@ interface CanvasToolbarProps {
   readonly filter: CanvasFilterInput
   readonly onFilter: (filter: CanvasFilterInput) => void
   readonly onRecenter: () => void
+  /** « Réorganiser » (spec 022 D22) : les nœuds glissent vers l'autre disposition. */
+  readonly onReorder: () => void
+  /** Cartes de détails ouvertes ; « Fermer les cartes » apparaît s'il y en a. */
+  readonly openCards: number
+  readonly onCloseCards: () => void
   readonly onAddBlock: () => void
   /** « Reprendre un projet existant » (spec 017) : le chemin inverse de « Nouvelle idée ». */
   readonly onImport: () => void
@@ -28,6 +33,9 @@ export function CanvasToolbar({
   filter,
   onFilter,
   onRecenter,
+  onReorder,
+  openCards,
+  onCloseCards,
   onAddBlock,
   onImport
 }: CanvasToolbarProps): React.JSX.Element {
@@ -99,6 +107,14 @@ export function CanvasToolbar({
         </Button>
         <Button onClick={onAddBlock} title="Bloc libre : accueillera les mini-widgets en v2">
           + Bloc
+        </Button>
+        {openCards > 0 ? (
+          <Button onClick={onCloseCards} title="Ferme toutes les cartes de détails ouvertes">
+            Fermer les cartes ({openCards})
+          </Button>
+        ) : null}
+        <Button onClick={onReorder} title="Les nœuds glissent vers l’autre disposition (plans transposés)">
+          Réorganiser
         </Button>
         <Button onClick={onRecenter}>Recentrer</Button>
       </div>

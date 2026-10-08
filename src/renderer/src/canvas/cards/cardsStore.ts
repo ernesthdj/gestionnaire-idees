@@ -29,6 +29,13 @@ export interface OpenCard {
   readonly z: number
 }
 
+/** Ouverture directe sur la discussion, le lecteur ou la fiche (action finale, étape proposée). */
+export interface OpenOptions {
+  readonly side?: 'chat' | 'reader'
+  readonly reader?: ReaderTarget
+  readonly sheet?: boolean
+}
+
 export interface CardsState {
   readonly cards: readonly OpenCard[]
   readonly activeId: string | null
@@ -52,11 +59,7 @@ export function activate(state: CardsState, id: string): CardsState {
 }
 
 /** Ouvre la carte d'un nœud (ou l'active si elle l'est déjà) ; `side` ouvre directement la discussion ou le lecteur. */
-export function openCard(
-  state: CardsState,
-  id: string,
-  options: { readonly side?: 'chat' | 'reader'; readonly reader?: ReaderTarget } = {}
-): CardsState {
+export function openCard(state: CardsState, id: string, options: OpenOptions = {}): CardsState {
   const opened = state.cards.some((card) => card.id === id)
     ? state
     : {
@@ -67,7 +70,8 @@ export function openCard(
         ]
       }
   const active = activate(opened, id)
-  return options.side === undefined ? active : setSide(active, id, options.side, options.reader)
+  const sided = options.side === undefined ? active : setSide(active, id, options.side, options.reader)
+  return options.sheet === true ? update(sided, id, (card) => ({ ...card, sheet: true })) : sided
 }
 
 /** Ferme une carte ; la plus haute des restantes devient active. */
@@ -108,7 +112,7 @@ export function setSide(
 }
 
 interface CardsStore extends CardsState {
-  open(id: string, options?: { readonly side?: 'chat' | 'reader'; readonly reader?: ReaderTarget }): void
+  open(id: string, options?: OpenOptions): void
   close(id: string): void
   closeAll(): void
   activate(id: string): void

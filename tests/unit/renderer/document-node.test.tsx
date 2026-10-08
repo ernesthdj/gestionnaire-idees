@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
@@ -69,11 +70,21 @@ function renderCanvas(content: Partial<DocumentContentView> = {}) {
   return { api, ...result }
 }
 
-const node = (): Promise<HTMLElement> => screen.findByRole('region', { name: 'Document : Cahier des charges' })
+/** Spec 022 : le document est un nœud ; sa carte de détails s'étire en lecteur (« Lire le document »). */
+async function node(): Promise<HTMLElement> {
+  fireEvent.click(await screen.findByText('Cahier des charges'))
+  const card = await screen.findByRole('dialog', { name: 'Détails : Cahier des charges' })
+  if (within(card).queryByRole('region', { name: 'Document : Cahier des charges' }) === null)
+    fireEvent.click(within(card).getByRole('button', { name: 'Lire le document' }))
+  return within(card).findByRole('region', { name: 'Document : Cahier des charges' })
+}
 
 describe('nœud document sur la carte (spec 012 US1)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', chatNeuronId: null, toast: null }))
+  beforeEach(() => {
+    useUiStore.setState({ view: 'ideas', chatNeuronId: null, toast: null })
+    useCards.setState({ cards: [], activeId: null })
+  })
 
   it('should_render_the_markdown_of_the_file_with_its_location_and_without_raw_html', async () => {
     renderCanvas()
@@ -113,6 +124,8 @@ describe('nœud document sur la carte (spec 012 US1)', () => {
     renderCanvas()
     fireEvent.click(await within(await node()).findByRole('table'))
     await waitFor(() => expect(useUiStore.getState().chatNeuronId).toBeNull())
+    const card = screen.getByRole('dialog', { name: 'Détails : Cahier des charges' })
+    expect(within(card).queryByRole('button', { name: 'Discuter' })).toBeNull()
   })
 
   it('should_have_no_accessibility_violation', async () => {

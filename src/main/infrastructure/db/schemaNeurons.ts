@@ -107,6 +107,8 @@ export const neurons = sqliteTable(
     elementStatus: text('element_status'),
     pathsJson: text('paths_json'),
     collapsed: integer('collapsed', { mode: 'boolean' }).notNull().default(true),
+    /** Genesis ou étape (spec 022 D14) : ses sous-étapes (ou tout le plan) sont repliées sur la carte. */
+    planFolded: integer('plan_folded', { mode: 'boolean' }).notNull().default(false),
     /** Étape d'un plan d'attaque (spec 011) : rang parmi ses sœurs (①②③) et statut d'avancement. */
     rank: integer('rank'),
     stepStatus: text('step_status', { enum: ['a_faire', 'en_cours', 'fait', 'bloque'] }),

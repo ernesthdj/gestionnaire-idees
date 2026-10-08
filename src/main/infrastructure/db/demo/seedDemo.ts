@@ -4,15 +4,16 @@ import type { AppDatabase } from '../client'
 import { contextAssessments, mapLinks, neurons } from '../schemaNeurons'
 
 /**
- * Jeu de démonstration FICTIF (spec 003 T002, réécrit par la spec 010 C3) : des genesis à tous les niveaux de
- * maturité, avec leur fiche, des liens libres entre idées et une carte de structure de projet. Déterministe (graine
- * fixe), inséré une seule fois, uniquement dans le profil démo. Aucune donnée de l'ancien moteur.
+ * Jeu de démonstration FICTIF (spec 003 T002, réécrit par la spec 010 C3, réduit par la spec 022) : deux genesis
+ * éclos, posés loin l'un de l'autre — le premier porte un plan d'attaque à trois niveaux, le second une carte de
+ * structure de projet. Déterministe (graine fixe), inséré une seule fois, uniquement dans le profil démo. Aucune donnée
+ * de l'ancien moteur. `DemoSize` permet encore un jeu plus fourni (tests).
  */
 
 /** Identifiants au format UUID (exigé par les canaux IPC), reconnaissables à leur préfixe `dea00000-`. */
 export const DEMO_PREFIX = 'dea00000-'
 
-const KIND = { root: 1, gauge: 4, link: 9, element: 0xc } as const
+const KIND = { root: 1, step: 5, gauge: 4, link: 9, element: 0xc } as const
 
 export function demoId(kind: keyof typeof KIND, n: number): string {
   return `${DEMO_PREFIX}000${KIND[kind].toString(16)}-4000-8000-${String(n).padStart(12, '0')}`
@@ -28,7 +29,13 @@ export interface DemoSize {
   readonly links: number
 }
 
-export const DEFAULT_DEMO_SIZE: DemoSize = { raw: 2, developing: 7, hatched: 3, links: 8 }
+export const DEFAULT_DEMO_SIZE: DemoSize = { raw: 0, developing: 0, hatched: 2, links: 0 }
+
+/** Titres et places fixes des deux genesis de la démo (plan, puis carte de structure) : leurs arbres ne se touchent pas. */
+const DEMO_GENESIS = [
+  { title: 'Planifier le portfolio en ligne', position: { x: 0, y: 0 } },
+  { title: 'Projet démo : application de notes', position: { x: 1400, y: 0 } }
+] as const
 
 const CATEGORIES = ['cat-general', 'cat-achat', 'cat-projet', 'cat-sortie', 'cat-photo', 'cat-it'] as const
 const SUBJECTS = [
@@ -73,6 +80,49 @@ const DEMO_RELATIONS = [
   { from: 'tache:sauvegarde', to: 'donnee:base', relation: 'depend_de' }
 ] as const
 
+/**
+ * Plan d'attaque fictif du premier genesis éclos (spec 011, montré en sens alterné par la spec 022) : trois étapes,
+ * des sous-étapes et un troisième niveau, à tous les statuts.
+ */
+type DemoStep = readonly [
+  title: string,
+  status: 'a_faire' | 'en_cours' | 'fait' | 'bloque',
+  children?: readonly DemoStep[]
+]
+const DEMO_PLAN: readonly DemoStep[] = [
+  [
+    'Choisir l’hébergeur',
+    'fait',
+    [
+      ['Comparer trois offres', 'fait'],
+      ['Réserver le nom de domaine', 'fait']
+    ]
+  ],
+  [
+    'Rédiger les textes',
+    'en_cours',
+    [
+      [
+        'Présentation',
+        'en_cours',
+        [
+          ['Version courte', 'a_faire'],
+          ['Version longue', 'a_faire']
+        ]
+      ],
+      ['Mentions légales', 'a_faire']
+    ]
+  ],
+  [
+    'Sélectionner vingt photos',
+    'a_faire',
+    [
+      ['Trier par série', 'a_faire'],
+      ['Retouches légères', 'bloque']
+    ]
+  ]
+]
+
 /** Générateur pseudo-aléatoire à graine (mulberry32) : même jeu de données à chaque exécution. */
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0
@@ -101,15 +151,19 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
   const allIds: string[] = []
 
   db.transaction((tx) => {
+    let hatchedCount = 0
     const insertRoot = (index: number, state: 'raw' | 'developing' | 'hatched'): string => {
       const id = demoId('root', index)
       const level = state === 'raw' ? null : state === 'hatched' ? 'complete' : (LEVELS[index % LEVELS.length] ?? null)
+      // Les deux premiers genesis éclos ont un titre et une place fixes (le plan, puis la carte de structure).
+      const fixed = state === 'hatched' ? DEMO_GENESIS[hatchedCount++] : undefined
       tx.insert(neurons)
         .values({
           id,
           rootId: id,
           kind: 'root',
-          title: `${pick(VERBS, random)} ${pick(SUBJECTS, random)}`,
+          title: fixed?.title ?? `${pick(VERBS, random)} ${pick(SUBJECTS, random)}`,
+          ...(fixed === undefined ? {} : { posX: fixed.position.x, posY: fixed.position.y, pinned: true }),
           content: null,
           origin: 'user',
           nature: random() < 0.5 ? 'action' : 'reflection',
@@ -162,6 +216,33 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
         })
         .run()
     })
+
+    // Plan d'attaque du premier genesis éclos.
+    const planned = allIds[size.raw + size.developing]
+    if (planned !== undefined) {
+      let stepIndex = 0
+      const insertSteps = (parentId: string, steps: readonly DemoStep[], depth: number): void =>
+        steps.forEach(([title, status, children], rank) => {
+          const id = demoId('step', ++stepIndex)
+          tx.insert(neurons)
+            .values({
+              id,
+              rootId: planned,
+              parentId,
+              depth,
+              kind: 'step',
+              state: 'raw',
+              title,
+              origin: 'claude',
+              genesisId: planned,
+              rank: rank + 1,
+              stepStatus: status
+            })
+            .run()
+          if (children !== undefined) insertSteps(id, children, depth + 1)
+        })
+      insertSteps(planned, DEMO_PLAN, 1)
+    }
 
     // Carte de structure du dernier genesis.
     const genesisId = allIds.at(-1)

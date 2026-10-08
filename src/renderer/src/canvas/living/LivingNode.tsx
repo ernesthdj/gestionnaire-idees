@@ -10,7 +10,8 @@ export type OrbState = 'raw' | 'developing' | 'hatched'
 export const STATUS_LABELS: Readonly<Record<NodeStatus, string>> = {
   done: 'Livré',
   doing: 'En cours',
-  todo: 'À faire'
+  todo: 'À faire',
+  blocked: 'Bloqué'
 }
 
 export interface LivingNodeProps {
@@ -27,7 +28,7 @@ export interface LivingNodeProps {
   readonly fold?: { readonly collapsed: boolean; readonly count: number; readonly onToggle: () => void }
   /** Sa carte de détails est ouverte : le nœud grossit et s'éclaire. */
   readonly open?: boolean
-  /** Contenu ajouté (poignées React Flow, badge « par Claude »…). */
+  /** Contenu ajouté dans la couche flottante, posé sur le cercle (poignées React Flow, pastilles…). */
   readonly children?: ReactNode
 }
 
@@ -109,8 +110,8 @@ export function LivingNode({
           )}
         </div>
         <span className="living-label">{title}</span>
+        {children}
       </div>
-      {children}
     </div>
   )
 }

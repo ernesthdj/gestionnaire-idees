@@ -27,6 +27,8 @@ export interface StepRow extends PlanNodeRow {
   readonly status: StepStatus
   readonly waitsFor: readonly string[]
   readonly sheetJson: string | null
+  /** Ses sous-étapes sont repliées sur la carte (spec 022 D14). */
+  readonly folded?: boolean
 }
 
 export interface ProposalItemRow {
@@ -105,7 +107,8 @@ const NODE_COLUMNS = {
   posX: neurons.posX,
   posY: neurons.posY,
   stepStatus: neurons.stepStatus,
-  sheetJson: neurons.sheetJson
+  sheetJson: neurons.sheetJson,
+  planFolded: neurons.planFolded
 } as const
 
 /** Plans d'attaque (spec 011) : étapes, dépendances, propositions de couche et verrous. */
@@ -170,7 +173,8 @@ export class PlanRepository {
               offset: { x: row.posX ?? 0, y: row.posY ?? 0 },
               status: statusOf(row.stepStatus),
               waitsFor: waits.get(row.id) ?? [],
-              sheetJson: row.sheetJson
+              sheetJson: row.sheetJson,
+              folded: row.planFolded
             }
           ]
     )
@@ -276,6 +280,27 @@ export class PlanRepository {
       .from(stepDependencies)
       .where(sql`${stepDependencies.stepId} = ${stepId} OR ${stepDependencies.waitsForId} = ${stepId}`)
       .all()
+  }
+
+  /** Genesis dont tout le plan est replié sur la carte (spec 022 D14). */
+  foldedRoots(): Set<string> {
+    return new Set(
+      this.db
+        .select({ id: neurons.id })
+        .from(neurons)
+        .where(and(eq(neurons.kind, 'root'), eq(neurons.planFolded, true), ne(neurons.state, 'archived')))
+        .all()
+        .map((row) => row.id)
+    )
+  }
+
+  /** Replie ou déplie les sous-étapes d'une étape, ou tout le plan d'un genesis (préférence d'affichage). */
+  setFolded(id: string, folded: boolean): void {
+    this.db
+      .update(neurons)
+      .set({ planFolded: folded })
+      .where(and(eq(neurons.id, id), inArray(neurons.kind, ['root', 'step'])))
+      .run()
   }
 
   /** Verrous et propositions de verrou des genesis vivants. */

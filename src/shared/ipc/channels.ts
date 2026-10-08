@@ -54,6 +54,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'canvas:createLink',
   'plan:decide',
   'plan:move',
+  'plan:setCollapsed',
   'final:decide',
   'final:demote',
   'final:execute',

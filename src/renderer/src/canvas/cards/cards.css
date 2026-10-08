@@ -1,0 +1,328 @@
+/*
+ * Cartes de détails (spec 022) : dans la couche de la carte (elles subissent le zoom), à droite de leur nœud. Fiche :
+ * étirement vers le bas ; discussion ou lecteur : étirement vers la droite. Thème Carbone : liserés argentés et éclat
+ * qui fait le tour de la carte (plus vif sur la carte active).
+ */
+
+.detail-card {
+  position: absolute;
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  color: var(--color-content);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
+  box-shadow:
+    0 14px 40px rgb(0 0 0 / 0.18),
+    0 0 0 1px color-mix(in oklab, var(--color-accent) 14%, transparent);
+  cursor: default;
+  transform-origin: left top;
+  animation: card-unfold 380ms var(--ease-soft) both;
+}
+.detail-card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.detail-card-active {
+  box-shadow:
+    0 18px 48px rgb(0 0 0 / 0.24),
+    0 0 0 1.5px color-mix(in oklab, var(--color-accent) 55%, transparent);
+}
+/* Trait horizontal vers le nœud ; remplacé par un fil quand la carte a été déplacée. */
+.detail-card::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 28px;
+  width: 18px;
+  height: 1px;
+  background: color-mix(in oklab, var(--color-accent) 60%, transparent);
+}
+.detail-card-moved::before {
+  display: none;
+}
+.card-tether {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.card-tether path {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-accent) 65%, transparent);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+@keyframes card-unfold {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.94);
+  }
+}
+@keyframes card-stretch {
+  from {
+    max-width: 0;
+    opacity: 0;
+  }
+  to {
+    max-width: 640px;
+    opacity: 1;
+  }
+}
+@keyframes card-drop {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 600px;
+    opacity: 1;
+  }
+}
+[data-reduced-motion='true'] .detail-card,
+[data-reduced-motion='true'] .detail-card-side,
+[data-reduced-motion='true'] .detail-card-sheet {
+  animation-duration: 150ms;
+}
+
+.detail-card-main {
+  width: 256px;
+  flex: none;
+}
+.detail-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+  user-select: none;
+}
+.detail-card-head:active {
+  cursor: grabbing;
+}
+.card-grip {
+  flex: none;
+  margin-left: -4px;
+  padding: 2px;
+  border-radius: 4px;
+  color: var(--color-content-muted);
+  opacity: 0.6;
+  transition:
+    opacity 200ms var(--ease-soft),
+    color 200ms var(--ease-soft);
+}
+.detail-card-head:hover .card-grip {
+  opacity: 1;
+  color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.detail-card-badge {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
+  background: var(--color-surface-raised);
+  white-space: nowrap;
+}
+.detail-card-meta {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--color-content-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-card-close {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--color-content-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.detail-card-title {
+  margin: 8px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+.detail-card-summary {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--color-content-muted);
+}
+.detail-card-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in oklab, var(--color-content-muted) 22%, transparent);
+}
+.detail-card-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.detail-card-gauge {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+}
+.detail-card-gauge > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-seed), var(--color-accent));
+  transition: width 700ms var(--ease-soft);
+}
+.detail-card-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.detail-card-related button {
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
+  background: transparent;
+  color: var(--color-content);
+  cursor: pointer;
+}
+.detail-card-related button:hover {
+  border-color: var(--color-accent);
+}
+.detail-card-sheet {
+  margin-top: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  animation: card-drop 520ms var(--ease-soft) both;
+}
+.detail-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.detail-card-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.detail-card-fold {
+  width: 100%;
+  margin-top: 6px;
+}
+.card-button {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.card-button-primary {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+.card-button-ghost,
+.card-button[aria-pressed='true'] {
+  border: 1px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+}
+
+/* Étirement de droite : discussion (le volet de conversation habituel) ou lecteur de fichier. */
+.detail-card-side {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  height: 600px;
+  margin-left: 14px;
+  padding-left: 14px;
+  overflow: hidden;
+  border-left: 1px solid color-mix(in oklab, var(--color-content-muted) 25%, transparent);
+  animation: card-stretch 520ms var(--ease-soft) both;
+}
+.detail-card-side-chat {
+  width: 460px;
+}
+.detail-card-side-reader {
+  width: 600px;
+}
+
+/* ---------- Thème Carbone ---------- */
+@property --card-shine {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+[data-theme='carbon'] .detail-card {
+  border: 0;
+  border-radius: 16px;
+  background: var(--carbon-panel);
+  box-shadow:
+    0 30px 70px rgb(0 0 0 / 0.6),
+    0 0 0 1px rgb(0 0 0 / 0.8),
+    inset 0 1px 0 color-mix(in oklab, var(--silver-hi) 25%, transparent);
+}
+/* Liseré argenté : bordure en dégradé masquée, avec un éclat qui en fait le tour. */
+[data-theme='carbon'] .detail-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background:
+    conic-gradient(from var(--card-shine), transparent 0deg 300deg, var(--color-content) 330deg, transparent 360deg),
+    linear-gradient(
+      180deg,
+      var(--silver-hi),
+      var(--silver-lo) 55%,
+      color-mix(in oklab, var(--silver-hi) 35%, transparent)
+    );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: card-shine 9s linear infinite;
+}
+[data-theme='carbon'] .detail-card-active::after {
+  animation-duration: 4.5s;
+}
+@keyframes card-shine {
+  to {
+    --card-shine: 360deg;
+  }
+}
+[data-reduced-motion='true'] [data-theme='carbon'] .detail-card::after,
+[data-theme='carbon'] [data-reduced-motion='true'] .detail-card::after {
+  animation: none;
+}
+[data-theme='carbon'] .detail-card-badge,
+[data-theme='carbon'] .detail-card-related button {
+  border-color: color-mix(in oklab, var(--silver-hi) 40%, transparent);
+  background: var(--carbon-field);
+}
+[data-theme='carbon'] .card-button-primary {
+  border: 0;
+  color: var(--color-surface);
+  background: linear-gradient(
+    180deg,
+    var(--color-content),
+    color-mix(in oklab, var(--color-content) 78%, var(--color-surface))
+  );
+}
+[data-theme='carbon'] .detail-card-gauge > span {
+  background: linear-gradient(90deg, var(--color-content-muted), var(--color-content));
+}

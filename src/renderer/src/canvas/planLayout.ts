@@ -2,55 +2,64 @@ import type { ProposalView, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
 import type { DeliverableView } from '@shared/ipc/finals'
 import { rankLabel } from '@shared/plan/rankLabel'
+import { layoutUnder, type AlternateOptions, type Point, type Size } from './layout/alternateLayout'
+import { subNodeSize } from './living/nodeVisual'
 
 /**
- * Disposition d'un plan d'attaque (spec 011 R4, D7 ; spec 012 D4) : arbre de gauche à droite, une colonne par niveau,
- * enfants d'un même parent de haut en bas par rang, chaque parent centré sur ses enfants. Les documents d'un nœud sont
- * ses ANNEXES : empilés juste sous lui (sous le genesis pour les siens). Fonction pure et déterministe : la place de
- * base ne dépend que de l'arbre ; un décalage glissé par mentalyas déplace l'étape et toute sa branche.
+ * Disposition d'un plan d'attaque en sens alterné (spec 022 D11, R4 ; reprend spec 011 R4 / D7 et spec 012 D4) : les
+ * étapes descendent en colonne sous le genesis, leurs sous-étapes partent en ligne à droite, les suivantes repartent en
+ * colonne, etc. ; chaque branche pousse ses voisines. Sous un nœud, après ses étapes : la barre et les fantômes d'une
+ * couche proposée, puis ses annexes (livrable, documents). Si le genesis porte aussi une carte de structure (qui occupe
+ * le dessous), le plan part à sa droite. Un décalage glissé par mentalyas déplace l'étape et toute sa branche ; celui
+ * d'une annexe la déplace seule. Un nœud replié (D14) cache ses descendants, posés à sa place (pour y glisser).
+ * Fonction pure et déterministe.
  */
 
-/** Tailles des cartes : étape (niveau 1) et sous-étape (niveau 2+). */
-export const PLAN_SIZES = {
-  step: { width: 240, height: 72 },
-  subStep: { width: 200, height: 52 },
-  bar: { width: 240, height: 40 }
+/** Case d'un nœud de plan (cercle + titre dessous, avec de l'air) : étape (niveau 1), sous-niveau, barre. */
+export const PLAN_CELLS = {
+  step: { width: 190, height: 128 },
+  sub: { width: 160, height: 116 },
+  bar: { width: 240, height: 64 }
 } as const
-const ROW_GAP = 16
-/** Écart entre un nœud et son annexe (document) placée dessous. */
-const ANNEX_GAP = 24
-/** Écart entre le centre du genesis et le haut de ses annexes. */
-const GENESIS_ANNEX_TOP = 72
-/** Écart entre le bord droit du genesis et la première colonne, puis entre deux colonnes. */
-const GENESIS_GAP = 120
-const COLUMN_GAP = 60
+/** Taille affichée de la barre d'une couche proposée. */
+export const PLAN_BAR_SIZE = { width: 240, height: 40 } as const
+const ACROSS = 24
+const DOWN = 8
+/** Air en plus entre deux étapes de niveau 1. */
+const STEP_EXTRA = 16
+/** Écart entre le bord de l'orbe du genesis et la première étape (place de son titre). */
+const BELOW_GAP = 72
+/** Plan à droite du genesis (carte de structure dessous) : distance horizontale à la colonne des étapes. */
+const RIGHT_GAP = 220
 
-export const planSize = (depth: number): { readonly width: number; readonly height: number } =>
-  depth <= 1 ? PLAN_SIZES.step : PLAN_SIZES.subStep
+/** Diamètre du cercle d'une étape, d'un fantôme, d'un document ou d'un livrable selon sa profondeur. */
+export const planSize = (depth: number): Size => {
+  const size = subNodeSize(depth)
+  return { width: size, height: size }
+}
 
-type Point = { readonly x: number; readonly y: number }
+interface PlacedBase {
+  readonly x: number
+  readonly y: number
+  /** Profondeur sous le genesis (1 : enfant direct). */
+  readonly depth: number
+  /** Parent dans l'arbre du plan (genesis ou étape). */
+  readonly parentId: string
+  /** Caché par le repli d'un ancêtre : posé à la place de celui-ci. */
+  readonly folded: boolean
+}
 
 export type PlacedPlanItem =
-  | { readonly kind: 'step'; readonly step: StepView; readonly label: string; readonly x: number; readonly y: number }
-  | {
+  | (PlacedBase & { readonly kind: 'step'; readonly step: StepView; readonly label: string })
+  | (PlacedBase & {
       readonly kind: 'ghost'
       readonly ghost: ProposalView['items'][number]
       readonly proposalId: string
-      readonly parentId: string
-      readonly depth: number
       readonly label: string
-      readonly x: number
-      readonly y: number
-    }
-  | { readonly kind: 'document'; readonly document: DocumentView; readonly x: number; readonly y: number }
-  | { readonly kind: 'deliverable'; readonly deliverable: DeliverableView; readonly x: number; readonly y: number }
-  | {
-      readonly kind: 'bar'
-      readonly proposal: ProposalView
-      readonly depth: number
-      readonly x: number
-      readonly y: number
-    }
+    })
+  | (PlacedBase & { readonly kind: 'document'; readonly document: DocumentView })
+  | (PlacedBase & { readonly kind: 'deliverable'; readonly deliverable: DeliverableView })
+  | (PlacedBase & { readonly kind: 'bar'; readonly proposal: ProposalView })
 
 export interface PlanEdge {
   readonly id: string
@@ -58,7 +67,7 @@ export interface PlanEdge {
   readonly target: string
   /** Trait vers un fantôme (pointillé). */
   readonly ghost: boolean
-  /** Trait vertical vers une annexe (du bas du nœud au haut du document). */
+  /** Trait vers une annexe (document, livrable). */
   readonly annex: boolean
 }
 
@@ -74,19 +83,17 @@ export const documentNodeId = (documentId: string): string => `document-${docume
 /** Livrable d'une action finale (spec 013) : un par action. */
 export const deliverableNodeId = (neuronId: string): string => `deliverable-${neuronId}`
 
-/** Annexe d'un nœud : document (spec 012) ou livrable (spec 013), empilés sous lui. */
-type Annex =
-  | { readonly kind: 'document'; readonly document: DocumentView }
-  | { readonly kind: 'deliverable'; readonly deliverable: DeliverableView }
-const boxOf = (annex: Annex): DocumentView | DeliverableView =>
-  annex.kind === 'document' ? annex.document : annex.deliverable
-const annexNodeId = (annex: Annex): string =>
-  annex.kind === 'document' ? documentNodeId(annex.document.id) : deliverableNodeId(annex.deliverable.neuronId)
-
-type Child =
-  | { readonly kind: 'step'; readonly step: StepView }
-  | { readonly kind: 'ghost'; readonly ghost: ProposalView['items'][number]; readonly proposal: ProposalView }
-  | { readonly kind: 'bar'; readonly proposal: ProposalView }
+type Entry =
+  | { readonly kind: 'step'; readonly id: string; readonly step: StepView }
+  | {
+      readonly kind: 'ghost'
+      readonly id: string
+      readonly ghost: ProposalView['items'][number]
+      readonly proposal: ProposalView
+    }
+  | { readonly kind: 'bar'; readonly id: string; readonly proposal: ProposalView }
+  | { readonly kind: 'document'; readonly id: string; readonly document: DocumentView }
+  | { readonly kind: 'deliverable'; readonly id: string; readonly deliverable: DeliverableView }
 
 const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y })
 
@@ -97,177 +104,156 @@ export function planLayout(input: {
   readonly steps: readonly StepView[]
   /** Propositions en attente dont le parent est ce genesis ou une de ses étapes. */
   readonly proposals: readonly ProposalView[]
-  /** Documents rattachés à ce genesis ou à ses étapes (spec 012) : annexes sous leur neurone. */
+  /** Documents rattachés à ce genesis ou à ses étapes (spec 012). */
   readonly documents?: readonly DocumentView[]
-  /** Livrables des actions finales de ce plan (spec 013) : première annexe sous leur action. */
+  /** Livrables des actions finales de ce plan (spec 013). */
   readonly deliverables?: readonly DeliverableView[]
+  /** Rayon de l'orbe du genesis (place de son titre sous lui). */
+  readonly rootRadius?: number
+  /** Le genesis porte une carte de structure : le plan part à sa droite. */
+  readonly beside?: boolean
+  /** Tout le plan est replié dans le genesis. */
+  readonly rootCollapsed?: boolean
+  /** « Réorganiser » (D22) : le premier niveau part en ligne. */
+  readonly transposed?: boolean
 }): PlanLayout {
-  const children = new Map<string, Child[]>()
-  const push = (parentId: string, child: Child): void => {
-    children.set(parentId, [...(children.get(parentId) ?? []), child])
+  const kids = new Map<string, Entry[]>()
+  const push = (parentId: string, entry: Entry): void => {
+    kids.set(parentId, [...(kids.get(parentId) ?? []), entry])
   }
-  for (const step of [...input.steps].sort((a, b) => a.rank - b.rank)) push(step.parentId, { kind: 'step', step })
+  for (const step of [...input.steps].sort((a, b) => a.rank - b.rank))
+    push(step.parentId, { kind: 'step', id: step.id, step })
   for (const proposal of input.proposals) {
-    push(proposal.parentId, { kind: 'bar', proposal })
+    push(proposal.parentId, { kind: 'bar', id: barNodeId(proposal.id), proposal })
     for (const ghost of [...proposal.items].sort((a, b) => a.rank - b.rank))
-      push(proposal.parentId, { kind: 'ghost', ghost, proposal })
+      push(proposal.parentId, { kind: 'ghost', id: ghostNodeId(ghost.id), ghost, proposal })
   }
-  const annexes = new Map<string, Annex[]>()
-  const annex = (neuronId: string, entry: Annex): void => {
-    annexes.set(neuronId, [...(annexes.get(neuronId) ?? []), entry])
-  }
-  for (const deliverable of input.deliverables ?? []) annex(deliverable.neuronId, { kind: 'deliverable', deliverable })
-  for (const document of input.documents ?? []) annex(document.neuronId, { kind: 'document', document })
-  const annexHeight = (neuronId: string): number =>
-    (annexes.get(neuronId) ?? []).reduce((sum, entry) => sum + ANNEX_GAP + boxOf(entry).height, 0)
+  for (const deliverable of input.deliverables ?? [])
+    push(deliverable.neuronId, { kind: 'deliverable', id: deliverableNodeId(deliverable.neuronId), deliverable })
+  for (const document of input.documents ?? [])
+    push(document.neuronId, { kind: 'document', id: documentNodeId(document.id), document })
 
-  const idOf = (child: Child): string =>
-    child.kind === 'step'
-      ? child.step.id
-      : child.kind === 'ghost'
-        ? ghostNodeId(child.ghost.id)
-        : barNodeId(child.proposal.id)
-  const cardOf = (child: Child, depth: number): { readonly width: number; readonly height: number } =>
-    child.kind === 'bar' ? PLAN_SIZES.bar : planSize(depth)
-  // Bloc d'un nœud : sa carte et ses annexes empilées dessous ; sa largeur est celle du plus large.
-  const blockOf = (child: Child, depth: number): { readonly width: number; readonly height: number } => {
-    const card = cardOf(child, depth)
-    if (child.kind !== 'step') return card
-    const stacked = annexes.get(child.step.id) ?? []
-    return {
-      width: Math.max(card.width, ...stacked.map((entry) => boxOf(entry).width)),
-      height: card.height + annexHeight(child.step.id)
+  const entries = new Map<string, Entry>()
+  const parentOf = new Map<string, string>()
+  for (const [parentId, list] of kids)
+    for (const entry of list) {
+      entries.set(entry.id, entry)
+      parentOf.set(entry.id, parentId)
     }
+  const collapsed = (id: string): boolean => {
+    if (id === input.genesisId) return input.rootCollapsed === true
+    const entry = entries.get(id)
+    return entry?.kind === 'step' && entry.step.collapsed === true
   }
-  // Hauteur d'un sous-arbre : celle de son bloc, ou celle de ses enfants empilés si elle est plus grande.
-  const heights = new Map<string, number>()
-  const heightOf = (child: Child, depth: number): number => {
-    const id = idOf(child)
-    const known = heights.get(id)
-    if (known !== undefined) return known
-    const kids = child.kind === 'step' ? (children.get(child.step.id) ?? []) : []
-    const stacked =
-      kids.reduce((sum, kid) => sum + heightOf(kid, depth + 1), 0) + Math.max(kids.length - 1, 0) * ROW_GAP
-    const height = Math.max(blockOf(child, depth).height, stacked)
-    heights.set(id, height)
-    return height
+  const visibleKids = (id: string): readonly string[] =>
+    collapsed(id) ? [] : (kids.get(id) ?? []).map((entry) => entry.id)
+
+  // Places de base (sans décalage glissé) des nœuds visibles.
+  const base = new Map<string, { readonly center: Point; readonly depth: number }>()
+  const options: AlternateOptions = {
+    childrenOf: visibleKids,
+    sizeOf: (id) => {
+      const entry = entries.get(id)
+      if (entry?.kind === 'bar') return PLAN_CELLS.bar
+      return parentOf.get(id) === input.genesisId ? PLAN_CELLS.step : PLAN_CELLS.sub
+    },
+    across: ACROSS,
+    down: DOWN,
+    transposed: input.transposed === true,
+    visit: (id, depth, center) => base.set(id, { center, depth })
+  }
+  const radius = input.rootRadius ?? 52
+  const anchor =
+    input.beside === true
+      ? { x: input.center.x + radius + RIGHT_GAP, y: input.center.y - PLAN_CELLS.step.height / 2 }
+      : input.center
+  layoutUnder(input.genesisId, anchor, input.beside === true ? 0 : radius + BELOW_GAP, STEP_EXTRA, options)
+
+  // Décalage glissé d'une étape : il s'ajoute à celui de ses ancêtres (toute la branche suit).
+  const shiftOf = (id: string): Point => {
+    let shift: Point = { x: 0, y: 0 }
+    for (let current: string | undefined = id; current !== undefined; current = parentOf.get(current)) {
+      const entry = entries.get(current)
+      if (entry?.kind === 'step') shift = add(shift, entry.step.offset)
+    }
+    return shift
+  }
+  const ownOffset = (entry: Entry): Point =>
+    entry.kind === 'document'
+      ? entry.document.offset
+      : entry.kind === 'deliverable'
+        ? entry.deliverable.offset
+        : { x: 0, y: 0 }
+  const finalOf = (id: string): Point | null => {
+    const placed = base.get(id)
+    const entry = entries.get(id)
+    if (placed === undefined || entry === undefined) return null
+    return add(add(placed.center, shiftOf(id)), ownOffset(entry))
+  }
+  // Nœud affiché pour un nœud caché : l'ancêtre visible le plus proche (le genesis si tout est replié).
+  const shownAncestor = (id: string): string => {
+    let current = parentOf.get(id)
+    while (current !== undefined && !base.has(current)) current = parentOf.get(current)
+    return current ?? input.genesisId
+  }
+  const depthOf = (id: string): number => {
+    let depth = 0
+    for (let current: string | undefined = id; current !== undefined && current !== input.genesisId;) {
+      depth++
+      current = parentOf.get(current)
+    }
+    return depth
+  }
+  // Rang affiché (①, ①.②…) : chemin des rangs d'étapes ; un fantôme naît après les étapes existantes.
+  const pathOf = (id: string): number[] => {
+    const entry = entries.get(id)
+    const parent = parentOf.get(id)
+    const above = parent === undefined || parent === input.genesisId ? [] : pathOf(parent)
+    if (entry?.kind === 'step') return [...above, entry.step.rank]
+    if (entry?.kind === 'ghost') {
+      const existing = (kids.get(parent ?? '') ?? []).filter((sibling) => sibling.kind === 'step').length
+      return [...above, existing + entry.ghost.rank]
+    }
+    return above
   }
 
-  // Première passe : ordre vertical et colonne de chaque élément ; une colonne a la largeur de son bloc le plus large.
-  const pending: {
-    readonly depth: number
-    readonly width: number
-    readonly build: (left: number) => PlacedPlanItem[]
-  }[] = []
-  const columnWidths: number[] = []
+  const items: PlacedPlanItem[] = []
   const edges: PlanEdge[] = []
-  const annexEdges = (neuronId: string): void => {
-    for (const entry of annexes.get(neuronId) ?? []) {
-      const target = annexNodeId(entry)
-      edges.push({ id: `plan-line-${target}`, source: neuronId, target, ghost: false, annex: true })
+  // Parcours dans l'ordre de l'arbre (parents avant enfants), visibles et cachés.
+  const walk = (parentId: string): void => {
+    for (const entry of kids.get(parentId) ?? []) {
+      const visible = base.has(entry.id)
+      const at =
+        finalOf(entry.id) ??
+        (() => {
+          const shown = shownAncestor(entry.id)
+          return shown === input.genesisId ? input.center : (finalOf(shown) ?? input.center)
+        })()
+      const common = { x: at.x, y: at.y, depth: depthOf(entry.id), parentId, folded: !visible }
+      if (entry.kind === 'step')
+        items.push({ ...common, kind: 'step', step: entry.step, label: rankLabel(pathOf(entry.id)) })
+      else if (entry.kind === 'ghost')
+        items.push({
+          ...common,
+          kind: 'ghost',
+          ghost: entry.ghost,
+          proposalId: entry.proposal.id,
+          label: rankLabel(pathOf(entry.id))
+        })
+      else if (entry.kind === 'bar') items.push({ ...common, kind: 'bar', proposal: entry.proposal })
+      else if (entry.kind === 'document') items.push({ ...common, kind: 'document', document: entry.document })
+      else items.push({ ...common, kind: 'deliverable', deliverable: entry.deliverable })
+      if (visible && entry.kind !== 'bar')
+        edges.push({
+          id: `plan-line-${entry.id}`,
+          source: parentId,
+          target: entry.id,
+          ghost: entry.kind === 'ghost',
+          annex: entry.kind === 'document' || entry.kind === 'deliverable'
+        })
+      walk(entry.id)
     }
   }
-  /**
-   * Annexes empilées sous un nœud dont le bas est à `bottom`, calées sur un bord (gauche d'une colonne, ou droit sous le
-   * genesis pour ne pas empiéter sur la colonne de ses étapes) ; elles suivent `shift` + leur propre décalage.
-   */
-  const placeAnnexes = (
-    neuronId: string,
-    edge: { readonly left: number } | { readonly right: number },
-    bottom: number,
-    shift: Point
-  ): PlacedPlanItem[] => {
-    let top = bottom
-    return (annexes.get(neuronId) ?? []).map((entry): PlacedPlanItem => {
-      const box = boxOf(entry)
-      top += ANNEX_GAP
-      const x = 'left' in edge ? edge.left + box.width / 2 : edge.right - box.width / 2
-      const at = add(add({ x, y: top + box.height / 2 }, shift), box.offset)
-      top += box.height
-      return entry.kind === 'document'
-        ? { kind: 'document', document: entry.document, ...at }
-        : { kind: 'deliverable', deliverable: entry.deliverable, ...at }
-    })
-  }
-  const place = (parentId: string, ranks: readonly number[], depth: number, centerY: number, shift: Point): void => {
-    const kids = children.get(parentId) ?? []
-    if (kids.length === 0) return
-    const total = kids.reduce((sum, kid) => sum + heightOf(kid, depth), 0) + (kids.length - 1) * ROW_GAP
-    const existing = kids.filter((kid) => kid.kind === 'step').length
-    let top = centerY - total / 2
-    for (const kid of kids) {
-      const span = heightOf(kid, depth)
-      const middle = top + span / 2
-      top += span + ROW_GAP
-      const card = cardOf(kid, depth)
-      const block = blockOf(kid, depth)
-      columnWidths[depth] = Math.max(columnWidths[depth] ?? 0, block.width)
-      // La carte occupe le haut de son bloc, centré sur son sous-arbre.
-      const cardY = middle - block.height / 2 + card.height / 2
-      const at = (left: number): Point => ({ x: left + card.width / 2, y: cardY })
-      if (kid.kind === 'bar') {
-        pending.push({
-          depth,
-          width: card.width,
-          build: (left) => [{ kind: 'bar', proposal: kid.proposal, depth, ...add(at(left), shift) }]
-        })
-        continue
-      }
-      if (kid.kind === 'ghost') {
-        // Rang à la naissance : après les étapes existantes, dans l'ordre proposé.
-        const label = rankLabel([...ranks, existing + kid.ghost.rank])
-        pending.push({
-          depth,
-          width: card.width,
-          build: (left) => [
-            {
-              kind: 'ghost',
-              ghost: kid.ghost,
-              proposalId: kid.proposal.id,
-              parentId,
-              depth,
-              label,
-              ...add(at(left), shift)
-            }
-          ]
-        })
-        edges.push({ id: `plan-line-${idOf(kid)}`, source: parentId, target: idOf(kid), ghost: true, annex: false })
-        continue
-      }
-      const path = [...ranks, kid.step.rank]
-      // Le décalage glissé d'une étape s'ajoute à celui de ses ancêtres : toute la branche suit.
-      const own = add(shift, kid.step.offset)
-      pending.push({
-        depth,
-        width: card.width,
-        build: (left) => [
-          { kind: 'step', step: kid.step, label: rankLabel(path), ...add(at(left), own) },
-          ...placeAnnexes(kid.step.id, { left }, cardY + card.height / 2, own)
-        ]
-      })
-      edges.push({ id: `plan-line-${kid.step.id}`, source: parentId, target: kid.step.id, ghost: false, annex: false })
-      annexEdges(kid.step.id)
-      place(kid.step.id, path, depth + 1, middle, own)
-    }
-  }
-  place(input.genesisId, [], 1, input.center.y, { x: 0, y: 0 })
-
-  // Seconde passe : colonnes calées à gauche, chacune après la précédente.
-  const lefts: number[] = []
-  for (let depth = 1; depth < columnWidths.length; depth += 1) {
-    lefts[depth] =
-      depth === 1 ? input.center.x + GENESIS_GAP : (lefts[depth - 1] ?? 0) + (columnWidths[depth - 1] ?? 0) + COLUMN_GAP
-  }
-  const items = pending.flatMap((entry) => entry.build(lefts[entry.depth] ?? 0))
-  // Annexes du genesis : sous lui, bord droit avant la colonne de ses étapes (la physique le place ; elles le suivent).
-  annexEdges(input.genesisId)
-  items.push(
-    ...placeAnnexes(
-      input.genesisId,
-      { right: input.center.x + GENESIS_GAP - COLUMN_GAP / 2 },
-      input.center.y + GENESIS_ANNEX_TOP - ANNEX_GAP,
-      { x: 0, y: 0 }
-    )
-  )
+  walk(input.genesisId)
   return { items, edges }
 }

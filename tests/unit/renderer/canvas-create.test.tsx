@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { TIER_SIZE, tierOf } from '../../../src/renderer/src/canvas/buildGraph'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
@@ -41,7 +42,10 @@ async function pane(container: HTMLElement): Promise<Element> {
 
 describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas', toast: null, bornId: null }))
+  beforeEach(() => {
+    useUiStore.setState({ view: 'ideas', toast: null, bornId: null })
+    useCards.setState({ cards: [], activeId: null })
+  })
 
   it('should_grow_with_the_context_level_from_raw_to_hatched', () => {
     const [raw, developing, hatched] = canvasView().ideas
@@ -101,7 +105,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     expect(api.invoke).not.toHaveBeenCalledWith('neuron:create', expect.anything())
   })
 
-  it('should_open_the_claude_conversation_of_an_idea_with_a_click_and_close_it_with_a_click_in_the_void', async () => {
+  it('should_open_the_detail_card_of_an_idea_with_a_click_then_its_conversation_and_keep_it_on_a_click_in_the_void', async () => {
     const idea = canvasView().ideas[0]
     if (idea === undefined) throw new Error('fixture')
     const chat = {
@@ -121,16 +125,24 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     })
     const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
     fireEvent.click(node)
+    // Spec 022 D5 : un clic ouvre la carte de détails ; « Discuter » y ouvre la conversation, sur le côté.
+    const panel = await screen.findByRole('dialog', { name: `Détails : ${idea.title}` })
+    // La couche de la carte de React Flow ignore la souris : la carte doit la réactiver (sinon ✕ et glisser sont morts).
+    expect(panel.style.pointerEvents).toBe('all')
+    expect(useUiStore.getState().chatNeuronId).toBeNull()
+    fireEvent.click(within(panel).getByRole('button', { name: 'Discuter' }))
     expect(useUiStore.getState()).toMatchObject({ chatNeuronId: RAW_ID })
-    const panel = await screen.findByRole('complementary', { name: 'Conversation du neurone' })
     expect(await within(panel).findByRole('button', { name: 'Commencer le brainstorm' })).toBeDefined()
     // Spec 008 : ouvrir une idée ne fait plus jamais brainstormer l'IA locale.
     expect(api.invoke).not.toHaveBeenCalledWith('growth:develop', expect.anything())
-    // La carte reste affichée à côté du volet.
+    // La carte des idées reste affichée autour de la carte de détails.
     expect(screen.getByRole('group', { name: /Mission mariage/ })).toBeDefined()
 
+    // Un clic dans le vide ne ferme rien (des conversations peuvent tourner, D15) ; ✕ ferme la carte.
     fireEvent.click(await pane(container))
-    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Conversation du neurone' })).toBeNull())
+    expect(screen.getByRole('dialog', { name: `Détails : ${idea.title}` })).toBeDefined()
+    fireEvent.click(within(panel).getByRole('button', { name: 'Fermer la carte' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: `Détails : ${idea.title}` })).toBeNull())
     expect(useUiStore.getState().chatNeuronId).toBeNull()
   })
 

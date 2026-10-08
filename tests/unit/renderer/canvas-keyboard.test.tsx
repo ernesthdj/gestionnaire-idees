@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
@@ -34,7 +35,10 @@ const idea = (name: RegExp): HTMLElement => screen.getByRole('group', { name })
 
 describe('écran Idées', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() => useUiStore.setState({ view: 'ideas' }))
+  beforeEach(() => {
+    useUiStore.setState({ view: 'ideas' })
+    useCards.setState({ cards: [], activeId: null })
+  })
 
   it('should_show_counts_and_every_idea_with_a_spoken_description', async () => {
     renderCanvas()
@@ -44,13 +48,18 @@ describe('écran Idées', () => {
     expect(idea(/^Idée éclose : Mission mariage, Réflexion \(proposée par l’IA\)/)).toBeDefined()
   })
 
-  it('should_open_the_conversation_of_an_idea_when_enter_is_pressed_on_it', async () => {
+  it('should_open_the_detail_card_of_an_idea_when_enter_is_pressed_on_it_and_close_it_with_escape', async () => {
     const user = userEvent.setup()
     renderCanvas()
     const node = await waitFor(() => idea(/Deuxième écran/))
     node.focus()
     await user.keyboard('{Enter}')
-    expect(useUiStore.getState().chatNeuronId).toBe(DEVELOPING_ID)
+    // Spec 022 : Entrée ouvre la carte de détails et le focus y entre ; Échap la referme.
+    const card = await screen.findByRole('dialog', { name: 'Détails : Deuxième écran' })
+    expect(card.contains(document.activeElement)).toBe(true)
+    expect(useCards.getState().activeId).toBe(DEVELOPING_ID)
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Détails : Deuxième écran' })).toBeNull())
   })
 
   it('should_reach_ideas_with_tab_from_the_toolbar', async () => {

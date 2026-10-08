@@ -16,10 +16,11 @@ import { progressOf, type ElementProgress } from './progress'
 import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
 import type { StructureArchitectureView } from '@shared/ipc/canvas'
 import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
-import { deliverableNodeId, documentNodeId, PLAN_SIZES, planLayout, planSize, type PlacedPlanItem } from './planLayout'
+import { deliverableNodeId, documentNodeId, PLAN_BAR_SIZE, planLayout, type PlacedPlanItem } from './planLayout'
+import { nodeVisuals, type NodeIconKey, type NodeVisual, type TreeNodeInput } from './living/nodeVisual'
 import type { DocumentView } from '@shared/ipc/documents'
 import { STATUS_LABELS } from './nodes/ElementNode'
-import { finalStateLabel, STEP_STATUS_LABELS } from './nodes/PlanNode'
+import { finalStateLabel, STEP_NODE_STATUS, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 import { PROVENANCE_LABELS } from '../explorer/labels'
 
@@ -38,10 +39,22 @@ export const TIER_SIZE: Readonly<Record<Tier, number>> = {
 /** Aspect selon l'état : pointillés (brute), plein (en développement), double anneau + halo (éclose). */
 type CanvasState = 'raw' | 'developing' | 'hatched'
 
+/** Repli des sous-nœuds d'un nœud (spec 022 D14) : replié ou non, et combien il en cache ou montre. */
+export interface NodeFold {
+  readonly collapsed: boolean
+  readonly count: number
+}
+
 export type NeuronNodeData = {
   readonly neuron: CanvasNeuronView
   /** Un filtre est actif et cette idée n'y correspond pas : estompée, toujours présente. */
   readonly dimmed: boolean
+  /** Aspect vivant (spec 022) : une idée de départ est la racine de son plan (orbe). */
+  readonly visual: NodeVisual
+  /** Sa carte de détails est ouverte. */
+  readonly open: boolean
+  /** Repli de tout son plan ; `null` sans plan. */
+  readonly fold: NodeFold | null
 }
 export type NeuronNodeType = Node<NeuronNodeData, 'neuron'>
 
@@ -86,16 +99,29 @@ export type PlanNodeType = Node<
     readonly item: Extract<PlacedPlanItem, { kind: 'step' | 'ghost' }>
     readonly color: string
     readonly dimmed: boolean
+    readonly visual: NodeVisual
+    readonly open: boolean
+    /** Repli de ses sous-étapes ; `null` sans sous-nœud. */
+    readonly fold: NodeFold | null
   },
   'plan'
 >
 /** Barre « Tout valider / Tout refuser » d'une couche proposée. */
 export type PlanBarNodeType = Node<{ readonly proposal: ProposalView }, 'planBar'>
 /** Document Markdown rattaché à un neurone (spec 012), dans la colonne de ses enfants. */
-export type DocumentNodeType = Node<{ readonly document: DocumentView; readonly dimmed: boolean }, 'document'>
+export type DocumentNodeType = Node<
+  { readonly document: DocumentView; readonly dimmed: boolean; readonly visual: NodeVisual; readonly open: boolean },
+  'document'
+>
 /** Livrable d'une action finale (spec 013), annexe sous son action. */
 export type DeliverableNodeType = Node<
-  { readonly deliverable: DeliverableView; readonly title: string; readonly dimmed: boolean },
+  {
+    readonly deliverable: DeliverableView
+    readonly title: string
+    readonly dimmed: boolean
+    readonly visual: NodeVisual
+    readonly open: boolean
+  },
   'deliverable'
 >
 
@@ -240,37 +266,117 @@ function layerPhrase(kind: ArchitectureKind | null, layer: string | null): strin
  */
 export const STRUCTURE_BAR_OFFSET = { x: 0, y: -(TIER_SIZE.hatched / 2 + 56) } as const
 
+/** Aspect d'une idée de départ : racine de son plan (orbe). */
+const ROOT_VISUAL: NodeVisual = { depth: 0, branch: null, size: 0, icon: 'idea', orb: true }
+const FALLBACK_VISUAL: NodeVisual = { depth: 1, branch: null, size: 44, icon: 'step', orb: false }
+/** Nœud caché par le repli d'un ancêtre (D14) : invisible, inerte, hors de l'arbre d'accessibilité. */
+const HIDDEN_NODE = {
+  className: 'living-gone',
+  draggable: false,
+  selectable: false,
+  focusable: false,
+  domAttributes: { 'aria-hidden': true }
+} as const
+
+/** Identifiant du nœud React Flow d'un élément de plan (hors barre). */
+export function planItemId(item: Exclude<PlacedPlanItem, { kind: 'bar' }>): string {
+  if (item.kind === 'step') return item.step.id
+  if (item.kind === 'ghost') return `ghost-${item.ghost.id}`
+  if (item.kind === 'document') return documentNodeId(item.document.id)
+  return deliverableNodeId(item.deliverable.neuronId)
+}
+
+function planIcon(item: Exclude<PlacedPlanItem, { kind: 'bar' }>): NodeIconKey {
+  if (item.kind === 'document') return 'document'
+  if (item.kind === 'deliverable') return 'deliverable'
+  if (item.kind === 'step' && item.step.final !== undefined) return 'final'
+  return 'step'
+}
+
+/** Arbre d'un plan (genesis → étapes → sous-étapes, fantômes, annexes) pour l'aspect vivant. */
+function planTree(genesisId: string, items: readonly PlacedPlanItem[]): TreeNodeInput[] {
+  return [
+    { id: genesisId, parentId: null, icon: 'idea' },
+    ...items.flatMap((item): TreeNodeInput[] =>
+      item.kind === 'bar'
+        ? []
+        : [
+            {
+              id: planItemId(item),
+              parentId: item.parentId,
+              icon: planIcon(item),
+              ...(item.kind === 'step' ? { status: STEP_NODE_STATUS[item.step.status] } : {})
+            }
+          ]
+    )
+  ]
+}
+
 /** Vue de l'écran Idées → nœuds (idées, blocs) et arêtes (liens) React Flow. Positions = centres (nodeOrigin 0.5). */
 export function buildGraph(
   view: IdeasCanvasView,
   layout: CanvasLayout,
   /** Idée qui vient de naître (double-clic, capture) : elle pousse (250 ms). */
   bornId: string | null = null,
-  /** Idée ouverte dans le volet : mise en avant, les autres estompées (elles restent cliquables). */
-  openRootId: string | null = null,
+  /** Nœuds dont la carte de détails est ouverte (spec 022 D15) : ils grossissent et s'éclairent. */
+  openIds: ReadonlySet<string> = new Set(),
   /** Cartes de structure basculées en vue Architecture (spec 017 D20). */
-  structureViews: Readonly<Record<string, 'progression' | 'architecture'>> = {}
+  structureViews: Readonly<Record<string, 'progression' | 'architecture'>> = {},
+  /** « Réorganiser » (spec 022 D22) : les plans partent en ligne au premier niveau. */
+  transposed = false
 ): {
   nodes: CanvasNode[]
   edges: BranchEdgeType[]
   mapEdges: (MapLinkEdgeType | BranchEdgeType)[]
 } {
   const highlighted = view.highlighted === null ? null : new Set(view.highlighted)
-  const isDimmed = (id: string): boolean =>
-    (highlighted !== null && !highlighted.has(id)) || (openRootId !== null && id !== openRootId)
-  const neuronNodes = view.ideas.map((neuron): NeuronNodeType => ({
-    id: neuron.id,
-    type: 'neuron',
-    position: layout.positions.get(neuron.id) ?? { x: 0, y: 0 },
-    data: { neuron, dimmed: isDimmed(neuron.id) },
-    ...(neuron.id === bornId
-      ? { className: 'neuron-born' }
-      : neuron.id === openRootId
-        ? { className: 'neuron-open' }
-        : {}),
-    ariaLabel: neuronAriaLabel(neuron),
-    deletable: false
-  }))
+  const isDimmed = (id: string): boolean => highlighted !== null && !highlighted.has(id)
+  // Plans d'attaque (spec 011, spec 022 R4) : disposés d'abord, pour connaître le repli de chaque genesis.
+  const elementGenesis = new Set(view.elements.map((element) => element.genesisId))
+  const plans = new Map(
+    view.ideas.flatMap((genesis) => {
+      const center = layout.positions.get(genesis.id)
+      const steps = view.steps.filter((step) => step.genesisId === genesis.id)
+      const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
+      const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
+      const documents = view.documents.filter((document) => ids.has(document.neuronId))
+      const deliverables = view.deliverables.filter((deliverable) => ids.has(deliverable.neuronId))
+      if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) return []
+      const plan = planLayout({
+        genesisId: genesis.id,
+        center,
+        steps,
+        proposals,
+        documents,
+        deliverables,
+        rootRadius: TIER_SIZE[tierOf(genesis)] / 2,
+        beside: elementGenesis.has(genesis.id),
+        rootCollapsed: genesis.planCollapsed === true,
+        transposed
+      })
+      return [[genesis.id, { genesis, steps, plan }] as const]
+    })
+  )
+  const neuronNodes = view.ideas.map((neuron): NeuronNodeType => {
+    const items = plans.get(neuron.id)?.plan.items.filter((item) => item.kind !== 'bar').length ?? 0
+    return {
+      id: neuron.id,
+      type: 'neuron',
+      position: layout.positions.get(neuron.id) ?? { x: 0, y: 0 },
+      width: TIER_SIZE[tierOf(neuron)],
+      height: TIER_SIZE[tierOf(neuron)],
+      data: {
+        neuron,
+        dimmed: isDimmed(neuron.id),
+        visual: ROOT_VISUAL,
+        open: openIds.has(neuron.id),
+        fold: items === 0 ? null : { collapsed: neuron.planCollapsed === true, count: items }
+      },
+      ...(neuron.id === bornId ? { className: 'neuron-born' } : {}),
+      ariaLabel: neuronAriaLabel(neuron),
+      deletable: false
+    }
+  })
   const blockNodes = view.blocks.map((block): CanvasNode => ({
     id: block.id,
     type: BLOCK_NODE_TYPES[block.kind],
@@ -343,81 +449,98 @@ export function buildGraph(
     }))
   // Cartes de structure des projets liés (spec 009) : éléments dépliés autour de leur genesis, liens typés regroupés.
   const genesisCenters = new Map(neuronNodes.map((node) => [node.id, node.position] as const))
-  // Plans d'attaque (spec 011) : arbre gauche → droite à partir de chaque genesis.
+  // Plans d'attaque en nœuds vivants (spec 022) : couleur de branche, taille par niveau ; un nœud caché par un repli
+  // reste posé à la place de son ancêtre, invisible et inerte (il y glisse, puis en ressort en glissant).
   const planNodes: CanvasNode[] = []
   const planEdges: BranchEdgeType[] = []
-  for (const genesis of view.ideas) {
-    const steps = view.steps.filter((step) => step.genesisId === genesis.id)
-    const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
-    const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
-    const documents = view.documents.filter((document) => ids.has(document.neuronId))
-    const deliverables = view.deliverables.filter((deliverable) => ids.has(deliverable.neuronId))
-    const center = genesisCenters.get(genesis.id)
-    if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) continue
+  for (const { genesis, steps, plan } of plans.values()) {
     const color = genesis.category?.color ?? '#71717a'
     const dimmed = isDimmed(genesis.id)
-    const plan = planLayout({ genesisId: genesis.id, center, steps, proposals, documents, deliverables })
+    const visuals = nodeVisuals(planTree(genesis.id, plan.items))
+    const below = new Map<string, number>()
+    for (const item of plan.items) {
+      if (item.kind === 'bar') continue
+      // Descendants de chaque nœud (pour la pastille ▸ N).
+      for (let parent: string | undefined = item.parentId; parent !== undefined && parent !== genesis.id;) {
+        below.set(parent, (below.get(parent) ?? 0) + 1)
+        parent = plan.items.find((other) => other.kind === 'step' && other.step.id === parent)?.parentId
+      }
+    }
     for (const placed of plan.items) {
       if (placed.kind === 'bar') {
         planNodes.push({
           id: `plan-bar-${placed.proposal.id}`,
           type: 'planBar',
-          width: PLAN_SIZES.bar.width,
-          height: PLAN_SIZES.bar.height,
+          width: PLAN_BAR_SIZE.width,
+          height: PLAN_BAR_SIZE.height,
           position: { x: placed.x, y: placed.y },
           data: { proposal: placed.proposal },
           draggable: false,
           selectable: false,
           ariaLabel: `Couche proposée par Claude pour « ${genesis.title} »`,
-          deletable: false
+          deletable: false,
+          ...(placed.folded ? HIDDEN_NODE : {})
         })
         continue
       }
+      const id = planItemId(placed)
+      const visual = visuals.get(id) ?? FALLBACK_VISUAL
+      const size = visual.size
       if (placed.kind === 'deliverable') {
         const title = steps.find((step) => step.id === placed.deliverable.neuronId)?.title ?? ''
         planNodes.push({
-          id: deliverableNodeId(placed.deliverable.neuronId),
+          id,
           type: 'deliverable',
-          width: placed.deliverable.width,
-          height: placed.deliverable.height,
+          width: size,
+          height: size,
           position: { x: placed.x, y: placed.y },
-          data: { deliverable: placed.deliverable, title, dimmed },
+          data: { deliverable: placed.deliverable, title, dimmed, visual, open: openIds.has(id) },
           draggable: true,
           ariaLabel: `Livrable de « ${title} » : ${placed.deliverable.files.length} fichier${placed.deliverable.files.length > 1 ? 's' : ''}${placed.deliverable.executing ? ', exécution en cours' : ''}`,
-          deletable: false
+          deletable: false,
+          ...(placed.folded ? HIDDEN_NODE : {})
         })
         continue
       }
       if (placed.kind === 'document') {
         planNodes.push({
-          id: documentNodeId(placed.document.id),
+          id,
           type: 'document',
-          width: placed.document.width,
-          height: placed.document.height,
+          width: size,
+          height: size,
           position: { x: placed.x, y: placed.y },
-          data: { document: placed.document, dimmed },
+          data: { document: placed.document, dimmed, visual, open: openIds.has(id) },
           // Glissable : sa place devient un décalage par rapport à sa place d'annexe (spec 012 D4).
           draggable: true,
           ariaLabel: `Document « ${placed.document.title} » (${placed.document.fileLabel})${placed.document.origin === 'claude' ? ', par Claude' : ''}`,
-          deletable: false
+          deletable: false,
+          ...(placed.folded ? HIDDEN_NODE : {})
         })
         continue
       }
-      const id = placed.kind === 'step' ? placed.step.id : `ghost-${placed.ghost.id}`
+      const count = placed.kind === 'step' ? (below.get(placed.step.id) ?? 0) : 0
       planNodes.push({
         id,
         type: 'plan',
-        width: planSize(placed.kind === 'step' ? placed.step.depth : placed.depth).width,
-        height: planSize(placed.kind === 'step' ? placed.step.depth : placed.depth).height,
+        width: size,
+        height: size,
         position: { x: placed.x, y: placed.y },
-        data: { item: placed, color, dimmed },
+        data: {
+          item: placed,
+          color,
+          dimmed,
+          visual,
+          open: openIds.has(id),
+          fold: placed.kind === 'step' && count > 0 ? { collapsed: placed.step.collapsed === true, count } : null
+        },
         // Une étape se glisse et entraîne sa branche (spec 011 D7) ; un fantôme reste à sa place proposée.
         draggable: placed.kind === 'step',
         ariaLabel:
           placed.kind === 'step'
-            ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}${placed.step.final === undefined ? '' : `, ${finalStateLabel(placed.step.final.state, placed.step.status).toLowerCase()}`}`
+            ? `Étape ${placed.label} de « ${genesis.title} » : ${placed.step.title}, ${STEP_STATUS_LABELS[placed.step.status]}${placed.step.locked ? ', verrouillée' : ''}${placed.step.final === undefined ? '' : `, ${finalStateLabel(placed.step.final.state, placed.step.status).toLowerCase()}`}${count > 0 ? `, ${count} sous-nœud${count > 1 ? 's' : ''} ${placed.step.collapsed === true ? 'repliés' : 'dépliés'}` : ''}`
             : `Étape proposée ${placed.label} : ${placed.ghost.title}`,
-        deletable: false
+        deletable: false,
+        ...(placed.folded ? HIDDEN_NODE : {})
       })
     }
     for (const edge of plan.edges) {
@@ -426,7 +549,7 @@ export function buildGraph(
         type: 'branch',
         source: edge.source,
         target: edge.target,
-        data: { style: edge.ghost ? 'dashed' : 'solid' },
+        data: { style: edge.ghost ? 'dashed' : 'solid', branch: visuals.get(edge.target)?.branch ?? null },
         deletable: false,
         selectable: false,
         focusable: false

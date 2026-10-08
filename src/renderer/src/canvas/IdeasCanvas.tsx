@@ -3,6 +3,7 @@ import './canvas.css'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Background,
+  ControlButton,
   Controls,
   ReactFlow,
   ReactFlowProvider,
@@ -56,10 +57,10 @@ import { useCreateLink } from './useCreateLink'
 import { RemoveIdeasDialog } from './RemoveIdeasDialog'
 import { useRemoveIdea, useRemoveIdeas } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
-import { ChatPanel } from '../chat/ChatPanel'
-import { GhostPanel } from './GhostPanel'
-import { FinalPanel } from './FinalPanel'
-import { FileViewer } from './FileViewer'
+import { IdeaCards } from './cards/IdeaCards'
+import { useCards } from './cards/cardsStore'
+import { useSmoothZoom } from './useSmoothZoom'
+import { useGlide } from './useGlide'
 import { connectionIntent } from './connection'
 
 const NODE_TYPES: NodeTypes = {
@@ -94,6 +95,10 @@ const MULTI_SELECTION_KEYS = ['Control', 'Meta', 'Shift']
  * 2026-10-07) ; glisser sans touche déplace toujours la carte.
  */
 const SELECTION_BOX_KEYS = ['Control', 'Meta', 'Shift']
+/** Nœuds qui ont une carte de détails (spec 022) ; les blocs auront la leur (US4). */
+const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'document', 'deliverable'])
+/** Attente avant d'ouvrir une carte au clic : un double-clic ouvre directement la discussion. */
+const CLICK_DELAY_MS = 220
 /** Marge du cadrage autour des idées. */
 const FIT_MARGIN = 128
 const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
@@ -105,8 +110,8 @@ const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
 
 /** Textes d'aide de React Flow, en français. */
 const ARIA_LABELS = {
-  'node.a11yDescription.default': 'Entrée pour ouvrir la conversation de l’idée, touche Menu pour la modifier.',
-  'node.a11yDescription.keyboardDisabled': 'Entrée pour ouvrir la conversation de l’idée.',
+  'node.a11yDescription.default': 'Entrée pour ouvrir la carte de détails, touche Menu pour modifier une idée.',
+  'node.a11yDescription.keyboardDisabled': 'Entrée pour ouvrir la carte de détails.',
   'edge.a11yDescription.default': 'Lien entre deux idées.',
   'controls.ariaLabel': 'Zoom',
   'controls.zoomIn.ariaLabel': 'Zoomer',
@@ -168,17 +173,14 @@ function CanvasInner(): React.JSX.Element {
   const client = useQueryClient()
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
-  const chatNeuronId = useUiStore((state) => state.chatNeuronId)
   const structureViews = useUiStore((state) => state.structureViews)
   const openChat = useUiStore((state) => state.openChat)
-  const closeChat = useUiStore((state) => state.closeChat)
-  const ghostId = useUiStore((state) => state.ghostId)
-  const openGhost = useUiStore((state) => state.openGhost)
-  const closeGhost = useUiStore((state) => state.closeGhost)
-  const finalId = useUiStore((state) => state.finalId)
-  const closeFinal = useUiStore((state) => state.closeFinal)
-  const viewer = useUiStore((state) => state.viewer)
-  const closeViewer = useUiStore((state) => state.closeViewer)
+  // Cartes de détails (spec 022 D15) : plusieurs à la fois, une discussion par carte ; plus de volet de droite.
+  const cards = useCards((state) => state.cards)
+  const cardsApi = useCards()
+  const openIds = useMemo(() => new Set(cards.map((card) => card.id)), [cards])
+  /** « Réorganiser » (D22) : les plans partent en ligne au premier niveau. */
+  const [transposed, setTransposed] = useState(false)
   const bornId = useUiStore((state) => state.bornId)
   const markBorn = useUiStore((state) => state.markBorn)
   const showToast = useUiStore((state) => state.showToast)
@@ -198,6 +200,8 @@ function CanvasInner(): React.JSX.Element {
   const closeTools = useCallback(() => setTools(null), [])
   const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
+  const clickTimer = useRef(0)
+  useEffect(() => () => window.clearTimeout(clickTimer.current), [])
 
   const query = useQuery({
     queryKey: ['canvas', filter],
@@ -237,18 +241,19 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
-    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, chatNeuronId, structureViews)
+    const built = buildGraph(view, { area: layout.area, positions: live }, bornId, openIds, structureViews, transposed)
     return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
-  }, [view, layout, positions, physics, bornId, chatNeuronId, structureViews])
+  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
 
-  // Liens d'une carte de structure selon le focus (spec 017 D15) : l'élément survolé, sinon celui ouvert dans le volet.
+  // Liens d'une carte de structure selon le focus (spec 017 D15) : l'élément survolé, sinon celui de la carte active.
   const [hoveredElement, setHoveredElement] = useState<string | null>(null)
+  const activeCardId = useCards((state) => state.activeId)
   const focusId =
     hoveredElement ??
-    (chatNeuronId !== null && view?.elements.some((element) => element.id === chatNeuronId) === true
-      ? chatNeuronId
+    (activeCardId !== null && view?.elements.some((element) => element.id === activeCardId) === true
+      ? activeCardId
       : null)
   const focused = useMemo(
     () =>
@@ -320,19 +325,18 @@ function CanvasInner(): React.JSX.Element {
     frame.current = requestAnimationFrame(loop)
   }, [physics, setNodes, persist])
 
-  // Cadrage sur les idées et les blocs, connus par calcul : React Flow ne mesure que les éléments visibles
-  // (`onlyRenderVisibleElements`), son cadrage automatique serait faux. Carte vide : l'espace de départ.
-  const blocks = view?.blocks
+  // Cadrage sur tout ce qui est affiché (idées, plans, éléments, blocs), connu par calcul : React Flow ne mesure que les
+  // éléments visibles (`onlyRenderVisibleElements`), son cadrage automatique serait faux. Carte vide : l'espace de départ.
   const bounds = useMemo(() => {
     if (layout === null) return null
-    const points = [...(positions.size > 0 ? positions : layout.positions).values(), ...(blocks ?? [])]
+    const points = graph.nodes.filter((node) => node.className !== 'living-gone').map((node) => node.position)
     if (points.length === 0) return layout.area
     const xs = points.map((point) => point.x)
     const ys = points.map((point) => point.y)
     const x = Math.min(...xs) - FIT_MARGIN
     const y = Math.min(...ys) - FIT_MARGIN
     return { x, y, width: Math.max(...xs) + FIT_MARGIN - x, height: Math.max(...ys) + FIT_MARGIN - y }
-  }, [layout, positions, blocks])
+  }, [layout, graph])
   // Cadrage initial dès que React Flow connaît la taille réelle de son conteneur (0 px au premier rendu).
   const hasSize = useStore((state) => state.width > 0 && state.height > 0)
   const fitted = useRef(false)
@@ -341,6 +345,27 @@ function CanvasInner(): React.JSX.Element {
     fitted.current = true
     void flow.fitBounds(bounds, { padding: 0.05 })
   }, [hasSize, bounds, flow])
+
+  // Glissements (D4) : quand le repli, la transposition ou les étapes changent, les nœuds glissent vers leur place.
+  const glideSignature = useMemo(
+    () =>
+      view === undefined
+        ? ''
+        : `${transposed}|${view.steps.map((step) => `${step.id}:${step.rank}:${step.collapsed === true}`).join(',')}|${view.ideas
+            .filter((idea) => idea.planCollapsed === true)
+            .map((idea) => idea.id)
+            .join(',')}`,
+    [view, transposed]
+  )
+  const glide = useGlide(glideSignature, reduced)
+  // Zoom fluide (D20) : molette et boutons avec amorti.
+  const { zoomBy } = useSmoothZoom(flow, surface, reduced)
+  // Une carte dont le nœud a disparu (supprimé, filtré) ou qu'un repli a caché se referme.
+  useEffect(() => {
+    const shown = new Set(graph.nodes.filter((node) => node.className !== 'living-gone').map((node) => node.id))
+    if (view === undefined || graph.nodes.length === 0) return
+    for (const card of useCards.getState().cards) if (!shown.has(card.id)) useCards.getState().close(card.id)
+  }, [graph, view])
 
   const recenter = useCallback(() => {
     if (bounds !== null) void flow.fitBounds(bounds, { padding: 0.05, duration: timingFor('dive', reduced).duration })
@@ -456,14 +481,26 @@ function CanvasInner(): React.JSX.Element {
       }
       return
     }
+    if (event.key === 'Escape' && !isEditable(event.target)) {
+      // Échap agit sur la carte active (D15) : replie d'abord le lecteur, puis la ferme.
+      const active = cards.find((card) => card.id === activeCardId)
+      if (active !== undefined) {
+        event.preventDefault()
+        if (active.side === 'reader') cardsApi.setSide(active.id, null)
+        else cardsApi.close(active.id)
+      }
+      return
+    }
     const target = mapNodeOf(event.target)
     if (target === null || isEditable(event.target)) return
+    if (event.key === 'Enter' && CARD_TYPES.has(target.type)) {
+      event.preventDefault()
+      cardsApi.open(target.id)
+      return
+    }
     if (target.type !== 'neuron') return
     const id = target.id
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      openChat(id)
-    } else if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+    if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
       event.preventDefault()
       const box = (event.target as HTMLElement).getBoundingClientRect()
       setMenu({ id, at: { x: box.right, y: box.top } })
@@ -480,6 +517,9 @@ function CanvasInner(): React.JSX.Element {
         filter={filter}
         onFilter={setFilter}
         onRecenter={recenter}
+        onReorder={() => setTransposed((current) => !current)}
+        openCards={cards.length}
+        onCloseCards={cardsApi.closeAll}
         onAddBlock={() => void addBlock().catch(() => undefined)}
         onImport={() => setImporting(true)}
       />
@@ -498,7 +538,8 @@ function CanvasInner(): React.JSX.Element {
         <div
           ref={surface}
           className="relative min-h-0 min-w-0 flex-1"
-          data-drift={reduced ? 'off' : driftActive(reduced, interacting) ? 'on' : 'paused'}
+          data-drift={reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0) ? 'on' : 'paused'}
+          data-glide={glide}
           data-structure-focus={focused.length > 0 ? 'on' : 'off'}
           onKeyDownCapture={onKeyDownCapture}
           onKeyDown={onKeyDown}
@@ -528,6 +569,7 @@ function CanvasInner(): React.JSX.Element {
               onlyRenderVisibleElements
               minZoom={0.2}
               maxZoom={2}
+              zoomOnScroll={false}
               nodesConnectable
               connectionRadius={64}
               onConnect={onConnect}
@@ -546,26 +588,25 @@ function CanvasInner(): React.JSX.Element {
               proOptions={{ hideAttribution: true }}
               onMoveStart={() => setInteracting(true)}
               onMoveEnd={() => setInteracting(false)}
-              // Un clic (ou un double-clic) sur une idée, ou sur un élément d'une carte de structure (spec 009), ouvre
-              // sa conversation Claude Code (spec 008). Un clic dans le vide referme le volet.
+              // Un clic sur un nœud ouvre sa carte de détails (spec 022 D5, D15), un nouveau clic la referme ; on attend un
+              // instant pour qu'un double-clic (carte sur la discussion) ne l'ouvre pas puis ne la referme pas.
               onNodeClick={(event, node) => {
-                // Ctrl / Cmd / Maj + clic : on compose une sélection (suppression groupée), sans ouvrir de conversation.
+                // Ctrl / Cmd / Maj + clic : on compose une sélection (suppression groupée), sans carte.
                 if (event.ctrlKey || event.metaKey || event.shiftKey) return
-                // Une étape (spec 011) aussi ; un fantôme se décide par ses boutons ✓ / ✗.
+                if (node.type === undefined || !CARD_TYPES.has(node.type) || node.className === 'living-gone') return
+                window.clearTimeout(clickTimer.current)
+                clickTimer.current = window.setTimeout(() => {
+                  if (useCards.getState().cards.some((card) => card.id === node.id)) cardsApi.close(node.id)
+                  else cardsApi.open(node.id)
+                }, CLICK_DELAY_MS)
+              }}
+              onNodeDoubleClick={(_event, node) => {
+                window.clearTimeout(clickTimer.current)
                 const conversational =
                   node.type === 'neuron' ||
                   node.type === 'element' ||
                   (node.type === 'plan' && node.data.item.kind === 'step')
-                if (conversational && node.id !== chatNeuronId) openChat(node.id)
-                // Un fantôme se consulte avant d'être décidé : son détail s'ouvre dans le volet.
-                if (node.type === 'plan' && node.data.item.kind === 'ghost') openGhost(node.data.item.ghost.id)
-              }}
-              onNodeDoubleClick={(_event, node) => {
-                if (node.type === 'neuron') openChat(node.id)
-              }}
-              onPaneClick={() => {
-                if (chatNeuronId !== null) closeChat()
-                if (ghostId !== null) closeGhost()
+                if (conversational) cardsApi.open(node.id, { side: 'chat' })
               }}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
@@ -608,8 +649,19 @@ function CanvasInner(): React.JSX.Element {
                   persist([{ neuronId: node.id, x: node.position.x, y: node.position.y, pinned: true }])
               }}
             >
-              <Background gap={32} size={1} />
-              <Controls showInteractive={false} />
+              <Background gap={32} size={1} className="canvas-sober" />
+              <Controls showInteractive={false} showZoom={false} showFitView={false}>
+                <ControlButton onClick={() => zoomBy(1.25)} aria-label="Zoomer" title="Zoomer">
+                  +
+                </ControlButton>
+                <ControlButton onClick={() => zoomBy(1 / 1.25)} aria-label="Dézoomer" title="Dézoomer">
+                  −
+                </ControlButton>
+                <ControlButton onClick={recenter} aria-label="Tout afficher" title="Tout afficher">
+                  ⤢
+                </ControlButton>
+              </Controls>
+              {view === undefined ? null : <IdeaCards view={view} onMenu={(id, at) => setMenu({ id, at })} />}
             </ReactFlow>
           )}
           {empty && draft === null ? (
@@ -673,40 +725,6 @@ function CanvasInner(): React.JSX.Element {
             />
           )}
         </div>
-        {chatNeuronId !== null ? (
-          <aside
-            aria-label="Conversation du neurone"
-            className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface"
-          >
-            <ChatPanel key={chatNeuronId} neuronId={chatNeuronId} onClose={closeChat} />
-          </aside>
-        ) : ghostId !== null && view !== undefined ? (
-          <aside
-            aria-label="Étape proposée par Claude"
-            className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
-          >
-            <GhostPanel key={ghostId} view={view} ghostId={ghostId} onClose={closeGhost} />
-          </aside>
-        ) : finalId !== null && view !== undefined ? (
-          <aside
-            aria-label="Action finale"
-            className="min-w-0 basis-[38%] overflow-y-auto border-l border-content-muted/20 bg-surface"
-          >
-            <FinalPanel key={finalId} view={view} neuronId={finalId} onClose={closeFinal} />
-          </aside>
-        ) : viewer !== null ? (
-          <aside
-            aria-label="Visionneuse de fichier"
-            className="min-w-0 basis-[38%] overflow-hidden border-l border-content-muted/20 bg-surface"
-          >
-            <FileViewer
-              key={`${viewer.neuronId}:${viewer.path}`}
-              neuronId={viewer.neuronId}
-              path={viewer.path}
-              onClose={closeViewer}
-            />
-          </aside>
-        ) : null}
       </div>
       <WidgetReview />
       {pendingRemoval.length > 0 ? (

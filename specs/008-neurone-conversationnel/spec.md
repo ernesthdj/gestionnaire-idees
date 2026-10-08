@@ -16,6 +16,12 @@ annulables, remontée et naissances validées ; III : sorties d'outils validées
 uniquement). Détail validé : `docs/brainstorm/L1d-neurone-conversation.md`, `L2-` et `L3-neurone-conversationnel.md`.
 S'appuie sur la spec 007 (pont MCP).
 
+**Amendement (2026-10-09, spec 022 « Nœuds vivants », D5, D10, D15)** : il n'y a plus de panneau latéral. Un clic sur
+une idée, une étape ou un élément ouvre sa **carte de détails**, posée à droite du nœud ; « Discuter » y ouvre ce même
+chat en l'étirant sur le côté. Le **double-clic** ouvre la carte directement sur le chat (FR-001 garde son geste, seule
+la place change). Plusieurs cartes, donc plusieurs chats, peuvent être ouverts à la fois ; Entrée sur un nœud ouvre sa
+carte. Le contenu du chat (fil, fiche, permissions, modes, modèle, dossier lié) est inchangé.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Brainstormer un genesis dans un chat (Priority: P1) — lot A

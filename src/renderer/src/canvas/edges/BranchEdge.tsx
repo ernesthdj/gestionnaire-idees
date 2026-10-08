@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { BaseEdge, getStraightPath, type Edge, type EdgeProps } from '@xyflow/react'
 import { useEnds } from './useCenter'
 
@@ -7,6 +8,8 @@ export type BranchEdgeData = {
    * entrée d'un widget (`io`).
    */
   readonly style: 'solid' | 'dashed' | 'io'
+  /** Grande branche du nœud d'arrivée (spec 022 D17) : le trait en prend la couleur. */
+  readonly branch?: number | null
 }
 export type BranchEdgeType = Edge<BranchEdgeData, 'branch'>
 
@@ -17,5 +20,16 @@ export function BranchEdge({ id, source, target, data }: EdgeProps<BranchEdgeTyp
   const { from, to } = ends
   const [path] = getStraightPath({ sourceX: from.x, sourceY: from.y, targetX: to.x, targetY: to.y })
   const style = data.style === 'io' ? ' io-line' : data.style === 'dashed' ? ' branch-line-dashed' : ''
-  return <BaseEdge id={id} path={path} className={`branch-line${style}`} />
+  const hue =
+    data.branch === undefined || data.branch === null
+      ? undefined
+      : ({ '--edge-hue': `var(--color-branch-${data.branch})` } as CSSProperties)
+  return (
+    <BaseEdge
+      id={id}
+      path={path}
+      className={`branch-line${style}${hue === undefined ? '' : ' branch-line-hued'}`}
+      {...(hue === undefined ? {} : { style: hue })}
+    />
+  )
 }

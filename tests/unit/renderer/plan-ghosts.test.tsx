@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
@@ -79,9 +80,16 @@ function renderCanvas(
 
 describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   beforeAll(() => installReactFlowMocks())
-  beforeEach(() =>
-    useUiStore.setState({ view: 'ideas', chatNeuronId: null, ghostId: null, finalId: null, viewer: null, toast: null })
-  )
+  beforeEach(() => {
+    useUiStore.setState({ view: 'ideas', chatNeuronId: null, toast: null })
+    useCards.setState({ cards: [], activeId: null })
+  })
+
+  /** Ouvre la carte de détails d'un nœud par un clic sur son titre (spec 022 D5). */
+  const openCard = async (text: string, title = text): Promise<HTMLElement> => {
+    fireEvent.click(await screen.findByText(text))
+    return screen.findByRole('dialog', { name: `Détails : ${title}` })
+  }
 
   it('should_show_steps_with_their_rank_and_ghosts_with_their_future_rank', async () => {
     renderCanvas()
@@ -125,9 +133,12 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     })
   })
 
-  it('should_open_the_conversation_of_a_step_when_it_is_clicked', async () => {
+  it('should_open_the_detail_card_of_a_step_when_it_is_clicked_then_its_conversation_from_there', async () => {
+    const user = userEvent.setup()
     renderCanvas()
-    fireEvent.click(await screen.findByText('Valider le budget'))
+    const card = await openCard('Valider le budget')
+    expect(useUiStore.getState().chatNeuronId).toBeNull()
+    await user.click(within(card).getByRole('button', { name: 'Discuter' }))
     expect(useUiStore.getState().chatNeuronId).toBe(STEP_1)
   })
 
@@ -141,8 +152,9 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   it('should_show_the_detail_of_a_ghost_before_deciding_and_accept_it_from_there', async () => {
     const user = userEvent.setup()
     const { api } = renderCanvas()
-    await user.click(await screen.findByText('Lancer la com'))
-    const panel = await screen.findByRole('complementary', { name: 'Étape proposée par Claude' })
+    const card = await openCard('Lancer la com')
+    await user.click(within(card).getByRole('button', { name: 'Pourquoi' }))
+    const panel = card
     expect(panel.textContent).toContain('Quand le lieu est connu')
     expect(panel.textContent).toContain('② Choisir le lieu (proposée)')
     expect(panel.textContent).toContain('Dans le plan de « Mission mariage »')
@@ -167,7 +179,8 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   it('should_execute_a_ready_action_and_open_its_conversation', async () => {
     const user = userEvent.setup()
     const { api } = renderCanvas(finalView('prete'))
-    await user.click(await screen.findByRole('button', { name: 'Exécuter « Valider le budget »' }))
+    const card = await openCard('Valider le budget')
+    await user.click(within(card).getByRole('button', { name: 'Exécuter « Valider le budget »' }))
     expect(api.invoke).toHaveBeenCalledWith('final:execute', { neuronId: STEP_1 })
     await waitFor(() => expect(useUiStore.getState().chatNeuronId).toBe(STEP_1))
   })
@@ -197,9 +210,10 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
         return { executionId: 'e1' }
       }
     })
-    await user.click(await screen.findByRole('button', { name: 'Exécuter « Valider le budget »' }))
-    const panel = await screen.findByRole('complementary', { name: 'Action finale' })
-    expect(panel.textContent).toContain('Prérequis pas encore faits : « Devis »')
+    const card = await openCard('Valider le budget')
+    await user.click(within(card).getByRole('button', { name: 'Exécuter « Valider le budget »' }))
+    // Prérequis manquants : la fiche de la carte s'ouvre sur l'action finale.
+    await waitFor(() => expect(card.textContent).toContain('Prérequis pas encore faits : « Devis »'))
     await user.click(screen.getByRole('button', { name: 'Exécuter quand même' }))
     expect(api.invoke).toHaveBeenCalledWith('final:execute', { neuronId: STEP_1, force: true })
   })
@@ -224,11 +238,12 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
       ]
     }
     const { api } = renderCanvas(view)
-    const deliverable = await screen.findByRole('region', { name: 'Livrable de « Valider le budget »' })
-    expect(deliverable.textContent).toContain('Livrable · 2 fichiers')
+    // Le livrable est un nœud sous l'action ; sa carte liste ses fichiers.
+    const deliverable = await openCard('Livrable · 2 fichiers', 'Livrable de « Valider le budget »')
     expect(deliverable.textContent).toContain('Claude écrit…')
     expect(deliverable.textContent).toContain('src/pages/Contact.tsx')
-    await user.click(screen.getByRole('button', { name: 'Arrêter l’exécution de « Valider le budget »' }))
+    const step = await openCard('Valider le budget')
+    await user.click(within(step).getByRole('button', { name: 'Arrêter l’exécution de « Valider le budget »' }))
     expect(api.invoke).toHaveBeenCalledWith('final:stop', { neuronId: STEP_1 })
   })
 
@@ -263,9 +278,9 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
       }),
       'deliverable:openInEditor': () => ({ ok: true })
     })
-    await user.click(await screen.findByRole('button', { name: 'Lire src/a.ts (modifié)' }))
+    const viewer = await openCard('Livrable · 1 fichier', 'Livrable de « Valider le budget »')
+    await user.click(within(viewer).getByRole('button', { name: 'Lire src/a.ts (modifié)' }))
     expect(api.invoke).toHaveBeenCalledWith('deliverable:file', { neuronId: STEP_1, path: 'src/a.ts' })
-    const viewer = await screen.findByRole('complementary', { name: 'Visionneuse de fichier' })
     expect(await within(viewer).findByText('Modifié depuis l’écriture de Claude')).toBeTruthy()
     // La différence part du contenu actuel (retouché) : 2 lignes ajoutées, 1 retirée.
     expect(within(viewer).getByRole('tabpanel').textContent).toContain('+2 · −1')
@@ -284,7 +299,7 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     await user.click(within(viewer).getByRole('button', { name: 'Ouvrir dans l’éditeur' }))
     expect(api.invoke).toHaveBeenCalledWith('deliverable:openInEditor', { neuronId: STEP_1, path: 'src/a.ts', line: 1 })
     await user.click(within(viewer).getByRole('button', { name: 'Fermer la visionneuse' }))
-    expect(screen.queryByRole('complementary', { name: 'Visionneuse de fichier' })).toBeNull()
+    expect(within(viewer).queryByRole('tabpanel')).toBeNull()
   })
 
   it('should_show_a_proposed_final_action_on_its_step_and_accept_it_with_its_check_button', async () => {
@@ -295,7 +310,8 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
         name: 'Étape ① de « Mission mariage » : Valider le budget, en cours, action finale proposée'
       })
     ).toBeDefined()
-    await user.click(screen.getByRole('button', { name: 'Accepter « Valider le budget » comme action finale' }))
+    const card = await openCard('Valider le budget')
+    await user.click(within(card).getByRole('button', { name: 'Accepter « Valider le budget » comme action finale' }))
     expect(api.invoke).toHaveBeenCalledWith('final:decide', { neuronId: STEP_1, accept: true })
     await waitFor(() => expect(useUiStore.getState().toast?.undoBatchId).toBe('f1'))
   })
@@ -303,8 +319,10 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   it('should_read_the_proposal_in_the_panel_before_refusing_it', async () => {
     const user = userEvent.setup()
     const { api } = renderCanvas(finalView('proposee'))
-    await user.click(await screen.findByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
-    const panel = await screen.findByRole('complementary', { name: 'Action finale' })
+    const card = await openCard('Valider le budget')
+    await user.click(within(card).getByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
+    const panel = card
+    await waitFor(() => expect(panel.textContent).toContain('Un seul composant'))
     expect(panel.textContent).toContain('src/pages/Contact.tsx')
     expect(panel.textContent).toContain('Un seul composant')
     expect(useUiStore.getState().chatNeuronId).toBeNull()
@@ -320,14 +338,16 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
         name: 'Étape ① de « Mission mariage » : Valider le budget, en cours, action finale · prête'
       })
     ).toBeDefined()
-    await user.click(screen.getByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
-    await user.click(await screen.findByRole('button', { name: 'Redevenir une étape ordinaire' }))
+    const card = await openCard('Valider le budget')
+    await user.click(within(card).getByRole('button', { name: 'Lire l’action finale de « Valider le budget »' }))
+    await user.click(await within(card).findByRole('button', { name: 'Redevenir une étape ordinaire' }))
     expect(api.invoke).toHaveBeenCalledWith('final:demote', { neuronId: STEP_1 })
   })
 
   it('should_have_no_accessibility_violation_with_a_proposed_final_action', async () => {
     const { container } = renderCanvas(finalView('proposee'))
-    await screen.findByRole('button', { name: 'Lire l’action finale de « Valider le budget »' })
+    const card = await openCard('Valider le budget')
+    within(card).getByRole('button', { name: 'Lire l’action finale de « Valider le budget »' })
     await expectNoAxeViolations(container)
   })
 

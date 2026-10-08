@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
+import { useCards } from './cards/cardsStore'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 import { probeAction } from '../analyste/probe'
@@ -14,7 +15,6 @@ type Idea = { readonly id: string; readonly title: string }
 export function useRemoveIdeas(): (ideas: readonly Idea[], via?: 'souris' | 'clavier') => Promise<boolean> {
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
-  const closeChat = useUiStore((state) => state.closeChat)
   return useCallback(
     async (ideas, via = 'souris') => {
       const [first] = ideas
@@ -25,8 +25,8 @@ export function useRemoveIdeas(): (ideas: readonly Idea[], via?: 'souris' | 'cla
             ? await call<{ readonly batchId: string }>('neuron:remove', { rootId: first.id })
             : await call<{ readonly batchId: string }>('neuron:removeMany', { rootIds: ideas.map((idea) => idea.id) })
         for (const idea of ideas) probeAction('neuron.remove', 'neuron', via, idea.id)
-        const chatId = useUiStore.getState().chatNeuronId
-        if (ideas.some((idea) => idea.id === chatId)) closeChat()
+        // Les cartes de détails des idées supprimées se ferment (avec leur discussion).
+        for (const idea of ideas) useCards.getState().close(idea.id)
         showToast(ideas.length === 1 ? `« ${first.title} » est supprimée.` : `${ideas.length} idées supprimées.`, {
           batchId,
           undoneText:
@@ -48,7 +48,7 @@ export function useRemoveIdeas(): (ideas: readonly Idea[], via?: 'souris' | 'cla
         return false
       }
     },
-    [client, showToast, closeChat]
+    [client, showToast]
   )
 }
 

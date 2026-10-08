@@ -16,6 +16,8 @@ export interface CanvasNeuronView extends RootView {
   readonly locked: boolean
   /** Claude propose de le verrouiller ; en attente de la décision de mentalyas. */
   readonly lockProposed: boolean
+  /** Tout son plan d'attaque est replié sur la carte (spec 022 D14) ; absent sinon. */
+  readonly planCollapsed?: boolean
 }
 
 /** Statuts d'avancement d'une étape (spec 011 FR-009). */
@@ -40,6 +42,8 @@ export interface StepView {
   readonly waitsFor: readonly string[]
   /** Décalage manuel (glissé) de l'étape et de sa branche par rapport à sa place calculée. */
   readonly offset: { readonly x: number; readonly y: number }
+  /** Ses sous-étapes sont repliées sur la carte (spec 022 D14) ; absent sinon. */
+  readonly collapsed?: boolean
   readonly sheetSummary?: string
   /** Action finale (spec 013) : proposée ou acceptée ; absente pour une étape ordinaire. */
   readonly final?: StepFinalView

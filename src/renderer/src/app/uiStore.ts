@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type { NavigateEvent, Section } from '@shared/ipc/app'
+import { useCards, type CardsState } from '../canvas/cards/cardsStore'
+import { deliverableNodeId, ghostNodeId } from '../canvas/planLayout'
 
 export interface Toast {
   readonly id: number
@@ -18,20 +20,17 @@ export type View = Section | 'settings'
 
 interface UiState {
   readonly view: View
-  /** Neurone dont la conversation Claude Code est ouverte dans le volet (spec 008). */
+  /**
+   * Neurone dont la conversation est ouverte (spec 008) : la carte active si sa discussion est ouverte, sinon la plus
+   * haute dont la discussion l'est (spec 022 : une discussion par carte de détails) ; `null` sans discussion.
+   */
   readonly chatNeuronId: string | null
-  /** Étape proposée par Claude (fantôme, spec 011) consultée dans le volet avant d'être décidée. */
-  readonly ghostId: string | null
+  /** Étape proposée par Claude (fantôme, spec 011) : sa carte s'ouvre sur son détail (fiche). */
   openGhost(ghostId: string): void
-  closeGhost(): void
-  /** Action finale (proposée ou acceptée, spec 013) lue dans le volet. */
-  readonly finalId: string | null
+  /** Action finale (spec 013) : la carte de l'étape s'ouvre sur sa fiche. */
   openFinal(neuronId: string): void
-  closeFinal(): void
-  /** Fichier du livrable d'une action finale lu dans la visionneuse (spec 013 D4). */
-  readonly viewer: { readonly neuronId: string; readonly path: string } | null
+  /** Fichier du livrable d'une action finale (spec 013 D4) : lu dans le lecteur de la carte du livrable. */
   openViewer(neuronId: string, path: string): void
-  closeViewer(): void
   /** Vue de chaque carte de structure (spec 017 D20) : « architecture » une fois basculée, « progression » sinon. */
   readonly structureViews: Readonly<Record<string, StructureView>>
   setStructureView(genesisId: string, view: StructureView): void
@@ -39,7 +38,9 @@ interface UiState {
   readonly explorerGenesisId: string | null
   openExplorer(genesisId: string): void
   closeExplorer(): void
+  /** Ouvre la carte du neurone sur sa discussion (menu, Entrée, historique, exécution d'une action…). */
   openChat(neuronId: string): void
+  /** Replie la discussion ouverte (`chatNeuronId`). */
   closeChat(): void
   show(view: View): void
   navigate(event: NavigateEvent): void
@@ -56,26 +57,51 @@ interface UiState {
 const nextToast = (current: Toast | null, toast: Omit<Toast, 'id'>): Toast => ({ id: (current?.id ?? 0) + 1, ...toast })
 
 /** État d'interface (research R4) : navigation par état, sans routeur. */
-export const useUiStore = create<UiState>()((set) => ({
+/** Discussion ouverte d'après les cartes : l'active si sa discussion est ouverte, sinon la plus haute. */
+export function chatOf(cards: CardsState): string | null {
+  const chats = cards.cards.filter((card) => card.side === 'chat')
+  if (chats.some((card) => card.id === cards.activeId)) return cards.activeId
+  return (
+    chats.reduce<(typeof chats)[number] | null>((top, card) => (top === null || card.z > top.z ? card : top), null)
+      ?.id ?? null
+  )
+}
+
+export const useUiStore = create<UiState>()((set, get) => ({
   view: 'ideas',
   chatNeuronId: null,
-  ghostId: null,
-  finalId: null,
-  viewer: null,
   toast: null,
   bornId: null,
-  show: (view) => set({ view, chatNeuronId: null, ghostId: null, finalId: null, viewer: null }),
+  // Les cartes ouvertes survivent à la navigation (des discussions peuvent tourner) : on les retrouve en revenant.
+  show: (view) => set({ view }),
   // Une idée capturée s'ouvre directement sur sa conversation (spec 010 US2).
-  navigate: ({ section, diveRootId }) => set({ view: section, chatNeuronId: diveRootId ?? null, viewer: null }),
-  openChat: (neuronId) => set({ view: 'ideas', chatNeuronId: neuronId, ghostId: null, finalId: null, viewer: null }),
-  closeChat: () => set({ chatNeuronId: null }),
-  openGhost: (ghostId) => set({ view: 'ideas', ghostId, chatNeuronId: null, finalId: null, viewer: null }),
-  closeGhost: () => set({ ghostId: null }),
-  openFinal: (neuronId) => set({ view: 'ideas', finalId: neuronId, chatNeuronId: null, ghostId: null, viewer: null }),
-  closeFinal: () => set({ finalId: null }),
-  openViewer: (neuronId, path) =>
-    set({ view: 'ideas', viewer: { neuronId, path }, chatNeuronId: null, ghostId: null, finalId: null }),
-  closeViewer: () => set({ viewer: null }),
+  navigate: ({ section, diveRootId }) => {
+    if (diveRootId !== undefined && diveRootId !== null) useCards.getState().open(diveRootId, { side: 'chat' })
+    set({ view: section })
+  },
+  openChat: (neuronId) => {
+    useCards.getState().open(neuronId, { side: 'chat' })
+    set({ view: 'ideas' })
+  },
+  closeChat: () => {
+    const id = get().chatNeuronId
+    if (id !== null) useCards.getState().setSide(id, null)
+  },
+  openGhost: (ghostId) => {
+    useCards.getState().open(ghostNodeId(ghostId), { sheet: true })
+    set({ view: 'ideas' })
+  },
+  openFinal: (neuronId) => {
+    useCards.getState().open(neuronId, { sheet: true })
+    set({ view: 'ideas' })
+  },
+  openViewer: (neuronId, path) => {
+    useCards.getState().open(deliverableNodeId(neuronId), {
+      side: 'reader',
+      reader: { source: 'deliverable', path, tab: 'diff' }
+    })
+    set({ view: 'ideas' })
+  },
   explorerGenesisId: null,
   structureViews: {},
   setStructureView: (genesisId, view) =>
@@ -92,3 +118,9 @@ export const useUiStore = create<UiState>()((set) => ({
   markBorn: (rootId) => set({ bornId: rootId }),
   hideToast: () => set({ toast: null })
 }))
+
+// La discussion ouverte suit les cartes (sonde de l'Analyste, suppression d'une idée, tests).
+useCards.subscribe((cards) => {
+  const chatNeuronId = chatOf(cards)
+  if (useUiStore.getState().chatNeuronId !== chatNeuronId) useUiStore.setState({ chatNeuronId })
+})

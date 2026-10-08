@@ -1,0 +1,1 @@
+ALTER TABLE `neurons` ADD `plan_folded` integer DEFAULT false NOT NULL;

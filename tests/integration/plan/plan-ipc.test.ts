@@ -75,6 +75,31 @@ describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
     expect(after.steps[1]?.waitsFor).toEqual([after.steps[0]?.id])
   })
 
+  it('should_keep_the_fold_of_a_step_and_of_the_genesis_when_set', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    const [first] = (await view()).steps
+    expect(first?.collapsed).toBeUndefined()
+    expect((await dispatch('plan:setCollapsed', { neuronId: first?.id, collapsed: true })).success).toBe(true)
+    expect((await dispatch('plan:setCollapsed', { neuronId: genesis, collapsed: true })).success).toBe(true)
+    const folded = await view()
+    expect(folded.steps.find((step) => step.id === first?.id)?.collapsed).toBe(true)
+    expect(folded.ideas.find((idea) => idea.id === genesis)?.planCollapsed).toBe(true)
+    await dispatch('plan:setCollapsed', { neuronId: genesis, collapsed: false })
+    expect((await view()).ideas.find((idea) => idea.id === genesis)?.planCollapsed).toBeUndefined()
+  })
+
+  it('should_refuse_to_fold_an_unknown_node_or_a_bad_payload', async () => {
+    const unknown = await dispatch('plan:setCollapsed', {
+      neuronId: '5b1f0c1e-9a4b-4c3d-8e2f-0a1b2c3d4e5f',
+      collapsed: true
+    })
+    expect(unknown).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } })
+    const bad = await dispatch('plan:setCollapsed', { neuronId: genesis, collapsed: 'oui' })
+    expect(bad.success).toBe(false)
+  })
+
   it('should_refuse_a_step_both_accepted_and_refused', async () => {
     const { proposalId } = propose()
     const [first] = (await view()).proposals[0]?.items ?? []

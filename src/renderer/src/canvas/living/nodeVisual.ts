@@ -21,8 +21,8 @@ export type NodeIconKey =
   | 'project'
   | 'you'
 
-/** Statut affiché en pastille (pleine, à moitié, vide). */
-export type NodeStatus = 'done' | 'doing' | 'todo'
+/** Statut affiché en pastille (pleine, à moitié, vide ; rouge si bloqué). */
+export type NodeStatus = 'done' | 'doing' | 'todo' | 'blocked'
 
 export interface TreeNodeInput {
   readonly id: string

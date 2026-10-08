@@ -59,7 +59,7 @@ describe('vue Architecture à l’écran (spec 017 D20)', () => {
     const before = buildGraph(view, computeLayout(view))
     expect(before.nodes.some((node) => node.type === 'layerBand')).toBe(false)
     expect(before.nodes.find((node) => node.type === 'structureBar')?.data).toMatchObject({ view: 'progression' })
-    const after = buildGraph(view, computeLayout(view), null, null, { [RAW_ID]: 'architecture' })
+    const after = buildGraph(view, computeLayout(view), null, new Set(), { [RAW_ID]: 'architecture' })
     expect(after.nodes.filter((node) => node.type === 'layerBand').map((node) => node.ariaLabel)).toEqual([
       'Couche Présentation : 0 élément',
       'Couche Infrastructure : 1 élément',

@@ -46,7 +46,7 @@ export interface CanvasDeps {
   /** Fichiers du dossier lié à un genesis (chemins relatifs, sans fichier sensible) : contenu des éléments (D18). */
   readonly projectFiles?: (genesisId: string) => readonly string[]
   /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
-  readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks'>
+  readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks' | 'foldedRoots'>
   /** Documents des neurones (spec 012). */
   readonly documents?: Pick<DocumentRepository, 'list'>
   /** Actions finales (spec 013), proposées ou acceptées. */
@@ -93,6 +93,7 @@ export class CanvasService {
     const levels = this.deps.neurons.latestGaugeLevels()
     const summaries = this.deps.sheetSummaries?.() ?? new Map<string, string>()
     const locks = this.deps.plan?.rootLocks() ?? new Map<string, { locked: boolean; lockProposed: boolean }>()
+    const folded = this.deps.plan?.foldedRoots() ?? new Set<string>()
     const ideas = roots.map((root): CanvasNeuronView => {
       const summary = summaries.get(root.id)
       return {
@@ -100,7 +101,8 @@ export class CanvasService {
         contextLevel: levels.get(root.id) ?? null,
         ...(summary === undefined ? {} : { sheetSummary: summary }),
         locked: locks.get(root.id)?.locked ?? false,
-        lockProposed: locks.get(root.id)?.lockProposed ?? false
+        lockProposed: locks.get(root.id)?.lockProposed ?? false,
+        ...(folded.has(root.id) ? { planCollapsed: true } : {})
       }
     })
     const visible = new Set(roots.map((root) => root.id))
@@ -123,6 +125,7 @@ export class CanvasService {
           lockProposed: step.lockProposedAt !== null,
           waitsFor: step.waitsFor,
           offset: step.offset,
+          ...(step.folded === true ? { collapsed: true } : {}),
           ...(summary === undefined ? {} : { sheetSummary: summary }),
           ...(final === undefined
             ? {}
