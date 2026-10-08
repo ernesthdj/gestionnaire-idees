@@ -1,4 +1,7 @@
 import { weakestProvenance as weakest, type LinkProvenance } from '@shared/ipc/reprise'
+import { coveringElement, normalizeElementPath } from '@shared/structure/covers'
+
+export { covers, normalizeElementPath } from '@shared/structure/covers'
 
 /**
  * Appels mesurés entre les éléments d'une carte de structure (spec 017 US7, FR-033) : les appels résolus de l'analyse,
@@ -25,14 +28,6 @@ export interface MeasuredLink {
   readonly count: number
   readonly provenance: LinkProvenance
 }
-
-/** Chemin d'élément normalisé : séparateurs `/`, sans `./` de tête ni `/` final. */
-export const normalizeElementPath = (path: string): string =>
-  path.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '')
-
-/** Le fichier est-il désigné par un chemin d'élément (lui-même, ou un dossier qui le contient) ? */
-export const covers = (paths: readonly string[], file: string): boolean =>
-  paths.some((path) => path !== '' && (file === path || file.startsWith(`${path}/`)))
 
 /** Appels résolus entre fichiers différents, agrégés par paire (ordre stable). */
 export function fileCalls(
@@ -84,16 +79,9 @@ export function measuredLinks(elements: readonly MeasuredElement[], calls: reado
   const ownerOf = (file: string): string | null => {
     const known = owners.get(file)
     if (known !== undefined) return known
-    let best: { id: string; depth: number; length: number } | null = null
-    for (const candidate of candidates) {
-      const length = Math.max(-1, ...candidate.paths.filter((path) => covers([path], file)).map((path) => path.length))
-      if (length < 0) continue
-      if (best === null || candidate.depth > best.depth || (candidate.depth === best.depth && length > best.length)) {
-        best = { id: candidate.id, depth: candidate.depth, length }
-      }
-    }
-    owners.set(file, best?.id ?? null)
-    return best?.id ?? null
+    const owner = coveringElement(candidates, file)
+    owners.set(file, owner)
+    return owner
   }
   const links = new Map<string, MeasuredLink>()
   for (const call of calls) {

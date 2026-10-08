@@ -1,15 +1,9 @@
 import { z } from 'zod'
 import type { ElementFilesService } from '../application/reprise/ElementFilesService'
 import type { StructureService } from '../application/structure/StructureService'
+import { ProjectFile } from '@shared/ipc/projectFile'
 import { ARCHITECTURE_KINDS } from '@shared/structure/architecture'
 import { defineRoute, type IpcRoute } from './registry'
-
-/** Chemin relatif d'un fichier du projet : ni absolu, ni remontée (la lecture reste aussi gardée côté service). */
-const ProjectFile = z
-  .string()
-  .min(1)
-  .max(500)
-  .refine((path) => !/^([a-zA-Z]:|[\\/])/.test(path) && !path.split(/[\\/]/).includes('..'), 'chemin relatif')
 
 /**
  * Canaux de la carte de structure (spec 009) : déplier / replier un élément ; fichiers d'un élément et lecture seule

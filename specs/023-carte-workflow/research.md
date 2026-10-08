@@ -9,8 +9,9 @@
 ## R2 — Analyse des fichiers Markdown
 - **Decision** : fonctions pures ligne par ligne, tolérantes, dans `src/main/domain/workflow/`.
   - Titre : première ligne `# …` (préfixe « Feature Specification: » retiré) ; sinon nom du dossier.
-  - Statut : première ligne contenant `**Status**:` ; marqueur reconnu sans casse ni accents : `livrée|livree|delivered`,
-    `en pause|paused`, `abandonnée|abandonnee|abandoned` ; `Created` lu sur la même ligne ou la ligne `**Created**:`.
+  - Statut : première ligne contenant `**Status**:` (valeur jusqu'au prochain « · ») ; marqueur reconnu sans casse ni
+    accents **au début de la valeur** : `Livrée|Delivered`, `En pause|Paused`, `Abandonnée|Abandoned` (« Draft — US1
+    livrée » n'est pas un marqueur) ; `Created` lu sur la même ligne ou la ligne `**Created**:`.
   - Décisions : lignes de tableau `| D<n>` (comptées).
   - User stories : `^### User Story (\d+)\s*[—–-]\s*(.+?)\s*\((?:Priority:\s*)?P(\d)\)` (formats du dépôt : tiret ou
     tiret long, « (Priority: P1) » ou « (P1) ») ; suffixes (🎯 MVP) retirés.

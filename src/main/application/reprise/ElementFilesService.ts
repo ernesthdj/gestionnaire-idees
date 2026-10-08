@@ -1,9 +1,8 @@
-import { readFileSync, realpathSync, statSync } from 'node:fs'
-import { isAbsolute, join, relative } from 'node:path'
 import type { CodeLang, ElementFileView, ElementFilesView } from '@shared/ipc/reprise'
 import { AppError } from '../../domain/errors'
-import { ANALYZED_FILE_MAX_BYTES, classifyFile, langOf } from '../../domain/reprise/fileFilter'
+import { langOf } from '../../domain/reprise/fileFilter'
 import { covers, normalizeElementPath } from '../../domain/reprise/measured'
+import { readProjectText } from '../../infrastructure/files/projectFiles'
 import type { CodeGraphRepository } from '../../infrastructure/db/repositories/CodeGraphRepository'
 import type { ConversationNeuron } from '../../infrastructure/db/repositories/ConversationRepository'
 import type { ProjectScan } from '../../infrastructure/reprise/ProjectScanner'
@@ -64,24 +63,11 @@ export class ElementFilesService {
     if (!covers(pathsOf(element), normalized)) {
       throw new AppError('NOT_FOUND', 'Ce fichier n’appartient pas à cet élément.')
     }
-    if (classifyFile(normalized, 0, () => false).kind === 'sensitive') {
-      throw new AppError('SECRET_FILE', 'Fichier sensible : jamais affiché.')
-    }
-    let text: string
-    try {
-      const real = realpathSync(root)
-      const target = realpathSync(join(real, ...normalized.split('/')))
-      const inside = relative(real, target)
-      if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) throw new Error('hors du projet')
-      if (statSync(target).size > ANALYZED_FILE_MAX_BYTES) {
-        throw new AppError('TOO_LARGE', 'Fichier de plus de 1 Mo : pas affiché.')
-      }
-      text = (this.deps.readText ?? ((target: string) => readFileSync(target, 'utf8')))(target)
-    } catch (error) {
-      if (error instanceof AppError) throw error
-      throw new AppError('NOT_FOUND', 'Fichier introuvable dans le dossier du projet.')
-    }
-    if (text.includes('\u0000')) throw new AppError('INVALID_STATE', 'Ce fichier n’est pas un fichier texte.')
+    const text = readProjectText(
+      root,
+      normalized,
+      this.deps.readText === undefined ? {} : { readText: this.deps.readText }
+    )
     const symbols = this.deps.graph
       .symbols(genesis.id)
       .filter((symbol) => symbol.path === normalized && symbol.name !== FILE_SYMBOL_NAME)

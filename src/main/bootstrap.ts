@@ -117,6 +117,9 @@ import { createProjectRoutes } from './ipc/projectHandlers'
 import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
+import { createWorkflowRoutes } from './ipc/workflowHandlers'
+import { WorkflowService } from './application/workflow/WorkflowService'
+import { WorkflowFoldRepository } from './infrastructure/db/repositories/WorkflowFoldRepository'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
 import { existsSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
@@ -404,6 +407,9 @@ export function bootstrap(shell: ShellPort): AppContext {
   const finalRepository = new FinalRepository(database.db)
   const finals = new FinalService({ repository: finalRepository, plan: planRepository })
   const plan = new PlanService({ repository: planRepository, finals })
+  // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
+  const workflowFolds = new WorkflowFoldRepository(database.db)
+  const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })
   const projectDirOf = (genesisId: string): string | null =>
     conversationRepository.neuron(genesisId)?.projectDir ?? null
   const projectFiles = new ProjectFiles({ profileDir: dataDir })
@@ -815,6 +821,11 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createRepriseRoutes(reprise, analysis, guide),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
+      ...createWorkflowRoutes(
+        workflow,
+        workflowFolds,
+        (genesisId) => conversationRepository.neuron(genesisId)?.projectDir != null
+      ),
       ...createAnalysteRoutes({
         guard: repoGuard,
         updates,

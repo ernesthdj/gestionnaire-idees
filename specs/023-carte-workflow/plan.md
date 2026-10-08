@@ -56,7 +56,7 @@ src/main/domain/workflow/brainstorm.ts         documents L1–L4, familles, L1 c
 src/main/domain/workflow/limits.ts             bornes (taille, nombre de specs, de tâches, de chemins)
 src/main/infrastructure/files/projectFiles.ts  lecture gardée sous la racine (extraite d'ElementFilesService, partagée)
 src/main/application/workflow/WorkflowService.ts  lit le dossier lié, assemble WorkflowView ; lit un fichier cité
-src/main/application/workflow/WorkflowFolds.ts    repli par projet (table settings)
+src/main/infrastructure/db/repositories/WorkflowFoldRepository.ts  repli par projet (table settings)
 src/main/ipc/workflowHandlers.ts               workflow:read, workflow:file, workflow:setFolded (Zod)
 src/shared/ipc/workflow.ts                     types WorkflowView, SpecView, StoryView, TaskView, BrainstormDocView
 src/shared/ipc/channels.ts                     + 3 canaux
