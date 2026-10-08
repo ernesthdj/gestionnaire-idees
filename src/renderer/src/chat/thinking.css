@@ -1,0 +1,97 @@
+/*
+ * Indicateur « Claude réfléchit » : libellé qui change en glissant, texte balayé d'un reflet, trois points qui
+ * pulsent. Animations reprises du composant « AI thinking orb » de 21st.dev (mo-in, mo-out, mo-shimmer, mo-dot).
+ * Animations réduites : `data-reduced` (réglage de l'app ou du système) coupe tout mouvement, reste un fondu.
+ */
+
+@keyframes thinking-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes thinking-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes thinking-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes thinking-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.thinking-label {
+  animation: thinking-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.thinking-label-text {
+  animation: thinking-shimmer 2.2s linear infinite;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-content-muted) 0%,
+    var(--color-content-muted) 35%,
+    var(--color-content) 50%,
+    var(--color-content-muted) 65%,
+    var(--color-content-muted) 100%
+  );
+  background-size: 250% 100%;
+  background-clip: text;
+  color: transparent;
+}
+
+.thinking-dots i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: var(--color-content-muted);
+  animation: thinking-dot 1.2s ease-in-out infinite;
+}
+
+.thinking-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+[data-reduced='true'] .thinking-label {
+  animation: thinking-fade 150ms ease-out both;
+}
+
+[data-reduced='true'] .thinking-label-text {
+  animation: none;
+  background: none;
+  color: var(--color-content-muted);
+}
+
+[data-reduced='true'] .thinking-dots i {
+  animation: none;
+  opacity: 0.6;
+}

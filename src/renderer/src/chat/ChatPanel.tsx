@@ -15,6 +15,7 @@ import { useUiStore } from '../app/uiStore'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ElementFileReader, ElementFiles } from './ElementFiles'
 import { Markdown } from './Markdown'
+import { ThinkingIndicator } from './ThinkingIndicator'
 import { ProjectForm } from './ProjectForm'
 import { UsageMeter } from './UsageMeter'
 import { useChat } from './useChat'
@@ -573,11 +574,7 @@ export function ChatPanel({
           ))}
           {chat.busy ? (
             <div className="max-w-[85%] self-start rounded-2xl bg-surface-raised px-3 py-2 text-sm leading-relaxed">
-              {chat.partial === '' ? (
-                <span className="text-content-muted">Claude réfléchit…</span>
-              ) : (
-                <Markdown text={chat.partial} />
-              )}
+              {chat.partial === '' ? <ThinkingIndicator messages={chat.messages} /> : <Markdown text={chat.partial} />}
             </div>
           ) : null}
         </div>
