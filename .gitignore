@@ -36,3 +36,6 @@ release/
 # Worktrees d'agents (Claude Code, Kilo Code) : copies du dépôt
 .claude/worktrees/
 .kilo/
+
+# Manifeste de graphify : chemins absolus du poste (dépôt public) ; gardé en local pour les mises à jour partielles
+graphify-out/manifest.json
