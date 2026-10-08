@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { existsInRepo, graphGenesisFor } from '../../../src/main/application/analyste/repoCode'
+import {
+  existsInRepo,
+  graphGenesisFor,
+  graphIsStale,
+  lastCommitAt
+} from '../../../src/main/application/analyste/repoCode'
 
 describe('fichiers et graphe du dépôt de l’Analyste (spec 019 T021, research R4)', () => {
   let root: string
@@ -50,5 +55,27 @@ describe('fichiers et graphe du dépôt de l’Analyste (spec 019 T021, research
       })
     ).toBe('repris')
     expect(graphGenesisFor(repo, { linkedFolders: () => [], projectByRoot: () => undefined, hasGraph })).toBeNull()
+  })
+
+  it('should_mark_the_graph_stale_when_it_is_older_than_the_last_commit', () => {
+    const commit = Date.parse('2026-10-08T10:00:00.000Z')
+    expect(graphIsStale('2026-10-07T10:00:00.000Z', commit)).toBe(true)
+    expect(graphIsStale('2026-10-08T11:00:00.000Z', commit)).toBe(false)
+    expect(graphIsStale(null, commit)).toBe(true)
+    expect(graphIsStale('pas une date', commit)).toBe(true)
+    // git muet : le graphe stocké est gardé.
+    expect(graphIsStale('2026-10-07T10:00:00.000Z', null)).toBe(false)
+  })
+
+  it('should_read_the_last_commit_date_or_null_when_git_fails', async () => {
+    const calls: (readonly string[])[] = []
+    const ok = await lastCommitAt(repo, async (_cwd, args) => {
+      calls.push(args)
+      return { code: 0, output: '1791453600\n' }
+    })
+    expect(ok).toBe(1_791_453_600_000)
+    expect(calls).toEqual([['log', '-1', '--format=%ct']])
+    expect(await lastCommitAt(repo, async () => ({ code: 128, output: 'fatal: no commits' }))).toBeNull()
+    expect(await lastCommitAt(repo, async () => ({ code: null, output: '' }))).toBeNull()
   })
 })

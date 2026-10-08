@@ -37,8 +37,11 @@ export interface AnalysteServiceDeps {
     known(): ProposalMemory[]
   }
   readonly settings: () => AnalysteSettingsView
-  /** Analyse statique du dépôt (spec 017, research R4), `null` si aucun graphe n'existe. */
-  readonly code: () => CodeSummary | null
+  /**
+   * Analyse statique du dépôt (spec 017, research R4), `null` si aucun graphe n'existe. Un graphe périmé est d'abord
+   * réanalysé : la promesse attend la fin de cette analyse.
+   */
+  readonly code: () => Promise<CodeSummary | null>
   /** La tâche `analyste` (passerelle IA). */
   readonly runTask: (
     dossier: string,
@@ -172,10 +175,12 @@ export class AnalysteService {
         windowMs: to - from,
         history: { records: retained, spanMs: to - firstAt }
       })
+      const code = await this.safeCode()
+      if (signal.aborted) return fail('CANCELLED')
       const dossier = buildDossier({
         window: { from, to, events: this.deps.observations.countBetween(from, to) },
         entries,
-        code: this.safeCode(),
+        code,
         memory: this.deps.store.memory(MEMORY_LIMIT)
       })
       if (signal.aborted) return fail('CANCELLED')
@@ -217,9 +222,9 @@ export class AnalysteService {
   }
 
   /** Sans graphe lisible, l'analyse tourne quand même (section `<code>` vide, research R4). */
-  private safeCode(): CodeSummary | null {
+  private async safeCode(): Promise<CodeSummary | null> {
     try {
-      return this.deps.code()
+      return await this.deps.code()
     } catch {
       return null
     }

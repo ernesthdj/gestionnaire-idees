@@ -20,6 +20,8 @@ export interface CodeSummary {
   readonly files: number
   readonly modules: readonly { readonly key: string; readonly rootPath: string; readonly files: number }[]
   readonly entryPoints: number
+  /** Fin de l'analyse qui a produit ce graphe (ISO), `null` si inconnue : l'Analyste sait de quand date ce qu'il lit. */
+  readonly analyzedAt: string | null
   /** Fonctions et méthodes sans appel entrant résolu, hors points d'entrée : candidats au code mort. */
   readonly uncalled: readonly { readonly path: string; readonly name: string; readonly line: number }[]
 }
@@ -74,7 +76,7 @@ function codeSection(code: CodeSummary | null): string[] {
     return ['  (aucune analyse statique du dépôt disponible : lis le code avec tes outils au besoin)']
   }
   const lines = [
-    `  fichiers=${code.files} modules=${code.modules.length} points_d_entree=${code.entryPoints}`,
+    `  analyse_du=${escapeDossierText(code.analyzedAt ?? 'inconnue')} fichiers=${code.files} modules=${code.modules.length} points_d_entree=${code.entryPoints}`,
     ...code.modules.map(
       (m) => `  module ${escapeDossierText(m.key)} racine=${escapeDossierText(m.rootPath || '.')} fichiers=${m.files}`
     ),

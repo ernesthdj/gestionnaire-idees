@@ -12,6 +12,27 @@ export function existsInRepo(repoPath: string, relativePath: string): boolean {
   return target !== null && inside(target, root)
 }
 
+/**
+ * Le graphe est-il plus ancien que le dernier commit du dépôt ? Jamais analysé (ou date illisible) : périmé.
+ * Sans date de commit (git absent), le graphe stocké est gardé.
+ */
+export function graphIsStale(analyzedAt: string | null, lastCommitMs: number | null): boolean {
+  if (analyzedAt === null) return true
+  const at = Date.parse(analyzedAt)
+  if (Number.isNaN(at)) return true
+  return lastCommitMs !== null && at < lastCommitMs
+}
+
+/** Date du dernier commit du dépôt (ms), `null` si git ne répond pas. */
+export async function lastCommitAt(
+  repoPath: string,
+  git: (cwd: string, args: readonly string[]) => Promise<{ readonly code: number | null; readonly output: string }>
+): Promise<number | null> {
+  const result = await git(repoPath, ['log', '-1', '--format=%ct'])
+  const seconds = Number(result.output.trim())
+  return result.code === 0 && Number.isInteger(seconds) && seconds > 0 ? seconds * 1000 : null
+}
+
 export interface GraphSources {
   /** Genesis liés à un dossier (spec 008/016), hors archivés. */
   readonly linkedFolders: () => readonly { readonly id: string; readonly projectDir: string }[]
