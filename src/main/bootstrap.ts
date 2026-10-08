@@ -26,7 +26,7 @@ import { openDatabase, type DatabaseHandle } from './infrastructure/db/client'
 import { convertLegacyIdeas } from './application/conversation/LegacyConversion'
 import { createLogger, stdoutSink, teeSink, type Logger } from './infrastructure/logging/logger'
 import { AnalysteService } from './application/analyste/AnalysteService'
-import { existsInRepo, graphGenesisFor } from './application/analyste/repoCode'
+import { existsInRepo, graphGenesisFor, graphIsStale, lastCommitAt } from './application/analyste/repoCode'
 import { ProbeService } from './application/analyste/ProbeService'
 import { runAnalyste } from './application/ai/AnalysteTask'
 import { summarizeCodeGraph } from './domain/analyste/codeSummary'
@@ -713,7 +713,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     aiCalls: new AiCallRepository(database.db),
     store: analysteRepository,
     settings: () => analysteRepository.settings(),
-    code: () => {
+    code: async () => {
       const repoPath = repoGuard.current().repoPath
       if (repoPath === null) return null
       const genesisId = graphGenesisFor(repoPath, {
@@ -722,12 +722,23 @@ export function bootstrap(shell: ShellPort): AppContext {
         hasGraph: (id) => codeGraph.files(id).length > 0
       })
       if (genesisId === null) return null
+      // Graphe plus ancien que le dernier commit : réanalyse incrémentale avant de le lire (sinon le stocké reste).
+      const project = repriseRepository.project(genesisId)
+      if (project !== undefined && graphIsStale(project.analyzedAt, await lastCommitAt(repoPath, runGit))) {
+        try {
+          if (!analysis.isRunning(genesisId)) analysis.analyze(genesisId)
+        } catch {
+          // Dossier introuvable : l'Analyste lit le graphe stocké, daté dans le dossier.
+        }
+        await analysis.idle()
+      }
       return summarizeCodeGraph({
         modules: codeGraph.modules(genesisId),
         files: codeGraph.files(genesisId),
         symbols: codeGraph.symbols(genesisId),
         edges: codeGraph.edges(genesisId),
-        entryPoints: codeGraph.entryPoints(genesisId)
+        entryPoints: codeGraph.entryPoints(genesisId),
+        analyzedAt: repriseRepository.project(genesisId)?.analyzedAt ?? null
       })
     },
     runTask: (dossier, options) => runAnalyste(ai.gateway, dossier, options),

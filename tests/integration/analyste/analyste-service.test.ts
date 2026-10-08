@@ -107,7 +107,7 @@ describe('AnalysteService', () => {
       aiCalls: new AiCallRepository(handle.db),
       store,
       settings: () => store.settings(),
-      code: () => null,
+      code: async () => null,
       runTask,
       exists: existsInRepo,
       isCoding: () => false,
@@ -214,8 +214,11 @@ describe('AnalysteService', () => {
 
   it('should_cancel_the_running_analysis_and_kill_the_cli_process', async () => {
     let aborted = false
+    let started: () => void = () => undefined
+    const claudeStarted = new Promise<void>((resolve) => (started = resolve))
     const waiting: AnalysteServiceDeps['runTask'] = (_dossier, { signal }) =>
       new Promise((resolve) => {
+        started()
         signal.addEventListener('abort', () => {
           aborted = true
           resolve({ ok: false, error: { code: 'AI_UNAVAILABLE', message: 'annulé', retryable: false } })
@@ -224,12 +227,32 @@ describe('AnalysteService', () => {
     const analyste = service(waiting)
     const { analysisId } = analyste.analyze()
     expect(() => analyste.cancel('autre')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
+    // Le dossier se construit d'abord (graphe éventuellement réanalysé) : on annule quand Claude tourne.
+    await claudeStarted
     analyste.cancel(analysisId)
     await analyste.idle()
     expect(aborted).toBe(true)
     expect(store.analyses(1)[0]).toMatchObject({ status: 'cancelled', errorCode: 'CANCELLED' })
     expect(events.at(-1)).toMatchObject({ step: 'echec', errorCode: 'CANCELLED' })
     expect(analyste.isRunning()).toBe(false)
+  })
+
+  it('should_not_start_claude_when_cancelled_while_the_code_graph_is_refreshed', async () => {
+    let claudeCalls = 0
+    let graphReady: () => void = () => undefined
+    const analyste = service(
+      async () => {
+        claudeCalls++
+        return { ok: true, value: { data: { propositions: [] } } }
+      },
+      { code: () => new Promise((resolve) => (graphReady = () => resolve(null))) }
+    )
+    const { analysisId } = analyste.analyze()
+    analyste.cancel(analysisId)
+    graphReady()
+    await analyste.idle()
+    expect(claudeCalls).toBe(0)
+    expect(store.analyses(1)[0]).toMatchObject({ status: 'cancelled', errorCode: 'CANCELLED' })
   })
 
   it('should_mark_an_analysis_left_running_as_interrupted_at_startup', () => {

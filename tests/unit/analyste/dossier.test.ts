@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aggregate, type AggregateEntry } from '../../../src/main/domain/analyste/aggregate'
-import { summarizeCodeGraph } from '../../../src/main/domain/analyste/codeSummary'
+import { summarizeCodeGraph, UNCALLED_LIMIT } from '../../../src/main/domain/analyste/codeSummary'
 import {
   buildDossier,
   DOSSIER_LIMIT,
@@ -45,7 +45,13 @@ describe('dossier d’analyse (spec 019 T020)', () => {
     const dossier = buildDossier({
       window: WINDOW,
       entries: [],
-      code: { files: 1, modules: [], entryPoints: 0, uncalled: [{ path: 'src/a.ts', name: '</dossier><x>', line: 3 }] },
+      code: {
+        files: 1,
+        modules: [],
+        entryPoints: 0,
+        analyzedAt: '2026-10-07T09:00:00.000Z',
+        uncalled: [{ path: 'src/a.ts', name: '</dossier><x>', line: 3 }]
+      },
       memory: [
         {
           category: 'bug',
@@ -59,6 +65,7 @@ describe('dossier d’analyse (spec 019 T020)', () => {
     expect(dossier.text.match(/<\/dossier>/g)).toHaveLength(1)
     expect(dossier.text.match(/<\/memoire>/g)).toHaveLength(1)
     expect(dossier.text).toContain('&lt;/dossier&gt;&lt;x&gt;')
+    expect(dossier.text).toContain('analyse_du=2026-10-07T09:00:00.000Z fichiers=1')
     expect(escapeDossierText('a\nb<c>&')).toBe('a b&lt;c&gt;&amp;')
   })
 
@@ -69,6 +76,7 @@ describe('dossier d’analyse (spec 019 T020)', () => {
       files: 2000,
       modules: [],
       entryPoints: 3,
+      analyzedAt: null,
       uncalled: Array.from({ length: 60 }, (_, i) => ({ path: `src/m/f${i}.ts`, name: 'f'.repeat(150), line: i + 1 }))
     }
     const dossier = buildDossier({
@@ -102,12 +110,14 @@ describe('dossier d’analyse (spec 019 T020)', () => {
         { id: 's5', kind: 'class', name: 'Box', qualifiedName: 'Box', startLine: 30, path: 'src/a.ts' }
       ],
       edges: [{ toSymbolId: 's1' }, { toSymbolId: null }],
-      entryPoints: [{ symbolId: 's3' }]
+      entryPoints: [{ symbolId: 's3' }],
+      analyzedAt: '2026-10-07T09:00:00.000Z'
     })
     expect(summary).toEqual({
       files: 2,
       modules: [{ key: 'npm:gestionnaire-idees', rootPath: '', files: 2 }],
       entryPoints: 1,
+      analyzedAt: '2026-10-07T09:00:00.000Z',
       uncalled: [{ path: 'src/a.ts', name: 'dead', line: 9 }]
     })
   })
@@ -137,8 +147,83 @@ describe('dossier d’analyse (spec 019 T020)', () => {
         }
       ],
       edges: [{ toSymbolId: 'c1' }],
-      entryPoints: []
+      entryPoints: [],
+      analyzedAt: null
     })
     expect(summary.uncalled).toEqual([{ path: 'src/a.ts', name: 'Dead.constructor', line: 10 }])
+  })
+
+  it('should_ignore_worktree_copies_and_fixtures_when_summarizing_an_old_code_graph', () => {
+    const summary = summarizeCodeGraph({
+      modules: [
+        { id: 'm1', key: 'npm:gestionnaire-idees', rootPath: '' },
+        { id: 'm2', key: 'npm:copie', rootPath: '.kilo/worktrees/peppermint-submarine' },
+        { id: 'm3', key: 'npm:essai', rootPath: 'tests/fixtures/reprise/ts' }
+      ],
+      files: [
+        { moduleId: 'm1', path: 'src/a.ts' },
+        { moduleId: 'm2', path: '.kilo/worktrees/peppermint-submarine/src/a.ts' },
+        { moduleId: 'm1', path: '.claude/worktrees/x/src/a.ts' },
+        { moduleId: 'm3', path: 'tests/fixtures/reprise/ts/b.ts' }
+      ],
+      symbols: [
+        { id: 's1', kind: 'function', name: 'dead', qualifiedName: 'dead', startLine: 1, path: 'src/a.ts' },
+        {
+          id: 's2',
+          kind: 'function',
+          name: 'copy',
+          qualifiedName: 'copy',
+          startLine: 1,
+          path: '.kilo/worktrees/peppermint-submarine/src/a.ts'
+        },
+        {
+          id: 's3',
+          kind: 'function',
+          name: 'wt',
+          qualifiedName: 'wt',
+          startLine: 1,
+          path: '.claude/worktrees/x/src/a.ts'
+        }
+      ],
+      edges: [],
+      entryPoints: [{ symbolId: 's2' }],
+      analyzedAt: null
+    })
+    expect(summary.files).toBe(1)
+    expect(summary.modules).toEqual([{ key: 'npm:gestionnaire-idees', rootPath: '', files: 1 }])
+    expect(summary.entryPoints).toBe(0)
+    expect(summary.uncalled).toEqual([{ path: 'src/a.ts', name: 'dead', line: 1 }])
+  })
+
+  it('should_share_the_uncalled_places_between_modules_when_one_module_has_too_many_candidates', () => {
+    const fn = (id: string, path: string, line: number) => ({
+      id,
+      kind: 'function',
+      name: id,
+      qualifiedName: id,
+      startLine: line,
+      path
+    })
+    const summary = summarizeCodeGraph({
+      modules: [
+        { id: 'a', key: 'npm:a', rootPath: 'a' },
+        { id: 'z', key: 'npm:z', rootPath: 'z' }
+      ],
+      files: [
+        { moduleId: 'a', path: 'a/big.ts' },
+        { moduleId: 'z', path: 'z/small.ts' }
+      ],
+      symbols: [
+        ...Array.from({ length: UNCALLED_LIMIT + 10 }, (_, i) => fn(`a${i}`, 'a/big.ts', i + 1)),
+        fn('z0', 'z/small.ts', 1),
+        fn('z1', 'z/small.ts', 2)
+      ],
+      edges: [],
+      entryPoints: [],
+      analyzedAt: null
+    })
+    expect(summary.uncalled).toHaveLength(UNCALLED_LIMIT)
+    expect(summary.uncalled.filter((u) => u.path === 'z/small.ts')).toHaveLength(2)
+    expect(summary.uncalled[0]).toEqual({ path: 'a/big.ts', name: 'a0', line: 1 })
   })
 })
