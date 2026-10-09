@@ -119,6 +119,13 @@ import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
+import { createGitRoutes } from './ipc/gitHandlers'
+import { GitService } from './application/git/GitService'
+import { RepoLocator } from './application/git/RepoLocator'
+import { reviewProposal, runGitMessage } from './application/ai/GitMessageTask'
+import { GitRunner } from './infrastructure/git/GitRunner'
+import { GitWriteQueue } from './infrastructure/git/GitWriteQueue'
+import { GitRepository } from './infrastructure/db/repositories/GitRepository'
 import { WorkflowService } from './application/workflow/WorkflowService'
 import { WorkflowAnatomy } from './application/workflow/WorkflowAnatomy'
 import { WorkflowChats } from './application/workflow/WorkflowChats'
@@ -416,6 +423,26 @@ export function bootstrap(shell: ShellPort): AppContext {
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)
   const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })
+  // Git et GitHub (spec 021) : un seul exécuteur sûr, une file d'écriture par projet, le dépôt d'un genesis vérifié.
+  const gitRunner = new GitRunner({ emptyHooksDir: join(dataDir, 'git-empty-hooks') })
+  const gitService = new GitService({
+    locator: new RepoLocator({
+      projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir,
+      isTrusted: (key) => permissionRepository.isTrusted(key),
+      runner: gitRunner,
+      dataDir
+    }),
+    runner: gitRunner,
+    queue: new GitWriteQueue(),
+    repository: new GitRepository(database.db),
+    authorSecret: () => secrets.getOrCreateRandomKey('git-author-hmac'),
+    changed: (genesisId) => broadcast('git:changed', { genesisId }),
+    localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+    proposeMessage: async (input, staged) => {
+      const result = await runGitMessage(ai.gateway, input)
+      return result.ok ? reviewProposal(result.value.data, staged) : null
+    }
+  })
   const workflowAnatomy = new WorkflowAnatomy({
     target: (genesisId, path) => workflow.target(genesisId, path),
     runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js'))
@@ -533,8 +560,9 @@ export function bootstrap(shell: ShellPort): AppContext {
     emit: (event) => broadcast('map:changed', event)
   })
   // Demandes de permission de Claude Code relayées dans le chat (spec 014) ; règles « Toujours » par projet.
+  const permissionRepository = new PermissionRepository(database.db)
   const permissions: PermissionService = new PermissionService({
-    repository: new PermissionRepository(database.db),
+    repository: permissionRepository,
     projectKeyOf: (neuronId: string): string => {
       const dir: string = conversations.workingDir(neuronId)
       return projectKey(existsSync(dir) ? realpathSync(dir) : dir)
@@ -831,6 +859,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createRepriseRoutes(reprise, analysis, guide),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
+      ...createGitRoutes(gitService),
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,

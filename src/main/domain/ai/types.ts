@@ -12,6 +12,8 @@ export const ANALYSTE_TASK_KINDS = ['analyste'] as const
 export const SKILLS_TASK_KINDS = ['skill_audit', 'skill_card'] as const
 /** Carte Workflow (spec 023 D15) : ce que fait un fichier, sans outil (le code est une donnée). */
 export const WORKFLOW_TASK_KINDS = ['file_summary'] as const
+/** Git et GitHub (spec 021 R12) : textes proposés par Claude, sans outil, relus avant toute écriture. */
+export const GIT_TASK_KINDS = ['git_message'] as const
 
 export type TaskKind =
   | (typeof LOCAL_TASK_KINDS)[number]
@@ -20,6 +22,7 @@ export type TaskKind =
   | (typeof ANALYSTE_TASK_KINDS)[number]
   | (typeof SKILLS_TASK_KINDS)[number]
   | (typeof WORKFLOW_TASK_KINDS)[number]
+  | (typeof GIT_TASK_KINDS)[number]
 
 export type Engine = 'ollama' | 'claude'
 

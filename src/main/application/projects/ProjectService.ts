@@ -25,7 +25,8 @@ export interface ProjectDeps {
   readonly neuron: (id: string) => ConversationNeuron | undefined
   /** Lie le genesis à son dossier (la conversation repart dans ce dossier). */
   readonly attach: (neuronId: string, dir: string) => void
-  readonly git: (cwd: string, args: readonly string[]) => Promise<GitResult>
+  /** git sans shell ; `stdin` porte un texte (message de commit), jamais un argument (constitution I). */
+  readonly git: (cwd: string, args: readonly string[], timeoutMs?: number, stdin?: string) => Promise<GitResult>
   readonly now?: () => Date
 }
 
@@ -107,7 +108,8 @@ export class ProjectService {
     if (init.code !== 0) throw new AppError('GIT_FAILED', `git init a échoué : ${lastLine(init.output)}`)
     const add = await this.deps.git(dir, ['add', '--all'])
     if (add.code !== 0) throw new AppError('GIT_FAILED', `git add a échoué : ${lastLine(add.output)}`)
-    const commit = await this.deps.git(dir, ['commit', '-m', firstCommitMessage(slug)])
+    // `add --all` gardé ici seulement : dossier neuf créé par l'app, fichiers d'échafaudage écrits par elle (research R11).
+    const commit = await this.deps.git(dir, ['commit', '-F', '-'], undefined, firstCommitMessage(slug))
     if (commit.code !== 0) {
       throw new AppError(
         'GIT_FAILED',

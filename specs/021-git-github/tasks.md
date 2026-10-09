@@ -9,7 +9,7 @@ simulés ; aucun appel réel à GitHub.
 ## Phase 1 — Mise en place
 - [x] T001 Constitution 4.4.0 (D9) : principes I et II amendés pour git / `gh` (appliquée le 2026-10-07, à commiter avec
   la spec)
-- [ ] T002 [P] Constructeur de dépôts **fictifs** `tests/support/gitRepos.ts` (aussi lançable :
+- [x] T002 [P] Constructeur de dépôts **fictifs** `tests/support/gitRepos.ts` (aussi lançable :
   `npx tsx tests/support/gitRepos.ts <dossier> <scénario>`) : `trois-auteurs` (auteurs `*@example.invalid`, 2 identités
   pour un même auteur), `conflit` (dépôt nu + 2 clones divergents, 2 fichiers en conflit dont un binaire),
   `secret-ancien` (faux `.env` et fausse clé privée dans un ancien commit, faux préfixe de jeton dans un test),
@@ -18,21 +18,21 @@ simulés ; aucun appel réel à GitHub.
   cachées, liens non GitHub)
 
 ## Phase 2 — Fondations (bloquant)
-- [ ] T003 [P] Modèle partagé `src/shared/git/model.ts` (vues, codes d'erreur, limites, `RelPath`, `BranchName`, `Hash`)
+- [x] T003 [P] Modèle partagé `src/shared/git/model.ts` (vues, codes d'erreur, limites, `RelPath`, `BranchName`, `Hash`)
   + `src/shared/ipc/git.ts` (schémas Zod de `contracts/interfaces.md`) ; canaux ajoutés à `src/shared/ipc/channels.ts`
   au fil des gestionnaires + tests de schémas (chemins hostiles, noms de branche `-x`, `analyste/…`)
-- [ ] T004 [P] Pur : constructeurs d'arguments `src/main/domain/git/args.ts` (préfixe research R2, profils confiance /
+- [x] T004 [P] Pur : constructeurs d'arguments `src/main/domain/git/args.ts` (préfixe research R2, profils confiance /
   non confiance, `--` avant chemins, remote, refspec, URL) + `assertSafeArgs` (research R11) + tests : **chaque**
   constructeur appelé avec des entrées hostiles ne produit aucun argument interdit (SC-002)
-- [ ] T005 [P] Pur : analyseurs `src/main/domain/git/parse.ts` (status `--porcelain=v2 --branch -z`, `branch.ab`, log
+- [x] T005 [P] Pur : analyseurs `src/main/domain/git/parse.ts` (status `--porcelain=v2 --branch -z`, `branch.ab`, log
   `-z`, diff en blocs bornés, `push --porcelain`, progression `Receiving objects: n%`, `config --name-only -z`) + tests
   (noms UTF-8, espaces, renommages, sortie tronquée)
-- [ ] T006 [P] Pur : fichiers sensibles `src/main/domain/git/sensitive.ts` (réemploi de `isSecretFileName` et
+- [x] T006 [P] Pur : fichiers sensibles `src/main/domain/git/sensitive.ts` (réemploi de `isSecretFileName` et
   `fileFilter.ts` ; motifs déclaratifs `sensitivePatterns.ts` validés par Zod : clé privée bloquante, préfixes de jetons
   non bloquants, extrait masqué) + tests (SC-003 : 100 % du jeu fictif)
-- [ ] T007 [P] Pur : configuration à risque `src/main/domain/git/riskyConfig.ts` (neutralisées / non neutralisables,
+- [x] T007 [P] Pur : configuration à risque `src/main/domain/git/riskyConfig.ts` (neutralisées / non neutralisables,
   research R3) + tests
-- [ ] T008 `ProcessRunner` `src/main/infrastructure/process/ProcessRunner.ts` (spawn sans shell, sortie bornée 8 Mo,
+- [x] T008 `ProcessRunner` `src/main/infrastructure/process/ProcessRunner.ts` (spawn sans shell, sortie bornée 8 Mo,
   stdin, `AbortSignal`, délai, lignes de stderr, `resolveProgram` = dossiers absolus du PATH) ; `GitRunner`
   `src/main/infrastructure/git/GitRunner.ts` (préfixe, environnement, `<profil>/git-empty-hooks` créé, profil selon la
   confiance ; aucun hook tant que HEAD est sur `pr/*`, FR-005) ; `runGit` de `GitCli.ts` devient une enveloppe ;
@@ -40,40 +40,40 @@ simulés ; aucun appel réel à GitHub.
   `add --all` gardé (dossier neuf, research R11) + tests (git réel : `hook-temoin` sans témoin hors confiance, avec
   témoin en confiance ; stdin ; annulation ; sortie bornée ; `git.exe` piégé dans le dossier du projet ignoré ; tests
   `project-service` existants verts avec le message par stdin)
-- [ ] T009 `GitWriteQueue` `src/main/infrastructure/git/GitWriteQueue.ts` + `RepoLocator`
+- [x] T009 `GitWriteQueue` `src/main/infrastructure/git/GitWriteQueue.ts` + `RepoLocator`
   `src/main/application/git/RepoLocator.ts` (genesisId → `projectDir` réel, existe, n'est pas le dossier de données ;
   confiance par `PermissionRepository.isTrusted(projectKey)` ; lecture de la configuration locale → `risky_config` :
   aucune autre commande git, lecture comprise, pour un dépôt non de confiance — FR-005, analyse H1) + tests
   (`config-piegee` : ni `status` ni `fetch` lancés ; `index.lock` → `BUSY`, jamais supprimé)
-- [ ] T010 Migration `00NN_git` (**prochain numéro libre au moment de coder** ; 0033 réservée par la spec 020) :
+- [x] T010 Migration `00NN_git` (**prochain numéro libre au moment de coder** ; 0033 réservée par la spec 020) :
   7 tables de `data-model.md` via `npm run db:generate` (`src/main/infrastructure/db/schemaGit.ts`) +
   `src/main/infrastructure/db/migrations/down/00NN_git.down.sql` écrit à la main + aller-retour testé
-- [ ] T011 `GitRepository` `src/main/infrastructure/db/repositories/GitRepository.ts` (`git_repos`, journal
+- [x] T011 `GitRepository` `src/main/infrastructure/db/repositories/GitRepository.ts` (`git_repos`, journal
   `git_operations` sans contenu, `git_clones_running`) + tests d'intégration (une adresse avec identifiant est refusée à
   l'écriture)
 
 ## Phase 3 — US1 Gérer le dépôt local (P1) 🎯 MVP
 **Test indépendant** : dépôt de test : 3 fichiers modifiés, 2 cochés, message accepté → un commit de ces 2 fichiers,
 sans co-auteur ; le 3ᵉ reste modifié ; `.env` jamais cochable ; hooks selon la confiance.
-- [ ] T012 [US1] Lecture `src/main/application/git/GitService.ts` : `git:status` (état, opération en cours,
+- [x] T012 [US1] Lecture `src/main/application/git/GitService.ts` : `git:status` (état, opération en cours,
   `newSinceVisit`, 10 000 fichiers au plus), `git:diff` (borné, non suivi lu ≤ 1 Mo, binaire résumé, sensible refusé),
   `git:branches`, `git:log` (50 derniers) ; `operation` = `merge` seulement si une session de l'app correspond à
   `MERGE_HEAD`, sinon `other` (analyse M3) ; `onPrBranch` + tests (git réel ; HEAD détachée, rebase en cours et fusion
   lancée en terminal → `other` / `READ_ONLY_STATE`)
-- [ ] T013 [US1] Écritures dans `GitService` : `git:stage` / `git:unstage` (sensibles refusés, ajout nommé),
+- [x] T013 [US1] Écritures dans `GitService` : `git:stage` / `git:unstage` (sensibles refusés, ajout nommé),
   `git:commit` (`expectedStaged` revérifié, `commit -F -` par stdin, `HOOK_FAILED` + sortie, `IDENTITY_MISSING`,
   `DETACHED_HEAD`), `git:createBranch` / `git:switchBranch` (règle pure + `check-ref-format`, `DIRTY_TREE`),
   `git:revert` (commit simple seulement, conflit → `revert --abort` + `CONFLICTS_ABORTED`) ; file d'écriture ;
   `git_operations` ; événement `git:changed` + tests (scénario indépendant ci-dessus, `STAGED_CHANGED`, hook en échec,
   US1-8 : revert d'un commit simple = commit d'annulation, commit de fusion → `MERGE_COMMIT`)
-- [ ] T014 [P] [US1] Tâche `git_message` sans outil : `GIT_TASK_KINDS` dans `src/main/domain/ai/types.ts` et
+- [x] T014 [P] [US1] Tâche `git_message` sans outil : `GIT_TASK_KINDS` dans `src/main/domain/ai/types.ts` et
   `routing.ts`, `src/main/infrastructure/ai/GitMessageFrame.ts` (cadre figé, diff balisé comme donnée), schéma dans
   `src/shared/ai/schemas.ts`, `src/main/application/ai/GitMessageTask.ts` (diff ≤ 40 000, sensibles exclus, ligne
   `Co-Authored-By` retirée, `paths` ⊆ préparés, hors format signalé ; « Local uniquement » → aucune tâche, champs vides)
   + tests (Claude simulé, sortie invalide rejetée, consigne cachée dans le diff sans effet)
-- [ ] T015 [US1] IPC `src/main/ipc/gitHandlers.ts` (canaux US1 + `git:proposeMessage`) + câblage
+- [x] T015 [US1] IPC `src/main/ipc/gitHandlers.ts` (canaux US1 + `git:proposeMessage`) + câblage
   `src/main/bootstrap.ts` + tests des canaux (Zod, `genesisId` seulement, aucun chemin absolu accepté)
-- [ ] T016 [US1] Interface `src/renderer/src/git/` : `RepoBadge.tsx` sur le genesis (`NeuronNode.tsx` ; états texte :
+- [x] T016 [US1] Interface `src/renderer/src/git/` : `RepoBadge.tsx` sur le genesis (`NeuronNode.tsx` ; états texte :
   à jour, modifiés, fusion, non vérifié, dossier introuvable, « pas de git — Initialiser » → spec 016), `RepoPanel.tsx`
   (volet 38 %, en-tête d'état, onglets ; PR / Issues absents avant US6), `ChangesTab.tsx` (rien coché d'office, « Tout
   cocher / décocher », `Espace`, sensibles verrouillés avec raison, `WindowedList.tsx` au-delà de 200 lignes),

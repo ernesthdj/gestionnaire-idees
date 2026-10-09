@@ -1,5 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process'
-import { isAbsolute, join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { stopTree } from '../process/ProcessRunner'
 
 /**
  * Lanceur git annulable (spec 020 T027, spec 021 R6) : complète `runGit` (`GitCli.ts`) pour les opérations longues —
@@ -66,22 +66,3 @@ export const launchGit: GitLauncher = (request) =>
     child.on('error', () => finish(null, child.pid === undefined))
     child.on('close', (code) => finish(code, false))
   })
-
-/**
- * Arrête git ET ses sous-processus (`git-remote-https`, `index-pack`) : sous Windows, `kill` n'arrêterait que
- * `git.exe` et les enfants garderaient des fichiers ouverts dans le dossier à supprimer.
- */
-function stopTree(child: ChildProcess): void {
-  if (child.exitCode !== null || child.pid === undefined) return
-  const systemRoot = process.env['SystemRoot'] ?? ''
-  if (process.platform !== 'win32' || !isAbsolute(systemRoot)) {
-    child.kill()
-    return
-  }
-  const killer = spawn(join(systemRoot, 'System32', 'taskkill.exe'), ['/pid', String(child.pid), '/T', '/F'], {
-    shell: false,
-    windowsHide: true,
-    stdio: 'ignore'
-  })
-  killer.on('error', () => child.kill())
-}

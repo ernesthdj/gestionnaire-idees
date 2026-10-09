@@ -169,6 +169,22 @@ describe('migrations du modèle de neurones', () => {
     expect(tables()).toContain('neurons')
   })
 
+  it('should_add_the_git_tables_then_remove_them_with_the_down_migration', () => {
+    const added = [
+      'git_repos',
+      'git_operations',
+      'git_clones_running',
+      'git_merge_sessions',
+      'git_conflict_hunks',
+      'git_author_aliases',
+      'git_issue_links'
+    ]
+    expect(tables()).toEqual(expect.arrayContaining(added))
+    runDown('0039_git')
+    expect(tables().some((name) => name.startsWith('git_'))).toBe(false)
+    expect(tables()).toContain('code_file_summaries')
+  })
+
   it('should_add_the_file_summaries_table_then_remove_it_with_the_down_migration', () => {
     expect(tables()).toContain('code_file_summaries')
     expect(columns('code_file_summaries')).toEqual(

@@ -7,8 +7,9 @@ import * as neuronSchema from './schemaNeurons'
 import * as repriseSchema from './schemaReprise'
 import * as analysteSchema from './schemaAnalyste'
 import * as skillsSchema from './schemaSkills'
+import * as gitSchema from './schemaGit'
 
-const schema = { ...aiSchema, ...neuronSchema, ...repriseSchema, ...analysteSchema, ...skillsSchema }
+const schema = { ...aiSchema, ...neuronSchema, ...repriseSchema, ...analysteSchema, ...skillsSchema, ...gitSchema }
 
 export type AppDatabase = BetterSQLite3Database<typeof schema>
 

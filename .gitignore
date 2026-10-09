@@ -39,3 +39,6 @@ release/
 
 # Manifeste de graphify : chemins absolus du poste (dépôt public) ; gardé en local pour les mises à jour partielles
 graphify-out/manifest.json
+
+# Captures des tests de bout en bout (npm run e2e)
+test-results/

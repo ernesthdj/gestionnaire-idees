@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { canvasState, TIER_SIZE, tierOf, type NeuronNodeType } from '../buildGraph'
 import { LivingNode } from '../living/LivingNode'
+import { RepoBadge } from '../../git/RepoBadge'
 import { useMapping } from '../mapping/mappingStore'
 import { usePlanFold } from '../usePlanFold'
 
@@ -70,6 +71,8 @@ export function NeuronNode({ data }: NodeProps<NeuronNodeType>): React.JSX.Eleme
           className="neuron-connector"
           title="Tirer vers une autre idée pour les relier, ou vers un widget pour la lui transmettre"
         />
+        {/* Dépôt du projet lié (spec 021) : branche et fichiers modifiés, clic → volet Dépôt. */}
+        {neuron.linkedProject === true ? <RepoBadge genesisId={neuron.id} /> : null}
         {aiProposed ? (
           <span
             className="living-ai absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface-raised text-xs text-content"

@@ -50,6 +50,10 @@ interface UiState {
   readonly explorerGenesisId: string | null
   openExplorer(genesisId: string): void
   closeExplorer(): void
+  /** Projet dont le volet Dépôt est ouvert à côté de la carte (spec 021 US1) ; `null` : aucun. */
+  readonly repoGenesisId: string | null
+  openRepo(genesisId: string): void
+  closeRepo(): void
   /** Ouvre la carte du neurone sur sa discussion (menu, Entrée, historique, exécution d'une action…). */
   openChat(neuronId: string): void
   /** Replie la discussion ouverte (`chatNeuronId`). */
@@ -115,6 +119,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ view: 'ideas' })
   },
   explorerGenesisId: null,
+  repoGenesisId: null,
   structureViews: {},
   analysisLinks: false,
   chatDrafts: {},
@@ -128,6 +133,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
   openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),
   closeExplorer: () => set({ explorerGenesisId: null }),
+  openRepo: (genesisId) => set({ view: 'ideas', repoGenesisId: genesisId }),
+  closeRepo: () => set({ repoGenesisId: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

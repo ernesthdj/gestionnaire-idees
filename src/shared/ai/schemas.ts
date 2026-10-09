@@ -89,3 +89,17 @@ export const FileSummaryOut = z.object({
     .max(10)
 })
 export type FileSummaryOut = z.infer<typeof FileSummaryOut>
+
+/** Sortie de `git_message` (spec 021 R12) : message proposé et découpage facultatif, relus par l'app avant affichage. */
+export const GitMessageOut = z.object({
+  message: z.string().trim().min(1).max(5_000),
+  groups: z
+    .array(
+      z.object({
+        paths: z.array(z.string().min(1).max(400)).min(1).max(500),
+        message: z.string().trim().min(1).max(5_000)
+      })
+    )
+    .max(6)
+})
+export type GitMessageOut = z.infer<typeof GitMessageOut>

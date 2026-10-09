@@ -34,7 +34,7 @@ describe('genesis → projet (spec 016 US1, US2)', () => {
   let saved: string | null
   let neurons: Map<string, ConversationNeuron>
   const attach = vi.fn<(neuronId: string, dir: string) => void>()
-  const git = vi.fn<(cwd: string, args: readonly string[]) => Promise<GitResult>>()
+  const git = vi.fn<(cwd: string, args: readonly string[], timeoutMs?: number, stdin?: string) => Promise<GitResult>>()
   const pickRoot = vi.fn<() => Promise<string | undefined>>()
 
   const service = (extra: Partial<ProjectDeps> = {}): ProjectService =>
@@ -143,8 +143,10 @@ describe('genesis → projet (spec 016 US1, US2)', () => {
     expect(git.mock.calls.map((call) => call[1])).toEqual([
       ['init', '-b', 'main'],
       ['add', '--all'],
-      ['commit', '-m', 'chore(studio-photo): initial scaffolding via Brainstormer']
+      ['commit', '-F', '-']
     ])
+    // Le message passe par l'entrée standard, jamais en argument (spec 021 T008, constitution I).
+    expect(git.mock.calls[2]?.[3]).toBe('chore(studio-photo): initial scaffolding via Brainstormer')
     expect(git.mock.calls.every((call) => call[0] === dir)).toBe(true)
     expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toContain('.env')
     const parsed = JSON.parse(readFileSync(registry, 'utf8')) as {

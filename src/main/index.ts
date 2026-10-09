@@ -1,5 +1,5 @@
 import { rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { app, globalShortcut, Notification, session } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
 import { writeDemoMethodFolder } from './infrastructure/db/demo/demoMethod'
@@ -15,14 +15,19 @@ registerWidgetScheme()
 
 // Profil de démonstration (développement uniquement) : données FICTIVES dans un dossier séparé, jamais le vrai profil.
 // Profil d'essai d'une mise à jour de l'Analyste (spec 019 D13) : recréé et semé de données fictives à chaque lancement.
+// Profil des tests de bout en bout (`npm run e2e`) : données fictives, base recréée à chaque lancement.
 const trialProfile = !app.isPackaged && process.argv.includes('--essai')
-const demoProfile = !app.isPackaged && (trialProfile || process.argv.includes('--demo'))
-const demoData = join(app.getPath('appData'), trialProfile ? 'gestionnaire-idees-essai' : 'gestionnaire-idees-demo')
+const e2eProfile = !app.isPackaged && process.argv.includes('--e2e')
+const demoProfile = !app.isPackaged && (trialProfile || e2eProfile || process.argv.includes('--demo'))
+const demoData = join(
+  app.getPath('appData'),
+  e2eProfile ? 'gestionnaire-idees-e2e' : trialProfile ? 'gestionnaire-idees-essai' : 'gestionnaire-idees-demo'
+)
 if (demoProfile) app.setPath('userData', demoData)
 
 /** `--reset` : repartir d'un jeu de démonstration neuf (uniquement ce dossier fictif, jamais le vrai profil). */
 function resetDemoProfile(): void {
-  if (!demoProfile || !(trialProfile || process.argv.includes('--reset'))) return
+  if (!demoProfile || !(trialProfile || e2eProfile || process.argv.includes('--reset'))) return
   for (const entry of ['gestionnaire-idees.db', 'gestionnaire-idees.db-wal', 'gestionnaire-idees.db-shm']) {
     rmSync(join(demoData, entry), { force: true })
   }
@@ -74,7 +79,12 @@ function start(): void {
     })
     if (demoProfile) {
       // Dossier de méthode fictif du profil démo (spec 023 T039), lié au genesis « application de notes ».
-      const projectDir = writeDemoMethodFolder(join(demoData, 'projet-demo'))
+      // Tests e2e : le dépôt fictif vit HORS du profil (git refuse un dossier de données de l'app, spec 021).
+      const e2eProject = e2eProfile ? process.env['GI_E2E_PROJECT'] : undefined
+      const projectDir =
+        e2eProject !== undefined && isAbsolute(e2eProject)
+          ? e2eProject
+          : writeDemoMethodFolder(join(demoData, 'projet-demo'))
       if (seedDemo(context.database.db, DEFAULT_DEMO_SIZE, { projectDir }).seeded)
         context.logger.info('demo.seeded', {})
     }
