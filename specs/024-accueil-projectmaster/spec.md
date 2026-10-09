@@ -24,6 +24,7 @@ créer (`/hub new`), ouvrir (`/hub work`), brainstormer (`/brainstorm`), fermer 
 | D6 | Continuer un projet | L'accueil liste les projets comme `pm.bat` : pastille d'état, nom, description, branche, dernière session. Une session restée ouverte est signalée et l'accueil propose de la reprendre. Ouvrir un projet charge son canevas et suit `/hub work` (synchronisation git, résumé, prochaine tâche). |
 | D7 | Fin de session éclatée | Les étapes de la fin de session deviennent des **actions séparées** : avant d'exécuter, des **cases à cocher** choisissent commit, push, journal du projet, journal global, graphe (graphify), cours académique, fermeture de la session. L'app **garde en mémoire** l'état de la session, son historique et ce qui a changé, au lieu de tout redemander. |
 | D8 | Le coffre | Le dossier ProjectMaster devient le **coffre** du Brainstormer : tous les projets, brainstorms et docs y sont rangés. Chez mentalyas, c'est le dossier actuel ; `projects/gestionnaire-idees` sert de **projet de test**. Un utilisateur qui part de zéro **définit ou crée son coffre** au premier lancement. |
+| D9 | Projet hors du coffre (2026-10-09, correction de mentalyas : « un nouveau projet débutera toujours dans le ProjectMaster par défaut, mais si je charge un projet existant quelque part sur mon PC, dans un autre dossier, alors mon Brainstormer crée un vault à l'intérieur du projet, un peu comme fait Obsidian ») | Un **nouveau projet** naît **toujours dans le coffre** par défaut. **Charger un projet existant** situé ailleurs **ne le déplace pas** : l'app crée **dans le projet** un petit **vault** `.brainstormer/` (comme le `.obsidian/` d'Obsidian) — identité du projet, sessions, réglages de son canevas — ; ses brainstorms et sa doc vivent en Markdown dans le projet (`docs/brainstorm/`, `docs/`). Le contenu de la carte (nœuds, liens, conversations) reste dans la base chiffrée de l'app (constitution IV inchangée). Le vault est **ignoré par git par défaut** (ajouté au `.gitignore` du projet). Le registre du coffre garde le projet comme **référence externe** (chemin), et l'accueil le liste avec les autres. |
 
 ## Clarifications
 
@@ -38,6 +39,13 @@ créer (`/hub new`), ouvrir (`/hub work`), brainstormer (`/brainstorm`), fermer 
   le canevas de `gestionnaire-idees` ; **tout le reste** (genesis sans dossier, fiches, liens libres, widgets) va dans
   un projet **local « Idées en vrac »** créé pour l'occasion ; mentalyas déplace ensuite ce qu'il veut vers un vrai
   projet. Rien n'est perdu, et « pas de genesis sans projet » (D3) reste vrai.
+- Q : Que contient le vault créé dans un projet chargé hors du coffre (D9) ? → R : des **métadonnées** dans
+  `.brainstormer/` (identité, sessions, réglages du canevas) et les **documents en Markdown** dans le projet ; le
+  contenu de la carte reste dans la base chiffrée de l'app.
+- Q : Ce vault est-il versionné ? → R : **ignoré par défaut** (`.gitignore` du projet) ; les documents Markdown restent
+  versionnés comme aujourd'hui.
+- Q : Un projet externe apparaît-il dans l'accueil et le registre ? → R : **oui, comme référence externe** (chemin) ;
+  il n'est pas déplacé.
 - Q : `/hub new` crée toujours le dépôt GitHub ; comment créer un projet local ? → R : **ajouter au skill `/hub` une
   option GitHub oui / non** (dans la configuration de mentalyas, hors de ce dépôt) : `pm.bat` en profite aussi, et le
   skill reste la référence que l'app suit.
@@ -167,7 +175,41 @@ existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier de
 
 ---
 
+### User Story 6 — Charger un projet existant situé ailleurs (Priority: P2)
+
+Mentalyas a un projet dans un autre dossier de son PC. Depuis l'accueil, « Charger un projet existant » : il choisit le
+dossier ; l'app ne le déplace pas, crée dans le projet le vault `.brainstormer/` (ignoré par git), ajoute une référence
+externe au registre du coffre, puis ouvre le canevas du projet ; ses brainstorms et sa doc s'écrivent dans le projet.
+
+**Why this priority**: c'est la porte d'entrée des projets qui ne sont pas nés dans ProjectMaster (projets anciens,
+clones) ; la création reste dans le coffre (D9).
+
+**Independent Test**: charger un dossier hors du coffre : `.brainstormer/` est créé dans le dossier et ajouté à son
+`.gitignore`, le dossier n'a pas bougé, l'accueil le liste comme externe ; le recharger après un redémarrage retrouve
+son canevas.
+
+**Acceptance Scenarios**:
+
+1. **Given** un dossier hors du coffre, **When** mentalyas le charge, **Then** l'app montre ce qu'elle va créer
+   (`.brainstormer/`, ligne du `.gitignore`, référence au registre) et ne l'écrit qu'après confirmation.
+2. **Given** le projet chargé, **When** l'accueil s'affiche, **Then** il est listé avec la mention « externe » et son
+   chemin, à côté des projets du coffre.
+3. **Given** un dossier qui a déjà un `.brainstormer/`, **When** il est chargé, **Then** l'app reprend ce vault (même
+   projet, mêmes sessions) au lieu d'en créer un autre.
+4. **Given** un dossier dans le coffre, **When** il est « chargé », **Then** l'app l'ouvre comme projet du coffre, sans
+   vault à part.
+5. **Given** un dossier sensible (données de l'app, racine de disque, dossier système) ou sans droit d'écriture,
+   **When** il est choisi, **Then** il est refusé avec la raison, sans rien écrire.
+
+---
+
 ### Edge Cases
+
+- Projet externe déplacé ou renommé hors de l'app : l'accueil le montre « dossier introuvable » et propose de le
+  relier à son nouvel emplacement (le vault `.brainstormer/` du dossier permet de le reconnaître).
+- `.brainstormer/` présent mais abîmé ou d'un format inconnu : l'app le signale et propose de le recréer, sans effacer
+  les documents Markdown du projet.
+- Projet externe dont le `.gitignore` n'existe pas : l'app le crée avec la seule ligne du vault, après confirmation.
 
 - `pm.bat` et l'app ouverts en même temps : une écriture du registre ou des sessions par l'un est vue par l'autre ;
   aucune écriture n'écrase un changement plus récent (écriture atomique, relecture avant écriture).
@@ -231,6 +273,16 @@ existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier de
 - **FR-017** (D5, Q3) : Le skill `/hub` MUST accepter le choix GitHub oui / non à la création (modification de la
   configuration de mentalyas, hors de ce dépôt, proposée et appliquée avec son accord) ; l'app MUST suivre ce même
   protocole pour un projet local (aucun dépôt distant, registre noté « local »).
+- **FR-019** (D9) : Un nouveau projet MUST être créé dans le coffre par défaut.
+- **FR-020** (D9) : Charger un projet hors du coffre MUST NOT le déplacer ; l'app MUST créer dans le projet un vault
+  `.brainstormer/` (identité du projet, sessions, réglages du canevas), après avoir montré ce qu'elle écrit et reçu la
+  confirmation ; un vault existant MUST être repris, pas dupliqué.
+- **FR-021** (D9) : Le vault MUST être ignoré par git par défaut (ligne ajoutée au `.gitignore` du projet) ; les
+  documents du projet (brainstorms, doc) MUST s'écrire en Markdown dans le projet ; le contenu de la carte (nœuds,
+  liens, conversations) MUST rester dans la base chiffrée de l'app (constitution IV).
+- **FR-022** (D9) : Le registre du coffre MUST garder un projet externe comme référence (chemin, mention « externe »),
+  et l'accueil MUST le lister avec les autres ; un projet externe introuvable MUST pouvoir être relié à son nouvel
+  emplacement grâce à son vault.
 - **FR-018** (accessibilité) : L'accueil, les formulaires et la fin de session MUST être utilisables au clavier et
   passer la vérification d'accessibilité ; chaque étape longue MUST montrer qu'elle travaille et pouvoir être annulée.
 
@@ -238,8 +290,10 @@ existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier de
 
 - **Idées en vrac** : projet local créé au passage à un canevas par projet (FR-016), qui reçoit le contenu sans projet.
 - **Coffre** : dossier ProjectMaster ; registre des projets, fichiers de session, dossier des projets, journal global.
-- **Projet** : entrée du registre (identifiant, nom, description, type, visibilité, local ou GitHub, statut, dernière
-  session, branche, adresse du dépôt) et son dossier.
+- **Projet** : entrée du registre (identifiant, nom, description, type, visibilité, local ou GitHub, **dans le coffre ou
+  externe**, statut, dernière session, branche, adresse du dépôt) et son dossier.
+- **Vault de projet** (D9) : dossier `.brainstormer/` d'un projet externe ; identité du projet, sessions, réglages du
+  canevas ; ignoré par git par défaut.
 - **Canevas** : la carte d'un projet (son genesis, ses nœuds, ses documents, ses vues et leur état).
 - **Session** : ouverture et fermeture sur un projet, branche ; dans l'app, en plus : étapes de fin faites ou sautées,
   fichiers changés.
@@ -260,6 +314,8 @@ existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier de
   affichage de son contenu (vérifiable par test).
 - **SC-005** : Le passage à un canevas par projet ne perd aucun nœud, document, lien ni widget existant (inventaire
   avant / après identique).
+- **SC-007** (D9) : Charger un projet externe ne modifie, dans son dossier, que `.brainstormer/` et une ligne du
+  `.gitignore` (inventaire des fichiers avant / après), et ne déplace aucun fichier.
 - **SC-006** : L'accueil s'affiche en moins de 2 secondes avec 30 projets dans le registre.
 
 ## Assumptions
@@ -270,8 +326,9 @@ existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier de
 - « Un seul projet actif à la fois » (règle du workspace) reste vrai : l'app n'ouvre qu'une session à la fois.
 - Git et GitHub dans l'app (spec 021) fournissent le commit, le push et la création de dépôt sur clic ; la 024 s'appuie
   dessus plutôt que de les refaire.
-- Le clone d'un projet (spec 017 US5, spec 021 US3) devient un troisième chemin de l'accueil (« Cloner un projet »)
-  ; il est réconcilié dans le plan, pas redéfini ici.
+- Le clone d'un projet (spec 017 US5, spec 021 US3) devient un chemin de l'accueil (« Cloner un projet ») ; un clone
+  hors du coffre se comporte comme un projet externe (D9). L'import d'un projet existant de la spec 017 (analyse
+  statique, confidentialité) et le chargement de la US6 sont réconciliés dans le plan.
 - Plusieurs projets sur une même carte : hors périmètre (D1, reporté).
 - Ordre de travail (L1k, « Suite ») : cette spec est écrite maintenant, codée **après** la fermeture d'une partie des
   chantiers ouverts (019, 022, 023, 017, 013), car elle touche au cœur de l'app.
