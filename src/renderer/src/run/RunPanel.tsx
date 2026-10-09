@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { RunView } from '@shared/run/run'
+import { localUrls } from '@shared/run/urls'
 import { call } from '../lib/ipc'
 import { useRuns } from './runStore'
 
@@ -21,6 +22,8 @@ export function RunPanel(): React.JSX.Element | null {
   const { show, toggle, remove } = useRuns.getState()
   const output = useRef<HTMLPreElement>(null)
   const active = runs.find((run) => run.runId === activeId) ?? runs.at(-1)
+  // Adresse locale annoncée par un serveur de dev (« Local: http://localhost:5173/ ») : la première.
+  const url = active === undefined || active.state !== 'running' ? undefined : localUrls(active.output)[0]
   useEffect(() => {
     const element = output.current
     if (element !== null) element.scrollTop = element.scrollHeight
@@ -55,6 +58,16 @@ export function RunPanel(): React.JSX.Element | null {
           ))}
         </div>
         <span className="flex-1" />
+        {url === undefined || active === undefined ? null : (
+          <button
+            type="button"
+            onClick={() => void call('run:openUrl', { runId: active.runId, url }).catch(() => undefined)}
+            title="Ouvrir l’adresse annoncée par le projet dans ton navigateur"
+            className="whitespace-nowrap rounded border border-accent/60 px-2 py-1 text-xs text-accent hover:bg-surface-raised"
+          >
+            🌐 Ouvrir {url}
+          </button>
+        )}
         {active === undefined ? null : active.state === 'running' ? (
           <button
             type="button"

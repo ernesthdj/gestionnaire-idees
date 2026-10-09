@@ -1,6 +1,7 @@
 import type { HubAnomaly } from '@shared/ipc/brainstorms'
 import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
+import { flushViewState } from './useBrainstorms'
 import { SavePoints } from '../canvas/SavePoints'
 
 const since = (iso: string): string => {
@@ -39,7 +40,14 @@ export function BrainstormBar(): React.JSX.Element | null {
   return (
     <div className="flex shrink-0 flex-col gap-2 border-b border-content-muted/20 px-4 py-2">
       <div className="flex items-center gap-3">
-        <Button className="shrink-0" onClick={() => show('home')}>
+        <Button
+          className="shrink-0"
+          onClick={() => {
+            // La vue est écrite tout de suite (sans attendre le différé) : fermer l'app juste après ne la perd pas.
+            void flushViewState()
+            show('home')
+          }}
+        >
           ← Projets
         </Button>
         <p className="min-w-0 flex-1 truncate text-sm">

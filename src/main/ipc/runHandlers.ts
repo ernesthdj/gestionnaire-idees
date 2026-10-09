@@ -1,5 +1,12 @@
 import { z } from 'zod'
-import { ProjectTrustInput, RunFavoriteInput, RunGenesisInput, RunIdInput, RunStartInput } from '@shared/run/run'
+import {
+  ProjectTrustInput,
+  RunFavoriteInput,
+  RunGenesisInput,
+  RunIdInput,
+  RunOpenUrlInput,
+  RunStartInput
+} from '@shared/run/run'
 import type { RunService } from '../application/run/RunService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -8,7 +15,7 @@ import { defineRoute, type IpcRoute } from './registry'
  * `package.json` relu par le main ; jamais une commande ni un chemin.
  */
 export function createRunRoutes(
-  runs: Pick<RunService, 'scripts' | 'setFavorite' | 'trust' | 'list' | 'start' | 'stop' | 'dismiss'>
+  runs: Pick<RunService, 'scripts' | 'setFavorite' | 'trust' | 'list' | 'start' | 'stop' | 'dismiss' | 'openUrl'>
 ): IpcRoute[] {
   return [
     defineRoute({
@@ -33,6 +40,11 @@ export function createRunRoutes(
       handler: async ({ genesisId, script }) => runs.start(genesisId, script)
     }),
     defineRoute({ channel: 'run:stop', input: RunIdInput, handler: async ({ runId }) => runs.stop(runId) }),
+    defineRoute({
+      channel: 'run:openUrl',
+      input: RunOpenUrlInput,
+      handler: async ({ runId, url }) => runs.openUrl(runId, url)
+    }),
     defineRoute({ channel: 'run:dismiss', input: RunIdInput, handler: async ({ runId }) => runs.dismiss(runId) })
   ]
 }

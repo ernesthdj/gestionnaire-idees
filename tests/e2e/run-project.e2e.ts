@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { freshProfile, launchApp, type LaunchedApp } from './support/app'
 
 /**
@@ -24,7 +24,7 @@ describe('lancer un projet depuis l’app (spec 025, e2e)', () => {
           name: 'projet-fictif',
           private: true,
           scripts: {
-            dev: 'node -e "console.log(\'serveur pret\'); setInterval(() => {}, 1000)"',
+            dev: 'node -e "console.log(\'serveur pret sur http://localhost:5173/\'); setInterval(() => {}, 1000)"',
             build: 'node -e "console.log(\'construit\')"'
           }
         })
@@ -47,6 +47,18 @@ describe('lancer un projet depuis l’app (spec 025, e2e)', () => {
     const log = page.getByRole('log', { name: 'Sortie de gi-e2e-lancer · dev' })
     await log.getByText('serveur pret').waitFor({ timeout: 30_000 })
     await run.shot('025-01-dev-en-cours')
+    // « Ouvrir dans le navigateur » : l'ouverture réelle est remplacée dans le main (aucune fenêtre sur le bureau).
+    await run.app.evaluate(({ shell }) => {
+      const store = globalThis as unknown as { opened?: string[] }
+      store.opened = []
+      shell.openExternal = (async (url: string) => {
+        store.opened?.push(url)
+      }) as typeof shell.openExternal
+    })
+    await page.getByRole('button', { name: '🌐 Ouvrir http://localhost:5173/' }).click()
+    await expect
+      .poll(() => run.app.evaluate(() => (globalThis as unknown as { opened?: string[] }).opened ?? []))
+      .toEqual(['http://localhost:5173/'])
     await page.getByRole('button', { name: 'Arrêter le script dev' }).click()
     await log.getByText(/— arrêté/).waitFor({ timeout: 30_000 })
     await run.shot('025-02-arrete')

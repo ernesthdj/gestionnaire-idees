@@ -816,7 +816,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     favorites: appSettings,
     dataDir,
     emitOutput: (event) => broadcast('run:output', event),
-    emitChanged: (view) => broadcast('run:changed', view)
+    emitChanged: (view) => broadcast('run:changed', view),
+    // Adresse déjà revérifiée par le service : locale et annoncée par le projet.
+    openUrl: (url) => electronShell.openExternal(url)
   })
   // Project Manager (spec 024) : la carte unique d'avant devient des brainstorms (R10), puis un canevas par projet.
   const adoptLegacyCanvas = (): void => {

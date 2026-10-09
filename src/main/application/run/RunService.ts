@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { basename, isAbsolute, join, relative } from 'node:path'
 import type { RunOutputEvent, RunScriptsView, RunView } from '@shared/run/run'
+import { localUrls } from '@shared/run/urls'
 import { projectKey } from '../../domain/conversation/permissions'
 import { AppError } from '../../domain/errors'
 import { defaultFavorite, scriptsOf, type ScriptView } from '../../domain/run/scripts'
@@ -24,6 +25,8 @@ export interface RunDeps {
   readonly dataDir: string
   readonly emitOutput: (event: RunOutputEvent) => void
   readonly emitChanged: (view: RunView) => void
+  /** Ouvre une adresse dans le navigateur par défaut (`shell.openExternal`). */
+  readonly openUrl: (url: string) => Promise<void>
   readonly spawnProcess?: typeof spawn
   readonly now?: () => Date
 }
@@ -153,6 +156,20 @@ export class RunService {
     if (run.view.state !== 'running') return { ok: false }
     run.stopping = true
     stopTree(run.child)
+    return { ok: true }
+  }
+
+  /**
+   * « Ouvrir dans le navigateur » : seulement une adresse LOCALE annoncée dans la sortie de CE lancement (le renderer
+   * ne peut pas faire ouvrir n'importe quelle adresse).
+   */
+  async openUrl(runId: string, url: string): Promise<{ readonly ok: true }> {
+    const run = this.runs.get(runId)
+    if (run === undefined) throw new AppError('NOT_FOUND', 'Ce lancement n’existe plus.')
+    if (!localUrls(run.lines.join('') + run.pending).includes(url)) {
+      throw new AppError('VALIDATION', 'Cette adresse n’a pas été annoncée par le projet.')
+    }
+    await this.deps.openUrl(url)
     return { ok: true }
   }
 

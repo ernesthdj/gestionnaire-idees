@@ -176,6 +176,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'run:start',
   'run:stop',
   'run:dismiss',
+  'run:openUrl',
   'brainstorms:list',
   'brainstorms:active',
   'brainstorms:open',

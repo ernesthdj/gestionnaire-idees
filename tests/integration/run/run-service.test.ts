@@ -25,6 +25,8 @@ function project(name: string): string {
         bonjour: 'node -e "console.log(\'bonjour du projet\')"',
         attendre: 'node -e "console.log(\'serveur pret\'); setInterval(() => {}, 1000)"',
         echouer: 'node -e "process.exit(3)"',
+        annoncer:
+          "node -e \"console.log('  Local:   http://localhost:5173/'); console.log('  Network: http://0.0.0.0:5173/')\"",
         'nom; piege': 'echo non'
       }
     })
@@ -36,6 +38,7 @@ function harness(dir: string | null, trusted = true) {
   const trust = new Set<string>()
   const outputs: RunOutputEvent[] = []
   const changes: RunView[] = []
+  const opened: string[] = []
   let favorite: string | null = null
   const runs = new RunService({
     projectDir: () => dir,
@@ -53,9 +56,12 @@ function harness(dir: string | null, trusted = true) {
     },
     dataDir,
     emitOutput: (event) => outputs.push(event),
-    emitChanged: (view) => changes.push(view)
+    emitChanged: (view) => changes.push(view),
+    openUrl: async (url) => {
+      opened.push(url)
+    }
   })
-  return { runs, outputs, changes }
+  return { runs, outputs, changes, opened }
 }
 
 const until = async (check: () => boolean, ms = 30_000): Promise<void> => {
@@ -114,5 +120,16 @@ describe('lancer un projet (spec 025)', { timeout: 60_000 }, () => {
     expect(runs.setFavorite(G, 'attendre').favorite).toBe('attendre')
     expect(() => harness(dataDir).runs.scripts(G)).toThrow(/données de l’app/)
     expect(() => harness(null).runs.scripts(G)).toThrow(/introuvable/)
+  })
+
+  it('should_open_only_a_local_address_announced_by_this_run', async () => {
+    const { runs, changes, opened } = harness(project('adresse'))
+    const run = runs.start(G, 'annoncer')
+    await until(() => changes.some((change) => change.runId === run.runId && change.state !== 'running'))
+    await runs.openUrl(run.runId, 'http://localhost:5173/')
+    expect(opened).toEqual(['http://localhost:5173/'])
+    await expect(runs.openUrl(run.runId, 'https://exemple.invalid/')).rejects.toThrow(/pas été annoncée/)
+    await expect(runs.openUrl(run.runId, 'http://localhost:9999/')).rejects.toThrow(/pas été annoncée/)
+    expect(opened).toHaveLength(1)
   })
 })

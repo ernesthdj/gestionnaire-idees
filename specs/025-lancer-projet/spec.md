@@ -13,6 +13,7 @@ direct depuis l'app. » — mentalyas, 2026-10-10. Constitution 4.6.0 (amendée 
 | D3 | Sécurité | **Projets de confiance seulement** (spec 014). Un projet cloné n'est jamais lancé tant que mentalyas ne lui a pas fait confiance. La confiance devient réglable dans l'app (elle n'avait pas d'écran) : « Faire confiance à ce projet », confirmé, qui dit ce que ça permet (scripts lancés d'un clic, hooks git exécutés) ; retirable. |
 | D4 | Exécution | `node` + `npm-cli.js` résolus par chemin absolu, `run <script>`, sans shell, dans le dossier du projet ; nom de script revalidé contre le `package.json` relu au moment du lancement ; un seul processus par projet et par script ; processus et enfants arrêtés sur « Arrêter » et à la fermeture de l'app. Sortie bornée (dernières 2 000 lignes), couleurs ANSI retirées à l'affichage. |
 | D5 | Raccourci | **F5** : lance le script favori du projet du brainstorm ouvert (s'il tourne déjà, l'app le dit et montre son onglet ; « Relancer » est dans le panneau) ; **Maj+F5** : l'arrête. |
+| D6 | Ouvrir dans le navigateur (2026-10-10, demande de mentalyas) | Quand la sortie d'un lancement en cours annonce une **adresse locale** (`localhost`, `127.0.0.1`, `0.0.0.0` → `localhost`, `[::1]`, avec port et chemin), le panneau propose **« 🌐 Ouvrir <adresse> »** (la première annoncée). Le main n'ouvre le navigateur par défaut (`shell.openExternal`) que pour une adresse locale **présente dans la sortie de ce lancement** ; jamais une adresse distante ni une adresse donnée par l'interface seule. |
 
 ## User Stories
 

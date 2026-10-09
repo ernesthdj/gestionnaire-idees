@@ -59,7 +59,8 @@ describe('lancer un projet (spec 025)', () => {
         useRuns.getState().upsert(run())
         return run()
       },
-      'run:stop': () => ({ ok: true })
+      'run:stop': () => ({ ok: true }),
+      'run:openUrl': () => ({ ok: true })
     })
     await user.click(await screen.findByRole('button', { name: 'Lancer le script dev' }))
     expect(api.invoke).toHaveBeenCalledWith('run:start', { genesisId: G, script: 'dev' })
@@ -67,6 +68,9 @@ describe('lancer un projet (spec 025)', () => {
     const log = await screen.findByRole('log', { name: 'Sortie de projet-fictif · dev' })
     expect(log.textContent).toContain('VITE prêt sur http://localhost:5173')
     expect(log.textContent).not.toContain('\x1b')
+    // L'adresse annoncée par le serveur de dev s'ouvre dans le navigateur (revérifiée par le main).
+    await user.click(screen.getByRole('button', { name: '🌐 Ouvrir http://localhost:5173' }))
+    expect(api.invoke).toHaveBeenCalledWith('run:openUrl', { runId: R, url: 'http://localhost:5173' })
     await expectNoAxeViolations(container)
     await user.click(screen.getByRole('button', { name: 'Arrêter le script dev' }))
     expect(api.invoke).toHaveBeenCalledWith('run:stop', { runId: R })
