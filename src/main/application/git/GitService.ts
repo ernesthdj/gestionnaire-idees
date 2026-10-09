@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { join } from 'node:path'
 import type {
   AuthorView,
   GitBranchView,
@@ -11,14 +11,7 @@ import type {
 import { GIT_LIMITS } from '@shared/git/model'
 import * as args from '../../domain/git/args'
 import { authorKey, authorViews } from '../../domain/git/authors'
-import {
-  addedFileDiff,
-  parseBranches,
-  parseDiff,
-  parseLog,
-  parseStatus,
-  type ParsedStatus
-} from '../../domain/git/parse'
+import { addedFileDiff, parseBranches, parseDiff, parseLog, type ParsedStatus } from '../../domain/git/parse'
 import { isSensitivePath } from '../../domain/git/sensitive'
 import { AppError } from '../../domain/errors'
 import type { GitMessageInput, GitMessageProposal } from '../ai/GitMessageTask'
@@ -26,7 +19,8 @@ import type { GitRunner, GitRunOptions } from '../../infrastructure/git/GitRunne
 import type { GitWriteQueue } from '../../infrastructure/git/GitWriteQueue'
 import type { GitOperationKind, GitRepository } from '../../infrastructure/db/repositories/GitRepository'
 import type { ProcessResult } from '../../infrastructure/process/ProcessRunner'
-import type { RepoContext, RepoLocator } from './RepoLocator'
+import type { RepoLocator } from './RepoLocator'
+import { GitAccess, lastLines, type ReadyRepo } from './GitAccess'
 
 export interface GitServiceDeps {
   readonly locator: Pick<RepoLocator, 'locate'>
@@ -44,12 +38,6 @@ export interface GitServiceDeps {
   readonly now?: () => Date
 }
 
-/** Dépôt utilisable : un dépôt git, pas en mode « configuration à risque ». */
-interface ReadyRepo extends RepoContext {
-  readonly gitDir: string
-}
-
-const lastLines = (text: string, max: number): string => (text.length <= max ? text : text.slice(-max))
 const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index])
 
@@ -61,7 +49,11 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
  * seule.
  */
 export class GitService {
-  constructor(private readonly deps: GitServiceDeps) {}
+  private readonly access: GitAccess
+
+  constructor(private readonly deps: GitServiceDeps) {
+    this.access = new GitAccess(deps)
+  }
 
   // ── Lectures ───────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -343,80 +335,40 @@ export class GitService {
   // ── Outils ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
   /** Dépôt git utilisable (sinon `NOT_FOUND` ou `RISKY_CONFIG`). */
-  private async ready(genesisId: string): Promise<ReadyRepo> {
-    const context = await this.deps.locator.locate(genesisId)
-    if (context.gitDir === null) throw new AppError('NOT_FOUND', 'Ce projet n’est pas un dépôt git.')
-    if (context.blocked) {
-      throw new AppError('RISKY_CONFIG', 'Configuration à risque : aucune commande git n’est lancée.', {
-        keys: context.risky.blocking
-      })
-    }
-    return context as ReadyRepo
+  private ready(genesisId: string): Promise<ReadyRepo> {
+    return this.access.ready(genesisId)
   }
 
-  /** Dépôt où l'app peut écrire : pas d'opération lancée hors de l'app (rebase, fusion en terminal…). */
-  private async writable(genesisId: string): Promise<ReadyRepo> {
-    const repo = await this.ready(genesisId)
-    if (this.operationOf(repo) === 'other') {
-      throw new AppError('READ_ONLY_STATE', 'Une opération git est en cours hors de l’app : termine-la en terminal.')
-    }
-    return repo
+  private writable(genesisId: string): Promise<ReadyRepo> {
+    return this.access.writable(genesisId)
   }
 
-  /** `merge` : fusion ouverte par l'app (même `MERGE_HEAD`) ; `other` : toute opération lancée ailleurs. */
   private operationOf(repo: ReadyRepo): GitStatusView['operation'] {
-    const has = (name: string): boolean => existsSync(join(repo.gitDir, name))
-    if (has('MERGE_HEAD')) {
-      const mergeHead = readFileSync(join(repo.gitDir, 'MERGE_HEAD'), 'utf8').trim().split(/\s+/)[0] ?? ''
-      return this.deps.repository.openMergeHead(repo.genesisId) === mergeHead ? 'merge' : 'other'
-    }
-    return has('rebase-merge') ||
-      has('rebase-apply') ||
-      has('CHERRY_PICK_HEAD') ||
-      has('REVERT_HEAD') ||
-      has('BISECT_LOG')
-      ? 'other'
-      : 'none'
+    return this.access.operationOf(repo)
   }
 
-  /** Chemin d'un fichier dans le dépôt, sans en sortir. */
   private inside(repo: ReadyRepo, path: string): string {
-    const full = resolve(repo.dir, path)
-    const rel = relative(repo.dir, full)
-    if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) throw new AppError('VALIDATION', 'Chemin hors du dépôt.')
-    return full
+    return this.access.inside(repo, path)
   }
 
-  private async readStatus(repo: ReadyRepo): Promise<ParsedStatus & { readonly total: number }> {
-    const result = await this.read(repo, args.statusArgs(), { maxOutput: 8 * 1024 * 1024 })
-    return parseStatus(result.stdout, GIT_LIMITS.statusFiles)
+  private readStatus(repo: ReadyRepo): Promise<ParsedStatus & { readonly total: number }> {
+    return this.access.readStatus(repo)
   }
 
-  private async read(
+  private read(
     repo: ReadyRepo,
     command: readonly string[],
     options: Partial<GitRunOptions> = {}
   ): Promise<ProcessResult> {
-    const result = await this.deps.runner.run(repo.dir, command, { ...options, trusted: repo.trusted, read: true })
-    if (result.spawnFailed) throw new AppError('GIT_MISSING', 'git est introuvable : installe Git pour Windows.')
-    if (result.timedOut) throw new AppError('TIMEOUT', 'git n’a pas répondu à temps.')
-    return result
+    return this.access.read(repo, command, options)
   }
 
-  private async run(
-    repo: ReadyRepo,
-    command: readonly string[],
-    options: Partial<GitRunOptions>
-  ): Promise<ProcessResult> {
-    const result = await this.deps.runner.run(repo.dir, command, { ...options, trusted: repo.trusted })
-    if (result.spawnFailed) throw new AppError('GIT_MISSING', 'git est introuvable : installe Git pour Windows.')
-    if (result.timedOut) throw new AppError('TIMEOUT', 'git n’a pas répondu à temps.')
-    return result
+  private run(repo: ReadyRepo, command: readonly string[], options: Partial<GitRunOptions>): Promise<ProcessResult> {
+    return this.access.run(repo, command, options)
   }
 
-  private async write(repo: ReadyRepo, command: readonly string[]): Promise<void> {
-    const result = await this.run(repo, command, {})
-    if (result.code !== 0) throw new AppError('GIT_FAILED', lastLines(result.stderr.trim(), 400) || 'git a échoué.')
+  private write(repo: ReadyRepo, command: readonly string[]): Promise<void> {
+    return this.access.write(repo, command)
   }
 
   private switchError(result: ProcessResult): AppError {

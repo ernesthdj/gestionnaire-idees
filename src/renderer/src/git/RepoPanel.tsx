@@ -4,6 +4,9 @@ import { BranchesTab } from './BranchesTab'
 import { ChangesTab } from './ChangesTab'
 import { useGitStatus } from './gitQueries'
 import { HistoryTab } from './HistoryTab'
+import { PublishPanel } from './PublishPanel'
+import { PushPanel } from './PushPanel'
+import { SyncBar } from './SyncBar'
 import { repoStateText } from './RepoBadge'
 
 type Tab = 'changes' | 'branches' | 'history'
@@ -27,6 +30,8 @@ export function RepoPanel({
 }): React.JSX.Element {
   const titleId = useId()
   const [tab, setTab] = useState<Tab>('changes')
+  /** Aperçu du push ou publication (spec 021 US2) à la place des onglets. */
+  const [sync, setSync] = useState<'push' | 'publish' | null>(null)
   const query = useGitStatus(genesisId)
   const status = query.data
   const readOnly = status?.operation === 'other'
@@ -80,44 +85,59 @@ export function RepoPanel({
         </div>
       ) : (
         <>
-          {readOnly ? (
-            <p role="status" className="rounded-md border border-content-muted/40 p-2 text-sm">
-              Une opération git est en cours hors de l’app (rebase, fusion…) : le volet est en lecture seule. Termine-la
-              en terminal.
-            </p>
-          ) : null}
-          <div role="tablist" aria-label="Volet Dépôt" className="flex gap-1 border-b border-content-muted/20">
-            {TABS.map((entry) => (
-              <button
-                key={entry.tab}
-                type="button"
-                role="tab"
-                id={`${titleId}-${entry.tab}`}
-                aria-selected={tab === entry.tab}
-                aria-controls={`${titleId}-${entry.tab}-panel`}
-                onClick={() => setTab(entry.tab)}
-                className={`-mb-px border-b-2 px-3 py-1 text-sm ${
-                  tab === entry.tab ? 'border-accent font-semibold' : 'border-transparent text-content-muted'
-                }`}
+          <SyncBar
+            genesisId={genesisId}
+            status={status}
+            readOnly={readOnly}
+            onPush={() => setSync('push')}
+            onPublish={() => setSync('publish')}
+          />
+          {sync === 'push' ? (
+            <PushPanel genesisId={genesisId} onClose={() => setSync(null)} />
+          ) : sync === 'publish' ? (
+            <PublishPanel genesisId={genesisId} onClose={() => setSync(null)} />
+          ) : (
+            <>
+              {readOnly ? (
+                <p role="status" className="rounded-md border border-content-muted/40 p-2 text-sm">
+                  Une opération git est en cours hors de l’app (rebase, fusion…) : le volet est en lecture seule.
+                  Termine-la en terminal.
+                </p>
+              ) : null}
+              <div role="tablist" aria-label="Volet Dépôt" className="flex gap-1 border-b border-content-muted/20">
+                {TABS.map((entry) => (
+                  <button
+                    key={entry.tab}
+                    type="button"
+                    role="tab"
+                    id={`${titleId}-${entry.tab}`}
+                    aria-selected={tab === entry.tab}
+                    aria-controls={`${titleId}-${entry.tab}-panel`}
+                    onClick={() => setTab(entry.tab)}
+                    className={`-mb-px border-b-2 px-3 py-1 text-sm ${
+                      tab === entry.tab ? 'border-accent font-semibold' : 'border-transparent text-content-muted'
+                    }`}
+                  >
+                    {entry.label}
+                  </button>
+                ))}
+              </div>
+              <div
+                role="tabpanel"
+                id={`${titleId}-${tab}-panel`}
+                aria-labelledby={`${titleId}-${tab}`}
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto"
               >
-                {entry.label}
-              </button>
-            ))}
-          </div>
-          <div
-            role="tabpanel"
-            id={`${titleId}-${tab}-panel`}
-            aria-labelledby={`${titleId}-${tab}`}
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto"
-          >
-            {tab === 'changes' ? (
-              <ChangesTab genesisId={genesisId} status={status} readOnly={readOnly} />
-            ) : tab === 'branches' ? (
-              <BranchesTab genesisId={genesisId} readOnly={readOnly} />
-            ) : (
-              <HistoryTab genesisId={genesisId} readOnly={readOnly} />
-            )}
-          </div>
+                {tab === 'changes' ? (
+                  <ChangesTab genesisId={genesisId} status={status} readOnly={readOnly} />
+                ) : tab === 'branches' ? (
+                  <BranchesTab genesisId={genesisId} readOnly={readOnly} />
+                ) : (
+                  <HistoryTab genesisId={genesisId} readOnly={readOnly} />
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
     </aside>

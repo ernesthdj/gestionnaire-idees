@@ -144,3 +144,100 @@ export const headArgs = (): string[] => ['rev-parse', '--verify', '-q', 'HEAD']
 export const parentsArgs = (hash: string): string[] => ['rev-list', '--parents', '-n', '1', hash]
 /** Dossier `.git` réel (worktrees, sous-modules). */
 export const gitDirArgs = (): string[] => ['rev-parse', '--absolute-git-dir']
+
+// ── Publier, tirer, pousser (US2, research R9–R11) ─────────────────────────────────────────────────────────────────
+
+/** Nom de remote ou de branche venu de git lui-même, revérifié avant de l'employer comme argument. */
+const REF_NAME = /^[A-Za-z0-9._/-]{1,200}$/
+export function safeRef(name: string): string {
+  if (!REF_NAME.test(name) || name.startsWith('-') || name.includes('..') || name.endsWith('.lock')) {
+    throw new Error(`nom de référence refusé : ${name}`)
+  }
+  return name
+}
+
+/** Remotes du dépôt. */
+export const remotesArgs = (): string[] => ['remote']
+/** Adresse d'un remote (affichée sans identifiant par l'appelant). */
+export const remoteUrlArgs = (remote: string): string[] => ['remote', 'get-url', safeRef(remote)]
+/** Ajout du remote `origin` après publication (l'adresse vient de `gh`, contrôlée par `checkGitUrl`). */
+export const remoteAddArgs = (url: string): string[] => {
+  if (url.startsWith('-')) throw new Error('adresse de remote refusée')
+  return ['remote', 'add', 'origin', url]
+}
+
+/** Vérifier le distant : sans étiquettes ni sous-modules (jamais `--prune`, `--tags`, `--all`). */
+export const fetchArgs = (remote: string): string[] => [
+  'fetch',
+  '--no-tags',
+  '--no-recurse-submodules',
+  '--quiet',
+  safeRef(remote)
+]
+
+/** Commits d'une plage (`a..b`). */
+export const countArgs = (range: string): string[] => ['rev-list', '--count', range]
+/** `b` contient-il `a` ? (code 0 : oui). */
+export const isAncestorArgs = (ancestor: string, descendant: string): string[] => [
+  'merge-base',
+  '--is-ancestor',
+  ancestor,
+  descendant
+]
+/** Empreinte d'une référence (`refs/remotes/origin/main`…). */
+export const refHeadArgs = (ref: string): string[] => ['rev-parse', '--verify', '-q', safeRef(ref)]
+
+/** Tirer sans fusion : avance rapide seulement. */
+export const pullFfArgs = (upstream: string): string[] => ['merge', '--ff-only', '--no-edit', safeRef(upstream)]
+/** Fusion des deux historiques (après confirmation), sur une empreinte vérifiée. */
+export const mergeArgs = (hash: string): string[] => ['merge', '--no-ff', '--no-edit', hash]
+export const mergeAbortArgs = (): string[] => ['merge', '--abort']
+
+/**
+ * Commits à pousser : `branch` non encore sur le remote. Premier push : tout ce qu'aucune branche du remote ne contient
+ * (`--not --remotes=<remote>`).
+ */
+export const outgoingArgs = (branch: string, remote: string, upstream: string | null, limit: number): string[] => [
+  'log',
+  `-n${Math.max(1, Math.min(5_000, Math.trunc(limit)))}`,
+  '-z',
+  '--no-color',
+  '--format=%H%x1f%aI%x1f%s',
+  ...outgoingRange(branch, remote, upstream)
+]
+export const outgoingCountArgs = (branch: string, remote: string, upstream: string | null): string[] => [
+  'rev-list',
+  '--count',
+  ...outgoingRange(branch, remote, upstream)
+]
+const outgoingRange = (branch: string, remote: string, upstream: string | null): string[] =>
+  upstream === null
+    ? [`refs/heads/${safeRef(branch)}`, '--not', `--remotes=${safeRef(remote)}`]
+    : [`${safeRef(upstream)}..refs/heads/${safeRef(branch)}`]
+
+/** Noms des fichiers ajoutés ou modifiés par chaque commit de la plage à pousser (research R10). */
+export const outgoingNamesArgs = (branch: string, remote: string, upstream: string | null): string[] => [
+  'log',
+  '-z',
+  '--no-color',
+  '--format=%x00%H',
+  '--name-only',
+  '--no-renames',
+  '--diff-filter=AMR',
+  ...outgoingRange(branch, remote, upstream)
+]
+
+/** Contenu brut d'un fichier à un commit (aucun filtre ni conversion). */
+export const blobArgs = (commit: string, path: string): string[] => {
+  if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error('empreinte refusée')
+  return ['cat-file', 'blob', `${commit}:${path}`]
+}
+
+/** Push d'UNE branche vers UNE branche (refspec unique, jamais `+`, jamais `:`). */
+export const pushArgs = (remote: string, branch: string, target: string, setUpstream: boolean): string[] => [
+  'push',
+  '--porcelain',
+  ...(setUpstream ? ['--set-upstream'] : []),
+  safeRef(remote),
+  `refs/heads/${safeRef(branch)}:refs/heads/${safeRef(target)}`
+]

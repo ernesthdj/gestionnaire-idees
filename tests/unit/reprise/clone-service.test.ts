@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CLONE_TIMEOUTS_MS,
   SHALLOW_LIMITS,
@@ -260,7 +260,7 @@ describe('service de clone, processus simulé (spec 020 T027 / spec 021 T028)', 
   })
 
   it('should_refuse_a_second_clone_when_one_is_running', async () => {
-    let release: () => void = () => undefined
+    let release: (() => void) | null = null
     const clones = service(
       (request) =>
         new Promise<GitProcessResult>((resolve) => {
@@ -280,8 +280,9 @@ describe('service de clone, processus simulé (spec 020 T027 / spec 021 T028)', 
       ok: false,
       code: 'BUSY'
     })
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    release()
+    // Attendre que le clone simulé ait vraiment démarré (un délai fixe ne suffit pas sous charge).
+    await vi.waitFor(() => expect(release).not.toBeNull())
+    ;(release as unknown as () => void)()
     expect(await first).toMatchObject({ ok: true })
     expect(clones.busy).toBe(false)
   })

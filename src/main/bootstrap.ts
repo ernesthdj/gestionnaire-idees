@@ -120,7 +120,11 @@ import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
-import { createGitRoutes } from './ipc/gitHandlers'
+import { createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import { GitAccess } from './application/git/GitAccess'
+import { SyncService } from './application/git/SyncService'
+import { PublishService } from './application/git/PublishService'
+import { GhRunner } from './infrastructure/git/GhRunner'
 import {
   createBrainstormRoutes,
   createCloneBrainstormRoutes,
@@ -199,7 +203,13 @@ function migrationsFolder(): string {
 }
 
 /** Initialise les services du processus principal. Toutes les données vivent dans %APPDATA%. */
-export function bootstrap(shell: ShellPort): AppContext {
+/** Réglages de démarrage réservés au développement. */
+export interface BootstrapOptions {
+  /** Tests e2e (`--e2e`) : un dépôt nu local sert de distant (transport local permis). */
+  readonly e2eLocalRemotes?: boolean
+}
+
+export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): AppContext {
   const broadcast = (event: MainWindowEvent, payload: unknown): void => shell.sendToMain(event, payload)
   // La sonde de l'Analyste (spec 019) est créée après la base : le journal la rejoint dès qu'elle existe.
   const probeRef: { current?: ProbeService } = {}
@@ -451,17 +461,25 @@ export function bootstrap(shell: ShellPort): AppContext {
   const workflowFolds = new WorkflowFoldRepository(database.db)
   const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })
   // Git et GitHub (spec 021) : un seul exécuteur sûr, une file d'écriture par projet, le dépôt d'un genesis vérifié.
-  const gitRunner = new GitRunner({ emptyHooksDir: join(dataDir, 'git-empty-hooks') })
-  const gitService = new GitService({
-    locator: new RepoLocator({
-      projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir,
-      isTrusted: (key) => permissionRepository.isTrusted(key),
-      runner: gitRunner,
-      dataDir
-    }),
+  const gitRunner = new GitRunner({
+    emptyHooksDir: join(dataDir, 'git-empty-hooks'),
+    // Tests e2e seulement (`--e2e`, jamais l'app installée) : un dépôt nu local sert de distant.
+    allowLocalTransportForTests: options.e2eLocalRemotes === true
+  })
+  const repoLocator = new RepoLocator({
+    projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir,
+    isTrusted: (key) => permissionRepository.isTrusted(key),
     runner: gitRunner,
-    queue: new GitWriteQueue(),
-    repository: new GitRepository(database.db),
+    dataDir
+  })
+  // Une seule file d'écriture par projet pour tout git (volet, synchronisation, publication).
+  const gitQueue = new GitWriteQueue()
+  const gitRepository = new GitRepository(database.db)
+  const gitService = new GitService({
+    locator: repoLocator,
+    runner: gitRunner,
+    queue: gitQueue,
+    repository: gitRepository,
     authorSecret: () => secrets.getOrCreateRandomKey('git-author-hmac'),
     changed: (genesisId) => broadcast('git:changed', { genesisId }),
     localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
@@ -710,6 +728,29 @@ export function bootstrap(shell: ShellPort): AppContext {
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     git: runGit
   })
+  // Publier, tirer, pousser (spec 021 US2) : même accès au dépôt que le volet, `gh` par liste blanche.
+  const gitAccess = new GitAccess({
+    locator: repoLocator,
+    runner: gitRunner,
+    repository: gitRepository
+  })
+  const ghRunner = new GhRunner()
+  const gitSync = new SyncService({
+    access: gitAccess,
+    queue: gitQueue,
+    repository: gitRepository,
+    gh: ghRunner,
+    status: (genesisId) => gitService.status(genesisId),
+    changed: (genesisId) => broadcast('git:changed', { genesisId })
+  })
+  const gitPublish = new PublishService({
+    access: gitAccess,
+    queue: gitQueue,
+    repository: gitRepository,
+    gh: ghRunner,
+    status: (genesisId) => gitService.status(genesisId),
+    changed: (genesisId) => broadcast('git:changed', { genesisId })
+  })
   // Project Manager (spec 024) : la carte unique d'avant devient des brainstorms (R10), puis un canevas par projet.
   const adoptLegacyCanvas = (): void => {
     const report = migrateLegacyCanvas({
@@ -957,6 +998,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
       ...createGitRoutes(gitService),
+      ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),

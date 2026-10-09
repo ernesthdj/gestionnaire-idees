@@ -81,44 +81,44 @@ sans co-auteur ; le 3ᵉ reste modifié ; `.env` jamais cochable ; hooks selon l
   « Commiter (n fichiers) » + `Ctrl+Entrée`, `BranchesTab.tsx`, `HistoryTab.tsx` (derniers commits + « Annuler ce
   commit » confirmé), bandeau « configuration à risque », `Ctrl+Maj+G`, relecture au retour du focus + tests
   renderer/axe
-- [ ] T017 [US1] Test guidé (quickstart §1), avec la mesure SC-001 (commit < 30 s) — attendre le retour
+- [x] T017 [US1] Test guidé (quickstart §1) → fait par mentalyas le 2026-10-09 (« rapide »), puis e2e `tests/e2e/git-local.e2e.ts`
 
 ## Phase 4 — US2 Publier, tirer, pousser (P1) 🎯 MVP
 **Test indépendant** : dépôt nu local + `gh` simulé : publier, pousser 2 commits, tirer un commit fait ailleurs ;
 `secret-ancien` bloque le push ; aucune commande de forçage construite.
-- [ ] T018 [P] [US2] Pur : `src/main/domain/git/ghArgs.ts` (liste blanche research R9, forme collée, corps par stdin,
+- [x] T018 [P] [US2] Pur : `src/main/domain/git/ghArgs.ts` (liste blanche research R9, forme collée, corps par stdin,
   `<o/n>` vérifié) + tests (toute sous-commande hors liste refusée ; `auth token`, `pr merge`, `pr review`,
   `api repos/…` inconstructibles)
-- [ ] T019 [P] [US2] Pur : `src/main/domain/git/pushRules.ts` (research R10 : sensible, droits, propriétaire = son
+- [x] T019 [P] [US2] Pur : `src/main/domain/git/pushRules.ts` (research R10 : sensible, droits, propriétaire = son
   compte **ou** `admin` / `maintain` (D11), branche par défaut d'un tiers, hors GitHub) + tests (table de décision
   complète, dont les deux cas D11 : dépôt d'organisation avec `admin` ou `maintain` → push permis sur la branche
   principale après récapitulatif ; dépôt d'autrui avec `write` seulement → `THIRD_PARTY_DEFAULT_BRANCH`)
-- [ ] T020 [US2] `GhRunner` `src/main/infrastructure/git/GhRunner.ts` (`gh.exe` par chemin absolu, environnement R9,
+- [x] T020 [US2] `GhRunner` `src/main/infrastructure/git/GhRunner.ts` (`gh.exe` par chemin absolu, environnement R9,
   délai 60 s, sorties JSON validées par Zod, sortie jamais journalisée) + `git:ghStatus` (`api user --jq .login`) +
   tests (`gh` absent, non connecté, sortie inattendue)
-- [ ] T021 [US2] `SyncService` `src/main/application/git/SyncService.ts` : `git:fetch` (à l'ouverture du volet, sur ⟳ et
+- [x] T021 [US2] `SyncService` `src/main/application/git/SyncService.ts` : `git:fetch` (à l'ouverture du volet, sur ⟳ et
   avant tirer / pousser seulement ; `last_fetch_at`), `git:pull` (`merge --ff-only`, `diverged`,
   `HISTORY_REWRITTEN`), `git:merge` (`--no-ff --no-edit`, `expectedUpstreamHead` ; conflits → `merge --abort` +
   `CONFLICTS_ABORTED` tant qu'US4 n'existe pas), `git:mergeAbort` + tests (dépôt nu local, dépôt intact après abandon ;
   FR-040 : réseau coupé, délai, identifiants refusés simulés → `git status`, refs et `git_repos` inchangés)
-- [ ] T022 [US2] `SensitiveScan` `src/main/application/git/SensitiveScan.ts` (plage à pousser, premier push, noms +
+- [x] T022 [US2] `SensitiveScan` `src/main/application/git/SensitiveScan.ts` (plage à pousser, premier push, noms +
   contenu par `git grep`, bornes et repli « noms seulement », `sensitive_checked_head`) + tests (SC-003 : faux `.env`
   dans le dernier **et** dans un ancien commit)
-- [ ] T023 [US2] `PushService` `src/main/application/git/PushService.ts` : `git:pushPreview` (≤ 200 commits affichés,
+- [x] T023 [US2] `PushService` `src/main/application/git/PushService.ts` : `git:pushPreview` (≤ 200 commits affichés,
   droits par `repo view --json viewerPermission,owner,defaultBranchRef`), `git:push` (`expectedHead/Remote/Branch`,
   refspec unique, `acceptFindings` non bloquants seulement, `NON_FAST_FORWARD` → « Tirer d'abord ») + tests (dont
   FR-040 : échec réseau / délai / identifiants refusés → rien de modifié localement)
-- [ ] T024 [US2] `PublishService` `src/main/application/git/PublishService.ts` : `git:publishPreview`, `git:publish`
+- [x] T024 [US2] `PublishService` `src/main/application/git/PublishService.ts` : `git:publishPreview`, `git:publish`
   (`repo create` **sans** `--source`, privé par défaut, `confirmPublic`, `remote add origin` par git, push ;
   `PUSH_FAILED` laisse « créé, pas encore poussé »), `git:addGitignore`, `git_repos.github_repo` + tests (`gh` simulé ;
   FR-040 : `gh` en échec avant création → aucun remote ajouté, rien de modifié localement)
-- [ ] T025 [US2] Interface : en-tête Tirer (n) / Pousser (n) + âge de la vérification + ⟳, `PublishDialog.tsx` (E3 :
+- [x] T025 [US2] Interface : en-tête Tirer (n) / Pousser (n) + âge de la vérification + ⟳, `PublishDialog.tsx` (E3 :
   compte, nom, description, Privé coché, seconde confirmation pour Public, contrôle avant publication, blocage sans
   contournement), `PushDialog.tsx` (E4 : destination, branche, commits, constats, « ce n'est pas un secret » ligne par
   ligne, refus avec action : Tirer d'abord, Créer une branche (active dès US2 : crée et pousse la branche ; PR
   mentionnée en texte jusqu'à US6 — analyse M5), Forker (désactivé avant US6)), message `gh` absent
   avec [Copier la commande], infobulles « tirer / pousser » + tests renderer/axe
-- [ ] T026 [US2] Test guidé (quickstart §2) — attendre le retour
+- [x] T026 [US2] Test guidé (quickstart §2) → e2e `tests/e2e/git-sync.e2e.ts` (2026-10-10 : push de 2 commits après aperçu, ⟳, tirer un commit poussé ailleurs ; distant = dépôt nu local) ; publication testée en intégration avec `gh` simulé (aucun appel réseau)
 
 ## Phase 5 — US3 Cloner par lien et suivre (P1) 🎯 MVP
 **Test indépendant** : clone d'un dépôt de démonstration local (transport de test injecté) : projet créé, reprise

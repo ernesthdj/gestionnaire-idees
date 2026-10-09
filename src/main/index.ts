@@ -69,16 +69,19 @@ function start(): void {
   })
 
   void app.whenReady().then(() => {
-    context = bootstrap({
-      sendToMain: (event, payload) => windows.sendToMain(event, payload),
-      replaceShortcut: (accelerator) => shortcut.replace(accelerator),
-      applyLaunchAtLogin,
-      hideCapture: () => windows.hideCapture(),
-      openDive: (rootId) => {
-        windows.hideCapture()
-        windows.showMain({ section: 'ideas', diveRootId: rootId })
-      }
-    })
+    context = bootstrap(
+      {
+        sendToMain: (event, payload) => windows.sendToMain(event, payload),
+        replaceShortcut: (accelerator) => shortcut.replace(accelerator),
+        applyLaunchAtLogin,
+        hideCapture: () => windows.hideCapture(),
+        openDive: (rootId) => {
+          windows.hideCapture()
+          windows.showMain({ section: 'ideas', diveRootId: rootId })
+        }
+      },
+      { e2eLocalRemotes: e2eProfile && process.env['GI_E2E_LOCAL_REMOTES'] === '1' }
+    )
     if (demoProfile) {
       // Dossier de méthode fictif du profil démo (spec 023 T039), lié au genesis « application de notes ».
       // Tests e2e : le dépôt fictif vit HORS du profil (git refuse un dossier de données de l'app, spec 021).

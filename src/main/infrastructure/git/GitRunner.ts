@@ -26,6 +26,11 @@ export interface GitRunnerDeps {
   readonly emptyHooksDir: string
   readonly run?: RunProcess
   readonly program?: () => string | null
+  /**
+   * TESTS SEULEMENT (intégration, e2e avec `--e2e`) : autorise le transport local vers un dépôt nu de test. En production
+   * seuls `https` et `ssh` passent (préfixe R2).
+   */
+  readonly allowLocalTransportForTests?: boolean
 }
 
 export const DEFAULT_GIT_TIMEOUT_MS = 60_000
@@ -70,7 +75,11 @@ export class GitRunner {
     })
     return (this.deps.run ?? runProcess)({
       program,
-      args: [...prefix, ...args],
+      args: [
+        ...prefix,
+        ...(this.deps.allowLocalTransportForTests === true ? ['-c', 'protocol.file.allow=always'] : []),
+        ...args
+      ],
       cwd,
       env: gitEnv(options.read === true),
       timeoutMs: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,

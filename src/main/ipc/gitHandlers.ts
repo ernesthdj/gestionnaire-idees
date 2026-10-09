@@ -7,7 +7,12 @@ import {
   GitPathsInput,
   GitRevertInput
 } from '@shared/ipc/git'
+import { z } from 'zod'
+import { GitConfirmInput, GitMergeInput, GitPublishInput, GitPushInput } from '@shared/git/sync'
 import type { GitService } from '../application/git/GitService'
+import type { PublishService } from '../application/git/PublishService'
+import type { SyncService } from '../application/git/SyncService'
+import type { GhRunner } from '../infrastructure/git/GhRunner'
 import { defineRoute, type IpcRoute } from './registry'
 
 /**
@@ -85,6 +90,80 @@ export function createGitRoutes(
       channel: 'git:revert',
       input: GitRevertInput,
       handler: async ({ genesisId, hash, expectedHead }) => git.revert(genesisId, hash, expectedHead)
+    })
+  ]
+}
+
+/**
+ * Publier, tirer, pousser (spec 021 US2) : le renderer n'envoie que le genesis, l'état vu (empreintes, remote, branche)
+ * et des identifiants de constats ; `confirm: true` sur chaque écriture.
+ */
+export function createGitSyncRoutes(
+  sync: Pick<SyncService, 'fetch' | 'pull' | 'merge' | 'mergeAbort' | 'pushPreview' | 'push'>,
+  publish: Pick<PublishService, 'preview' | 'publish' | 'addGitignore'>,
+  gh: Pick<GhRunner, 'status'>
+): IpcRoute[] {
+  return [
+    defineRoute({ channel: 'git:ghStatus', input: z.undefined(), handler: async () => gh.status() }),
+    defineRoute({
+      channel: 'git:fetch',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => sync.fetch(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:pull',
+      input: GitConfirmInput,
+      handler: async ({ genesisId }) => sync.pull(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:merge',
+      input: GitMergeInput,
+      handler: async ({ genesisId, expectedUpstreamHead }) => sync.merge(genesisId, expectedUpstreamHead)
+    }),
+    defineRoute({
+      channel: 'git:mergeAbort',
+      input: GitConfirmInput,
+      handler: async ({ genesisId }) => sync.mergeAbort(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:pushPreview',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => sync.pushPreview(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:push',
+      input: GitPushInput,
+      handler: async (input) =>
+        sync.push({
+          genesisId: input.genesisId,
+          expectedHead: input.expectedHead,
+          expectedRemote: input.expectedRemote,
+          expectedBranch: input.expectedBranch,
+          acceptFindings: input.acceptFindings
+        })
+    }),
+    defineRoute({
+      channel: 'git:publishPreview',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => publish.preview(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:publish',
+      input: GitPublishInput,
+      handler: async (input) =>
+        publish.publish({
+          genesisId: input.genesisId,
+          name: input.name,
+          description: input.description,
+          visibility: input.visibility,
+          confirmPublic: input.confirmPublic === true,
+          expectedHead: input.expectedHead
+        })
+    }),
+    defineRoute({
+      channel: 'git:addGitignore',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => publish.addGitignore(genesisId)
     })
   ]
 }

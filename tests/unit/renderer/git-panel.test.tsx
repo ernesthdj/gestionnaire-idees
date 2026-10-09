@@ -77,7 +77,11 @@ describe('volet Dépôt (spec 021 T016, US1)', () => {
     await user.click(screen.getByRole('button', { name: /Proposer un message/ }))
     expect(await screen.findByDisplayValue('feat: a et b')).toBeDefined()
     await user.click(screen.getByRole('button', { name: /Commiter \(2 fichiers\)/ }))
-    expect(await screen.findByText(/sur/)).toBeDefined()
+    expect(
+      await screen.findByText(
+        (_, element) => element?.tagName === 'P' && /^Commit \S+ sur main\.$/.test(element.textContent ?? '')
+      )
+    ).toBeDefined()
     expect(api.invoke).toHaveBeenCalledWith('git:commit', {
       genesisId: G,
       message: 'feat: a et b',
