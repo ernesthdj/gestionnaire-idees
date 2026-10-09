@@ -1253,3 +1253,13 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 **Quoi :** « Points de sauvegarde (n) » dans le bandeau : poser un point nommé, revenir à un point après confirmation (un point caché « avant retour à … » est posé d'abord, puis nœuds, blocs, liens et vue reviennent en une transaction), « Annuler le retour », renommer, supprimer (confirmé). Ce qui n'existait pas au point est archivé ou marqué supprimé, jamais effacé : l'annulation le ramène. La conversation des nœuds (session, modèle, mode, dossiers) et les fichiers du projet ne sont jamais touchés. Bornes : 50 points visibles, 5 points cachés gardés.
 **Vérifié (SC-003) :** inventaire identique après retour puis après annulation (intégration) ; dans l'app : idée ajoutée après le point, retour → elle disparaît, annulation → elle revient.
 **Règle apprise :** pour comparer un cadrage restauré en e2e, le mesurer au moment où l'on quitte la carte (la carte peut encore bouger juste après un zoom).
+
+### [2026-10-10 04:30] DOCS — brainstorm L1m : wireframes et parcours dans les widgets
+**Fichiers :** `docs/brainstorm/L1m-ecrans-wireframes.md`, `CLAUDE.md` (ligne Évolution).
+**Quoi :** idée de mentalyas, à partir d'une synthèse de Gemini : un bac à sable visuel en amont du code. Une première
+version prévoyait une vue « Écrans » dédiée ; mentalyas a remarqué que les widgets font déjà presque tout. Vérifié
+dans le code : branchement nœud → widget (spec 005), widget HTML posé par Claude (MCP), panneau de réglages et
+navigation libres dans le cadre isolé. Décision : **pas de nouvelle vue** ; un wireframe ou un parcours est un widget
+relié à son nœud (basse fidélité par défaut, panneau de réglages, parcours jouable). La future spec se réduit à trois
+ajouts : état persistant d'un widget, lecture et modification d'un widget par Claude (MCP), plein écran. L'éditeur
+vectoriel de Gemini est écarté. Spec après la 024 (US4, US5) et la 021 ; 5 questions ouvertes.

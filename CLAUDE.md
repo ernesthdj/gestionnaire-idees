@@ -23,6 +23,10 @@
 > le dossier ProjectsMaster devient le coffre, l'app pilote le workflow `/hub` étape par étape). Voir
 > `docs/brainstorm/L1k-accueil-projectmaster.md`. Spec 024 écrite le 2026-10-09, à coder après la fermeture d'une partie
 > des chantiers ouverts.
+> **Évolution (2026-10-10) :** **Wireframes et parcours dans les widgets** (bac à sable visuel : un nœud relié à un
+> widget où Claude génère écrans, panneau de réglages et parcours jouable ; pas de nouvelle vue). Voir
+> `docs/brainstorm/L1m-ecrans-wireframes.md`. Spec à écrire après la 024 (US4, US5) et la 021 : état persistant d'un
+> widget, lecture et modification d'un widget par Claude (MCP), plein écran.
 
 ---
 
