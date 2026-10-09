@@ -87,7 +87,8 @@ const ELEMENT_KINDS = {
   widget: 'widget',
   result: 'resultat',
   note: 'note',
-  frame: 'cadre'
+  frame: 'cadre',
+  settings: 'reglages'
 } as const
 const IDEA_STATES = { raw: 'brute', developing: 'en développement', hatched: 'éclose', archived: 'archivée' } as const
 

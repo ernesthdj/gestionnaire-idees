@@ -185,4 +185,61 @@ describe('widget IA sur la carte (spec 004 US3)', () => {
     expect(await within(frame).findByText(/Tire un lien d’une idée ou d’une étape jusqu’ici/)).toBeDefined()
     expect(within(frame).queryByRole('group', { name: 'Générer à partir du nœud branché' })).toBeNull()
   })
+
+  it('should_draw_the_floating_settings_panel_and_send_each_change', async () => {
+    const user = userEvent.setup()
+    const PANEL_ID = '00000000-0000-4000-8000-0000000000f7'
+    const fields = [
+      { key: 'titre', label: 'Titre de l’écran', type: 'text', default: 'Accueil', group: 'Écran' },
+      { key: 'etat', label: 'État', type: 'select', options: ['Normal', 'Erreur'] },
+      { key: 'mobile', label: 'Mobile', type: 'toggle', default: false }
+    ]
+    const values = { titre: 'Accueil', etat: 'Normal', mobile: false }
+    const { api, container } = renderWidget({
+      'canvas:get': () => ({
+        ...canvasView(),
+        blocks: [
+          { ...block, versionId: V2 },
+          { ...block, id: PANEL_ID, kind: 'settings', x: 600, width: 280, sourceBlockId: BLOCK_ID }
+        ]
+      }),
+      'widget:get': () => generated,
+      'widgetIo:settings': () => ({
+        blockId: PANEL_ID,
+        widgetBlockId: BLOCK_ID,
+        widgetTitle: 'Compte à rebours',
+        fields,
+        values
+      }),
+      'widgetIo:settingsValues': () => ({ fields, values }),
+      'widgetIo:setSettings': () => ({ fields, values })
+    })
+    const panel = await screen.findByRole('region', { name: 'Réglages · Compte à rebours' })
+    expect(within(panel).getByRole('group', { name: 'Écran' })).toBeDefined()
+    await user.selectOptions(within(panel).getByLabelText('État'), 'Erreur')
+    expect(api.invoke).toHaveBeenCalledWith('widgetIo:setSettings', {
+      blockId: BLOCK_ID,
+      values: { titre: 'Accueil', etat: 'Erreur', mobile: false }
+    })
+    expect((within(panel).getByLabelText('État') as HTMLSelectElement).value).toBe('Erreur')
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_open_the_widget_full_screen_with_its_settings_and_close_it_with_escape', async () => {
+    const user = userEvent.setup()
+    const fields = [{ key: 'titre', label: 'Titre de l’écran', type: 'text', default: 'Accueil' }]
+    renderWidget({
+      'widget:get': () => generated,
+      'widgetIo:settingsValues': () => ({ fields, values: { titre: 'Accueil' } })
+    })
+    await user.click(await within(await widget()).findByRole('button', { name: 'Plein écran' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Plein écran : Compte à rebours' })
+    expect(within(dialog).getByTitle('Compte à rebours').tagName).toBe('IFRAME')
+    expect(await within(dialog).findByLabelText('Titre de l’écran')).toBeDefined()
+    expect(within(await widget()).getByText('Ouvert en plein écran.')).toBeDefined()
+    await expectNoAxeViolations(dialog)
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Plein écran/ })).toBeNull())
+    expect(await within(await widget()).findByTitle('Compte à rebours')).toBeDefined()
+  })
 })

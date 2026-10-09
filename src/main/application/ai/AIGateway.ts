@@ -190,7 +190,8 @@ export class AIGateway {
         await this.log(requestId, request.kind, engine, '', undefined, 'error', Date.now() - started, code)
         return code === 'AUTH_FAILED'
           ? failure('AUTH_FAILED', 'Claude Code n’est pas connecté : lance `claude` pour te connecter')
-          : failure('AI_UNAVAILABLE', "L'IA n'a pas pu répondre", true)
+          : // Raison donnée par le moteur (délai dépassé, réponse illisible…) : plus utile qu'un message générique.
+            failure('AI_UNAVAILABLE', error instanceof ProviderError ? error.message : "L'IA n'a pas pu répondre", true)
       }
 
       const refused = response.stopReason === 'refusal'

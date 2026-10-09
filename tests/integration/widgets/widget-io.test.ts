@@ -169,6 +169,49 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     expect(typeof inputs[0]?.originalText).toBe('string')
   })
 
+  it('should_create_the_settings_panel_beside_the_widget_and_keep_the_chosen_values', () => {
+    const v1 = addVersion('gi.settings([])')
+    const fields = [
+      { key: 'titre', label: 'Titre', type: 'text', default: 'Accueil' },
+      { key: 'etat', label: 'État', type: 'select', options: ['Normal', 'Erreur'] }
+    ]
+    const first = io.declareSettings({ blockId, versionId: v1, fields })
+    expect(first).toMatchObject({ created: true, values: { titre: 'Accueil', etat: 'Normal' } })
+    const panel = new BlockRepository(t.handle.db).get(first.panelBlockId)
+    expect(panel).toMatchObject({ kind: 'settings', sourceBlockId: blockId })
+    expect(panel?.x).toBeGreaterThan(260)
+
+    expect(io.setSettings({ blockId, values: { titre: 'Devis', etat: 'Inconnu' } }).values).toEqual({
+      titre: 'Devis',
+      etat: 'Normal'
+    })
+    expect(io.settingsPanel(first.panelBlockId)).toMatchObject({
+      widgetBlockId: blockId,
+      widgetTitle: 'Budget',
+      values: { titre: 'Devis', etat: 'Normal' }
+    })
+    // Une nouvelle version qui redéclare garde les valeurs encore valables, et le même panneau.
+    const v2 = addVersion('gi.settings([])')
+    const again = io.declareSettings({ blockId, versionId: v2, fields: [fields[0]] })
+    expect(again).toMatchObject({ created: false, panelBlockId: first.panelBlockId, values: { titre: 'Devis' } })
+    expect(io.settingsValues(blockId).values).toEqual({ titre: 'Devis' })
+  })
+
+  it('should_refuse_settings_from_an_old_version_or_an_invalid_declaration', () => {
+    const v1 = addVersion('a')
+    addVersion('b')
+    const fields = [{ key: 'titre', label: 'Titre', type: 'text' }]
+    expect(() => io.declareSettings({ blockId, versionId: v1, fields })).toThrow(
+      expect.objectContaining({ code: 'INVALID_STATE' })
+    )
+    const current = addVersion('c')
+    expect(() =>
+      io.declareSettings({ blockId, versionId: current, fields: [{ key: 'x', label: 'X', type: 'script' }] })
+    ).toThrow(expect.objectContaining({ code: 'VALIDATION' }))
+    expect(() => io.setSettings({ blockId, values: {} })).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
+    expect(io.settingsValues(blockId)).toEqual({ values: null, fields: [] })
+  })
+
   it('should_save_and_read_back_the_widget_state_within_its_bounds', () => {
     addVersion('gi.onState(() => {})')
     expect(io.savedState(blockId)).toBeNull()

@@ -15,6 +15,14 @@ import {
   type WidgetIoStateView,
   type WidgetResultView
 } from '@shared/ipc/widgetIo'
+import {
+  SettingsDeclaration,
+  settingValues,
+  type SettingField,
+  type SettingsDeclaredView,
+  type SettingValues,
+  type WidgetSettingsView
+} from '@shared/widgets/settings'
 import { AppError } from '../../domain/errors'
 import { checkResult, checkState } from '../../domain/widgets/resultLimits'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
@@ -29,7 +37,7 @@ export interface WidgetIoDependencies {
   readonly repository: WidgetIoRepository
   readonly widgets: Pick<WidgetRepository, 'widget' | 'version'>
   /** Blocs de la carte : place du widget, et son cadre résultat (créé à la première émission). */
-  readonly blocks: Pick<BlockRepository, 'get' | 'insert' | 'resultBlockOf'>
+  readonly blocks: Pick<BlockRepository, 'get' | 'insert' | 'resultBlockOf' | 'settingsBlockOf'>
   /** Idée et son arbre en cours ; `undefined` si elle n'existe plus. */
   readonly tree: (rootId: string) => TreeView | undefined
   /** Ancien document éclos (archive), pour les anciennes « prochaines étapes » branchées. */
@@ -248,6 +256,105 @@ export class WidgetIoService {
       return JSON.parse(json) as unknown
     } catch {
       return null
+    }
+  }
+
+  /**
+   * Réglages déclarés par la version affichée (spec 026 D7) : déclaration validée, valeurs déjà choisies gardées si
+   * elles conviennent encore, panneau posé à droite du widget s'il n'existe pas (recréé s'il a été supprimé).
+   */
+  declareSettings(input: {
+    readonly blockId: string
+    readonly versionId: string
+    readonly fields: unknown
+  }): SettingsDeclaredView {
+    const { repository, blocks } = this.deps
+    const widget = this.widgetOrThrow(input.blockId)
+    if (widget.versionId !== input.versionId) {
+      throw new AppError('INVALID_STATE', 'Ces réglages viennent d’une version qui n’est plus affichée')
+    }
+    const parsed = SettingsDeclaration.safeParse(input.fields)
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0]
+      const where = issue === undefined || issue.path.length === 0 ? '' : ` (${issue.path.join('.')})`
+      throw new AppError('VALIDATION', `Réglages refusés${where} : ${issue?.message ?? 'déclaration invalide'}.`)
+    }
+    const fields = parsed.data
+    const values = settingValues(fields, this.storedSettings(input.blockId)?.values)
+    return repository.transaction((): SettingsDeclaredView => {
+      repository.saveSettings(input.blockId, JSON.stringify(fields), JSON.stringify(values))
+      const existing = blocks.settingsBlockOf(input.blockId)
+      if (existing !== undefined) return { fields, values, panelBlockId: existing.id, created: false }
+      const source = blocks.get(input.blockId)
+      if (source === undefined) throw new AppError('NOT_FOUND', 'Widget introuvable')
+      const size = BLOCK_DEFAULT_SIZES.settings
+      const created = blocks.insert({
+        kind: 'settings',
+        x: source.x + source.width / 2 + RESULT_GAP + size.width / 2,
+        y: source.y,
+        ...size,
+        text: null,
+        sourceBlockId: input.blockId
+      })
+      return { fields, values, panelBlockId: created.id, created: true }
+    })
+  }
+
+  /** Ce qu'affiche un panneau de réglages : la déclaration de son widget et les valeurs choisies. */
+  settingsPanel(panelBlockId: string): WidgetSettingsView {
+    const panel = this.deps.blocks.get(panelBlockId)
+    if (panel === undefined || panel.kind !== 'settings' || panel.sourceBlockId === null) {
+      throw new AppError('NOT_FOUND', 'Panneau de réglages introuvable')
+    }
+    const widget = this.widgetOrThrow(panel.sourceBlockId)
+    const stored = this.storedSettings(panel.sourceBlockId)
+    if (stored === undefined) throw new AppError('NOT_FOUND', 'Ce widget n’a pas encore déclaré de réglages')
+    const version =
+      widget.versionId === null ? undefined : this.deps.widgets.version(panel.sourceBlockId, widget.versionId)
+    return {
+      blockId: panelBlockId,
+      widgetBlockId: panel.sourceBlockId,
+      widgetTitle: version?.title ?? null,
+      fields: stored.fields,
+      values: stored.values
+    }
+  }
+
+  /** Valeurs remises au widget à son ouverture (et réglages, pour le plein écran) ; `null` s'il n'a rien déclaré. */
+  settingsValues(blockId: string): {
+    readonly values: SettingValues | null
+    readonly fields: readonly SettingField[]
+  } {
+    this.widgetOrThrow(blockId)
+    const stored = this.storedSettings(blockId)
+    return { values: stored?.values ?? null, fields: stored?.fields ?? [] }
+  }
+
+  /** Valeurs choisies dans le panneau : ramenées à la déclaration, enregistrées. */
+  setSettings(input: { readonly blockId: string; readonly values: unknown }): {
+    readonly values: SettingValues
+    readonly fields: readonly SettingField[]
+  } {
+    this.widgetOrThrow(input.blockId)
+    const stored = this.storedSettings(input.blockId)
+    if (stored === undefined) throw new AppError('INVALID_STATE', 'Ce widget n’a pas encore déclaré de réglages')
+    const values = settingValues(stored.fields, input.values)
+    this.deps.repository.saveSettings(input.blockId, JSON.stringify(stored.fields), JSON.stringify(values))
+    return { values, fields: stored.fields }
+  }
+
+  /** Déclaration et valeurs enregistrées, relues et revalidées (une ligne abîmée compte comme absente). */
+  private storedSettings(
+    blockId: string
+  ): { readonly fields: readonly SettingField[]; readonly values: SettingValues } | undefined {
+    const row = this.deps.repository.settings(blockId)
+    if (row === undefined) return undefined
+    try {
+      const fields = SettingsDeclaration.safeParse(JSON.parse(row.fieldsJson))
+      if (!fields.success) return undefined
+      return { fields: fields.data, values: settingValues(fields.data, JSON.parse(row.valuesJson)) }
+    } catch {
+      return undefined
     }
   }
 

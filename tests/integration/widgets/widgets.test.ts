@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ProviderError } from '../../../src/main/application/ai/AIProvider'
 import { WidgetService, type WidgetEvent } from '../../../src/main/application/widgets/WidgetService'
 import { BlockRepository } from '../../../src/main/infrastructure/db/repositories/BlockRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
@@ -97,6 +98,17 @@ describe('widgets générés par Claude (spec 004 US3)', () => {
     const view = await widgets.prompt({ blockId, text: 'Un compte à rebours' })
     expect(h.ollama.requests).toHaveLength(0)
     expect(view.messages.at(-1)).toMatchObject({ failed: true, text: 'Claude est indisponible' })
+  })
+
+  it('should_say_why_claude_failed_instead_of_a_generic_message', async () => {
+    h.claude.enqueue({
+      raw: null,
+      error: new ProviderError('AI_UNAVAILABLE', 'Claude a mis trop de temps à répondre', true)
+    })
+    const view = await widgets.prompt({ blockId, text: 'Un wireframe de dix écrans' })
+    expect(view.messages.at(-1)).toMatchObject({ failed: true, text: 'Claude a mis trop de temps à répondre' })
+    // Un wireframe de plusieurs écrans a droit à 10 minutes.
+    expect(h.claude.requests[0]?.timeoutMs).toBe(10 * 60 * 1000)
   })
 
   it('should_restore_a_previous_version_without_deleting_anything', async () => {

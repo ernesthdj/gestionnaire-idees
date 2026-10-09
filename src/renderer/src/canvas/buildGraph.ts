@@ -67,6 +67,8 @@ export type LabelNodeType = Node<BlockNodeData, 'label'>
 export type WidgetNodeType = Node<BlockNodeData, 'widget'>
 /** Cadre résultat d'un widget (spec 005). */
 export type ResultNodeType = Node<BlockNodeData, 'result'>
+/** Panneau de réglages d'un widget (spec 026 D7), dessiné par l'application. */
+export type SettingsNodeType = Node<BlockNodeData, 'widgetSettings'>
 /** Note titrée et cadre de regroupement (spec 007, pont MCP). « mapNote » : « note » désigne le texte d'un sous-neurone. */
 export type MapNoteNodeType = Node<BlockNodeData, 'mapNote'>
 export type FrameNodeType = Node<BlockNodeData, 'frame'>
@@ -168,6 +170,7 @@ export type CanvasNode =
   | LabelNodeType
   | WidgetNodeType
   | ResultNodeType
+  | SettingsNodeType
   | MapNoteNodeType
   | FrameNodeType
   | ElementNodeType
@@ -181,12 +184,14 @@ const BLOCK_NODE_TYPES = {
   widget: 'widget',
   result: 'result',
   note: 'mapNote',
-  frame: 'frame'
+  frame: 'frame',
+  settings: 'widgetSettings'
 } as const
 
 function blockAriaLabel(block: BlockView): string {
   if (block.kind === 'label') return block.text === '' || block.text === null ? 'Note vide' : `Note : ${block.text}`
   if (block.kind === 'result') return 'Résultat d’un widget'
+  if (block.kind === 'settings') return 'Réglages d’un widget'
   const byClaude = block.origin === 'claude' ? ', par Claude' : ''
   if (block.kind === 'note') return `Note « ${block.title ?? 'Note'} »${byClaude}`
   if (block.kind === 'frame') return `Cadre « ${block.title ?? 'Cadre'} »${byClaude}`

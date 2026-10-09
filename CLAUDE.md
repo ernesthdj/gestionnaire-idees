@@ -27,7 +27,8 @@
 > widget où Claude génère écrans, panneau de réglages et parcours jouable ; pas de nouvelle vue). Voir
 > `docs/brainstorm/L1m-ecrans-wireframes.md`. Spec à écrire après la 024 (US4, US5) et la 021 : état persistant d'un
 > widget, lecture et modification d'un widget par Claude (MCP), plein écran. **Spec 026 livrée le 2026-10-10** :
-> boutons Wireframe / Parcours / Adapter sur un widget relié à un nœud, état persistant, contenu à l'échelle du bloc.
+> boutons Wireframe / Parcours / Adapter sur un widget relié à un nœud, état persistant, contenu à l'échelle du bloc,
+> panneau de réglages flottant (déclaré par le widget, dessiné par l'app), plein écran.
 
 ---
 

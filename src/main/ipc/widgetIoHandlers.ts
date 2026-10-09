@@ -56,6 +56,27 @@ export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
       input: z.object({ blockId: Id, data: z.unknown() }).strict(),
       handler: async (input) => io.saveState(input)
     }),
+    // Réglages (spec 026 D7) : la déclaration et les valeurs sont validées par le service (Zod, bornes).
+    defineRoute({
+      channel: 'widgetIo:declareSettings',
+      input: z.object({ blockId: Id, versionId: Id, fields: z.unknown() }).strict(),
+      handler: async (input) => io.declareSettings(input)
+    }),
+    defineRoute({
+      channel: 'widgetIo:settings',
+      input: z.object({ blockId: Id }).strict(),
+      handler: async ({ blockId }) => io.settingsPanel(blockId)
+    }),
+    defineRoute({
+      channel: 'widgetIo:settingsValues',
+      input: z.object({ blockId: Id }).strict(),
+      handler: async ({ blockId }) => io.settingsValues(blockId)
+    }),
+    defineRoute({
+      channel: 'widgetIo:setSettings',
+      input: z.object({ blockId: Id, values: z.unknown() }).strict(),
+      handler: async (input) => io.setSettings(input)
+    }),
     defineRoute({
       channel: 'widgetIo:result',
       input: z.object({ blockId: Id }).strict(),

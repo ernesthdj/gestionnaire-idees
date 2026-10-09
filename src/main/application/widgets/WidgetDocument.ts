@@ -97,6 +97,9 @@ const PRELUDE = `(() => {
   let state = null
   let stateReceived = false
   const stateListeners = []
+  // Réglages (spec 026 D7) : déclarés par le widget, panneau dessiné par l'application, valeurs remises à chaque changement.
+  let settingsValues = null
+  const settingsListeners = []
   const plainJson = (data, what) => {
     let plain
     try { plain = JSON.parse(JSON.stringify(data)) } catch { plain = undefined }
@@ -125,6 +128,15 @@ const PRELUDE = `(() => {
       if (plain === undefined) return
       state = plain
       window.parent.postMessage({ type: 'gi:saveState', data: plain }, '*')
+    },
+    settings(fields) {
+      const plain = plainJson(fields, 'la liste des réglages')
+      if (plain !== undefined) window.parent.postMessage({ type: 'gi:declareSettings', fields: plain }, '*')
+    },
+    onSettings(callback) {
+      if (typeof callback !== 'function') return
+      settingsListeners.push(callback)
+      if (settingsValues !== null) callback(settingsValues)
     }
   })
   Object.defineProperty(window, 'gi', { value: gi, writable: false, configurable: false })
@@ -139,6 +151,13 @@ const PRELUDE = `(() => {
       stateReceived = true
       for (const listener of stateListeners.splice(0)) {
         try { listener(state) } catch (error) { show(error instanceof Error ? error.message : error) }
+      }
+      return
+    }
+    if (data.type === 'gi:settings' && data.values !== null && typeof data.values === 'object') {
+      settingsValues = data.values
+      for (const listener of settingsListeners) {
+        try { listener(settingsValues) } catch (error) { show(error instanceof Error ? error.message : error) }
       }
       return
     }

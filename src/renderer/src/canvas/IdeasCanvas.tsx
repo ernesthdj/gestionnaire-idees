@@ -45,6 +45,7 @@ import { WidgetReview } from '../widgets/WidgetReview'
 import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
 import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
 import { ResultNode } from './nodes/ResultNode'
+import { SettingsNode } from './nodes/SettingsNode'
 import { WidgetNode } from './nodes/WidgetNode'
 import { ToolMenu, type Tool } from './ToolMenu'
 import { useBlockActions } from './useBlockActions'
@@ -79,6 +80,7 @@ const NODE_TYPES: NodeTypes = {
   structureBar: stillNode(StructureBarNode),
   widget: stillNode(WidgetNode),
   result: stillNode(ResultNode),
+  widgetSettings: stillNode(SettingsNode),
   plan: stillNode(PlanNode),
   planBar: stillNode(PlanBarNode),
   document: stillNode(DocumentNode),
@@ -87,7 +89,15 @@ const NODE_TYPES: NodeTypes = {
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
-const BLOCK_TYPES: ReadonlySet<string> = new Set(['block', 'label', 'widget', 'result', 'mapNote', 'frame'])
+const BLOCK_TYPES: ReadonlySet<string> = new Set([
+  'block',
+  'label',
+  'widget',
+  'result',
+  'widgetSettings',
+  'mapNote',
+  'frame'
+])
 const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge }
 
 /** Tout objet de la carte : idées, blocs, éléments de structure. */

@@ -92,15 +92,20 @@ export class BlockRepository {
 
   /** Cadre résultat visible d'un widget (le plus ancien s'il y en a plusieurs après une annulation). */
   resultBlockOf(widgetBlockId: string): BlockView | undefined {
+    return this.companionOf(widgetBlockId, 'result')
+  }
+
+  /** Panneau de réglages visible d'un widget (spec 026 D7). */
+  settingsBlockOf(widgetBlockId: string): BlockView | undefined {
+    return this.companionOf(widgetBlockId, 'settings')
+  }
+
+  private companionOf(widgetBlockId: string, kind: 'result' | 'settings'): BlockView | undefined {
     return this.db
       .select(COLUMNS)
       .from(canvasBlocks)
       .where(
-        and(
-          eq(canvasBlocks.kind, 'result'),
-          eq(canvasBlocks.sourceBlockId, widgetBlockId),
-          isNull(canvasBlocks.deletedAt)
-        )
+        and(eq(canvasBlocks.kind, kind), eq(canvasBlocks.sourceBlockId, widgetBlockId), isNull(canvasBlocks.deletedAt))
       )
       .orderBy(asc(sql`${canvasBlocks}.rowid`))
       .get()

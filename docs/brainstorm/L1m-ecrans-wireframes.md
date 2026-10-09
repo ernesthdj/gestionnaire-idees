@@ -100,7 +100,8 @@ la spec, la carte de structure, le plan d'attaque et des écrans de référence 
 
 Spec 026 livrée : boutons **Wireframe**, **Parcours**, **Adapter au nœud** (consignes figées dans le cadre), contexte
 complet du nœud transmis à Claude, **état persistant** du widget (ajout 1), contenu mis à l'échelle du bloc. Restent :
-Claude lit et modifie un widget par MCP (ajout 2), plein écran (ajout 3). Réponses déjà données : l'état est gardé d'une
+Claude lit et modifie un widget par MCP (ajout 2). Ajouté ensuite (026 D7, D8) : panneau de réglages flottant
+dessiné par l'app à partir de ce que le widget déclare (`gi.settings`), et plein écran (ajout 3). Réponses déjà données : l'état est gardé d'une
 version à l'autre (question 1) ; il n'est pas encore dans les points de sauvegarde (question 2) ; une consigne type par
 bouton (question 4) ; 64 Ko, règles du résultat (question 5).
 

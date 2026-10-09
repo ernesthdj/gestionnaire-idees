@@ -302,6 +302,13 @@
       "when": 1791586075540,
       "tag": "0042_widget_states",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1791588638608,
+      "tag": "0043_widget_settings",
+      "breakpoints": true
     }
   ]
 }

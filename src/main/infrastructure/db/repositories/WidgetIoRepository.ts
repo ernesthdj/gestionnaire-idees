@@ -10,6 +10,7 @@ import {
   widgetApprovals,
   widgetInputs,
   widgetResults,
+  widgetSettings,
   widgetStates
 } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
@@ -169,6 +170,24 @@ export class WidgetIoRepository {
       .from(widgetStates)
       .where(eq(widgetStates.blockId, blockId))
       .get()?.dataJson
+  }
+
+  /** Réglages déclarés par un widget et leurs valeurs (spec 026 D7), en JSON déjà validé par le service. */
+  saveSettings(blockId: string, fieldsJson: string, valuesJson: string): void {
+    const updatedAt = new Date().toISOString()
+    this.db
+      .insert(widgetSettings)
+      .values({ blockId, fieldsJson, valuesJson, updatedAt })
+      .onConflictDoUpdate({ target: widgetSettings.blockId, set: { fieldsJson, valuesJson, updatedAt } })
+      .run()
+  }
+
+  settings(blockId: string): { readonly fieldsJson: string; readonly valuesJson: string } | undefined {
+    return this.db
+      .select({ fieldsJson: widgetSettings.fieldsJson, valuesJson: widgetSettings.valuesJson })
+      .from(widgetSettings)
+      .where(eq(widgetSettings.blockId, blockId))
+      .get()
   }
 
   /** Questions posées sur une idée et la réponse donnée à chacune (sous-neurone né de la question). */

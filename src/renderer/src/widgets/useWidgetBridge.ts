@@ -2,16 +2,21 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react'
 import type { WidgetEmitView, WidgetInputsView } from '@shared/ipc/widgetIo'
 import { call, IpcFailure } from '../lib/ipc'
+import { settingValues, type SettingsDeclaredView, type WidgetSettingValuesView } from '@shared/widgets/settings'
 import { createThrottle } from './emitThrottle'
+import { useWidgetSettings, widgetSettingsKey } from './useWidgetSettings'
 
 export const widgetResultKey = (resultBlockId: string): readonly string[] => ['widgetResult', resultBlockId]
 export const widgetStateKey = (blockId: string): readonly string[] => ['widgetState', blockId]
 
-/** État d'un widget (spec 026) : celui à remettre au cadre, et où envoyer ce qu'il enregistre. */
+/** État et réglages d'un widget (spec 026) : ce qu'on remet au cadre, et où envoyer ce qu'il enregistre ou déclare. */
 interface StateChannel {
   /** `undefined` tant que l'état n'est pas lu ; `null` si le widget n'en a pas. */
   readonly state: unknown
   readonly onSave: (data: unknown) => void
+  /** Valeurs des réglages (D7), remises à chaque changement ; `undefined` ou `null` : rien à remettre. */
+  readonly settings?: unknown
+  readonly onDeclare?: (fields: unknown) => void
 }
 
 /**
@@ -31,6 +36,8 @@ export function useFrameChannel(
   const ready = useRef(false)
   const state = stateChannel?.state
   const onSave = stateChannel?.onSave
+  const settings = stateChannel?.settings
+  const onDeclare = stateChannel?.onDeclare
 
   const post = useCallback(
     (message: Readonly<Record<string, unknown>>): void => {
@@ -49,6 +56,11 @@ export function useFrameChannel(
     if (state !== undefined) post({ type: 'gi:state', state })
   }, [post, state])
 
+  // Réglages (D7) : remis à chaque changement venu du panneau.
+  const sendSettings = useCallback((): void => {
+    if (settings !== undefined && settings !== null) post({ type: 'gi:settings', values: settings })
+  }, [post, settings])
+
   useEffect(() => {
     const onMessage = (event: MessageEvent): void => {
       const current = frame.current
@@ -58,16 +70,19 @@ export function useFrameChannel(
       if (message.type === 'gi:ready') {
         ready.current = true
         sendState()
+        sendSettings()
         send()
       } else if (message.type === 'gi:output' && onOutput !== undefined && 'data' in message) {
         onOutput(message.data)
       } else if (message.type === 'gi:saveState' && onSave !== undefined && 'data' in message) {
         onSave(message.data)
+      } else if (message.type === 'gi:declareSettings' && onDeclare !== undefined && 'fields' in message) {
+        onDeclare(message.fields)
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [frame, send, sendState, onOutput, onSave])
+  }, [frame, send, sendState, sendSettings, onOutput, onSave, onDeclare])
 
   // Les données changent (autorisation donnée, partie décochée, relance) : le cadre déjà prêt les reçoit aussitôt.
   useEffect(() => {
@@ -76,6 +91,9 @@ export function useFrameChannel(
   useEffect(() => {
     if (ready.current) sendState()
   }, [sendState])
+  useEffect(() => {
+    if (ready.current) sendSettings()
+  }, [sendSettings])
 
   return useCallback((message: string): void => post({ type: 'gi:refused', message }), [post])
 }
@@ -143,7 +161,34 @@ export function useWidgetBridge(
 
   const onOutput = useCallback((result: unknown): void => throttle.push(result), [throttle])
   const onSave = useCallback((state: unknown): void => stateThrottle.push(state), [stateThrottle])
-  const stateChannel = useMemo(() => ({ state: saved.data?.state, onSave }), [saved.data, onSave])
+  // Réglages (spec 026 D7) : la déclaration passe par le main, qui crée le panneau ; les valeurs suivent le panneau.
+  const settings = useWidgetSettings(blockId, versionId !== null)
+  const onDeclare = useCallback(
+    (fields: unknown): void => {
+      void call<SettingsDeclaredView>('widgetIo:declareSettings', { blockId, versionId, fields })
+        .then((declared) =>
+          Promise.all([
+            client.setQueryData(widgetSettingsKey(blockId), (cached: WidgetSettingValuesView | undefined) => ({
+              fields: declared.fields,
+              // Un changement fait dans le panneau peut être encore en route : la valeur locale prime, ramenée à la
+              // nouvelle déclaration (le panneau l'enregistre de son côté).
+              values:
+                cached?.values === null || cached?.values === undefined
+                  ? declared.values
+                  : settingValues(declared.fields, cached.values)
+            })),
+            client.invalidateQueries({ queryKey: ['widgetSettingsPanel'] }),
+            declared.created ? client.invalidateQueries({ queryKey: ['canvas'] }) : undefined
+          ])
+        )
+        .catch((error: unknown) => report(error, 'Les réglages n’ont pas pu être déclarés.'))
+    },
+    [client, blockId, versionId, report]
+  )
+  const stateChannel = useMemo(
+    () => ({ state: saved.data?.state, onSave, settings: settings.values, onDeclare }),
+    [saved.data, onSave, settings.values, onDeclare]
+  )
   const refuseNow = useFrameChannel(frame, data?.inputs, onOutput, stateChannel)
   useEffect(() => {
     refuse.current = refuseNow

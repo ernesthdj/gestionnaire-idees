@@ -1,5 +1,5 @@
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { useId, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 import { BLOCK_LIMITS } from '@shared/ipc/canvas'
 import { WIDGET_PROMPT_MAX_CHARS, type WidgetBuild, type WidgetView } from '@shared/ipc/widgets'
 import { useEffectiveSettings } from '../../app/useAppSettings'
@@ -7,6 +7,7 @@ import { AiThinking } from '../../widgets/AiThinking'
 import { CodeView } from '../../widgets/CodeView'
 import { useWidget, type WidgetActions } from '../../widgets/useWidget'
 import { useWidgetBridge } from '../../widgets/useWidgetBridge'
+import { WidgetFullscreen } from '../../widgets/WidgetFullscreen'
 import { useWidgetIo, useWidgetReview } from '../../widgets/useWidgetIo'
 import { resolvedScheme, widgetFrameUrl } from '../../widgets/widgetFrame'
 import type { WidgetNodeType } from '../buildGraph'
@@ -133,6 +134,9 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   const current = view?.current ?? null
   const [showCode, setShowCode] = useState(false)
   const [resizing, setResizing] = useState(false)
+  /** Plein écran (spec 026 D8) : le cadre isolé quitte la carte pour une vue à taille réelle. */
+  const [full, setFull] = useState(false)
+  const closeFull = useCallback(() => setFull(false), [])
   /** « Arrêter » recharge le cadre : un widget qui boucle ne bloque que lui-même. */
   const [run, setRun] = useState(0)
   const scheme = resolvedScheme(settings.theme)
@@ -145,6 +149,22 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   // Un outil sans code n'a encore rien à revoir : la revue vient avec sa première version.
   const toReview = current !== null && inputCount > 0 && io.state.data?.approved === false
   const title = current?.title ?? 'Widget IA'
+  const frameOf = (className: string): React.JSX.Element | null =>
+    current === null ? null : (
+      <iframe
+        ref={frame}
+        key={`${current.id}-${scheme}-${run}`}
+        title={current.title}
+        src={widgetFrameUrl(id, current.id, scheme)}
+        // Bac à sable (FR-007) : scripts seulement — ni même origine, ni fenêtres, ni boîtes de dialogue,
+        // ni formulaires, ni navigation de la page. Le document interdit en plus tout réseau (CSP).
+        // Inerte pendant un déplacement ou un redimensionnement : le cadre ne capture pas le glisser.
+        sandbox="allow-scripts"
+        referrerPolicy="no-referrer"
+        allow=""
+        className={className}
+      />
+    )
 
   return (
     <>
@@ -194,6 +214,15 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
               </button>
               <button
                 type="button"
+                aria-label="Plein écran"
+                title="Ouvrir à taille réelle, avec les réglages à côté"
+                onClick={() => setFull(true)}
+                className="nodrag flex h-7 w-7 items-center justify-center rounded-md hover:bg-surface"
+              >
+                ⤢
+              </button>
+              <button
+                type="button"
                 aria-label="Relancer le widget"
                 title="Relancer (arrête un widget bloqué)"
                 onClick={() => setRun((count) => count + 1)}
@@ -234,20 +263,14 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
           </div>
         ) : showCode ? (
           <CodeView code={current} />
+        ) : full ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-content-muted">
+            Ouvert en plein écran.
+          </div>
         ) : (
-          <iframe
-            ref={frame}
-            key={`${current.id}-${scheme}-${run}`}
-            title={current.title}
-            src={widgetFrameUrl(id, current.id, scheme)}
-            // Bac à sable (FR-007) : scripts seulement — ni même origine, ni fenêtres, ni boîtes de dialogue,
-            // ni formulaires, ni navigation de la page. Le document interdit en plus tout réseau (CSP).
-            // Inerte pendant un déplacement ou un redimensionnement : le cadre ne capture pas le glisser.
-            sandbox="allow-scripts"
-            referrerPolicy="no-referrer"
-            allow=""
-            className={`nodrag nowheel min-h-0 w-full flex-1 border-0 bg-surface ${resizing || dragging ? 'pointer-events-none' : ''}`}
-          />
+          frameOf(
+            `nodrag nowheel min-h-0 w-full flex-1 border-0 bg-surface ${resizing || dragging ? 'pointer-events-none' : ''}`
+          )
         )}
         {toReview ? (
           <div role="alert" className="nodrag flex shrink-0 items-center gap-2 bg-con/10 px-2 py-1.5 text-xs">
@@ -274,6 +297,20 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
           title="Tire un lien d’une idée jusqu’ici pour la brancher sur ce widget"
         />
       </section>
+      {full && current !== null && !showCode ? (
+        <WidgetFullscreen
+          blockId={id}
+          title={title}
+          frame={frameOf('min-h-0 w-full flex-1 border-0 bg-surface')}
+          footer={
+            <>
+              {inputCount === 0 ? null : <BuildBar actions={actions} />}
+              <Chat view={view} actions={actions} />
+            </>
+          }
+          onClose={closeFull}
+        />
+      ) : null}
     </>
   )
 }

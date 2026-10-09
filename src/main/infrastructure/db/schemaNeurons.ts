@@ -396,7 +396,7 @@ export const canvasBlocks = sqliteTable(
      * Bloc vide (003), note (étiquette de texte), widget généré par Claude (spec 004), cadre résultat (spec 005),
      * note titrée et cadre de regroupement (spec 007).
      */
-    kind: text('kind', { enum: ['empty', 'label', 'widget', 'result', 'note', 'frame'] })
+    kind: text('kind', { enum: ['empty', 'label', 'widget', 'result', 'note', 'frame', 'settings'] })
       .notNull()
       .default('empty'),
     x: real('x').notNull(),
@@ -509,6 +509,19 @@ export const widgetStates = sqliteTable('widget_states', {
     .primaryKey()
     .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
   dataJson: text('data_json').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/**
+ * Réglages déclarés par un widget et valeurs choisies par l'utilisateur (spec 026 D7) : la déclaration est validée
+ * par le main, les valeurs revalidées contre elle ; le panneau est dessiné par l'application.
+ */
+export const widgetSettings = sqliteTable('widget_settings', {
+  blockId: text('block_id')
+    .primaryKey()
+    .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+  fieldsJson: text('fields_json').notNull(),
+  valuesJson: text('values_json').notNull(),
   updatedAt: text('updated_at').notNull()
 })
 

@@ -110,9 +110,10 @@ export const CREATABLE_BLOCK_KINDS = ['empty', 'label', 'widget'] as const
 export type CreatableBlockKind = (typeof CREATABLE_BLOCK_KINDS)[number]
 /**
  * S'y ajoutent le cadre résultat (spec 005), créé par l'application à la première émission d'un widget, et la note
- * titrée et le cadre de regroupement (spec 007), posés par Claude Code par le pont MCP.
+ * titrée et le cadre de regroupement (spec 007), posés par Claude Code par le pont MCP, et le panneau de réglages d'un
+ * widget (spec 026 D7), créé à sa première déclaration.
  */
-export const BLOCK_KINDS = [...CREATABLE_BLOCK_KINDS, 'result', 'note', 'frame'] as const
+export const BLOCK_KINDS = [...CREATABLE_BLOCK_KINDS, 'result', 'note', 'frame', 'settings'] as const
 export type BlockKind = (typeof BLOCK_KINDS)[number]
 
 /** Bloc posé sur la carte : position (centre) et taille. */
@@ -239,7 +240,8 @@ export const BLOCK_LIMITS: Readonly<Record<BlockKind, SizeLimits>> = {
   widget: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 },
   result: { minWidth: 240, minHeight: 160, maxWidth: 1600, maxHeight: 1200 },
   note: { minWidth: 160, minHeight: 56, maxWidth: 800, maxHeight: 1200 },
-  frame: { minWidth: 240, minHeight: 160, maxWidth: 20000, maxHeight: 20000 }
+  frame: { minWidth: 240, minHeight: 160, maxWidth: 20000, maxHeight: 20000 },
+  settings: { minWidth: 200, minHeight: 160, maxWidth: 800, maxHeight: 1200 }
 }
 
 export const BLOCK_DEFAULT_SIZES: Readonly<Record<BlockKind, { width: number; height: number }>> = {
@@ -248,7 +250,8 @@ export const BLOCK_DEFAULT_SIZES: Readonly<Record<BlockKind, { width: number; he
   widget: { width: 520, height: 440 },
   result: { width: 400, height: 320 },
   note: { width: 240, height: 96 },
-  frame: { width: 640, height: 480 }
+  frame: { width: 640, height: 480 },
+  settings: { width: 280, height: 440 }
 }
 
 /** Écart entre un widget et son cadre résultat, posé à sa droite. */

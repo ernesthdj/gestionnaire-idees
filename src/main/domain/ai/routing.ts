@@ -50,6 +50,8 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
  * une entrée de ~40 000 caractères : elle serait tronquée sans erreur).
  */
 const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
+  // Un wireframe de plusieurs écrans (spec 026) dépasse souvent les 4 minutes du moteur.
+  widget: 10 * 60 * 1000,
   reprise_guide: 10 * 60 * 1000,
   // L'Analyste lit le dépôt avec ses outils (spec 019, `L3-analyste-analyse.md` §2).
   analyste: 15 * 60 * 1000,

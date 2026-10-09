@@ -11,6 +11,8 @@ export interface ScriptedReply {
   readonly raw: unknown
   readonly stopReason?: string
   readonly usage?: Partial<Usage>
+  /** Erreur levée par le moteur au lieu d'une réponse (délai dépassé, réponse illisible…). */
+  readonly error?: Error
 }
 
 /** Moteur IA simulé : réponses scriptées dans l'ordre, requêtes enregistrées, aucun réseau. */
@@ -47,6 +49,7 @@ export class FakeProvider implements AIProvider {
     if (!this.status.up) throw new Error('FakeProvider indisponible')
     const reply = this.replies.shift()
     if (reply === undefined) throw new Error('FakeProvider : aucune réponse scriptée restante')
+    if (reply.error !== undefined) throw reply.error
     const parsed = request.schema.safeParse(reply.raw)
     return {
       parsed: parsed.success ? parsed.data : null,

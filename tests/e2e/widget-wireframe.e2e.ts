@@ -33,6 +33,23 @@ const WIREFRAME = {
   summary: 'Écrans : Accueil. Tiré du nœud : son titre.'
 }
 
+const WITH_SETTINGS = {
+  title: 'Écrans réglables',
+  html: '<main><h1 id="titre-ecran"></h1></main>',
+  css: 'main { padding: 16px; }',
+  ts: [
+    'type Gi = { settings(f: unknown): void; onSettings(cb: (v: Record<string, unknown>) => void): void }',
+    'const gi = (window as unknown as { gi: Gi }).gi',
+    'const title = document.querySelector("#titre-ecran") as HTMLElement',
+    'gi.settings([',
+    '  { key: "titre", label: "Titre de l’écran", type: "text", default: "Accueil", group: "Écran" },',
+    '  { key: "etat", label: "État", type: "select", options: ["Normal", "Erreur"] }',
+    '])',
+    'gi.onSettings((values) => { title.textContent = String(values.titre) + " · " + String(values.etat) })'
+  ].join('\n'),
+  summary: 'Un écran et ses réglages.'
+}
+
 const widgetFrame = (run: LaunchedApp) => run.page.frameLocator('iframe[title="Écrans de la démo"]')
 
 describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
@@ -119,5 +136,38 @@ describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
     await widgetFrame(run).locator('#affiche').getByText('Demande de devis').waitFor({ timeout: 30_000 })
     expect(await widgetFrame(run).getByLabel('Titre de l’écran').inputValue()).toBe('Demande de devis')
     await run.shot('026-03-reglage-garde')
+  })
+
+  it('should_show_the_declared_settings_in_a_floating_panel_and_full_screen', async () => {
+    writeFileSync(REPLY, JSON.stringify(WITH_SETTINGS))
+    const widget = run.page.getByRole('region', { name: /^Widget IA/ })
+    await widget.getByRole('button', { name: '🛠 Adapter au nœud' }).click()
+    const frame = run.page.frameLocator('iframe[title="Écrans réglables"]')
+    await frame.getByText('Accueil · Normal').waitFor({ timeout: 30_000 })
+
+    const panel = run.page.getByRole('region', { name: 'Réglages · Écrans réglables' })
+    await panel.getByLabel('Titre de l’écran').fill('Demande de devis')
+    await panel.getByLabel('État').selectOption('Erreur')
+    await frame.getByText('Demande de devis · Erreur').waitFor()
+    await run.shot('026-04-panneau-reglages')
+
+    await widget.getByRole('button', { name: 'Plein écran' }).click()
+    const dialog = run.page.getByRole('dialog', { name: 'Plein écran : Écrans réglables' })
+    await dialog.getByRole('complementary', { name: 'Réglages' }).getByLabel('État').waitFor()
+    const full = dialog.frameLocator('iframe[title="Écrans réglables"]')
+    await full.getByText('Demande de devis · Erreur').waitFor()
+    expect(await full.locator('html').evaluate((html) => Number(html.style.getPropertyValue('--gi-zoom')))).toBe(1)
+    await run.shot('026-05-plein-ecran')
+    await run.page.keyboard.press('Escape')
+    await dialog.waitFor({ state: 'detached' })
+
+    await run.page.waitForTimeout(800)
+    await run.close()
+    run = await launchApp({ ...ENV, GI_E2E_KEEP: '1' })
+    await run.page.getByRole('button', { name: 'Ouvrir Projet démo : application de notes' }).click()
+    await run.page
+      .frameLocator('iframe[title="Écrans réglables"]')
+      .getByText('Demande de devis · Erreur')
+      .waitFor({ timeout: 30_000 })
   })
 })
