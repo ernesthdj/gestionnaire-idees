@@ -6,6 +6,7 @@ import { useUiStore, type StructureView } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { StructureBarNodeType } from '../buildGraph'
 import { useMapping } from '../mapping/mappingStore'
+import { RunButton } from '../../run/RunButton'
 
 /**
  * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule « Workflow | Progression | Architecture » et
@@ -116,6 +117,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
           Relire
         </button>
       ) : null}
+      <RunButton genesisId={genesisId} />
       {!hasMap ? null : (
         <button
           type="button"

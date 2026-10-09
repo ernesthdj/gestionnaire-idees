@@ -7,6 +7,7 @@ import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
 import { ProjectManager } from '../home/ProjectManager'
 import { useActiveBrainstormHydration, useViewStateSync } from '../home/useBrainstorms'
+import { useRunEvents } from '../run/runStore'
 import { ExplorerPage } from '../explorer/ExplorerPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -81,6 +82,8 @@ export function AppShell(): React.JSX.Element {
   useMainEvents()
   useViewStateSync()
   useActiveBrainstormHydration()
+  // Projets lancés (spec 025) : sortie et état suivis partout dans l'app.
+  useRunEvents()
   useProbe()
   // Fin des cartographies de projet suivie partout dans l'app (spec 022).
   useMappingWatch()

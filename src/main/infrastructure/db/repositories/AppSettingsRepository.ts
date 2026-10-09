@@ -27,6 +27,8 @@ const FIELDS = {
 const DRAFT_KEY = 'capture.draft'
 const DraftSchema = z.string().max(CAPTURE_MAX_CHARS)
 
+/** Nom de script npm (spec 025). */
+const RunFavoriteSchema = z.string().regex(/^[A-Za-z0-9:._-]{1,100}$/)
 const EDITOR_KEY = 'editor.program'
 const EditorSchema = z.object({ kind: z.enum(EDITOR_KINDS), program: z.string().min(1).max(1000) }).strict()
 export type EditorSetting = z.infer<typeof EditorSchema>
@@ -123,6 +125,27 @@ export class AppSettingsRepository {
     this.db
       .insert(settings)
       .values({ key: PROJECTS_ROOT_KEY, valueJson })
+      .onConflictDoUpdate({ target: settings.key, set: { valueJson } })
+      .run()
+  }
+
+  /** Script favori d'un projet (spec 025) ; `null` : aucun choisi. */
+  runFavorite(genesisId: string): string | null {
+    const row = this.db
+      .select()
+      .from(settings)
+      .where(eq(settings.key, `run.favorite.${genesisId}`))
+      .get()
+    const parsed = RunFavoriteSchema.safeParse(row === undefined ? undefined : safeJson(row.valueJson))
+    return parsed.success ? parsed.data : null
+  }
+
+  saveRunFavorite(genesisId: string, script: string): void {
+    const key = `run.favorite.${genesisId}`
+    const valueJson = JSON.stringify(RunFavoriteSchema.parse(script))
+    this.db
+      .insert(settings)
+      .values({ key, valueJson })
       .onConflictDoUpdate({ target: settings.key, set: { valueJson } })
       .run()
   }

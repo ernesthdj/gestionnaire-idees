@@ -5,6 +5,8 @@ import { useCards } from '../canvas/cards/cardsStore'
 import { RepoPanel } from '../git/RepoPanel'
 import { BrainstormBar } from '../home/BrainstormBar'
 import { ConflictView } from '../git/ConflictView'
+import { RunPanel } from '../run/RunPanel'
+import { useRunShortcuts } from '../run/useRunShortcuts'
 
 /**
  * Écran Idées : le bandeau du brainstorm ouvert (spec 024), la carte, et à droite le volet Dépôt d'un projet quand il est ouvert (spec 021, 62 / 38).
@@ -34,6 +36,7 @@ export function IdeasPage(): React.JSX.Element {
   // Résolution d'une fusion (spec 021 US4) : la vue remplace la carte, le volet Dépôt reste à côté.
   const conflictGenesisId = useUiStore((state) => state.conflictGenesisId)
   const closeConflicts = useUiStore((state) => state.closeConflicts)
+  useRunShortcuts()
   return (
     <div className="flex h-full min-h-0 flex-col">
       <BrainstormBar />
@@ -47,6 +50,7 @@ export function IdeasPage(): React.JSX.Element {
         </div>
         {repoGenesisId === null ? null : <RepoPanel genesisId={repoGenesisId} onClose={closeRepo} />}
       </div>
+      <RunPanel />
     </div>
   )
 }

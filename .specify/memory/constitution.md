@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
-- Version change: 4.4.1 → 4.5.0 (2026-10-08, « Supprimer un skill », spec 020 D10 — validée par mentalyas)
+- Version change: 4.5.0 → 4.6.0 (2026-10-10, « Lancer un projet », spec 025 — validée par mentalyas)
+- Modified principles: I (npm pour l'exécution d'un projet : sur clic, projet de confiance, script déclaré dans son
+  `package.json`, sortie affichée dans l'app, arrêt sur « Arrêter » et à la fermeture ; projet cloné jamais lancé sans
+  confiance donnée par mentalyas)
+- Motif : lancer `npm run dev` (ou un autre script) d'un projet depuis l'app, d'un clic ou d'un raccourci
+- Impact : spec 025 ; la confiance d'un projet (spec 014) devient réglable dans l'app ; aucun retrait
+- Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
+- Historique : 4.4.1 → 4.5.0 (2026-10-08, « Supprimer un skill », spec 020 D10 — validée par mentalyas)
 - Modified principles: I (écriture dans les dossiers de skills aussi sur « Supprimer », dossier sauvegardé avant ;
   Claude peut proposer une suppression, jamais la faire)
 - Impact : spec 020 FR-030 ; aucun retrait · Templates requiring updates: aucun ✅ · Deferred TODOs: aucun
@@ -113,6 +120,11 @@ Sync Impact Report
   et **npm** (programme Node : lancé par `node` avec le `npm-cli.js` installé à côté de `npm.cmd`, tous deux résolus
   par chemin absolu, sans shell ; seulement les scripts `typecheck`, `lint`, `test` et `prettier --check`, dans un
   worktree `analyste/*` ; Analyste interne, FOUNDATION §0000),
+  et **npm pour l'exécution d'un projet** (spec 025 : seulement sur un clic ou le raccourci de mentalyas, seulement
+  dans un projet qu'il a **marqué de confiance**, seulement un **script déclaré dans le `package.json`** du projet,
+  nom revalidé, lancé comme ci-dessus par `node` + `npm-cli.js` sans shell ; la sortie est affichée dans l'app ; le
+  processus et ses enfants s'arrêtent sur « Arrêter » et à la fermeture de l'app ; un projet cloné n'est jamais lancé
+  tant que mentalyas ne lui a pas fait confiance),
   sans interpréteur intermédiaire ni shell ; les arguments sont construits
   par le main (valeurs fixes, mode validé par schéma, dossiers choisis par mentalyas dans un dialogue natif
   puis vérifiés) ; les messages passent par stdin, jamais en argument.
@@ -270,4 +282,4 @@ Rationale : un projet solo en apprentissage ; la complexité doit être justifi�
   toute complexité supplémentaire MUST être justifiée dans le plan.
 - Référence de travail au quotidien : `CLAUDE.md` du projet et `docs/FOUNDATION.md`.
 
-**Version**: 4.5.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-07
+**Version**: 4.6.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-10

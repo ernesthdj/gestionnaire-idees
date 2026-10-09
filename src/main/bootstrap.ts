@@ -121,6 +121,8 @@ import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createMapUpdateRoutes, createStructureRoutes } from './ipc/structureHandlers'
 import { MapUpdateService } from './application/structure/MapUpdateService'
+import { RunService } from './application/run/RunService'
+import { createRunRoutes } from './ipc/runHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createConflictRoutes, createGitHistoryRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
 import { GitHistoryService } from './application/git/GitHistoryService'
@@ -805,6 +807,17 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     elementCount: (genesisId) => elementRepository.list(genesisId).length,
     localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId)
   })
+  // Lancer un projet (spec 025, constitution 4.6.0) : scripts npm d'un projet de confiance, sur clic.
+  const runs = new RunService({
+    projectDir: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir,
+    isTrusted: (key) => permissionRepository.isTrusted(key),
+    setTrusted: (key, trusted) => permissionRepository.setTrusted(key, trusted),
+    npm: () => resolveNpm(),
+    favorites: appSettings,
+    dataDir,
+    emitOutput: (event) => broadcast('run:output', event),
+    emitChanged: (view) => broadcast('run:changed', view)
+  })
   // Project Manager (spec 024) : la carte unique d'avant devient des brainstorms (R10), puis un canevas par projet.
   const adoptLegacyCanvas = (): void => {
     const report = migrateLegacyCanvas({
@@ -1080,6 +1093,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
       ...createMapUpdateRoutes(mapUpdates),
+      ...createRunRoutes(runs),
       ...createGitRoutes(gitService),
       ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
       ...createConflictRoutes(gitConflicts),
@@ -1173,6 +1187,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     widgets: widgetRepository,
     adoptLegacyCanvas,
     stop: () => {
+      runs.stopAll()
       stopWatching()
       ai.stop()
       conversations.stopAll()
