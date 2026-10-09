@@ -154,6 +154,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'git:publishPreview',
   'git:publish',
   'git:addGitignore',
+  'git:updates',
+  'git:markSeen',
   'brainstorms:list',
   'brainstorms:active',
   'brainstorms:open',
@@ -206,6 +208,7 @@ export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
 export const MAIN_WINDOW_EVENTS = [
   'app:navigate',
   'brainstorms:cloneProgress',
+  'brainstorms:cloneLarge',
   'app:settingsChanged',
   'shortcut:unavailable',
   'context:newImport',

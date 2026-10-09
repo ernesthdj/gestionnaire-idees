@@ -82,7 +82,7 @@ function harness(dir: string, gh = fakeGh().gh, offline = false) {
   })
   const access = new GitAccess({ locator, runner, repository })
   const deps = { access, queue, repository, gh, status: (id: string) => service.status(id), changed: () => undefined }
-  return { sync: new SyncService(deps), publish: new PublishService(deps), rows }
+  return { sync: new SyncService(deps), publish: new PublishService(deps), rows, service }
 }
 
 // Vrai git (dépôts nus locaux) : sous la charge de la suite complète, chaque test peut dépasser 5 s.
@@ -311,5 +311,29 @@ describe('publier, tirer, pousser (spec 021 US2, T021–T024)', { timeout: 60_00
     await expect(absent.publish.preview(G)).rejects.toMatchObject({ code: 'GH_MISSING' })
     const loggedOut = harness(work, fakeGh({ login: null }).gh)
     await expect(loggedOut.publish.preview(G)).rejects.toMatchObject({ code: 'GH_NOT_LOGGED_IN' })
+  })
+
+  it('should_list_the_commits_arrived_since_the_last_visit_until_marked_as_seen', async () => {
+    const { bare, work } = bareWithClone(join(root, 'visite'))
+    const { sync, service, rows } = harness(work)
+    // Clone : le commit cloné est le dernier vu.
+    rows.set(G, { lastSeenCommit: git(work, ['rev-parse', 'HEAD']).trim() })
+    expect((await service.status(G)).newSinceVisit).toBe(0)
+    const other = join(root, 'visite', 'collegue')
+    git(root, ['clone', '-q', bare, other])
+    git(other, ['config', 'user.name', 'Collègue Fictif'])
+    git(other, ['config', 'user.email', 'collegue@example.invalid'])
+    commit(other, { 'c.ts': '1' }, 'feat: c')
+    commit(other, { 'd.ts': '1' }, 'feat: d')
+    git(other, ['push', '-q', 'origin', 'main'])
+    const fetched = await sync.fetch(G)
+    expect(fetched.newSinceVisit).toBe(2)
+    const updates = await service.updates(G)
+    expect(updates.commits.map((entry) => entry.subject)).toEqual(['feat: d', 'feat: c'])
+    expect(updates.authors).toHaveLength(1)
+    await service.markSeen(G, updates.upstreamHead ?? '')
+    expect((await service.updates(G)).commits).toEqual([])
+    expect((await service.status(G)).newSinceVisit).toBe(0)
+    await expect(service.markSeen(G, 'f'.repeat(40))).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 })

@@ -26,7 +26,8 @@ export interface GitServiceDeps {
   readonly locator: Pick<RepoLocator, 'locate'>
   readonly runner: Pick<GitRunner, 'run'>
   readonly queue: Pick<GitWriteQueue, 'run'>
-  readonly repository: Pick<GitRepository, 'repo' | 'logOperation' | 'openMergeHead'>
+  readonly repository: Pick<GitRepository, 'repo' | 'logOperation' | 'openMergeHead'> &
+    Partial<Pick<GitRepository, 'saveRepo'>>
   /** Secret des clés d'auteur (`git-author-hmac`). */
   readonly authorSecret: () => string
   /** Événement `git:changed` vers le renderer. */
@@ -94,7 +95,8 @@ export class GitService {
       files: parsed.entries.map((entry): GitFileView => ({ ...entry, sensitive: isSensitivePath(entry.path) })),
       filesTotal: parsed.total,
       operation: this.operationOf(repo),
-      onPrBranch: parsed.branch?.startsWith('pr/') === true
+      onPrBranch: parsed.branch?.startsWith('pr/') === true,
+      newSinceVisit: await this.newSince(repo, row?.lastSeenCommit ?? null, parsed.upstream)
     }
   }
 
@@ -163,6 +165,56 @@ export class GitService {
         parsed.map((commit) => ({ name: commit.authorName, email: commit.authorEmail }))
       )
     }
+  }
+
+  /**
+   * « Depuis ta dernière visite » (spec 021 US3) : commits du distant suivi arrivés depuis le dernier commit vu
+   * (`last_seen..@{upstream}`, ≤ 500), auteurs pseudonymisés. Rien avant le premier « vu » (clone : HEAD du clone).
+   */
+  async updates(genesisId: string): Promise<{
+    readonly lastSeen: string | null
+    readonly upstreamHead: string | null
+    readonly commits: readonly GitCommitView[]
+    readonly authors: readonly AuthorView[]
+  }> {
+    const repo = await this.ready(genesisId)
+    const lastSeen = this.deps.repository.repo(genesisId)?.lastSeenCommit ?? null
+    const upstream = (await this.readStatus(repo)).upstream
+    if (upstream === null) throw new AppError('NO_REMOTE', 'Cette branche ne suit aucune branche distante.')
+    const ref = `refs/remotes/${upstream.remote}/${upstream.branch}`
+    const head = await this.read(repo, args.refHeadArgs(ref))
+    const upstreamHead = head.code === 0 ? head.stdout.trim() : null
+    if (lastSeen === null || upstreamHead === null) return { lastSeen, upstreamHead, commits: [], authors: [] }
+    const result = await this.read(repo, args.rangeLogArgs(lastSeen, ref, 500))
+    // Commit vu disparu (historique réécrit ailleurs) : rien à montrer plutôt qu'une erreur.
+    if (result.code !== 0) return { lastSeen, upstreamHead, commits: [], authors: [] }
+    const parsed = parseLog(result.stdout)
+    const secret = this.deps.authorSecret()
+    return {
+      lastSeen,
+      upstreamHead,
+      commits: parsed.map((commit) => ({
+        hash: commit.hash,
+        subject: commit.subject,
+        date: commit.date,
+        authorKey: authorKey(secret, commit.authorEmail),
+        isMerge: commit.parents.length > 1
+      })),
+      authors: authorViews(
+        secret,
+        parsed.map((commit) => ({ name: commit.authorName, email: commit.authorEmail }))
+      )
+    }
+  }
+
+  /** « Marquer comme vu » : le commit du distant vu devient la nouvelle référence. */
+  async markSeen(genesisId: string, hash: string): Promise<{ readonly ok: true }> {
+    const repo = await this.ready(genesisId)
+    const known = await this.read(repo, args.isAncestorArgs(hash, hash))
+    if (known.code !== 0) throw new AppError('NOT_FOUND', 'Commit introuvable dans ce dépôt.')
+    this.deps.repository.saveRepo?.(genesisId, { lastSeenCommit: hash })
+    this.deps.changed(genesisId)
+    return { ok: true }
   }
 
   /**
@@ -335,6 +387,20 @@ export class GitService {
   // ── Outils ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
   /** Dépôt git utilisable (sinon `NOT_FOUND` ou `RISKY_CONFIG`). */
+  /** Nombre de commits du distant suivi depuis le dernier vu (badge « ✦ N nouveautés ») ; 0 sans référence. */
+  private async newSince(
+    repo: ReadyRepo,
+    lastSeen: string | null,
+    upstream: { readonly remote: string; readonly branch: string } | null
+  ): Promise<number> {
+    if (lastSeen === null || upstream === null || !/^[0-9a-f]{40}$/.test(lastSeen)) return 0
+    const count = await this.read(
+      repo,
+      args.countArgs(`${lastSeen}..refs/remotes/${upstream.remote}/${upstream.branch}`)
+    )
+    return count.code === 0 ? Number(count.stdout.trim()) || 0 : 0
+  }
+
   private ready(genesisId: string): Promise<ReadyRepo> {
     return this.access.ready(genesisId)
   }

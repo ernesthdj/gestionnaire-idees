@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { GitStatusView } from '../../../src/shared/git/model'
 import type { PublishPreviewView, PushPreviewView } from '../../../src/shared/git/sync'
+import { HistoryTab } from '../../../src/renderer/src/git/HistoryTab'
 import { PublishPanel } from '../../../src/renderer/src/git/PublishPanel'
+import { repoStateText } from '../../../src/renderer/src/git/RepoBadge'
 import { PushPanel } from '../../../src/renderer/src/git/PushPanel'
 import { checkedAgo, SyncBar } from '../../../src/renderer/src/git/SyncBar'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -194,5 +196,43 @@ describe('publier, tirer, pousser dans le volet (spec 021 T025, US2)', () => {
     })
     expect(await screen.findByText('gh auth login')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Copier la commande' })).toBeDefined()
+  })
+
+  it('should_show_the_news_since_the_last_visit_until_marked_as_seen', async () => {
+    const user = userEvent.setup()
+    expect(repoStateText(status({ ahead: 0, behind: 0, newSinceVisit: 3 }))).toBe('⎇ main · à jour · ✦ 3 nouveautés')
+    let seen = false
+    const { api, container } = renderWith(<HistoryTab genesisId={G} readOnly={false} />, {
+      'git:log': () => ({ commits: [], authors: [] }),
+      'git:updates': () =>
+        seen
+          ? { lastSeen: UP, upstreamHead: UP, commits: [], authors: [] }
+          : {
+              lastSeen: HEAD,
+              upstreamHead: UP,
+              commits: [
+                { hash: UP, subject: 'feat: nouveau', date: '2026-10-10T10:00:00Z', authorKey: 'k', isMerge: false }
+              ],
+              authors: [
+                {
+                  key: 'k',
+                  name: 'Collègue Fictif',
+                  email: 'c@example.invalid',
+                  initials: 'CF',
+                  color: 'hsl(200 55% 45%)'
+                }
+              ]
+            },
+      'git:markSeen': () => {
+        seen = true
+        return { ok: true }
+      }
+    })
+    expect(await screen.findByText(/Depuis ta dernière visite : 1 commit/)).toBeDefined()
+    expect(screen.getByText('feat: nouveau')).toBeDefined()
+    await expectNoAxeViolations(container)
+    await user.click(screen.getByRole('button', { name: 'Marquer comme vu' }))
+    await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('git:markSeen', { genesisId: G, hash: UP }))
+    await waitFor(() => expect(screen.queryByText(/Depuis ta dernière visite/)).toBeNull())
   })
 })

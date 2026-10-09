@@ -123,9 +123,9 @@ sans co-auteur ; le 3ᵉ reste modifié ; `.env` jamais cochable ; hooks selon l
 ## Phase 5 — US3 Cloner par lien et suivre (P1) 🎯 MVP
 **Test indépendant** : clone d'un dépôt de démonstration local (transport de test injecté) : projet créé, reprise
 lancée, aucun hook ni script ; adresse piégée refusée sans lancement ; clone annulé = aucun dossier restant.
-- [ ] T027 [P] [US3] Pur : `src/shared/reprise/gitUrl.ts` (research R8 ; = spec 017 T028 = spec 020 T026) + tests
+- [x] T027 [P] [US3] (livrée par la spec 020 T026) Pur : `src/shared/reprise/gitUrl.ts` (research R8 ; = spec 017 T028 = spec 020 T026) + tests
   d'adresses hostiles (SC-005)
-- [ ] T028 [US3] `CloneService` `src/main/application/reprise/CloneService.ts` (research R6 : profils `historique` et
+- [x] T028 [US3] (livrée par la spec 020 T027 ; complétée le 2026-10-10 : registre des clones en base, question 500 Mo par la 024 US5) `CloneService` `src/main/application/reprise/CloneService.ts` (research R6 : profils `historique` et
   `superficiel` ; = spec 017 T029 ; profil `superficiel` = spec 020 T027 ; **au début de la tâche**, reporter
   « `CloneService` à profils » dans `specs/020-arbre-de-skills/research.md` R7 / T027 et
   `specs/017-reprise-voir/tasks.md` T028–T031, analyse M6) : `git_clones_running` avant lancement,
@@ -133,20 +133,20 @@ lancée, aucun hook ni script ; adresse piégée refusée sans lancement ; clone
   dossier créé, nettoyage au démarrage, échecs classés, espace libre, un clone à la fois, journal sans adresse complète
   + tests (git réel sur dépôt local via transport de test, valeur de production vérifiée ; processus simulé pour les
   échecs ; aucun hook exécuté)
-- [ ] T029 [US3] Reprise par lien : `reprise:checkUrl`, `reprise:clone` complété (`folderName`, `full`, sélecteur natif
+- [x] T029 [US3] (remplacée par D13 : entrée du Project Manager, spec 024 US5 ; projet repris + analyse + `git_repos` cloné à la fin du clone) Reprise par lien : `reprise:checkUrl`, `reprise:clone` complété (`folderName`, `full`, sélecteur natif
   pré-positionné sur `git.lastCloneParent`, cible vide, dossier de données refusé) dans
   `src/main/ipc/repriseHandlers.ts` ; fin → `RepriseService.preview(path, 'git', display)` ; à `reprise:create` :
   `git_repos` (`cloned`, `last_seen_commit`), ni `trusted_projects` ni registre du hub + tests
-- [ ] T030 [P] [US3] Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
+- [ ] T030 [P] [US3] (reportée, D13) Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
   repli sur dossiers de premier niveau) + tests
-- [ ] T031 [US3] `UpdatesService` `src/main/application/git/UpdatesService.ts` : `git:updates`
+- [x] T031 [US3] (dans `GitService.updates` / `markSeen` ; `last_seen_commit` avancé seulement par « Marquer comme vu », scénario 7) `UpdatesService` `src/main/application/git/UpdatesService.ts` : `git:updates`
   (`last_seen..@{upstream}`, ≤ 500 commits, nœuds touchés), `git:markSeen` ; `last_seen_commit` avancé aussi par
   « Tirer » + tests
-- [ ] T032 [US3] Interface : `src/renderer/src/reprise/ImportWizard.tsx` source « Depuis un lien GitHub » (E5 :
+- [x] T032 [US3] (formulaire « Depuis un lien Git » du Project Manager au lieu de l'assistant, D13 ; nœuds touchés reportés) Interface : `src/renderer/src/reprise/ImportWizard.tsx` source « Depuis un lien GitHub » (E5 :
   adresse vérifiée en direct, dossier, nom, « Tout télécharger » replié, progression par phase, Annuler, question
   500 Mo, erreurs claires), badge « ✦ N nouveautés », section « Depuis ta dernière visite » dans `HistoryTab.tsx`
   (Marquer comme vu, nœuds touchés surlignés) + tests renderer/axe
-- [ ] T033 [US3] Test guidé (quickstart §3) — attendre le retour ; cocher alors T028–T031 de la spec 017 (livrées ici)
+- [x] T033 [US3] Test guidé (quickstart §3) → e2e `project-manager.e2e.ts` (vrai clone, confidentialité choisie) + intégration « Depuis ta dernière visite » ; — attendre le retour ; cocher alors T028–T031 de la spec 017 (livrées ici)
   et signaler à la spec 020 que T026–T027 sont couvertes (profil `superficiel`)
 
 ## Phase 6 — US4 Résoudre un conflit avec Claude (P2)

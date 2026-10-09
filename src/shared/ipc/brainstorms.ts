@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ViewStateSchema, type ViewState } from '../brainstorms/viewState'
 import { PROJECT_LIMITS, PROJECT_TYPES, type ProjectType } from './projects'
+import { CONFIDENTIALITY_LEVELS } from './reprise'
 
 // Contrats IPC du Project Manager (spec 024 US1, US3 ; contracts/interfaces.md).
 
@@ -150,5 +151,7 @@ export const BrainstormCloneInput = z.strictObject({
   name: z.string().trim().min(1).max(PROJECT_LIMITS.name),
   slug: BRAINSTORM_SLUG,
   type: z.enum(PROJECT_TYPES),
-  full: z.boolean()
+  full: z.boolean(),
+  /** Choisie au clone, sans valeur par défaut (spec 017 FR-005). */
+  confidentiality: z.enum(CONFIDENTIALITY_LEVELS)
 })

@@ -12,18 +12,20 @@ const LANG_NAMES: Readonly<Record<CodeLang, string>> = {
   other: 'Autres'
 }
 
-const CHOICES: readonly { readonly level: Confidentiality; readonly title: string; readonly detail: string }[] = [
-  {
-    level: 'claude',
-    title: 'Claude autorisé',
-    detail: 'Analyse complète : Claude peut lire le code, rédiger le guide et en discuter avec toi.'
-  },
-  {
-    level: 'local',
-    title: 'Local uniquement',
-    detail: 'Rien de ce projet ne sort de ta machine : le modèle local fait le travail d’IA (ou il n’est pas fait).'
-  }
-]
+/** Niveaux de confidentialité d'un projet repris (spec 017 FR-005), aussi proposés au clone par lien (spec 021 US3). */
+export const CHOICES: readonly { readonly level: Confidentiality; readonly title: string; readonly detail: string }[] =
+  [
+    {
+      level: 'claude',
+      title: 'Claude autorisé',
+      detail: 'Analyse complète : Claude peut lire le code, rédiger le guide et en discuter avec toi.'
+    },
+    {
+      level: 'local',
+      title: 'Local uniquement',
+      detail: 'Rien de ce projet ne sort de ta machine : le modèle local fait le travail d’IA (ou il n’est pas fait).'
+    }
+  ]
 
 interface ImportWizardProps {
   readonly onClose: () => void

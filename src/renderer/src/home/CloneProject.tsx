@@ -4,7 +4,9 @@ import type { BrainstormCloneProgress } from '@shared/ipc/brainstorms'
 import { PROJECT_LIMITS, PROJECT_TYPES, type ProjectType } from '@shared/ipc/projects'
 import { slugify, slugProblem } from '@shared/projects/slug'
 import { checkGitUrl, GIT_URL_MAX, type GitUrlRefusal } from '@shared/reprise/gitUrl'
+import type { Confidentiality } from '@shared/ipc/reprise'
 import { Button } from '../components/atoms/Button'
+import { CHOICES } from '../reprise/ImportWizard'
 import { call, IpcFailure } from '../lib/ipc'
 import { BRAINSTORMS_KEY, useOpenBrainstorm } from './useBrainstorms'
 
@@ -46,17 +48,26 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
   const [slugEdited, setSlugEdited] = useState(false)
   const [type, setType] = useState<ProjectType | ''>('')
   const [full, setFull] = useState(false)
+  const [level, setLevel] = useState<Confidentiality | null>(null)
+  /** Plus de 500 Mo reçus : la question « Continuer / Annuler » (le téléchargement continue pendant ce temps). */
+  const [large, setLarge] = useState<number | null>(null)
   const [progress, setProgress] = useState<BrainstormCloneProgress | null>(null)
   const [problem, setProblem] = useState('')
   const [busy, setBusy] = useState(false)
 
-  useEffect(
-    () =>
-      window.api.on('brainstorms:cloneProgress', (payload) => {
-        if (isProgress(payload)) setProgress(payload)
-      }),
-    []
-  )
+  useEffect(() => {
+    const offProgress = window.api.on('brainstorms:cloneProgress', (payload) => {
+      if (isProgress(payload)) setProgress(payload)
+    })
+    const offLarge = window.api.on('brainstorms:cloneLarge', (payload) => {
+      const bytes = (payload as { receivedBytes?: unknown } | null)?.receivedBytes
+      if (typeof bytes === 'number') setLarge(bytes)
+    })
+    return () => {
+      offProgress()
+      offLarge()
+    }
+  }, [])
 
   const check = url.trim() === '' ? null : checkGitUrl(url.trim())
   const slugIssue = slug === '' ? null : slugProblem(slug)
@@ -67,6 +78,7 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
     slug !== '' &&
     slugIssue === null &&
     type !== '' &&
+    level !== null &&
     !busy
 
   const onUrl = (value: string): void => {
@@ -89,7 +101,8 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
         name: name.trim(),
         slug,
         type,
-        full
+        full,
+        confidentiality: level
       })
       void client.invalidateQueries({ queryKey: BRAINSTORMS_KEY })
       await open.mutateAsync({ id: created.id })
@@ -98,6 +111,7 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
     } finally {
       setBusy(false)
       setProgress(null)
+      setLarge(null)
     }
   }
 
@@ -186,6 +200,24 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
           ))}
         </select>
       </label>
+      <fieldset className="flex flex-col gap-1">
+        <legend className="text-xs font-semibold">Confidentialité de ce projet</legend>
+        {CHOICES.map((choice) => (
+          <label key={choice.level} className="flex items-start gap-2 text-xs">
+            <input
+              type="radio"
+              name={`${id}-confidentiality`}
+              checked={level === choice.level}
+              onChange={() => setLevel(choice.level)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-semibold">{choice.title}</span>
+              <span className="block text-content-muted">{choice.detail}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={full} onChange={(event) => setFull(event.target.checked)} />
         Tout télécharger (sinon le contenu des anciennes versions arrive à la demande)
@@ -197,6 +229,15 @@ export function CloneProject({ root }: { readonly root: string | null }): React.
             {progress.percent === undefined ? '' : ` · ${progress.percent} %`}
           </span>
           <progress max={100} value={progress.percent ?? 0} aria-label="Avancement du clone" className="w-full" />
+        </div>
+      )}
+      {large === null ? null : (
+        <div role="alert" className="flex flex-col gap-2 rounded-md border border-action/50 p-2 text-xs">
+          <p>Ce dépôt dépasse 500 Mo ({Math.round(large / (1024 * 1024))} Mo reçus). Le téléchargement continue.</p>
+          <div className="flex gap-2">
+            <Button onClick={() => setLarge(null)}>Continuer</Button>
+            <Button onClick={() => void call('brainstorms:cancelClone')}>Arrêter le clone</Button>
+          </div>
         </div>
       )}
       {problem === '' ? null : (

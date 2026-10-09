@@ -26,6 +26,8 @@ describe('nouveau brainstorm depuis un lien Git (spec 024 US5)', () => {
   let outcome: (request: CloneRequest) => CloneResult
   let progress: BrainstormCloneProgress[]
   let attached: Map<string, string>
+  let large: number[]
+  let cloned: { genesisId: string; dir: string; commit: string | null; display: string; confidentiality: string }[]
 
   const service = (): CloneBrainstormService =>
     new CloneBrainstormService({
@@ -43,9 +45,18 @@ describe('nouveau brainstorm depuis un lien Git (spec 024 US5)', () => {
       },
       attach: (neuronId, folder) => attached.set(neuronId, folder),
       emit: (event) => progress.push(event),
+      emitLarge: (bytes) => large.push(bytes),
+      onCloned: (event) => cloned.push(event),
       now: () => new Date('2026-10-10T11:00:00Z')
     })
-  const input = { url: URL, name: 'Recettes', slug: 'recettes', type: 'Web App' as const, full: false }
+  const input = {
+    url: URL,
+    name: 'Recettes',
+    slug: 'recettes',
+    type: 'Web App' as const,
+    full: false,
+    confidentiality: 'local' as const
+  }
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'gi-clone-brainstorm-'))
@@ -56,6 +67,8 @@ describe('nouveau brainstorm depuis un lien Git (spec 024 US5)', () => {
     requests = []
     progress = []
     attached = new Map()
+    large = []
+    cloned = []
     outcome = (request) => {
       mkdirSync(request.target ?? '', { recursive: true })
       writeFileSync(join(request.target ?? '', 'README.md'), '# fictif\n')
@@ -90,6 +103,37 @@ describe('nouveau brainstorm depuis un lien Git (spec 024 US5)', () => {
     // L'identifiant du lien n'est écrit nulle part.
     expect(registry).not.toContain('jeton-fictif')
     expect(JSON.stringify(repository.list())).not.toContain('jeton-fictif')
+    // Après le clone : dépôt « cloné », projet repris avec la confidentialité choisie (spec 021 US3).
+    expect(cloned).toEqual([
+      {
+        genesisId: [...attached.keys()][0],
+        dir: row?.folderPath,
+        commit: 'a'.repeat(40),
+        display: DISPLAY,
+        confidentiality: 'local'
+      }
+    ])
+    expect(large).toEqual([])
+  })
+
+  it('should_ask_once_to_continue_after_500_mb_received', async () => {
+    const big = 600 * 1024 * 1024
+    const clones = new CloneBrainstormService({
+      repository,
+      projectsRoot: () => root,
+      clone: async (request) => {
+        request.onProgress?.({ phase: 'reception', receivedBytes: big })
+        request.onProgress?.({ phase: 'reception', receivedBytes: big + 1 })
+        return outcome(request)
+      },
+      createGenesis: () => randomUUID(),
+      attach: () => undefined,
+      emit: () => undefined,
+      emitLarge: (bytes) => large.push(bytes),
+      onCloned: () => undefined
+    })
+    await clones.clone(input)
+    expect(large).toEqual([big])
   })
 
   it('should_refuse_before_cloning_a_taken_name_an_invalid_one_or_a_missing_vault', async () => {
@@ -121,7 +165,9 @@ describe('nouveau brainstorm depuis un lien Git (spec 024 US5)', () => {
         }),
       createGenesis: () => randomUUID(),
       attach: () => undefined,
-      emit: () => undefined
+      emit: () => undefined,
+      emitLarge: () => undefined,
+      onCloned: () => undefined
     })
     const running = clones.clone(input)
     await expect(clones.clone({ ...input, slug: 'autre' })).rejects.toMatchObject({ code: 'BUSY' })

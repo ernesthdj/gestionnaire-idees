@@ -2,6 +2,7 @@ import { existsSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
 import type { BrainstormCloneProgress } from '@shared/ipc/brainstorms'
 import type { ProjectType } from '@shared/ipc/projects'
+import type { Confidentiality } from '@shared/ipc/reprise'
 import { AppError } from '../../domain/errors'
 import { cleanText, registryWithProject, slugProblem } from '../../domain/projects/project'
 import type { BrainstormRepository } from '../../infrastructure/db/repositories/BrainstormRepository'
@@ -16,8 +17,24 @@ export interface CloneBrainstormDeps {
   readonly createGenesis: (title: string, content: string | null, brainstormId: string) => string
   readonly attach: (neuronId: string, dir: string) => void
   readonly emit: (progress: BrainstormCloneProgress) => void
+  /** Plus de 500 Mo reçus : la question « Continuer / Annuler » (le téléchargement continue pendant la question). */
+  readonly emitLarge: (receivedBytes: number) => void
+  /**
+   * Après le clone (spec 021 US3) : dépôt marqué « cloné » avec son dernier commit vu, projet repris enregistré avec
+   * la confidentialité choisie, analyse statique lancée (spec 017).
+   */
+  readonly onCloned: (input: {
+    readonly genesisId: string
+    readonly dir: string
+    readonly commit: string | null
+    readonly display: string
+    readonly confidentiality: Confidentiality
+  }) => void
   readonly now?: () => Date
 }
+
+/** Seuil de la question « Continuer / Annuler » (spec 021 US3 scénario 4). */
+export const CLONE_LARGE_BYTES = 500 * 1024 * 1024
 
 /** Ce que mentalyas lit quand un clone échoue (jamais la sortie de git, qui peut contenir l'adresse avec identifiant). */
 const FAILURES: Readonly<Record<CloneFailureCode, string>> = {
@@ -56,6 +73,7 @@ export class CloneBrainstormService {
     readonly slug: string
     readonly type: ProjectType
     readonly full: boolean
+    readonly confidentiality: Confidentiality
   }): Promise<{ readonly id: string }> {
     const problem = slugProblem(input.slug)
     if (problem !== null) throw new AppError('VALIDATION', problem)
@@ -72,6 +90,7 @@ export class CloneBrainstormService {
     }
     if (this.controller !== null) throw new AppError('BUSY', FAILURES.BUSY)
     this.controller = new AbortController()
+    let askedLarge = false
     let result: CloneResult
     try {
       result = await this.deps.clone({
@@ -80,7 +99,13 @@ export class CloneBrainstormService {
         target,
         full: input.full,
         signal: this.controller.signal,
-        onProgress: (progress) => this.deps.emit(progress)
+        onProgress: (progress) => {
+          this.deps.emit(progress)
+          if (!askedLarge && (progress.receivedBytes ?? 0) > CLONE_LARGE_BYTES) {
+            askedLarge = true
+            this.deps.emitLarge(progress.receivedBytes ?? 0)
+          }
+        }
       })
     } finally {
       this.controller = null
@@ -121,6 +146,13 @@ export class CloneBrainstormService {
       return { id: row.id, genesisId: this.deps.createGenesis(name, description, row.id) }
     })
     this.deps.attach(created.genesisId, dir)
+    this.deps.onCloned({
+      genesisId: created.genesisId,
+      dir,
+      commit: result.commit,
+      display: result.display,
+      confidentiality: input.confidentiality
+    })
     return { id: created.id }
   }
 

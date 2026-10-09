@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { checkGitUrl } from '@shared/reprise/gitUrl'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, dialog, ipcMain, safeStorage, shell as electronShell } from 'electron'
@@ -352,9 +353,22 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const emptyHooksDir = join(dataDir, 'empty-hooks')
   mkdirSync(emptyHooksDir, { recursive: true })
   const libraryRoot = join(dataDir, 'skill-library')
+  // Clones en cours inscrits en base (spec 021 US3) : un clone interrompu par la fermeture de l'app est retrouvé et
+  // nettoyé au démarrage suivant.
+  const cloneRegistryRepository = new GitRepository(database.db)
   const cloneService = new CloneService({
     git: () => resolveGit(),
     launch: launchGit,
+    registry: {
+      add: (entry) =>
+        cloneRegistryRepository.addRunningClone({
+          id: entry.id,
+          targetDir: entry.target,
+          profile: entry.profile ?? 'historique'
+        }),
+      remove: (id) => cloneRegistryRepository.removeRunningClone(id),
+      list: () => cloneRegistryRepository.runningClones().map((row) => ({ id: row.id, target: row.targetDir }))
+    },
     emptyHooksDir,
     quarantineRoot: join(libraryRoot, '.tmp')
   })
@@ -813,7 +827,35 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       return id
     },
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
-    emit: (progress) => broadcast('brainstorms:cloneProgress', progress)
+    emit: (progress) => broadcast('brainstorms:cloneProgress', progress),
+    emitLarge: (receivedBytes) => broadcast('brainstorms:cloneLarge', { receivedBytes }),
+    onCloned: ({ genesisId, dir, commit, display, confidentiality }) => {
+      const check = checkGitUrl(display)
+      gitRepository.saveRepo(genesisId, {
+        cloned: true,
+        lastSeenCommit: commit,
+        defaultRemote: 'origin',
+        remoteUrl: display,
+        githubRepo:
+          check.ok && check.host === 'github.com' && check.owner !== undefined && check.repo !== undefined
+            ? `${check.owner}/${check.repo.replace(/\.git$/, '')}`
+            : null
+      })
+      // Projet repris (spec 017) : confidentialité choisie au clone, analyse statique lancée comme à l'import.
+      repriseRepository.createProject({
+        genesisId,
+        rootDir: dir,
+        source: 'git',
+        remoteUrl: display,
+        confidentiality,
+        confidentialityChangedAt: new Date().toISOString()
+      })
+      try {
+        analysis.analyze(genesisId)
+      } catch {
+        // Dossier disparu entre-temps : mentalyas relancera l'analyse depuis l'explorateur.
+      }
+    }
   })
   // Points de sauvegarde (spec 024 US2) : instantanés du canevas, retour annulable.
   const savePoints = new SavePointService({

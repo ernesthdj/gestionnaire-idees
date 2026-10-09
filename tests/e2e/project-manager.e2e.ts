@@ -206,6 +206,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await page.getByLabel('Lien du dépôt').fill('https://github.com/octocat/Hello-World.git')
     expect(await page.getByLabel('Nom du dossier').inputValue()).toBe('hello-world')
     await page.getByLabel('Type').selectOption('Workspace')
+    await page.getByLabel(/Local uniquement/).check()
     await run.shot('024-13-clone-formulaire')
     await page.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' }).click()
     await page.getByRole('button', { name: '← Projets' }).waitFor({ timeout: 120_000 })

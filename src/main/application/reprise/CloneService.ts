@@ -72,6 +72,7 @@ export type CloneResult =
 export interface CloneRegistryEntry {
   readonly id: string
   readonly target: string
+  readonly profile?: CloneProfile
 }
 
 /** Clones en cours, persistés par l'appelant (table `git_clones_running`, spec 021) pour survivre à un arrêt brutal. */
@@ -226,7 +227,7 @@ export class CloneService {
     let failure: CloneFailureCode | null
     let commit: string | null = null
     try {
-      await this.registry.add({ id, target })
+      await this.registry.add({ id, target, profile: request.profile })
       notify(request, { phase: 'connexion' })
       const env = cloneEnv(this.deps.baseEnv ?? process.env, this.transports)
       const args = cloneArgs({

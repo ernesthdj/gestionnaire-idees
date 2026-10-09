@@ -14,6 +14,8 @@ export function repoStateText(status: GitStatusView): string {
   const parts = [`⎇ ${branch}`, changed === 0 ? 'à jour' : `${changed} modifié${changed > 1 ? 's' : ''}`]
   if (status.ahead > 0) parts.push(`↑${status.ahead}`)
   if (status.behind > 0) parts.push(`↓${status.behind}`)
+  // Commits du distant arrivés depuis la dernière visite (spec 021 US3).
+  if (status.newSinceVisit > 0) parts.push(`✦ ${status.newSinceVisit} nouveauté${status.newSinceVisit > 1 ? 's' : ''}`)
   return parts.join(' · ')
 }
 

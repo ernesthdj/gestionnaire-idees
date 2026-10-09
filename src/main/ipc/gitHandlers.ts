@@ -8,6 +8,7 @@ import {
   GitRevertInput
 } from '@shared/ipc/git'
 import { z } from 'zod'
+import { Hash } from '@shared/git/model'
 import { GitConfirmInput, GitMergeInput, GitPublishInput, GitPushInput } from '@shared/git/sync'
 import type { GitService } from '../application/git/GitService'
 import type { PublishService } from '../application/git/PublishService'
@@ -33,9 +34,21 @@ export function createGitRoutes(
     | 'switchBranch'
     | 'log'
     | 'revert'
+    | 'updates'
+    | 'markSeen'
   >
 ): IpcRoute[] {
   return [
+    defineRoute({
+      channel: 'git:updates',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => git.updates(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:markSeen',
+      input: z.strictObject({ genesisId: z.uuid(), hash: Hash }),
+      handler: async ({ genesisId, hash }) => git.markSeen(genesisId, hash)
+    }),
     defineRoute({
       channel: 'git:status',
       input: GitGenesisInput,

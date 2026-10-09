@@ -40,10 +40,18 @@ export function HistoryTab({
     }
   })
   if (query.data === undefined) return <p className="text-sm text-content-muted">Lecture de l’historique…</p>
-  if (query.data.commits.length === 0) return <p className="text-sm text-content-muted">Aucun commit pour l’instant.</p>
+  if (query.data.commits.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 text-sm">
+        <SinceLastVisit genesisId={genesisId} />
+        <p className="text-content-muted">Aucun commit pour l’instant.</p>
+      </div>
+    )
+  }
   const authors = new Map(query.data.authors.map((author) => [author.key, author] as const))
   return (
     <div className="flex flex-col gap-2 text-sm">
+      <SinceLastVisit genesisId={genesisId} />
       <ul aria-label="Derniers commits" className="flex flex-col gap-1">
         {query.data.commits.map((commit) => {
           const author = authors.get(commit.authorKey)
@@ -98,5 +106,59 @@ export function HistoryTab({
         </p>
       )}
     </div>
+  )
+}
+
+interface UpdatesView extends LogView {
+  readonly lastSeen: string | null
+  readonly upstreamHead: string | null
+}
+
+/**
+ * « Depuis ta dernière visite » (spec 021 US3) : les commits du distant arrivés depuis le dernier vu, jusqu'à « Marquer
+ * comme vu ». Rien sans distant suivi ni référence (un projet cloné part du commit cloné).
+ */
+function SinceLastVisit({ genesisId }: { readonly genesisId: string }): React.JSX.Element | null {
+  const refresh = useRefreshGit(genesisId)
+  const updates = useQuery({
+    queryKey: [...gitKeys.all(genesisId), 'updates'],
+    queryFn: () => call<UpdatesView>('git:updates', { genesisId }),
+    retry: false
+  })
+  const seen = useMutation({
+    mutationFn: (hash: string) => call('git:markSeen', { genesisId, hash }),
+    onSettled: () => void refresh()
+  })
+  const data = updates.data
+  if (data === undefined || data.commits.length === 0 || data.upstreamHead === null) return null
+  const authors = new Map(data.authors.map((author) => [author.key, author] as const))
+  const head = data.upstreamHead
+  return (
+    <section
+      aria-label="Depuis ta dernière visite"
+      className="flex flex-col gap-1 rounded-md border border-accent/40 p-2"
+    >
+      <div className="flex items-center gap-2">
+        <p className="flex-1 text-xs font-semibold">
+          ✦ Depuis ta dernière visite : {data.commits.length} commit{data.commits.length > 1 ? 's' : ''}
+        </p>
+        <button
+          type="button"
+          className="rounded-md border border-content-muted/40 px-2 py-1 text-xs hover:bg-surface-raised disabled:opacity-50"
+          disabled={seen.isPending}
+          onClick={() => seen.mutate(head)}
+        >
+          Marquer comme vu
+        </button>
+      </div>
+      <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto text-xs">
+        {data.commits.map((commit) => (
+          <li key={commit.hash} className="truncate">
+            <span className="font-mono text-content-muted">{commit.hash.slice(0, 7)}</span> {commit.subject}
+            <span className="text-content-muted"> · {authors.get(commit.authorKey)?.name ?? 'auteur inconnu'}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

@@ -64,8 +64,15 @@ describe('depuis un lien Git (spec 024 T029, US5)', () => {
     expect((screen.getByLabelText('Nom') as HTMLInputElement).value).toBe('Recettes')
     expect((screen.getByLabelText('Nom du dossier') as HTMLInputElement).value).toBe('recettes')
     await user.selectOptions(screen.getByLabelText('Type'), 'Web App')
+    // La confidentialité se choisit, sans valeur par défaut.
+    expect(screen.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' })).toHaveProperty('disabled', true)
+    await user.click(screen.getByLabelText(/Local uniquement/))
     await user.click(screen.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' }))
     act(() => emit('brainstorms:cloneProgress', { phase: 'reception', percent: 42 }))
+    act(() => emit('brainstorms:cloneLarge', { receivedBytes: 600 * 1024 * 1024 }))
+    expect(await screen.findByText(/dépasse 500 Mo \(600 Mo reçus\)/)).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Continuer' }))
+    expect(screen.queryByText(/dépasse 500 Mo/)).toBeNull()
     expect(await screen.findByText('Réception des objets · 42 %')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Annuler le clone' })).toBeDefined()
     act(() => finish({ id: B }))
@@ -75,7 +82,8 @@ describe('depuis un lien Git (spec 024 T029, US5)', () => {
       name: 'Recettes',
       slug: 'recettes',
       type: 'Web App',
-      full: false
+      full: false,
+      confidentiality: 'local'
     })
   })
 
@@ -88,6 +96,7 @@ describe('depuis un lien Git (spec 024 T029, US5)', () => {
     })
     await user.type(screen.getByLabelText('Lien du dépôt'), 'https://github.com/compte/absent.git')
     await user.selectOptions(screen.getByLabelText('Type'), 'Web App')
+    await user.click(screen.getByLabelText(/Claude autorisé/))
     await user.click(screen.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' }))
     expect((await screen.findByRole('alert')).textContent).toBe('CLONE_NOT_FOUND')
   })

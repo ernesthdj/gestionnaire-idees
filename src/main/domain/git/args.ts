@@ -241,3 +241,18 @@ export const pushArgs = (remote: string, branch: string, target: string, setUpst
   safeRef(remote),
   `refs/heads/${safeRef(branch)}:refs/heads/${safeRef(target)}`
 ]
+
+/** Commits d'une plage `a..b` (format de `logArgs`), bornés. */
+export const rangeLogArgs = (from: string, to: string, limit: number): string[] => {
+  if (!/^[0-9a-f]{7,40}$/.test(from)) throw new Error('empreinte refusée')
+  return [
+    'log',
+    `-n${Math.max(1, Math.min(500, Math.trunc(limit)))}`,
+    '-z',
+    '--no-color',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s',
+    `${from}..${safeRef(to)}`
+  ]
+}
