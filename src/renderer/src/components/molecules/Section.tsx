@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 interface SectionProps {
   readonly title: string
@@ -8,7 +8,8 @@ interface SectionProps {
 
 /** Bloc de réglages délimité (Gestalt : fermeture), titre + aide courte + contenu. */
 export function Section({ title, description, children }: SectionProps): React.JSX.Element {
-  const id = `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+  // Identifiant unique : deux sections au même titre (ou aux titres accentués) ne partagent jamais leur libellé.
+  const id = useId()
   return (
     <section aria-labelledby={id} className="space-y-4 rounded-lg bg-surface-raised p-4">
       <header className="space-y-1">

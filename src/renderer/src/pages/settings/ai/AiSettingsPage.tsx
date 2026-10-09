@@ -24,6 +24,20 @@ function errorText<T>(result: IpcResult<T>): string | null {
 }
 
 /**
+ * État d'un moteur (T043) : couleurs des jetons du thème (vert / ambre, contraste AA sur tous les thèmes, Carbone
+ * compris — les variantes `dark:` suivent le système, pas le thème choisi) ; la pastille est décorative, le texte porte
+ * l'information.
+ */
+function EngineState({ ok, text }: { readonly ok: boolean; readonly text: string }): React.JSX.Element {
+  return (
+    <p className={ok ? 'text-pro' : 'text-idea'}>
+      <span aria-hidden="true">● </span>
+      {text}
+    </p>
+  )
+}
+
+/**
  * Réglages › IA (spec 010) : Claude passe par Claude Code (ton abonnement — aucune clé, aucun budget dans l'app),
  * Ollama traite les tâches locales. Modèle par usage, modifiable aussi conversation par conversation dans le chat.
  */
@@ -51,7 +65,10 @@ export function AiSettingsPage(): React.JSX.Element {
     void refresh()
   }, [refresh])
 
+  // Les contrôles ne sont jamais désactivés pendant un traitement (T043) : un contrôle désactivé perd le focus, qui
+  // retomberait en haut de la page au clavier. Une action pendant une autre est simplement ignorée (`aria-disabled`).
   const run = async (action: () => Promise<string>): Promise<void> => {
+    if (busy) return
     setBusy(true)
     try {
       setMessage(await action())
@@ -81,7 +98,7 @@ export function AiSettingsPage(): React.JSX.Element {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-8">
+    <div aria-busy={busy} className="mx-auto max-w-3xl space-y-6 p-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Réglages › IA</h1>
         <p className="text-sm text-content-muted">
@@ -95,14 +112,15 @@ export function AiSettingsPage(): React.JSX.Element {
       </p>
 
       <Section title="Claude Code" description="Le CLI officiel installé sur ta machine, connecté à ton compte Claude.">
-        <p
-          className={status.claude.ready ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}
-        >
-          {status.claude.ready
-            ? '● Prêt'
-            : `● Indisponible — ${status.claude.reason ?? 'installe Claude Code puis connecte-toi avec « claude »'}`}
-        </p>
-        <Button disabled={busy} onClick={() => void test('claude')}>
+        <EngineState
+          ok={status.claude.ready}
+          text={
+            status.claude.ready
+              ? 'Prêt'
+              : `Indisponible — ${status.claude.reason ?? 'installe Claude Code puis connecte-toi avec « claude »'}`
+          }
+        />
+        <Button aria-disabled={busy} aria-label="Revérifier Claude Code" onClick={() => void test('claude')}>
           Revérifier
         </Button>
       </Section>
@@ -114,14 +132,17 @@ export function AiSettingsPage(): React.JSX.Element {
         <div id={ids.models} className="space-y-3">
           {MODEL_FIELDS.map(([field, label, help]) => (
             <div key={field} className="flex flex-wrap items-center gap-3">
-              <label htmlFor={`${ids.models}-${field}`} className="w-56 text-sm">
-                {label}
-                <span className="block text-xs text-content-muted">{help}</span>
-              </label>
+              <div className="w-56 text-sm">
+                <label htmlFor={`${ids.models}-${field}`}>{label}</label>
+                <span id={`${ids.models}-${field}-help`} className="block text-xs text-content-muted">
+                  {help}
+                </span>
+              </div>
               <select
                 id={`${ids.models}-${field}`}
+                aria-describedby={`${ids.models}-${field}-help`}
                 value={config[field]}
-                disabled={busy}
+                aria-disabled={busy}
                 onChange={(event) =>
                   void saveConfig(
                     { [field]: event.target.value },
@@ -142,11 +163,12 @@ export function AiSettingsPage(): React.JSX.Element {
       </Section>
 
       <Section title="IA locale (Ollama)" description={`Modèle : ${status.ollama.model}`}>
-        <p className={status.ollama.up ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}>
-          {status.ollama.up ? '● Prête' : `● Indisponible — ${status.ollama.reason ?? ''}`}
-        </p>
+        <EngineState
+          ok={status.ollama.up}
+          text={status.ollama.up ? 'Prête' : `Indisponible — ${status.ollama.reason ?? ''}`}
+        />
         {status.ollama.guidance.length > 0 ? (
-          <ol className="list-decimal space-y-1 pl-6 text-sm">
+          <ol aria-label="Pour démarrer l’IA locale" className="list-decimal space-y-1 pl-6 text-sm">
             {status.ollama.guidance.map((step) => (
               <li key={step}>{step}</li>
             ))}
@@ -170,10 +192,14 @@ export function AiSettingsPage(): React.JSX.Element {
               ))}
             </datalist>
           </div>
-          <Button disabled={busy} onClick={() => void saveConfig({ localModel }, `Modèle local : ${localModel}.`)}>
+          <Button
+            aria-disabled={busy}
+            aria-label="Enregistrer le modèle local"
+            onClick={() => void saveConfig({ localModel }, `Modèle local : ${localModel}.`)}
+          >
             Enregistrer
           </Button>
-          <Button disabled={busy} onClick={() => void test('ollama')}>
+          <Button aria-disabled={busy} aria-label="Revérifier l’IA locale" onClick={() => void test('ollama')}>
             Revérifier
           </Button>
         </div>
@@ -182,7 +208,7 @@ export function AiSettingsPage(): React.JSX.Element {
             id={ids.fallback}
             type="checkbox"
             checked={config.allowClaudeFallback}
-            disabled={busy}
+            aria-disabled={busy}
             onChange={(event) =>
               void saveConfig(
                 { allowClaudeFallback: event.target.checked },
@@ -196,6 +222,6 @@ export function AiSettingsPage(): React.JSX.Element {
           </label>
         </div>
       </Section>
-    </main>
+    </div>
   )
 }

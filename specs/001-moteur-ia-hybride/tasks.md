@@ -141,7 +141,7 @@ description: "Task list — 001 Moteur IA hybride & contexte (F9)"
 - [x] T060 [P] [US4] Test du guidage Ollama : service absent → message avec les 3 étapes (installer Ollama, télécharger le modèle retenu, revérifier) ; modèle absent → étapes 2-3 ; « Revérifier » relance la sonde et met le statut à jour — `tests/unit/ipc/ollama-guidance.test.ts` *(analyse U1)*
 - [x] T041 [US4] Handlers `ai:status`, `ai:setClaudeKey`, `ai:clearClaudeKey`, `ai:getConfig`, `ai:setConfig`, `ai:test`, `ai:unlockBudget` dans `src/main/ipc/aiHandlers.ts` (contracts/ipc-ai.md)
 - [x] T042 [P] [US4] Écran Réglages › IA (statut moteurs, saisie masquée, modèles, plafond, jauge, tests, guide Ollama) dans `src/renderer/src/pages/settings/ai/AiSettingsPage.tsx` + composants atoms/molecules
-- [ ] T043 [US4] Accessibilité de l'écran (clavier complet, focus visible, contraste AA, libellés) — vérification et correctifs dans les composants de T042
+- [x] T043 [US4] Accessibilité de l'écran (clavier complet, focus visible, contraste AA, libellés) — vérification et correctifs dans les composants de T042 — *2026-10-09 : écran actuel (spec 010, sans clé ni budget) ; contraste des états par les jetons du thème (`text-pro` / `text-idea`, AA sur clair, sombre et Carbone), pastille décorative, plus de `<main>` imbriqué, contrôles jamais désactivés pendant un traitement (le focus restait perdu), noms distincts des boutons, aide des modèles en description, `Section` à identifiant unique ; tests axe, parcours clavier, focus conservé*
 
 **Checkpoint**: Claude activable par l'utilisateur ; SC-006 vérifié
 
