@@ -91,6 +91,11 @@ src/renderer/src/canvas/living/icons.ts        pictogrammes spec, US, tâche, so
    brainstorm cités ouvrables), Livrées dans l'ordre. Test guidé.
 4. **US4 Pont** : « Fichiers » (chemins cités, `workflow:file` dans le lecteur), « Voir dans la structure » (élément
    couvrant, bascule, focus et carte ouverte). Test guidé.
+6. **US5 Anatomie d'un fichier** (D14, ajoutée le 2026-10-09) : `exported` et usages JSX dans le processus d'analyse
+   (R11, R12 ; tests 017 relus), `anatomy.ts` pur (appels internes, peut-être inutilisés), `WorkflowAnatomy` +
+   `workflow:anatomy` (remplace `workflow:symbols`, R10), schéma HTML + SVG en trois colonnes avec arcs (R13), parcours
+   de lecture et blocs cités (R14). Aucune dépendance nouvelle, aucune migration. Test guidé sur des fichiers du
+   Brainstormer.
 5. **Finitions** : marqueurs « Livrée » sur les specs déjà finies du dépôt (**liste soumise à mentalyas d'abord**),
    démo (`seed:demo` : genesis de démo lié à un petit dossier de specs fictif), mesure SC-002, amendement spec 017
    (bascule à trois positions), CLAUDE.md, JOURNAL.

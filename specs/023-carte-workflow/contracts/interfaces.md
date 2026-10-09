@@ -6,7 +6,9 @@
 |---|---|---|---|
 | `workflow:read` | `{ genesisId: uuid }` | `WorkflowView` | `NOT_FOUND` (genesis), `FOLDER_MISSING` (pas de dossier lié ou dossier absent) |
 | `workflow:file` | `{ genesisId: uuid, path: ProjectFile }` | `{ path, lang, lines: string[] }` | `NOT_FOUND` (non cité ou absent), `SECRET_FILE`, `TOO_LARGE`, `INVALID_STATE` (binaire) |
-| `workflow:symbols` | `{ genesisId: uuid, path: ProjectFile }` | `WorkflowSymbolView[]` (vide si non analysable) | `NOT_FOUND` |
+| `workflow:anatomy` | `{ genesisId: uuid, path: ProjectFile }` | `WorkflowAnatomyView \| null` (`null` : langage non analysé, panne ou délai) — remplace `workflow:symbols` (R10) | `NOT_FOUND` |
+| `workflow:summary` | `{ genesisId: uuid, path: ProjectFile }` | `WorkflowFileSummaryView` (rôle, reçoit, produit, morceaux avec lignes, moteur, modèle) — D15 | `NOT_FOUND`, `AI_UNAVAILABLE`, `AI_FAILED` |
+| `workflow:savedSummary` | `{ genesisId: uuid, path: ProjectFile }` | `{ summary: WorkflowFileSummaryView \| null, outdated }` (aucun appel à l'IA) — D18 | `NOT_FOUND` |
 | `workflow:chat` | `{ genesisId: uuid, key: WorkflowKey, title: 1–200 }` | `{ neuronId }` (conversation du nœud, créée ou reprise) | `NOT_FOUND` |
 | `workflow:setFolded` | `{ genesisId: uuid, key: WorkflowKey, folded: boolean }` | `{ ok: true }` | `NOT_FOUND` |
 
@@ -36,3 +38,29 @@
 - User story : « Mène les tâches restantes de l'US{n} « {title} » de la spec {dir}, dans l'ordre : {ids}. Coche chaque
   case quand elle est faite. »
 - Brainstorm : « Lance /brainstorm à partir de docs/brainstorm/{name} (idée à brainstormer de ce projet). »
+
+## Anatomie d'un fichier (US5, D14)
+
+```ts
+interface WorkflowBlockView {
+  id: number                 // rang dans le fichier
+  parent: number | null      // classe englobante
+  kind: 'namespace' | 'class' | 'interface' | 'function' | 'method'
+  name: string
+  startLine: number; endLine: number
+  complexity: number
+  exported: boolean          // « offert » (R11)
+  maybeUnused: boolean       // ni offert, ni appelé, ni parent d'un bloc utile (R12)
+}
+interface WorkflowAnatomyView {
+  blocks: WorkflowBlockView[]                                    // ≤ 500
+  imports: { source: string; names: number; line: number }[]     // ≤ 200, regroupés par source
+  calls: { from: number; to: number; line: number; ambiguous: boolean }[]  // internes, ≤ 2 000, dédoublonnés
+  truncated: boolean                                             // une borne a coupé
+}
+```
+
+- Purs (renderer) : `readingPath(anatomy): number[]`, `citedBlocks(texts, blocks): Set<number>`, raccourcis dérivés de
+  `blocks` (classes, interfaces, fonctions, méthodes).
+- Lecteur : bascule « Code | Schéma » (langage analysé et anatomie non nulle) ; « Parcours » ; ← / → ; clic ou Entrée
+  sur un bloc → code surligné. Prop `cited?: readonly string[]` (textes de la tâche ou de l'US qui a ouvert le fichier).

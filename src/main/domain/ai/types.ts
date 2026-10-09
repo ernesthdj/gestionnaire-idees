@@ -10,6 +10,8 @@ export const REPRISE_TASK_KINDS = ['reprise_guide'] as const
 export const ANALYSTE_TASK_KINDS = ['analyste'] as const
 /** Arbre de skills (spec 020) : audit d'un skill importé et fiche technique, sans outil (le texte du skill est une donnée). */
 export const SKILLS_TASK_KINDS = ['skill_audit', 'skill_card'] as const
+/** Carte Workflow (spec 023 D15) : ce que fait un fichier, sans outil (le code est une donnée). */
+export const WORKFLOW_TASK_KINDS = ['file_summary'] as const
 
 export type TaskKind =
   | (typeof LOCAL_TASK_KINDS)[number]
@@ -17,6 +19,7 @@ export type TaskKind =
   | (typeof REPRISE_TASK_KINDS)[number]
   | (typeof ANALYSTE_TASK_KINDS)[number]
   | (typeof SKILLS_TASK_KINDS)[number]
+  | (typeof WORKFLOW_TASK_KINDS)[number]
 
 export type Engine = 'ollama' | 'claude'
 

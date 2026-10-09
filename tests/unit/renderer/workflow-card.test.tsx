@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards, type OpenCard } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { promptFor } from '../../../src/renderer/src/canvas/workflow/prompts'
@@ -9,7 +9,15 @@ import { discussWorkflow, WorkflowCard } from '../../../src/renderer/src/canvas/
 import { workflowKey, workflowTree, type WorkflowItem } from '../../../src/renderer/src/canvas/workflow/workflowTree'
 import type { ElementView } from '../../../src/shared/ipc/canvas'
 import type { ChatView } from '../../../src/shared/ipc/chat'
-import type { SpecView, TaskView, WorkflowView } from '../../../src/shared/ipc/workflow'
+import type {
+  SpecView,
+  TaskView,
+  WorkflowAnatomyView,
+  WorkflowBlockView,
+  WorkflowFileSummaryView,
+  WorkflowSavedSummaryView,
+  WorkflowView
+} from '../../../src/shared/ipc/workflow'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 
@@ -103,6 +111,60 @@ const card = (id: string): OpenCard => ({
   pinned: false
 })
 
+const block = (
+  id: number,
+  name: string,
+  kind: WorkflowBlockView['kind'],
+  line: number,
+  extra: Partial<WorkflowBlockView> = {}
+): WorkflowBlockView => ({
+  id,
+  parent: null,
+  kind,
+  name,
+  startLine: line,
+  endLine: line,
+  complexity: 1,
+  exported: false,
+  maybeUnused: false,
+  doc: null,
+  ...extra
+})
+// Anatomie du fichier `src/T011.ts` simulé : `Faire` est nommé par la tâche T011 (« Faire T011 dans … »).
+const ANATOMY: WorkflowAnatomyView = {
+  blocks: [
+    block(0, 'Carte', 'class', 1, { endLine: 3, exported: true }),
+    block(1, 'lire', 'method', 2, { parent: 0, exported: true }),
+    block(2, 'ranger', 'function', 4, { exported: true }),
+    block(3, 'Faire', 'function', 5),
+    block(4, 'aide', 'function', 6, { maybeUnused: true })
+  ],
+  imports: [{ source: './store', names: 2, line: 1 }],
+  calls: [{ from: 2, to: 3, line: 4, ambiguous: false }],
+  truncated: false
+}
+
+// Explication simulée : `inventé` a déjà été écarté par le main (seuls les blocs existants arrivent).
+const SUMMARY: WorkflowFileSummaryView = {
+  role: 'Range les cartes du projet.',
+  receives: 'La liste des cartes.',
+  produces: 'Des cartes rangées.',
+  parts: [
+    { name: 'ranger', why: 'Le point de départ.', startLine: 4, endLine: 4 },
+    { name: 'Faire', why: 'Fait le travail.', startLine: 5, endLine: 5 }
+  ],
+  flow: [
+    { from: 'in', to: 'ranger', label: 'reçoit' },
+    { from: 'ranger', to: 'Faire', label: 'appelle' },
+    { from: 'Faire', to: 'out', label: 'renvoie' }
+  ],
+  engine: 'claude',
+  model: 'claude-sonnet-5-5'
+}
+let summaries = 0
+let failFirstSummary = false
+let saved: WorkflowSavedSummaryView = { summary: null, outdated: false }
+
 function renderCard(key: string, elements: readonly ElementView[] = [], missingFiles: readonly string[] = []) {
   useCards.setState({ cards: [card(key)], activeId: key })
   const api = installFakeApi({
@@ -115,18 +177,27 @@ function renderCard(key: string, elements: readonly ElementView[] = [], missingF
         ? {
             path,
             lang: 'ts',
-            lines: ['export class Carte {', '  lire(): void {}', '}', 'export function ranger(): void {}']
+            lines: [
+              'export class Carte {',
+              '  lire(): void {}',
+              '}',
+              'export function ranger(): void { Faire() }',
+              'function Faire(): void {}',
+              'function aide(): void {}'
+            ]
           }
         : { path, lang: 'other', lines: ['# Spec', '<script>alert(1)</script>', '', '[le site](https://example.com)'] }
     },
     'workflow:chat': () => ({ neuronId: CHAT_ID }),
     'chat:open': () => CHAT,
     'chat:close': () => ({ ok: true }),
-    'workflow:symbols': () => [
-      { name: 'Carte', kind: 'class', startLine: 1, endLine: 3 },
-      { name: 'lire', kind: 'method', startLine: 2, endLine: 2 },
-      { name: 'ranger', kind: 'function', startLine: 4, endLine: 4 }
-    ]
+    'workflow:anatomy': () => ANATOMY,
+    'workflow:savedSummary': () => saved,
+    'workflow:summary': () => {
+      summaries += 1
+      if (summaries === 1 && failFirstSummary) throw new Error('panne')
+      return SUMMARY
+    }
   })
   const Current = (): React.JSX.Element => {
     const current = useCards((state) => state.cards.find((entry) => entry.id === key)) ?? card(key)
@@ -293,9 +364,127 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(useCards.getState().cards.some((entry) => entry.id === 'element-src')).toBe(false)
   })
 
+  it('should_offer_no_explanation_when_the_file_is_markdown', async () => {
+    const user = userEvent.setup()
+    renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await user.click(screen.getByRole('button', { name: 'Lire les tâches' }))
+    expect(await screen.findByRole('button', { name: 'Mis en forme' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: /Expliquer ce fichier/ })).toBeNull()
+  })
+
   it('should_do_nothing_when_discussing_a_branch', () => {
     useCards.setState({ cards: [], activeId: null })
     expect(discussWorkflow(item(workflowKey(G, 'branch', 'active')))).toBe(false)
     expect(useCards.getState().cards).toEqual([])
+  })
+})
+
+describe('« Que fait ce fichier ? » dans le lecteur (spec 023 D15)', () => {
+  beforeEach(() => {
+    summaries = 0
+    failFirstSummary = false
+    saved = { summary: null, outdated: false }
+  })
+
+  it('should_show_the_saved_explanation_at_once_without_asking_the_ai_again', async () => {
+    saved = { summary: SUMMARY, outdated: false }
+    const user = userEvent.setup()
+    const { api } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await user.click(screen.getByTitle('Lire src/T011.ts'))
+    expect(await screen.findByText('Range les cartes du projet.')).toBeDefined()
+    expect(api.invoke).toHaveBeenCalledWith('workflow:savedSummary', { genesisId: G, path: 'src/T011.ts' })
+    expect(summaries).toBe(0)
+    expect(screen.queryByRole('button', { name: /Expliquer ce fichier/ })).toBeNull()
+  })
+
+  it('should_offer_to_explain_again_when_the_code_changed_since', async () => {
+    saved = { summary: null, outdated: true }
+    const user = userEvent.setup()
+    renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await user.click(screen.getByTitle('Lire src/T011.ts'))
+    expect(await screen.findByRole('button', { name: /Réexpliquer \(le code a changé\)/ })).toBeDefined()
+    expect(screen.queryByText('Range les cartes du projet.')).toBeNull()
+  })
+
+  const openFile = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+    await user.click(screen.getByTitle('Lire src/T011.ts'))
+    await screen.findByRole('navigation', { name: 'Raccourcis du fichier' })
+  }
+
+  it('should_explain_the_file_only_on_demand_and_highlight_an_important_part', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await openFile(user)
+    expect(api.invoke).not.toHaveBeenCalledWith('workflow:summary', expect.anything())
+    await user.click(screen.getByRole('button', { name: /Expliquer ce fichier/ }))
+    const panel = await screen.findByRole('region', { name: /Que fait ce fichier/ })
+    expect(await within(panel).findByText('Range les cartes du projet.')).toBeDefined()
+    expect(panel.textContent).toContain('ReçoitLa liste des cartes.')
+    expect(panel.textContent).toContain('ProduitDes cartes rangées.')
+    expect(panel.textContent).toContain('Expliqué par Claude (claude-sonnet-5-5)')
+    expect(api.invoke).toHaveBeenCalledWith('workflow:summary', { genesisId: G, path: 'src/T011.ts' })
+    await user.click(within(panel).getByRole('button', { name: 'Faire' }))
+    expect(container.querySelector('[data-line="5"]')?.className).toContain('bg-accent/15')
+    await expectNoAxeViolations(container)
+    // Masquer puis rouvrir : l'explication reste en cache, sans nouvel appel.
+    await user.click(within(panel).getByRole('button', { name: 'Masquer' }))
+    await user.click(screen.getByRole('button', { name: /Expliquer ce fichier/ }))
+    expect(await screen.findByText('Range les cartes du projet.')).toBeDefined()
+    expect(summaries).toBe(1)
+  })
+
+  it('should_draw_the_small_diagram_highlight_a_part_on_click_and_copy_it_as_mermaid', async () => {
+    // Après `userEvent.setup()`, qui installe son propre presse-papiers.
+    const user = userEvent.setup()
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const { container } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await openFile(user)
+    await user.click(screen.getByRole('button', { name: /Expliquer ce fichier/ }))
+    const figure = await screen.findByRole('figure')
+    expect(figure.textContent).toContain('l’entrée reçoit ranger ; ranger appelle Faire ; Faire renvoie la sortie')
+    const box = [...figure.querySelectorAll('svg g')].find((group) => group.textContent?.endsWith('2. Faire'))
+    fireEvent.click(box as Element)
+    expect(container.querySelector('[data-line="5"]')?.className).toContain('bg-accent/15')
+    await user.click(within(figure).getByRole('button', { name: 'Copier en Mermaid' }))
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('p1 -->|appelle| p2'))
+    expect(await within(figure).findByRole('button', { name: 'Copié ✓' })).toBeDefined()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_put_explanation_and_code_side_by_side_and_open_the_reader_full_screen', async () => {
+    const user = userEvent.setup()
+    const { container } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await openFile(user)
+    const reader = (): Element | null => container.querySelector('section.workflow-reader-wide')
+    expect(reader()).toBeNull()
+    await user.click(screen.getByRole('button', { name: /Expliquer ce fichier/ }))
+    await screen.findByText('Range les cartes du projet.')
+    // Colonnes côte à côte (D17) : le lecteur s'élargit, l'explication et le code sont voisins.
+    expect(reader()).not.toBeNull()
+    await user.click(screen.getByRole('button', { name: /Agrandir/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'src/T011.ts' })
+    expect(within(dialog).getByText('Range les cartes du projet.')).toBeDefined()
+    expect(within(dialog).getByRole('navigation', { name: 'Raccourcis du fichier' })).toBeDefined()
+    expect(screen.getByText(/est ouvert en grand/)).toBeDefined()
+    await expectNoAxeViolations(document.body)
+    // Échap réduit sans fermer la carte ni le lecteur.
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'src/T011.ts' })).toBeNull()
+    const key = workflowKey(G, 'task', '022', 'T011')
+    expect(useCards.getState().cards.find((entry) => entry.id === key)?.side).toBe('reader')
+    expect(reader()).not.toBeNull()
+  })
+
+  it('should_say_it_failed_and_retry_on_demand', async () => {
+    failFirstSummary = true
+    const user = userEvent.setup()
+    renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await openFile(user)
+    await user.click(screen.getByRole('button', { name: /Expliquer ce fichier/ }))
+    expect(await screen.findByRole('alert')).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(await screen.findByText('Range les cartes du projet.')).toBeDefined()
+    expect(summaries).toBe(2)
   })
 })

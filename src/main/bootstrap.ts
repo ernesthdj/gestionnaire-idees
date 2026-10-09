@@ -87,6 +87,7 @@ import { scanProject } from './infrastructure/reprise/ProjectScanner'
 import { ProjectFileIndex } from './infrastructure/reprise/ProjectFileIndex'
 import { createRepriseRoutes } from './ipc/repriseHandlers'
 import { GuideService } from './application/reprise/GuideService'
+import { runFileSummary } from './application/ai/FileSummaryTask'
 import { runRepriseGuide } from './application/ai/RepriseGuideTask'
 import { readProjectText } from './infrastructure/reprise/projectText'
 import { maskLocalProjects } from './domain/reprise/maskLocal'
@@ -119,8 +120,10 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { WorkflowService } from './application/workflow/WorkflowService'
-import { WorkflowSymbols } from './application/workflow/WorkflowSymbols'
+import { WorkflowAnatomy } from './application/workflow/WorkflowAnatomy'
 import { WorkflowChats } from './application/workflow/WorkflowChats'
+import { WorkflowSummaries } from './application/workflow/WorkflowSummaries'
+import { FileSummaryRepository } from './infrastructure/db/repositories/FileSummaryRepository'
 import { WorkflowChatRepository } from './infrastructure/db/repositories/WorkflowChatRepository'
 import { WorkflowFoldRepository } from './infrastructure/db/repositories/WorkflowFoldRepository'
 import { StructureService } from './application/structure/StructureService'
@@ -413,6 +416,10 @@ export function bootstrap(shell: ShellPort): AppContext {
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)
   const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })
+  const workflowAnatomy = new WorkflowAnatomy({
+    target: (genesisId, path) => workflow.target(genesisId, path),
+    runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js'))
+  })
   const projectDirOf = (genesisId: string): string | null =>
     conversationRepository.neuron(genesisId)?.projectDir ?? null
   const projectFiles = new ProjectFiles({ profileDir: dataDir })
@@ -828,16 +835,20 @@ export function bootstrap(shell: ShellPort): AppContext {
         workflow,
         workflowFolds,
         (genesisId) => conversationRepository.neuron(genesisId)?.projectDir != null,
-        new WorkflowSymbols({
-          target: (genesisId, path) => workflow.target(genesisId, path),
-          runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js'))
-        }),
+        workflowAnatomy,
         new WorkflowChats({
           repository: new WorkflowChatRepository(database.db),
           linkedGenesis: (genesisId) => {
             const genesis = conversationRepository.neuron(genesisId)
             return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
           }
+        }),
+        new WorkflowSummaries({
+          file: (genesisId, path) => workflow.file(genesisId, path),
+          anatomy: (genesisId, path) => workflowAnatomy.anatomy(genesisId, path),
+          localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+          run: (input, options) => runFileSummary(ai.gateway, input, options),
+          store: new FileSummaryRepository(database.db)
         })
       ),
       ...createAnalysteRoutes({

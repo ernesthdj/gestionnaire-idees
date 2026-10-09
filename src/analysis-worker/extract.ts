@@ -23,6 +23,13 @@ export interface RawSymbol {
   readonly attributes: readonly string[]
   /** Types connus des champs, propriétés et paramètres de constructeur (nom → type), pour résoudre `this.x.f()`. */
   readonly memberTypes: Readonly<Record<string, string>>
+  /**
+   * Offert aux autres fichiers (spec 023 R11) : exporté (TS / JS), `public` (C#), de premier niveau ou non privé (PHP) ;
+   * un membre ne l'est que si sa classe l'est aussi.
+   */
+  readonly exported: boolean
+  /** Première phrase du commentaire collé au-dessus de la déclaration (spec 023 R15) ; `null` sans commentaire. */
+  readonly doc: string | null
 }
 
 export interface RawImport {
@@ -99,6 +106,10 @@ const lastSegment = (text: string): string => text.split(/\\|\.|::|->/).at(-1) ?
 
 class Collector {
   readonly symbols: RawSymbol[] = []
+  /** Visibilité propre de chaque symbole (déclaré exporté ou public, membre non privé), résolue dans `result()`. */
+  private readonly open: boolean[] = []
+  /** Noms exportés après coup (`export { a, b }`, `export default a`). */
+  readonly exportedNames = new Set<string>()
   readonly imports: RawImport[] = []
   readonly calls: RawCall[] = []
   readonly routes: RawRoute[] = []
@@ -111,7 +122,7 @@ class Collector {
     parent: number | null,
     kind: RawSymbolKind,
     name: string,
-    extra: Partial<Pick<RawSymbol, 'bases' | 'attributes' | 'memberTypes'>> = {}
+    extra: Partial<Pick<RawSymbol, 'bases' | 'attributes' | 'memberTypes'>> & { readonly open?: boolean } = {}
   ): number {
     const key = this.symbols.length
     const parentSymbol = parent === null ? undefined : this.symbols[parent]
@@ -127,9 +138,17 @@ class Collector {
       complexity: 1 + countBranches(node),
       bases: extra.bases ?? [],
       attributes: extra.attributes ?? [],
-      memberTypes: extra.memberTypes ?? {}
+      memberTypes: extra.memberTypes ?? {},
+      exported: false,
+      doc: leadingDoc(node)
     })
+    this.open.push(extra.open ?? false)
     return key
+  }
+
+  /** Le symbole `key` est-il une interface (ses membres sont publics d'office en C#) ? */
+  isInterface(key: number | null): boolean {
+    return key !== null && this.symbols[key]?.kind === 'interface'
   }
 
   addCall(from: number | null, callee: string, receiver: string | null, isNew: boolean, node: Node): void {
@@ -138,9 +157,19 @@ class Collector {
   }
 
   result(): FileExtraction {
+    // Les parents précèdent leurs enfants : une passe suffit pour savoir si la classe d'un membre est offerte.
+    const symbols: RawSymbol[] = []
+    for (const symbol of this.symbols) {
+      const open = this.open[symbol.key] === true
+      const exported =
+        symbol.parent === null
+          ? open || this.exportedNames.has(symbol.name)
+          : open && symbols[symbol.parent]?.exported === true
+      symbols.push({ ...symbol, exported })
+    }
     return {
       namespace: this.namespace,
-      symbols: this.symbols,
+      symbols,
       imports: this.imports,
       calls: this.calls,
       routes: this.routes,
@@ -168,6 +197,66 @@ function countBranches(node: Node): number {
 
 function children(node: Node): Node[] {
   return node.namedChildren.filter((child): child is Node => child !== null)
+}
+
+/** Longueur maximale de la phrase tirée d'un commentaire. */
+export const DOC_MAX = 200
+
+/**
+ * Première phrase d'un commentaire de documentation (spec 023 R15), sans marqueurs (ouverture et fermeture de bloc,
+ * étoiles de début de ligne, `///`, `//`, `#`),
+ * balises XML (`<summary>`) ni étiquettes (`@param`…) ; espaces réduits, `DOC_MAX` caractères au plus. Texte seulement.
+ */
+export function cleanDoc(raw: string): string | null {
+  const lines: string[] = []
+  for (const line of raw.split(/\r?\n/)) {
+    const text = line
+      .replace(/^\s*(\/\*\*?|\*\/|\*(?!\/)|\/\/\/?|#)/, '')
+      .replace(/\*\/\s*$/, '')
+      .replace(/<\/?[A-Za-z][^>]*>/g, '')
+      .trim()
+    if (text.startsWith('@')) break
+    if (text !== '') lines.push(text)
+  }
+  const text = lines
+    .join(' ')
+    // Lisible dans un schéma : sans emphase Markdown ni renvois de méthode (« (spec 023 D6, …) », « (FR-012) »).
+    .replace(/\*\*|__|`/g, '')
+    .replace(/\s*\((?:spec \d|FR-|SC-|[DRT]\d|US\d)[^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.])/g, '$1')
+    .trim()
+  if (text === '') return null
+  const sentence = /^(.+?[.!?])(\s|$)/.exec(text)?.[1] ?? text
+  return sentence.length <= DOC_MAX ? sentence : `${sentence.slice(0, DOC_MAX - 1).trimEnd()}…`
+}
+
+/** Commentaire collé au-dessus d'une déclaration (ou de son `export`, de sa déclaration `const`), nettoyé. */
+function leadingDoc(node: Node): string | null {
+  let holder: Node = node
+  if (holder.type === 'variable_declarator' && holder.parent !== null) holder = holder.parent
+  if (holder.parent?.type === 'export_statement') holder = holder.parent
+  const parts: string[] = []
+  let top = holder.startPosition.row
+  for (let previous = holder.previousNamedSibling; previous?.type === 'comment';) {
+    // Collé : au plus une ligne d'écart avec ce qui suit ; un commentaire plus haut appartient à autre chose.
+    if (previous.endPosition.row < top - 1) break
+    parts.unshift(previous.text)
+    top = previous.startPosition.row
+    previous = previous.previousNamedSibling
+  }
+  return parts.length === 0 ? null : cleanDoc(parts.join('\n'))
+}
+
+/** Le nœud porte-t-il un modificateur (enfant du type donné) parmi `words` (`private`, `public`…) ? */
+function hasModifier(node: Node, type: string, words: readonly string[]): boolean {
+  return children(node).some((child) => child.type === type && words.includes(child.text))
+}
+
+/** Déclaration TS / JS sous `export` (directement, ou par la déclaration `const` qui l'englobe). */
+function tsExported(node: Node): boolean {
+  const holder = node.type === 'variable_declarator' ? node.parent : node
+  return holder?.parent?.type === 'export_statement'
 }
 
 // ── TypeScript / JavaScript ─────────────────────────────────────────────────────────────────────────────────────
@@ -233,7 +322,8 @@ function walkTs(node: Node, parent: number | null, out: Collector): void {
       const body = node.childForFieldName('body')
       const key = out.addSymbol(node, parent, node.type === 'interface_declaration' ? 'interface' : 'class', name, {
         bases,
-        memberTypes: tsMemberTypes(body)
+        memberTypes: tsMemberTypes(body),
+        open: tsExported(node)
       })
       if (body !== null) for (const child of children(body)) walkTs(child, key, out)
       return
@@ -241,8 +331,14 @@ function walkTs(node: Node, parent: number | null, out: Collector): void {
     case 'function_declaration':
     case 'generator_function_declaration':
     case 'method_definition': {
-      const name = node.childForFieldName('name')?.text ?? ''
-      const key = out.addSymbol(node, parent, node.type === 'method_definition' ? 'method' : 'function', name)
+      const nameNode = node.childForFieldName('name')
+      const isMethod = node.type === 'method_definition'
+      const key = out.addSymbol(node, parent, isMethod ? 'method' : 'function', nameNode?.text ?? '', {
+        open: isMethod
+          ? nameNode?.type !== 'private_property_identifier' &&
+            !hasModifier(node, 'accessibility_modifier', ['private', 'protected'])
+          : tsExported(node)
+      })
       for (const child of children(node)) walkTs(child, key, out)
       return
     }
@@ -254,7 +350,7 @@ function walkTs(node: Node, parent: number | null, out: Collector): void {
         name?.type === 'identifier' &&
         /arrow_function|function_expression|function$/.test(value.type)
       ) {
-        const key = out.addSymbol(node, parent, 'function', name.text)
+        const key = out.addSymbol(node, parent, 'function', name.text, { open: tsExported(node) })
         walkTs(value, key, out)
         return
       }
@@ -287,6 +383,27 @@ function walkTs(node: Node, parent: number | null, out: Collector): void {
     case 'new_expression': {
       const constructor = node.childForFieldName('constructor')?.text ?? ''
       out.addCall(parent, lastSegment(constructor), null, true, node)
+      break
+    }
+    // Usage d'un composant React (spec 023 R12) : `<Carte …>` appelle `Carte` ; une balise HTML (minuscules) non.
+    case 'jsx_opening_element':
+    case 'jsx_self_closing_element': {
+      const tag = node.childForFieldName('name')?.text ?? ''
+      const dot = tag.lastIndexOf('.')
+      if (/^[A-Z]/.test(lastSegment(tag)) || dot >= 0) {
+        out.addCall(parent, lastSegment(tag), dot < 0 ? null : tag.slice(0, dot), false, node)
+      }
+      break
+    }
+    // `export { a, b as c }` et `export default a` : noms offerts après leur déclaration.
+    case 'export_statement': {
+      const clause = children(node).find((child) => child.type === 'export_clause')
+      for (const specifier of clause === undefined ? [] : children(clause)) {
+        const name = specifier.childForFieldName('name')?.text
+        if (name !== undefined) out.exportedNames.add(name)
+      }
+      const value = node.childForFieldName('value')
+      if (value?.type === 'identifier') out.exportedNames.add(value.text)
       break
     }
     default:
@@ -356,7 +473,8 @@ function walkCs(node: Node, parent: number | null, out: Collector): void {
         bases:
           baseList === undefined ? [] : children(baseList).map((base) => lastSegment(base.text.replace(/<.*$/, ''))),
         attributes: csAttributes(node),
-        memberTypes: csMemberTypes(body)
+        memberTypes: csMemberTypes(body),
+        open: hasModifier(node, 'modifier', ['public']) || out.isInterface(parent)
       })
       if (body !== null) for (const child of children(body)) walkCs(child, key, out)
       return
@@ -365,8 +483,11 @@ function walkCs(node: Node, parent: number | null, out: Collector): void {
     case 'constructor_declaration':
     case 'local_function_statement': {
       const name = node.childForFieldName('name')?.text ?? ''
-      const key = out.addSymbol(node, parent, node.type === 'local_function_statement' ? 'function' : 'method', name, {
-        attributes: csAttributes(node)
+      const local = node.type === 'local_function_statement'
+      const key = out.addSymbol(node, parent, local ? 'function' : 'method', name, {
+        attributes: csAttributes(node),
+        // Membre d'une interface : public sans le dire.
+        open: !local && (hasModifier(node, 'modifier', ['public']) || out.isInterface(parent))
       })
       for (const child of children(node)) walkCs(child, key, out)
       return
@@ -468,7 +589,8 @@ function walkPhp(node: Node, parent: number | null, out: Collector): void {
       const body = node.childForFieldName('body')
       const key = out.addSymbol(node, parent, node.type === 'interface_declaration' ? 'interface' : 'class', name, {
         bases,
-        memberTypes: phpMemberTypes(node)
+        memberTypes: phpMemberTypes(node),
+        open: parent === null
       })
       if (body !== null) for (const child of children(body)) walkPhp(child, key, out)
       return
@@ -476,7 +598,11 @@ function walkPhp(node: Node, parent: number | null, out: Collector): void {
     case 'method_declaration':
     case 'function_definition': {
       const name = node.childForFieldName('name')?.text ?? ''
-      const key = out.addSymbol(node, parent, node.type === 'method_declaration' ? 'method' : 'function', name)
+      const isMethod = node.type === 'method_declaration'
+      const key = out.addSymbol(node, parent, isMethod ? 'method' : 'function', name, {
+        // Méthode sans visibilité : publique en PHP. Fonction : offerte au premier niveau seulement.
+        open: isMethod ? !hasModifier(node, 'visibility_modifier', ['private', 'protected']) : parent === null
+      })
       for (const child of children(node)) walkPhp(child, key, out)
       return
     }

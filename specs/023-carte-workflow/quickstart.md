@@ -23,3 +23,8 @@
    symbolique sortant, fichier de 2 Mo, binaire : ignorés ou refusés, vue non bloquée.
 8. **Performance (SC-002)** — Dépôt du Brainstormer : vue affichée en moins de 2 s ; relecture après un tour sans
    à-coup.
+9. **Expliquer (US5, D15)** — Ouvrir un fichier de code depuis une carte → « ✨ Expliquer ce fichier » : rôle, reçoit,
+   produit, 3 à 5 morceaux numérotés ; clic sur un morceau → code surligné ; « Masquer » puis rouvrir : instantané ;
+   un `.md` n'a pas le bouton ; projet « Local uniquement » : IA locale ou message.
+10. **Tâches faites (D16)** — Sous une user story : « ✓ Faites (N) » replié ; déplié : tâches cochées grisées ✓, chacune
+   ouvre sa carte et ses fichiers.

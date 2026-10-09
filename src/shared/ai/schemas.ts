@@ -64,3 +64,28 @@ export const GuideOut = z.object({
 export type GuideOut = z.infer<typeof GuideOut>
 
 /** Sortie de `resumer` (IA locale) : résumé court d'une idée et de ce que le brainstorming lui a apporté. */
+
+/**
+ * Sortie de `file_summary` (spec 023 D15) : ce que fait un fichier, en langage simple — son rôle, ce qu'il reçoit, ce
+ * qu'il produit, et ses morceaux importants (noms exacts de blocs du fichier, vérifiés ensuite).
+ */
+export const FileSummaryOut = z.object({
+  role: z.string().trim().min(1).max(400),
+  recoit: z.string().trim().min(1).max(400),
+  produit: z.string().trim().min(1).max(400),
+  morceaux: z
+    .array(z.object({ nom: z.string().trim().min(1).max(200), utilite: z.string().trim().min(1).max(300) }))
+    .min(1)
+    .max(6),
+  /** Petit schéma (D15, précisé) : `de` = « entree » ou un morceau, `vers` = un morceau ou « sortie », `verbe` court. */
+  liens: z
+    .array(
+      z.object({
+        de: z.string().trim().min(1).max(200),
+        vers: z.string().trim().min(1).max(200),
+        verbe: z.string().trim().min(1).max(40)
+      })
+    )
+    .max(10)
+})
+export type FileSummaryOut = z.infer<typeof FileSummaryOut>

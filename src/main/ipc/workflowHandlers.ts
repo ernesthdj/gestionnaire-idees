@@ -4,20 +4,23 @@ import { WORKFLOW_KEY } from '@shared/ipc/workflow'
 import { AppError } from '../domain/errors'
 import type { WorkflowService } from '../application/workflow/WorkflowService'
 import type { WorkflowChats } from '../application/workflow/WorkflowChats'
-import type { WorkflowSymbols } from '../application/workflow/WorkflowSymbols'
+import type { WorkflowSummaries } from '../application/workflow/WorkflowSummaries'
+import type { WorkflowAnatomy } from '../application/workflow/WorkflowAnatomy'
 import type { WorkflowFoldRepository } from '../infrastructure/db/repositories/WorkflowFoldRepository'
 import { defineRoute, type IpcRoute } from './registry'
 
 /**
  * Canaux de la vue Workflow (spec 023) : lire la vue d'un projet lié, lire un fichier cité ou de méthode (lecture
- * seule) et ses raccourcis (méthodes, fonctions, classes), mémoriser le repli d'un nœud. Rien n'écrit dans le projet.
+ * seule) et son anatomie (blocs, imports, appels internes : schéma et raccourcis), mémoriser le repli d'un nœud.
+ * Rien n'écrit dans le projet.
  */
 export function createWorkflowRoutes(
   workflow: Pick<WorkflowService, 'read' | 'file'>,
   folds: Pick<WorkflowFoldRepository, 'set'>,
   genesisExists: (genesisId: string) => boolean,
-  symbols?: Pick<WorkflowSymbols, 'symbols'>,
-  chats?: Pick<WorkflowChats, 'open'>
+  anatomy?: Pick<WorkflowAnatomy, 'anatomy'>,
+  chats?: Pick<WorkflowChats, 'open'>,
+  summaries?: Pick<WorkflowSummaries, 'summary' | 'saved'>
 ): IpcRoute[] {
   return [
     defineRoute({
@@ -31,9 +34,22 @@ export function createWorkflowRoutes(
       handler: async ({ genesisId, path }) => workflow.file(genesisId, path)
     }),
     defineRoute({
-      channel: 'workflow:symbols',
+      channel: 'workflow:anatomy',
       input: z.strictObject({ genesisId: z.uuid(), path: ProjectFile }),
-      handler: async ({ genesisId, path }) => (symbols === undefined ? [] : symbols.symbols(genesisId, path))
+      handler: async ({ genesisId, path }) => (anatomy === undefined ? null : anatomy.anatomy(genesisId, path))
+    }),
+    defineRoute({
+      channel: 'workflow:summary',
+      input: z.strictObject({ genesisId: z.uuid(), path: ProjectFile }),
+      handler: async ({ genesisId, path }) => {
+        if (summaries === undefined) throw new AppError('AI_UNAVAILABLE', 'Explication indisponible.')
+        return summaries.summary(genesisId, path)
+      }
+    }),
+    defineRoute({
+      channel: 'workflow:savedSummary',
+      input: z.strictObject({ genesisId: z.uuid(), path: ProjectFile }),
+      handler: async ({ genesisId, path }) => summaries?.saved(genesisId, path) ?? { summary: null, outdated: false }
     }),
     defineRoute({
       channel: 'workflow:chat',

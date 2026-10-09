@@ -164,3 +164,20 @@ export const codeExplorerState = sqliteTable('code_explorer_state', {
   lastLevel: integer('last_level').notNull().default(1),
   lastParentKey: text('last_parent_key')
 })
+
+/**
+ * Explications « Que fait ce fichier ? » (spec 023 D15, D18) : une par fichier d'un projet lié, gardée tant que son
+ * contenu ne change pas (empreinte SHA-256) ; une nouvelle explication remplace l'ancienne. Jamais de code, seulement le
+ * texte de l'explication (JSON revalidé à la lecture).
+ */
+export const codeFileSummaries = sqliteTable(
+  'code_file_summaries',
+  {
+    genesisId: text('genesis_id').notNull(),
+    path: text('path').notNull(),
+    contentHash: text('content_hash').notNull(),
+    summaryJson: text('summary_json').notNull(),
+    createdAt: createdAt()
+  },
+  (t) => [primaryKey({ columns: [t.genesisId, t.path] })]
+)

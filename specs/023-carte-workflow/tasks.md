@@ -66,6 +66,39 @@ est listé sans bouton.
 - [x] T036 [US4] Tests renderer + axe `tests/unit/renderer/workflow-bridge.test.tsx` (fichier couvert → bascule et carte d'élément ouverte, non couvert sans bouton, inexistant grisé)
 - [x] T037 [US4] Test guidé US4 (quickstart scénario 6) — attendre le retour
 
+## Phase 8 — US5 Comprendre un fichier d'un coup d'œil (P5) — ajoutée le 2026-10-09 (D14)
+**Test indépendant** : sur un fichier TS de quelques fonctions qui s'appellent, le schéma montre imports, blocs, arcs
+d'appel et blocs offerts ; un clic sur un bloc surligne son code ; le parcours suit l'ordre des appels.
+- [x] T043 [US5] Processus d'analyse `src/analysis-worker/extract.ts` + `protocol.ts` : `exported` par symbole (R11 : TS/TSX/JS `export_statement`, méthodes publiques d'une classe offerte ; C# `public` ; PHP premier niveau et méthodes non privées) et `<Composant>` JSX compté comme appel (R12) ; tests `tests/unit/reprise/extract.test.ts` (+ cas par langage) et suite 017 relue
+- [x] T044 [P] [US5] Pur `src/main/domain/workflow/anatomy.ts` (`fileAnatomy` : blocs, imports regroupés, appels internes `receiver` nul / `this` / `$this` / `self` / `static` / `new`, ambigus, `maybeUnused`, bornes R10) + `tests/unit/workflow-anatomy.test.ts`
+- [x] T045 [US5] `src/main/application/workflow/WorkflowAnatomy.ts` (remplace `WorkflowSymbols.ts`, même délai et revalidation), `shared/ipc/workflow.ts` (`WorkflowAnatomyView`), `channels.ts`, `ipc/workflowHandlers.ts`, `bootstrap.ts` : `workflow:anatomy` remplace `workflow:symbols` ; tests `integration/workflow/workflow-anatomy` (vrai moteur, réponse piégée, panne, délai) et `ipc/workflow-handlers`
+- [x] T046 [P] [US5] Purs `src/renderer/src/canvas/workflow/anatomyPath.ts` (`readingPath`, `citedBlocks`, raccourcis dérivés) + `tests/unit/renderer/workflow-anatomy-path.test.ts` (récursion, appels croisés, rien d'offert, mot entier)
+- [x] T047 [US5] `src/renderer/src/canvas/workflow/FileAnatomy.tsx` : trois colonnes, arcs SVG, pastilles de complexité, peut-être inutilisés grisés, cités « ✦ », classes repliées au-delà de 40 blocs, « + N autres », mention « appels reconnus par le nom » ; jetons du thème, animations réduites respectées
+- [x] T048 [US5] `WorkflowCard.tsx` : bascule « Code | Schéma » dans `WorkflowFileReader`, raccourcis tirés de l'anatomie, « Parcours » avec Précédent / Suivant (← / →), clic ou Entrée sur un bloc → code surligné ; textes de la tâche ou de l'US transmis (`cited`)
+- [x] T049 [US5] Tests renderer + axe (scénarios 1 à 6 de l'US5) — *écrits dans `tests/unit/renderer/workflow-card.test.tsx` (même banc d'essai de la carte) ; `anatomyRows` testé dans `workflow-anatomy-path.test.ts`*
+- [x] T050 [US5] Test guidé US5 (quickstart scénario 9) — retour de mentalyas : « pas assez ludique et explicite » → D14 précisé, T051–T057
+- [x] T051 [US5] Analyseur : `doc` par symbole (R15 : commentaire collé, première phrase, ≤ 200) ; protocole Zod ; `WorkflowBlockView.doc` ; tests `reprise/extract` (TS, C#, PHP) et `workflow-anatomy`
+- [x] T052 [P] [US5] Purs `src/renderer/src/canvas/workflow/anatomyTree.ts` (`blockRole`, `anatomyTree` : couches, barycentre, liens appel / contient) + `tests/unit/renderer/workflow-anatomy-tree.test.ts`
+- [x] T053 [US5] `src/renderer/src/canvas/workflow/AnatomyNode.tsx` : nœud React Flow à forme et couleur par rôle, phrase, ✦, offert, peut-être inutilisé, étape cochée ; jetons du thème
+- [x] T054 [US5] `src/renderer/src/canvas/workflow/AnatomyOverlay.tsx` : fenêtre plein écran (dialogue, Échap), arbre, légende, survol qui éteint, récit à droite, parcours façon histoire (jauge, ← / →, cadrage), « Voir le code »
+- [x] T055 [US5] `WorkflowCard.tsx` : « ◈ Schéma du fichier » ouvre la fenêtre ; liste à arcs retirée (`FileAnatomy.tsx`, `anatomyRows`)
+- [x] T056 [US5] Tests renderer + axe de la fenêtre (récit, survol, parcours, Voir le code, Échap) ; `workflow-card.test.tsx` adapté
+- [x] T057 [US5] Test guidé US5 bis — retour de mentalyas : « le survol est bugué, et le résultat général n'est pas compréhensible » → D15 (schéma retiré), D16
+- [x] T058 [US5] Tâche `file_summary` : `domain/ai/{types,routing}.ts`, `shared/ai/schemas.ts` (`FileSummaryOut`), `infrastructure/ai/FileSummaryFrame.ts`, `ContextAssembler.ts`, `composition/aiEngine.ts` (modèle des éléments), `application/ai/FileSummaryTask.ts`
+- [x] T059 [US5] `application/workflow/WorkflowSummaries.ts` (cache, blocs existants, local uniquement) + canal `workflow:summary` (`channels.ts`, `workflowHandlers.ts`, `bootstrap.ts`) ; tests `workflow-summaries`, `ipc/workflow-handlers`
+- [x] T060 [US5] `canvas/workflow/FileExplanation.tsx` + bouton « ✨ Expliquer ce fichier » dans `WorkflowFileReader` ; schéma retiré (`AnatomyOverlay`, `AnatomyNode`, `anatomyTree`, `anatomyPath`, formes CSS) ; tests `renderer/workflow-card`
+- [x] T061 [US5] Test guidé « Expliquer ce fichier » — retour de mentalyas : « l'explication est TOP » + demande d'un petit Mermaid → D15 précisé, T064
+- [x] T064 [US5] Petit schéma : `liens` dans `FileSummaryOut` et le cadre (v2), `flow` filtré dans `WorkflowSummaries`, `canvas/workflow/flowDiagram.ts` (disposition, Mermaid) + `FlowDiagram` dans `FileExplanation.tsx` ; tests `workflow-summaries`, `renderer/workflow-flow-diagram`, `renderer/workflow-card`
+- [x] T065 [US5] Test guidé du petit schéma — retour de mentalyas (capture) : « trop petit… empiler horizontalement » → D17
+- [x] T066 [US5] D17 : colonnes côte à côte (`WorkflowFileReader`, `cards.css` : `.workflow-reader-wide`), schéma à taille naturelle (`FileExplanation.tsx`), « ⤢ Agrandir » plein écran (portail, Échap) ; tests `renderer/workflow-card`
+- [x] T067 [US5] Test guidé D17 — retour de mentalyas (capture) : verbes illisibles sur les liens → D17 précisé, T068
+- [x] T068 [US5] Schéma qui respire : départs sur la première rangée, écarts agrandis, verbes en pastilles sans chevauchement (`flowDiagram.ts`, `FileExplanation.tsx`) ; test `renderer/workflow-flow-diagram` (cas de la capture)
+- [x] T069 [US5] Test guidé T068 — retour de mentalyas : garder l'explication tant que le code ne change pas → D18
+- [x] T070 [US5] D18 : table `code_file_summaries` (`schemaReprise.ts`, migration `0038_file_summaries` + `down`), `FileSummaryRepository`, `WorkflowSummaries` (`saved`, enregistrement, revalidation), canal `workflow:savedSummary`, lecteur (affichage d'office, « Réexpliquer ») ; tests `integration/workflow/file-summary-repository`, `workflow-summaries`, `ipc/workflow-handlers`, `renderer/workflow-card`
+- [x] T071 [US5] Test guidé D18 (redémarrage compris) — attendre le retour
+- [ ] T062 [US1] D16 : nœud « ✓ Faites (N) » replié d'office sous chaque user story et socle (`workflowTree.ts`, `workflowGraph.ts`, `WorkflowNode.tsx`, `prompts.ts` : pas de « Discuter » pour implémenter une tâche faite) ; tests `renderer/workflow-tree`, `renderer/workflow-view`
+- [ ] T063 [US1] Test guidé D16 — attendre le retour
+
 ## Phase 7 — Finitions
 - [ ] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`
 - [ ] T039 [P] Démo : `src/main/infrastructure/db/demo/seedDemo.ts` crée un petit dossier de méthode fictif dans le profil démo (deux specs, un L1 à brainstormer, une fondation) lié à un genesis ; mise à jour de la ligne `seed:demo` de `CLAUDE.md`
@@ -77,6 +110,7 @@ est listé sans bouton.
 - Phase 1 → Phase 2 → US1 (bloquant pour US2 à US4 : arbre, nœuds, bascule).
 - US2, US3, US4 dépendent d'US1 et sont indépendantes entre elles (même fichier `WorkflowCard.tsx` : à enchaîner, pas
   en parallèle).
+- US5 dépend d'US4 (lecteur des fichiers) ; T043 et T044 d'abord, T046 en parallèle.
 - Finitions après les user stories ; T038 n'écrit rien sans l'accord de mentalyas.
 
 ## Parallélisme

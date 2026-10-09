@@ -37,21 +37,53 @@ describe('canaux workflow:* (spec 023)', () => {
     expect(workflow.file).toHaveBeenCalledTimes(1)
   })
 
-  it('should_return_shortcuts_only_for_relative_paths_and_none_without_the_analysis', async () => {
-    const symbols = {
-      symbols: vi.fn(async () => [{ name: 'lire', kind: 'method' as const, startLine: 2, endLine: 4 }])
+  it('should_return_the_anatomy_only_for_relative_paths_and_none_without_the_analysis', async () => {
+    const anatomy = {
+      anatomy: vi.fn(async () => ({ blocks: [], imports: [], calls: [], truncated: false }))
     }
     const { workflow, folds } = setup()
-    const dispatch = createDispatcher(createWorkflowRoutes(workflow, folds, () => true, symbols))
-    expect(await dispatch('workflow:symbols', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+    const dispatch = createDispatcher(createWorkflowRoutes(workflow, folds, () => true, anatomy))
+    expect(await dispatch('workflow:anatomy', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
       success: true,
-      data: [{ name: 'lire' }]
+      data: { blocks: [] }
     })
-    expect(await dispatch('workflow:symbols', { genesisId: ID, path: '../x.ts' })).toMatchObject({ success: false })
-    expect(symbols.symbols).toHaveBeenCalledTimes(1)
-    expect(await setup().dispatch('workflow:symbols', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+    expect(await dispatch('workflow:anatomy', { genesisId: ID, path: '../x.ts' })).toMatchObject({ success: false })
+    expect(anatomy.anatomy).toHaveBeenCalledTimes(1)
+    expect(await setup().dispatch('workflow:anatomy', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
       success: true,
-      data: []
+      data: null
+    })
+  })
+
+  it('should_explain_only_relative_files_and_refuse_without_the_service', async () => {
+    const summaries = {
+      saved: vi.fn(() => ({ summary: null, outdated: true })),
+      summary: vi.fn(async () => ({
+        role: 'r',
+        receives: 'e',
+        produces: 's',
+        parts: [],
+        flow: [],
+        engine: 'claude' as const,
+        model: 'm'
+      }))
+    }
+    const { workflow, folds } = setup()
+    const dispatch = createDispatcher(
+      createWorkflowRoutes(workflow, folds, () => true, undefined, undefined, summaries)
+    )
+    expect(await dispatch('workflow:summary', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+      success: true,
+      data: { role: 'r' }
+    })
+    expect(await dispatch('workflow:summary', { genesisId: ID, path: '../x.ts' })).toMatchObject({ success: false })
+    expect(summaries.summary).toHaveBeenCalledTimes(1)
+    expect(await dispatch('workflow:savedSummary', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+      success: true,
+      data: { summary: null, outdated: true }
+    })
+    expect(await setup().dispatch('workflow:summary', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+      success: false
     })
   })
 

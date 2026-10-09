@@ -295,6 +295,13 @@
   max-height: 600px;
   overflow: auto;
 }
+/* Lecteur Workflow avec l'explication (spec 023 D17) : explication et code côte à côte, sur une hauteur fixe. */
+.detail-card-side-reader:has(> .workflow-reader-wide) {
+  width: 1000px;
+  max-width: none;
+  height: 600px;
+  overflow: hidden;
+}
 
 /* ---------- Thème Carbone ---------- */
 @property --card-shine {

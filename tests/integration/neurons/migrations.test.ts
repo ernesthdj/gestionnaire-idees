@@ -160,11 +160,23 @@ describe('migrations du modèle de neurones', () => {
       'code_explorer_state'
     ]
     expect(tables()).toEqual(expect.arrayContaining(added))
+    // Les annulations se jouent à rebours : la table des explications (0038) part d'abord.
+    runDown('0038_file_summaries')
     runDown('0029_reprise_guide')
     expect(columns('code_projects')).not.toContain('guide_document_id')
     runDown('0028_reprise_projet')
     expect(tables().some((name) => name.startsWith('code_'))).toBe(false)
     expect(tables()).toContain('neurons')
+  })
+
+  it('should_add_the_file_summaries_table_then_remove_it_with_the_down_migration', () => {
+    expect(tables()).toContain('code_file_summaries')
+    expect(columns('code_file_summaries')).toEqual(
+      expect.arrayContaining(['genesis_id', 'path', 'content_hash', 'summary_json', 'created_at'])
+    )
+    runDown('0038_file_summaries')
+    expect(tables()).not.toContain('code_file_summaries')
+    expect(tables()).toContain('code_projects')
   })
 
   it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {

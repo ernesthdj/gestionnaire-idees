@@ -100,6 +100,75 @@ export interface WorkflowSymbolView {
   readonly endLine: number
 }
 
+/** Bloc d'un fichier dans son anatomie (spec 023 D14, R10) : classe, interface, fonction ou méthode. */
+export interface WorkflowBlockView {
+  /** Rang dans le fichier ; `parent` et les appels y renvoient. */
+  readonly id: number
+  /** Classe ou interface englobante. */
+  readonly parent: number | null
+  readonly kind: WorkflowSymbolView['kind']
+  readonly name: string
+  readonly startLine: number
+  readonly endLine: number
+  /** Complexité cyclomatique approchée (1 + branches). */
+  readonly complexity: number
+  /** Offert aux autres fichiers (R11). */
+  readonly exported: boolean
+  /** Ni offert, ni appelé dans le fichier, ni parent d'un bloc utile (R12) : « peut-être inutilisé ». */
+  readonly maybeUnused: boolean
+  /** Ce que fait le bloc : première phrase de son commentaire (R15), texte seulement ; `null` sans commentaire. */
+  readonly doc: string | null
+}
+
+/** Appel d'un bloc du fichier vers un autre, reconnu par le nom (R12). */
+export interface WorkflowCallView {
+  readonly from: number
+  readonly to: number
+  /** Première ligne de l'appel. */
+  readonly line: number
+  /** Plusieurs blocs portent ce nom : l'appel est relié à chacun. */
+  readonly ambiguous: boolean
+}
+
+/** Anatomie d'un fichier pour le schéma du lecteur (`workflow:anatomy`, spec 023 US5). */
+export interface WorkflowAnatomyView {
+  readonly blocks: readonly WorkflowBlockView[]
+  /** Sources d'import regroupées : module, nombre de noms importés, première ligne. */
+  readonly imports: readonly { readonly source: string; readonly names: number; readonly line: number }[]
+  readonly calls: readonly WorkflowCallView[]
+  /** Une borne a coupé des blocs, des imports ou des appels. */
+  readonly truncated: boolean
+}
+
+/** « Que fait ce fichier ? » (`workflow:summary`, spec 023 D15) : expliqué par Claude, ou le modèle local. */
+export interface WorkflowFileSummaryView {
+  readonly role: string
+  readonly receives: string
+  readonly produces: string
+  /** Morceaux importants, dans l'ordre de lecture ; seuls les blocs qui existent dans le fichier sont gardés. */
+  readonly parts: readonly {
+    readonly name: string
+    readonly why: string
+    readonly startLine: number
+    readonly endLine: number
+  }[]
+  /**
+   * Petit schéma : flèches entre `in` (ce qu'il reçoit), les morceaux (par leur nom) et `out` (ce qu'il produit) ;
+   * seuls les liens dont les deux bouts existent sont gardés.
+   */
+  readonly flow: readonly { readonly from: string; readonly to: string; readonly label: string }[]
+  readonly engine: 'claude' | 'ollama'
+  readonly model: string
+}
+
+/** Explication enregistrée d'un fichier (`workflow:savedSummary`, D18) : aucune IA n'est appelée pour la lire. */
+export interface WorkflowSavedSummaryView {
+  /** L'explication, si elle correspond au contenu actuel du fichier. */
+  readonly summary: WorkflowFileSummaryView | null
+  /** Une explication existe, mais le code a changé depuis. */
+  readonly outdated: boolean
+}
+
 /** Fichier lu pour le lecteur d'une carte Workflow (`workflow:file`). */
 export interface WorkflowFileView {
   readonly path: string

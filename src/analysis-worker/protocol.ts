@@ -50,7 +50,9 @@ const RawSymbol = z.strictObject({
   complexity: z.number().int().positive(),
   bases: z.array(Text(300)).max(50),
   attributes: z.array(Text(200)).max(50),
-  memberTypes: z.record(Text(300), Text(300))
+  memberTypes: z.record(Text(300), Text(300)),
+  exported: z.boolean(),
+  doc: Text(300).nullable()
 })
 
 const Extraction = z.strictObject({

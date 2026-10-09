@@ -76,7 +76,9 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
               ? ANALYSTE_MODEL
               : kind === 'skill_card'
                 ? SKILL_CARD_MODEL
-                : undefined
+                : kind === 'file_summary'
+                  ? current.elementModel
+                  : undefined
       }
     },
     context: async (kind) => options.contextSource(kind),
