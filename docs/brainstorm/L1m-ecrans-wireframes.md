@@ -96,6 +96,14 @@ la spec, la carte de structure, le plan d'attaque et des écrans de référence 
 - **Local d'abord** : widgets et états dans la base chiffrée, avec le canevas du projet (et ses points de sauvegarde).
 - **Simplicité** : aucune nouvelle bibliothèque, aucune nouvelle fenêtre ; trois ajouts ciblés aux widgets.
 
+## Avancement (2026-10-10)
+
+Spec 026 livrée : boutons **Wireframe**, **Parcours**, **Adapter au nœud** (consignes figées dans le cadre), contexte
+complet du nœud transmis à Claude, **état persistant** du widget (ajout 1), contenu mis à l'échelle du bloc. Restent :
+Claude lit et modifie un widget par MCP (ajout 2), plein écran (ajout 3). Réponses déjà données : l'état est gardé d'une
+version à l'autre (question 1) ; il n'est pas encore dans les points de sauvegarde (question 2) ; une consigne type par
+bouton (question 4) ; 64 Ko, règles du résultat (question 5).
+
 ## Questions ouvertes (pour la spec)
 
 1. L'état d'un widget est-il compris dans ses versions (une nouvelle version garde-t-elle les réglages, ou repart-elle

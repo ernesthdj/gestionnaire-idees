@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
-import type { WidgetView } from '@shared/ipc/widgets'
+import type { WidgetBuild, WidgetView } from '@shared/ipc/widgets'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -17,6 +17,8 @@ export interface WidgetActions {
   /** Moteur annoncé par le main pendant la génération. */
   readonly worker: AiWorker | null
   prompt(text: string): Promise<boolean>
+  /** Construction prédéfinie à partir des nœuds branchés (spec 026). */
+  build(action: WidgetBuild): Promise<boolean>
   restore(versionId: string): Promise<void>
 }
 
@@ -55,11 +57,11 @@ export function useWidget(blockId: string): WidgetActions {
     return () => offs.forEach((off) => off())
   }, [blockId, client])
 
-  const prompt = useCallback(
-    async (text: string): Promise<boolean> => {
+  const generate = useCallback(
+    async (channel: 'widget:prompt' | 'widget:build', payload: Readonly<Record<string, string>>): Promise<boolean> => {
       setBusy(true)
       try {
-        client.setQueryData(['widget', blockId], await call<WidgetView>('widget:prompt', { blockId, text }))
+        client.setQueryData(['widget', blockId], await call<WidgetView>(channel, { blockId, ...payload }))
         return true
       } catch (error) {
         showToast(error instanceof IpcFailure ? error.message : 'La demande n’a pas pu être envoyée à Claude.')
@@ -72,6 +74,8 @@ export function useWidget(blockId: string): WidgetActions {
     },
     [blockId, client, showToast]
   )
+  const prompt = useCallback((text: string) => generate('widget:prompt', { text }), [generate])
+  const build = useCallback((action: WidgetBuild) => generate('widget:build', { action }), [generate])
 
   const restore = useCallback(
     async (versionId: string): Promise<void> => {
@@ -84,5 +88,5 @@ export function useWidget(blockId: string): WidgetActions {
     [blockId, client, showToast]
   )
 
-  return { widget, busy, worker, prompt, restore }
+  return { widget, busy, worker, prompt, build, restore }
 }

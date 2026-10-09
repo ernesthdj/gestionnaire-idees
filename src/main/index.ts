@@ -68,6 +68,9 @@ function start(): void {
     context?.database.close()
   })
 
+  // Tests e2e : Claude simulé (réponse lue dans un fichier fictif), jamais hors du profil e2e de développement.
+  const e2eReply = e2eProfile ? process.env['GI_E2E_CLAUDE_REPLY'] : undefined
+  const e2eClaudeReply = e2eReply !== undefined && isAbsolute(e2eReply) ? e2eReply : undefined
   void app.whenReady().then(() => {
     context = bootstrap(
       {
@@ -80,7 +83,10 @@ function start(): void {
           windows.showMain({ section: 'ideas', diveRootId: rootId })
         }
       },
-      { e2eLocalRemotes: e2eProfile && process.env['GI_E2E_LOCAL_REMOTES'] === '1' }
+      {
+        e2eLocalRemotes: e2eProfile && process.env['GI_E2E_LOCAL_REMOTES'] === '1',
+        ...(e2eClaudeReply === undefined ? {} : { e2eClaudeReply })
+      }
     )
     if (demoProfile) {
       // Dossier de méthode fictif du profil démo (spec 023 T039), lié au genesis « application de notes ».

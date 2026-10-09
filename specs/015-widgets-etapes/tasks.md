@@ -21,11 +21,13 @@
 - [ ] T010 [US3] Test guidé (quickstart §3) — attendre le retour
 
 ## Phase 3 bis — US4/US5 Construire depuis le nœud, contexte préparé (D5–D7)
-- [ ] T012 [US4] Cadre `WidgetFrame` : construction à partir d'un contexte de nœud (forme libre, résumé des sources), sortie facultative `extraction` (consigne) + `context` (JSON) ; schéma de sortie étendu + tests
-- [ ] T013 [US4] `WidgetService.build(blockId)` : contexte complet des sources (assemblage spec 015, valeurs), code existant si « Adapter », version « À revoir » ; `WidgetIoService.connect` → construction auto si widget vide + tests
+> 2026-10-10 : T012, T013 et T016 (partie US4) sont faites par la spec 026 (constructions Wireframe, Parcours, Adapter ;
+> plus de construction automatique au branchement, 026 D6). US5 (contexte préparé) reste en pause.
+- [x] T012 [US4] Cadre `WidgetFrame` : construction à partir d'un contexte de nœud (forme libre, résumé des sources), sortie facultative `extraction` (consigne) + `context` (JSON) ; schéma de sortie étendu + tests
+- [x] T013 [US4] `WidgetService.build(blockId)` : contexte complet des sources (assemblage spec 015, valeurs), code existant si « Adapter », version « À revoir » ; `WidgetIoService.connect` → construction auto si widget vide + tests
 - [ ] T014 [US5] Migration `0027_widget_contexts` (+ down), dépôt : consigne, données, empreinte source, date + tests
 - [ ] T015 [US5] Contexte transmis dans `widgetIo:inputs` (autorisé seulement), état « à actualiser » (empreinte), `widgetIo:refreshContext` (tâche d'extraction, JSON validé 50 Ko) + tests
-- [ ] T016 [US4/US5] Interface : « Claude construit… », « Adapter au nœud » (revue et widget), « Le nœud a changé — Actualiser » + tests renderer/axe
+- [x] T016 [US4/US5] Interface : « Claude construit… », « Adapter au nœud » (revue et widget), « Le nœud a changé — Actualiser » + tests renderer/axe
 - [ ] T017 [US4/US5] Test guidé (quickstart §4, §5) — attendre le retour
 
 ## Phase 4 — Finitions

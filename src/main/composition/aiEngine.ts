@@ -4,6 +4,7 @@ import { LocalQueue } from '../application/ai/LocalQueue'
 import type { AgentContext } from '../application/ai/ports'
 import type { TaskKind } from '../domain/ai/types'
 import { resolveClaudePath } from '../infrastructure/claude/claudePath'
+import { e2eClaudeRun } from '../infrastructure/ai/E2eClaude'
 import { ClaudeCliProvider } from '../infrastructure/ai/ClaudeCliProvider'
 import { OllamaProvider } from '../infrastructure/ai/OllamaProvider'
 import type { AppDatabase } from '../infrastructure/db/client'
@@ -38,6 +39,8 @@ export interface AiEngineOptions {
   readonly onQueuedCompleted: (requestId: string, data: unknown) => void
   /** Clé des empreintes de la sonde de l'Analyste (spec 019), `null` quand elle est inactive. */
   readonly fingerprintKey?: () => string | null
+  /** Tests e2e seulement : réponse simulée de Claude, lue dans ce fichier fictif (aucun appel réel). */
+  readonly e2eClaudeReply?: string
 }
 
 /** Modèle de l'Analyste interne (spec 019 T022) : lecture du dépôt et raisonnement sur le code. */
@@ -55,8 +58,10 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   mkdirSync(options.cliSandbox, { recursive: true })
 
   const ollama = new OllamaProvider({ baseUrl: options.ollamaUrl, model: () => config.get().localModel })
+  const reply = options.e2eClaudeReply
   const claude = new ClaudeCliProvider({
-    claudePath: resolveClaudePath,
+    claudePath: reply === undefined ? resolveClaudePath : async () => 'claude-e2e',
+    ...(reply === undefined ? {} : { run: e2eClaudeRun(reply) }),
     model: () => config.get().claudeModel,
     cwd: () => options.cliSandbox,
     deniedReadDirs: () => options.deniedReadDirs

@@ -3,7 +3,15 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { InputPart, InputSourceKind } from '@shared/ipc/widgetIo'
 import { normalizeParts } from '../../../domain/widgets/inputParts'
 import type { AppDatabase } from '../client'
-import { canvasBlocks, extensions, neurons, widgetApprovals, widgetInputs, widgetResults } from '../schemaNeurons'
+import {
+  canvasBlocks,
+  extensions,
+  neurons,
+  widgetApprovals,
+  widgetInputs,
+  widgetResults,
+  widgetStates
+} from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
 
 export interface WidgetInputRow {
@@ -143,6 +151,24 @@ export class WidgetIoRepository {
       .from(widgetResults)
       .where(eq(widgetResults.blockId, blockId))
       .get()
+  }
+
+  /** État enregistré par un widget (spec 026) : remplace le précédent. */
+  saveState(blockId: string, dataJson: string): void {
+    const updatedAt = new Date().toISOString()
+    this.db
+      .insert(widgetStates)
+      .values({ blockId, dataJson, updatedAt })
+      .onConflictDoUpdate({ target: widgetStates.blockId, set: { dataJson, updatedAt } })
+      .run()
+  }
+
+  savedState(blockId: string): string | undefined {
+    return this.db
+      .select({ dataJson: widgetStates.dataJson })
+      .from(widgetStates)
+      .where(eq(widgetStates.blockId, blockId))
+      .get()?.dataJson
   }
 
   /** Questions posées sur une idée et la réponse donnée à chacune (sous-neurone né de la question). */

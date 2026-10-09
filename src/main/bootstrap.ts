@@ -215,6 +215,8 @@ function migrationsFolder(): string {
 export interface BootstrapOptions {
   /** Tests e2e (`--e2e`) : un dépôt nu local sert de distant (transport local permis). */
   readonly e2eLocalRemotes?: boolean
+  /** Tests e2e (`--e2e`) : Claude simulé, sa réponse lue dans ce fichier fictif (spec 026). */
+  readonly e2eClaudeReply?: string
 }
 
 export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): AppContext {
@@ -322,6 +324,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     logger,
     ollamaUrl: ollama.url,
     cliSandbox: join(dataDir, 'cli-sandbox'),
+    ...(options.e2eClaudeReply === undefined ? {} : { e2eClaudeReply: options.e2eClaudeReply }),
     deniedReadDirs: protectedDirs(dataDir),
     contextSource: (kind) => contextService.activeContext(kind),
     // Rejeu de la file locale (ex. catégorisation d'une idée capturée pendant qu'Ollama était arrêté).
@@ -449,7 +452,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     repository: widgetRepository,
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event),
-    inputShape: (blockId) => widgetIo.inputShape(blockId)
+    inputContext: (blockId) => widgetIo.inputContext(blockId),
+    savedState: (blockId) => widgetIo.savedState(blockId)
   })
   const mapLinkRepository = new MapLinkRepository(database.db)
   const elementRepository = new ElementRepository(database.db)

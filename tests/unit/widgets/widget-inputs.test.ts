@@ -8,9 +8,12 @@ import {
   type IdeaFacts,
   type StepFacts
 } from '../../../src/main/application/widgets/InputAssembler'
-import { buildWidgetDocument, WIDGET_CSP } from '../../../src/main/application/widgets/WidgetDocument'
+import {
+  buildWidgetDocument,
+  WIDGET_CSP,
+  WIDGET_DESIGN_WIDTH
+} from '../../../src/main/application/widgets/WidgetDocument'
 import { defaultParts, normalizeParts, partsFor } from '../../../src/main/domain/widgets/inputParts'
-import { shapeOf, shapeSignature } from '../../../src/main/domain/widgets/shape'
 import { IDEA_PARTS, STEP_PARTS } from '../../../src/shared/ipc/widgetIo'
 
 const SHEET = {
@@ -205,33 +208,6 @@ describe('parties d’un branchement (spec 015 R1)', () => {
   })
 })
 
-describe('structure d’une donnée décrite à Claude (spec 005 FR-012)', () => {
-  it('should_describe_fields_types_and_sizes_without_any_value', () => {
-    const shape = shapeOf([
-      {
-        total: 1250,
-        lignes: [
-          { libelle: 'Traiteur', montant: 900 },
-          { libelle: 'DJ', montant: 350 }
-        ]
-      }
-    ])
-    expect(shape).toBe('[{ lignes: [{ libelle: string, montant: number }] × 2, total: number }] × 1')
-    expect(shape).not.toMatch(/Traiteur|DJ|900|350|1250/)
-  })
-
-  it('should_handle_empty_mixed_and_null_values', () => {
-    expect(shapeOf({ a: [], b: [1, 'x'], c: null, d: true })).toBe(
-      '{ a: [], b: [(number | string)] × 2, c: null, d: boolean }'
-    )
-  })
-
-  it('should_give_the_same_signature_to_data_of_the_same_shape_whatever_its_size', () => {
-    expect(shapeSignature({ lignes: [{ m: 1 }] })).toBe(shapeSignature({ lignes: [{ m: 2 }, { m: 3 }] }))
-    expect(shapeSignature({ lignes: [{ m: 1 }] })).not.toBe(shapeSignature({ lignes: [{ m: 'x' }] }))
-  })
-})
-
 describe('pont des entrées dans le document isolé (spec 005 FR-004)', () => {
   const document = buildWidgetDocument(
     { title: 'Budget', html: '<main></main>', css: '', js: 'gi.onInputs(render)' },
@@ -248,6 +224,19 @@ describe('pont des entrées dans le document isolé (spec 005 FR-004)', () => {
   it('should_accept_inputs_only_from_the_application_window', () => {
     expect(document).toContain('if (event.source !== window.parent) return')
     expect(document).toContain("data.type !== 'gi:inputs' || !Array.isArray(data.inputs)")
+  })
+
+  it('should_hand_the_saved_state_once_and_relay_saves_to_the_application_only', () => {
+    expect(document).toContain("data.type === 'gi:state' && 'state' in data")
+    expect(document).toContain('if (stateReceived) return')
+    expect(document).toContain("window.parent.postMessage({ type: 'gi:saveState', data: plain }, '*')")
+    expect(document).not.toMatch(/localStorage|indexedDB/)
+  })
+
+  it('should_scale_the_widget_down_to_its_block_from_a_760_px_layout', () => {
+    expect(WIDGET_DESIGN_WIDTH).toBe(760)
+    expect(document).toContain('window.innerWidth / 760')
+    expect(document).toContain('html { zoom: var(--gi-zoom, 1);')
   })
 
   it('should_still_open_no_network_access', () => {

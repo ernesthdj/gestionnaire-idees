@@ -16,8 +16,7 @@ import {
   type WidgetResultView
 } from '@shared/ipc/widgetIo'
 import { AppError } from '../../domain/errors'
-import { checkResult } from '../../domain/widgets/resultLimits'
-import { shapeOf } from '../../domain/widgets/shape'
+import { checkResult, checkState } from '../../domain/widgets/resultLimits'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { WidgetInputRow, WidgetIoRepository } from '../../infrastructure/db/repositories/WidgetIoRepository'
 import type { WidgetRepository, WidgetVersionRow } from '../../infrastructure/db/repositories/WidgetRepository'
@@ -217,10 +216,39 @@ export class WidgetIoService {
     }
   }
 
-  /** Structure des entrées branchées (sans aucune valeur), décrite à Claude quand il fait évoluer le widget. */
-  inputShape(blockId: string): string | null {
+  /**
+   * Contexte complet des nœuds branchés (valeurs comprises, spec 026 D1), remis à Claude quand il construit ou fait
+   * évoluer le widget ; `null` si rien de vivant n'est branché. Les parties décochées ne sont pas transmises.
+   */
+  inputContext(blockId: string): { readonly titles: readonly string[]; readonly json: string } | null {
     const rows = this.deps.repository.inputs(blockId)
-    return rows.length === 0 ? null : shapeOf(this.assemble(rows))
+    const inputs = this.assemble(rows)
+    if (inputs.length === 0) return null
+    const titles = rows
+      .map((row) => this.sourceTitle(row.sourceKind, row.sourceId).title)
+      .filter((title): title is string => title !== null)
+    return { titles, json: JSON.stringify(inputs, null, 1) }
+  }
+
+  /** Enregistre l'état d'un widget (spec 026 D5) : JSON borné, gardé d'une version à l'autre. */
+  saveState(input: { readonly blockId: string; readonly data: unknown }): { readonly ok: true } {
+    this.widgetOrThrow(input.blockId)
+    const check = checkState(input.data)
+    if (!check.ok) throw new AppError('VALIDATION', check.reason)
+    this.deps.repository.saveState(input.blockId, check.json)
+    return { ok: true }
+  }
+
+  /** État enregistré d'un widget, `null` s'il n'en a pas (ou si la valeur stockée est abîmée). */
+  savedState(blockId: string): unknown {
+    this.widgetOrThrow(blockId)
+    const json = this.deps.repository.savedState(blockId)
+    if (json === undefined) return null
+    try {
+      return JSON.parse(json) as unknown
+    } catch {
+      return null
+    }
   }
 
   /** Traits de la carte : branchements dont la source existe encore. */

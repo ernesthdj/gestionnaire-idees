@@ -1,7 +1,7 @@
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
 import { useId, useRef, useState } from 'react'
 import { BLOCK_LIMITS } from '@shared/ipc/canvas'
-import { WIDGET_PROMPT_MAX_CHARS, type WidgetView } from '@shared/ipc/widgets'
+import { WIDGET_PROMPT_MAX_CHARS, type WidgetBuild, type WidgetView } from '@shared/ipc/widgets'
 import { useEffectiveSettings } from '../../app/useAppSettings'
 import { AiThinking } from '../../widgets/AiThinking'
 import { CodeView } from '../../widgets/CodeView'
@@ -85,6 +85,37 @@ function Chat({ view, actions }: { readonly view: WidgetView | undefined; readon
           Envoyer
         </button>
       </form>
+    </div>
+  )
+}
+
+/** Constructions prédéfinies (spec 026) : leur consigne complète est figée dans le main. */
+const BUILDS: readonly { readonly action: WidgetBuild; readonly label: string; readonly hint: string }[] = [
+  { action: 'wireframe', label: '🖼 Wireframe', hint: 'Écrans basse fidélité tirés du nœud, avec panneau de réglages' },
+  { action: 'parcours', label: '🔀 Parcours', hint: 'Parcours jouable de l’utilisateur, écran par écran' },
+  { action: 'adapter', label: '🛠 Adapter au nœud', hint: 'Claude choisit l’outil le plus utile pour ce nœud' }
+]
+
+/** Barre des constructions, visible dès qu'un nœud est branché sur le widget. */
+function BuildBar({ actions }: { readonly actions: WidgetActions }) {
+  return (
+    <div
+      role="group"
+      aria-label="Générer à partir du nœud branché"
+      className="nodrag flex shrink-0 flex-wrap gap-1 border-t border-content-muted/20 bg-surface-raised/60 px-2 pt-2"
+    >
+      {BUILDS.map((build) => (
+        <button
+          key={build.action}
+          type="button"
+          title={build.hint}
+          disabled={actions.busy}
+          onClick={() => void actions.build(build.action)}
+          className="h-7 rounded-md border border-content-muted/30 bg-surface px-2 text-xs font-medium hover:border-accent disabled:opacity-50"
+        >
+          {build.label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -197,7 +228,9 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
           <div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-content-muted">
             {actions.widget.isError
               ? 'Ce widget n’a pas pu être chargé.'
-              : 'Décris l’outil voulu : Claude le fabriquera ici.'}
+              : inputCount === 0
+                ? 'Tire un lien d’une idée ou d’une étape jusqu’ici pour générer un wireframe ou un parcours, ou décris l’outil voulu.'
+                : 'Choisis Wireframe, Parcours ou Adapter, ou décris l’outil voulu : Claude le fabriquera ici.'}
           </div>
         ) : showCode ? (
           <CodeView code={current} />
@@ -230,6 +263,7 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
             </button>
           </div>
         ) : null}
+        {inputCount === 0 ? null : <BuildBar actions={actions} />}
         <Chat view={view} actions={actions} />
         {/* Point d'arrivée d'un lien tiré depuis une idée ou une prochaine étape (spec 005 FR-001). */}
         <Handle

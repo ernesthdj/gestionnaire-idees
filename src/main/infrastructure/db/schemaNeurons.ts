@@ -501,6 +501,18 @@ export const widgetResults = sqliteTable('widget_results', {
 })
 
 /**
+ * État enregistré par un widget (spec 026 D5) : réglages et saisies, JSON borné revalidé par le main, gardé d'une
+ * version à l'autre ; jamais exécuté hors du cadre isolé.
+ */
+export const widgetStates = sqliteTable('widget_states', {
+  blockId: text('block_id')
+    .primaryKey()
+    .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
+  dataJson: text('data_json').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/**
  * Outil proposé à l'éclosion et coché (spec 006) : la demande reste attachée à son widget tant qu'il n'a aucune
  * version, pour que « Réessayer » relance la même génération (après un échec ou un redémarrage).
  */

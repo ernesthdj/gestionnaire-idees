@@ -45,6 +45,17 @@ export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
       input: z.object({ blockId: Id, versionId: Id, data: z.unknown() }).strict(),
       handler: async (input) => io.emit(input)
     }),
+    // État du widget (spec 026) : donnée libre aussi, bornée par le service (JSON seul, 64 Ko).
+    defineRoute({
+      channel: 'widgetIo:savedState',
+      input: z.object({ blockId: Id }).strict(),
+      handler: async ({ blockId }) => ({ state: io.savedState(blockId) })
+    }),
+    defineRoute({
+      channel: 'widgetIo:saveState',
+      input: z.object({ blockId: Id, data: z.unknown() }).strict(),
+      handler: async (input) => io.saveState(input)
+    }),
     defineRoute({
       channel: 'widgetIo:result',
       input: z.object({ blockId: Id }).strict(),

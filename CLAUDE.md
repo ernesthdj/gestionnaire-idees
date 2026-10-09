@@ -26,7 +26,8 @@
 > **Évolution (2026-10-10) :** **Wireframes et parcours dans les widgets** (bac à sable visuel : un nœud relié à un
 > widget où Claude génère écrans, panneau de réglages et parcours jouable ; pas de nouvelle vue). Voir
 > `docs/brainstorm/L1m-ecrans-wireframes.md`. Spec à écrire après la 024 (US4, US5) et la 021 : état persistant d'un
-> widget, lecture et modification d'un widget par Claude (MCP), plein écran.
+> widget, lecture et modification d'un widget par Claude (MCP), plein écran. **Spec 026 livrée le 2026-10-10** :
+> boutons Wireframe / Parcours / Adapter sur un widget relié à un nœud, état persistant, contenu à l'échelle du bloc.
 
 ---
 
@@ -121,6 +122,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (reste US6, finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; spécifiée : 024 « Accueil ProjectMaster » (à planifier)
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (reste US6, finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets »
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

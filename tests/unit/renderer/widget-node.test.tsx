@@ -144,4 +144,45 @@ describe('widget IA sur la carte (spec 004 US3)', () => {
     await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull())
     await expectNoAxeViolations(container)
   })
+
+  it('should_offer_the_predefined_builds_once_a_node_is_connected', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderWidget({
+      'widget:get': () => empty,
+      'widget:build': () => generated,
+      'widgetIo:state': () => ({
+        blockId: BLOCK_ID,
+        inputs: [
+          {
+            id: '00000000-0000-4000-8000-0000000000e1',
+            blockId: BLOCK_ID,
+            sourceKind: 'idea',
+            sourceId: '00000000-0000-4000-8000-0000000000e2',
+            title: 'Demande de devis',
+            label: null,
+            parts: ['identity']
+          }
+        ],
+        approved: false
+      })
+    })
+    const frame = await widget()
+    const builds = await within(frame).findByRole('group', { name: 'Générer à partir du nœud branché' })
+    expect(
+      within(builds)
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+    ).toEqual(['🖼 Wireframe', '🔀 Parcours', '🛠 Adapter au nœud'])
+    await expectNoAxeViolations(container)
+    await user.click(within(builds).getByRole('button', { name: '🖼 Wireframe' }))
+    expect(api.invoke).toHaveBeenCalledWith('widget:build', { blockId: BLOCK_ID, action: 'wireframe' })
+    expect(await within(await widget()).findByTitle('Compte à rebours')).toBeDefined()
+  })
+
+  it('should_invite_to_connect_a_node_when_nothing_is_connected', async () => {
+    renderWidget({ 'widget:get': () => empty })
+    const frame = await widget()
+    expect(await within(frame).findByText(/Tire un lien d’une idée ou d’une étape jusqu’ici/)).toBeDefined()
+    expect(within(frame).queryByRole('group', { name: 'Générer à partir du nœud branché' })).toBeNull()
+  })
 })

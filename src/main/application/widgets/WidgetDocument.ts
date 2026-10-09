@@ -63,6 +63,10 @@ export function themeFromQuery(query: URLSearchParams): WidgetTheme {
   return { scheme, colors }
 }
 
+/** Largeur de mise en page d'un widget (spec 026) : plus étroit, son contenu est réduit d'autant, jusqu'à la moitié. */
+export const WIDGET_DESIGN_WIDTH = 760
+const WIDGET_MIN_ZOOM = 0.5
+
 /**
  * Prélude exécuté avant le widget :
  * - WebRTC neutralisé (il contourne la CSP) ;
@@ -89,6 +93,16 @@ const PRELUDE = `(() => {
   let inputs = []
   let received = false
   const listeners = []
+  // État (spec 026) : remis une fois à l'ouverture, enregistré par l'application (bornes vérifiées par le main).
+  let state = null
+  let stateReceived = false
+  const stateListeners = []
+  const plainJson = (data, what) => {
+    let plain
+    try { plain = JSON.parse(JSON.stringify(data)) } catch { plain = undefined }
+    if (plain === undefined) show(what + ' doit être du JSON (objets, listes, textes, nombres).', 'Refusé : ')
+    return plain
+  }
   const gi = Object.freeze({
     get inputs() { return inputs },
     onInputs(callback) {
@@ -97,10 +111,20 @@ const PRELUDE = `(() => {
       if (received) callback(inputs)
     },
     output(data) {
-      let plain
-      try { plain = JSON.parse(JSON.stringify(data)) } catch { plain = undefined }
-      if (plain === undefined) { show('le résultat doit être du JSON (objets, listes, textes, nombres).', 'Résultat refusé : '); return }
-      window.parent.postMessage({ type: 'gi:output', data: plain }, '*')
+      const plain = plainJson(data, 'le résultat')
+      if (plain !== undefined) window.parent.postMessage({ type: 'gi:output', data: plain }, '*')
+    },
+    get state() { return state },
+    onState(callback) {
+      if (typeof callback !== 'function') return
+      if (stateReceived) callback(state)
+      else stateListeners.push(callback)
+    },
+    saveState(data) {
+      const plain = plainJson(data, 'l’état')
+      if (plain === undefined) return
+      state = plain
+      window.parent.postMessage({ type: 'gi:saveState', data: plain }, '*')
     }
   })
   Object.defineProperty(window, 'gi', { value: gi, writable: false, configurable: false })
@@ -109,6 +133,15 @@ const PRELUDE = `(() => {
     const data = event.data
     if (data === null || typeof data !== 'object') return
     if (data.type === 'gi:refused' && typeof data.message === 'string') { show(data.message, ''); return }
+    if (data.type === 'gi:state' && 'state' in data) {
+      if (stateReceived) return
+      state = data.state
+      stateReceived = true
+      for (const listener of stateListeners.splice(0)) {
+        try { listener(state) } catch (error) { show(error instanceof Error ? error.message : error) }
+      }
+      return
+    }
     if (data.type !== 'gi:inputs' || !Array.isArray(data.inputs)) return
     inputs = data.inputs
     received = true
@@ -116,6 +149,14 @@ const PRELUDE = `(() => {
       try { listener(inputs) } catch (error) { show(error instanceof Error ? error.message : error) }
     }
   })
+  // Échelle (spec 026) : le widget est mis en page sur au moins WIDGET_DESIGN_WIDTH px, puis réduit pour tenir dans son
+  // bloc ; il garde ainsi l'échelle des nœuds de la carte au lieu d'afficher un contenu trop grand.
+  const fit = () => {
+    const zoom = Math.min(1, Math.max(${WIDGET_MIN_ZOOM}, window.innerWidth / ${WIDGET_DESIGN_WIDTH}))
+    document.documentElement.style.setProperty('--gi-zoom', zoom.toFixed(3))
+  }
+  fit()
+  window.addEventListener('resize', fit)
   window.parent.postMessage({ type: 'gi:ready' }, '*')
   window.addEventListener('error', (event) => show(event.message))
   window.addEventListener('unhandledrejection', (event) => show(event.reason instanceof Error ? event.reason.message : event.reason))
@@ -148,6 +189,7 @@ export function buildWidgetDocument(parts: WidgetParts, theme: WidgetTheme): str
 :root { ${variables} --font: 'Segoe UI', system-ui, sans-serif; color-scheme: ${theme.scheme}; --gi-error-ink: ${theme.scheme === 'dark' ? '#18181b' : '#ffffff'}; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; width: 100%; height: 100%; background: var(--color-surface); color: var(--color-content); font-family: var(--font); font-size: 14px; }
+html { zoom: var(--gi-zoom, 1); width: calc(100vw / var(--gi-zoom, 1)) !important; height: calc(100vh / var(--gi-zoom, 1)) !important; }
 #gi-widget-error { position: fixed; left: 0; right: 0; bottom: 0; padding: 6px 8px; background: var(--color-con); color: var(--gi-error-ink); font: 12px var(--font); z-index: 2147483647; }
 </style>
 <style>

@@ -1,6 +1,6 @@
 # Feature Specification: Widgets branchés sur les étapes de plan
 
-**Feature Branch**: `015-widgets-etapes` · **Created**: 2026-10-06 · **Status**: En pause (2026-10-09) — US4 et US5 à reprendre
+**Feature Branch**: `015-widgets-etapes` · **Created**: 2026-10-06 · **Status**: En pause (2026-10-09) — US4 faite par la spec 026 (2026-10-10), US5 à reprendre
 
 **Input**: demande de mentalyas (2026-10-06) : « les widgets il faut les revoir car ils n'acceptent en source d'entrée
 qu'une idée alors qu'avec l'évolution de l'app je veux qu'ils acceptent en source surtout des étapes de plans » ;

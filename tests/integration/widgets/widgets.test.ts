@@ -114,3 +114,80 @@ describe('widgets générés par Claude (spec 004 US3)', () => {
     expect(() => widgets.get(blockId)).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
   })
 })
+
+describe('constructions prédéfinies à partir d’un nœud branché (spec 026)', () => {
+  let t: NeuronHarness
+  let h: GatewayHarness
+  let blockId: string
+  let context: { titles: string[]; json: string } | null
+  let state: unknown
+
+  const service = (): WidgetService =>
+    new WidgetService({
+      repository: new WidgetRepository(t.handle.db),
+      gateway: h.gateway,
+      emit: () => undefined,
+      inputContext: () => context,
+      savedState: () => state
+    })
+
+  beforeEach(() => {
+    t = createNeuronHarness()
+    h = createGatewayHarness()
+    context = null
+    state = null
+    blockId = new BlockRepository(t.handle.db).insert({
+      kind: 'widget',
+      x: 0,
+      y: 0,
+      width: 520,
+      height: 440,
+      text: null
+    }).id
+  })
+  afterEach(() => t.dispose())
+
+  it('should_refuse_a_build_when_no_node_is_connected', async () => {
+    await expect(service().build({ blockId, action: 'wireframe' })).rejects.toMatchObject({ code: 'INVALID_STATE' })
+    expect(h.claude.requests).toHaveLength(0)
+  })
+
+  it('should_send_the_build_name_and_the_full_node_context_with_the_frame_instructions', async () => {
+    context = {
+      titles: ['Demande de devis'],
+      json: '[{"kind":"idea","title":"Demande de devis","originalText":"Formulaire de devis photo"}]'
+    }
+    h.claude.enqueue(widget({ title: 'Devis — écrans' }))
+    const view = await service().build({ blockId, action: 'wireframe' })
+    const request = h.claude.requests[0]
+    expect(request?.user).toContain('Construction : wireframe')
+    expect(request?.user).toContain('Formulaire de devis photo')
+    // La consigne complète est dans le cadre figé, jamais dans la demande.
+    expect(request?.system.map((block) => block.text).join('\n')).toMatch(/- wireframe : les ÉCRANS/)
+    expect(request?.user).not.toContain('BASSE FIDÉLITÉ')
+    expect(view.messages[0]).toMatchObject({ role: 'user', text: '🖼 Wireframe à partir de « Demande de devis »' })
+    expect(view.current?.title).toBe('Devis — écrans')
+  })
+
+  it('should_start_from_scratch_for_a_wireframe_but_keep_the_code_to_adapt', async () => {
+    context = { titles: ['Galerie'], json: '[]' }
+    h.claude.enqueue(widget(), widget(), widget())
+    await service().prompt({ blockId, text: 'Un outil' })
+    await service().build({ blockId, action: 'parcours' })
+    expect(h.claude.requests[1]?.user).not.toContain('Code actuel du widget')
+    await service().build({ blockId, action: 'adapter' })
+    expect(h.claude.requests[2]?.user).toContain('Code actuel du widget')
+  })
+
+  it('should_give_the_context_and_the_saved_state_to_a_free_request', async () => {
+    context = { titles: ['Galerie'], json: '[{"kind":"idea","title":"Galerie photo"}]' }
+    state = { titre: 'Mes photos', colonnes: 3 }
+    h.claude.enqueue(widget())
+    await service().prompt({ blockId, text: 'Construction : parcours' })
+    const sent = h.claude.requests[0]?.user ?? ''
+    expect(sent).toContain('Galerie photo')
+    expect(sent).toContain('{"titre":"Mes photos","colonnes":3}')
+    // Un texte libre qui imite une construction reste une demande de l'utilisateur.
+    expect(sent).toContain('Widget à fabriquer : Construction : parcours')
+  })
+})

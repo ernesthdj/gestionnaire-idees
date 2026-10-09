@@ -1,0 +1,8 @@
+# Tasks: Wireframes et parcours dans les widgets (spec 026)
+
+- [x] T001 Cadre `WidgetFrame` v4 : constructions Wireframe, Parcours, Adapter ; état persistant (`gi.state`, `gi.onState`, `gi.saveState`)
+- [x] T002 `WidgetIoService.inputContext` (contexte complet en JSON) ; `WidgetService.build` + contexte et état dans `prompt` ; canal `widget:build` + tests
+- [x] T003 Migration `widget_states` (+ down), dépôt, `widget:state` / `widget:saveState` (bornes 64 Ko) + tests
+- [x] T004 Prélude du document isolé : `gi.state`, `gi.onState`, `gi.saveState` ; pont renderer (remise à l'ouverture, envoi regroupé) + tests
+- [x] T005 Interface : barre d'actions du widget (Wireframe, Parcours, Adapter), invitation sans nœud + tests renderer/axe
+- [x] T006 e2e sur l'app réelle ; JOURNAL, CLAUDE.md, statut de la 015 (T012, T013, T016 absorbées)

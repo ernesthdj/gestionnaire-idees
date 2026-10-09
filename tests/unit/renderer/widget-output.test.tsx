@@ -158,6 +158,17 @@ describe('regroupement des résultats émis en rafale (spec 005)', () => {
     vi.advanceTimersByTime(1000)
     expect(sent).toEqual([1])
   })
+
+  it('should_send_the_waiting_value_at_once_when_flushed', () => {
+    const sent: number[] = []
+    const throttle = createThrottle<number>((value) => sent.push(value), 500)
+    throttle.push(1)
+    throttle.push(2)
+    throttle.flush()
+    expect(sent).toEqual([1, 2])
+    vi.advanceTimersByTime(1000)
+    expect(sent).toEqual([1, 2])
+  })
 })
 
 describe('sortie d’un widget sur la carte (spec 005 lot 2)', () => {

@@ -1,5 +1,5 @@
 import { WidgetOut } from '@shared/ai/widgets'
-import type { WidgetView } from '@shared/ipc/widgets'
+import type { WidgetBuild, WidgetView } from '@shared/ipc/widgets'
 import type { Engine } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
 import type { WidgetRepository, WidgetVersionRow } from '../../infrastructure/db/repositories/WidgetRepository'
@@ -20,8 +20,17 @@ export interface WidgetDependencies {
   readonly repository: WidgetRepository
   readonly gateway: Pick<AIGateway, 'run'>
   readonly emit: (event: WidgetEvent) => void
-  /** Structure (sans valeur) des entrées branchées sur un widget ; `null` s'il n'en a pas (spec 005). */
-  readonly inputShape?: (blockId: string) => string | null
+  /** Contexte complet des nœuds branchés (spec 026 D1) ; `null` si rien de vivant n'est branché. */
+  readonly inputContext?: (blockId: string) => { readonly titles: readonly string[]; readonly json: string } | null
+  /** État enregistré par le widget (spec 026 D5), `null` s'il n'en a pas. */
+  readonly savedState?: (blockId: string) => unknown
+}
+
+/** Trace laissée dans la conversation du widget par une construction prédéfinie (spec 026). */
+const BUILD_LABELS: Readonly<Record<WidgetBuild, string>> = {
+  wireframe: '🖼 Wireframe',
+  parcours: '🔀 Parcours',
+  adapter: '🛠 Adapter au nœud'
 }
 
 /** Demandes précédentes rappelées à Claude (le code actuel porte le reste) : borne le contexte envoyé. */
@@ -77,23 +86,68 @@ export class WidgetService {
     }
   }
 
+  /** Retouche libre demandée dans la chatbox du widget. */
   async prompt(input: { readonly blockId: string; readonly text: string }): Promise<WidgetView> {
+    return this.generate({ blockId: input.blockId, message: input.text, request: input.text, keepCode: true })
+  }
+
+  /**
+   * Construction prédéfinie (spec 026 D2, D6) : sa consigne est dans le cadre figé, la demande n'en porte que le nom.
+   * Wireframe et Parcours repartent d'une page blanche ; Adapter part du code affiché.
+   */
+  async build(input: { readonly blockId: string; readonly action: WidgetBuild }): Promise<WidgetView> {
+    const { repository } = this.deps
+    if (repository.widget(input.blockId) === undefined) throw new AppError('NOT_FOUND', 'Widget introuvable')
+    const context = this.deps.inputContext?.(input.blockId) ?? null
+    if (context === null) {
+      throw new AppError('INVALID_STATE', 'Branche d’abord une idée ou une étape sur ce widget')
+    }
+    const source = context.titles.map((title) => `« ${title} »`).join(', ')
+    return this.generate({
+      blockId: input.blockId,
+      message: `${BUILD_LABELS[input.action]}${source === '' ? '' : ` à partir de ${source}`}`,
+      request: '',
+      build: input.action,
+      keepCode: input.action === 'adapter'
+    })
+  }
+
+  private async generate(input: {
+    readonly blockId: string
+    /** Trace gardée dans la conversation. */
+    readonly message: string
+    /** Texte de l'utilisateur, transmis comme donnée. */
+    readonly request: string
+    /** Construction prédéfinie : seul son nom est transmis, sa consigne est dans le cadre figé. */
+    readonly build?: WidgetBuild
+    /** Faire évoluer le code affiché plutôt que repartir d'une page blanche. */
+    readonly keepCode: boolean
+  }): Promise<WidgetView> {
     const { repository, gateway, emit } = this.deps
     const widget = repository.widget(input.blockId)
     if (widget === undefined) throw new AppError('NOT_FOUND', 'Widget introuvable')
-    const current = widget.versionId === null ? undefined : repository.version(input.blockId, widget.versionId)
+    const displayed = widget.versionId === null ? undefined : repository.version(input.blockId, widget.versionId)
+    const current = input.keepCode ? displayed : undefined
     const previous = repository
       .messages(input.blockId)
       .filter((message) => message.role === 'user')
       .slice(-RECENT_REQUESTS)
       .map((message) => `- ${message.text}`)
-    repository.insertMessage({ blockId: input.blockId, role: 'user', text: input.text })
+    repository.insertMessage({ blockId: input.blockId, role: 'user', text: input.message })
 
-    const shape = this.deps.inputShape?.(input.blockId) ?? null
+    const context = this.deps.inputContext?.(input.blockId) ?? null
+    const state = this.deps.savedState?.(input.blockId) ?? null
     const request = [
       previous.length === 0 ? null : `Demandes précédentes :\n${previous.join('\n')}`,
-      shape === null ? null : `Entrées branchées sur ce widget, lues par gi.inputs (structure seulement) :\n${shape}`,
-      `${current === undefined ? 'Widget à fabriquer' : 'Évolution demandée'} : ${input.text}`
+      context === null
+        ? null
+        : `Contexte complet des nœuds branchés (c’est aussi ce que gi.onInputs remettra une fois la lecture autorisée) :\n${context.json}`,
+      state === null
+        ? null
+        : `État actuel enregistré par le widget (réglages de l’utilisateur) :\n${JSON.stringify(state)}`,
+      input.build !== undefined
+        ? `Construction : ${input.build}`
+        : `${current === undefined ? 'Widget à fabriquer' : 'Évolution demandée'} : ${input.request}`
     ]
       .filter((part) => part !== null)
       .join('\n\n')

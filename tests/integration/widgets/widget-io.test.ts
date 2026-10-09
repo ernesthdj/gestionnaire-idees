@@ -138,7 +138,7 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     const versionId = addVersion('const x = 1')
     expect(io.state(blockId)).toEqual({ blockId, inputs: [], approved: false })
     expect(io.inputs({ blockId, versionId })).toEqual({ approved: true, inputs: [] })
-    expect(io.inputShape(blockId)).toBeNull()
+    expect(io.inputContext(blockId)).toBeNull()
     expect(() => io.approve(blockId)).toThrow(expect.objectContaining({ code: 'INVALID_STATE' }))
   })
 
@@ -159,14 +159,28 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     )
   })
 
-  it('should_describe_the_inputs_to_claude_by_structure_never_by_value', () => {
+  it('should_give_claude_the_full_context_of_the_connected_node_values_included', () => {
     addVersion('gi.onInputs(() => {})')
     io.connect({ blockId, sourceKind: 'idea', sourceId: rootId })
-    const shape = io.inputShape(blockId) ?? ''
-    expect(shape).toContain('kind: string')
-    expect(shape).toContain('originalText: string')
-    expect(shape).toContain('plan: []')
-    expect(shape).not.toMatch(/écran|300|Quel budget/)
+    const context = io.inputContext(blockId)
+    expect(context?.titles).toHaveLength(1)
+    const inputs = JSON.parse(context?.json ?? '[]') as { kind: string; id: string; originalText?: string }[]
+    expect(inputs[0]).toMatchObject({ kind: 'idea', id: rootId })
+    expect(typeof inputs[0]?.originalText).toBe('string')
+  })
+
+  it('should_save_and_read_back_the_widget_state_within_its_bounds', () => {
+    addVersion('gi.onState(() => {})')
+    expect(io.savedState(blockId)).toBeNull()
+    expect(io.saveState({ blockId, data: { titre: 'Accueil', colonnes: 2 } })).toEqual({ ok: true })
+    expect(io.savedState(blockId)).toEqual({ titre: 'Accueil', colonnes: 2 })
+    expect(() => io.saveState({ blockId, data: Array(5).fill('x'.repeat(15_000)) })).toThrow(
+      expect.objectContaining({ code: 'VALIDATION' })
+    )
+    expect(() => io.saveState({ blockId, data: { nombre: Number.NaN } })).toThrow(
+      expect.objectContaining({ code: 'VALIDATION' })
+    )
+    expect(io.savedState(blockId)).toEqual({ titre: 'Accueil', colonnes: 2 })
   })
 
   it('should_disconnect_a_source_and_bring_it_back_from_the_history', () => {

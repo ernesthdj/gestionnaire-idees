@@ -34,3 +34,7 @@ export interface WidgetView {
   readonly versions: readonly WidgetVersionView[]
   readonly messages: readonly WidgetMessageView[]
 }
+
+/** Constructions prédéfinies d'un widget relié à un nœud (spec 026 D2) ; leurs consignes sont figées dans le main. */
+export const WIDGET_BUILDS = ['wireframe', 'parcours', 'adapter'] as const
+export type WidgetBuild = (typeof WIDGET_BUILDS)[number]

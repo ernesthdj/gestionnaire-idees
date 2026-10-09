@@ -9,7 +9,7 @@ import { SKILL_AUDIT_FRAME, SKILL_AUDIT_FRAME_VERSION } from '../../infrastructu
 import { SKILL_CARD_FRAME, SKILL_CARD_FRAME_VERSION } from '../../infrastructure/ai/SkillCardFrame'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
 import { TASK_INSTRUCTIONS } from '../../infrastructure/ai/TaskInstructions'
-import { WIDGET_FRAME } from '../../infrastructure/ai/WidgetFrame'
+import { WIDGET_FRAME, WIDGET_FRAME_VERSION } from '../../infrastructure/ai/WidgetFrame'
 import type { SystemBlock } from './AIProvider'
 import type { AgentContext } from './ports'
 
@@ -30,6 +30,7 @@ const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
 
 /** Version du cadre figé d'une tâche, mêlée à ses empreintes (spec 019 R3) : changer de cadre change d'empreinte. */
 const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
+  widget: WIDGET_FRAME_VERSION,
   reprise_guide: REPRISE_GUIDE_FRAME_VERSION,
   analyste: ANALYSTE_FRAME_VERSION,
   skill_audit: SKILL_AUDIT_FRAME_VERSION,

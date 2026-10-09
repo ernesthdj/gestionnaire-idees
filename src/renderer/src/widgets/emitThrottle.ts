@@ -4,6 +4,8 @@ export const EMIT_INTERVAL_MS = 500
 export interface Throttle<T> {
   push(value: T): void
   cancel(): void
+  /** Envoie tout de suite la valeur en attente (fermeture du widget : rien n'est perdu). */
+  flush(): void
 }
 
 /**
@@ -38,6 +40,11 @@ export function createThrottle<T>(run: (value: T) => void, intervalMs: number = 
       if (timer !== null) clearTimeout(timer)
       timer = null
       pending = null
+    },
+    flush() {
+      const waiting = pending
+      this.cancel()
+      if (waiting !== null) run(waiting.value)
     }
   }
 }
