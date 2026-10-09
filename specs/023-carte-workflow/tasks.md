@@ -96,8 +96,8 @@ d'appel et blocs offerts ; un clic sur un bloc surligne son code ; le parcours s
 - [x] T069 [US5] Test guidé T068 — retour de mentalyas : garder l'explication tant que le code ne change pas → D18
 - [x] T070 [US5] D18 : table `code_file_summaries` (`schemaReprise.ts`, migration `0038_file_summaries` + `down`), `FileSummaryRepository`, `WorkflowSummaries` (`saved`, enregistrement, revalidation), canal `workflow:savedSummary`, lecteur (affichage d'office, « Réexpliquer ») ; tests `integration/workflow/file-summary-repository`, `workflow-summaries`, `ipc/workflow-handlers`, `renderer/workflow-card`
 - [x] T071 [US5] Test guidé D18 (redémarrage compris) — attendre le retour
-- [ ] T062 [US1] D16 : nœud « ✓ Faites (N) » replié d'office sous chaque user story et socle (`workflowTree.ts`, `workflowGraph.ts`, `WorkflowNode.tsx`, `prompts.ts` : pas de « Discuter » pour implémenter une tâche faite) ; tests `renderer/workflow-tree`, `renderer/workflow-view`
-- [ ] T063 [US1] Test guidé D16 — attendre le retour
+- [x] T062 [US1] D16 : nœud « ✓ Faites (N) » replié d'office sous chaque user story et socle (`workflowTree.ts`, `workflowGraph.ts`, `WorkflowNode.tsx`, `prompts.ts` : pas de « Discuter » pour implémenter une tâche faite) ; tests `renderer/workflow-tree`, `renderer/workflow-view`
+- [x] T063 [US1] Test guidé D16 — attendre le retour
 
 ## Phase 7 — Finitions
 - [ ] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`

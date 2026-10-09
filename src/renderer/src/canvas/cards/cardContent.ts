@@ -208,9 +208,19 @@ function workflowHead(item: WorkflowItem): CardHead {
       const text = plain(task.text)
       return {
         badge: `Tâche ${task.id}`,
-        meta: `${story === null ? 'Socle' : `US${story.number}`} · Spec ${spec.number} · à faire`,
+        meta: `${story === null ? 'Socle' : `US${story.number}`} · Spec ${spec.number} · ${task.done ? 'faite' : 'à faire'}`,
         title: text.length <= 120 ? text : `${text.slice(0, 119)}…`,
         summary: text.length <= 120 ? null : text,
+        gauge: null
+      }
+    }
+    case 'done': {
+      const { spec, story, tasks } = subject
+      return {
+        badge: 'Tâches faites',
+        meta: `${story === null ? 'Socle' : `US${story.number}`} · Spec ${spec.number}`,
+        title: `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} faite${tasks.length > 1 ? 's' : ''}`,
+        summary: 'Chacune s’ouvre avec ses fichiers et leur code.',
         gauge: null
       }
     }

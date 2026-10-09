@@ -83,19 +83,34 @@ describe('workflowTree', () => {
     expect(active?.label).toBe('Spec 017 Spec 017, en cours, 3 sur 5 tâches')
   })
 
-  it('should_show_only_remaining_tasks_and_fold_delivered_stories_socle_upcoming_and_delivered_by_default', () => {
+  it('should_show_remaining_tasks_and_fold_done_tasks_delivered_stories_socle_upcoming_and_delivered_by_default', () => {
     const tree = workflowTree({ view: view(SPECS) }, G)
     const visible = new Set(tree.visible.map((item) => item.key))
     expect(visible.has(workflowKey(G, 'task', '017', 'T003'))).toBe(true)
-    expect(tree.items.some((item) => item.key === workflowKey(G, 'task', '017', 'T002'))).toBe(false)
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'story', '017', '1'))).toMatchObject({
+    // Tâche faite (D16) : sous « ✓ Faites (N) », replié d'office.
+    expect(visible.has(workflowKey(G, 'done', '017', '2'))).toBe(true)
+    expect(visible.has(workflowKey(G, 'task', '017', 'T002'))).toBe(false)
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'done', '017', '2'))).toMatchObject({
+      title: '✓ Faites (1)',
       status: 'done',
-      descendants: 0
-    })
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'socle', '017'))).toMatchObject({
       collapsed: true,
       descendants: 1
     })
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'task', '017', 'T002'))).toMatchObject({
+      status: 'done',
+      parentKey: workflowKey(G, 'done', '017', '2'),
+      label: 'Tâche T002 faite : Faire T002 dans src/T002.ts'
+    })
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'story', '017', '1'))).toMatchObject({
+      status: 'done',
+      collapsed: true,
+      descendants: 2
+    })
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'socle', '017'))).toMatchObject({
+      collapsed: true,
+      descendants: 3
+    })
+    expect(tree.items.some((item) => item.key === workflowKey(G, 'done', '017', 'socle'))).toBe(true)
     expect(visible.has(workflowKey(G, 'task', '017', 'T010'))).toBe(false)
     expect(visible.has(workflowKey(G, 'spec', '021'))).toBe(true)
     expect(visible.has(workflowKey(G, 'story', '021', '1'))).toBe(false)

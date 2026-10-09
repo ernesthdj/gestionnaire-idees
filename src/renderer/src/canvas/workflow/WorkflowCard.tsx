@@ -394,6 +394,8 @@ function WorkflowSheet({
         subject.spec.socle.filter((task) => !task.done),
         'Toutes les tâches du socle sont faites.'
       )
+    case 'done':
+      return taskList(subject.tasks, '')
     case 'doc':
       return subject.family.length === 0 ? (
         <p className="text-content-muted">Pas encore de document de détail.</p>
@@ -422,6 +424,8 @@ export function filesOf(item: WorkflowItem): readonly string[] {
       return subject.story.files
     case 'socle':
       return union(subject.spec.socle)
+    case 'done':
+      return union(subject.tasks)
     case 'spec':
       return union([...subject.spec.socle, ...subject.spec.stories.flatMap((story) => story.tasks)])
     default:
@@ -527,6 +531,7 @@ function readablesOf(item: WorkflowItem): { path: string; label: string }[] {
     case 'story':
     case 'socle':
     case 'task':
+    case 'done':
       return [{ path: `${subject.spec.dir}/tasks.md`, label: 'Lire les tâches' }]
     case 'doc':
       return [{ path: `docs/brainstorm/${subject.doc.name}`, label: 'Lire le document' }]
@@ -585,7 +590,7 @@ export function WorkflowCard({
     staleTime: Infinity
   })
   const readables = readablesOf(item)
-  const sheetKinds = new Set(['spec', 'story', 'socle', 'doc'])
+  const sheetKinds = new Set(['spec', 'story', 'socle', 'done', 'doc'])
   const actions =
     readables.length === 0 ? undefined : (
       <>

@@ -115,6 +115,7 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
       'User story 1 (P1) Histoire 1, livrée',
       'User story 2 (P2) Histoire 2, 1 sur 2 tâches',
       'Tâche T003 à faire : T003',
+      "1 tâche faite de l'US2",
       'À venir : 1 spec',
       'Spec 002 Démo 002, planifiée, 0 sur 1 tâches'
     ])
@@ -164,7 +165,7 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
       </QueryClientProvider>
     )
     expect(screen.getByText('2/3')).toBeDefined()
-    await user.click(screen.getByRole('button', { name: 'Replier « 001 · Démo 001 » (3 sous-nœuds)' }))
+    await user.click(screen.getByRole('button', { name: 'Replier « 001 · Démo 001 » (7 sous-nœuds)' }))
     expect(api.invoke).toHaveBeenCalledWith('workflow:setFolded', {
       genesisId: G,
       key: workflowKey(G, 'spec', '001'),

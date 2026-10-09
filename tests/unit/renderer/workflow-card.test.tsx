@@ -238,6 +238,11 @@ describe('consignes de « Discuter » (spec 023 US2)', () => {
     )
     expect(promptFor(item(workflowKey(G, 'spec', '022')))).toContain('Parlons de la spec specs/022-noeuds-vivants')
     expect(promptFor(item(workflowKey(G, 'branch', 'active')))).toBeNull()
+    // Tâche faite (D16) : on la relit, on ne la refait pas ; le groupe « Faites » n'a pas de conversation.
+    expect(promptFor(item(workflowKey(G, 'task', '022', 'T010')))).toBe(
+      "Relis la tâche T010 (faite) de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) : explique ce qu'elle a changé et vérifie qu'elle est complète (fichiers cités, tests)."
+    )
+    expect(promptFor(item(workflowKey(G, 'done', '022', '1')))).toBeNull()
   })
 })
 
@@ -306,6 +311,23 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(screen.getByText('US4').tagName).toBe('CODE')
     expect(screen.getByRole('button', { name: 'Mis en forme' }).getAttribute('aria-pressed')).toBe('true')
     await expectNoAxeViolations(container)
+  })
+
+  it('should_open_the_done_tasks_group_with_its_tasks_and_their_files', async () => {
+    const user = userEvent.setup()
+    const { container } = renderCard(workflowKey(G, 'done', '022', '1'))
+    expect(screen.getByText('Tâches faites')).toBeDefined()
+    expect(screen.getByText('US1 · Spec 022')).toBeDefined()
+    expect(screen.getByText('Fichiers (1)')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Discuter' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Détail' }))
+    expect(container.textContent).toContain('T010')
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_mark_a_done_task_as_done_in_its_card', () => {
+    renderCard(workflowKey(G, 'task', '022', 'T010'))
+    expect(screen.getByText('US1 · Spec 022 · faite')).toBeDefined()
   })
 
   it('should_list_the_family_docs_of_an_idea_to_brainstorm', async () => {

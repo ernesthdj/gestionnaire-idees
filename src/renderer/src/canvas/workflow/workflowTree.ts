@@ -10,9 +10,10 @@ import {
 import type { NodeIconKey, NodeStatus } from '../living/nodeVisual'
 
 /**
- * Arbre de la vue Workflow (spec 023 D5, D8) : le genesis du projet, quatre branches (En cours, À venir, Livrées, À
- * brainstormer), puis spec › user stories › tâches restantes, et le socle des tâches sans user story. Repli par défaut
- * (Livrées, specs à venir, user stories livrées, socle) corrigé par les choix mémorisés de mentalyas. Fonctions pures.
+ * Arbre de la vue Workflow (spec 023 D5, D8, D16) : le genesis du projet, quatre branches (En cours, À venir, Livrées, À
+ * brainstormer), puis spec › user stories › tâches restantes, et le socle des tâches sans user story ; sous chaque user
+ * story et chaque socle, « ✓ Faites (N) » regroupe ses tâches cochées. Repli par défaut (Livrées, specs à venir, user
+ * stories livrées, socle, tâches faites) corrigé par les choix mémorisés de mentalyas. Fonctions pures.
  */
 
 /** Vue lue, ou message d'erreur (dossier introuvable…). */
@@ -25,6 +26,12 @@ export type WorkflowSubject =
   | { readonly kind: 'spec'; readonly spec: SpecView }
   | { readonly kind: 'story'; readonly spec: SpecView; readonly story: StoryView }
   | { readonly kind: 'socle'; readonly spec: SpecView }
+  | {
+      readonly kind: 'done'
+      readonly spec: SpecView
+      readonly story: StoryView | null
+      readonly tasks: readonly TaskView[]
+    }
   | { readonly kind: 'task'; readonly spec: SpecView; readonly story: StoryView | null; readonly task: TaskView }
   | { readonly kind: 'doc'; readonly doc: BrainstormDocView; readonly family: readonly BrainstormDocView[] }
   | { readonly kind: 'message'; readonly text: string; readonly missing: boolean }
@@ -144,14 +151,32 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
     add({
       key: workflowKey(genesisId, 'task', spec.number, item.id),
       parentKey,
-      title: `${item.id} · ${short(item.text, 56)}`,
+      title: `${item.done ? '✓ ' : ''}${item.id} · ${short(item.text, 56)}`,
       icon: 'task',
-      status: 'todo',
+      status: item.done ? 'done' : 'todo',
       partial: false,
-      label: `Tâche ${item.id} à faire : ${short(item.text, 200)}`,
+      label: `Tâche ${item.id} ${item.done ? 'faite' : 'à faire'} : ${short(item.text, 200)}`,
       subject: { kind: 'task', spec, story, task: item },
       foldedByDefault: false
     })
+  // Tâches faites d'une user story ou d'un socle (D16) : un nœud replié d'office, qui s'ouvre sur elles.
+  const doneGroup = (spec: SpecView, story: StoryView | null, tasks: readonly TaskView[], parentKey: string): void => {
+    const done = tasks.filter((entry) => entry.done)
+    if (done.length === 0) return
+    const key = workflowKey(genesisId, 'done', spec.number, story === null ? 'socle' : String(story.number))
+    add({
+      key,
+      parentKey,
+      title: `✓ Faites (${done.length})`,
+      icon: 'branchDelivered',
+      status: 'done',
+      partial: false,
+      label: `${done.length} tâche${done.length > 1 ? 's' : ''} faite${done.length > 1 ? 's' : ''} ${story === null ? 'du socle' : `de l'US${story.number}`}`,
+      subject: { kind: 'done', spec, story, tasks: done },
+      foldedByDefault: true
+    })
+    for (const item of done) task(spec, story, item, key)
+  }
   const specNode = (spec: SpecView, branch: WorkflowBranch, parentKey: string): void => {
     const key = workflowKey(genesisId, 'spec', spec.number)
     const closed = branch === 'delivered'
@@ -184,23 +209,26 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
       })
       // Une spec livrée ou abandonnée ne montre pas ses reliquats en nœuds : ils sont listés dans sa carte (D7).
       if (!closed) for (const item of story.tasks.filter((entry) => !entry.done)) task(spec, story, item, storyKey)
+      doneGroup(spec, story, story.tasks, storyKey)
     }
-    const remaining = spec.socle.filter((entry) => !entry.done)
-    if (!closed && remaining.length > 0) {
+    const remaining = closed ? [] : spec.socle.filter((entry) => !entry.done)
+    const socleDone = spec.socle.some((entry) => entry.done)
+    if (remaining.length > 0 || socleDone) {
       const socleKey = workflowKey(genesisId, 'socle', spec.number)
       add({
         key: socleKey,
         parentKey: key,
         title: 'Socle',
         icon: 'socle',
-        status: 'doing',
-        progress: { done: spec.socle.length - remaining.length, total: spec.socle.length },
+        status: remaining.length > 0 ? 'doing' : 'done',
+        progress: { done: spec.socle.filter((entry) => entry.done).length, total: spec.socle.length },
         partial: false,
         label: `Socle de la spec ${spec.number} (mise en place, fondations, finitions), ${remaining.length} tâches restantes`,
         subject: { kind: 'socle', spec },
         foldedByDefault: true
       })
       for (const item of remaining) task(spec, null, item, socleKey)
+      doneGroup(spec, null, spec.socle, socleKey)
     }
   }
   for (const branch of ['active', 'upcoming', 'delivered'] as const) {
