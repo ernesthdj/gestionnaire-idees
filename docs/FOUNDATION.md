@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** + **amendement L1j (Vue Workflow, 2026-10-09, §0000000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md** · **L1j-carte-workflow.md**
 
 ---
 
@@ -24,6 +24,29 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 0000000. Amendement du 2026-10-09 — La vue Workflow : la carte rangée selon notre façon de travailler
+
+> Détail complet : `docs/brainstorm/L1j-carte-workflow.md` et `specs/023-carte-workflow/` (décisions D1–D18). Ces
+> fichiers priment.
+
+### 0000000.1 Vision
+Un projet lié montre, sur sa carte, **où il en est et quoi faire ensuite** selon la méthode de mentalyas : brainstorm ›
+specs › user stories › tâches, lu dans les fichiers du projet (`specs/`, `tasks.md`, `docs/brainstorm/`,
+`docs/FOUNDATION.md`), sans Claude ; et descend jusqu'au code des fichiers, expliqué à la demande.
+
+### 0000000.2 Ce que fait la vue (spec 023, livrée le 2026-10-09)
+| Sujet | Ce qui existe |
+|-------|---------------|
+| Bascule | « Workflow \| Progression \| Architecture » sur tout genesis lié (même sans carte dessinée) |
+| Rangement | Genesis › En cours · À venir · Livrées · À brainstormer ; spec › user stories (priorité) › tâches restantes ; « Socle » des tâches sans user story ; « ✓ Faites (N) » replié (D16) |
+| Statut d'une spec | Calculé depuis `tasks.md`, sauf marqueur de la ligne `**Status**` (« Livrée », « En pause », « Abandonnée ») qui prime ; reliquats d'une spec livrée dans sa carte |
+| Cartes | Chaque nœud ouvre sa carte (statut, avancement, détail, fichiers) ; « Discuter » ouvre la conversation **propre au nœud**, consigne pré-remplie jamais envoyée seule ; une tâche faite se relit, ne se refait pas |
+| Lecteur | Markdown mis en forme (liens inertes), code coloré, raccourcis tree-sitter ; module de la structure qui couvre chaque fichier, sur place |
+| « Que fait ce fichier ? » | Explication à la demande (tâche `file_summary`, sans outil, sortie validée) : rôle, reçoit, produit, morceaux importants cliquables, petit schéma « Comment ça marche » et « Copier en Mermaid » ; explication et code côte à côte, « Agrandir » plein écran ; **gardée** tant que le code ne change pas (table `code_file_summaries`) |
+| Rafraîchissement | À l'ouverture, à chaque fin de tour de Claude, sur « Relire » ; mesure : ~210 ms de lecture pour 23 specs et 800 tâches |
 
 ---
 

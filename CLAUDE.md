@@ -90,7 +90,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 | Commande | Effet |
 |----------|-------|
 | `npm run dev` | Lance l'app en developpement (rechargement a chaud) |
-| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure) |
+| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure et lie au dossier de methode fictif `projet-demo/` du profil : 2 specs, un L1 a brainstormer, une fondation, pour la vue Workflow) |
 | `npm run seed:demo:reset` | Idem en recreant le profil demo de zero (efface uniquement ce dossier fictif) |
 | `npm test` | Tests Vitest |
 | `npm run typecheck` | Verification TypeScript (main/preload + renderer) |
@@ -117,6 +117,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), en cours : 017 « Reprise — Voir » (US1–US4, US7, D16 et D17 livrées ; reste US6, finitions T035–T037 ; US5 clone (T028+) en pause) ; en pause : 014 (T014+), 015 (US4–US5), 013 (US3) — 016 et 020 « Arbre de skills » livrées (US5 « mes-skills » prévue) ; 021 « Git et GitHub » planifiée
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (reste US6, finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; spécifiée : 024 « Accueil ProjectMaster » (à planifier)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

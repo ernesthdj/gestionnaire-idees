@@ -2,7 +2,8 @@ import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, globalShortcut, Notification, session } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
-import { seedDemo } from './infrastructure/db/demo/seedDemo'
+import { writeDemoMethodFolder } from './infrastructure/db/demo/demoMethod'
+import { DEFAULT_DEMO_SIZE, seedDemo } from './infrastructure/db/demo/seedDemo'
 import { GlobalShortcut } from './shell/GlobalShortcut'
 import { loginItemSettings, startsHidden } from './shell/lifecycle'
 import { TrayController } from './shell/TrayController'
@@ -71,7 +72,12 @@ function start(): void {
         windows.showMain({ section: 'ideas', diveRootId: rootId })
       }
     })
-    if (demoProfile && seedDemo(context.database.db).seeded) context.logger.info('demo.seeded', {})
+    if (demoProfile) {
+      // Dossier de méthode fictif du profil démo (spec 023 T039), lié au genesis « application de notes ».
+      const projectDir = writeDemoMethodFolder(join(demoData, 'projet-demo'))
+      if (seedDemo(context.database.db, DEFAULT_DEMO_SIZE, { projectDir }).seeded)
+        context.logger.info('demo.seeded', {})
+    }
     installWidgetProtocol(session.defaultSession, context.widgets)
 
     const settings = context.appSettings.get()

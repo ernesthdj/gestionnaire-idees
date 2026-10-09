@@ -1,11 +1,14 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { isEmptySheet, readSheet } from '../../../src/main/domain/conversation/sheet'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
+import { writeDemoMethodFolder } from '../../../src/main/infrastructure/db/demo/demoMethod'
 import { seedDemo } from '../../../src/main/infrastructure/db/demo/seedDemo'
+import { WorkflowService } from '../../../src/main/application/workflow/WorkflowService'
+import { isToBrainstorm } from '../../../src/shared/ipc/workflow'
 import { ElementRepository } from '../../../src/main/infrastructure/db/repositories/ElementRepository'
 import { MapLinkRepository } from '../../../src/main/infrastructure/db/repositories/MapLinkRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
@@ -103,5 +106,49 @@ describe('jeu de démonstration (spec 010 C3)', () => {
       ...new MapLinkRepository(handle.db).list().map((link) => link.id)
     ]
     expect(ids.filter((id) => !z.uuid().safeParse(id).success)).toEqual([])
+  })
+})
+
+describe('dossier de méthode du profil démo (spec 023 T039)', () => {
+  let dir: string
+  let handle: DatabaseHandle
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'gi-demo-method-'))
+    handle = openDatabase({ file: join(dir, 'demo.db'), key: '7'.repeat(64), migrationsFolder: MIGRATIONS })
+  })
+  afterEach(() => {
+    handle.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('should_link_the_notes_genesis_to_a_fictive_method_folder_read_by_the_workflow_view', () => {
+    const projectDir = writeDemoMethodFolder(join(dir, 'projet-demo'))
+    expect(seedDemo(handle.db, undefined, { projectDir })).toEqual({ seeded: true })
+    const genesis = new NeuronRepository(handle.db)
+      .canvasRoots()
+      .find((root) => root.title === 'Projet démo : application de notes')
+    expect(genesis).toBeDefined()
+    const linked = handle.db.select({ projectDir: neurons.projectDir }).from(neurons).all()
+    expect(linked.filter((row) => row.projectDir === projectDir)).toHaveLength(1)
+    const view = new WorkflowService({
+      neuron: () => ({ state: 'hatched', projectDir }) as never,
+      folds: { get: () => ({}), set: () => undefined } as never
+    }).read(genesis?.id ?? '')
+    expect(view.specs.map((spec) => [spec.number, spec.status, `${spec.done}/${spec.total}`])).toEqual([
+      ['001', 'active', '2/4'],
+      ['002', 'planned', '0/1']
+    ])
+    expect(view.brainstorm.filter(isToBrainstorm).map((doc) => doc.name)).toEqual(['L1-notes-partage.md'])
+    expect(view.foundation?.summary).toContain('Noter vite')
+    expect(view.missingFiles).toEqual(['src/notes/export.ts'])
+  })
+
+  it('should_never_overwrite_an_existing_demo_folder', () => {
+    const projectDir = join(dir, 'projet-demo')
+    writeDemoMethodFolder(projectDir)
+    writeFileSync(join(projectDir, 'docs', 'FOUNDATION.md'), 'modifié')
+    writeDemoMethodFolder(projectDir)
+    expect(readFileSync(join(projectDir, 'docs', 'FOUNDATION.md'), 'utf8')).toBe('modifié')
   })
 })

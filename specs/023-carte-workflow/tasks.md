@@ -101,10 +101,10 @@ d'appel et blocs offerts ; un clic sur un bloc surligne son code ; le parcours s
 
 ## Phase 7 — Finitions
 - [x] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`
-- [ ] T039 [P] Démo : `src/main/infrastructure/db/demo/seedDemo.ts` crée un petit dossier de méthode fictif dans le profil démo (deux specs, un L1 à brainstormer, une fondation) lié à un genesis ; mise à jour de la ligne `seed:demo` de `CLAUDE.md`
-- [ ] T040 [P] Mesure SC-002 sur le dépôt du Brainstormer (temps de `workflow:read` et d'affichage, < 2 s) notée dans `docs/JOURNAL.md`
-- [ ] T041 [P] Amendement daté de `specs/017-reprise-voir/spec.md` (bascule à trois positions, Workflow) ; `docs/FOUNDATION.md` (vue Workflow) ; `CLAUDE.md` (Workflows actifs : spec 023)
-- [ ] T042 Vérifications finales (`npm run typecheck`, `npm run lint`, `npx prettier --check src tests`, `npm test`) et quickstart scénarios 7 et 8 ; JOURNAL à jour ; demander la confirmation avant commit
+- [x] T039 [P] Démo : `src/main/infrastructure/db/demo/seedDemo.ts` crée un petit dossier de méthode fictif dans le profil démo (deux specs, un L1 à brainstormer, une fondation) lié à un genesis ; mise à jour de la ligne `seed:demo` de `CLAUDE.md`
+- [x] T040 [P] Mesure SC-002 sur le dépôt du Brainstormer (temps de `workflow:read` et d'affichage, < 2 s) notée dans `docs/JOURNAL.md`
+- [x] T041 [P] Amendement daté de `specs/017-reprise-voir/spec.md` (bascule à trois positions, Workflow) ; `docs/FOUNDATION.md` (vue Workflow) ; `CLAUDE.md` (Workflows actifs : spec 023)
+- [x] T042 Vérifications finales (`npm run typecheck`, `npm run lint`, `npx prettier --check src tests`, `npm test`) et quickstart scénarios 7 et 8 ; JOURNAL à jour ; demander la confirmation avant commit
 
 ## Dépendances
 - Phase 1 → Phase 2 → US1 (bloquant pour US2 à US4 : arbre, nœuds, bascule).

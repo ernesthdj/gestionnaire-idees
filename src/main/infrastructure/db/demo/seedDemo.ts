@@ -1,4 +1,4 @@
-import { like } from 'drizzle-orm'
+import { eq, like } from 'drizzle-orm'
 import type { Sheet } from '../../../domain/conversation/sheet'
 import type { AppDatabase } from '../client'
 import { contextAssessments, mapLinks, neurons } from '../schemaNeurons'
@@ -7,7 +7,8 @@ import { contextAssessments, mapLinks, neurons } from '../schemaNeurons'
  * Jeu de démonstration FICTIF (spec 003 T002, réécrit par la spec 010 C3, réduit par la spec 022) : deux genesis
  * éclos, posés loin l'un de l'autre — le premier porte un plan d'attaque à trois niveaux, le second une carte de
  * structure de projet. Déterministe (graine fixe), inséré une seule fois, uniquement dans le profil démo. Aucune donnée
- * de l'ancien moteur. `DemoSize` permet encore un jeu plus fourni (tests).
+ * de l'ancien moteur. `DemoSize` permet encore un jeu plus fourni (tests). Avec `projectDir`, le second genesis est lié
+ * à un dossier de méthode fictif (spec 023 T039) : la bascule « Workflow » y montre specs, tâches et brainstorm.
  */
 
 /** Identifiants au format UUID (exigé par les canaux IPC), reconnaissables à leur préfixe `dea00000-`. */
@@ -138,7 +139,11 @@ function seededRandom(seed: number): () => number {
 const pick = <T>(items: readonly T[], random: () => number): T => items[Math.floor(random() * items.length)] as T
 
 /** Remplit la base avec le jeu fictif ; ne fait rien si des données de démonstration existent déjà. */
-export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): { seeded: boolean } {
+export function seedDemo(
+  db: AppDatabase,
+  size: DemoSize = DEFAULT_DEMO_SIZE,
+  options: { readonly projectDir?: string } = {}
+): { seeded: boolean } {
   const existing = db
     .select({ id: neurons.id })
     .from(neurons)
@@ -244,9 +249,12 @@ export function seedDemo(db: AppDatabase, size: DemoSize = DEFAULT_DEMO_SIZE): {
       insertSteps(planned, DEMO_PLAN, 1)
     }
 
-    // Carte de structure du dernier genesis.
+    // Carte de structure du dernier genesis, lié au dossier de méthode fictif s'il est fourni.
     const genesisId = allIds.at(-1)
     if (genesisId === undefined) return
+    if (options.projectDir !== undefined) {
+      tx.update(neurons).set({ projectDir: options.projectDir }).where(eq(neurons.id, genesisId)).run()
+    }
     const elementIds = new Map(DEMO_STRUCTURE.map((element, n) => [element.key, demoId('element', n + 1)] as const))
     DEMO_STRUCTURE.forEach((element) => {
       const parentId = element.parent === null ? genesisId : (elementIds.get(element.parent) ?? genesisId)

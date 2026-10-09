@@ -1,6 +1,6 @@
 # Feature Specification: Carte Workflow (spec 023)
 
-**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Livrée (2026-10-09) — US1 à US5, D1 à D18 ; validée par mentalyas aux tests guidés
 **Input**: « Il faudra revenir à comment la cartographie est structurée, car il faut qu'elle représente un workflow
 logique en termes d'organisation et qui se calque sur notre façon de bosser. Brainstorm, specs, fonctionnalités, use
 cases, implémentation etc. » — mentalyas. Brainstorm complet : `docs/brainstorm/L1j-carte-workflow.md` (sections 1 à 9
