@@ -185,6 +185,18 @@ describe('migrations du modèle de neurones', () => {
     expect(tables()).toContain('code_file_summaries')
   })
 
+  it('should_add_the_brainstorm_tables_and_columns_then_remove_them_with_the_down_migration', () => {
+    expect(tables()).toEqual(expect.arrayContaining(['brainstorms', 'save_points']))
+    expect(columns('neurons')).toContain('brainstorm_id')
+    expect(columns('canvas_blocks')).toContain('brainstorm_id')
+    runDown('0040_brainstorms')
+    expect(tables()).not.toEqual(expect.arrayContaining(['brainstorms']))
+    expect(tables()).not.toContain('save_points')
+    expect(columns('neurons')).not.toContain('brainstorm_id')
+    expect(columns('canvas_blocks')).not.toContain('brainstorm_id')
+    expect(tables()).toContain('git_repos')
+  })
+
   it('should_add_the_file_summaries_table_then_remove_it_with_the_down_migration', () => {
     expect(tables()).toContain('code_file_summaries')
     expect(columns('code_file_summaries')).toEqual(

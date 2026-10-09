@@ -131,6 +131,8 @@ export const neurons = sqliteTable(
     /** Avancement déclaré par Claude pour un élément de structure (spec 017 D21), 0–100, et ce qui reste à faire. */
     progress: integer('progress'),
     progressNote: text('progress_note'),
+    /** Brainstorm (canevas) d'un genesis (spec 024 R1) ; ses descendants suivent par `root_id`. */
+    brainstormId: text('brainstorm_id'),
     createdAt: createdAt(),
     updatedAt: text('updated_at')
       .notNull()
@@ -145,7 +147,8 @@ export const neurons = sqliteTable(
     index('neurons_category_idx').on(t.categoryId),
     uniqueIndex('neurons_element_key_idx').on(t.genesisId, t.elementKey),
     index('neurons_genesis_idx').on(t.genesisId),
-    index('neurons_parent_rank_idx').on(t.parentId, t.rank)
+    index('neurons_parent_rank_idx').on(t.parentId, t.rank),
+    index('neurons_brainstorm_idx').on(t.brainstormId)
   ]
 )
 
@@ -418,9 +421,15 @@ export const canvasBlocks = sqliteTable(
     sourceBlockId: text('source_block_id'),
     /** Suppression annulable : le bloc (et les versions d'un widget) reste en base jusqu'à la purge. */
     deletedAt: text('deleted_at'),
+    /** Brainstorm (canevas) du bloc (spec 024 R1). */
+    brainstormId: text('brainstorm_id'),
     createdAt: createdAt()
   },
-  (t) => [index('canvas_blocks_parent_idx').on(t.parentBlockId), index('canvas_blocks_frame_idx').on(t.frameId)]
+  (t) => [
+    index('canvas_blocks_parent_idx').on(t.parentBlockId),
+    index('canvas_blocks_frame_idx').on(t.frameId),
+    index('canvas_blocks_brainstorm_idx').on(t.brainstormId)
+  ]
 )
 
 /**

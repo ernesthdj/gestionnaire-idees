@@ -48,6 +48,9 @@ Ouverture de l'app → Project Manager
 | D11 | B3 — Depuis un lien Git | Mentalyas colle un lien ; l'app **clone dans le coffre** (clone partiel, spec 021 GH-C, après confirmation), crée le brainstorm du projet et ouvre son canevas. Ensuite : **continuer le projet** (rôle D10 : collaborateur ou fork) ou **en extraire des morceaux** pour un autre projet, avec sa licence et l'attribution (spec 021 GH-G). |
 | D12 | Fin de session éclatée | Les étapes de `/hub end` deviennent des **actions séparées** à cocher : commit, push, journal du projet, journal global, graphe, cours académique, fermeture de la session ; l'app garde en mémoire l'état de la session et ce qui a changé. |
 | D13 | Le coffre | Le dossier ProjectMaster est le **coffre** du Brainstormer (chez mentalyas : le dossier actuel ; `projects/gestionnaire-idees` sert de **projet de test**). Un utilisateur qui part de zéro **définit ou crée son coffre** au premier lancement. |
+| D14 | « Idées en vrac » sans dossier (2026-10-10, implémentation US1) | Le brainstorm « Idées en vrac » (R10, capture sans brainstorm actif) est **local, sans dossier** : il n'est pas créé comme projet dans le coffre (`pm.bat` ne le verrait que comme un projet vide). Il n'apparaît dans le Project Manager que s'il contient quelque chose. |
+| D15 | Sessions `/hub` en lecture d'abord (2026-10-10, US1) | À l'ouverture, l'app **lit** `.hub/sessions.json` (session ouverte ici ou sur un autre projet, signalée) mais **n'y écrit pas encore** : l'ouverture et la fermeture de session s'écriront ensemble avec la fin de session (US6), pour ne jamais laisser une session ouverte que rien ne ferme. |
+| D16 | Projets du registre jamais ouverts (2026-10-10, US1) | « Charger un brainstorm existant » liste aussi les projets du registre du coffre jamais ouverts dans l'app ; à la première ouverture, leur brainstorm naît (genesis au nom du projet, lié à son dossier). |
 
 ## Clarifications
 

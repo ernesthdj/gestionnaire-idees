@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { NavigateEvent, Section } from '@shared/ipc/app'
+import type { BrainstormOpenView, BrainstormView, HubAnomaly } from '@shared/ipc/brainstorms'
+import type { ViewState } from '@shared/brainstorms/viewState'
 import { useCards, type CardsState } from '../canvas/cards/cardsStore'
+import { cardsOf } from '../home/viewState'
 import { deliverableNodeId, ghostNodeId } from '../canvas/planLayout'
 
 export interface Toast {
@@ -19,8 +22,22 @@ export type StructureView = 'workflow' | 'progression' | 'architecture'
 /** Vue affichée : une section de la navigation, ou les réglages (⚙). */
 export type View = Section | 'settings'
 
+export type Viewport = NonNullable<ViewState['viewport']>
+
 interface UiState {
   readonly view: View
+  /** Brainstorm ouvert (spec 024) : son canevas est la carte ; `null` : le Project Manager s'affiche. */
+  readonly brainstorm: BrainstormView | null
+  /** Ce que `/hub work` signale à l'ouverture (anomalies, JOURNAL), jusqu'à ce que mentalyas le referme. */
+  readonly openSummary: { readonly anomalies: readonly HubAnomaly[]; readonly journal: readonly string[] } | null
+  /** Cadrage courant de la carte (écrit dans l'état de vue) et cadrage à rétablir une fois à l'ouverture. */
+  readonly viewport: Viewport | null
+  readonly restoredViewport: Viewport | null
+  /** Entre dans un brainstorm : sa vue d'avant revient (vues des cartes de projet, cartes ouvertes, cadrage). */
+  enterBrainstorm(opened: BrainstormOpenView): void
+  dismissSummary(): void
+  setViewport(viewport: Viewport): void
+  takeRestoredViewport(): Viewport | null
   /**
    * Neurone dont la conversation est ouverte (spec 008) : la carte active si sa discussion est ouverte, sinon la plus
    * haute dont la discussion l'est (spec 022 : une discussion par carte de détails) ; `null` sans discussion.
@@ -84,7 +101,35 @@ export function chatOf(cards: CardsState): string | null {
 }
 
 export const useUiStore = create<UiState>()((set, get) => ({
-  view: 'ideas',
+  view: 'home',
+  brainstorm: null,
+  openSummary: null,
+  viewport: null,
+  restoredViewport: null,
+  enterBrainstorm: (opened) => {
+    const state = opened.viewState
+    useCards.setState(cardsOf(state))
+    set({
+      brainstorm: opened.brainstorm,
+      openSummary:
+        opened.anomalies.length === 0 && opened.journal.length === 0
+          ? null
+          : { anomalies: opened.anomalies, journal: opened.journal },
+      structureViews: state?.structureViews ?? {},
+      viewport: state?.viewport ?? null,
+      restoredViewport: state?.viewport ?? null,
+      explorerGenesisId: null,
+      repoGenesisId: null,
+      view: 'ideas'
+    })
+  },
+  dismissSummary: () => set({ openSummary: null }),
+  setViewport: (viewport) => set({ viewport }),
+  takeRestoredViewport: () => {
+    const restored = get().restoredViewport
+    if (restored !== null) set({ restoredViewport: null })
+    return restored
+  },
   chatNeuronId: null,
   toast: null,
   bornId: null,

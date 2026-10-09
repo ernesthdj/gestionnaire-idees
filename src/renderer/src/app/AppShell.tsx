@@ -5,6 +5,8 @@ import { useAnalysteStatus, useProbe } from '../analyste/useAnalysteStatus'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { HistoryPage } from '../pages/HistoryPage'
 import { IdeasPage } from '../pages/IdeasPage'
+import { ProjectManager } from '../home/ProjectManager'
+import { useActiveBrainstormHydration, useViewStateSync } from '../home/useBrainstorms'
 import { ExplorerPage } from '../explorer/ExplorerPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -19,6 +21,7 @@ import { useApplyTheme } from './useApplyTheme'
 import { useMainEvents } from './useMainEvents'
 
 const NAVIGATION: ReadonlyArray<{ readonly section: Section; readonly label: string }> = [
+  { section: 'home', label: 'Projets' },
   { section: 'ideas', label: 'Idées' },
   { section: 'pending', label: 'À valider' },
   { section: 'history', label: 'Historique' },
@@ -27,6 +30,7 @@ const NAVIGATION: ReadonlyArray<{ readonly section: Section; readonly label: str
 ]
 
 const TITLES: Readonly<Record<View, string>> = {
+  home: 'Projets',
   ideas: 'Idées',
   pending: 'À valider',
   history: 'Historique',
@@ -35,12 +39,21 @@ const TITLES: Readonly<Record<View, string>> = {
   settings: 'Réglages'
 }
 
-function CurrentView({ view }: { readonly view: View }): React.JSX.Element {
+function CurrentView({
+  view,
+  hasBrainstorm
+}: {
+  readonly view: View
+  readonly hasBrainstorm: boolean
+}): React.JSX.Element {
   switch (view) {
     case 'settings':
       return <SettingsPage />
+    case 'home':
+      return <ProjectManager />
     case 'ideas':
-      return <IdeasPage />
+      // Pas de canevas avant le choix d'un brainstorm (spec 024 D5).
+      return hasBrainstorm ? <IdeasPage /> : <ProjectManager />
     case 'pending':
       return <SectionPlaceholder text="Les suggestions de liens et les synthèses en attente apparaîtront ici." />
     case 'history':
@@ -63,8 +76,11 @@ export function AppShell(): React.JSX.Element {
   const show = useUiStore((state) => state.show)
   const explorerGenesisId = useUiStore((state) => state.explorerGenesisId)
   const closeExplorer = useUiStore((state) => state.closeExplorer)
+  const hasBrainstorm = useUiStore((state) => state.brainstorm !== null)
   useApplyTheme(settings.theme)
   useMainEvents()
+  useViewStateSync()
+  useActiveBrainstormHydration()
   useProbe()
   // Fin des cartographies de projet suivie partout dans l'app (spec 022).
   useMappingWatch()
@@ -115,7 +131,7 @@ export function AppShell(): React.JSX.Element {
             {explorerGenesisId !== null && view === 'ideas' ? (
               <ExplorerPage genesisId={explorerGenesisId} onClose={closeExplorer} />
             ) : (
-              <CurrentView view={view} />
+              <CurrentView view={view} hasBrainstorm={hasBrainstorm} />
             )}
           </main>
           <Toast />

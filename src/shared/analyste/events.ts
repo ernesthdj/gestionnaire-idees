@@ -17,7 +17,8 @@ export const PROBE_SCREENS = [
   'chat',
   'explorateur',
   'analyste',
-  'skills'
+  'skills',
+  'accueil'
 ] as const
 export type ProbeScreen = (typeof PROBE_SCREENS)[number]
 

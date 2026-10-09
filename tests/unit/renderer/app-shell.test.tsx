@@ -38,6 +38,9 @@ describe('AppShell', () => {
     const user = userEvent.setup()
     renderApp()
     await user.tab()
+    // Le Project Manager (spec 024) vient en premier.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Projets' }))
+    await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Idées' }))
     await user.tab()
     await user.tab()

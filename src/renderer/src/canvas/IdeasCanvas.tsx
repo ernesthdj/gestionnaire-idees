@@ -380,7 +380,10 @@ function CanvasInner(): React.JSX.Element {
   useEffect(() => {
     if (!hasSize || bounds === null || fitted.current) return
     fitted.current = true
-    void flow.fitBounds(bounds, { padding: 0.05 })
+    // Reprise exacte (spec 024 R2) : le cadrage de la dernière fois revient, sinon toute la carte.
+    const restored = useUiStore.getState().takeRestoredViewport()
+    if (restored !== null) void flow.setViewport(restored)
+    else void flow.fitBounds(bounds, { padding: 0.05 })
   }, [hasSize, bounds, flow])
 
   // Glissements (D4) : quand le repli, la transposition ou les étapes changent, les nœuds glissent vers leur place.
@@ -741,7 +744,10 @@ function CanvasInner(): React.JSX.Element {
               colorMode={colorSchemeOf(settings.theme)}
               proOptions={{ hideAttribution: true }}
               onMoveStart={() => setInteracting(true)}
-              onMoveEnd={() => setInteracting(false)}
+              onMoveEnd={(_event, viewport) => {
+                setInteracting(false)
+                useUiStore.getState().setViewport(viewport)
+              }}
               // Un clic sur un nœud ouvre sa carte de détails (spec 022 D5, D15), un nouveau clic la referme ; on attend un
               // instant pour qu'un double-clic (carte sur la discussion) ne l'ouvre pas puis ne la referme pas.
               onNodeClick={(event, node) => {

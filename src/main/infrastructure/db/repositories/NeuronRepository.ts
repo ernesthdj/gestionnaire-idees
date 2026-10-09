@@ -14,6 +14,7 @@ import type {
   WebSourceView
 } from '@shared/ipc/neurons'
 import type { CanvasPosition } from '@shared/ipc/canvas'
+import type { CanvasScope } from './canvasScope'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
 import { categories, contextAssessments, extensions, neurons, suggestions } from '../schemaNeurons'
@@ -71,7 +72,11 @@ function toRootView(row: RootRow): RootView {
 
 /** Accès aux neurones (racines et sous-neurones), extensions et jauges (spec 002). */
 export class NeuronRepository {
-  constructor(private readonly db: AppDatabase) {}
+  constructor(
+    private readonly db: AppDatabase,
+    /** Brainstorm actif (spec 024) : la carte ne lit que ses genesis, une idée nouvelle lui appartient. */
+    private readonly scope?: CanvasScope
+  ) {}
 
   transaction<T>(work: () => T): T {
     return this.db.transaction(() => work())
@@ -96,6 +101,8 @@ export class NeuronRepository {
     /** Idée posée par Claude Code par le pont MCP (spec 007) : placée et épinglée dans son lot. */
     origin?: 'user' | 'claude'
     pinned?: boolean
+    /** Brainstorm du genesis (spec 024) ; par défaut, celui de ce qui naît maintenant. */
+    brainstormId?: string
   }): void {
     this.db
       .insert(neurons)
@@ -111,7 +118,8 @@ export class NeuronRepository {
         state: 'raw',
         posX: input.position?.x ?? null,
         posY: input.position?.y ?? null,
-        pinned: input.pinned ?? false
+        pinned: input.pinned ?? false,
+        brainstormId: input.brainstormId ?? this.scope?.forNew() ?? null
       })
       .run()
   }
@@ -309,8 +317,10 @@ export class NeuronRepository {
 
   /** Toutes les idées non archivées, pour la carte (aucune pagination : quelques centaines au plus). */
   canvasRoots(): RootView[] {
+    const scoped = this.scopeCondition()
+    if (scoped === false) return []
     return this.selectRoots()
-      .where(and(eq(neurons.kind, 'root'), ne(neurons.state, 'archived')))
+      .where(and(eq(neurons.kind, 'root'), ne(neurons.state, 'archived'), scoped))
       .orderBy(asc(sql`${neurons}.rowid`))
       .all()
       .map((row) => toRootView(this.withCategory(row)))
@@ -318,7 +328,10 @@ export class NeuronRepository {
 
   /** Idées correspondant au filtre (mises en évidence sur la carte, les autres restent visibles). */
   matchingRootIds(filter: CanvasFilter): string[] {
+    const scoped = this.scopeCondition()
+    if (scoped === false) return []
     const conditions: SQL[] = [eq(neurons.kind, 'root'), ne(neurons.state, 'archived')]
+    if (scoped !== undefined) conditions.push(scoped)
     if (filter.nature !== undefined) conditions.push(eq(neurons.nature, filter.nature))
     if (filter.categoryId !== undefined) conditions.push(eq(neurons.categoryId, filter.categoryId))
     if (filter.search !== undefined) {
@@ -332,6 +345,13 @@ export class NeuronRepository {
       .where(and(...conditions))
       .all()
       .map((row) => row.id)
+  }
+
+  /** Filtre du canevas actif : `undefined` sans portée, `false` sans brainstorm actif (carte vide). */
+  private scopeCondition(): SQL | undefined | false {
+    if (this.scope === undefined) return undefined
+    const active = this.scope.active()
+    return active === null ? false : eq(neurons.brainstormId, active)
   }
 
   categories(): CategoryView[] {

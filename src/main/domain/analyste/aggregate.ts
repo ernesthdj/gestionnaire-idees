@@ -85,7 +85,8 @@ const SCREEN_NAMES: Readonly<Record<ProbeScreen, string>> = {
   chat: 'la conversation',
   explorateur: 'l’explorateur',
   analyste: 'l’Analyste',
-  skills: 'les Skills'
+  skills: 'les Skills',
+  accueil: 'le Project Manager'
 }
 
 const ACTION_NAMES: Readonly<Record<string, string>> = {

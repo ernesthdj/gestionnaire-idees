@@ -25,6 +25,8 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
       writeFiles(DEMO_PROJECT, { 'a.txt': 'A\n', 'b.txt': 'B\n', 'c.txt': 'C\n', '.env': 'API_KEY=faux\n' })
     })
     run = await launchApp()
+    // Le Project Manager s'affiche d'abord (spec 024) : on ouvre le brainstorm du projet de démo.
+    await run.page.getByRole('button', { name: 'Ouvrir Projet démo : application de notes' }).click()
   })
   afterAll(async () => {
     await run?.close()

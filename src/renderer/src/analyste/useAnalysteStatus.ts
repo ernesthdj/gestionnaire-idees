@@ -22,6 +22,7 @@ export function useAnalysteStatus(): AnalysteStatusView | undefined {
 }
 
 const SCREEN_OF: Readonly<Record<View, ProbeScreen>> = {
+  home: 'accueil',
   ideas: 'carte',
   pending: 'a_valider',
   history: 'historique',

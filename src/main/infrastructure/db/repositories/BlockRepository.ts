@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { BlockView } from '@shared/ipc/canvas'
+import type { CanvasScope } from './canvasScope'
 import type { AppDatabase } from '../client'
 import { canvasBlocks } from '../schemaNeurons'
 import { writeChanges, type ChangeEntry } from './changeLog'
@@ -40,7 +41,11 @@ export interface BlockPatch {
 
 /** Blocs de l'écran Idées : vides (spec 003 FR-026), notes et widgets (spec 004), cadres résultat (spec 005). */
 export class BlockRepository {
-  constructor(private readonly db: AppDatabase) {}
+  constructor(
+    private readonly db: AppDatabase,
+    /** Brainstorm actif (spec 024) : seuls ses blocs sont sur la carte, un bloc nouveau lui appartient. */
+    private readonly scope?: CanvasScope
+  ) {}
 
   transaction<T>(work: () => T): T {
     return this.db.transaction(() => work())
@@ -48,10 +53,14 @@ export class BlockRepository {
 
   /** Blocs visibles (les blocs supprimés restent en base pour l'annulation). */
   list(): BlockView[] {
+    const active = this.scope?.active()
+    if (active === null) return []
     return this.db
       .select(COLUMNS)
       .from(canvasBlocks)
-      .where(isNull(canvasBlocks.deletedAt))
+      .where(
+        and(isNull(canvasBlocks.deletedAt), active === undefined ? undefined : eq(canvasBlocks.brainstormId, active))
+      )
       .orderBy(asc(sql`${canvasBlocks}.rowid`))
       .all()
   }
@@ -74,7 +83,10 @@ export class BlockRepository {
       frameId: block.frameId ?? null,
       origin: block.origin ?? 'user'
     }
-    this.db.insert(canvasBlocks).values(created).run()
+    this.db
+      .insert(canvasBlocks)
+      .values({ ...created, brainstormId: this.scope?.forNew() ?? null })
+      .run()
     return { ...created, versionId: null }
   }
 

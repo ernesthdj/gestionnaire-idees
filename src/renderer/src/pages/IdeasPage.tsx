@@ -3,9 +3,10 @@ import { useUiStore } from '../app/uiStore'
 import { IdeasCanvas } from '../canvas/IdeasCanvas'
 import { useCards } from '../canvas/cards/cardsStore'
 import { RepoPanel } from '../git/RepoPanel'
+import { BrainstormBar } from '../home/BrainstormBar'
 
 /**
- * Écran Idées : la carte, et à droite le volet Dépôt d'un projet quand il est ouvert (spec 021, 62 / 38).
+ * Écran Idées : le bandeau du brainstorm ouvert (spec 024), la carte, et à droite le volet Dépôt d'un projet quand il est ouvert (spec 021, 62 / 38).
  * `Ctrl+Maj+G` ouvre ou ferme le volet du genesis dont la carte est active.
  */
 export function IdeasPage(): React.JSX.Element {
@@ -26,12 +27,17 @@ export function IdeasPage(): React.JSX.Element {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [openRepo, closeRepo])
+  // Un canevas par brainstorm (spec 024) : changer de brainstorm remonte la carte (cadrage, physique).
+  const brainstormId = useUiStore((state) => state.brainstorm?.id ?? null)
   return (
-    <div className="flex h-full min-h-0">
-      <div className="min-w-0 flex-1">
-        <IdeasCanvas />
+    <div className="flex h-full min-h-0 flex-col">
+      <BrainstormBar />
+      <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1">
+          <IdeasCanvas key={brainstormId ?? 'aucun'} />
+        </div>
+        {repoGenesisId === null ? null : <RepoPanel genesisId={repoGenesisId} onClose={closeRepo} />}
       </div>
-      {repoGenesisId === null ? null : <RepoPanel genesisId={repoGenesisId} onClose={closeRepo} />}
     </div>
   )
 }

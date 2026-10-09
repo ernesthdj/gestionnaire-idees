@@ -60,12 +60,13 @@ async function mainWindow(app: ElectronApplication): Promise<Page> {
   )
 }
 
-export async function launchApp(): Promise<LaunchedApp> {
+/** `env` : options du profil e2e (`GI_E2E_VAULT`, `GI_E2E_EMPTY`, `GI_E2E_KEEP`, lues seulement avec `--e2e`). */
+export async function launchApp(env: Readonly<Record<string, string>> = {}): Promise<LaunchedApp> {
   const app = await electron.launch({
     executablePath: ELECTRON,
     args: [ROOT, '--e2e'],
     cwd: ROOT,
-    env: { ...(process.env as Record<string, string>), GI_E2E_PROJECT: DEMO_PROJECT },
+    env: { ...(process.env as Record<string, string>), GI_E2E_PROJECT: DEMO_PROJECT, ...env },
     timeout: 60_000
   })
   try {

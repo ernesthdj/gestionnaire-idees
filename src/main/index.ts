@@ -28,6 +28,8 @@ if (demoProfile) app.setPath('userData', demoData)
 /** `--reset` : repartir d'un jeu de démonstration neuf (uniquement ce dossier fictif, jamais le vrai profil). */
 function resetDemoProfile(): void {
   if (!demoProfile || !(trialProfile || e2eProfile || process.argv.includes('--reset'))) return
+  // Tests e2e de reprise (spec 024) : la base de la passe précédente est gardée.
+  if (e2eProfile && process.env['GI_E2E_KEEP'] === '1') return
   for (const entry of ['gestionnaire-idees.db', 'gestionnaire-idees.db-wal', 'gestionnaire-idees.db-shm']) {
     rmSync(join(demoData, entry), { force: true })
   }
@@ -85,8 +87,14 @@ function start(): void {
         e2eProject !== undefined && isAbsolute(e2eProject)
           ? e2eProject
           : writeDemoMethodFolder(join(demoData, 'projet-demo'))
-      if (seedDemo(context.database.db, DEFAULT_DEMO_SIZE, { projectDir }).seeded)
+      // Tests e2e « de zéro » (spec 024) : aucune donnée de démonstration.
+      const empty = e2eProfile && process.env['GI_E2E_EMPTY'] === '1'
+      if (!empty && seedDemo(context.database.db, DEFAULT_DEMO_SIZE, { projectDir }).seeded)
         context.logger.info('demo.seeded', {})
+      // Tests e2e : coffre fictif (dossier `projects/` d'un ProjectMaster temporaire) passé par `GI_E2E_VAULT`.
+      const e2eVault = e2eProfile ? process.env['GI_E2E_VAULT'] : undefined
+      if (e2eVault !== undefined && isAbsolute(e2eVault)) context.appSettings.saveProjectsRoot(e2eVault)
+      context.adoptLegacyCanvas()
     }
     installWidgetProtocol(session.defaultSession, context.widgets)
 

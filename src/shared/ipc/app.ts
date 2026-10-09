@@ -14,7 +14,8 @@ export function colorSchemeOf(theme: Theme): 'system' | 'light' | 'dark' {
 export const MOTION_MODES = ['auto', 'reduced'] as const
 export type MotionMode = (typeof MOTION_MODES)[number]
 
-export const SECTIONS = ['ideas', 'pending', 'history', 'skills', 'analyste'] as const
+/** `home` : le Project Manager (spec 024), premier écran de l'app. */
+export const SECTIONS = ['home', 'ideas', 'pending', 'history', 'skills', 'analyste'] as const
 export type Section = (typeof SECTIONS)[number]
 
 export const CAPTURE_MAX_CHARS = 2000

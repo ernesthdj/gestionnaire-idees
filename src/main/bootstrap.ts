@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, dialog, ipcMain, safeStorage, shell as electronShell } from 'electron'
@@ -120,6 +121,11 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createGitRoutes } from './ipc/gitHandlers'
+import { createBrainstormRoutes } from './ipc/brainstormHandlers'
+import { BrainstormRepository } from './infrastructure/db/repositories/BrainstormRepository'
+import { BrainstormScope } from './application/brainstorms/BrainstormScope'
+import { BrainstormService } from './application/brainstorms/BrainstormService'
+import { migrateLegacyCanvas } from './application/brainstorms/LegacyCanvasMigration'
 import { GitService } from './application/git/GitService'
 import { RepoLocator } from './application/git/RepoLocator'
 import { reviewProposal, runGitMessage } from './application/ai/GitMessageTask'
@@ -153,6 +159,8 @@ export interface AppContext {
   readonly appSettings: AppSettingsRepository
   /** Versions des widgets : lues par le protocole isolé `gi-widget://` (spec 004). */
   readonly widgets: WidgetRepository
+  /** Range dans un brainstorm les genesis et blocs qui n'en ont pas (spec 024 R10) : rejoué après la graine de démo. */
+  adoptLegacyCanvas(): void
   stop(): void
 }
 
@@ -293,7 +301,10 @@ export function bootstrap(shell: ShellPort): AppContext {
     ollamaStatus: () => ai.ollama.isAvailable(),
     claudeStatus: () => ai.claude.isAvailable()
   })
-  const neuronRepository = new NeuronRepository(database.db)
+  // Un canevas par brainstorm (spec 024 R1) : la carte ne lit que le brainstorm actif.
+  const brainstormRepository = new BrainstormRepository(database.db)
+  const brainstormScope = new BrainstormScope(() => brainstormRepository.ensureLoose())
+  const neuronRepository = new NeuronRepository(database.db, brainstormScope)
   // Arbre de skills (spec 020) : inventaire en lecture seule des skills de Claude Code.
   const skillInventory = new SkillInventory({
     home: app.getPath('home'),
@@ -349,7 +360,7 @@ export function bootstrap(shell: ShellPort): AppContext {
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
   const widgetIoRepository = new WidgetIoRepository(database.db)
-  const blockRepository = new BlockRepository(database.db)
+  const blockRepository = new BlockRepository(database.db, brainstormScope)
 
   const appSettings = new AppSettingsRepository(database.db)
   const widgetRepository = new WidgetRepository(database.db)
@@ -683,6 +694,37 @@ export function bootstrap(shell: ShellPort): AppContext {
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     git: runGit
   })
+  // Project Manager (spec 024) : la carte unique d'avant devient des brainstorms (R10), puis un canevas par projet.
+  const adoptLegacyCanvas = (): void => {
+    const report = migrateLegacyCanvas({
+      repository: brainstormRepository,
+      projectsRoot: () => appSettings.projectsRoot()
+    })
+    if (report.linked + report.loose + report.blocks > 0) logger.info('brainstorms.legacy_migrated', { ...report })
+  }
+  adoptLegacyCanvas()
+  const brainstorms = new BrainstormService({
+    repository: brainstormRepository,
+    scope: brainstormScope,
+    projectsRoot: () => appSettings.projectsRoot(),
+    dataDir,
+    createGenesis: (title, content, brainstormId) => {
+      const id = randomUUID()
+      neuronRepository.insertRoot({ id, title, content, nature: 'reflection', natureSource: null, brainstormId })
+      return id
+    },
+    attach: (neuronId, dir) => conversations.attach(neuronId, dir),
+    discardGenesis: (neuronId) => brainstormRepository.discardFreshRoot(neuronId),
+    gitState: async (genesisId) => {
+      try {
+        const status = await gitService.status(genesisId)
+        return status.state === 'ok' ? { files: status.filesTotal, ahead: status.ahead, behind: status.behind } : null
+      } catch {
+        return null
+      }
+    },
+    projects
+  })
   // Analyse des projets repris (spec 017 US3) : processus séparé, une analyse lourde à la fois.
   const analysis = new AnalysisService({
     reprise: repriseRepository,
@@ -860,6 +902,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
       ...createGitRoutes(gitService),
+      ...createBrainstormRoutes(brainstorms),
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,
@@ -943,6 +986,7 @@ export function bootstrap(shell: ShellPort): AppContext {
     neurons,
     appSettings,
     widgets: widgetRepository,
+    adoptLegacyCanvas,
     stop: () => {
       stopWatching()
       ai.stop()
