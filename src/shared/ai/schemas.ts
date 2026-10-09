@@ -119,3 +119,7 @@ export const GitConflictOut = z.object({
     .max(30)
 })
 export type GitConflictOut = z.infer<typeof GitConflictOut>
+
+/** Sortie de `git_story` (spec 021 US5) : le récit d'une période, auteurs en pseudonymes. */
+export const GitStoryOut = z.object({ text: z.string().trim().min(1).max(4_000) })
+export type GitStoryOut = z.infer<typeof GitStoryOut>

@@ -174,24 +174,24 @@ fichier reste ; « Abandonner » rend l'état exact d'avant.
 ## Phase 7 — US5 Voir qui a fait quoi et quand (P2)
 **Test indépendant** : `trois-auteurs` : 3 lignes dans la frise ; au curseur donné, couleur et initiales attendues par
 nœud ; récit envoyé à Claude sans nom ni e-mail réel.
-- [ ] T040 [P] [US5] Pur : `src/main/domain/git/authors.ts` (clé HMAC, initiales, palette 12 teintes contraste ≥ 3:1
+- [x] T040 [P] [US5] (palette, alias, pseudonymes ; `replay.ts` reporté au lot 2, D15) Pur : `src/main/domain/git/authors.ts` (clé HMAC, initiales, palette 12 teintes contraste ≥ 3:1
   sur les deux thèmes, alias, pseudonymes) + `replay.ts` (agrégation par nœud jusqu'à un commit, poids lignes ou
   commits) + tests
-- [ ] T041 [US5] `HistoryService` `src/main/application/git/HistoryService.ts` : `git:history` (5 000 par lecture,
+- [ ] T041 [US5] (lot 1 livré : `git:history` par pages `skip`, `git:mergeAuthors`, `git:unmergeAuthor` dans `GitHistoryService` ; restent `git:replay`, `git:fetchAll`, poids lignes / commits — lot 2, D15) `HistoryService` `src/main/application/git/HistoryService.ts` : `git:history` (5 000 par lecture,
   `before`, `--numstat` si dépôt complet ; clone partiel → nombre de commits, `weight: 'commits'` affiché
   « par commits » — D12, research R13), `git:replay`, `git:fetchAll` (« Tout télécharger » sur clic : retrait du
   filtre partiel puis `fetch --refetch`, `GIT_TOO_OLD`), `git:mergeAuthors` / `git:unmergeAuthor` (`git_author_aliases`, lot `git`
   annulable) + tests (git réel ; clone partiel local : aucun téléchargement déclenché par la lecture, poids `commits` ;
   après `git:fetchAll` : poids `lines`)
-- [ ] T042 [P] [US5] Tâche `git_story` sans outil (`GitStoryFrame.ts`, `GitStoryTask.ts`, alias seulement) + `git:story`
+- [x] T042 [P] [US5] Tâche `git_story` sans outil (`GitStoryFrame.ts`, `GitStoryTask.ts`, alias seulement) + `git:story`
   + tests (passerelle simulée : aucun nom ni e-mail fictif réel dans l'entrée — SC-004)
-- [ ] T043 [US5] Interface : `Timeline.tsx` dans `HistoryTab.tsx` (une ligne par auteur, légende toujours visible,
+- [ ] T043 [US5] (lot 1 livré : `Timeline.tsx` dans l'onglet Historique ; rediffusion dans l'explorateur — lot 2, D15) Interface : `Timeline.tsx` dans `HistoryTab.tsx` (une ligne par auteur, légende toujours visible,
   zoom semaine / mois / année, flèches = commit précédent / suivant, « Charger plus », fusion d'identités, « Raconter la
   période » avec vrais noms remis à l'affichage), rediffusion dans `src/renderer/src/explorer/` (E6 : couleur +
   initiales, mode principal / dernier, légende « par lignes » ou « par commits » + bouton « Tout télécharger » en clone
   partiel, curseur, ▶, panneau des parts d'auteurs, « Quitter la rediffusion » / `Échap`)
   + tests renderer/axe
-- [ ] T044 [US5] Test guidé (quickstart §5), avec la mesure SC-008 (< 5 s) — attendre le retour
+- [ ] T044 [US5] (lot 1 : e2e `tests/e2e/git-history.e2e.ts` + intégration ; mesure SC-008 avec le lot 2) Test guidé (quickstart §5), avec la mesure SC-008 (< 5 s) — attendre le retour
 
 ## Phase 8 — US6 Pull requests, issues et fork (P3)
 **Test indépendant** : `gh` simulé : listes bornées ; création de PR et commentaire seulement sur clic après

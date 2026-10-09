@@ -24,10 +24,46 @@ export function initialsOf(name: string): string {
   return letters.join('') || '?'
 }
 
-/** Teinte stable tirée de la clé : couleur de l'auteur (la couleur n'est jamais seule, les initiales l'accompagnent). */
+/**
+ * Palette des auteurs (spec 021 T040, GD-1) : 12 teintes distinctes, contraste ≥ 3:1 sur le fond clair, le sombre et le
+ * carbone (vérifié par test). La couleur n'est jamais seule : les initiales l'accompagnent.
+ */
+export const AUTHOR_PALETTE = [
+  '#2563eb',
+  '#ea580c',
+  '#16a34a',
+  '#9333ea',
+  '#e11d48',
+  '#0891b2',
+  '#b45309',
+  '#4d7c0f',
+  '#c026d3',
+  '#0d9488',
+  '#6366f1',
+  '#db2777'
+] as const
+
+/** Couleur stable tirée de la clé. */
 export function colorOf(key: string): string {
-  const hue = Number.parseInt(key.slice(0, 4), 16) % 360
-  return `hsl(${hue} 55% 45%)`
+  return AUTHOR_PALETTE[Number.parseInt(key.slice(0, 4), 16) % AUTHOR_PALETTE.length] ?? AUTHOR_PALETTE[0]
+}
+
+/** Clé principale d'un auteur après fusion d'identités (`aliases` : clé secondaire → clé principale). */
+export const mainKeyOf = (key: string, aliases: ReadonlyMap<string, string>): string => aliases.get(key) ?? key
+
+/** Pseudonymes pour Claude (« Auteur A », « Auteur B »… dans l'ordre d'apparition), jamais un nom ni un e-mail. */
+export function pseudonyms(keys: readonly string[]): Map<string, string> {
+  const result = new Map<string, string>()
+  for (const key of keys) {
+    if (result.has(key)) continue
+    const index = result.size
+    const letters =
+      index < 26
+        ? String.fromCharCode(65 + index)
+        : `${String.fromCharCode(65 + (index % 26))}${Math.floor(index / 26)}`
+    result.set(key, `Auteur ${letters}`)
+  }
+  return result
 }
 
 /** Vues d'auteurs dédoublonnées par clé (la première identité rencontrée donne le nom affiché). */

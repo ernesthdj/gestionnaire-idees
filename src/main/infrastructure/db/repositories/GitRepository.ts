@@ -2,7 +2,14 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { AppError } from '../../../domain/errors'
 import type { AppDatabase } from '../client'
-import { gitClonesRunning, gitConflictHunks, gitMergeSessions, gitOperations, gitRepos } from '../schemaGit'
+import {
+  gitAuthorAliases,
+  gitClonesRunning,
+  gitConflictHunks,
+  gitMergeSessions,
+  gitOperations,
+  gitRepos
+} from '../schemaGit'
 
 export type GitOperationKind = (typeof gitOperations.$inferInsert)['kind']
 
@@ -196,5 +203,39 @@ export class GitRepository {
       .where(and(eq(gitConflictHunks.sessionId, sessionId), eq(gitConflictHunks.hunkIndex, -1)))
       .all()
       .map((row) => row.path)
+  }
+
+  // ── Identités fusionnées (US5) ────────────────────────────────────────────────────────────────────────────────────
+
+  /** Clé secondaire → clé principale, pour ce projet. */
+  aliases(genesisId: string): Map<string, string> {
+    return new Map(
+      this.db
+        .select({ aliasKey: gitAuthorAliases.aliasKey, mainKey: gitAuthorAliases.mainKey })
+        .from(gitAuthorAliases)
+        .where(eq(gitAuthorAliases.genesisId, genesisId))
+        .all()
+        .map((row) => [row.aliasKey, row.mainKey] as const)
+    )
+  }
+
+  mergeAuthors(genesisId: string, mainKey: string, aliasKeys: readonly string[]): void {
+    this.db.transaction((tx) => {
+      for (const aliasKey of aliasKeys) {
+        tx.insert(gitAuthorAliases)
+          .values({ id: randomUUID(), genesisId, aliasKey, mainKey })
+          .onConflictDoUpdate({ target: [gitAuthorAliases.genesisId, gitAuthorAliases.aliasKey], set: { mainKey } })
+          .run()
+      }
+    })
+  }
+
+  unmergeAuthor(genesisId: string, aliasKey: string): boolean {
+    return (
+      this.db
+        .delete(gitAuthorAliases)
+        .where(and(eq(gitAuthorAliases.genesisId, genesisId), eq(gitAuthorAliases.aliasKey, aliasKey)))
+        .run().changes > 0
+    )
   }
 }

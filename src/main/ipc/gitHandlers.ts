@@ -13,6 +13,8 @@ import { GitConfirmInput, GitMergeInput, GitPublishInput, GitPushInput } from '@
 import type { GitService } from '../application/git/GitService'
 import type { PublishService } from '../application/git/PublishService'
 import type { ConflictService } from '../application/git/ConflictService'
+import type { GitHistoryService } from '../application/git/GitHistoryService'
+import { HistoryInput, MergeAuthorsInput, StoryInput, UnmergeAuthorInput } from '@shared/git/history'
 import {
   ConflictDecideInput,
   ConflictPathInput,
@@ -239,6 +241,34 @@ export function createConflictRoutes(
       channel: 'git:mergeAbort',
       input: GitConfirmInput,
       handler: async ({ genesisId }) => conflicts.abort(genesisId)
+    })
+  ]
+}
+
+/** Historique (spec 021 US5) : pages bornées, clés d'auteur, empreintes ; jamais un nom ni un e-mail du renderer. */
+export function createGitHistoryRoutes(
+  history: Pick<GitHistoryService, 'history' | 'mergeAuthors' | 'unmergeAuthor' | 'story'>
+): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'git:history',
+      input: HistoryInput,
+      handler: async ({ genesisId, skip, limit }) => history.history(genesisId, skip, limit)
+    }),
+    defineRoute({
+      channel: 'git:mergeAuthors',
+      input: MergeAuthorsInput,
+      handler: async ({ genesisId, mainKey, aliasKeys }) => history.mergeAuthors(genesisId, mainKey, aliasKeys)
+    }),
+    defineRoute({
+      channel: 'git:unmergeAuthor',
+      input: UnmergeAuthorInput,
+      handler: async ({ genesisId, aliasKey }) => history.unmergeAuthor(genesisId, aliasKey)
+    }),
+    defineRoute({
+      channel: 'git:story',
+      input: StoryInput,
+      handler: async ({ genesisId, from, to }) => history.story(genesisId, from, to)
     })
   ]
 }

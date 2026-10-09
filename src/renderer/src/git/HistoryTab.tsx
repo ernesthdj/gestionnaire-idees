@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { AuthorView, GitCommitView } from '@shared/git/model'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys, useRefreshGit } from './gitQueries'
+import { Timeline } from './Timeline'
 
 interface LogView {
   readonly commits: readonly GitCommitView[]
@@ -44,6 +45,7 @@ export function HistoryTab({
     return (
       <div className="flex flex-col gap-2 text-sm">
         <SinceLastVisit genesisId={genesisId} />
+        <Timeline genesisId={genesisId} readOnly={readOnly} />
         <p className="text-content-muted">Aucun commit pour l’instant.</p>
       </div>
     )
@@ -52,6 +54,7 @@ export function HistoryTab({
   return (
     <div className="flex flex-col gap-2 text-sm">
       <SinceLastVisit genesisId={genesisId} />
+      <Timeline genesisId={genesisId} readOnly={readOnly} />
       <ul aria-label="Derniers commits" className="flex flex-col gap-1">
         {query.data.commits.map((commit) => {
           const author = authors.get(commit.authorKey)

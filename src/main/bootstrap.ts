@@ -121,7 +121,9 @@ import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
-import { createConflictRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import { createConflictRoutes, createGitHistoryRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import { GitHistoryService } from './application/git/GitHistoryService'
+import { runGitStory } from './application/ai/GitStoryTask'
 import { ConflictService } from './application/git/ConflictService'
 import { reviewConflict, runGitConflict } from './application/ai/GitConflictTask'
 import { GitAccess } from './application/git/GitAccess'
@@ -775,6 +777,18 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       return result.ok ? reviewConflict(result.value.data, indexes) : null
     }
   })
+  // Qui a fait quoi et quand (spec 021 US5) : frise, identités fusionnées, récit par Claude (pseudonymes).
+  const gitHistory = new GitHistoryService({
+    access: gitAccess,
+    repository: gitRepository,
+    authorSecret: () => secrets.getOrCreateRandomKey('git-author-hmac'),
+    changed: (genesisId) => broadcast('git:changed', { genesisId }),
+    localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+    story: async (input) => {
+      const result = await runGitStory(ai.gateway, input)
+      return result.ok ? result.value.data.text : null
+    }
+  })
   const gitPublish = new PublishService({
     access: gitAccess,
     queue: gitQueue,
@@ -1060,6 +1074,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createGitRoutes(gitService),
       ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
       ...createConflictRoutes(gitConflicts),
+      ...createGitHistoryRoutes(gitHistory),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),

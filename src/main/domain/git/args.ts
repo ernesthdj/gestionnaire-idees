@@ -274,3 +274,24 @@ export const removeArgs = (path: string): string[] => withPaths(['rm', '-q'], [p
 export const mergeCommitArgs = (withMessage: boolean): string[] =>
   withMessage ? ['commit', '-F', '-', '--cleanup=strip'] : ['commit', '--no-edit']
 export const mergeHeadArgs = (): string[] => ['rev-parse', '--verify', '-q', 'MERGE_HEAD']
+
+// ── Historique (US5) ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Frise : une page de commits de la branche courante (renommages ignorés, GD-6), `skip` pour « Charger plus ». */
+export const historyArgs = (skip: number, limit: number): string[] => [
+  'log',
+  `-n${Math.max(1, Math.min(5_001, Math.trunc(limit)))}`,
+  `--skip=${Math.max(0, Math.trunc(skip))}`,
+  '-z',
+  '--no-color',
+  '--no-ext-diff',
+  '--no-textconv',
+  '--no-renames',
+  '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s'
+]
+
+/** Commits jusqu'à `to` (inclus), pour le récit d'une période ; l'appelant coupe à `from`. */
+export const storyArgs = (to: string): string[] => {
+  if (!/^[0-9a-f]{7,40}$/.test(to)) throw new Error('empreinte refusée')
+  return ['log', '-n500', '-z', '--no-color', '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s', to]
+}
