@@ -1,334 +1,352 @@
 # Feature Specification: Accueil ProjectMaster (spec 024)
 
-**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Draft — réécrite le 2026-10-09 après la correction de mentalyas
 **Input**: « Il nous faut une nouvelle user story qui concerne un menu de chargement de brainstorms déjà exécutés, aussi
 une possibilité de sauvegarde de brainstorm sur un certain projet et ainsi retrouver la doc, les schémas, cartographies,
-etc. sur base de ce projet. Ensuite ce menu de départ nous demandera si on part sur un nouveau projet ou si on continue
-un projet existant et reprend en fait le workflow complet qu'on a configuré dans notre ProjectMaster (`pm.bat`). En
-résumé, on doit importer ProjectMaster dans un menu de cette app qui nous permet de créer ou charger un projet. »
-— mentalyas. Brainstorm de niveau 1 validé : `docs/brainstorm/L1k-accueil-projectmaster.md` (2026-10-09).
-**Glossaire** : *coffre* = le dossier ProjectMaster qui range tous les projets (chez mentalyas : `ProjectsMaster/`) ;
-*registre* = la liste des projets du coffre, partagée avec `pm.bat` ; *session* = une période de travail ouverte sur
-un projet, fermée par la fin de session ; *canevas* = la carte d'un projet dans l'app ; *workflow ProjectMaster* =
-créer (`/hub new`), ouvrir (`/hub work`), brainstormer (`/brainstorm`), fermer (`/hub end`).
+etc. sur base de ce projet. […] On doit importer ProjectMaster dans un menu de cette app qui nous permet de créer ou
+charger un projet. » — mentalyas. Brainstorm L1 validé : `docs/brainstorm/L1k-accueil-projectmaster.md`.
+**Correction de mentalyas (2026-10-09), qui fixe le parcours** : « En ouvrant l'app Brainstormer, la première chose à
+laquelle on est confronté, c'est le Project Manager et son interface, qui nous propose de **charger un brainstorm
+existant** ou d'en **commencer un nouveau**. Le brainstorm existant est une reprise d'un brainstorm déjà travaillé avec
+l'app : on reprend la cartographie etc. là où on s'était arrêtés (penser à une sauvegarde). Dans un nouveau brainstorm,
+soit on part de zéro complet pour créer un nouveau projet — le dossier se crée d'office dans le dossier du ProjectMaster,
+bien structuré —, OU on reprend un projet en chantier dans lequel on veut brainstormer (exemple : projets de groupe) et
+là je me place dans le dossier du projet en question pour y placer ma seed brainstorm config, le git, et continuer à
+bosser dedans, OU récupérer un projet Git depuis un lien, faire un clone dans mon dossier ProjectMaster et continuer à
+bosser le projet ou le scrap. »
+**Glossaire** : *Project Manager* = l'écran d'accueil de l'app ; *coffre* = le dossier ProjectMaster qui range les
+projets (chez mentalyas : `ProjectsMaster/`) ; *registre* = la liste des projets du coffre, partagée avec `pm.bat` ;
+*brainstorm* = un projet travaillé dans l'app, avec son canevas ; *canevas* = la carte d'un projet ; *vault* = le
+dossier `.brainstormer/` posé dans un projet hors du coffre ; *point de sauvegarde* = un état nommé du canevas, auquel
+on peut revenir ; *session* = une période de travail ouverte sur un projet.
 
-## Décisions (2026-10-09, brainstorm L1k validé par mentalyas)
+## Parcours (correction du 2026-10-09)
+
+```
+Ouverture de l'app → Project Manager
+├── A. Charger un brainstorm existant   → reprendre la cartographie là où on s'était arrêté (sauvegarde)
+└── B. Nouveau brainstorm
+       ├── B1. De zéro           → nouveau projet, dossier créé d'office dans le coffre, bien structuré
+       ├── B2. Projet en chantier → dossier choisi tel quel, vault .brainstormer posé dedans, git selon mon rôle
+       └── B3. Depuis un lien Git → clone dans le coffre, puis continuer le projet ou en extraire des morceaux
+```
+
+## Décisions (2026-10-09, brainstorm L1k et correction de mentalyas)
 
 | # | Sujet | Décision |
 |---|-------|----------|
-| D1 | Un projet par canevas | Charger un projet ouvre **sa** carte : son genesis, ses brainstorms, sa doc, ses schémas, sa structure (Progression, Architecture) et sa vue Workflow (spec 023). Plusieurs projets sur une même carte : **reporté**. |
+| D1 | Un projet par canevas | Ouvrir un brainstorm ouvre **sa** carte : son genesis, ses brainstorms, sa doc, ses schémas, sa structure (Progression, Architecture) et sa vue Workflow (spec 023). Plusieurs projets sur une même carte : **reporté**. |
 | D2 | Rôle du genesis | Le genesis redevient **le nœud de départ d'une idée** ; c'est le **canevas** qui porte le projet. |
-| D3 | Pas de brainstorm hors projet | Brainstormer demande un projet : une idée est travaillée d'office dans un environnement de projet ; plus de genesis « libre » sans dossier. Le choix porte sur le dépôt : **GitHub** ou **local seulement**. |
-| D4 | Workflow gardé tel quel | L'app est **l'interface visuelle** du workflow ProjectMaster : elle pilote `/hub new`, `/hub work`, `/hub end` et `/brainstorm` au lieu de les réimplémenter ; les skills restent la source unique ; `pm.bat` et l'app restent d'accord (même registre, mêmes sessions). Les opérations git restent sur un clic de mentalyas (constitution II, « Dépôt »). |
-| D5 | Nouveau projet | Formulaire comme `pm.bat` : **nom**, **description**, **type**, **GitHub oui / non** et, si oui, **visibilité** (public / privé). Claude part du nom et de la description pour cibler les questions du brainstorm qui suit. Un projet peut rester **local** (aucun dépôt distant créé). |
-| D6 | Continuer un projet | L'accueil liste les projets comme `pm.bat` : pastille d'état, nom, description, branche, dernière session. Une session restée ouverte est signalée et l'accueil propose de la reprendre. Ouvrir un projet charge son canevas et suit `/hub work` (synchronisation git, résumé, prochaine tâche). |
-| D7 | Fin de session éclatée | Les étapes de la fin de session deviennent des **actions séparées** : avant d'exécuter, des **cases à cocher** choisissent commit, push, journal du projet, journal global, graphe (graphify), cours académique, fermeture de la session. L'app **garde en mémoire** l'état de la session, son historique et ce qui a changé, au lieu de tout redemander. |
-| D8 | Le coffre | Le dossier ProjectMaster devient le **coffre** du Brainstormer : tous les projets, brainstorms et docs y sont rangés. Chez mentalyas, c'est le dossier actuel ; `projects/gestionnaire-idees` sert de **projet de test**. Un utilisateur qui part de zéro **définit ou crée son coffre** au premier lancement. |
-| D9 | Projet hors du coffre (2026-10-09, correction de mentalyas : « un nouveau projet débutera toujours dans le ProjectMaster par défaut, mais si je charge un projet existant quelque part sur mon PC, dans un autre dossier, alors mon Brainstormer crée un vault à l'intérieur du projet, un peu comme fait Obsidian ») | Un **nouveau projet** naît **toujours dans le coffre** par défaut. **Charger un projet existant** situé ailleurs **ne le déplace pas** : l'app crée **dans le projet** un petit **vault** `.brainstormer/` (comme le `.obsidian/` d'Obsidian) — identité du projet, sessions, réglages de son canevas — ; ses brainstorms et sa doc vivent en Markdown dans le projet (`docs/brainstorm/`, `docs/`). Le contenu de la carte (nœuds, liens, conversations) reste dans la base chiffrée de l'app (constitution IV inchangée). Le vault est **ignoré par git par défaut** (ajouté au `.gitignore` du projet). Le registre du coffre garde le projet comme **référence externe** (chemin), et l'accueil le liste avec les autres. |
+| D3 | Pas de brainstorm hors projet | Toute idée est travaillée dans un projet ; plus de genesis « libre » sans dossier. |
+| D4 | Workflow ProjectMaster gardé | L'app est **l'interface visuelle** du workflow ProjectMaster (`/hub new`, `/hub work`, `/hub end`, `/brainstorm`) : elle en suit le protocole ; `pm.bat` et l'app restent d'accord (même registre, mêmes sessions). Les opérations git restent sur un clic de mentalyas (constitution II, « Dépôt »). |
+| D5 | Project Manager d'abord | À l'ouverture de l'app, **le premier écran est le Project Manager** : « **Charger un brainstorm existant** » ou « **Nouveau brainstorm** ». Aucun canevas ne s'ouvre avant ce choix. |
+| D6 | Charger un brainstorm existant | La liste des brainstorms déjà travaillés dans l'app (nom, description, emplacement — coffre ou externe —, branche, dernière session, session restée ouverte). En ouvrir un **reprend la cartographie exactement là où on s'était arrêté** (nœuds, positions, replis, vue, cartes ouvertes, conversations) et suit `/hub work` (anomalies git, résumé, prochaine tâche). |
+| D7 | Sauvegarde | **Automatique et continue** : rien à faire pour retrouver son travail ; **plus des points de sauvegarde nommés** (« avant refonte ») posés par mentalyas, pour revenir à un état antérieur du canevas ; revenir à un point est lui-même annulable. |
+| D8 | B1 — De zéro | Formulaire comme `pm.bat` : **nom**, **description**, **type**, **GitHub oui / non** et, si oui, **visibilité**. Le dossier est créé **d'office dans le coffre**, avec la structure ProjectMaster (`CLAUDE.md`, `docs/JOURNAL.md`, `src/`, `tests/`, git, registre, graphe). Claude part du nom et de la description pour cibler le brainstorm qui suit. |
+| D9 | B2 — Projet en chantier | Mentalyas choisit le dossier d'un projet existant (ex. projet de groupe) ; **il n'est pas déplacé**. L'app y pose son **vault `.brainstormer/`** (identité, sessions, réglages du canevas, points de sauvegarde), ignoré par git par défaut ; brainstorms et doc s'écrivent en Markdown dans le projet ; le contenu de la carte reste dans la base chiffrée de l'app (constitution IV). Le registre du coffre le garde comme **référence externe**. |
+| D10 | B2 — Git selon le rôle | À l'ouverture, mentalyas dit comment il travaille : **en collaborateur** (dépôt partagé) → l'app travaille sur **sa branche** (créée ou reprise), ne pousse jamais vers la branche par défaut et propose une PR (spec 021) ; **sur son propre dépôt** → travail direct dans le dépôt ; **pas de dépôt** → l'app propose `git init` (et GitHub en option). Le rôle est mémorisé dans le vault et modifiable. |
+| D11 | B3 — Depuis un lien Git | Mentalyas colle un lien ; l'app **clone dans le coffre** (clone partiel, spec 021 GH-C, après confirmation), crée le brainstorm du projet et ouvre son canevas. Ensuite : **continuer le projet** (rôle D10 : collaborateur ou fork) ou **en extraire des morceaux** pour un autre projet, avec sa licence et l'attribution (spec 021 GH-G). |
+| D12 | Fin de session éclatée | Les étapes de `/hub end` deviennent des **actions séparées** à cocher : commit, push, journal du projet, journal global, graphe, cours académique, fermeture de la session ; l'app garde en mémoire l'état de la session et ce qui a changé. |
+| D13 | Le coffre | Le dossier ProjectMaster est le **coffre** du Brainstormer (chez mentalyas : le dossier actuel ; `projects/gestionnaire-idees` sert de **projet de test**). Un utilisateur qui part de zéro **définit ou crée son coffre** au premier lancement. |
 
 ## Clarifications
 
 ### Session 2026-10-09
 
-- Q : Comment l'app pilote-t-elle `/hub` et `/brainstorm`, qui demandent git, `gh`, Python et les skills de
-  mentalyas ? → R : **l'app fait elle-même les étapes de `/hub`** (lecture et écriture de `.hub/`, git et `gh` sur
-  clic, graphe), en suivant le protocole du skill étape par étape ; **Claude ne sert qu'au `/brainstorm`**, dans la
-  conversation existante (spec 008, mode de permission de la spec 014). Pas de nouveau mode de conversation ; chaque
-  étape est une action de l'app, ce qui rejoint la fin de session éclatée (D7).
+- Q : Comment l'app pilote-t-elle `/hub` et `/brainstorm` ? → R : **l'app fait elle-même les étapes de `/hub`** en
+  suivant le protocole du skill étape par étape (git et `gh` sur clic) ; **Claude ne sert qu'au `/brainstorm`**, dans la
+  conversation existante (spec 008, mode de permission de la spec 014) ; pas de nouveau mode de conversation.
 - Q : Que devient le contenu actuel de la carte unique ? → R : le genesis rattaché au dossier du Brainstormer va dans
-  le canevas de `gestionnaire-idees` ; **tout le reste** (genesis sans dossier, fiches, liens libres, widgets) va dans
-  un projet **local « Idées en vrac »** créé pour l'occasion ; mentalyas déplace ensuite ce qu'il veut vers un vrai
-  projet. Rien n'est perdu, et « pas de genesis sans projet » (D3) reste vrai.
-- Q : Que contient le vault créé dans un projet chargé hors du coffre (D9) ? → R : des **métadonnées** dans
-  `.brainstormer/` (identité, sessions, réglages du canevas) et les **documents en Markdown** dans le projet ; le
-  contenu de la carte reste dans la base chiffrée de l'app.
-- Q : Ce vault est-il versionné ? → R : **ignoré par défaut** (`.gitignore` du projet) ; les documents Markdown restent
-  versionnés comme aujourd'hui.
-- Q : Un projet externe apparaît-il dans l'accueil et le registre ? → R : **oui, comme référence externe** (chemin) ;
-  il n'est pas déplacé.
-- Q : `/hub new` crée toujours le dépôt GitHub ; comment créer un projet local ? → R : **ajouter au skill `/hub` une
-  option GitHub oui / non** (dans la configuration de mentalyas, hors de ce dépôt) : `pm.bat` en profite aussi, et le
-  skill reste la référence que l'app suit.
+  le brainstorm `gestionnaire-idees` ; tout le reste va dans un brainstorm local **« Idées en vrac »** créé pour
+  l'occasion ; rien n'est perdu.
+- Q : `/hub new` crée toujours le dépôt GitHub ; comment créer un projet local ? → R : **option GitHub oui / non
+  ajoutée au skill `/hub`** (configuration de mentalyas, hors de ce dépôt, avec son accord) : `pm.bat` en profite aussi.
+- Q : Que contient le vault d'un projet hors du coffre ? → R : des **métadonnées** dans `.brainstormer/` ; les
+  documents en Markdown dans le projet ; le contenu de la carte dans la base chiffrée.
+- Q : Le vault est-il versionné ? → R : **ignoré par défaut** (`.gitignore` du projet).
+- Q : Un projet externe apparaît-il dans la liste et le registre ? → R : **oui, comme référence externe**.
+- Q : Comment se comporte la sauvegarde ? → R : **automatique et continue, plus des points de sauvegarde nommés** (D7).
+- Q : B3, « continuer ou le scrap » ? → R : « scrap » = **en extraire des morceaux** (licence et attribution, spec 021
+  GH-G), pas le jeter.
+- Q : B2, que fait l'app côté git ? → R : **selon le rôle** : collaborateur sur sa branche, ou sur son propre dépôt
+  (D10) ; sans dépôt, elle propose d'en créer un.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 — Retrouver mes projets dans l'app (Priority: P1) 🎯 MVP
+### User Story 1 — Reprendre un brainstorm là où je m'étais arrêté (Priority: P1) 🎯 MVP
 
-Au lancement, mentalyas voit l'accueil : la liste de ses projets ProjectMaster (pastille actif / inactif, nom,
-description, branche, dernière session), comme dans `pm.bat`. Il en choisit un : l'app ouvre **le canevas de ce
-projet**, avec ses brainstorms, sa doc, ses schémas, sa structure et sa vue Workflow.
+Mentalyas ouvre l'app : le Project Manager s'affiche. Il choisit « Charger un brainstorm existant », puis un brainstorm
+de la liste : son canevas s'ouvre exactement comme il l'avait laissé (nœuds, positions, replis, vue, cartes ouvertes),
+et l'app suit `/hub work` (session, anomalies git, résumé, prochaine tâche).
 
-**Why this priority**: c'est le cœur de la demande (« charger un projet ») et la condition des autres histoires ; sans
-canevas par projet, rien ne se range « sur base de ce projet ».
+**Why this priority**: c'est le geste de tous les jours ; sans reprise fidèle, le reste n'a pas de sens.
 
-**Independent Test**: avec le coffre de mentalyas, l'accueil liste les projets du registre ; ouvrir
-`gestionnaire-idees` affiche son canevas (genesis, documents, vue Workflow) et rien d'un autre projet.
-
-**Acceptance Scenarios**:
-
-1. **Given** un coffre défini, **When** l'app démarre, **Then** l'accueil liste chaque projet du registre avec sa
-   pastille, son nom, sa description, sa branche et sa dernière session, dans l'ordre de la dernière session.
-2. **Given** l'accueil, **When** mentalyas ouvre un projet, **Then** son canevas s'affiche avec ce qui lui appartient
-   (genesis, brainstorms, documents, schémas, structure, vue Workflow) et seulement cela.
-3. **Given** un canevas ouvert, **When** mentalyas revient à l'accueil puis ouvre un autre projet, **Then** chaque
-   canevas retrouve son état (nœuds, positions, replis) tel qu'il l'avait laissé.
-4. **Given** un projet du registre dont le dossier est introuvable, **When** l'accueil s'affiche, **Then** il est listé
-   grisé avec la mention « dossier introuvable », sans bloquer les autres.
-
----
-
-### User Story 2 — Continuer un projet comme `/hub work` (Priority: P1)
-
-Mentalyas ouvre un projet ; l'app suit `/hub work` : elle signale une session restée ouverte (reprendre, fermer
-d'abord, ignorer), des fichiers non commités, des commits non poussés, un dépôt distant en avance ; puis elle montre le
-résumé actionnable (dernières entrées du journal, issues ouvertes, prochaine tâche suggérée) et ouvre la session.
-
-**Why this priority**: c'est le geste quotidien ; il fait de l'app l'interface du workflow existant (D4, D6).
-
-**Independent Test**: sur un projet avec une session ouverte et un fichier modifié, l'ouverture affiche les deux
-anomalies et les choix ; « Reprendre » ouvre le canevas et la session reste celle de `.hub` (visible aussi par
-`pm.bat`).
+**Independent Test**: travailler sur le brainstorm `gestionnaire-idees` (déplacer des nœuds, plier une branche, passer
+en Workflow), fermer l'app, la rouvrir, recharger ce brainstorm : tout est à l'identique.
 
 **Acceptance Scenarios**:
 
-1. **Given** une session restée ouverte sur un projet, **When** l'accueil s'affiche, **Then** ce projet porte la mention
-   « session ouverte depuis … » et l'ouvrir propose : reprendre, fermer d'abord, ignorer.
-2. **Given** un projet ouvert, **When** son dépôt a des fichiers non commités, des commits non poussés ou un distant en
-   avance, **Then** chaque anomalie est listée avec son action proposée, qui ne s'exécute que sur un clic.
-3. **Given** l'ouverture terminée, **When** le résumé s'affiche, **Then** il montre les dernières entrées du journal du
-   projet, ses issues ouvertes (si GitHub) et une prochaine tâche suggérée ; la session est enregistrée comme ouverte
-   pour l'app **et** pour `pm.bat`.
+1. **Given** l'app qui démarre, **When** le coffre est défini, **Then** le premier écran est le Project Manager, avec
+   « Charger un brainstorm existant » et « Nouveau brainstorm » ; aucun canevas n'est ouvert.
+2. **Given** « Charger un brainstorm existant », **When** la liste s'affiche, **Then** chaque brainstorm montre son nom,
+   sa description, son emplacement (coffre ou externe), sa branche, sa dernière session et une session restée ouverte ;
+   un dossier introuvable est grisé avec la mention « dossier introuvable ».
+3. **Given** un brainstorm choisi, **When** son canevas s'ouvre, **Then** il retrouve ses nœuds, positions, replis, vue
+   et cartes ouvertes de la dernière fois, et rien d'un autre projet.
+4. **Given** l'ouverture, **When** le dépôt a des fichiers non commités, des commits non poussés ou un distant en avance,
+   ou qu'une session est restée ouverte, **Then** chaque cas est signalé avec son action proposée, exécutée seulement
+   sur un clic.
 
 ---
 
-### User Story 3 — Créer un nouveau projet et le brainstormer (Priority: P2)
+### User Story 2 — Poser et retrouver des points de sauvegarde (Priority: P2)
 
-Depuis l'accueil, « Nouveau projet » ouvre un formulaire : nom, description, type, GitHub oui / non (et visibilité).
-L'app crée le projet comme `/hub new` (structure, journal, git, registre, graphe), crée le dépôt GitHub seulement si
-demandé et confirmé, puis ouvre le canevas du projet avec son genesis et lance le brainstorm, ciblé par le nom et la
+Avant de réorganiser sa carte, mentalyas pose un point de sauvegarde « avant refonte ». Plus tard, il ouvre la liste de
+ses points, voit leur date, revient à « avant refonte » ; s'il change d'avis, il annule ce retour.
+
+**Why this priority**: la sauvegarde continue protège déjà le travail ; les points permettent d'essayer sans crainte.
+
+**Independent Test**: poser un point, supprimer trois nœuds, revenir au point : les nœuds sont là ; annuler le retour :
+ils ont de nouveau disparu.
+
+**Acceptance Scenarios**:
+
+1. **Given** un canevas ouvert, **When** mentalyas pose un point de sauvegarde nommé, **Then** il apparaît dans la liste
+   du brainstorm avec son nom et sa date.
+2. **Given** un point de sauvegarde, **When** mentalyas y revient, **Then** le canevas reprend cet état (nœuds, liens,
+   positions, replis) après confirmation, et ce retour est annulable.
+3. **Given** un point, **When** mentalyas le renomme ou le supprime, **Then** la liste suit ; supprimer demande
+   confirmation.
+
+---
+
+### User Story 3 — Nouveau brainstorm de zéro (Priority: P2)
+
+« Nouveau brainstorm » › « De zéro » : nom, description, type, GitHub oui / non (et visibilité). Le projet est créé
+d'office dans le coffre avec la structure ProjectMaster ; le dépôt GitHub n'est créé que s'il est demandé et confirmé ;
+le canevas s'ouvre avec son genesis et le brainstorm démarre, ciblé par le nom et la description.
+
+**Why this priority**: ferme la boucle « créer » depuis l'app.
+
+**Independent Test**: créer « essai-local » sans GitHub : le dossier existe dans le coffre avec sa structure, le
+registre le liste, aucun dépôt distant n'existe, le canevas s'ouvre et la première question du brainstorm cite la
 description.
 
-**Why this priority**: ferme la boucle « créer » ; sans elle, l'app n'ouvre que des projets créés par `pm.bat`.
-
-**Independent Test**: créer « essai-local » en local seulement : le dossier, le journal et l'entrée du registre
-existent, aucun dépôt distant n'est créé, le canevas s'ouvre et le brainstorm démarre avec une première question liée à
-la description.
-
 **Acceptance Scenarios**:
 
-1. **Given** le formulaire, **When** le nom n'est pas un identifiant valide (règles de `/hub new`) ou existe déjà,
-   **Then** la création est refusée avec la raison, avant toute écriture.
-2. **Given** « GitHub : non », **When** mentalyas crée le projet, **Then** aucun dépôt distant n'est créé et le
-   registre le note comme local.
-3. **Given** « GitHub : oui », **When** l'étape de création du dépôt arrive, **Then** l'app montre le nom, la visibilité
-   et la description du dépôt et attend la confirmation de mentalyas.
+1. **Given** le formulaire, **When** le nom est invalide (règles de `/hub new`) ou existe déjà, **Then** la création est
+   refusée avec la raison, avant toute écriture.
+2. **Given** « GitHub : non », **When** le projet est créé, **Then** aucun dépôt distant n'est créé et le registre le note
+   local.
+3. **Given** « GitHub : oui », **When** l'étape du dépôt arrive, **Then** l'app montre nom, visibilité et description et
+   attend la confirmation.
 4. **Given** le projet créé, **When** son canevas s'ouvre, **Then** son genesis porte le nom du projet et le brainstorm
-   démarre en tenant compte du nom et de la description.
+   démarre avec le nom et la description.
 
 ---
 
-### User Story 4 — Fermer une session étape par étape (Priority: P3)
+### User Story 4 — Nouveau brainstorm sur un projet en chantier (Priority: P2)
 
-Sur un projet ouvert, « Fin de session » liste les étapes avec des cases à cocher (commit, push, journal du projet,
-journal global, graphe, cours académique, fermeture de la session), cochées par défaut selon ce que la session a
-changé. Mentalyas décoche ce qu'il ne veut pas (par exemple le graphe) ; chaque étape s'exécute séparément, avec son
-résultat (réussie, échouée, sautée).
+« Nouveau brainstorm » › « Projet en chantier » : mentalyas choisit le dossier d'un projet existant, par exemple un
+projet de groupe. L'app ne le déplace pas : elle montre ce qu'elle va y écrire (`.brainstormer/`, une ligne du
+`.gitignore`, la référence au registre) puis demande comment il travaille — en collaborateur (sa branche) ou sur son
+propre dépôt —, et ouvre le canevas du projet.
 
-**Why this priority**: utile tous les jours, mais `/hub end` dans un terminal reste possible en attendant.
+**Why this priority**: c'est la porte d'entrée des projets nés ailleurs, dont les projets de groupe.
 
-**Independent Test**: sur une session avec un fichier modifié, décocher « graphe » et « cours » : le commit montre son
-diff et attend le clic, le push suit sur clic, les journaux reçoivent leur entrée, la session est fermée dans `.hub` ;
-le graphe et le cours sont marqués « sautés ».
-
-**Acceptance Scenarios**:
-
-1. **Given** une session ouverte, **When** mentalyas ouvre « Fin de session », **Then** chaque étape est listée avec une
-   case et un état ; les étapes sans objet (rien à commiter, suivi académique désactivé) sont décochées avec la raison.
-2. **Given** des étapes cochées, **When** il lance la fin de session, **Then** elles s'exécutent dans l'ordre de
-   `/hub end`, chacune séparément ; un échec arrête les étapes qui en dépendent (pas de push sans commit réussi) et
-   laisse les autres choisir.
-3. **Given** le commit ou le push, **When** leur étape arrive, **Then** l'app montre les fichiers et le diff (commit)
-   ou la destination, la branche et les commits (push), et n'agit que sur un clic (constitution II).
-4. **Given** la fermeture de session cochée et réussie, **When** `pm.bat` est lancé ensuite, **Then** il ne voit plus de
-   session ouverte.
-
----
-
-### User Story 5 — Définir mon coffre au premier lancement (Priority: P3)
-
-Au premier lancement (ou si le coffre a disparu), l'app demande où est le coffre ProjectMaster : choisir un dossier
-existant, ou en créer un nouveau, vide et prêt (registre, sessions, dossier des projets, journal global).
-
-**Why this priority**: indispensable pour un autre utilisateur ; chez mentalyas, le coffre existe déjà.
-
-**Independent Test**: profil neuf → l'app demande le coffre ; « Créer » dans un dossier vide produit un coffre que
-`pm.bat` sait lire ; « Choisir » le coffre de mentalyas liste ses projets.
+**Independent Test**: choisir un dépôt partagé en « collaborateur » : `.brainstormer/` est créé et ignoré par git, une
+branche personnelle est créée ou reprise, la liste montre le projet comme externe ; aucun push vers la branche par
+défaut n'est possible.
 
 **Acceptance Scenarios**:
 
-1. **Given** aucun coffre défini, **When** l'app démarre, **Then** elle propose de choisir un coffre existant ou d'en
-   créer un, et n'affiche l'accueil qu'ensuite.
-2. **Given** un dossier choisi qui n'est pas un coffre (pas de registre), **When** mentalyas le valide, **Then** l'app
-   propose d'y créer un coffre plutôt que d'échouer.
-3. **Given** un dossier interdit (dossier de données de l'app, racine d'un disque, dossier système), **When** il est
-   choisi, **Then** il est refusé avec la raison.
-
----
-
-### User Story 6 — Charger un projet existant situé ailleurs (Priority: P2)
-
-Mentalyas a un projet dans un autre dossier de son PC. Depuis l'accueil, « Charger un projet existant » : il choisit le
-dossier ; l'app ne le déplace pas, crée dans le projet le vault `.brainstormer/` (ignoré par git), ajoute une référence
-externe au registre du coffre, puis ouvre le canevas du projet ; ses brainstorms et sa doc s'écrivent dans le projet.
-
-**Why this priority**: c'est la porte d'entrée des projets qui ne sont pas nés dans ProjectMaster (projets anciens,
-clones) ; la création reste dans le coffre (D9).
-
-**Independent Test**: charger un dossier hors du coffre : `.brainstormer/` est créé dans le dossier et ajouté à son
-`.gitignore`, le dossier n'a pas bougé, l'accueil le liste comme externe ; le recharger après un redémarrage retrouve
-son canevas.
-
-**Acceptance Scenarios**:
-
-1. **Given** un dossier hors du coffre, **When** mentalyas le charge, **Then** l'app montre ce qu'elle va créer
-   (`.brainstormer/`, ligne du `.gitignore`, référence au registre) et ne l'écrit qu'après confirmation.
-2. **Given** le projet chargé, **When** l'accueil s'affiche, **Then** il est listé avec la mention « externe » et son
-   chemin, à côté des projets du coffre.
-3. **Given** un dossier qui a déjà un `.brainstormer/`, **When** il est chargé, **Then** l'app reprend ce vault (même
-   projet, mêmes sessions) au lieu d'en créer un autre.
-4. **Given** un dossier dans le coffre, **When** il est « chargé », **Then** l'app l'ouvre comme projet du coffre, sans
-   vault à part.
+1. **Given** un dossier hors du coffre, **When** mentalyas le choisit, **Then** l'app montre ce qu'elle va écrire et
+   n'écrit qu'après confirmation ; un dossier qui a déjà un `.brainstormer/` est repris, pas dupliqué.
+2. **Given** le rôle « collaborateur », **When** le projet s'ouvre, **Then** l'app travaille sur la branche de mentalyas
+   (créée ou reprise, nom proposé et modifiable) et ses pushs vont vers cette branche, jamais vers la branche par
+   défaut ; une PR est proposée quand il le demande.
+3. **Given** le rôle « mon propre dépôt », **When** le projet s'ouvre, **Then** l'app travaille dans le dépôt tel quel
+   (commit et push sur clic).
+4. **Given** un dossier sans dépôt git, **When** il est choisi, **Then** l'app propose `git init` (et GitHub en option)
+   et n'en fait rien sans accord.
 5. **Given** un dossier sensible (données de l'app, racine de disque, dossier système) ou sans droit d'écriture,
    **When** il est choisi, **Then** il est refusé avec la raison, sans rien écrire.
 
 ---
 
+### User Story 5 — Nouveau brainstorm depuis un lien Git (Priority: P3)
+
+« Nouveau brainstorm » › « Depuis un lien Git » : mentalyas colle l'adresse d'un dépôt. L'app montre où elle va le
+cloner (dans le coffre), clone après confirmation, crée le brainstorm du projet et ouvre son canevas. Il peut ensuite
+continuer le projet (en collaborateur ou par un fork) ou en extraire des morceaux pour un autre projet.
+
+**Why this priority**: s'appuie sur la spec 021 (clone, fork, extraire), pas encore codée.
+
+**Independent Test**: cloner un petit dépôt public de test : il arrive dans le coffre, apparaît dans la liste, son
+canevas s'ouvre ; « Extraire un morceau » copie un fichier vers un autre projet avec sa licence et l'attribution.
+
+**Acceptance Scenarios**:
+
+1. **Given** un lien, **When** mentalyas le colle, **Then** l'app vérifie qu'il s'agit d'une adresse de dépôt valide et
+   montre le dossier de destination dans le coffre avant de cloner.
+2. **Given** le clone terminé, **When** le canevas s'ouvre, **Then** le projet est au registre et le contenu cloné est
+   traité comme une donnée non fiable (jamais exécuté, jamais une consigne pour Claude).
+3. **Given** un projet cloné, **When** mentalyas choisit « Extraire un morceau », **Then** les fichiers choisis sont
+   copiés vers un autre projet avec la licence d'origine et l'attribution.
+
+---
+
+### User Story 6 — Fermer une session étape par étape (Priority: P3)
+
+Sur un brainstorm ouvert, « Fin de session » liste les étapes de `/hub end` avec des cases, cochées selon ce que la
+session a changé ; chaque étape s'exécute séparément, avec son résultat (faite, échouée, sautée).
+
+**Why this priority**: `/hub end` en terminal reste possible en attendant.
+
+**Independent Test**: décocher « graphe » et « cours » : le commit montre son diff et attend le clic, les journaux
+reçoivent leur entrée, la session est fermée et `pm.bat` le voit.
+
+**Acceptance Scenarios**:
+
+1. **Given** une session ouverte, **When** mentalyas ouvre « Fin de session », **Then** chaque étape est listée avec une
+   case et un état ; une étape sans objet est décochée avec la raison.
+2. **Given** des étapes cochées, **When** il lance la fin, **Then** elles s'exécutent dans l'ordre de `/hub end`, une
+   par une ; un échec arrête les étapes qui en dépendent.
+3. **Given** le commit ou le push, **When** leur étape arrive, **Then** l'app montre les fichiers et le diff, ou la
+   destination et la branche, et n'agit que sur un clic.
+
+---
+
+### User Story 7 — Définir mon coffre au premier lancement (Priority: P3)
+
+Au premier lancement (ou si le coffre a disparu), avant le Project Manager, l'app demande où est le coffre : choisir un
+dossier existant, ou en créer un, vide et prêt.
+
+**Why this priority**: indispensable pour un autre utilisateur ; chez mentalyas, le coffre existe.
+
+**Independent Test**: profil neuf → l'app demande le coffre ; « Créer » produit un coffre que `pm.bat` sait lire.
+
+**Acceptance Scenarios**:
+
+1. **Given** aucun coffre défini, **When** l'app démarre, **Then** elle propose de choisir ou de créer un coffre, puis
+   affiche le Project Manager.
+2. **Given** un dossier qui n'est pas un coffre, **When** il est validé, **Then** l'app propose d'y créer un coffre.
+3. **Given** un dossier interdit, **When** il est choisi, **Then** il est refusé avec la raison.
+
+---
+
 ### Edge Cases
 
-- Projet externe déplacé ou renommé hors de l'app : l'accueil le montre « dossier introuvable » et propose de le
-  relier à son nouvel emplacement (le vault `.brainstormer/` du dossier permet de le reconnaître).
-- `.brainstormer/` présent mais abîmé ou d'un format inconnu : l'app le signale et propose de le recréer, sans effacer
-  les documents Markdown du projet.
-- Projet externe dont le `.gitignore` n'existe pas : l'app le crée avec la seule ligne du vault, après confirmation.
-
 - `pm.bat` et l'app ouverts en même temps : une écriture du registre ou des sessions par l'un est vue par l'autre ;
-  aucune écriture n'écrase un changement plus récent (écriture atomique, relecture avant écriture).
-- Session ouverte par `pm.bat` sur un autre projet que celui que mentalyas ouvre dans l'app : l'app le signale
-  (« un seul projet actif à la fois », règle du workspace) et propose de fermer l'autre d'abord.
-- Projet du registre sans dossier, registre illisible, ou fichier de sessions abîmé : message clair, rien n'est réécrit
-  sans accord.
-- Nom de projet qui ressemble à une commande ou contient des caractères spéciaux : refusé par les règles de nom avant
-  toute exécution.
-- `gh` absent ou non connecté et « GitHub : oui » : l'étape du dépôt échoue avec la raison, le projet reste créé en
-  local et peut être publié plus tard (spec 021).
-- Étape de fin de session longue (graphe d'un gros projet) : elle montre qu'elle travaille, peut être annulée, et ne
-  bloque pas les étapes déjà faites.
-- Contenu actuel de la carte unique (genesis sans dossier, fiches, liens libres, widgets) au passage à un canevas par
-  projet : voir FR-016.
+  aucune écriture n'écrase un changement plus récent.
+- Session ouverte par `pm.bat` sur un autre projet : l'app le signale (un seul projet actif à la fois) et propose de la
+  fermer d'abord.
+- Projet externe déplacé ou renommé : grisé « dossier introuvable », avec « Relier à son nouvel emplacement » (le vault
+  le reconnaît).
+- Vault `.brainstormer/` abîmé ou d'un format inconnu : signalé, recréation proposée, documents Markdown intacts.
+- Collaborateur dont la branche a été supprimée du distant : l'app le signale et propose de la recréer depuis l'état
+  local.
+- Lien Git invalide, dépôt privé sans accès, `gh` absent : message clair, rien n'est écrit dans le coffre.
+- Point de sauvegarde très ancien (le projet a beaucoup changé depuis) : le retour reste possible et annulable ; il ne
+  touche qu'au canevas, jamais aux fichiers du projet.
+- Coupure (panne, fermeture brutale) : la sauvegarde continue retrouve l'état d'avant la coupure, au plus quelques
+  secondes de travail perdues.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001** (D8) : L'app MUST connaître un coffre ProjectMaster ; sans coffre défini, elle MUST proposer d'en choisir
-  un ou d'en créer un avant l'accueil ; un dossier sensible (données de l'app, racine de disque, dossier système) MUST
-  être refusé.
-- **FR-002** (D8) : Créer un coffre MUST produire une structure que `pm.bat` sait lire : registre et sessions vides,
-  dossier des projets, journal global.
-- **FR-003** (D6) : L'accueil MUST lister les projets du registre (pastille, nom, description, branche, dernière
-  session), signaler une session ouverte et un dossier introuvable.
-- **FR-004** (D1) : Ouvrir un projet MUST afficher son seul canevas ; chaque canevas MUST garder son propre état
-  (nœuds, positions, replis, vues) d'une ouverture à l'autre.
-- **FR-005** (D4, D6) : Ouvrir un projet MUST suivre le protocole `/hub work` : détection des anomalies (session mal
-  fermée, fichiers non commités, commits non poussés, distant en avance), résumé actionnable, ouverture de la session
-  dans les fichiers de session partagés avec `pm.bat`.
-- **FR-006** (D4) : Toute action git proposée par l'ouverture ou la fin de session MUST attendre un clic de mentalyas
-  après affichage de ce qu'elle fera (constitution II, « Dépôt »).
-- **FR-007** (D5) : « Nouveau projet » MUST demander nom, description, type, GitHub oui / non et, si oui, visibilité ;
-  le nom MUST respecter les règles de `/hub new` (format, longueur, mots réservés, unicité) avant toute écriture.
-- **FR-008** (D5) : Créer un projet MUST produire le même résultat que `/hub new` (structure, journal, dépôt git local,
-  premier commit, graphe initial, registre, journal global) ; le dépôt GitHub MUST n'être créé que si demandé, après
-  confirmation ; un projet local MUST être noté comme tel dans le registre.
-- **FR-009** (D3, D5) : Après la création, le canevas du projet MUST s'ouvrir avec un genesis au nom du projet et le
-  brainstorm MUST démarrer en recevant le nom et la description du projet.
-- **FR-010** (D3) : Brainstormer une nouvelle idée MUST se faire dans un projet ; l'app MUST NOT créer de genesis sans
-  projet.
-- **FR-011** (D7) : « Fin de session » MUST lister les étapes de `/hub end` avec une case chacune, cochées selon ce que
-  la session a changé ; les étapes cochées MUST s'exécuter séparément, dans l'ordre de `/hub end`, chacune avec son
-  résultat ; un échec MUST arrêter les étapes qui en dépendent.
-- **FR-012** (D7) : La fermeture de session MUST mettre à jour les fichiers de session partagés et la dernière session
-  du registre, de sorte que `pm.bat` voie le même état.
-- **FR-013** (D7) : L'app MUST garder, par projet, l'historique de ses sessions (ouverture, fermeture, étapes faites,
-  fichiers changés) et s'en servir pour pré-cocher la fin de session et résumer la prochaine ouverture.
-- **FR-014** (D4, Q1) : Les étapes de `/hub` (new, work, end) MUST être faites par l'app en suivant le protocole du
-  skill `/hub` étape par étape, avec un résultat identique dans le coffre ; l'app MUST NOT diverger de ce que `pm.bat`
-  et le skill attendent (même registre, mêmes sessions, mêmes journaux, mêmes exclusions du graphe).
-- **FR-015** (Q1) : Le brainstorm MUST se faire dans la conversation existante du genesis du projet (spec 008), avec
-  son mode de permission (spec 014) ; l'app MUST NOT ouvrir de mode de conversation nouveau pour `/hub` : ses étapes
-  sont des actions de l'app (git et `gh` sur clic, constitution II).
-- **FR-016** (Q2) : Au passage à un canevas par projet, le genesis rattaché au dossier du Brainstormer MUST aller dans
-  le canevas de `gestionnaire-idees`, et tout autre contenu de la carte unique (genesis sans dossier, fiches, liens
-  libres, widgets) MUST aller dans un projet local « Idées en vrac » créé pour l'occasion, sans perte ; mentalyas MUST
-  pouvoir déplacer ensuite un genesis et sa descendance vers un autre projet.
-- **FR-017** (D5, Q3) : Le skill `/hub` MUST accepter le choix GitHub oui / non à la création (modification de la
-  configuration de mentalyas, hors de ce dépôt, proposée et appliquée avec son accord) ; l'app MUST suivre ce même
-  protocole pour un projet local (aucun dépôt distant, registre noté « local »).
-- **FR-019** (D9) : Un nouveau projet MUST être créé dans le coffre par défaut.
-- **FR-020** (D9) : Charger un projet hors du coffre MUST NOT le déplacer ; l'app MUST créer dans le projet un vault
-  `.brainstormer/` (identité du projet, sessions, réglages du canevas), après avoir montré ce qu'elle écrit et reçu la
-  confirmation ; un vault existant MUST être repris, pas dupliqué.
-- **FR-021** (D9) : Le vault MUST être ignoré par git par défaut (ligne ajoutée au `.gitignore` du projet) ; les
-  documents du projet (brainstorms, doc) MUST s'écrire en Markdown dans le projet ; le contenu de la carte (nœuds,
-  liens, conversations) MUST rester dans la base chiffrée de l'app (constitution IV).
-- **FR-022** (D9) : Le registre du coffre MUST garder un projet externe comme référence (chemin, mention « externe »),
-  et l'accueil MUST le lister avec les autres ; un projet externe introuvable MUST pouvoir être relié à son nouvel
-  emplacement grâce à son vault.
-- **FR-018** (accessibilité) : L'accueil, les formulaires et la fin de session MUST être utilisables au clavier et
-  passer la vérification d'accessibilité ; chaque étape longue MUST montrer qu'elle travaille et pouvoir être annulée.
+- **FR-001** (D5) : Au démarrage, une fois le coffre défini, l'app MUST afficher le Project Manager (« Charger un
+  brainstorm existant », « Nouveau brainstorm ») avant tout canevas.
+- **FR-002** (D6) : « Charger » MUST lister les brainstorms (coffre et externes) avec nom, description, emplacement,
+  branche, dernière session, session ouverte, dossier introuvable.
+- **FR-003** (D1, D6) : Ouvrir un brainstorm MUST afficher son seul canevas, dans l'état exact de la dernière fois
+  (nœuds, positions, replis, vue, cartes ouvertes).
+- **FR-004** (D4, D6) : Ouvrir un brainstorm MUST suivre `/hub work` : anomalies (session mal fermée, fichiers non
+  commités, commits non poussés, distant en avance), résumé, ouverture de session dans les fichiers partagés avec
+  `pm.bat`.
+- **FR-005** (D7) : Le canevas MUST être enregistré en continu, sans geste de mentalyas ; une coupure MUST faire perdre
+  au plus quelques secondes de travail.
+- **FR-006** (D7) : Mentalyas MUST pouvoir poser, nommer, renommer, supprimer (avec confirmation) des points de
+  sauvegarde d'un brainstorm, et revenir à l'un d'eux après confirmation ; le retour MUST être annulable et ne toucher
+  qu'au canevas (jamais aux fichiers du projet).
+- **FR-007** (D8) : « De zéro » MUST demander nom, description, type, GitHub oui / non et visibilité ; le nom MUST
+  respecter les règles de `/hub new` avant toute écriture ; le dossier MUST être créé dans le coffre avec la structure
+  ProjectMaster ; le dépôt GitHub MUST n'être créé que si demandé et confirmé.
+- **FR-008** (D3, D8) : Après la création, le canevas MUST s'ouvrir avec un genesis au nom du projet et le brainstorm
+  MUST démarrer en recevant le nom et la description ; l'app MUST NOT créer de genesis sans projet.
+- **FR-009** (D9) : « Projet en chantier » MUST NOT déplacer le dossier ; l'app MUST montrer puis, après confirmation,
+  créer `.brainstormer/` (repris s'il existe), l'ajouter au `.gitignore`, écrire la doc en Markdown dans le projet,
+  garder le contenu de la carte dans la base chiffrée, et ajouter une référence externe au registre.
+- **FR-010** (D10) : L'app MUST demander le rôle (collaborateur, mon propre dépôt) et le mémoriser dans le vault ; en
+  collaborateur, elle MUST travailler sur la branche de mentalyas et MUST NOT pousser vers la branche par défaut ; sans
+  dépôt, elle MUST proposer `git init` sans l'imposer.
+- **FR-011** (D11) : « Depuis un lien Git » MUST valider l'adresse, montrer la destination dans le coffre, cloner après
+  confirmation (spec 021), ajouter le projet au registre et ouvrir son canevas ; le contenu cloné MUST rester une donnée
+  non fiable.
+- **FR-012** (D11) : « Extraire un morceau » MUST copier les fichiers choisis vers un autre projet avec la licence
+  d'origine et l'attribution (spec 021 GH-G).
+- **FR-013** (D12) : « Fin de session » MUST lister les étapes de `/hub end` avec une case chacune, les exécuter
+  séparément dans l'ordre, chacune avec son résultat ; un échec MUST arrêter celles qui en dépendent ; la fermeture MUST
+  mettre à jour les fichiers de session partagés et la dernière session du registre.
+- **FR-014** (D4) : Toute action git (commit, push, branche, `git init`, création de dépôt, clone) MUST attendre un clic
+  de mentalyas après affichage de ce qu'elle fera (constitution II, « Dépôt »).
+- **FR-015** (D4) : Les étapes de `/hub` MUST être faites par l'app en suivant le protocole du skill ; le brainstorm MUST
+  se faire dans la conversation existante du genesis (spec 008, mode de permission de la spec 014) ; aucun nouveau mode
+  de conversation.
+- **FR-016** : Au passage à un canevas par projet, le contenu actuel de la carte unique MUST être rangé sans perte : le
+  genesis du Brainstormer dans le brainstorm `gestionnaire-idees`, le reste dans un brainstorm local « Idées en vrac ».
+- **FR-017** (D8) : Le skill `/hub` MUST accepter le choix GitHub oui / non à la création (modification de la
+  configuration de mentalyas, hors de ce dépôt, avec son accord).
+- **FR-018** (D13) : Sans coffre défini, l'app MUST proposer d'en choisir ou d'en créer un avant le Project Manager ;
+  un coffre créé MUST être lisible par `pm.bat` ; un dossier sensible MUST être refusé.
+- **FR-019** (accessibilité) : Le Project Manager, les formulaires, la liste des points de sauvegarde et la fin de
+  session MUST être utilisables au clavier et passer la vérification d'accessibilité ; chaque étape longue (clone,
+  graphe) MUST montrer qu'elle travaille et pouvoir être annulée.
 
 ### Key Entities
 
-- **Idées en vrac** : projet local créé au passage à un canevas par projet (FR-016), qui reçoit le contenu sans projet.
-- **Coffre** : dossier ProjectMaster ; registre des projets, fichiers de session, dossier des projets, journal global.
-- **Projet** : entrée du registre (identifiant, nom, description, type, visibilité, local ou GitHub, **dans le coffre ou
-  externe**, statut, dernière session, branche, adresse du dépôt) et son dossier.
-- **Vault de projet** (D9) : dossier `.brainstormer/` d'un projet externe ; identité du projet, sessions, réglages du
-  canevas ; ignoré par git par défaut.
-- **Canevas** : la carte d'un projet (son genesis, ses nœuds, ses documents, ses vues et leur état).
-- **Session** : ouverture et fermeture sur un projet, branche ; dans l'app, en plus : étapes de fin faites ou sautées,
-  fichiers changés.
-- **Étape de fin de session** : commit, push, journal du projet, journal global, graphe, cours académique, fermeture ;
-  état (à faire, faite, échouée, sautée) et raison.
+- **Coffre** : dossier ProjectMaster ; registre, fichiers de session, dossier des projets, journal global.
+- **Brainstorm (projet)** : entrée du registre (identifiant, nom, description, type, local ou GitHub, **dans le coffre
+  ou externe**, origine : de zéro, en chantier, cloné ; dernière session, branche, adresse du dépôt) et son dossier.
+- **Canevas** : la carte d'un brainstorm (genesis, nœuds, liens, documents, vues, cartes ouvertes et leur état),
+  enregistrée en continu.
+- **Point de sauvegarde** : un état nommé et daté d'un canevas, auquel on revient (retour annulable).
+- **Vault** : `.brainstormer/` d'un projet externe ; identité, sessions, réglages du canevas, rôle git ; ignoré par git.
+- **Rôle git** : collaborateur (branche personnelle) ou propriétaire (dépôt propre) ; mémorisé par projet.
+- **Session** et **étape de fin de session** : ouverture, fermeture, branche ; étapes faites, échouées ou sautées.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001** : Depuis le lancement de l'app, mentalyas ouvre le canevas d'un projet existant en 2 gestes au plus
-  (choisir le projet, confirmer s'il y a une anomalie).
-- **SC-002** : Après une ouverture ou une fin de session dans l'app, `pm.bat` affiche le même état (session ouverte ou
-  non, dernière session) dans 100 % des cas testés ; et inversement.
-- **SC-003** : Créer un projet local depuis l'accueil, jusqu'à la première question du brainstorm, prend moins de
-  2 minutes hors temps de réponse de Claude.
-- **SC-004** : Aucune action git (commit, push, création de dépôt) ne s'exécute sans un clic de mentalyas après
-  affichage de son contenu (vérifiable par test).
-- **SC-005** : Le passage à un canevas par projet ne perd aucun nœud, document, lien ni widget existant (inventaire
-  avant / après identique).
-- **SC-007** (D9) : Charger un projet externe ne modifie, dans son dossier, que `.brainstormer/` et une ligne du
-  `.gitignore` (inventaire des fichiers avant / après), et ne déplace aucun fichier.
-- **SC-006** : L'accueil s'affiche en moins de 2 secondes avec 30 projets dans le registre.
+- **SC-001** : Depuis l'ouverture de l'app, mentalyas reprend un brainstorm existant en 2 gestes au plus (« Charger »,
+  puis le brainstorm), hors anomalie à traiter.
+- **SC-002** : Un brainstorm rechargé après fermeture de l'app est identique à 100 % (nœuds, liens, positions, replis,
+  vue) dans les cas testés.
+- **SC-003** : Revenir à un point de sauvegarde puis annuler ce retour redonne exactement l'état d'avant (inventaire
+  identique).
+- **SC-004** : Après une ouverture ou une fin de session dans l'app, `pm.bat` affiche le même état dans 100 % des cas
+  testés, et inversement.
+- **SC-005** : Créer un brainstorm de zéro, jusqu'à la première question, prend moins de 2 minutes hors temps de
+  réponse de Claude.
+- **SC-006** : Charger un projet en chantier ne modifie dans son dossier que `.brainstormer/` et une ligne du
+  `.gitignore` (inventaire avant / après), et ne déplace aucun fichier.
+- **SC-007** : Aucune action git ne s'exécute sans clic de mentalyas après affichage de son contenu, et aucun push
+  « collaborateur » ne vise la branche par défaut (vérifiable par test).
+- **SC-008** : Le passage à un canevas par projet ne perd aucun nœud, document, lien ni widget (inventaire identique).
+- **SC-009** : Le Project Manager s'affiche en moins de 2 secondes avec 30 brainstorms.
 
 ## Assumptions
 
-- Le coffre de mentalyas est `ProjectsMaster/` et ses fichiers `.hub/registry.json` et `.hub/sessions.json` gardent le
-  format actuel (lu par `pm.bat` et par `HubRegistry`, spec 016) ; l'app y écrit de façon atomique.
-- Les étapes de `/hub` restent celles du skill actuel ; si le skill évolue, l'app suit le skill (D4).
-- « Un seul projet actif à la fois » (règle du workspace) reste vrai : l'app n'ouvre qu'une session à la fois.
-- Git et GitHub dans l'app (spec 021) fournissent le commit, le push et la création de dépôt sur clic ; la 024 s'appuie
-  dessus plutôt que de les refaire.
-- Le clone d'un projet (spec 017 US5, spec 021 US3) devient un chemin de l'accueil (« Cloner un projet ») ; un clone
-  hors du coffre se comporte comme un projet externe (D9). L'import d'un projet existant de la spec 017 (analyse
-  statique, confidentialité) et le chargement de la US6 sont réconciliés dans le plan.
+- Le coffre de mentalyas est `ProjectsMaster/` ; `.hub/registry.json` et `.hub/sessions.json` gardent leur format
+  (lus par `pm.bat` et `HubRegistry`, spec 016) ; l'app y écrit de façon atomique, et ajoute aux entrées les champs
+  nécessaires (externe, origine) sans gêner `pm.bat`.
+- La spec 021 (Git et GitHub : commit, push, branches, clone, fork, PR, extraire) fournit les opérations git ; la 024
+  s'appuie dessus. B3 (US5) et le rôle « collaborateur » (D10) attendent donc la 021.
+- L'import d'un projet existant de la spec 017 (analyse statique, confidentialité) se combine avec B2 : un projet en
+  chantier peut être analysé ; la réconciliation se fait dans le plan.
+- « Un seul projet actif à la fois » (règle du workspace) reste vrai.
 - Plusieurs projets sur une même carte : hors périmètre (D1, reporté).
-- Ordre de travail (L1k, « Suite ») : cette spec est écrite maintenant, codée **après** la fermeture d'une partie des
-  chantiers ouverts (019, 022, 023, 017, 013), car elle touche au cœur de l'app.
+- Ordre de travail : spec écrite maintenant, codée après la fermeture d'une partie des chantiers ouverts ; la 021
+  passe avant les parties qui en dépendent.

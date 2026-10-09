@@ -1209,3 +1209,8 @@ Profil démo (sans clé Claude) : 24 appels **tous en local** (`etendre` 19/19, 
 
 ### [2026-10-09 20:55] DOCS — spec 023 « Carte Workflow » livrée (T042)
 **Quoi :** vérifications finales vertes (typecheck, lint, prettier, 1 721 tests) ; quickstart scénario 7 couvert par `integration/workflow/workflow-service` (HTML et consignes affichés comme texte, `..`, liens symboliques sortants, fichier de 600 Ko, binaire : ignorés ou refusés, vue non bloquée), scénario 8 mesuré en T040 ; toutes les tâches cochées ; ligne `**Status**` : « Livrée ».
+
+### [2026-10-09 21:20] DOCS — spec 024 réécrite : le Project Manager d'abord
+**Fichiers :** `specs/024-accueil-projectmaster/spec.md` (réécrite : parcours, D1–D13, clarifications, US1–US7, FR-001 à FR-019, SC-001 à SC-009).
+**Quoi :** correction de mentalyas sur le parcours : à l'ouverture, le **Project Manager** propose « Charger un brainstorm existant » (reprise exacte de la cartographie, sauvegarde) ou « Nouveau brainstorm » en trois sources : **de zéro** (dossier créé d'office dans le coffre, structure ProjectMaster), **projet en chantier** (dossier choisi tel quel, vault `.brainstormer/`, git selon le rôle), **depuis un lien Git** (clone dans le coffre, continuer ou extraire des morceaux). Tranché avec lui : sauvegarde automatique continue + points de sauvegarde nommés (retour annulable) ; « scrap » = extraire des morceaux (licence et attribution, spec 021 GH-G) ; git d'un projet en chantier selon le rôle — collaborateur sur sa branche (jamais de push vers la branche par défaut, PR proposée) ou propre dépôt, `git init` proposé sans dépôt. B3 et le rôle collaborateur dépendent de la spec 021.
+
