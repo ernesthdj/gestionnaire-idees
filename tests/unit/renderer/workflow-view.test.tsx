@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider, type NodeProps } from '@xyflow/react'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import {
@@ -67,7 +67,8 @@ const WORKFLOW: WorkflowView = {
   brainstorm: [],
   folded: {},
   empty: false,
-  readAt: '2026-10-09T10:00:00.000Z'
+  readAt: '2026-10-09T10:00:00.000Z',
+  missingFiles: []
 }
 const element: ElementView = {
   id: 'module-core',
@@ -241,5 +242,61 @@ describe('vue Workflow dans la carte des idées (spec 023 US1)', () => {
     await waitFor(() =>
       expect(api.invoke.mock.calls.filter(([channel]) => channel === 'workflow:read').length).toBeGreaterThan(reads)
     )
+  })
+})
+
+describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)', () => {
+  beforeAll(() => installReactFlowMocks())
+  beforeEach(() => {
+    useUiStore.setState({
+      view: 'ideas',
+      toast: null,
+      bornId: null,
+      structureViews: { [G]: 'workflow' },
+      chatDrafts: {}
+    })
+    useCards.setState({ cards: [], activeId: null })
+  })
+
+  const renderLinked = () => {
+    const api = installFakeApi({
+      'canvas:get': () => linkedView(),
+      'canvas:savePositions': () => ({ ok: true }),
+      'app:getSettings': () => ({ ...DEFAULT_APP_SETTINGS, motion: 'reduced' }),
+      'workflow:read': () => ({
+        ...WORKFLOW,
+        foundation: { path: 'docs/FOUNDATION.md', summary: 'Une app pour noter ses idées.' }
+      }),
+      'chat:open': () => {
+        throw new Error('pas de conversation dans ce test')
+      }
+    })
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <IdeasCanvas />
+      </QueryClientProvider>
+    )
+    return api
+  }
+
+  it('should_open_the_card_of_a_workflow_node_on_click_and_prefill_the_project_chat_on_double_click', async () => {
+    // La conversation reprend aussitôt la consigne (puis l'efface) : on observe son dépôt.
+    const seed = vi.fn()
+    useUiStore.setState({ seedChatDraft: seed })
+    renderLinked()
+    const spec = await screen.findByRole('group', { name: 'Spec 001 Démo 001, en cours, 2 sur 3 tâches' })
+    fireEvent.click(spec)
+    expect(await screen.findByRole('dialog', { name: 'Détails : Démo 001' })).toBeDefined()
+    fireEvent.doubleClick(screen.getByRole('group', { name: 'Tâche T003 à faire : T003' }))
+    await waitFor(() => expect(seed).toHaveBeenCalledWith(G, expect.stringContaining('Implémente la tâche T003')))
+    expect(useCards.getState().cards.find((card) => card.id === G)).toMatchObject({ side: 'chat' })
+  })
+
+  it('should_show_the_foundation_in_the_genesis_card_when_the_workflow_view_is_on', async () => {
+    renderLinked()
+    await screen.findByRole('group', { name: 'Spec 001 Démo 001, en cours, 2 sur 3 tâches' })
+    useCards.getState().open(G)
+    expect(await screen.findByText('Une app pour noter ses idées.')).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Lire la fondation' })).toBeDefined()
   })
 })

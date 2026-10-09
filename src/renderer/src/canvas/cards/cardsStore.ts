@@ -15,7 +15,7 @@ export interface Offset {
 
 /** Fichier ouvert dans le lecteur de la carte. */
 export interface ReaderTarget {
-  readonly source: 'deliverable' | 'element' | 'document' | 'skill'
+  readonly source: 'deliverable' | 'element' | 'document' | 'skill' | 'workflow'
   readonly path: string
   readonly tab: 'diff' | 'file'
 }

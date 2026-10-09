@@ -37,6 +37,13 @@ interface UiState {
   /** Liens d'analyse des cartes de structure affichés au repos (spec 022 D29) ; masqués par défaut (allège la carte). */
   readonly analysisLinks: boolean
   toggleAnalysisLinks(): void
+  /**
+   * Consignes pré-remplies dans le champ d'une conversation (spec 023 : « Discuter » sur une tâche) ; la conversation
+   * la reprend une fois, puis l'efface. Jamais envoyée sans geste de mentalyas.
+   */
+  readonly chatDrafts: Readonly<Record<string, string>>
+  seedChatDraft(neuronId: string, text: string): void
+  takeChatDraft(neuronId: string): void
   setStructureView(genesisId: string, view: StructureView): void
   /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
   readonly explorerGenesisId: string | null
@@ -109,6 +116,12 @@ export const useUiStore = create<UiState>()((set, get) => ({
   explorerGenesisId: null,
   structureViews: {},
   analysisLinks: false,
+  chatDrafts: {},
+  seedChatDraft: (neuronId, text) => set((state) => ({ chatDrafts: { ...state.chatDrafts, [neuronId]: text } })),
+  takeChatDraft: (neuronId) =>
+    set((state) => ({
+      chatDrafts: Object.fromEntries(Object.entries(state.chatDrafts).filter(([id]) => id !== neuronId))
+    })),
   toggleAnalysisLinks: () => set((state) => ({ analysisLinks: !state.analysisLinks })),
   setStructureView: (genesisId, view) =>
     set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),

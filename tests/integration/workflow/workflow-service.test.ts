@@ -90,6 +90,7 @@ describe('vue Workflow d’un projet lié (spec 023)', () => {
     expect(view.brainstorm.find((doc) => doc.name === 'L2-idee-ecran.md')?.family).toBe('L1b-idee-neuve.md')
     expect(view.foundation).toEqual({ path: 'docs/FOUNDATION.md', summary: 'Une app pour noter ses idées.' })
     expect(view.folded).toEqual(folds)
+    expect(view.missingFiles).toEqual(['src/action.ts', 'src/app.ts', 'src/view.ts'])
     expect(view).toMatchObject({ empty: false, readAt: '2026-10-09T10:00:00.000Z' })
   })
 

@@ -87,6 +87,8 @@ export interface WorkflowView {
   readonly folded: Readonly<Record<string, boolean>>
   /** Ni `specs/` ni `docs/brainstorm/`. */
   readonly empty: boolean
+  /** Chemins cités par des tâches qui n'existent pas (ou plus) dans le dossier du projet : listés grisés (FR-012). */
+  readonly missingFiles: readonly string[]
   readonly readAt: string
 }
 

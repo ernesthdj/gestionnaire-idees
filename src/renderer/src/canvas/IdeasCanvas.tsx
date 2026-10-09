@@ -65,6 +65,7 @@ import { GLIDE_MS, useGlide } from './useGlide'
 import { connectionIntent } from './connection'
 import { useWorkflows } from './workflow/useWorkflow'
 import { WorkflowNode } from './workflow/WorkflowNode'
+import { discussWorkflow } from './workflow/WorkflowCard'
 
 /** Types de nœuds ; chacun ne se redessine que si son contenu change (glissements fluides, spec 022). */
 const NODE_TYPES: NodeTypes = {
@@ -101,7 +102,10 @@ const MULTI_SELECTION_KEYS = ['Control', 'Meta', 'Shift']
  */
 const SELECTION_BOX_KEYS = ['Control', 'Meta', 'Shift']
 /** Nœuds qui ont une carte de détails (spec 022) ; les blocs auront la leur (US4). */
-const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'document', 'deliverable'])
+const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'document', 'deliverable', 'workflow'])
+/** Un message de la vue Workflow (projet vide, dossier introuvable) n'a pas de carte. */
+const hasCard = (node: MapNode): boolean =>
+  CARD_TYPES.has(node.type ?? '') && !(node.type === 'workflow' && node.data.item.subject.kind === 'message')
 /** Attente avant d'ouvrir une carte au clic : un double-clic ouvre directement la discussion. */
 const CLICK_DELAY_MS = 220
 /** Parent d'un nœud dans son arbre (étape, élément) ; `null` pour une racine ou un bloc. */
@@ -638,7 +642,8 @@ function CanvasInner(): React.JSX.Element {
     }
     const target = mapNodeOf(event.target)
     if (target === null || isEditable(event.target)) return
-    if (event.key === 'Enter' && CARD_TYPES.has(target.type)) {
+    const targetNode = nodesRef.current.find((node) => node.id === target.id)
+    if (event.key === 'Enter' && targetNode !== undefined && hasCard(targetNode)) {
       event.preventDefault()
       cardsApi.open(target.id)
       return
@@ -742,7 +747,7 @@ function CanvasInner(): React.JSX.Element {
               onNodeClick={(event, node) => {
                 // Ctrl / Cmd / Maj + clic : on compose une sélection (suppression groupée), sans carte.
                 if (event.ctrlKey || event.metaKey || event.shiftKey) return
-                if (node.type === undefined || !CARD_TYPES.has(node.type) || node.className === 'living-gone') return
+                if (!hasCard(node) || node.className === 'living-gone') return
                 window.clearTimeout(clickTimer.current)
                 clickTimer.current = window.setTimeout(() => {
                   // Clic sur un autre nœud = clic à l'extérieur des cartes ouvertes (D28) : les non épinglées se ferment.
@@ -755,6 +760,12 @@ function CanvasInner(): React.JSX.Element {
               }}
               onNodeDoubleClick={(_event, node) => {
                 window.clearTimeout(clickTimer.current)
+                // Nœud Workflow (spec 023) : la conversation du projet, avec la consigne pré-remplie.
+                if (node.type === 'workflow') {
+                  cardsApi.closeUnpinned(node.data.genesisId)
+                  discussWorkflow(node.data.item, node.data.genesisId)
+                  return
+                }
                 const conversational =
                   node.type === 'neuron' ||
                   node.type === 'element' ||

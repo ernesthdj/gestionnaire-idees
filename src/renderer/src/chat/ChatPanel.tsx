@@ -322,6 +322,15 @@ export function ChatPanel({
   const chat = useChat(neuronId)
   const openExplorer = useUiStore((state) => state.openExplorer)
   const [draft, setDraft] = useState('')
+  // Consigne pré-remplie (spec 023) : reprise une fois dans le champ, jamais envoyée sans geste.
+  const seeded = useUiStore((state) => state.chatDrafts[neuronId])
+  const takeChatDraft = useUiStore((state) => state.takeChatDraft)
+  useEffect(() => {
+    if (seeded === undefined) return
+    setDraft(seeded)
+    takeChatDraft(neuronId)
+    inputRef.current?.focus()
+  }, [seeded, neuronId, takeChatDraft])
   const fieldId = useId()
   const end = useRef<HTMLDivElement>(null)
   const nextRequest = chat.pending[0]

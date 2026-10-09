@@ -1,6 +1,7 @@
 import type { CanvasNeuronView, ElementView, ProposalView, StepStatus, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
 import type { DeliverableView } from '@shared/ipc/finals'
+import { BRANCH_TITLES, SPEC_STATUS_LABELS, type WorkflowItem } from '../workflow/workflowTree'
 
 /**
  * Contenu d'une carte de détails (spec 022 D6, D7) selon la sorte de nœud : badge, ligne d'information, titre, résumé et
@@ -30,6 +31,8 @@ export type CardSubject =
       readonly contentText: string | null
       readonly note: string | null
     }
+  /** Nœud de la vue Workflow (spec 023) : branche, spec, user story, socle, tâche ou idée à brainstormer. */
+  | { readonly kind: 'workflow'; readonly item: WorkflowItem; readonly genesisId: string }
 
 export interface CardGauge {
   readonly label: string
@@ -127,6 +130,8 @@ export function cardHead(subject: CardSubject): CardHead {
             : { label: 'Avancement', value: subject.percent, text: `${subject.percent} %` }
       }
     }
+    case 'workflow':
+      return workflowHead(subject.item)
     case 'deliverable': {
       const count = subject.deliverable.files.length
       return {
@@ -137,6 +142,91 @@ export function cardHead(subject: CardSubject): CardHead {
         gauge: null
       }
     }
+  }
+}
+
+const progressGauge = (done: number, total: number): CardGauge | null =>
+  total === 0 ? null : { label: 'Avancement', value: Math.round((done / total) * 100), text: `${done}/${total} tâches` }
+
+const plain = (text: string): string => text.replace(/`/g, '').replace(/\s+/g, ' ').trim()
+
+/** En-tête de la carte d'un nœud Workflow (spec 023 US2, US3). */
+function workflowHead(item: WorkflowItem): CardHead {
+  const { subject } = item
+  switch (subject.kind) {
+    case 'branch': {
+      const count = subject.specs.length
+      return {
+        badge: 'Branche',
+        meta: subject.branch === 'brainstorm' ? null : `${count} spec${count > 1 ? 's' : ''}`,
+        title: BRANCH_TITLES[subject.branch],
+        summary: count === 0 ? null : subject.specs.map((spec) => `${spec.number} ${spec.title}`).join(' · '),
+        gauge: null
+      }
+    }
+    case 'spec': {
+      const { spec } = subject
+      return {
+        badge: `Spec ${spec.number}`,
+        meta:
+          [
+            SPEC_STATUS_LABELS[spec.status],
+            spec.createdAt === null ? null : `créée le ${spec.createdAt}`,
+            spec.decisions === 0 ? null : `${spec.decisions} décision${spec.decisions > 1 ? 's' : ''}`,
+            spec.partial ? 'lecture partielle' : null
+          ]
+            .filter((part): part is string => part !== null)
+            .join(' · ') || null,
+        title: spec.title,
+        summary: spec.statusLine,
+        gauge: progressGauge(spec.done, spec.total)
+      }
+    }
+    case 'story': {
+      const { spec, story } = subject
+      return {
+        badge: `User story ${story.number}${story.priority === null ? '' : ` · P${story.priority}`}`,
+        meta: `Spec ${spec.number} · ${spec.title}`,
+        title: story.described ? story.title : '(user story non décrite)',
+        summary: story.delivered ? 'Livrée.' : null,
+        gauge: progressGauge(story.done, story.total)
+      }
+    }
+    case 'socle': {
+      const { spec } = subject
+      const done = spec.socle.filter((task) => task.done).length
+      return {
+        badge: 'Socle',
+        meta: `Spec ${spec.number} · ${spec.title}`,
+        title: 'Mise en place, fondations, finitions',
+        summary: 'Tâches de la spec qui n’appartiennent à aucune user story.',
+        gauge: progressGauge(done, spec.socle.length)
+      }
+    }
+    case 'task': {
+      const { spec, story, task } = subject
+      const text = plain(task.text)
+      return {
+        badge: `Tâche ${task.id}`,
+        meta: `${story === null ? 'Socle' : `US${story.number}`} · Spec ${spec.number} · à faire`,
+        title: text.length <= 120 ? text : `${text.slice(0, 119)}…`,
+        summary: text.length <= 120 ? null : text,
+        gauge: null
+      }
+    }
+    case 'doc': {
+      const count = subject.family.length
+      return {
+        badge: 'À brainstormer',
+        meta: subject.doc.name,
+        title: subject.doc.title,
+        summary:
+          count === 0 ? null : `${count} document${count > 1 ? 's' : ''} de détail (niveaux 2 à 4) dans sa famille.`,
+        gauge: null
+      }
+    }
+    case 'message':
+      return { badge: 'Workflow', meta: null, title: subject.text, summary: null, gauge: null }
   }
 }
 

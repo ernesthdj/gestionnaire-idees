@@ -11,6 +11,7 @@ import {
   PLAN_MESSAGE
 } from '../../../src/renderer/src/chat/ChatPanel'
 import type { ChatPermissionRequest, ChatView } from '../../../src/shared/ipc/chat'
+import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { expectNoAxeViolations } from '../../support/axe'
 import { FakeIpcError, installFakeApi } from './support/fakeApi'
 
@@ -81,6 +82,15 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     const { api } = renderChat()
     await userEvent.click(await screen.findByRole('button', { name: 'Commencer le brainstorm' }))
     expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: OPENING_MESSAGE })
+  })
+
+  it('should_prefill_a_seeded_instruction_once_without_sending_it_when_opened_from_the_workflow', async () => {
+    useUiStore.getState().seedChatDraft(ID, 'Implémente la tâche T032')
+    const { api } = renderChat()
+    const field = (await screen.findByLabelText('Message à Claude')) as HTMLTextAreaElement
+    expect(field.value).toBe('Implémente la tâche T032')
+    expect(useUiStore.getState().chatDrafts[ID]).toBeUndefined()
+    expect(api.invoke).not.toHaveBeenCalledWith('chat:send', expect.anything())
   })
 
   it('should_stream_the_answer_show_actions_and_unlock_sending_at_the_end_of_the_turn', async () => {

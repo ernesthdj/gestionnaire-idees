@@ -43,27 +43,27 @@ Workflow la bonne répartition, les bons compteurs et seulement les tâches rest
 ## Phase 4 — US2 Lancer Claude depuis la carte (P2)
 **Test indépendant** : « Discuter » sur une tâche ouvre la conversation du projet avec la consigne pré-remplie (rien
 n'est envoyé) ; une case cochée dans `tasks.md` puis un tour de Claude terminé mettent la carte à jour.
-- [ ] T024 [P] [US2] Pur `src/renderer/src/canvas/workflow/prompts.ts` (consignes de `contracts/interfaces.md` : tâche, user story avec ses identifiants restants dans l'ordre, document de brainstorm) + `tests/unit/workflow-prompts.test.ts`
-- [ ] T025 [P] [US2] `chatDrafts` + `seedChatDraft(neuronId, text)` dans `src/renderer/src/app/uiStore.ts` ; `src/renderer/src/chat/ChatPanel.tsx` reprend la consigne dans son champ au montage ou à son changement puis l'efface du magasin, sans envoyer + test renderer
-- [ ] T026 [US2] `src/renderer/src/canvas/workflow/WorkflowCard.tsx` pour tâche (identifiant, description, US, spec, fichiers cités), user story (priorité, tâches restantes, faites en compteur) et document L1 (titre, niveau, fichiers L2–L4 de sa famille) ; sujet `workflow` dans `src/renderer/src/canvas/cards/IdeaCards.tsx` et `cardContent.ts`
-- [ ] T027 [US2] « Discuter » dans la carte et double-clic sur le nœud : ouvre la carte du genesis côté discussion (`openChat(genesisId)`) avec `seedChatDraft` de la consigne ; dans `IdeasCanvas.tsx` (gestes clic / double-clic / Entrée pour les nœuds `workflow`)
-- [ ] T028 [US2] Tests renderer + axe `tests/unit/renderer/workflow-card.test.tsx` : carte de tâche, d'US, de L1 ; « Discuter » pré-remplit sans envoyer ; relecture sur `chat:turnEnd` retire une tâche cochée et fait avancer la jauge
-- [ ] T029 [US2] Test guidé US2 (quickstart scénario 4) : mentalyas envoie la consigne, Claude coche une case, la carte suit — attendre le retour
+- [x] T024 [P] [US2] Pur `src/renderer/src/canvas/workflow/prompts.ts` (consignes de `contracts/interfaces.md` : tâche, user story avec ses identifiants restants dans l'ordre, document de brainstorm) + `tests/unit/workflow-prompts.test.ts`
+- [x] T025 [P] [US2] `chatDrafts` + `seedChatDraft(neuronId, text)` dans `src/renderer/src/app/uiStore.ts` ; `src/renderer/src/chat/ChatPanel.tsx` reprend la consigne dans son champ au montage ou à son changement puis l'efface du magasin, sans envoyer + test renderer
+- [x] T026 [US2] `src/renderer/src/canvas/workflow/WorkflowCard.tsx` pour tâche (identifiant, description, US, spec, fichiers cités), user story (priorité, tâches restantes, faites en compteur) et document L1 (titre, niveau, fichiers L2–L4 de sa famille) ; sujet `workflow` dans `src/renderer/src/canvas/cards/IdeaCards.tsx` et `cardContent.ts`
+- [x] T027 [US2] « Discuter » dans la carte et double-clic sur le nœud : ouvre la carte du genesis côté discussion (`openChat(genesisId)`) avec `seedChatDraft` de la consigne ; dans `IdeasCanvas.tsx` (gestes clic / double-clic / Entrée pour les nœuds `workflow`)
+- [x] T028 [US2] Tests renderer + axe `tests/unit/renderer/workflow-card.test.tsx` : carte de tâche, d'US, de L1 ; « Discuter » pré-remplit sans envoyer ; relecture sur `chat:turnEnd` retire une tâche cochée et fait avancer la jauge
+- [x] T029 [US2] Test guidé US2 (quickstart scénario 4) : mentalyas envoie la consigne, Claude coche une case, la carte suit — attendre le retour
 
 ## Phase 5 — US3 Présenter le projet (P3)
 **Test indépendant** : chaque spec livrée a une carte lisible (titre, intention, US, documents d'origine) sans ouvrir
 de fichier.
-- [ ] T030 [US3] Carte du genesis en vue Workflow dans `WorkflowCard.tsx` : résumé de la fondation, « Lire » ouvre `docs/FOUNDATION.md` dans le lecteur (`workflow:file`, texte brut via le lecteur de document existant), documents de brainstorm sans famille
-- [ ] T031 [US3] Carte d'une spec : titre, statut et jauge, date de création, nombre de décisions, US (priorité, titre, livrée ou non), reliquats d'une spec livrée, documents de brainstorm cités ouvrables dans le lecteur, `spec.md` / `tasks.md` / `plan.md` ouvrables ; cartes des branches (nombre de specs, liste)
-- [ ] T032 [US3] Tests renderer + axe `tests/unit/renderer/workflow-present.test.tsx` (carte de genesis, de spec livrée avec reliquats, ordre des Livrées)
-- [ ] T033 [US3] Test guidé US3 (quickstart scénario 5) — attendre le retour
+- [x] T030 [US3] Carte du genesis en vue Workflow dans `WorkflowCard.tsx` : résumé de la fondation, « Lire » ouvre `docs/FOUNDATION.md` dans le lecteur (`workflow:file`, texte brut via le lecteur de document existant), documents de brainstorm sans famille
+- [x] T031 [US3] Carte d'une spec : titre, statut et jauge, date de création, nombre de décisions, US (priorité, titre, livrée ou non), reliquats d'une spec livrée, documents de brainstorm cités ouvrables dans le lecteur, `spec.md` / `tasks.md` / `plan.md` ouvrables ; cartes des branches (nombre de specs, liste)
+- [x] T032 [US3] Tests renderer + axe `tests/unit/renderer/workflow-present.test.tsx` (carte de genesis, de spec livrée avec reliquats, ordre des Livrées)
+- [x] T033 [US3] Test guidé US3 (quickstart scénario 5) — attendre le retour
 
 ## Phase 6 — US4 Passer d'une tâche au code (P4)
 **Test indépendant** : une tâche citant un fichier couvert par un élément mène à cet élément ; un fichier non couvert
 est listé sans bouton.
-- [ ] T034 [US4] Rubrique « Fichiers » de `WorkflowCard.tsx` (tâche ; union pour US et spec) : fichier existant ouvrable dans le lecteur de la carte (`workflow:file`, `CodeLines`), inexistant ou refusé grisé
-- [ ] T035 [US4] « Voir dans la structure » : élément couvrant du même genesis par `src/shared/structure/covers.ts` (chemin le plus précis), `setStructureView(genesisId, 'progression')`, carte de l'élément ouverte et vue centrée (focus existant) ; bouton absent sans élément couvrant
-- [ ] T036 [US4] Tests renderer + axe `tests/unit/renderer/workflow-bridge.test.tsx` (fichier couvert → bascule et carte d'élément ouverte, non couvert sans bouton, inexistant grisé)
+- [x] T034 [US4] Rubrique « Fichiers » de `WorkflowCard.tsx` (tâche ; union pour US et spec) : fichier existant ouvrable dans le lecteur de la carte (`workflow:file`, `CodeLines`), inexistant ou refusé grisé
+- [x] T035 [US4] « Voir dans la structure » : élément couvrant du même genesis par `src/shared/structure/covers.ts` (chemin le plus précis), `setStructureView(genesisId, 'progression')`, carte de l'élément ouverte et vue centrée (focus existant) ; bouton absent sans élément couvrant
+- [x] T036 [US4] Tests renderer + axe `tests/unit/renderer/workflow-bridge.test.tsx` (fichier couvert → bascule et carte d'élément ouverte, non couvert sans bouton, inexistant grisé)
 - [ ] T037 [US4] Test guidé US4 (quickstart scénario 6) — attendre le retour
 
 ## Phase 7 — Finitions

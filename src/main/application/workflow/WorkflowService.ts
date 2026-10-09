@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, realpathSync } from 'node:fs'
 import { isAbsolute, join, relative } from 'node:path'
-import type { WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
+import type { SpecView, WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
 import { AppError } from '../../domain/errors'
 import { langOf } from '../../domain/reprise/fileFilter'
 import { brainstormDocs, brainstormLevel } from '../../domain/workflow/brainstorm'
@@ -69,6 +69,7 @@ export class WorkflowService {
       brainstorm,
       folded: this.deps.folds.get(genesisId),
       empty: specs.length === 0 && brainstorm.length === 0,
+      missingFiles: this.missing(root, specs),
       readAt: (this.deps.now ?? (() => new Date()))().toISOString()
     }
   }
@@ -82,6 +83,29 @@ export class WorkflowService {
     }
     const text = readProjectText(root, normalized)
     return { path: normalized, lang: langOf(normalized), lines: text.split(/\r?\n/) }
+  }
+
+  /** Chemins cités introuvables sous la racine (un lien qui sort du projet compte comme introuvable). */
+  private missing(root: string, specs: readonly SpecView[]): string[] {
+    const cited = new Set(
+      specs.flatMap((spec) => [...spec.socle, ...spec.stories.flatMap((story) => story.tasks)].flatMap((t) => t.files))
+    )
+    let real: string
+    try {
+      real = realpathSync(root)
+    } catch {
+      return [...cited]
+    }
+    return [...cited]
+      .filter((path) => {
+        try {
+          const inside = relative(real, realpathSync(join(real, ...path.split('/'))))
+          return inside === '' || inside.startsWith('..') || isAbsolute(inside)
+        } catch {
+          return true
+        }
+      })
+      .sort()
   }
 
   private citedFiles(root: string): Set<string> {

@@ -1,10 +1,10 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useQueryClient } from '@tanstack/react-query'
-import type { WorkflowView } from '@shared/ipc/workflow'
 import { useUiStore } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { WorkflowNodeType } from '../buildGraph'
 import { LivingNode } from '../living/LivingNode'
+import { useWorkflowFold } from './WorkflowCard'
 import './workflow.css'
 
 /**
@@ -16,6 +16,7 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
   const { item, visual, genesisId, open } = data
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
+  const fold = useWorkflowFold(genesisId)
   if (item.subject.kind === 'message') {
     // Dossier introuvable (déplacé, disque débranché) : le relier comme depuis le menu du genesis.
     const relink = (): void => {
@@ -49,16 +50,7 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
       </div>
     )
   }
-  const toggle = (): void => {
-    const folded = !item.collapsed
-    // Réponse immédiate : la vue en cache change d'abord, le choix est mémorisé ensuite.
-    client.setQueryData<WorkflowView>(['workflow', genesisId], (current) =>
-      current === undefined ? current : { ...current, folded: { ...current.folded, [item.key]: folded } }
-    )
-    void call('workflow:setFolded', { genesisId, key: item.key, folded }).catch(() =>
-      client.invalidateQueries({ queryKey: ['workflow', genesisId] })
-    )
-  }
+  const toggle = (): void => fold(item.key, !item.collapsed)
   const meta = [
     item.progress === undefined ? null : `${item.progress.done}/${item.progress.total}`,
     item.partial ? 'lecture partielle' : null

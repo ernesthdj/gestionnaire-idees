@@ -19,6 +19,8 @@ import { usePlanFold } from '../usePlanFold'
 import { canChat, cardHead, type CardSubject } from './cardContent'
 import { useCards, type OpenCard } from './cardsStore'
 import { DetailCard, type NodeBox } from './DetailCard'
+import { WorkflowCard, WorkflowFileReader, WorkflowFoundation } from '../workflow/WorkflowCard'
+import { useUiStore } from '../../app/uiStore'
 
 /** Fiche tenue par Claude dans la conversation du neurone (spec 008), lue sans démarrer de conversation. */
 function NeuronSheet({ neuronId }: { readonly neuronId: string }): React.JSX.Element {
@@ -59,6 +61,10 @@ export function subjectOf(node: CanvasNode, view: IdeasCanvasView): CardSubject 
         contentText: contentLabel(element.content),
         note: progress?.fromChildren === true ? null : (element.progressNote ?? null)
       }
+    }
+    case 'workflow': {
+      const { item, genesisId } = node.data
+      return item.subject.kind === 'message' ? null : { kind: 'workflow', item, genesisId }
     }
     default:
       return null
@@ -120,6 +126,7 @@ function IdeaCard({
   const flow = useReactFlow()
   const toggleFold = usePlanFold()
   const client = useQueryClient()
+  const structureViews = useUiStore((state) => state.structureViews)
   if (node === undefined) return null
   const subject = subjectOf(node as CanvasNode, view)
   if (subject === null) return null
@@ -160,6 +167,21 @@ function IdeaCard({
       })
     }
     cards.open(id)
+  }
+
+  if (subject.kind === 'workflow') {
+    return (
+      <WorkflowCard
+        card={card}
+        active={active}
+        anchor={anchor}
+        zoom={zoom}
+        item={subject.item}
+        genesisId={subject.genesisId}
+        elements={view.elements.filter((element) => element.genesisId === subject.genesisId)}
+        onGoto={goto}
+      />
+    )
   }
 
   const sheet =
@@ -213,8 +235,18 @@ function IdeaCard({
       </button>
     ) : undefined
 
+  // Vue Workflow d'un projet lié (spec 023 US3) : la fondation dans la carte du genesis, lisible à droite.
+  const workflowGenesis =
+    subject.kind === 'idea' && subject.neuron.linkedProject === true && structureViews[subject.neuron.id] === 'workflow'
   const side =
-    card.side === 'chat' && neuronId !== null ? (
+    card.side === 'reader' && workflowGenesis && card.reader?.source === 'workflow' ? (
+      <WorkflowFileReader
+        key={card.reader.path}
+        genesisId={card.id}
+        path={card.reader.path}
+        onClose={() => cards.setSide(card.id, null)}
+      />
+    ) : card.side === 'chat' && neuronId !== null ? (
       <ChatPanel neuronId={neuronId} onClose={() => cards.setSide(card.id, null)} />
     ) : card.side === 'reader' && subject.kind === 'deliverable' && card.reader !== null ? (
       <FileViewer
@@ -254,18 +286,27 @@ function IdeaCard({
       zoom={zoom}
       head={cardHead(subject)}
       related={relatedOf(subject, view)}
-      {...(subject.kind === 'deliverable'
-        ? { files: <DeliverableFiles deliverable={subject.deliverable} /> }
-        : subject.kind === 'element' && subject.element.paths.length > 0
-          ? {
-              files: (
-                <ElementFiles
-                  elementId={subject.element.id}
-                  onOpen={(path) => cards.setSide(card.id, 'reader', { source: 'element', path, tab: 'file' })}
-                />
-              )
-            }
-          : {})}
+      {...(workflowGenesis
+        ? {
+            files: (
+              <WorkflowFoundation
+                genesisId={card.id}
+                onRead={(path) => cards.setSide(card.id, 'reader', { source: 'workflow', path, tab: 'file' })}
+              />
+            )
+          }
+        : subject.kind === 'deliverable'
+          ? { files: <DeliverableFiles deliverable={subject.deliverable} /> }
+          : subject.kind === 'element' && subject.element.paths.length > 0
+            ? {
+                files: (
+                  <ElementFiles
+                    elementId={subject.element.id}
+                    onOpen={(path) => cards.setSide(card.id, 'reader', { source: 'element', path, tab: 'file' })}
+                  />
+                )
+              }
+            : {})}
       {...(actions === undefined ? {} : { actions })}
       {...(sheet === undefined ? {} : { sheet })}
       {...(subject.kind === 'ghost' ? { sheetLabel: 'Pourquoi' } : {})}

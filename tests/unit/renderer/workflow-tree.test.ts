@@ -57,7 +57,8 @@ const view = (specs: SpecView[], folded: Record<string, boolean> = {}): Workflow
   ],
   folded,
   empty: false,
-  readAt: '2026-10-09T10:00:00.000Z'
+  readAt: '2026-10-09T10:00:00.000Z',
+  missingFiles: []
 })
 
 const SPECS = [
