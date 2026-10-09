@@ -197,4 +197,29 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await run.shot('024-12-chantier-relie')
     rmSync(outside, { recursive: true, force: true })
   })
+
+  it('should_clone_a_small_public_repository_into_the_vault_and_open_its_canvas', async () => {
+    const { page } = run
+    await page.getByRole('button', { name: '← Projets' }).click()
+    await page.getByRole('button', { name: /Nouveau brainstorm/ }).click()
+    await page.getByRole('button', { name: /Depuis un lien Git/ }).click()
+    await page.getByLabel('Lien du dépôt').fill('https://github.com/octocat/Hello-World.git')
+    expect(await page.getByLabel('Nom du dossier').inputValue()).toBe('hello-world')
+    await page.getByLabel('Type').selectOption('Workspace')
+    await run.shot('024-13-clone-formulaire')
+    await page.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' }).click()
+    await page.getByRole('button', { name: '← Projets' }).waitFor({ timeout: 120_000 })
+    await page.locator('.react-flow').waitFor()
+    await run.shot('024-14-clone-ouvert')
+    const dir = join(ROOT, 'hello-world')
+    expect(existsSync(join(dir, 'README'))).toBe(true)
+    expect(git(dir, ['remote', 'get-url', 'origin']).trim()).toBe('https://github.com/octocat/Hello-World.git')
+    const registry = JSON.parse(readFileSync(join(VAULT, '.hub', 'registry.json'), 'utf8')) as {
+      projects: Record<string, { folder: string; description: string }>
+    }
+    expect(registry.projects['hello-world']).toMatchObject({
+      folder: 'hello-world',
+      description: 'Cloné depuis https://github.com/octocat/Hello-World.git'
+    })
+  })
 })

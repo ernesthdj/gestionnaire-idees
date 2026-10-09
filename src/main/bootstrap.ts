@@ -121,8 +121,14 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createGitRoutes } from './ipc/gitHandlers'
-import { createBrainstormRoutes, createExistingProjectRoutes, createSavePointRoutes } from './ipc/brainstormHandlers'
+import {
+  createBrainstormRoutes,
+  createCloneBrainstormRoutes,
+  createExistingProjectRoutes,
+  createSavePointRoutes
+} from './ipc/brainstormHandlers'
 import { ExistingProjectService } from './application/brainstorms/ExistingProjectService'
+import { CloneBrainstormService } from './application/brainstorms/CloneBrainstormService'
 import { SavePointService } from './application/brainstorms/SavePointService'
 import { SavePointRepository } from './infrastructure/db/repositories/SavePointRepository'
 import { BrainstormRepository } from './infrastructure/db/repositories/BrainstormRepository'
@@ -755,6 +761,19 @@ export function bootstrap(shell: ShellPort): AppContext {
     },
     attach: (neuronId, dir) => conversations.attach(neuronId, dir)
   })
+  // Depuis un lien Git (spec 024 US5) : clone partiel dans le coffre par le service de clone commun.
+  const cloneBrainstorms = new CloneBrainstormService({
+    repository: brainstormRepository,
+    projectsRoot: () => appSettings.projectsRoot(),
+    clone: (request) => cloneService.clone(request),
+    createGenesis: (title, content, brainstormId) => {
+      const id = randomUUID()
+      neuronRepository.insertRoot({ id, title, content, nature: 'reflection', natureSource: null, brainstormId })
+      return id
+    },
+    attach: (neuronId, dir) => conversations.attach(neuronId, dir),
+    emit: (progress) => broadcast('brainstorms:cloneProgress', progress)
+  })
   // Points de sauvegarde (spec 024 US2) : instantanés du canevas, retour annulable.
   const savePoints = new SavePointService({
     repository: new SavePointRepository(database.db),
@@ -941,6 +960,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),
+      ...createCloneBrainstormRoutes(cloneBrainstorms),
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,

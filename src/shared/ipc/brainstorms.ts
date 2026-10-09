@@ -136,3 +136,19 @@ export const ExistingAdoptInput = z.strictObject({
 })
 
 export const BrainstormRelinkInput = z.strictObject({ id: z.uuid() })
+
+// Depuis un lien Git (spec 024 US5).
+
+export interface BrainstormCloneProgress {
+  readonly phase: 'connexion' | 'reception' | 'resolution' | 'extraction'
+  readonly percent?: number
+  readonly receivedBytes?: number
+}
+
+export const BrainstormCloneInput = z.strictObject({
+  url: z.string().trim().min(1).max(500),
+  name: z.string().trim().min(1).max(PROJECT_LIMITS.name),
+  slug: BRAINSTORM_SLUG,
+  type: z.enum(PROJECT_TYPES),
+  full: z.boolean()
+})

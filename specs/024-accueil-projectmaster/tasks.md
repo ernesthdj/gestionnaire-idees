@@ -51,9 +51,9 @@ livré** ; JOURNAL et cases à jour à chaque tâche.
 
 ## Phase 7 — US5 Nouveau brainstorm depuis un lien Git (P3)
 **Test indépendant** : un petit dépôt public de test cloné dans le coffre, listé, son canevas ouvert.
-- [ ] T028 [US5] `BrainstormService.clone` : `CloneService` profil `historique` vers `projects/<slug>` du coffre (adresse contrôlée, destination montrée, progression, annulation), brainstorm `vault` d'origine `clone`, registre ; contenu cloné jamais exécuté ; tests `tests/integration/brainstorms/clone-brainstorm.test.ts` (lanceur git simulé)
-- [ ] T029 [US5] Renderer : parcours « Depuis un lien Git » dans `NewBrainstorm.tsx` (lien, destination, progression, erreurs claires) ; tests renderer + axe
-- [ ] T030 [US5] Test guidé US5 (quickstart scénario 7) — attendre le retour
+- [x] T028 [US5] (`CloneBrainstormService`, rôle « collaborateur » par défaut, D18) `BrainstormService.clone` : `CloneService` profil `historique` vers `projects/<slug>` du coffre (adresse contrôlée, destination montrée, progression, annulation), brainstorm `vault` d'origine `clone`, registre ; contenu cloné jamais exécuté ; tests `tests/integration/brainstorms/clone-brainstorm.test.ts` (lanceur git simulé)
+- [x] T029 [US5] Renderer : parcours « Depuis un lien Git » dans `NewBrainstorm.tsx` (lien, destination, progression, erreurs claires) ; tests renderer + axe
+- [x] T030 [US5] Test guidé US5 → e2e `project-manager.e2e.ts` (vrai clone de `octocat/Hello-World`) ; (quickstart scénario 7) — attendre le retour
 
 ## Phase 8 — US7 Définir mon coffre au premier lancement (P3)
 **Test indépendant** : profil neuf → choisir ou créer un coffre ; `pm.bat` lit le coffre créé.

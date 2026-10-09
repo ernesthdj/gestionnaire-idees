@@ -153,6 +153,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'brainstorms:pickExisting',
   'brainstorms:adoptExisting',
   'brainstorms:relink',
+  'brainstorms:clone',
+  'brainstorms:cancelClone',
   'savepoints:list',
   'savepoints:create',
   'savepoints:rename',
@@ -193,6 +195,7 @@ export type MainWindowChannel = (typeof MAIN_WINDOW_CHANNELS)[number]
 /** Événements poussés du processus principal vers la fenêtre principale. */
 export const MAIN_WINDOW_EVENTS = [
   'app:navigate',
+  'brainstorms:cloneProgress',
   'app:settingsChanged',
   'shortcut:unavailable',
   'context:newImport',

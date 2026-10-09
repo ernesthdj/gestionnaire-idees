@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  BrainstormCloneInput,
   BrainstormOpenInput,
   BrainstormRelinkInput,
   ExistingAdoptInput,
@@ -12,6 +13,7 @@ import {
   SavePointUndoInput
 } from '@shared/ipc/brainstorms'
 import type { BrainstormService } from '../application/brainstorms/BrainstormService'
+import type { CloneBrainstormService } from '../application/brainstorms/CloneBrainstormService'
 import type { ExistingProjectService } from '../application/brainstorms/ExistingProjectService'
 import type { SavePointService } from '../application/brainstorms/SavePointService'
 import { defineRoute, type IpcRoute } from './registry'
@@ -99,5 +101,17 @@ export function createExistingProjectRoutes(
       input: BrainstormRelinkInput,
       handler: async ({ id }) => existing.relink(id)
     })
+  ]
+}
+
+/** Depuis un lien Git (spec 024 US5) : l'adresse est contrôlée par le service de clone avant tout lancement. */
+export function createCloneBrainstormRoutes(clones: Pick<CloneBrainstormService, 'clone' | 'cancel'>): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'brainstorms:clone',
+      input: BrainstormCloneInput,
+      handler: async (input) => clones.clone(input)
+    }),
+    defineRoute({ channel: 'brainstorms:cancelClone', input: z.undefined(), handler: async () => clones.cancel() })
   ]
 }

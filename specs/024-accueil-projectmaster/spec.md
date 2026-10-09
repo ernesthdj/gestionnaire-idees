@@ -52,6 +52,7 @@ Ouverture de l'app → Project Manager
 | D15 | Sessions `/hub` en lecture d'abord (2026-10-10, US1) | À l'ouverture, l'app **lit** `.hub/sessions.json` (session ouverte ici ou sur un autre projet, signalée) mais **n'y écrit pas encore** : l'ouverture et la fermeture de session s'écriront ensemble avec la fin de session (US6), pour ne jamais laisser une session ouverte que rien ne ferme. |
 | D16 | Projets du registre jamais ouverts (2026-10-10, US1) | « Charger un brainstorm existant » liste aussi les projets du registre du coffre jamais ouverts dans l'app ; à la première ouverture, leur brainstorm naît (genesis au nom du projet, lié à son dossier). |
 | D17 | Projet en chantier sans dépôt (2026-10-10, US4) | Le rôle « pas de dépôt » ne lance **pas** `git init` : sur un dossier existant, le premier commit ajouterait tous ses fichiers (secrets compris). La création du dépôt d'un projet existant passera par la spec 021 (fichiers choisis, vérification des fichiers sensibles). Le dossier est choisi au sélecteur natif du main ; l'interface ne reçoit qu'un jeton de choix, valable 10 minutes. |
+| D18 | Rôle d'un projet cloné (2026-10-10, US5) | Un projet cloné depuis un lien prend le rôle **« collaborateur »** par défaut : on ne pousse jamais vers un dépôt qui n'est pas à soi. Le choix « continuer en collaborateur ou en fork » et l'extraction de morceaux viendront avec la spec 021. Le lien n'est gardé que sans identifiant (« Cloné depuis … »). |
 
 ## Clarifications
 

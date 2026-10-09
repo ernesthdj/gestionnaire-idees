@@ -6,6 +6,7 @@ import { slugify, slugProblem } from '@shared/projects/slug'
 import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
+import { CloneProject } from './CloneProject'
 import { ExistingProject } from './ExistingProject'
 import { BRAINSTORMS_KEY, useOpenBrainstorm } from './useBrainstorms'
 
@@ -14,7 +15,7 @@ type Source = 'scratch' | 'existing' | 'clone'
 const SOURCES: readonly { readonly source: Source; readonly label: string; readonly hint: string }[] = [
   { source: 'scratch', label: 'De zéro', hint: 'Un nouveau projet, créé dans ton coffre' },
   { source: 'existing', label: 'Projet en chantier', hint: 'Un dossier existant, ailleurs sur ton PC' },
-  { source: 'clone', label: 'Depuis un lien Git', hint: 'Bientôt : cloner un dépôt dans ton coffre' }
+  { source: 'clone', label: 'Depuis un lien Git', hint: 'Cloner un dépôt dans ton coffre' }
 ]
 
 /** Première consigne du brainstorm (spec 024 D8) : ciblée par le nom et la description, jamais envoyée sans geste. */
@@ -79,7 +80,7 @@ export function NewBrainstorm({ root }: { readonly root: string | null }): React
             key={entry.source}
             type="button"
             aria-pressed={source === entry.source}
-            disabled={entry.source === 'clone'}
+
             onClick={() => setSource(entry.source)}
             className={`flex flex-col gap-1 rounded-md border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
               source === entry.source ? 'border-accent bg-accent/10' : 'border-content-muted/30'
@@ -92,6 +93,8 @@ export function NewBrainstorm({ root }: { readonly root: string | null }): React
       </div>
       {source === 'existing' ? (
         <ExistingProject />
+      ) : source === 'clone' ? (
+        <CloneProject root={root} />
       ) : (
         <form
           aria-labelledby={`${id}-title`}

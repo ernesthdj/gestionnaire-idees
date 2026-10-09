@@ -120,7 +120,6 @@ describe('Project Manager (spec 024 US1, US3)', () => {
     })
     // Aucun brainstorm : « Nouveau brainstorm » est proposé d'office.
     expect(await screen.findByRole('heading', { name: 'Nouveau projet de zéro' })).toBeDefined()
-    expect(screen.getByRole('button', { name: /Depuis un lien Git/ })).toHaveProperty('disabled', true)
     await expectNoAxeViolations(container)
     await user.type(screen.getByLabelText('Nom'), 'Essai local')
     expect((screen.getByLabelText('Nom du dossier') as HTMLInputElement).value).toBe('essai-local')
