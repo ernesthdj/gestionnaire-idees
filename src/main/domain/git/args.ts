@@ -295,3 +295,13 @@ export const storyArgs = (to: string): string[] => {
   if (!/^[0-9a-f]{7,40}$/.test(to)) throw new Error('empreinte refusée')
   return ['log', '-n500', '-z', '--no-color', '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s', to]
 }
+
+// ── Mise à jour de la cartographie (spec 022) ───────────────────────────────────────────────────────────────────────
+
+/** Fichiers changés entre la dernière cartographie et HEAD (`<statut>\0<chemin>\0`). */
+export const mappedChangesArgs = (since: string): string[] => {
+  if (!/^[0-9a-f]{40}$/.test(since)) throw new Error('empreinte refusée')
+  return ['diff', '--name-status', '-z', '--no-renames', '--no-ext-diff', since, 'HEAD']
+}
+/** Sans repère : fichiers touchés par les 20 derniers commits. */
+export const recentChangesArgs = (): string[] => ['log', '-n20', '--name-status', '-z', '--no-renames', '--format=']

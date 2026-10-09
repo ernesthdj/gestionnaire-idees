@@ -26,6 +26,8 @@ export const gitRepos = sqliteTable('git_repos', {
   upstreamRepo: text('upstream_repo'),
   lastFetchAt: text('last_fetch_at'),
   lastSeenCommit: text('last_seen_commit'),
+  /** Commit à la dernière cartographie du projet par Claude (« Mettre à jour la carte » part de là). */
+  mappedCommit: text('mapped_commit'),
   sensitiveCheckedHead: text('sensitive_checked_head'),
   /** Créé par un clone de l'app (jamais de confiance d'office). */
   cloned: integer('cloned', { mode: 'boolean' }).notNull().default(false),

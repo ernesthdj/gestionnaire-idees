@@ -119,7 +119,8 @@ import { createChatRoutes } from './ipc/chatHandlers'
 import { createProjectRoutes } from './ipc/projectHandlers'
 import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
-import { createStructureRoutes } from './ipc/structureHandlers'
+import { createMapUpdateRoutes, createStructureRoutes } from './ipc/structureHandlers'
+import { MapUpdateService } from './application/structure/MapUpdateService'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createConflictRoutes, createGitHistoryRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
 import { GitHistoryService } from './application/git/GitHistoryService'
@@ -797,6 +798,13 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     status: (genesisId) => gitService.status(genesisId),
     changed: (genesisId) => broadcast('git:changed', { genesisId })
   })
+  // « Mettre à jour la carte » (spec 022) : changements depuis la dernière cartographie, lus par l'app.
+  const mapUpdates = new MapUpdateService({
+    access: gitAccess,
+    repository: gitRepository,
+    elementCount: (genesisId) => elementRepository.list(genesisId).length,
+    localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId)
+  })
   // Project Manager (spec 024) : la carte unique d'avant devient des brainstorms (R10), puis un canevas par projet.
   const adoptLegacyCanvas = (): void => {
     const report = migrateLegacyCanvas({
@@ -1071,6 +1079,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createRepriseRoutes(reprise, analysis, guide),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
+      ...createMapUpdateRoutes(mapUpdates),
       ...createGitRoutes(gitService),
       ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
       ...createConflictRoutes(gitConflicts),

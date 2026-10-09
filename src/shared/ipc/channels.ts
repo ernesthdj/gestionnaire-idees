@@ -167,6 +167,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'git:mergeAuthors',
   'git:unmergeAuthor',
   'git:story',
+  'structure:updatePlan',
+  'structure:markMapped',
   'brainstorms:list',
   'brainstorms:active',
   'brainstorms:open',

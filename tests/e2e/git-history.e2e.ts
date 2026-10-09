@@ -54,4 +54,12 @@ describe('qui a fait quoi et quand dans l’app (spec 021 US5, e2e)', () => {
     await timeline.getByRole('button', { name: 'Séparer' }).waitFor({ state: 'detached' })
     expect(await timeline.getByRole('list', { name: 'Légende des auteurs' }).getByRole('listitem').count()).toBe(3)
   })
+
+  it('should_offer_to_update_the_project_map_from_its_bar', async () => {
+    // Le clic lancerait Claude (réel) : le calcul des changements est couvert en intégration, l'envoi en test d'interface.
+    const button = run.page.getByRole('button', { name: 'Mettre à jour la carte' })
+    await button.waitFor()
+    expect(await button.isEnabled()).toBe(true)
+    await run.shot('022-maj-carte-bouton')
+  })
 })

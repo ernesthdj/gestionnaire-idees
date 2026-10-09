@@ -21,6 +21,7 @@ export interface GitRepoRow {
   readonly upstreamRepo: string | null
   readonly lastFetchAt: string | null
   readonly lastSeenCommit: string | null
+  readonly mappedCommit: string | null
   readonly sensitiveCheckedHead: string | null
   readonly cloned: boolean
 }

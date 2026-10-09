@@ -185,6 +185,13 @@ describe('migrations du modèle de neurones', () => {
     expect(tables()).toContain('code_file_summaries')
   })
 
+  it('should_add_the_mapped_commit_column_then_remove_it_with_the_down_migration', () => {
+    expect(columns('git_repos')).toContain('mapped_commit')
+    runDown('0041_mapped_commit')
+    expect(columns('git_repos')).not.toContain('mapped_commit')
+    expect(columns('git_repos')).toContain('last_seen_commit')
+  })
+
   it('should_add_the_brainstorm_tables_and_columns_then_remove_them_with_the_down_migration', () => {
     expect(tables()).toEqual(expect.arrayContaining(['brainstorms', 'save_points']))
     expect(columns('neurons')).toContain('brainstorm_id')

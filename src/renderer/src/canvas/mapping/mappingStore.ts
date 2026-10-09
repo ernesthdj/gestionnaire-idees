@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { create } from 'zustand'
 import type { ChatErrorEvent, ChatTurnEndEvent } from '@shared/ipc/chat'
 import { useUiStore } from '../../app/uiStore'
+import { call } from '../../lib/ipc'
 
 /**
  * Cartographie d'un projet par Claude (« Cartographier ce projet », spec 009 / 022) : en cours, terminée ou
@@ -49,6 +50,8 @@ export function useMappingWatch(): void {
       const neuronId = neuronOf(payload)
       if (neuronId === null || useMapping.getState().phases[neuronId] !== 'running') return
       useMapping.getState().finish(neuronId, ok)
+      // Cartographie réussie : le repère des changements avance (« Mettre à jour la carte » partira de là).
+      if (ok) void call('structure:markMapped', { genesisId: neuronId }).catch(() => undefined)
       useUiStore
         .getState()
         .showToast(ok ? 'Cartographie terminée : la carte de structure est à jour.' : 'Cartographie interrompue.')

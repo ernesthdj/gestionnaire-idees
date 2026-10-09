@@ -5,6 +5,7 @@ import { ARCHITECTURE_KINDS, ARCHITECTURES, type ArchitectureKind } from '@share
 import { useUiStore, type StructureView } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { StructureBarNodeType } from '../buildGraph'
+import { useMapping } from '../mapping/mappingStore'
 
 /**
  * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule « Workflow | Progression | Architecture » et
@@ -18,6 +19,32 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
   const setStructureView = useUiStore((state) => state.setStructureView)
   const showToast = useUiStore((state) => state.showToast)
   const [busy, setBusy] = useState(false)
+  const mapping = useMapping((state) => state.phases[genesisId] === 'running')
+
+  /**
+   * « Mettre à jour la carte » (spec 022, 2026-10-10) : l'app liste ce qui a changé depuis la dernière cartographie ;
+   * Claude ne met à jour que les éléments concernés, dans la conversation du genesis (l'orbe montre l'avancement).
+   */
+  const update = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      const plan = await call<{ readonly prompt: string | null; readonly files: number }>('structure:updatePlan', {
+        genesisId
+      })
+      if (plan.prompt === null) {
+        showToast('Rien n’a changé depuis la dernière cartographie : la carte est à jour.')
+        return
+      }
+      useMapping.getState().start(genesisId)
+      await call('chat:send', { neuronId: genesisId, text: plan.prompt })
+      showToast(`Mise à jour de la carte lancée : ${plan.files} fichier(s) changé(s).`)
+    } catch (error) {
+      useMapping.getState().finish(genesisId, false)
+      showToast(error instanceof IpcFailure ? error.message : 'La mise à jour de la carte n’a pas pu démarrer.')
+    } finally {
+      setBusy(false)
+    }
+  }
   const kind = architecture?.kind ?? 'aucune'
   const canLayer = kind !== 'aucune'
 
@@ -89,6 +116,21 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
           Relire
         </button>
       ) : null}
+      {!hasMap ? null : (
+        <button
+          type="button"
+          disabled={busy || mapping}
+          onClick={(event) => {
+            event.stopPropagation()
+            void update()
+          }}
+          aria-label={mapping ? 'Mise à jour de la carte en cours' : 'Mettre à jour la carte'}
+          title="Mettre à jour la carte avec les derniers changements du projet (Claude ne touche qu’aux éléments concernés)"
+          className="h-7 shrink-0 whitespace-nowrap rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface disabled:opacity-50"
+        >
+          {mapping ? 'Mise à jour…' : '↻ Mettre à jour'}
+        </button>
+      )}
       {!hasMap ? null : (
         <label className="flex items-center gap-2 text-xs text-content-muted">
           Architecture

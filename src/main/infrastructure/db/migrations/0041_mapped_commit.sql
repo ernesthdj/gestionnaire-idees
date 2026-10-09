@@ -1,0 +1,1 @@
+ALTER TABLE `git_repos` ADD `mapped_commit` text;

@@ -3,6 +3,7 @@ import type { ElementFilesService } from '../application/reprise/ElementFilesSer
 import type { StructureService } from '../application/structure/StructureService'
 import { ProjectFile } from '@shared/ipc/projectFile'
 import { ARCHITECTURE_KINDS } from '@shared/structure/architecture'
+import type { MapUpdateService } from '../application/structure/MapUpdateService'
 import { defineRoute, type IpcRoute } from './registry'
 
 /**
@@ -47,6 +48,22 @@ export function createStructureRoutes(
       channel: 'structure:file',
       input: z.strictObject({ elementId: z.uuid(), path: ProjectFile }),
       handler: async ({ elementId, path }) => files.file(elementId, path)
+    })
+  ]
+}
+
+/** « Mettre à jour la carte » (spec 022) : le renderer ne donne que le genesis ; les changements sont lus par le main. */
+export function createMapUpdateRoutes(maps: Pick<MapUpdateService, 'plan' | 'markMapped'>): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'structure:updatePlan',
+      input: z.strictObject({ genesisId: z.uuid() }),
+      handler: async ({ genesisId }) => maps.plan(genesisId)
+    }),
+    defineRoute({
+      channel: 'structure:markMapped',
+      input: z.strictObject({ genesisId: z.uuid() }),
+      handler: async ({ genesisId }) => maps.markMapped(genesisId)
     })
   ]
 }
