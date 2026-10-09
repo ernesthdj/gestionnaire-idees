@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Draft (à valider par mentalyas)
+**Status**: Livrée (2026-10-09) — reliquat : T016 (test manuel et mesure du coût)
 
 **Input**: User description: « Quand on verrouille une idée et que Claude fait la synthèse finale (actions à mener,
 questions ouvertes…), si le contexte le permet et qu'il est utile, Claude peut aussi proposer directement un outil

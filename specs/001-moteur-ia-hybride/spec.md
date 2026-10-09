@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft — révisé le 2026-09-28 (amendement « Brainstormer », docs/brainstorm/L1b-brainstormer.md)
+**Status**: Livrée (2026-10-09) — reliquats : T055 (docs), T056 (quickstart) ; révisée le 2026-09-28 (amendement « Brainstormer », docs/brainstorm/L1b-brainstormer.md)
 
 **Input**: User description: "F9 — Moteur IA hybride & contexte, tel que défini dans docs/FOUNDATION.md §2ter, §9.5 et §10.2 : un point d'accès unique à l'IA qui choisit le moteur (IA locale par défaut, Claude pour le raisonnement profond), injecte un cadre strict et le profil de l'utilisateur, valide chaque réponse, anonymise les données avant tout envoi externe, maîtrise le coût et permet de mettre à jour le contexte de l'agent depuis Claude Code avec aperçu et validation."
 

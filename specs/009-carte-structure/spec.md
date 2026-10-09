@@ -1,6 +1,6 @@
 # Feature Specification: Carte de structure d'un projet (P1 — outil de chirurgie)
 
-**Feature Branch**: `009-carte-structure` · **Created**: 2026-10-04 · **Status**: Validée (vision L1e, arbitrages 20–24)
+**Feature Branch**: `009-carte-structure` · **Created**: 2026-10-04 · **Status**: Livrée (2026-10-09) — reliquat : T011 (test guidé) ; validée (vision L1e, arbitrages 20–24)
 
 **Input**: « Sur base du projet, le Brainstormer doit me dessiner le diagramme du projet via des nœuds et connexions…
 un nœud n'est plus une question-réponse mais un élément du projet avec lequel interagir. » Détail :

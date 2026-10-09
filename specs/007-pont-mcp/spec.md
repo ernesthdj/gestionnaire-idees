@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-04
 
-**Status**: Draft (à valider par mentalyas)
+**Status**: Livrée (2026-10-09) — reliquat : T020 (test automatisé du hook)
 
 **Input**: User description: « Exposer la carte de l'app à Claude Code : relais lancé par Claude Code + canal local
 authentifié ; 9 outils (etat, carte_lire, selection_lire, noeud_lire, dessiner, noeud_modifier, relier, retirer,

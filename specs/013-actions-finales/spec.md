@@ -1,6 +1,6 @@
 # Feature Specification: Actions finales — le livrable au bout de chaque branche
 
-**Feature Branch**: `013-actions-finales` · **Created**: 2026-10-05 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `013-actions-finales` · **Created**: 2026-10-05 · **Status**: En pause (2026-10-09) — US3 à reprendre
 
 **Input**: demande de mentalyas (2026-10-05) : « quand Claude estime qu'il n'est plus nécessaire de brainstormer plus loin
 ou de casser en sous-plan d'attaque, les derniers nœuds sont des nœuds d'action directe où s'écrit soit du code de dev,

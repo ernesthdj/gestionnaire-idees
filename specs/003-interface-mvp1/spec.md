@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28 · **Révisée** : 2026-09-28 (amendements L1b « Brainstormer » et L4b « neurones » — remplace la version liste/revue/organigramme, conservée dans l'historique git)
 
-**Status**: Draft
+**Status**: Livrée (2026-10-09) — reliquats : 15 tâches, en partie caduques (ancien moteur retiré par la spec 010)
 
 **Input**: User description: "Interface du MVP-1 selon docs/FOUNDATION.md §0 et la maquette docs/design/neurones-dispositions-2a-2b-2c.png : coquille (zone de notification, démarrage avec Windows, navigation Idées · À valider · Historique, réglages), capture rapide, écran Idées en deux zones (incubateur des neurones bruts et en développement / réseau des neurones éclos reliés), plongée dans un neurone (fil d'Ariane, panneau de questions de l'IA, jauge, verrouillage), aperçu de synthèse et animation de fusion, suivi des neurones Action éclos, lecture des synthèses Réflexion, suggestions de liens, historique avec annulation, export Markdown, animations respectant la préférence « réduire les animations ». S'appuie sur 001 (moteur IA) et 002 (moteur de neurones)."
 

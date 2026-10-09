@@ -1,6 +1,6 @@
 # Feature Specification: Documents — nœuds fichiers Markdown rédigés par Claude
 
-**Feature Branch**: `012-documents` · **Created**: 2026-10-05 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `012-documents` · **Created**: 2026-10-05 · **Status**: En pause (2026-10-09) — US1 livrée ; US2 et US3 à reprendre
 
 **Input**: demande de mentalyas (2026-10-05) : « un lecteur de .md comme dans Obsidian ; avec Claude, en extension d'un
 nœud, générer un .md documenté qui détaille le nœud, et l'avoir en nœud fichier comme dans les .canvas d'Obsidian ».

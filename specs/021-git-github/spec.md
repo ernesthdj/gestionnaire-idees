@@ -1,6 +1,6 @@
 # Feature Specification: Git et GitHub (spec 021)
 
-**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: En pause (2026-10-09) — planifiée, à coder
 **Input**: « Pouvoir récupérer direct un projet dans le Brainstormer depuis un lien GitHub, pour pouvoir scrapper les
 open sources ou travailler en colab avec des collègues sur des projets à plusieurs. L'idée est de récupérer un working
 tree et tracer aussi chronologiquement qui a fait quoi et quand, en fonction des collaborateurs, ensuite pouvoir créer un

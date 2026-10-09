@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28 · **Révisée** : 2026-09-28 (amendements « Brainstormer » L1b et « neurones » L4b — remplace la version « questionnaire linéaire », conservée dans l'historique git)
 
-**Status**: Draft
+**Status**: Abandonnée (2026-10-09) — moteur remplacé par la spec 010 ; T038 demandait la clé API, retirée
 
 **Input**: User description: "Moteur générique du Brainstormer (docs/FOUNDATION.md §0) : chaque idée est un neurone de nature Action ou Réflexion. Claude propose au moins 3 questions d'extension, sans maximum ; chaque réponse fait pousser un sous-neurone, qui peut lui-même proposer des extensions ; l'utilisateur peut ajouter ses propres branches. Une jauge de contexte indique si le neurone peut être verrouillé. Au verrouillage, Claude synthétise (plan d'action pour Action, synthèse structurée pour Réflexion) ; l'utilisateur confirme, le neurone éclôt. Les neurones éclos se relient entre eux par des liens suggérés par l'IA. Pose le modèle de données central."
 
