@@ -760,10 +760,10 @@ function CanvasInner(): React.JSX.Element {
               }}
               onNodeDoubleClick={(_event, node) => {
                 window.clearTimeout(clickTimer.current)
-                // Nœud Workflow (spec 023) : la conversation du projet, avec la consigne pré-remplie.
+                // Nœud Workflow (spec 023) : sa carte s'étire avec la conversation du projet, consigne pré-remplie.
                 if (node.type === 'workflow') {
-                  cardsApi.closeUnpinned(node.data.genesisId)
-                  discussWorkflow(node.data.item, node.data.genesisId)
+                  cardsApi.closeUnpinned(node.id)
+                  discussWorkflow(node.data.item)
                   return
                 }
                 const conversational =

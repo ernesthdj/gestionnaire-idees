@@ -71,8 +71,11 @@ export interface ChatView {
   readonly usage: ChatUsageView
   /** Nom du dossier de projet lié (la conversation s'y ouvre) ; `null` : aucun. Le chemin complet reste dans le main. */
   readonly folder: string | null
-  /** Genesis (idée ou projet), élément d'une carte de structure (spec 009) ou étape d'un plan d'attaque (spec 011). */
-  readonly role: 'genesis' | 'element' | 'step' | 'skills'
+  /**
+   * Genesis (idée ou projet), élément d'une carte de structure (spec 009), étape d'un plan d'attaque (spec 011),
+   * conversation Skills (spec 020) ou nœud de la vue Workflow (spec 023).
+   */
+  readonly role: 'genesis' | 'element' | 'step' | 'skills' | 'workflow'
   readonly elementType: string | null
   /** Rang d'une étape (« ② », « ②.1 ») ; `null` sinon. */
   readonly stepLabel: string | null

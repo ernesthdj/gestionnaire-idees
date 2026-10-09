@@ -37,6 +37,40 @@ describe('canaux workflow:* (spec 023)', () => {
     expect(workflow.file).toHaveBeenCalledTimes(1)
   })
 
+  it('should_return_shortcuts_only_for_relative_paths_and_none_without_the_analysis', async () => {
+    const symbols = {
+      symbols: vi.fn(async () => [{ name: 'lire', kind: 'method' as const, startLine: 2, endLine: 4 }])
+    }
+    const { workflow, folds } = setup()
+    const dispatch = createDispatcher(createWorkflowRoutes(workflow, folds, () => true, symbols))
+    expect(await dispatch('workflow:symbols', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+      success: true,
+      data: [{ name: 'lire' }]
+    })
+    expect(await dispatch('workflow:symbols', { genesisId: ID, path: '../x.ts' })).toMatchObject({ success: false })
+    expect(symbols.symbols).toHaveBeenCalledTimes(1)
+    expect(await setup().dispatch('workflow:symbols', { genesisId: ID, path: 'src/a.ts' })).toMatchObject({
+      success: true,
+      data: []
+    })
+  })
+
+  it('should_open_a_node_conversation_only_for_a_key_of_the_same_project', async () => {
+    const chats = { open: vi.fn(() => ({ neuronId: 'n1' })) }
+    const { workflow, folds } = setup()
+    const dispatch = createDispatcher(createWorkflowRoutes(workflow, folds, () => true, undefined, chats))
+    expect(
+      await dispatch('workflow:chat', { genesisId: ID, key: `wf:${ID}:task:022:T032`, title: 'Tâche T032' })
+    ).toMatchObject({ success: true, data: { neuronId: 'n1' } })
+    expect(
+      await dispatch('workflow:chat', { genesisId: ID, key: `wf:${OTHER}:task:022:T032`, title: 'Tâche T032' })
+    ).toMatchObject({ success: false })
+    expect(await dispatch('workflow:chat', { genesisId: ID, key: `wf:${ID}:task:022:T032`, title: '' })).toMatchObject({
+      success: false
+    })
+    expect(chats.open).toHaveBeenCalledTimes(1)
+  })
+
   it('should_store_a_fold_only_for_a_key_of_the_same_project_when_the_project_exists', async () => {
     const { dispatch, folds } = setup()
     expect(

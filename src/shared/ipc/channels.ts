@@ -131,6 +131,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'structure:file',
   'workflow:read',
   'workflow:file',
+  'workflow:symbols',
+  'workflow:chat',
   'workflow:setFolded',
   'structure:setArchitecture',
   'element:setLayer',

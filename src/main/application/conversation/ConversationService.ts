@@ -289,7 +289,9 @@ export class ConversationService {
             ? 'step'
             : neuron.kind === 'skills_chat'
               ? 'skills'
-              : 'genesis',
+              : neuron.kind === 'workflow_chat'
+                ? 'workflow'
+                : 'genesis',
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),

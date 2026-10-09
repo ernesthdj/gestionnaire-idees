@@ -92,6 +92,14 @@ export interface WorkflowView {
   readonly readAt: string
 }
 
+/** Méthode, fonction, classe… d'un fichier, repérée par l'analyse syntaxique (tree-sitter) pour le lecteur. */
+export interface WorkflowSymbolView {
+  readonly name: string
+  readonly kind: 'namespace' | 'class' | 'interface' | 'function' | 'method'
+  readonly startLine: number
+  readonly endLine: number
+}
+
 /** Fichier lu pour le lecteur d'une carte Workflow (`workflow:file`). */
 export interface WorkflowFileView {
   readonly path: string

@@ -38,8 +38,9 @@ interface UiState {
   readonly analysisLinks: boolean
   toggleAnalysisLinks(): void
   /**
-   * Consignes pré-remplies dans le champ d'une conversation (spec 023 : « Discuter » sur une tâche) ; la conversation
-   * la reprend une fois, puis l'efface. Jamais envoyée sans geste de mentalyas.
+   * Consignes pré-remplies dans le champ d'une conversation (spec 023 : « Discuter » sur une tâche), par clé (le neurone,
+   * ou la carte qui affiche la conversation) ; la conversation la reprend une fois, puis l'efface. Jamais envoyée sans
+   * geste de mentalyas.
    */
   readonly chatDrafts: Readonly<Record<string, string>>
   seedChatDraft(neuronId: string, text: string): void

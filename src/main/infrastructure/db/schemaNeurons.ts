@@ -48,7 +48,10 @@ export const neurons = sqliteTable(
         // Conversation Skills (spec 020 US3) : neurone caché, jamais sur la carte ni dans le pont.
         'skills_chat',
         // Conversation de codage d'une mise à jour de l'Analyste (spec 019 R5) : cachée, dossier = copie de travail.
-        'analyst_update'
+        'analyst_update',
+        // Conversation d'un nœud de la vue Workflow (spec 023 D6) : cachée, rattachée au genesis (`genesis_id`, son dossier
+        // et sa confidentialité), clé du nœud dans `element_key`.
+        'workflow_chat'
       ]
     }).notNull(),
     title: text('title').notNull(),

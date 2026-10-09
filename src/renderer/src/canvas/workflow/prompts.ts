@@ -2,8 +2,8 @@ import type { WorkflowItem } from './workflowTree'
 
 /**
  * Consigne de « Discuter » sur un nœud Workflow (spec 023 D6, contracts/interfaces.md) : pré-remplie dans la
- * conversation du projet, jamais envoyée sans geste de mentalyas. `null` : le nœud ne lance pas de travail (branche,
- * spec, message). Pure.
+ * conversation du nœud, jamais envoyée sans geste de mentalyas. `null` : le nœud n'a pas de conversation (branche,
+ * message). Pure.
  */
 export function promptFor(item: WorkflowItem): string | null {
   const { subject } = item
@@ -20,6 +20,8 @@ export function promptFor(item: WorkflowItem): string | null {
       if (ids.length === 0) return null
       return `Mène les tâches restantes du socle (sans user story) de la spec ${subject.spec.dir}, dans l'ordre : ${ids.join(', ')}. Coche chaque case quand elle est faite.`
     }
+    case 'spec':
+      return `Parlons de la spec ${subject.spec.dir} : lis spec.md, plan.md et tasks.md, puis dis-moi où elle en est et ce qu'il reste à faire.`
     case 'doc':
       return `Lance /brainstorm à partir de docs/brainstorm/${subject.doc.name} (idée à brainstormer de ce projet).`
     default:

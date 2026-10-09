@@ -6,6 +6,8 @@
 |---|---|---|---|
 | `workflow:read` | `{ genesisId: uuid }` | `WorkflowView` | `NOT_FOUND` (genesis), `FOLDER_MISSING` (pas de dossier lié ou dossier absent) |
 | `workflow:file` | `{ genesisId: uuid, path: ProjectFile }` | `{ path, lang, lines: string[] }` | `NOT_FOUND` (non cité ou absent), `SECRET_FILE`, `TOO_LARGE`, `INVALID_STATE` (binaire) |
+| `workflow:symbols` | `{ genesisId: uuid, path: ProjectFile }` | `WorkflowSymbolView[]` (vide si non analysable) | `NOT_FOUND` |
+| `workflow:chat` | `{ genesisId: uuid, key: WorkflowKey, title: 1–200 }` | `{ neuronId }` (conversation du nœud, créée ou reprise) | `NOT_FOUND` |
 | `workflow:setFolded` | `{ genesisId: uuid, key: WorkflowKey, folded: boolean }` | `{ ok: true }` | `NOT_FOUND` |
 
 - `ProjectFile` = schéma existant de `structureHandlers.ts` (relatif, ≤ 500 caractères, sans `..`), déplacé dans un

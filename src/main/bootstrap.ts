@@ -119,6 +119,9 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { WorkflowService } from './application/workflow/WorkflowService'
+import { WorkflowSymbols } from './application/workflow/WorkflowSymbols'
+import { WorkflowChats } from './application/workflow/WorkflowChats'
+import { WorkflowChatRepository } from './infrastructure/db/repositories/WorkflowChatRepository'
 import { WorkflowFoldRepository } from './infrastructure/db/repositories/WorkflowFoldRepository'
 import { StructureService } from './application/structure/StructureService'
 import { ElementRepository } from './infrastructure/db/repositories/ElementRepository'
@@ -824,7 +827,18 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,
-        (genesisId) => conversationRepository.neuron(genesisId)?.projectDir != null
+        (genesisId) => conversationRepository.neuron(genesisId)?.projectDir != null,
+        new WorkflowSymbols({
+          target: (genesisId, path) => workflow.target(genesisId, path),
+          runWorker: analysisWorker(join(import.meta.dirname, 'analysis-worker.js'))
+        }),
+        new WorkflowChats({
+          repository: new WorkflowChatRepository(database.db),
+          linkedGenesis: (genesisId) => {
+            const genesis = conversationRepository.neuron(genesisId)
+            return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
+          }
+        })
       ),
       ...createAnalysteRoutes({
         guard: repoGuard,

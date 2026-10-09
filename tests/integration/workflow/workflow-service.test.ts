@@ -3,7 +3,10 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { WorkflowChats } from '../../../src/main/application/workflow/WorkflowChats'
 import { WorkflowService } from '../../../src/main/application/workflow/WorkflowService'
+import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
+import { WorkflowChatRepository } from '../../../src/main/infrastructure/db/repositories/WorkflowChatRepository'
 import {
   WorkflowFoldRepository,
   WORKFLOW_FOLDS_MAX
@@ -166,5 +169,31 @@ describe('repli de la vue Workflow (spec 023 FR-016)', () => {
     for (let index = 0; index < WORKFLOW_FOLDS_MAX + 3; index++)
       repository.set(genesis, `wf:${genesis}:task:022:T${index}`, true)
     expect(Object.keys(repository.get(genesis))).toHaveLength(WORKFLOW_FOLDS_MAX)
+  })
+})
+
+describe('conversations des nœuds Workflow (spec 023 D6)', () => {
+  let t: NeuronHarness
+  beforeEach(() => {
+    t = createNeuronHarness()
+  })
+  afterEach(() => t.dispose())
+
+  it('should_create_one_hidden_conversation_per_node_and_reuse_it_when_discussed_again', async () => {
+    const genesis = (await t.neurons.create({ text: 'Projet lié' })).id
+    const chats = new WorkflowChats({
+      repository: new WorkflowChatRepository(t.handle.db),
+      linkedGenesis: (id) => id === genesis
+    })
+    const task = `wf:${genesis}:task:022:T032`
+    const first = chats.open(genesis, task, 'Tâche T032')
+    expect(chats.open(genesis, task, 'Tâche T032')).toEqual(first)
+    const other = chats.open(genesis, `wf:${genesis}:spec:022`, 'Spec 022')
+    expect(other.neuronId).not.toBe(first.neuronId)
+    expect(() => chats.open(randomUUID(), task, 'Tâche')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
+    // Cachées : jamais sur la carte des idées.
+    const roots = new NeuronRepository(t.handle.db).canvasRoots().map((root) => root.id)
+    expect(roots).toContain(genesis)
+    expect(roots).not.toContain(first.neuronId)
   })
 })

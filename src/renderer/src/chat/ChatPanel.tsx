@@ -314,23 +314,26 @@ function Message({ message }: { readonly message: ChatMessageView }): React.JSX.
  */
 export function ChatPanel({
   neuronId,
-  onClose
+  onClose,
+  draftKey = neuronId
 }: {
   readonly neuronId: string
   readonly onClose: () => void
+  /** Clé de la consigne pré-remplie à reprendre (spec 023 : la carte d'un nœud Workflow) ; par défaut, le neurone. */
+  readonly draftKey?: string
 }): React.JSX.Element {
   const chat = useChat(neuronId)
   const openExplorer = useUiStore((state) => state.openExplorer)
   const [draft, setDraft] = useState('')
   // Consigne pré-remplie (spec 023) : reprise une fois dans le champ, jamais envoyée sans geste.
-  const seeded = useUiStore((state) => state.chatDrafts[neuronId])
+  const seeded = useUiStore((state) => state.chatDrafts[draftKey])
   const takeChatDraft = useUiStore((state) => state.takeChatDraft)
   useEffect(() => {
     if (seeded === undefined) return
     setDraft(seeded)
-    takeChatDraft(neuronId)
+    takeChatDraft(draftKey)
     inputRef.current?.focus()
-  }, [seeded, neuronId, takeChatDraft])
+  }, [seeded, draftKey, takeChatDraft])
   const fieldId = useId()
   const end = useRef<HTMLDivElement>(null)
   const nextRequest = chat.pending[0]
@@ -407,9 +410,11 @@ export function ChatPanel({
                   ? `${chat.elementType ?? 'Élément'} du projet`
                   : chat.role === 'step'
                     ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                    : chat.folder === null
-                      ? 'Genesis'
-                      : 'Projet'}{' '}
+                    : chat.role === 'workflow'
+                      ? 'Nœud du workflow'
+                      : chat.folder === null
+                        ? 'Genesis'
+                        : 'Projet'}{' '}
               · conversation Claude Code
               {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
             </p>
@@ -515,7 +520,7 @@ export function ChatPanel({
                   </button>
                 </>
               )}
-              {chat.role === 'element' ? null : (
+              {chat.role === 'element' || chat.role === 'workflow' ? null : (
                 <button
                   type="button"
                   onClick={() => void chat.send(PLAN_MESSAGE)}
@@ -525,7 +530,7 @@ export function ChatPanel({
                   Proposer un plan d’attaque
                 </button>
               )}
-              {chat.role === 'element' ? null : (
+              {chat.role === 'element' || chat.role === 'workflow' ? null : (
                 <button
                   type="button"
                   onClick={() => void chat.send(DOC_MESSAGE)}
@@ -659,7 +664,12 @@ export function ChatPanel({
             ))}
           </div>
         ) : null}
-        {!chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly && chat.role !== 'skills' ? (
+        {!chat.loading &&
+        chat.messages.length === 0 &&
+        !chat.busy &&
+        !localOnly &&
+        chat.role !== 'skills' &&
+        chat.role !== 'workflow' ? (
           <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
             <p>Claude connaît déjà le titre de l’idée et sa fiche. Lance le cadrage, ou écris directement.</p>
             <Button variant="primary" onClick={() => void chat.send(OPENING_MESSAGE)}>

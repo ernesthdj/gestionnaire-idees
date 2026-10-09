@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, realpathSync } from 'node:fs'
 import { isAbsolute, join, relative } from 'node:path'
+import type { CodeLang } from '@shared/ipc/reprise'
 import type { SpecView, WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
 import { AppError } from '../../domain/errors'
 import { langOf } from '../../domain/reprise/fileFilter'
@@ -76,13 +77,19 @@ export class WorkflowService {
 
   /** Un fichier pour le lecteur d'une carte : fichier de méthode, ou chemin cité par une tâche du projet. */
   file(genesisId: string, path: string): WorkflowFileView {
+    const { root, path: normalized, lang } = this.target(genesisId, path)
+    const text = readProjectText(root, normalized)
+    return { path: normalized, lang, lines: text.split(/\r?\n/) }
+  }
+
+  /** Fichier lisible depuis une carte : dossier du projet, chemin normalisé et langage ; sinon NOT_FOUND. */
+  target(genesisId: string, path: string): { root: string; path: string; lang: CodeLang } {
     const root = this.rootOf(genesisId)
     const normalized = path.replace(/\\/g, '/')
     if (!METHOD_FILE.test(normalized) && !this.citedFiles(root).has(normalized)) {
       throw new AppError('NOT_FOUND', 'Ce fichier n’est cité par aucune tâche de ce projet.')
     }
-    const text = readProjectText(root, normalized)
-    return { path: normalized, lang: langOf(normalized), lines: text.split(/\r?\n/) }
+    return { root, path: normalized, lang: langOf(normalized) }
   }
 
   /** Chemins cités introuvables sous la racine (un lien qui sort du projet compte comme introuvable). */

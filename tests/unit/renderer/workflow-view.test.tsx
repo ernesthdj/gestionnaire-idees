@@ -288,8 +288,9 @@ describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)
     fireEvent.click(spec)
     expect(await screen.findByRole('dialog', { name: 'Détails : Démo 001' })).toBeDefined()
     fireEvent.doubleClick(screen.getByRole('group', { name: 'Tâche T003 à faire : T003' }))
-    await waitFor(() => expect(seed).toHaveBeenCalledWith(G, expect.stringContaining('Implémente la tâche T003')))
-    expect(useCards.getState().cards.find((card) => card.id === G)).toMatchObject({ side: 'chat' })
+    const key = workflowKey(G, 'task', '001', 'T003')
+    await waitFor(() => expect(seed).toHaveBeenCalledWith(key, expect.stringContaining('Implémente la tâche T003')))
+    expect(useCards.getState().cards.find((card) => card.id === key)).toMatchObject({ side: 'chat' })
   })
 
   it('should_show_the_foundation_in_the_genesis_card_when_the_workflow_view_is_on', async () => {

@@ -8,6 +8,7 @@ import { promptFor } from '../../../src/renderer/src/canvas/workflow/prompts'
 import { discussWorkflow, WorkflowCard } from '../../../src/renderer/src/canvas/workflow/WorkflowCard'
 import { workflowKey, workflowTree, type WorkflowItem } from '../../../src/renderer/src/canvas/workflow/workflowTree'
 import type { ElementView } from '../../../src/shared/ipc/canvas'
+import type { ChatView } from '../../../src/shared/ipc/chat'
 import type { SpecView, TaskView, WorkflowView } from '../../../src/shared/ipc/workflow'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
@@ -63,6 +64,30 @@ const VIEW: WorkflowView = {
   readAt: '2026-10-09T10:00:00.000Z',
   missingFiles: []
 }
+const CHAT_ID = '00000000-0000-4000-8000-0000000000b9'
+const CHAT: ChatView = {
+  neuronId: CHAT_ID,
+  title: 'gestionnaire-idees',
+  messages: [{ id: 'm1', role: 'assistant', text: 'Bonjour.', createdAt: '' }],
+  pending: [],
+  git: true,
+  sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
+  maturity: null,
+  busy: false,
+  partial: '',
+  usage: {
+    account: null,
+    app: { weekTokens: 0, weekTurns: 0, totalTokens: 0, totalTurns: 0, neuronTokens: 0, neuronTurns: 0 }
+  },
+  folder: null,
+  role: 'workflow',
+  elementType: null,
+  stepLabel: null,
+  model: 'claude-opus-5-5',
+  modelChoice: null,
+  permissionMode: 'default',
+  reprise: null
+}
 const item = (key: string): WorkflowItem => {
   const found = workflowTree({ view: VIEW }, G).items.find((entry) => entry.key === key)
   if (found === undefined) throw new Error(`nœud ${key} absent`)
@@ -81,11 +106,24 @@ const card = (id: string): OpenCard => ({
 function renderCard(key: string, elements: readonly ElementView[] = [], missingFiles: readonly string[] = []) {
   useCards.setState({ cards: [card(key)], activeId: key })
   const api = installFakeApi({
-    'workflow:file': (payload) => ({
-      path: (payload as { path: string }).path,
-      lang: 'other',
-      lines: ['# Spec', '<script>alert(1)</script>']
-    })
+    'workflow:file': (payload) => {
+      const path = (payload as { path: string }).path
+      return path.endsWith('.ts')
+        ? {
+            path,
+            lang: 'ts',
+            lines: ['export class Carte {', '  lire(): void {}', '}', 'export function ranger(): void {}']
+          }
+        : { path, lang: 'other', lines: ['# Spec', '<script>alert(1)</script>'] }
+    },
+    'workflow:chat': () => ({ neuronId: CHAT_ID }),
+    'chat:open': () => CHAT,
+    'chat:close': () => ({ ok: true }),
+    'workflow:symbols': () => [
+      { name: 'Carte', kind: 'class', startLine: 1, endLine: 3 },
+      { name: 'lire', kind: 'method', startLine: 2, endLine: 2 },
+      { name: 'ranger', kind: 'function', startLine: 4, endLine: 4 }
+    ]
   })
   const Current = (): React.JSX.Element => {
     const current = useCards((state) => state.cards.find((entry) => entry.id === key)) ?? card(key)
@@ -124,21 +162,35 @@ describe('consignes de « Discuter » (spec 023 US2)', () => {
     expect(promptFor(item(workflowKey(G, 'doc', 'L1j-carte')))).toBe(
       'Lance /brainstorm à partir de docs/brainstorm/L1j-carte.md (idée à brainstormer de ce projet).'
     )
-    expect(promptFor(item(workflowKey(G, 'spec', '022')))).toBeNull()
+    expect(promptFor(item(workflowKey(G, 'spec', '022')))).toContain('Parlons de la spec specs/022-noeuds-vivants')
+    expect(promptFor(item(workflowKey(G, 'branch', 'active')))).toBeNull()
   })
 })
 
 describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
   beforeEach(() => useUiStore.setState({ chatDrafts: {} }))
 
-  it('should_open_the_project_conversation_with_the_instruction_prefilled_when_discussing_a_task', async () => {
+  it('should_open_the_task_own_conversation_in_its_card_with_the_instruction_prefilled_when_discussing', async () => {
     const user = userEvent.setup()
-    const { container } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    const { container, api } = renderCard(workflowKey(G, 'task', '022', 'T011'))
     expect(screen.getByText('Tâche T011')).toBeDefined()
     expect(screen.getByText('US1 · Spec 022 · à faire')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Discuter' }))
-    expect(useUiStore.getState().chatDrafts[G]).toContain('Implémente la tâche T011')
-    expect(useCards.getState().cards.find((entry) => entry.id === G)).toMatchObject({ side: 'chat' })
+    // La carte de la tâche elle-même s'étire avec la conversation du projet, la consigne dans le champ.
+    const key = workflowKey(G, 'task', '022', 'T011')
+    expect(useCards.getState().cards.find((entry) => entry.id === key)).toMatchObject({ side: 'chat' })
+    expect(useCards.getState().cards.some((entry) => entry.id === G)).toBe(false)
+    const field = (await screen.findByLabelText('Message à Claude')) as HTMLTextAreaElement
+    expect(field.value).toContain('Implémente la tâche T011')
+    expect(useUiStore.getState().chatDrafts[key]).toBeUndefined()
+    // Conversation propre à la tâche (créée au premier « Discuter »), pas celle du genesis.
+    expect(api.invoke).toHaveBeenCalledWith('workflow:chat', {
+      genesisId: G,
+      key,
+      title: expect.stringContaining('Tâche T011')
+    })
+    expect(api.invoke).toHaveBeenCalledWith('chat:open', { neuronId: CHAT_ID })
+    expect(api.invoke).not.toHaveBeenCalledWith('chat:send', expect.anything())
     await expectNoAxeViolations(container)
   })
 
@@ -147,7 +199,7 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     const { api } = renderCard(workflowKey(G, 'spec', '022'))
     expect(screen.getByText('Spec 022')).toBeDefined()
     expect(screen.getByText('en cours · créée le 2026-10-08 · 29 décisions')).toBeDefined()
-    expect(screen.queryByRole('button', { name: 'Discuter' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Discuter' })).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Détail' }))
     expect(screen.getByRole('region', { name: 'User stories' }).textContent).toContain('US1 · P1 Carte des idées')
     await user.click(screen.getByRole('button', { name: 'L1f-reprise-projet.md' }))
@@ -192,15 +244,22 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(screen.queryByRole('button', { name: 'Lire src/T010.ts' })).toBeNull()
     await user.click(screen.getByTitle('Lire src/T011.ts'))
     await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('workflow:file', { genesisId: G, path: 'src/T011.ts' }))
+    // Raccourcis (tree-sitter) : un clic surligne le code de la méthode.
+    const shortcut = await screen.findByRole('button', { name: /lire.*méthode.*ligne 2/ })
+    await user.click(shortcut)
+    expect(shortcut.getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('[data-line="2"]')?.className).toContain('bg-accent/15')
+    expect(container.querySelector('[data-line="4"]')?.className).not.toContain('bg-accent/15')
+    expect(screen.queryByRole('navigation', { name: 'Raccourcis du fichier' })).not.toBeNull()
     await expectNoAxeViolations(container)
     await user.click(screen.getByRole('button', { name: 'Voir « Sources » dans la structure' }))
     expect(useUiStore.getState().structureViews[G]).toBe('progression')
     expect(useCards.getState().cards.some((entry) => entry.id === 'element-src')).toBe(true)
   })
 
-  it('should_do_nothing_when_discussing_a_node_without_instruction', () => {
+  it('should_do_nothing_when_discussing_a_branch', () => {
     useCards.setState({ cards: [], activeId: null })
-    expect(discussWorkflow(item(workflowKey(G, 'spec', '022')), G)).toBe(false)
+    expect(discussWorkflow(item(workflowKey(G, 'branch', 'active')))).toBe(false)
     expect(useCards.getState().cards).toEqual([])
   })
 })
