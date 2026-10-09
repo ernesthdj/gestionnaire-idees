@@ -19,6 +19,10 @@
 > **Évolution (2026-10-07) :** **Git et GitHub** (volet Dépôt : commit, branches, publier, tirer, pousser sur clic ;
 > clone par lien ; frise des contributions ; conflits guidés ; PR et issues). Voir `docs/FOUNDATION.md` §000000 et
 > `docs/brainstorm/L1i-git-github.md`. Spec prévue : 021, après amendement 4.4.0 de la constitution.
+> **Évolution (2026-10-09) :** **Accueil ProjectMaster** (créer ou charger un projet depuis l'app, un projet par canevas,
+> le dossier ProjectsMaster devient le coffre, l'app pilote le workflow `/hub` étape par étape). Voir
+> `docs/brainstorm/L1k-accueil-projectmaster.md`. Spec 024 écrite le 2026-10-09, à coder après la fermeture d'une partie
+> des chantiers ouverts.
 
 ---
 
