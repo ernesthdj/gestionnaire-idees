@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -21,6 +21,16 @@ const PROMPT_SHOWN = (): boolean => {
   return Array.from(page.document.querySelectorAll('textarea')).some((area) => area.value.includes('« Essai local »'))
 }
 const ENV = { GI_E2E_VAULT: ROOT, GI_E2E_EMPTY: '1' }
+
+/** Le sélecteur de dossier natif répond `folder` (remplacé dans le main de l'app, jamais sur le bureau). */
+const pickFolderWith = async (run: LaunchedApp, folder: string): Promise<void> => {
+  await run.app.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = (async () => ({
+      canceled: false,
+      filePaths: [path]
+    })) as unknown as typeof dialog.showOpenDialog
+  }, folder)
+}
 
 const viewportOf = async (run: LaunchedApp): Promise<string> =>
   run.page
@@ -136,5 +146,55 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await page.getByRole('button', { name: /Annuler le retour à « avant refonte »/ }).click()
     await idea.first().waitFor()
     await run.shot('024-08-retour-annule')
+  })
+
+  it('should_adopt_a_project_in_progress_elsewhere_then_relink_it_after_a_move', async () => {
+    const outside = join(tmpdir(), 'gi-e2e-ailleurs')
+    const project = join(outside, 'projet-groupe')
+    const moved = join(outside, 'deplace')
+    rmSync(outside, { recursive: true, force: true })
+    mkdirSync(join(project, 'src'), { recursive: true })
+    writeFileSync(join(project, 'src', 'app.ts'), 'export {}\n')
+    writeFileSync(join(project, '.gitignore'), 'node_modules/\n')
+    await pickFolderWith(run, project)
+
+    const { page } = run
+    await page.getByRole('button', { name: '← Projets' }).click()
+    await page.getByRole('button', { name: /Nouveau brainstorm/ }).click()
+    await page.getByRole('button', { name: /Projet en chantier/ }).click()
+    await page.getByRole('button', { name: 'Choisir le dossier du projet…' }).click()
+    await page.getByRole('list', { name: 'Écritures prévues' }).waitFor()
+    await run.shot('024-09-chantier-apercu')
+    // Rien n'est écrit avant le clic.
+    expect(existsSync(join(project, '.brainstormer'))).toBe(false)
+    await page.getByLabel('Nom', { exact: true }).fill('Projet de groupe')
+    await page.getByRole('button', { name: 'Poser le vault et ouvrir' }).click()
+    await page.getByText('Projet de groupe', { exact: true }).first().waitFor()
+    await page.locator('.react-flow').waitFor()
+    await run.shot('024-10-chantier-ouvert')
+    expect(existsSync(join(project, '.brainstormer', 'brainstorm.json'))).toBe(true)
+    expect(readFileSync(join(project, '.gitignore'), 'utf8')).toBe('node_modules/\n.brainstormer/\n')
+    expect(readFileSync(join(project, 'src', 'app.ts'), 'utf8')).toBe('export {}\n')
+    const refs = JSON.parse(readFileSync(join(VAULT, '.hub', 'external.json'), 'utf8')) as {
+      projects: { name: string; path: string }[]
+    }
+    expect(refs.projects.map((ref) => ref.name)).toEqual(['Projet de groupe'])
+
+    // Le projet est déplacé app fermée : il est grisé, puis « Relier… » le retrouve par son vault.
+    await run.close()
+    mkdirSync(moved, { recursive: true })
+    renameSync(project, join(moved, 'projet-groupe'))
+    run = await launchApp({ ...ENV, GI_E2E_KEEP: '1' })
+    await run.page.getByRole('heading', { name: 'Project Manager' }).waitFor()
+    await run.page.getByRole('button', { name: /Charger un brainstorm existant/ }).click()
+    await run.page.getByText('dossier introuvable').waitFor()
+    await run.shot('024-11-chantier-introuvable')
+    await pickFolderWith(run, join(moved, 'projet-groupe'))
+    await run.page.getByRole('button', { name: 'Relier Projet de groupe à son nouveau dossier' }).click()
+    await run.page.getByRole('button', { name: 'Ouvrir Projet de groupe' }).and(run.page.locator(':enabled')).waitFor()
+    await run.page.getByRole('button', { name: 'Ouvrir Projet de groupe' }).click()
+    await run.page.locator('.react-flow').waitFor()
+    await run.shot('024-12-chantier-relie')
+    rmSync(outside, { recursive: true, force: true })
   })
 })

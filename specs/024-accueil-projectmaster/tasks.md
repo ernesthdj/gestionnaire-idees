@@ -12,10 +12,10 @@ livré** ; JOURNAL et cases à jour à chaque tâche.
 
 ## Phase 2 — Fondations (bloquant)
 - [x] T003 Schéma : tables `brainstorms`, `save_points` et colonnes `neurons.brainstorm_id`, `canvas_blocks.brainstorm_id` dans `src/main/infrastructure/db/schemaNeurons.ts` ([data-model.md](data-model.md)) ; `npm run db:generate`, renommer en `0040_brainstorms` (0039 pris par la spec 021 ; fichier et `tag` de `meta/_journal.json`), écrire `migrations/down/0040_brainstorms.down.sql` ; test dans `tests/integration/neurons/migrations.test.ts` (ajout puis annulation)
-- [ ] T004 [P] (refus du dossier de l'app fait dans `BrainstormService` pour US1 ; le reste avec US4) Purs `src/main/domain/brainstorms/paths.ts` (chemin résolu, refus du profil de l'app, des racines de disque et des dossiers système, dossier dans le coffre ou externe) + `tests/unit/brainstorms/paths.test.ts`
+- [x] T004 [P] Purs `src/main/domain/brainstorms/paths.ts` (chemin résolu, refus du profil de l'app, des racines de disque et des dossiers système, dossier dans le coffre ou externe) + `tests/unit/brainstorms/paths.test.ts`
 - [x] T005 [P] Pur `src/shared/brainstorms/viewState.ts` (schéma Zod `ViewState` borné : viewport, vues par genesis, ≤ 20 cartes ouvertes, conversation active) + `tests/unit/brainstorms/view-state.test.ts`
 - [ ] T006 [P] (lecture faite dans `infrastructure/hub/HubFiles.ts` ; écriture avec US6, décision D15) `src/main/infrastructure/hub/HubSessions.ts` (`.hub/sessions.json` : lecture, ouverture et fermeture de session, écriture atomique, jamais sur un JSON illisible, champs inconnus gardés) + `tests/integration/hub/hub-sessions.test.ts` (coffre de T002)
-- [ ] T007 [P] (avec US4) `src/main/infrastructure/hub/ProjectVault.ts` (`.brainstormer/brainstorm.json` et `sessions.json` revalidés par Zod, aperçu des écritures, création, ligne `.brainstormer/` dans `.gitignore` créé s'il manque, reconnaissance d'un vault) + `tests/integration/hub/project-vault.test.ts` (vault abîmé signalé, jamais écrasé)
+- [x] T007 [P] `src/main/infrastructure/hub/ProjectVault.ts` (`.brainstormer/brainstorm.json` et `sessions.json` revalidés par Zod, aperçu des écritures, création, ligne `.brainstormer/` dans `.gitignore` créé s'il manque, reconnaissance d'un vault) + `tests/integration/hub/project-vault.test.ts` (vault abîmé signalé, jamais écrasé)
 - [x] T008 `src/main/infrastructure/db/repositories/BrainstormRepository.ts` (créer, lister, lire, `last_opened_at`, état de vue, archiver) et `SavePointRepository.ts` ; `src/shared/ipc/brainstorms.ts` (types des vues) ; `src/shared/ipc/channels.ts` (canaux de [contracts](contracts/interfaces.md))
 
 ## Phase 3 — US1 Reprendre un brainstorm là où je m'étais arrêté (P1) 🎯 MVP
@@ -45,9 +45,9 @@ livré** ; JOURNAL et cases à jour à chaque tâche.
 
 ## Phase 6 — US4 Projet en chantier : propriétaire ou sans dépôt (P2)
 **Test indépendant** : un dossier hors du coffre → `.brainstormer/` créé et ignoré par git, référence externe, dossier non déplacé.
-- [ ] T025 [US4] `BrainstormService.previewExisting|adoptExisting` (aperçu des écritures, vault créé ou repris, `.gitignore`, référence externe : `external` + `path` au registre si T001 l'a permis, sinon `.hub/external.json`, rôle « mon propre dépôt » ou « pas de dépôt » → `initGit` proposé) et `relink` (projet déplacé reconnu par son vault) ; tests `tests/integration/brainstorms/adopt-existing.test.ts` (SC-006 : inventaire des fichiers avant / après)
-- [ ] T026 [US4] Renderer : parcours « Projet en chantier » dans `NewBrainstorm.tsx` (dialogue de dossier, aperçu, choix du rôle — « collaborateur » affiché « bientôt, avec Git et GitHub (spec 021) »), « Relier » dans `BrainstormList.tsx` ; tests renderer + axe
-- [ ] T027 [US4] Test guidé US4 (quickstart scénario 6, rôle propriétaire) — attendre le retour
+- [x] T025 [US4] (dans `ExistingProjectService`, sélecteur natif dans le main : l'interface n'envoie qu'un jeton ; rôle « pas de dépôt » sans `git init` automatique, D17) `BrainstormService.previewExisting|adoptExisting` (aperçu des écritures, vault créé ou repris, `.gitignore`, référence externe : `external` + `path` au registre si T001 l'a permis, sinon `.hub/external.json`, rôle « mon propre dépôt » ou « pas de dépôt » → `initGit` proposé) et `relink` (projet déplacé reconnu par son vault) ; tests `tests/integration/brainstorms/adopt-existing.test.ts` (SC-006 : inventaire des fichiers avant / après)
+- [x] T026 [US4] Renderer : parcours « Projet en chantier » dans `NewBrainstorm.tsx` (dialogue de dossier, aperçu, choix du rôle — « collaborateur » affiché « bientôt, avec Git et GitHub (spec 021) »), « Relier » dans `BrainstormList.tsx` ; tests renderer + axe
+- [x] T027 [US4] Test guidé US4 → e2e `project-manager.e2e.ts` (aperçu, vault, `.gitignore`, déplacement puis « Relier ») ; (quickstart scénario 6, rôle propriétaire) — attendre le retour
 
 ## Phase 7 — US5 Nouveau brainstorm depuis un lien Git (P3)
 **Test indépendant** : un petit dépôt public de test cloné dans le coffre, listé, son canevas ouvert.

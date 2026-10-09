@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import {
   BrainstormOpenInput,
+  BrainstormRelinkInput,
+  ExistingAdoptInput,
   BrainstormScratchInput,
   BrainstormViewStateInput,
   SavePointCreateInput,
@@ -10,6 +12,7 @@ import {
   SavePointUndoInput
 } from '@shared/ipc/brainstorms'
 import type { BrainstormService } from '../application/brainstorms/BrainstormService'
+import type { ExistingProjectService } from '../application/brainstorms/ExistingProjectService'
 import type { SavePointService } from '../application/brainstorms/SavePointService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -76,6 +79,25 @@ export function createSavePointRoutes(
       channel: 'savepoints:undoRestore',
       input: SavePointUndoInput,
       handler: async ({ undoId }) => points.undoRestore(undoId)
+    })
+  ]
+}
+
+/** Projet en chantier (spec 024 US4) : le dossier est choisi au sélecteur natif du main, l'interface n'envoie qu'un jeton. */
+export function createExistingProjectRoutes(
+  existing: Pick<ExistingProjectService, 'pick' | 'adopt' | 'relink'>
+): IpcRoute[] {
+  return [
+    defineRoute({ channel: 'brainstorms:pickExisting', input: z.undefined(), handler: async () => existing.pick() }),
+    defineRoute({
+      channel: 'brainstorms:adoptExisting',
+      input: ExistingAdoptInput,
+      handler: async (input) => existing.adopt(input)
+    }),
+    defineRoute({
+      channel: 'brainstorms:relink',
+      input: BrainstormRelinkInput,
+      handler: async ({ id }) => existing.relink(id)
     })
   ]
 }

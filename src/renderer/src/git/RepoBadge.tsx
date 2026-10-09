@@ -36,7 +36,7 @@ export function RepoBadge({ genesisId }: { readonly genesisId: string }): React.
   return (
     <button
       type="button"
-      className="living-repo nodrag absolute left-1/2 -bottom-7 -translate-x-1/2 whitespace-nowrap rounded-full border border-content-muted/30 bg-surface-raised px-2 py-0.5 text-[11px] text-content hover:bg-surface"
+      className="living-repo nodrag absolute left-1/2 -top-7 -translate-x-1/2 whitespace-nowrap rounded-full border border-content-muted/30 bg-surface-raised px-2 py-0.5 text-[11px] text-content hover:bg-surface"
       title="Ouvrir le volet Dépôt (Ctrl+Maj+G)"
       aria-label={`Dépôt : ${text}. Ouvrir le volet Dépôt`}
       onClick={(event) => {

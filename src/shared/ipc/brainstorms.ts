@@ -109,3 +109,30 @@ export const SavePointCreateInput = z.strictObject({ brainstormId: z.uuid(), nam
 export const SavePointRenameInput = z.strictObject({ id: z.uuid(), name: pointName })
 export const SavePointIdInput = z.strictObject({ id: z.uuid() })
 export const SavePointUndoInput = z.strictObject({ undoId: z.uuid() })
+
+// Projet en chantier (spec 024 US4) : le dossier vient du sélecteur natif du main, jamais de l'interface.
+
+export interface ExistingPreview {
+  /** Choix gardé par le main quelques minutes ; l'adoption ne reçoit que lui. */
+  readonly pickId: string
+  readonly folder: string
+  readonly suggestedName: string
+  /** Ce que l'app écrira dans le projet ; vide si rien. */
+  readonly writes: readonly string[]
+  /** Vault déjà présent : connu de l'app (brainstorm rouvert), d'ailleurs (repris tel quel) ou abîmé (refus). */
+  readonly vault: 'none' | 'known' | 'foreign' | 'damaged'
+  readonly isRepo: boolean
+  readonly branch: string | null
+  /** Raison d'un refus (dossier système, coffre, données de l'app, vault abîmé) ; `null` : adoptable. */
+  readonly problem: string | null
+}
+
+export const ExistingAdoptInput = z.strictObject({
+  pickId: z.uuid(),
+  name: z.string().trim().min(1).max(PROJECT_LIMITS.name),
+  description: z.string().max(PROJECT_LIMITS.description),
+  /** « collaborator » viendra avec la spec 021. */
+  role: z.enum(['owner', 'none'])
+})
+
+export const BrainstormRelinkInput = z.strictObject({ id: z.uuid() })

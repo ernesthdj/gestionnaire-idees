@@ -6,13 +6,14 @@ import { slugify, slugProblem } from '@shared/projects/slug'
 import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
+import { ExistingProject } from './ExistingProject'
 import { BRAINSTORMS_KEY, useOpenBrainstorm } from './useBrainstorms'
 
 type Source = 'scratch' | 'existing' | 'clone'
 
 const SOURCES: readonly { readonly source: Source; readonly label: string; readonly hint: string }[] = [
   { source: 'scratch', label: 'De zéro', hint: 'Un nouveau projet, créé dans ton coffre' },
-  { source: 'existing', label: 'Projet en chantier', hint: 'Bientôt : un dossier existant, ailleurs sur ton PC' },
+  { source: 'existing', label: 'Projet en chantier', hint: 'Un dossier existant, ailleurs sur ton PC' },
   { source: 'clone', label: 'Depuis un lien Git', hint: 'Bientôt : cloner un dépôt dans ton coffre' }
 ]
 
@@ -78,7 +79,7 @@ export function NewBrainstorm({ root }: { readonly root: string | null }): React
             key={entry.source}
             type="button"
             aria-pressed={source === entry.source}
-            disabled={entry.source !== 'scratch'}
+            disabled={entry.source === 'clone'}
             onClick={() => setSource(entry.source)}
             className={`flex flex-col gap-1 rounded-md border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
               source === entry.source ? 'border-accent bg-accent/10' : 'border-content-muted/30'
@@ -89,93 +90,97 @@ export function NewBrainstorm({ root }: { readonly root: string | null }): React
           </button>
         ))}
       </div>
-      <form
-        aria-labelledby={`${id}-title`}
-        className="flex flex-col gap-3 rounded-lg border border-content-muted/20 bg-surface-raised p-4 text-sm"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
-        }}
-      >
-        <h3 id={`${id}-title`} className="font-semibold">
-          Nouveau projet de zéro
-        </h3>
-        <p className="text-xs text-content-muted">
-          {root === null
-            ? 'Choisis d’abord ton coffre (en haut).'
-            : `Dossier créé dans ${root}, avec CLAUDE.md, docs/JOURNAL.md, src/, tests/ et un dépôt git local.`}
-        </p>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold">Nom</span>
-          <input
-            value={name}
-            maxLength={PROJECT_LIMITS.name}
-            onChange={(event) => {
-              setName(event.target.value)
-              if (!slugEdited) setSlug(slugify(event.target.value))
-            }}
-            className="h-8 rounded-md bg-surface px-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold">Nom du dossier</span>
-          <input
-            value={slug}
-            maxLength={50}
-            aria-invalid={slugIssue !== null}
-            aria-describedby={slugIssue === null ? undefined : `${id}-slug`}
-            onChange={(event) => {
-              setSlugEdited(true)
-              setSlug(event.target.value.toLowerCase())
-            }}
-            className="h-8 rounded-md bg-surface px-2 font-mono text-xs"
-          />
-          {slugIssue === null ? null : (
-            <span id={`${id}-slug`} className="text-xs text-con">
-              {slugIssue}
-            </span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold">Type</span>
-          <select
-            value={type}
-            onChange={(event) => setType(event.target.value as ProjectType | '')}
-            className="h-8 rounded-md border border-content-muted/40 bg-surface px-1"
-          >
-            <option value="">Choisir…</option>
-            {PROJECT_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold">Description</span>
-          <textarea
-            value={description}
-            rows={2}
-            maxLength={PROJECT_LIMITS.description}
-            onChange={(event) => setDescription(event.target.value)}
-            className="resize-none rounded-md bg-surface px-2 py-1"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-xs text-content-muted">
-          <input type="checkbox" checked={false} disabled readOnly />
-          Créer aussi le dépôt GitHub (bientôt, avec la spec 021)
-        </label>
-        {problem === '' ? null : (
-          <p role="alert" className="text-xs text-con">
-            {problem}
+      {source === 'existing' ? (
+        <ExistingProject />
+      ) : (
+        <form
+          aria-labelledby={`${id}-title`}
+          className="flex flex-col gap-3 rounded-lg border border-content-muted/20 bg-surface-raised p-4 text-sm"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void submit()
+          }}
+        >
+          <h3 id={`${id}-title`} className="font-semibold">
+            Nouveau projet de zéro
+          </h3>
+          <p className="text-xs text-content-muted">
+            {root === null
+              ? 'Choisis d’abord ton coffre (en haut).'
+              : `Dossier créé dans ${root}, avec CLAUDE.md, docs/JOURNAL.md, src/, tests/ et un dépôt git local.`}
           </p>
-        )}
-        <div>
-          <Button type="submit" variant="primary" disabled={!ready}>
-            {busy ? 'Création…' : 'Créer et ouvrir le canevas'}
-          </Button>
-        </div>
-      </form>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold">Nom</span>
+            <input
+              value={name}
+              maxLength={PROJECT_LIMITS.name}
+              onChange={(event) => {
+                setName(event.target.value)
+                if (!slugEdited) setSlug(slugify(event.target.value))
+              }}
+              className="h-8 rounded-md bg-surface px-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold">Nom du dossier</span>
+            <input
+              value={slug}
+              maxLength={50}
+              aria-invalid={slugIssue !== null}
+              aria-describedby={slugIssue === null ? undefined : `${id}-slug`}
+              onChange={(event) => {
+                setSlugEdited(true)
+                setSlug(event.target.value.toLowerCase())
+              }}
+              className="h-8 rounded-md bg-surface px-2 font-mono text-xs"
+            />
+            {slugIssue === null ? null : (
+              <span id={`${id}-slug`} className="text-xs text-con">
+                {slugIssue}
+              </span>
+            )}
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold">Type</span>
+            <select
+              value={type}
+              onChange={(event) => setType(event.target.value as ProjectType | '')}
+              className="h-8 rounded-md border border-content-muted/40 bg-surface px-1"
+            >
+              <option value="">Choisir…</option>
+              {PROJECT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold">Description</span>
+            <textarea
+              value={description}
+              rows={2}
+              maxLength={PROJECT_LIMITS.description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="resize-none rounded-md bg-surface px-2 py-1"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-content-muted">
+            <input type="checkbox" checked={false} disabled readOnly />
+            Créer aussi le dépôt GitHub (bientôt, avec la spec 021)
+          </label>
+          {problem === '' ? null : (
+            <p role="alert" className="text-xs text-con">
+              {problem}
+            </p>
+          )}
+          <div>
+            <Button type="submit" variant="primary" disabled={!ready}>
+              {busy ? 'Création…' : 'Créer et ouvrir le canevas'}
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }

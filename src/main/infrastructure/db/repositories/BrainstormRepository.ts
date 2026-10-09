@@ -21,8 +21,8 @@ export class BrainstormRepository {
     return this.db.transaction(() => work())
   }
 
-  insert(input: NewBrainstorm): BrainstormRow {
-    const id = randomUUID()
+  /** `id` : celui d'un vault déjà posé dans le projet (spec 024 US4), sinon un nouveau. */
+  insert(input: NewBrainstorm, id: string = randomUUID()): BrainstormRow {
     this.db
       .insert(brainstorms)
       .values({ ...input, id })

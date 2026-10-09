@@ -35,6 +35,10 @@ export function ProjectManager(): React.JSX.Element {
       void client.invalidateQueries({ queryKey: BRAINSTORMS_KEY })
     }
   })
+  const relink = useMutation({
+    mutationFn: (item: BrainstormListItem) => call<{ ok: boolean }>('brainstorms:relink', { id: item.id }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: BRAINSTORMS_KEY })
+  })
   const items = list.data ?? []
   const last = items.find((item) => item.last)
   const mode: Mode = chosen ?? (items.length > 0 ? 'load' : 'new')
@@ -114,9 +118,9 @@ export function ProjectManager(): React.JSX.Element {
           ))}
         </div>
 
-        {open.error === null ? null : (
+        {(open.error ?? relink.error) === null ? null : (
           <p role="alert" className="text-sm text-con">
-            {errorText(open.error)}
+            {errorText(open.error ?? relink.error)}
           </p>
         )}
 
@@ -126,7 +130,13 @@ export function ProjectManager(): React.JSX.Element {
               La liste des brainstorms n’a pas pu être lue.
             </p>
           ) : (
-            <BrainstormList items={items} loading={list.isPending} busy={open.isPending} onOpen={openItem} />
+            <BrainstormList
+              items={items}
+              loading={list.isPending}
+              busy={open.isPending || relink.isPending}
+              onOpen={openItem}
+              onRelink={(item) => relink.mutate(item)}
+            />
           )
         ) : (
           <NewBrainstorm root={root} />

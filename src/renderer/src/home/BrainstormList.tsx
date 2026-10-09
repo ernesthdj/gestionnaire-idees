@@ -33,12 +33,15 @@ export function BrainstormList({
   items,
   loading,
   busy,
-  onOpen
+  onOpen,
+  onRelink
 }: {
   readonly items: readonly BrainstormListItem[]
   readonly loading: boolean
   readonly busy: boolean
   readonly onOpen: (item: BrainstormListItem) => void
+  /** « Relier » un projet en chantier déplacé (spec 024 US4). */
+  readonly onRelink?: (item: BrainstormListItem) => void
 }): React.JSX.Element {
   const id = useId()
   const [search, setSearch] = useState('')
@@ -72,7 +75,7 @@ export function BrainstormList({
       ) : (
         <ul aria-label="Brainstorms" className="flex flex-col gap-2">
           {shown.map((item) => (
-            <li key={item.id ?? `hub:${item.slug}`}>
+            <li key={item.id ?? `hub:${item.slug}`} className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={busy || item.folderMissing}
@@ -97,6 +100,17 @@ export function BrainstormList({
                   </span>
                 </span>
               </button>
+              {item.folderMissing && item.location === 'external' && item.id !== null && onRelink !== undefined ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onRelink(item)}
+                  aria-label={`Relier ${item.name} à son nouveau dossier`}
+                  className="h-8 shrink-0 rounded-md border border-content-muted/40 px-3 text-sm hover:bg-surface-raised disabled:opacity-50"
+                >
+                  Relier…
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -121,7 +121,8 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createGitRoutes } from './ipc/gitHandlers'
-import { createBrainstormRoutes, createSavePointRoutes } from './ipc/brainstormHandlers'
+import { createBrainstormRoutes, createExistingProjectRoutes, createSavePointRoutes } from './ipc/brainstormHandlers'
+import { ExistingProjectService } from './application/brainstorms/ExistingProjectService'
 import { SavePointService } from './application/brainstorms/SavePointService'
 import { SavePointRepository } from './infrastructure/db/repositories/SavePointRepository'
 import { BrainstormRepository } from './infrastructure/db/repositories/BrainstormRepository'
@@ -175,6 +176,13 @@ export interface ShellPort {
   hideCapture(): void
   /** Ferme la capture et ouvre la fenêtre principale en plongée dans ce neurone. */
   openDive(rootId: string): void
+}
+
+/** Dossiers système de Windows : jamais un projet (spec 024 US4). */
+function systemDirs(): string[] {
+  return ['SystemRoot', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramData']
+    .map((name) => process.env[name])
+    .filter((value): value is string => value !== undefined && value !== '')
 }
 
 /** Dossier des migrations : sources en développement, ressources de l'installeur une fois empaqueté. */
@@ -727,6 +735,26 @@ export function bootstrap(shell: ShellPort): AppContext {
     },
     projects
   })
+  // Projet en chantier (spec 024 US4) : vault posé dans un dossier hors du coffre, jamais déplacé.
+  const existingProjects = new ExistingProjectService({
+    repository: brainstormRepository,
+    pickFolder: async (title) => {
+      const result = await dialog.showOpenDialog({ title, properties: ['openDirectory'] })
+      return result.canceled ? undefined : result.filePaths[0]
+    },
+    rules: () => ({
+      dataDir,
+      projectsRoot: appSettings.projectsRoot(),
+      home: app.getPath('home'),
+      systemDirs: systemDirs()
+    }),
+    createGenesis: (title, content, brainstormId) => {
+      const id = randomUUID()
+      neuronRepository.insertRoot({ id, title, content, nature: 'reflection', natureSource: null, brainstormId })
+      return id
+    },
+    attach: (neuronId, dir) => conversations.attach(neuronId, dir)
+  })
   // Points de sauvegarde (spec 024 US2) : instantanés du canevas, retour annulable.
   const savePoints = new SavePointService({
     repository: new SavePointRepository(database.db),
@@ -912,6 +940,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createGitRoutes(gitService),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
+      ...createExistingProjectRoutes(existingProjects),
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,
