@@ -17,8 +17,8 @@
    disparaît et la jauge avance à la fin du tour.
 5. **Présenter (US3)** — Carte du genesis : résumé de la fondation, lisible dans le lecteur ; carte d'une spec :
    intention, nombre de décisions, US avec priorité, documents de brainstorm ouvrables.
-6. **Pont (US4)** — Carte d'une tâche citant un fichier couvert → « Voir dans la structure » bascule en Progression et
-   ouvre la carte de l'élément ; un chemin inexistant est grisé.
+6. **Pont (US4)** — Carte d'une tâche citant un fichier couvert → le module qui le couvre (« Parent › Élément »)
+   s'affiche à côté du fichier, sans changer de vue ; un chemin inexistant est grisé.
 7. **Fichiers hostiles (SC-006)** — Tests d'intégration : HTML et instructions affichés comme texte ; `..`, lien
    symbolique sortant, fichier de 2 Mo, binaire : ignorés ou refusés, vue non bloquée.
 8. **Performance (SC-002)** — Dépôt du Brainstormer : vue affichée en moins de 2 s ; relecture après un tour sans

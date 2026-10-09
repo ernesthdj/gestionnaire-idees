@@ -25,7 +25,7 @@
 - `buildGraph(…, workflows: Readonly<Record<string, WorkflowView>>)` : un genesis en vue Workflow reçoit les nœuds de
   `workflowGraph` (type `workflow`) au lieu de ses éléments.
 - Carte de détails : sujet `workflow` (clé R7) ; actions : « Discuter » (tâche, US, L1), « Fichiers » (lecteur),
-  « Voir dans la structure » (fichier couvert), repli (« Masquer les tâches (N) »).
+  module de la structure qui couvre chaque fichier, affiché sur place (D9 révisé le 2026-10-09), repli (« Masquer les tâches (N) »).
 - `uiStore.chatDrafts: Record<neuronId, string>` + `seedChatDraft(neuronId, text)` ; `ChatPanel` reprend la consigne au
   montage ou à son changement, puis l'efface du magasin (jamais envoyée sans geste).
 

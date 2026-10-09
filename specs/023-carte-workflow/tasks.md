@@ -62,9 +62,9 @@ de fichier.
 **Test indépendant** : une tâche citant un fichier couvert par un élément mène à cet élément ; un fichier non couvert
 est listé sans bouton.
 - [x] T034 [US4] Rubrique « Fichiers » de `WorkflowCard.tsx` (tâche ; union pour US et spec) : fichier existant ouvrable dans le lecteur de la carte (`workflow:file`, `CodeLines`), inexistant ou refusé grisé
-- [x] T035 [US4] « Voir dans la structure » : élément couvrant du même genesis par `src/shared/structure/covers.ts` (chemin le plus précis), `setStructureView(genesisId, 'progression')`, carte de l'élément ouverte et vue centrée (focus existant) ; bouton absent sans élément couvrant
+- [x] T035 [US4] « Voir dans la structure » : élément couvrant du même genesis par `src/shared/structure/covers.ts` (chemin le plus précis), `setStructureView(genesisId, 'progression')`, carte de l'élément ouverte et vue centrée (focus existant) ; bouton absent sans élément couvrant — *révisé le 2026-10-09 (D9) : remplacé par le module couvrant affiché sur place, sans bascule*
 - [x] T036 [US4] Tests renderer + axe `tests/unit/renderer/workflow-bridge.test.tsx` (fichier couvert → bascule et carte d'élément ouverte, non couvert sans bouton, inexistant grisé)
-- [ ] T037 [US4] Test guidé US4 (quickstart scénario 6) — attendre le retour
+- [x] T037 [US4] Test guidé US4 (quickstart scénario 6) — attendre le retour
 
 ## Phase 7 — Finitions
 - [ ] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`

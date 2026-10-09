@@ -70,24 +70,34 @@ const COMPONENTS: Components = {
   hr: () => <hr className="my-3 border-content-muted/30" />
 }
 
+/** Lien inerte (fichier du projet lu dans l'app, spec 023 FR-003) : souligné, adresse au survol, rien ne s'ouvre. */
+const INERT_LINK: NonNullable<Components['a']> = ({ children, href }) => (
+  <span className="text-accent underline decoration-dotted" title={href}>
+    {children}
+  </span>
+)
+
 export function Markdown({
   text,
-  inlineCode
+  inlineCode,
+  inertLinks = false
 }: {
   readonly text: string
   /** Rendu propre d'un code en ligne (ex. un chemin cité qui devient un lien) ; `null` : rendu par défaut. */
   readonly inlineCode?: (code: string) => React.ReactNode | null
+  /** Liens affichés sans être actifs (texte d'un fichier du projet, pas une réponse de Claude). */
+  readonly inertLinks?: boolean
 }): React.JSX.Element {
-  const components: Components =
-    inlineCode === undefined
-      ? COMPONENTS
-      : {
-          ...COMPONENTS,
-          code: ({ children, className }) =>
-            (className === undefined && typeof children === 'string' ? inlineCode(children) : null) ?? (
-              <Code className={className}>{children}</Code>
-            )
-        }
+  let components: Components = inertLinks ? { ...COMPONENTS, a: INERT_LINK } : COMPONENTS
+  if (inlineCode !== undefined) {
+    components = {
+      ...components,
+      code: ({ children, className }) =>
+        (className === undefined && typeof children === 'string' ? inlineCode(children) : null) ?? (
+          <Code className={className}>{children}</Code>
+        )
+    }
+  }
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={components}>
       {text}

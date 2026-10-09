@@ -6,12 +6,14 @@ import { KIND_LABELS } from '../../explorer/labels'
 import { coveringElement, normalizeElementPath } from '@shared/structure/covers'
 import { useUiStore } from '../../app/uiStore'
 import { ChatPanel } from '../../chat/ChatPanel'
+import { Markdown } from '../../chat/Markdown'
 import { CodeLines } from '../../lib/CodeLines'
 import { call, IpcFailure } from '../../lib/ipc'
 import { cardHead } from '../cards/cardContent'
 import { useCards, type OpenCard } from '../cards/cardsStore'
 import { DetailCard, type NodeBox } from '../cards/DetailCard'
 import { promptFor } from './prompts'
+import { decorateTasks } from './tasksMarkdown'
 import type { WorkflowItem } from './workflowTree'
 
 /**
@@ -43,7 +45,7 @@ export function useWorkflowFold(genesisId: string): (key: string, folded: boolea
 /**
  * Lecteur d'un fichier du projet dans une carte Workflow (spec 023) : code numéroté et coloré, lecture seule ; au-dessus,
  * les raccourcis vers ses classes, fonctions et méthodes repérées par l'analyse syntaxique (D12) — un clic surligne
- * le code concerné et la vue s'y place.
+ * le code concerné et la vue s'y place. Un fichier Markdown s'affiche mis en forme, ou en texte brut à la demande (D13).
  */
 export function WorkflowFileReader({
   genesisId,
@@ -67,6 +69,9 @@ export function WorkflowFileReader({
     enabled: query.data !== undefined && query.data.lang !== 'other'
   })
   const shortcuts = symbols.data ?? []
+  // Fichier de méthode Markdown (D13) : mis en forme par défaut, texte brut à la demande.
+  const isMarkdown = /\.md$/i.test(path)
+  const [formatted, setFormatted] = useState(true)
   return (
     <section aria-labelledby={titleId} className="flex h-full flex-col gap-2 text-sm">
       <header className="flex items-start gap-2">
@@ -76,6 +81,26 @@ export function WorkflowFileReader({
             {path}
           </h3>
         </div>
+        {isMarkdown ? (
+          <div role="group" aria-label="Affichage du fichier" className="flex shrink-0 gap-0.5">
+            {[
+              { value: true, label: 'Mis en forme' },
+              { value: false, label: 'Texte brut' }
+            ].map((mode) => (
+              <button
+                key={mode.label}
+                type="button"
+                aria-pressed={formatted === mode.value}
+                onClick={() => setFormatted(mode.value)}
+                className={`rounded px-1.5 py-0.5 text-xs hover:bg-surface-raised ${
+                  formatted === mode.value ? 'bg-accent/15 font-semibold' : 'text-content-muted'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <button type="button" className="detail-card-close" aria-label="Fermer le fichier" onClick={onClose}>
           ✕
         </button>
@@ -86,6 +111,15 @@ export function WorkflowFileReader({
         </p>
       ) : query.data === undefined ? (
         <p className="text-content-muted">Lecture du fichier…</p>
+      ) : isMarkdown && formatted ? (
+        <div className="min-h-0 flex-1 overflow-auto pr-1">
+          <Markdown
+            inertLinks
+            text={
+              /(^|\/)tasks\.md$/i.test(path) ? decorateTasks(query.data.lines.join('\n')) : query.data.lines.join('\n')
+            }
+          />
+        </div>
       ) : (
         <>
           {shortcuts.length === 0 ? null : (
@@ -275,22 +309,27 @@ export function elementCovering(elements: readonly ElementView[], file: string):
   return id === null ? null : (byId.get(id) ?? null)
 }
 
+/** Nom d'un élément de structure précédé de celui de son parent (s'il en a un sous le genesis) : « Carte › Workflow ». */
+export function trailOf(elements: readonly ElementView[], element: ElementView): string {
+  const parent = elements.find((candidate) => candidate.id === element.parentId)
+  return parent === undefined ? element.title : `${parent.title} › ${element.title}`
+}
+
 /**
  * Rubrique « Fichiers » d'une carte Workflow (spec 023 US4, FR-012, FR-013) : chaque fichier cité s'ouvre avec son code
- * à droite ; un fichier introuvable est grisé ; « Voir dans la structure » mène à l'élément qui le couvre.
+ * à droite ; un fichier introuvable est grisé ; le module de la structure qui le couvre s'affiche à côté, sur place
+ * (D9 révisé le 2026-10-09 : plus de bascule en Progression).
  */
 function WorkflowFiles({
   files,
   missing,
   elements,
-  onRead,
-  onLocate
+  onRead
 }: {
   readonly files: readonly string[]
   readonly missing: ReadonlySet<string>
   readonly elements: readonly ElementView[]
   readonly onRead: (path: string) => void
-  readonly onLocate: (element: ElementView) => void
 }): React.JSX.Element {
   return (
     <details open className="text-sm">
@@ -319,15 +358,12 @@ function WorkflowFiles({
                 </button>
               )}
               {element === null ? null : (
-                <button
-                  type="button"
-                  className="shrink-0 rounded px-1 text-xs text-content-muted hover:bg-surface-raised hover:text-content"
-                  aria-label={`Voir « ${element.title} » dans la structure`}
-                  title={`Voir « ${element.title} » dans la structure`}
-                  onClick={() => onLocate(element)}
+                <span
+                  className="max-w-[45%] shrink-0 truncate text-xs text-content-muted"
+                  title={`Module de la structure : ${trailOf(elements, element)}`}
                 >
-                  ↗ structure
-                </button>
+                  · {trailOf(elements, element)}
+                </span>
               )}
             </li>
           )
@@ -379,12 +415,11 @@ export function WorkflowCard({
   readonly zoom: number
   readonly item: WorkflowItem
   readonly genesisId: string
-  /** Éléments de la carte de structure du genesis (pont « Voir dans la structure »). */
+  /** Éléments de la carte de structure du genesis (module qui couvre chaque fichier cité). */
   readonly elements: readonly ElementView[]
   readonly onGoto: (id: string) => void
 }): React.JSX.Element {
   const cards = useCards()
-  const setStructureView = useUiStore((state) => state.setStructureView)
   const workflow = useQuery({
     queryKey: ['workflow', genesisId],
     queryFn: () => call<WorkflowView>('workflow:read', { genesisId }),
@@ -392,12 +427,6 @@ export function WorkflowCard({
   })
   const files = filesOf(item)
   const missing = new Set(workflow.data?.missingFiles ?? [])
-  // Pont vers la structure (D9) : bascule en Progression, puis la carte de l'élément s'ouvre et la vue glisse vers lui.
-  const locate = (element: ElementView): void => {
-    setStructureView(genesisId, 'progression')
-    cards.open(element.id)
-    window.setTimeout(() => onGoto(element.id), 80)
-  }
   const fold = useWorkflowFold(genesisId)
   const read = (path: string): void => cards.setSide(card.id, 'reader', { source: 'workflow', path, tab: 'file' })
   const canDiscuss = promptFor(item) !== null
@@ -434,7 +463,7 @@ export function WorkflowCard({
       {...(files.length === 0
         ? {}
         : {
-            files: <WorkflowFiles files={files} missing={missing} elements={elements} onRead={read} onLocate={locate} />
+            files: <WorkflowFiles files={files} missing={missing} elements={elements} onRead={read} />
           })}
       {...(actions === undefined ? {} : { actions })}
       {...(sheetKinds.has(item.subject.kind)

@@ -21,10 +21,12 @@ spec 017) ; *spec* = un dossier `specs/0NN-<nom>/` du projet ; *tâche restante*
 | D6 | Actions | Chaque nœud ouvre sa **carte de détails** (spec 022). « Discuter » sur une tâche ouvre une conversation chargée de **l'implémenter** ; sur une user story, de mener ses tâches restantes ; sur une idée « à brainstormer », de **lancer le brainstorm**. L'app **n'écrit jamais** `spec.md` ni `tasks.md` : cocher une case reste le travail de Claude, la carte suit en relisant les fichiers. *Précisé le 2026-10-09 (test de mentalyas) :* « Discuter » **étire la carte du nœud** vers la droite (pas de carte séparée) avec **une conversation propre à ce nœud** (spec, user story, socle, tâche ou idée) : créée au premier « Discuter », reprise ensuite, dans le dossier du projet et avec sa confidentialité ; la consigne pré-remplie porte sur ce nœud. |
 | D7 | Statut d'une spec | **Calculé** depuis `tasks.md` : aucune case cochée = **planifiée**, toutes = **livrée**, sinon **en cours** ; sans `tasks.md` = **spécifiée**. Un **marqueur** dans la ligne `**Status**` de `spec.md` **prime sur le calcul** : « Livrée » → **livrée** (même avec des cases restantes, montrées comme **reliquats** dans sa carte), « En pause » → **en pause**, « Abandonnée » → **abandonnée** (rangée avec les livrées, marquée comme telle). Claude tient ces marqueurs à jour ; il les pose une fois sur les specs existantes du Brainstormer, avec l'accord de mentalyas (Q1). |
 | D8 | Rangement | Le genesis du projet, puis quatre branches : **▶ En cours** · **⏸ À venir** (planifiées, spécifiées, en pause) · **✔ Livrées** (repliée, avec leur nombre) · **✦ À brainstormer**. Disposition en sens alterné et nœuds vivants de la spec 022 (couleur par branche, taille par niveau, statut en pastille, repli « ▸ N », glissements). |
-| D9 | Pont avec la structure | Les **chemins de fichiers cités** par les tâches (« … in `src/x.ts` ») forment la liste des fichiers d'une tâche, d'une user story (union) et d'une spec ; ils s'affichent dans sa carte. « Voir dans la structure » bascule en Progression et met en focus l'élément qui couvre ce fichier (s'il existe). Aucun lien n'est dessiné entre les vues. |
+| D9 | Pont avec la structure | Les **chemins de fichiers cités** par les tâches (« … in `src/x.ts` ») forment la liste des fichiers d'une tâche, d'une user story (union) et d'une spec ; ils s'affichent dans sa carte. « Voir dans la structure » bascule en Progression et met en focus l'élément qui couvre ce fichier (s'il existe). Aucun lien n'est dessiné entre les vues. *Révisé le 2026-10-09 (test guidé de mentalyas : « je ne comprends pas l'utilité de la vue Progression quand on clique sur structure ») :* plus de bascule ; à côté de chaque fichier, le **module qui le couvre** s'affiche sur place (« Parent › Élément »), sans quitter la vue Workflow. |
 | D10 | Rafraîchissement (défaut, à confirmer par mentalyas) | Les fichiers sont relus **à l'ouverture de la vue** et **à chaque fin de tour de Claude** dans une conversation de ce projet ; un bouton « Relire » le fait à la demande. |
 | D11 | À brainstormer (Q2) | Seuls les documents de **niveau 1** (`L1*.md`, une idée = un L1) sont des nœuds ; un L1 **cité par une spec** est couvert et n'apparaît pas dans « À brainstormer » (il figure dans la carte de la spec qui le cite). Les documents L2, L3 et L4 d'une même famille (un mot commun entre leur nom et celui du L1) sont des **fichiers de la carte** de ce L1 ; ceux sans famille, et `L1-fondation.md`, vont dans la carte du genesis avec la fondation. |
 | D12 | Raccourcis du code (2026-10-09, retour de mentalyas) | Le lecteur d'une carte Workflow affiche, au-dessus du code, les **raccourcis** du fichier : classes, interfaces, fonctions et méthodes repérées par l'**analyse syntaxique tree-sitter** (paquet `@vscode/tree-sitter-wasm`, licence MIT, déjà utilisé par la spec 017), comme le lecteur des éléments ; un clic **surligne** le code concerné et la vue s'y place. L'analyse tourne dans le processus séparé de l'app (le code est lu, jamais exécuté) ; langage non analysé, erreur ou délai dépassé : pas de raccourci, le code reste lisible. |
+| D13 | Lecture des fichiers de méthode (2026-10-09, retour de mentalyas) | Un fichier Markdown (`spec.md`, `tasks.md`, `plan.md`, brainstorm, fondation) s'affiche **mis en forme** dans le lecteur (titres, listes, cases à cocher, tableaux, code), avec une bascule **« Mis en forme \| Texte brut »**. Dans `tasks.md`, l'identifiant d'une tâche ressort en gras et ses étiquettes (`[US4]`, `[P]`) en pastilles. D4 tient toujours : même rendu sûr que les réponses de Claude (spec 008) — aucun HTML brut interprété, images jamais chargées ; et, comme l'exige FR-003, les **liens sont inertes** (soulignés, adresse au survol, rien ne s'ouvre). |
+| D14 | Anatomie d'un fichier (2026-10-09, brainstorm flash de mentalyas) | Dernier niveau sous la tâche › fichier › code : le lecteur d'un fichier de code gagne une bascule **« Code \| Schéma »**. Le **schéma** montre, de gauche à droite, **ce que le fichier utilise** (ses imports, regroupés par source), **ses blocs** (classes avec leurs méthodes, fonctions ; taille selon le nombre de lignes, complexité en pastille) reliés par leurs **appels internes**, et **ce qu'il offre** (blocs exportés ou publics). Un bloc ni appelé dans le fichier ni offert est **grisé** (« peut-être inutilisé »). Un **clic** sur un bloc revient au code, surligné (D12). **Parcours de lecture** : des étapes numérotées partent de ce que le fichier offre et suivent les appels ; « Précédent / Suivant » avance bloc par bloc, le code suit. **Ce que la tâche touche** : ouvert depuis une tâche (ou une user story), les blocs dont le nom figure dans sa description **brillent**. Source : la même analyse syntaxique tree-sitter d'un seul fichier (D12), dans le processus séparé ; les appels sont reconnus **par le nom** dans le fichier (une approximation, dite dans le schéma). Langages analysés seulement (TS, C#, PHP) ; sinon pas de bascule. |
 
 ## Clarifications
 
@@ -123,28 +125,64 @@ documents d'origine) sans ouvrir aucun fichier.
 
 ### User Story 4 — Passer d'une tâche au code concerné (Priority: P4)
 
-Sur la carte d'une tâche, mentalyas voit « Fichiers : `src/renderer/src/canvas/structureGraph.ts` » ; il clique
-« Voir dans la structure » : la carte bascule en Progression et l'élément qui couvre ce fichier est mis en focus,
-sa carte ouverte.
+Sur la carte d'une tâche, mentalyas voit « Fichiers : `src/renderer/src/canvas/structureGraph.ts` · Carte › Structure » :
+le module qui couvre ce fichier s'affiche à côté, sans quitter la vue Workflow (D9 révisé le 2026-10-09 ; avant :
+bascule en Progression).
 
 **Why this priority**: utile pour comprendre ce qu'une tâche touche, mais la vue est complète sans ce pont.
 
-**Independent Test**: une tâche citant un fichier couvert par un élément de la carte de structure mène à cet élément ;
-un fichier non couvert est listé sans bouton.
+**Independent Test**: une tâche citant un fichier couvert par un élément de la carte de structure affiche cet élément
+à côté du fichier ; un fichier non couvert est listé seul.
 
 **Acceptance Scenarios**:
 
 1. **Given** une tâche dont la description cite un chemin de fichier du projet, **When** sa carte s'ouvre, **Then** le
    chemin est listé dans « Fichiers » ; un clic l'ouvre dans le lecteur de la carte (lecture seule).
-2. **Given** ce fichier est couvert par un élément de la carte de structure, **When** il clique « Voir dans la
-   structure », **Then** la vue bascule en Progression et l'élément est en focus avec sa carte ouverte.
+2. **Given** ce fichier est couvert par un élément de la carte de structure, **When** la carte s'ouvre, **Then** le
+   titre de l'élément (précédé de son parent) s'affiche à côté du fichier, sans changer de vue (révisé le 2026-10-09).
 3. **Given** un chemin cité qui n'existe pas ou sort du dossier du projet, **When** la carte s'ouvre, **Then** il est
    listé grisé, sans lecture ni bouton.
 
 ---
 
+### User Story 5 — Comprendre un fichier d'un coup d'œil (Priority: P5)
+
+Depuis la carte d'une tâche, mentalyas ouvre un fichier cité ; au lieu de 400 lignes, il bascule sur « Schéma » : il
+voit ce que le fichier utilise, ses blocs reliés par leurs appels, ce qu'il offre, et les deux fonctions que la tâche
+nomme brillent. Il lance le parcours de lecture : « Suivant » le mène bloc par bloc, le code défile à côté (D14).
+
+**Why this priority**: c'est le dernier niveau de la descente spec › user story › tâche › fichier ; utile pour agir
+et pour apprendre (suivi académique), mais la vue est complète sans lui.
+
+**Independent Test**: sur un fichier TS de quelques fonctions qui s'appellent, le schéma montre les imports, les blocs,
+les flèches d'appel et les blocs offerts ; un clic sur un bloc surligne son code ; le parcours suit l'ordre des appels.
+
+**Acceptance Scenarios**:
+
+1. **Given** un fichier de code d'un langage analysé ouvert dans le lecteur, **When** mentalyas choisit « Schéma »,
+   **Then** il voit trois colonnes : ce que le fichier utilise, ses blocs reliés par les appels internes, ce qu'il offre.
+2. **Given** le schéma affiché, **When** il clique sur un bloc, **Then** le lecteur revient au code, le bloc surligné.
+3. **Given** un bloc ni appelé dans le fichier ni offert, **When** le schéma s'affiche, **Then** il est grisé avec la
+   mention « peut-être inutilisé ».
+4. **Given** le schéma ouvert depuis une tâche qui nomme `decorateTasks`, **When** il s'affiche, **Then** le bloc
+   `decorateTasks` brille ; ouvert depuis une carte sans description (spec, genesis), rien ne brille.
+5. **Given** le schéma affiché, **When** il lance le parcours, **Then** l'étape ① est un bloc offert, « Suivant » suit
+   ses appels puis passe au bloc offert suivant, chaque étape surligne le bloc et place son code ; chaque bloc n'est
+   visité qu'une fois.
+6. **Given** un fichier d'un langage non analysé, une analyse en panne ou trop longue, **When** il est ouvert,
+   **Then** la bascule « Schéma » est absente et le code reste lisible.
+
+---
+
 ### Edge Cases
 
+- Gros fichier (plus de 40 blocs) : les méthodes restent repliées dans leur classe, avec leur nombre ; une classe se
+  déplie au clic ; le parcours ne visite que les blocs visibles. Plus de 20 sources d'import : les 20 premières, puis
+  « + N autres ».
+- Appel récursif (un bloc qui s'appelle lui-même) ou appels croisés : la flèche existe, le parcours ne repasse jamais
+  par un bloc déjà visité.
+- Deux blocs du même nom (méthodes de deux classes) : un appel par le nom relie les deux, le schéma l'indique
+  (« appel ambigu »).
 - `tasks.md` ou `spec.md` mal formé (titres absents, cases d'un autre format) : la spec reste affichée avec ce qui a
   pu être lu (nom du dossier comme titre) et une mention « lecture partielle » ; jamais d'erreur bloquante.
 - Fichier énorme ou hors du dossier (lien symbolique, chemin `..`) : ignoré au-delà d'une taille limite ou s'il sort
@@ -192,8 +230,9 @@ un fichier non couvert est listé sans bouton.
 - **FR-012** (D9) : Les chemins de fichiers cités dans la description d'une tâche MUST être listés dans sa carte (union
   pour une user story et une spec), ouvrables en lecture seule dans le lecteur de la carte s'ils existent dans le dossier
   du projet ; sinon listés grisés.
-- **FR-013** (D9) : « Voir dans la structure » MUST basculer en Progression et mettre en focus l'élément de la carte de
-  structure qui couvre le fichier ; le bouton MUST être absent quand aucun élément ne le couvre.
+- **FR-013** (D9, révisé le 2026-10-09) : à côté d'un fichier cité, la carte MUST afficher sur place l'élément de la carte
+  de structure qui le couvre (son titre, précédé de celui de son parent s'il en a un), sans changer de vue ; rien
+  n'est affiché quand aucun élément ne le couvre.
 - **FR-014** (US3) : La carte du genesis en vue Workflow MUST montrer le résumé de `docs/FOUNDATION.md` (premier
   paragraphe) quand le fichier existe ; la carte d'une spec MUST montrer titre, statut, jauge, date de création, nombre de
   décisions, user stories et documents de brainstorm cités.
@@ -206,6 +245,19 @@ un fichier non couvert est listé sans bouton.
 - **FR-016** (D8) : L'état de repli des nœuds de la vue Workflow MUST être mémorisé par projet.
 - **FR-017** (accessibilité) : La bascule, les nœuds et les cartes MUST être utilisables au clavier (spec 022) et sans
   violation d'accessibilité détectée.
+
+- **FR-019** (D14) : Le lecteur d'un fichier d'un langage analysé MUST offrir une bascule « Code | Schéma » ; le
+  schéma MUST montrer les imports (regroupés par source), les blocs (classe › méthodes, fonctions) avec leur taille en
+  lignes et leur complexité, les appels internes reconnus par le nom, et les blocs offerts (exportés ou publics).
+- **FR-020** (D14) : Un bloc ni appelé dans le fichier ni offert MUST être grisé avec la mention « peut-être inutilisé » ;
+  le schéma MUST dire que les appels sont reconnus par le nom (approximation).
+- **FR-021** (D14) : Un clic (ou Entrée) sur un bloc du schéma MUST revenir au code avec le bloc surligné et en vue.
+- **FR-022** (D14) : Le parcours de lecture MUST partir des blocs offerts, dans l'ordre du fichier, suivre leurs appels
+  en profondeur, ne visiter chaque bloc qu'une fois, et offrir « Précédent / Suivant » au clavier.
+- **FR-023** (D14) : Ouvert depuis une tâche ou une user story, le schéma MUST mettre en valeur les blocs dont le nom
+  apparaît comme mot entier dans sa description (autrement que par la seule couleur).
+- **FR-024** (D14, SC-006) : Les données du schéma MUST venir du processus d'analyse séparé, revalidées à la réception ;
+  langage non analysé, erreur ou délai dépassé MUST masquer la bascule sans bloquer la lecture du code.
 
 ### Key Entities
 
@@ -232,6 +284,8 @@ un fichier non couvert est listé sans bouton.
   repris et vérifié).
 - **SC-006** : Un fichier hostile (HTML, instructions, chemin hors du dossier, taille excessive) ne produit ni rendu
   HTML, ni lecture hors du dossier, ni blocage de la vue.
+- **SC-007** (D14) : Sur un fichier de 500 lignes du Brainstormer, le schéma s'affiche en moins de 1 seconde après le
+  code, et chaque bloc du fichier y figure (ou dans le nombre d'une classe repliée).
 
 ## Assumptions
 

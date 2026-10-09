@@ -108,13 +108,16 @@ function renderCard(key: string, elements: readonly ElementView[] = [], missingF
   const api = installFakeApi({
     'workflow:file': (payload) => {
       const path = (payload as { path: string }).path
+      if (path.endsWith('tasks.md')) {
+        return { path, lang: 'other', lines: ['## Phase 1', '- [ ] T037 [US4] Test guidé', '- [x] T006 [P] Pur'] }
+      }
       return path.endsWith('.ts')
         ? {
             path,
             lang: 'ts',
             lines: ['export class Carte {', '  lire(): void {}', '}', 'export function ranger(): void {}']
           }
-        : { path, lang: 'other', lines: ['# Spec', '<script>alert(1)</script>'] }
+        : { path, lang: 'other', lines: ['# Spec', '<script>alert(1)</script>', '', '[le site](https://example.com)'] }
     },
     'workflow:chat': () => ({ neuronId: CHAT_ID }),
     'chat:open': () => CHAT,
@@ -194,7 +197,7 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     await expectNoAxeViolations(container)
   })
 
-  it('should_show_stories_and_origin_docs_and_read_a_file_as_plain_text_when_a_spec_card_is_open', async () => {
+  it('should_show_markdown_formatted_without_html_and_as_plain_text_on_demand_when_a_spec_card_is_open', async () => {
     const user = userEvent.setup()
     const { api } = renderCard(workflowKey(G, 'spec', '022'))
     expect(screen.getByText('Spec 022')).toBeDefined()
@@ -209,8 +212,29 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
         path: 'docs/brainstorm/L1f-reprise-projet.md'
       })
     )
-    expect(await screen.findByText('<script>alert(1)</script>')).toBeDefined()
+    // Mis en forme (D13) : le titre est un titre, le HTML brut n'est ni rendu ni exécuté.
+    expect(await screen.findByRole('heading', { name: 'Spec' })).toBeDefined()
+    expect(screen.queryByText('<script>alert(1)</script>')).toBeNull()
     expect(document.querySelector('script')).toBeNull()
+    // Lien inerte (FR-003) : affiché, jamais actif.
+    expect(screen.getByText('le site').closest('a')).toBeNull()
+    expect(screen.getByTitle('https://example.com').textContent).toBe('le site')
+    await user.click(screen.getByRole('button', { name: 'Texte brut' }))
+    expect(screen.getByText('<script>alert(1)</script>')).toBeDefined()
+    expect(document.querySelector('script')).toBeNull()
+  })
+
+  it('should_show_tasks_with_boxes_bold_ids_and_tag_chips_when_reading_tasks_md', async () => {
+    const user = userEvent.setup()
+    const { container } = renderCard(workflowKey(G, 'task', '022', 'T011'))
+    await user.click(screen.getByRole('button', { name: 'Lire les tâches' }))
+    expect(await screen.findByRole('heading', { name: 'Phase 1' })).toBeDefined()
+    const boxes = screen.getAllByRole('checkbox') as HTMLInputElement[]
+    expect(boxes.map((box) => box.checked)).toEqual([false, true])
+    expect(screen.getByText('T037').tagName).toBe('STRONG')
+    expect(screen.getByText('US4').tagName).toBe('CODE')
+    expect(screen.getByRole('button', { name: 'Mis en forme' }).getAttribute('aria-pressed')).toBe('true')
+    await expectNoAxeViolations(container)
   })
 
   it('should_list_the_family_docs_of_an_idea_to_brainstorm', async () => {
@@ -221,13 +245,13 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(screen.getByRole('button', { name: 'L2-carte-ecran.md' })).toBeDefined()
   })
 
-  it('should_list_cited_files_read_their_code_grey_missing_ones_and_lead_to_the_structure', async () => {
+  it('should_list_cited_files_read_their_code_grey_missing_ones_and_show_their_module_in_place', async () => {
     const user = userEvent.setup()
     useUiStore.setState({ structureViews: { [G]: 'workflow' } })
     const element: ElementView = {
       id: 'element-src',
       genesisId: G,
-      parentId: G,
+      parentId: 'element-app',
       key: 'element-src',
       type: 'module',
       title: 'Sources',
@@ -238,7 +262,15 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
       childCount: 0,
       order: null
     }
-    const { api, container } = renderCard(workflowKey(G, 'story', '022', '1'), [element], ['src/T010.ts'])
+    const app: ElementView = {
+      ...element,
+      id: 'element-app',
+      key: 'element-app',
+      parentId: G,
+      title: 'Application',
+      paths: ['docs']
+    }
+    const { api, container } = renderCard(workflowKey(G, 'story', '022', '1'), [app, element], ['src/T010.ts'])
     expect(screen.getByText('Fichiers (2)')).toBeDefined()
     expect(screen.getByTitle('src/T010.ts : introuvable dans le dossier du projet')).toBeDefined()
     expect(screen.queryByRole('button', { name: 'Lire src/T010.ts' })).toBeNull()
@@ -252,9 +284,13 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(container.querySelector('[data-line="4"]')?.className).not.toContain('bg-accent/15')
     expect(screen.queryByRole('navigation', { name: 'Raccourcis du fichier' })).not.toBeNull()
     await expectNoAxeViolations(container)
-    await user.click(screen.getByRole('button', { name: 'Voir « Sources » dans la structure' }))
-    expect(useUiStore.getState().structureViews[G]).toBe('progression')
-    expect(useCards.getState().cards.some((entry) => entry.id === 'element-src')).toBe(true)
+    // Module couvrant affiché sur place (D9 révisé) : aucune bascule de vue, aucune carte d'élément ouverte.
+    expect(screen.getByTitle('Module de la structure : Application › Sources').textContent).toBe(
+      '· Application › Sources'
+    )
+    expect(screen.queryByRole('button', { name: /dans la structure/ })).toBeNull()
+    expect(useUiStore.getState().structureViews[G]).toBe('workflow')
+    expect(useCards.getState().cards.some((entry) => entry.id === 'element-src')).toBe(false)
   })
 
   it('should_do_nothing_when_discussing_a_branch', () => {
