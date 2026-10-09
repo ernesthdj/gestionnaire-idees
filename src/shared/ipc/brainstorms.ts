@@ -87,3 +87,25 @@ export interface BrainstormCreatedView {
   readonly id: string
   readonly warning: string | null
 }
+
+// Points de sauvegarde (spec 024 US2).
+
+export interface SavePointView {
+  readonly id: string
+  readonly name: string
+  readonly createdAt: string
+  readonly sizeBytes: number
+}
+
+export interface SavePointRestoredView {
+  /** Point caché qui annule ce retour. */
+  readonly undoId: string
+  readonly viewState: ViewState | null
+}
+
+const pointName = z.string().trim().min(1).max(80)
+export const SavePointListInput = z.strictObject({ brainstormId: z.uuid() })
+export const SavePointCreateInput = z.strictObject({ brainstormId: z.uuid(), name: pointName })
+export const SavePointRenameInput = z.strictObject({ id: z.uuid(), name: pointName })
+export const SavePointIdInput = z.strictObject({ id: z.uuid() })
+export const SavePointUndoInput = z.strictObject({ undoId: z.uuid() })

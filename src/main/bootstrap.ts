@@ -121,7 +121,9 @@ import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
 import { createGitRoutes } from './ipc/gitHandlers'
-import { createBrainstormRoutes } from './ipc/brainstormHandlers'
+import { createBrainstormRoutes, createSavePointRoutes } from './ipc/brainstormHandlers'
+import { SavePointService } from './application/brainstorms/SavePointService'
+import { SavePointRepository } from './infrastructure/db/repositories/SavePointRepository'
 import { BrainstormRepository } from './infrastructure/db/repositories/BrainstormRepository'
 import { BrainstormScope } from './application/brainstorms/BrainstormScope'
 import { BrainstormService } from './application/brainstorms/BrainstormService'
@@ -725,6 +727,12 @@ export function bootstrap(shell: ShellPort): AppContext {
     },
     projects
   })
+  // Points de sauvegarde (spec 024 US2) : instantanés du canevas, retour annulable.
+  const savePoints = new SavePointService({
+    repository: new SavePointRepository(database.db),
+    brainstorm: (id) => brainstormRepository.get(id),
+    saveViewState: (id, json) => brainstormRepository.saveViewState(id, json)
+  })
   // Analyse des projets repris (spec 017 US3) : processus séparé, une analyse lourde à la fois.
   const analysis = new AnalysisService({
     reprise: repriseRepository,
@@ -903,6 +911,7 @@ export function bootstrap(shell: ShellPort): AppContext {
       ...createStructureRoutes(structure, elementFiles),
       ...createGitRoutes(gitService),
       ...createBrainstormRoutes(brainstorms),
+      ...createSavePointRoutes(savePoints),
       ...createWorkflowRoutes(
         workflow,
         workflowFolds,

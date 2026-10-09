@@ -36,6 +36,10 @@ interface UiState {
   /** Entre dans un brainstorm : sa vue d'avant revient (vues des cartes de projet, cartes ouvertes, cadrage). */
   enterBrainstorm(opened: BrainstormOpenView): void
   dismissSummary(): void
+  /** Vue d'un point de sauvegarde (spec 024 US2) : appliquée, et la carte est remontée pour reprendre son cadrage. */
+  applyViewState(state: ViewState | null): void
+  /** Change à chaque remplacement du canevas (point de sauvegarde) : la carte se remonte. */
+  readonly canvasEpoch: number
   setViewport(viewport: Viewport): void
   takeRestoredViewport(): Viewport | null
   /**
@@ -124,6 +128,16 @@ export const useUiStore = create<UiState>()((set, get) => ({
     })
   },
   dismissSummary: () => set({ openSummary: null }),
+  canvasEpoch: 0,
+  applyViewState: (state) => {
+    if (state !== null) useCards.setState(cardsOf(state))
+    set((current) => ({
+      structureViews: state?.structureViews ?? current.structureViews,
+      viewport: state?.viewport ?? current.viewport,
+      restoredViewport: state?.viewport ?? null,
+      canvasEpoch: current.canvasEpoch + 1
+    }))
+  },
   setViewport: (viewport) => set({ viewport }),
   takeRestoredViewport: () => {
     const restored = get().restoredViewport

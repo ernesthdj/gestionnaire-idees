@@ -29,12 +29,13 @@ export function IdeasPage(): React.JSX.Element {
   }, [openRepo, closeRepo])
   // Un canevas par brainstorm (spec 024) : changer de brainstorm remonte la carte (cadrage, physique).
   const brainstormId = useUiStore((state) => state.brainstorm?.id ?? null)
+  const epoch = useUiStore((state) => state.canvasEpoch)
   return (
     <div className="flex h-full min-h-0 flex-col">
       <BrainstormBar />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <IdeasCanvas key={brainstormId ?? 'aucun'} />
+          <IdeasCanvas key={`${brainstormId ?? 'aucun'}:${epoch}`} />
         </div>
         {repoGenesisId === null ? null : <RepoPanel genesisId={repoGenesisId} onClose={closeRepo} />}
       </div>

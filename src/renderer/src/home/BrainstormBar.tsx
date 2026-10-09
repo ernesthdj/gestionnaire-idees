@@ -1,6 +1,7 @@
 import type { HubAnomaly } from '@shared/ipc/brainstorms'
 import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
+import { SavePoints } from '../canvas/SavePoints'
 
 const since = (iso: string): string => {
   const date = new Date(iso)
@@ -47,6 +48,7 @@ export function BrainstormBar(): React.JSX.Element | null {
             <span className="ml-2 font-mono text-xs text-content-muted">{brainstorm.folder}</span>
           )}
         </p>
+        <SavePoints brainstormId={brainstorm.id} />
       </div>
       {summary === null ? null : (
         <section

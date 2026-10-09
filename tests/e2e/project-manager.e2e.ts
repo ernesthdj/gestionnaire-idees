@@ -89,6 +89,9 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
   })
 
   it('should_list_the_new_brainstorm_and_resume_it_identically_after_a_restart', async () => {
+    // Le cadrage de référence : celui de la carte au moment où on la quitte (stable).
+    await run.page.waitForTimeout(1000)
+    zoomed = await viewportOf(run)
     await run.page.getByRole('button', { name: '← Projets' }).click()
     await run.page.getByRole('button', { name: /Reprendre « Essai local »/ }).waitFor()
     await run.close()
@@ -103,5 +106,35 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await run.shot('024-05-repris')
     expect(await viewportOf(run)).toBe(zoomed)
     await run.shot('024-05-repris')
+  })
+
+  it('should_return_to_a_save_point_and_undo_the_return', async () => {
+    const { page } = run
+    const idea = page.locator('.react-flow__node').filter({ hasText: 'Recette du jour' })
+    await page.getByRole('button', { name: /Fermer les cartes/ }).click()
+    await page.getByRole('button', { name: /Points de sauvegarde/ }).click()
+    await page.getByLabel('Nom du point').fill('avant refonte')
+    await page.getByRole('button', { name: 'Poser', exact: true }).click()
+    await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).waitFor()
+    await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).click()
+
+    // Une idée née après le point.
+    await page.locator('.react-flow__pane').dblclick({ position: { x: 80, y: 80 } })
+    await page.getByLabel('Nouvelle idée').fill('Recette du jour')
+    await page.getByLabel('Nouvelle idée').press('Enter')
+    await idea.first().waitFor()
+    await run.shot('024-06-apres-le-point')
+
+    await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).click()
+    await page.getByRole('button', { name: 'Revenir à avant refonte' }).click()
+    await page.getByRole('button', { name: 'Confirmer le retour' }).click()
+    await page.getByRole('button', { name: /Annuler le retour à « avant refonte »/ }).waitFor()
+    await page.waitForTimeout(800)
+    expect(await idea.count()).toBe(0)
+    await run.shot('024-07-retour-au-point')
+
+    await page.getByRole('button', { name: /Annuler le retour à « avant refonte »/ }).click()
+    await idea.first().waitFor()
+    await run.shot('024-08-retour-annule')
   })
 })

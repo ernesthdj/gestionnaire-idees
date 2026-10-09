@@ -32,10 +32,10 @@ livré** ; JOURNAL et cases à jour à chaque tâche.
 
 ## Phase 4 — US2 Points de sauvegarde (P2)
 **Test indépendant** : poser un point, supprimer trois nœuds, revenir, annuler le retour : inventaire identique.
-- [ ] T018 [P] [US2] Pur `src/main/domain/brainstorms/snapshot.ts` (canevas ↔ instantané `{ version, neurons, blocks, links, view }`, gzip par `node:zlib`, bornes 20 Mo) + `tests/unit/brainstorms/snapshot.test.ts`
-- [ ] T019 [US2] `src/main/application/brainstorms/SavePointService.ts` (poser, lister, renommer, supprimer, revenir : point caché « avant retour à … » puis remplacement en une transaction ; annuler le retour ; 50 points au plus ; conversations et fichiers jamais touchés) + canaux `savepoints:*` + `tests/integration/brainstorms/save-points.test.ts` (SC-003 : inventaire identique après retour puis annulation)
-- [ ] T020 [P] [US2] Renderer `src/renderer/src/canvas/SavePoints.tsx` (poser avec un nom, liste datée, revenir avec confirmation, annuler le retour, renommer, supprimer) dans la barre du canevas ; tests `tests/unit/renderer/save-points.test.tsx` + axe
-- [ ] T021 [US2] Test guidé US2 (quickstart scénario 4) — attendre le retour
+- [x] T018 [P] [US2] Pur `src/main/domain/brainstorms/snapshot.ts` (canevas ↔ instantané `{ version, neurons, blocks, links, view }`, gzip par `node:zlib`, bornes 20 Mo) + `tests/unit/brainstorms/snapshot.test.ts`
+- [x] T019 [US2] `src/main/application/brainstorms/SavePointService.ts` (poser, lister, renommer, supprimer, revenir : point caché « avant retour à … » puis remplacement en une transaction ; annuler le retour ; 50 points au plus ; conversations et fichiers jamais touchés) + canaux `savepoints:*` + `tests/integration/brainstorms/save-points.test.ts` (SC-003 : inventaire identique après retour puis annulation)
+- [x] T020 [P] [US2] Renderer `src/renderer/src/canvas/SavePoints.tsx` (poser avec un nom, liste datée, revenir avec confirmation, annuler le retour, renommer, supprimer) dans la barre du canevas ; tests `tests/unit/renderer/save-points.test.tsx` + axe
+- [x] T021 [US2] Test guidé US2 → e2e `project-manager.e2e.ts` (poser, idée ajoutée, retour, annulation) ; (quickstart scénario 4) — attendre le retour
 
 ## Phase 5 — US3 Nouveau brainstorm de zéro (P2)
 **Test indépendant** : « essai-local » sans GitHub : dossier dans le coffre, registre, canevas, première question liée.
