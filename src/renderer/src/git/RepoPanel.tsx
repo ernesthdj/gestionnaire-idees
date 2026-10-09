@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { useUiStore } from '../app/uiStore'
+import { Button } from '../components/atoms/Button'
 import { IpcFailure } from '../lib/ipc'
 import { BranchesTab } from './BranchesTab'
 import { ChangesTab } from './ChangesTab'
@@ -35,6 +37,9 @@ export function RepoPanel({
   const query = useGitStatus(genesisId)
   const status = query.data
   const readOnly = status?.operation === 'other'
+  /** Fusion en cours (US4) : seule la résolution est possible ; commit, tirer, pousser attendent sa fin. */
+  const locked = readOnly || status?.operation === 'merge'
+  const openConflicts = useUiStore((state) => state.openConflicts)
 
   return (
     <aside
@@ -85,10 +90,18 @@ export function RepoPanel({
         </div>
       ) : (
         <>
+          {status.operation === 'merge' ? (
+            <div role="alert" className="flex items-center gap-2 rounded-md border border-action/50 p-2 text-xs">
+              <span className="flex-1">⚠ Fusion en cours : des fichiers sont en conflit.</span>
+              <Button variant="primary" onClick={() => openConflicts(genesisId)}>
+                Résoudre la fusion
+              </Button>
+            </div>
+          ) : null}
           <SyncBar
             genesisId={genesisId}
             status={status}
-            readOnly={readOnly}
+            readOnly={locked}
             onPush={() => setSync('push')}
             onPublish={() => setSync('publish')}
           />
@@ -129,11 +142,11 @@ export function RepoPanel({
                 className="flex min-h-0 flex-1 flex-col overflow-y-auto"
               >
                 {tab === 'changes' ? (
-                  <ChangesTab genesisId={genesisId} status={status} readOnly={readOnly} />
+                  <ChangesTab genesisId={genesisId} status={status} readOnly={locked} />
                 ) : tab === 'branches' ? (
-                  <BranchesTab genesisId={genesisId} readOnly={readOnly} />
+                  <BranchesTab genesisId={genesisId} readOnly={locked} />
                 ) : (
-                  <HistoryTab genesisId={genesisId} readOnly={readOnly} />
+                  <HistoryTab genesisId={genesisId} readOnly={locked} />
                 )}
               </div>
             </>

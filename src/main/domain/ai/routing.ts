@@ -14,7 +14,8 @@ const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   skill_card: 'claude',
   // Ollama pour un projet repris « Local uniquement » (`localOnly`).
   file_summary: 'claude',
-  git_message: 'claude'
+  git_message: 'claude',
+  git_conflict: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
@@ -25,7 +26,8 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   skill_audit: 'medium',
   skill_card: 'medium',
   file_summary: 'low',
-  git_message: 'low'
+  git_message: 'low',
+  git_conflict: 'medium'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
@@ -36,7 +38,8 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   skill_audit: 4000,
   skill_card: 6000,
   file_summary: 3000,
-  git_message: 2000
+  git_message: 2000,
+  git_conflict: 30000
 }
 
 /**
@@ -50,7 +53,8 @@ const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
   skill_audit: 3 * 60 * 1000,
   skill_card: 3 * 60 * 1000,
   file_summary: 3 * 60 * 1000,
-  git_message: 2 * 60 * 1000
+  git_message: 2 * 60 * 1000,
+  git_conflict: 5 * 60 * 1000
 }
 const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 32768, file_summary: 16384 }
 

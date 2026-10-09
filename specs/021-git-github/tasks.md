@@ -152,24 +152,24 @@ lancée, aucun hook ni script ; adresse piégée refusée sans lancement ; clone
 ## Phase 6 — US4 Résoudre un conflit avec Claude (P2)
 **Test indépendant** : `conflit` : proposition simulée contenant un marqueur rejetée ; « Terminer » refusé tant qu'un
 fichier reste ; « Abandonner » rend l'état exact d'avant.
-- [ ] T034 [P] [US4] Pur : diff de lignes `src/main/domain/text/lineDiff.ts` (ou réemploi de
+- [x] T034 [P] [US4] Pur : diff de lignes `src/main/domain/text/lineDiff.ts` (ou réemploi de
   `src/main/domain/skills/diff.ts` si la spec 020 l'a livré) + `src/main/domain/git/splitHunks.ts` (fusion à trois
   voies, aperçu, empreinte, lignes nouvelles) + tests (non-régression « tout la mienne » = `:2:`, fins de ligne)
-- [ ] T035 [P] [US4] Tâche `git_conflict` sans outil (`GitConflictFrame.ts`, `GitConflictTask.ts` : blocs balisés,
+- [x] T035 [P] [US4] Tâche `git_conflict` sans outil (`GitConflictFrame.ts`, `GitConflictTask.ts` : blocs balisés,
   auteurs « Auteur A », bornes 200 Ko / 30 blocs / 50 fichiers, bloc avec marqueur ou index inconnu rejeté) + tests
-- [ ] T036 [US4] `ConflictService` `src/main/application/git/ConflictService.ts` : `git:mergeState`,
+- [x] T036 [US4] `ConflictService` `src/main/application/git/ConflictService.ts` : `git:mergeState`,
   session ouverte seulement pour une fusion lancée par l'app (une fusion de terminal reste `other`, analyse M3),
   `git:conflictFile` (`show :1:/:2:/:3:`), `git:conflictPropose` (sur clic, fichier par fichier ; « Local uniquement »
   → `LOCAL_ONLY`), `git:conflictDecide`, `git:conflictResolveFile` (empreinte, `MARKERS_LEFT`, écriture atomique,
   `add --`), `git:conflictWholeFile`, `git:mergeFinish` (`--diff-filter=U` vide, hooks selon confiance) ; sessions,
   reprise au démarrage, `lost`, blocs effacés en fin + tests (git réel, `STALE`, Abandonner = état exact d'avant)
-- [ ] T037 [US4] `SyncService.merge` : conflits → session ouverte au lieu de l'abandon automatique (fin de la garde D10)
+- [x] T037 [US4] `SyncService.merge` : conflits → session ouverte au lieu de l'abandon automatique (fin de la garde D10)
   + tests
-- [ ] T038 [US4] Interface `src/renderer/src/git/ConflictView.tsx` (E7 : remplace la carte 62 %, liste des fichiers
+- [x] T038 [US4] Interface `src/renderer/src/git/ConflictView.tsx` (E7 : remplace la carte 62 %, liste des fichiers
   38 %, trois colonnes, explication et niveau de confiance en texte, 5 choix par bloc, édition, lignes nouvelles
   surlignées icône + texte, aperçu, « Valider ce fichier », « Terminer la fusion » grisé tant qu'un fichier reste,
   « Abandonner la fusion » confirmé ; badge « ⚠ fusion en cours ») + tests renderer/axe
-- [ ] T039 [US4] Test guidé (quickstart §4), avec la mesure SC-007 (< 3 min) — attendre le retour
+- [x] T039 [US4] Test guidé (quickstart §4) → e2e `tests/e2e/git-conflicts.e2e.ts` (tirer, fusionner, binaire en entier, bloc « leur version », terminer) + intégration (git réel : marqueur rejeté, STALE, abandon = état d'avant, Local uniquement, fusion perdue) ;, avec la mesure SC-007 (< 3 min) — attendre le retour
 
 ## Phase 7 — US5 Voir qui a fait quoi et quand (P2)
 **Test indépendant** : `trois-auteurs` : 3 lignes dans la frise ; au curseur donné, couleur et initiales attendues par

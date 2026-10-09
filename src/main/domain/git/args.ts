@@ -256,3 +256,21 @@ export const rangeLogArgs = (from: string, to: string, limit: number): string[] 
     `${from}..${safeRef(to)}`
   ]
 }
+
+// ── Conflits (US4, L3 conflits) ────────────────────────────────────────────────────────────────────────────────────
+
+/** Entrées en conflit de l'index (`<mode> <empreinte> <étape>\t<chemin>`, séparées par NUL). */
+export const unmergedArgs = (): string[] => ['ls-files', '-u', '-z']
+/** Fichiers encore en conflit (git) : la fusion ne se termine que si la liste est vide. */
+export const unresolvedArgs = (): string[] => ['diff', '--name-only', '--diff-filter=U', '-z']
+/** Une version d'un fichier en conflit, lue dans l'index (1 base, 2 la tienne, 3 la leur) : jamais le fichier à marqueurs. */
+export const stageBlobArgs = (stage: 1 | 2 | 3, path: string): string[] => ['cat-file', 'blob', `:${stage}:${path}`]
+/** Choix entier d'un fichier (binaire, trop grand) : ta version ou la leur. */
+export const checkoutSideArgs = (side: 'ours' | 'theirs', path: string): string[] =>
+  withPaths(['checkout', side === 'ours' ? '--ours' : '--theirs'], [path])
+/** Suppression choisie (suppression contre modification). */
+export const removeArgs = (path: string): string[] => withPaths(['rm', '-q'], [path])
+/** Commit de fusion : message par défaut de git, ou celui de mentalyas par stdin. */
+export const mergeCommitArgs = (withMessage: boolean): string[] =>
+  withMessage ? ['commit', '-F', '-', '--cleanup=strip'] : ['commit', '--no-edit']
+export const mergeHeadArgs = (): string[] => ['rev-parse', '--verify', '-q', 'MERGE_HEAD']

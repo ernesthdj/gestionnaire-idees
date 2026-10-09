@@ -81,7 +81,15 @@ function harness(dir: string, gh = fakeGh().gh, offline = false) {
     changed: () => undefined
   })
   const access = new GitAccess({ locator, runner, repository })
-  const deps = { access, queue, repository, gh, status: (id: string) => service.status(id), changed: () => undefined }
+  const deps = {
+    access,
+    queue,
+    repository,
+    gh,
+    status: (id: string) => service.status(id),
+    changed: () => undefined,
+    openMerge: () => undefined
+  }
   return { sync: new SyncService(deps), publish: new PublishService(deps), rows, service }
 }
 

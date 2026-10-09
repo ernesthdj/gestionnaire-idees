@@ -2,6 +2,7 @@ import type { TaskKind } from '../../domain/ai/types'
 import { ANALYSTE_FRAME, ANALYSTE_FRAME_VERSION } from '../../infrastructure/ai/AnalysteFrame'
 import { FILE_SUMMARY_FRAME, FILE_SUMMARY_FRAME_VERSION } from '../../infrastructure/ai/FileSummaryFrame'
 import { GIT_MESSAGE_FRAME, GIT_MESSAGE_FRAME_VERSION } from '../../infrastructure/ai/GitMessageFrame'
+import { GIT_CONFLICT_FRAME, GIT_CONFLICT_FRAME_VERSION } from '../../infrastructure/ai/GitConflictFrame'
 import { REPRISE_GUIDE_FRAME, REPRISE_GUIDE_FRAME_VERSION } from '../../infrastructure/ai/RepriseGuideFrame'
 import { SKILL_AUDIT_FRAME, SKILL_AUDIT_FRAME_VERSION } from '../../infrastructure/ai/SkillAuditFrame'
 import { SKILL_CARD_FRAME, SKILL_CARD_FRAME_VERSION } from '../../infrastructure/ai/SkillCardFrame'
@@ -21,7 +22,8 @@ const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
   skill_audit: SKILL_AUDIT_FRAME,
   skill_card: SKILL_CARD_FRAME,
   file_summary: FILE_SUMMARY_FRAME,
-  git_message: GIT_MESSAGE_FRAME
+  git_message: GIT_MESSAGE_FRAME,
+  git_conflict: GIT_CONFLICT_FRAME
 }
 
 /** Version du cadre figé d'une tâche, mêlée à ses empreintes (spec 019 R3) : changer de cadre change d'empreinte. */
@@ -31,7 +33,8 @@ const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
   skill_audit: SKILL_AUDIT_FRAME_VERSION,
   skill_card: SKILL_CARD_FRAME_VERSION,
   file_summary: FILE_SUMMARY_FRAME_VERSION,
-  git_message: GIT_MESSAGE_FRAME_VERSION
+  git_message: GIT_MESSAGE_FRAME_VERSION,
+  git_conflict: GIT_CONFLICT_FRAME_VERSION
 }
 
 export function frameVersionOf(kind: TaskKind): string {

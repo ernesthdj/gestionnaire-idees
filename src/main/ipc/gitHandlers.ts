@@ -12,6 +12,14 @@ import { Hash } from '@shared/git/model'
 import { GitConfirmInput, GitMergeInput, GitPublishInput, GitPushInput } from '@shared/git/sync'
 import type { GitService } from '../application/git/GitService'
 import type { PublishService } from '../application/git/PublishService'
+import type { ConflictService } from '../application/git/ConflictService'
+import {
+  ConflictDecideInput,
+  ConflictPathInput,
+  ConflictResolveInput,
+  ConflictWholeFileInput,
+  MergeFinishInput
+} from '@shared/git/conflicts'
 import type { SyncService } from '../application/git/SyncService'
 import type { GhRunner } from '../infrastructure/git/GhRunner'
 import { defineRoute, type IpcRoute } from './registry'
@@ -112,7 +120,7 @@ export function createGitRoutes(
  * et des identifiants de constats ; `confirm: true` sur chaque écriture.
  */
 export function createGitSyncRoutes(
-  sync: Pick<SyncService, 'fetch' | 'pull' | 'merge' | 'mergeAbort' | 'pushPreview' | 'push'>,
+  sync: Pick<SyncService, 'fetch' | 'pull' | 'merge' | 'pushPreview' | 'push'>,
   publish: Pick<PublishService, 'preview' | 'publish' | 'addGitignore'>,
   gh: Pick<GhRunner, 'status'>
 ): IpcRoute[] {
@@ -132,11 +140,6 @@ export function createGitSyncRoutes(
       channel: 'git:merge',
       input: GitMergeInput,
       handler: async ({ genesisId, expectedUpstreamHead }) => sync.merge(genesisId, expectedUpstreamHead)
-    }),
-    defineRoute({
-      channel: 'git:mergeAbort',
-      input: GitConfirmInput,
-      handler: async ({ genesisId }) => sync.mergeAbort(genesisId)
     }),
     defineRoute({
       channel: 'git:pushPreview',
@@ -177,6 +180,65 @@ export function createGitSyncRoutes(
       channel: 'git:addGitignore',
       input: GitGenesisInput,
       handler: async ({ genesisId }) => publish.addGitignore(genesisId)
+    })
+  ]
+}
+
+/** Résolution d'un conflit (spec 021 US4) : chemins relatifs revalidés, `confirm: true` sur chaque écriture. */
+export function createConflictRoutes(
+  conflicts: Pick<
+    ConflictService,
+    'mergeState' | 'file' | 'propose' | 'decide' | 'resolveFile' | 'wholeFile' | 'finish' | 'abort'
+  >
+): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'git:mergeState',
+      input: GitGenesisInput,
+      handler: async ({ genesisId }) => conflicts.mergeState(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:conflictFile',
+      input: ConflictPathInput,
+      handler: async ({ genesisId, path }) => conflicts.file(genesisId, path)
+    }),
+    defineRoute({
+      channel: 'git:conflictPropose',
+      input: ConflictPathInput,
+      handler: async ({ genesisId, path }) => conflicts.propose(genesisId, path)
+    }),
+    defineRoute({
+      channel: 'git:conflictDecide',
+      input: ConflictDecideInput,
+      handler: async (input) =>
+        conflicts.decide({
+          genesisId: input.genesisId,
+          path: input.path,
+          hunkIndex: input.hunkIndex,
+          choice: input.choice,
+          ...(input.manualText === undefined ? {} : { manualText: input.manualText })
+        })
+    }),
+    defineRoute({
+      channel: 'git:conflictResolveFile',
+      input: ConflictResolveInput,
+      handler: async ({ genesisId, path, expectedPreviewHash }) =>
+        conflicts.resolveFile(genesisId, path, expectedPreviewHash)
+    }),
+    defineRoute({
+      channel: 'git:conflictWholeFile',
+      input: ConflictWholeFileInput,
+      handler: async ({ genesisId, path, choice }) => conflicts.wholeFile(genesisId, path, choice)
+    }),
+    defineRoute({
+      channel: 'git:mergeFinish',
+      input: MergeFinishInput,
+      handler: async ({ genesisId, message }) => conflicts.finish(genesisId, message)
+    }),
+    defineRoute({
+      channel: 'git:mergeAbort',
+      input: GitConfirmInput,
+      handler: async ({ genesisId }) => conflicts.abort(genesisId)
     })
   ]
 }

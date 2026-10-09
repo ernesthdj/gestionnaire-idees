@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { AppError } from '../../../domain/errors'
 import type { AppDatabase } from '../client'
-import { gitClonesRunning, gitMergeSessions, gitOperations, gitRepos } from '../schemaGit'
+import { gitClonesRunning, gitConflictHunks, gitMergeSessions, gitOperations, gitRepos } from '../schemaGit'
 
 export type GitOperationKind = (typeof gitOperations.$inferInsert)['kind']
 
@@ -128,5 +128,73 @@ export class GitRepository {
 
   runningClones(): (typeof gitClonesRunning.$inferSelect)[] {
     return this.db.select().from(gitClonesRunning).all()
+  }
+
+  // ── Fusions et conflits (US4) ─────────────────────────────────────────────────────────────────────────────────────
+
+  openMergeSession(input: { readonly genesisId: string; readonly mergeHead: string; readonly head: string }): string {
+    const id = randomUUID()
+    this.db
+      .insert(gitMergeSessions)
+      .values({ id, ...input, startedAt: new Date().toISOString() })
+      .run()
+    return id
+  }
+
+  /** Fusion ouverte par l'app sur ce projet ; `undefined` : aucune. */
+  openSession(genesisId: string): typeof gitMergeSessions.$inferSelect | undefined {
+    return this.db
+      .select()
+      .from(gitMergeSessions)
+      .where(and(eq(gitMergeSessions.genesisId, genesisId), isNull(gitMergeSessions.finishedAt)))
+      .get()
+  }
+
+  /** Fin de fusion : la session reste (traçabilité sans contenu), ses blocs sont effacés (le code d'autrui ne reste pas). */
+  closeSession(id: string, outcome: 'merged' | 'aborted' | 'lost'): void {
+    this.db.transaction((tx) => {
+      tx.delete(gitConflictHunks).where(eq(gitConflictHunks.sessionId, id)).run()
+      tx.update(gitMergeSessions)
+        .set({ finishedAt: new Date().toISOString(), outcome })
+        .where(eq(gitMergeSessions.id, id))
+        .run()
+    })
+  }
+
+  hunks(sessionId: string, path: string): (typeof gitConflictHunks.$inferSelect)[] {
+    return this.db
+      .select()
+      .from(gitConflictHunks)
+      .where(and(eq(gitConflictHunks.sessionId, sessionId), eq(gitConflictHunks.path, path)))
+      .all()
+  }
+
+  saveHunk(
+    sessionId: string,
+    path: string,
+    hunkIndex: number,
+    patch: Partial<
+      Pick<typeof gitConflictHunks.$inferInsert, 'proposal' | 'explanation' | 'confidence' | 'decision' | 'manualText'>
+    >
+  ): void {
+    const updatedAt = new Date().toISOString()
+    this.db
+      .insert(gitConflictHunks)
+      .values({ id: randomUUID(), sessionId, path, hunkIndex, ...patch, updatedAt })
+      .onConflictDoUpdate({
+        target: [gitConflictHunks.sessionId, gitConflictHunks.path, gitConflictHunks.hunkIndex],
+        set: { ...patch, updatedAt }
+      })
+      .run()
+  }
+
+  /** Fichiers validés pendant la fusion (bloc « résolu », index -1). */
+  resolvedPaths(sessionId: string): string[] {
+    return this.db
+      .select({ path: gitConflictHunks.path })
+      .from(gitConflictHunks)
+      .where(and(eq(gitConflictHunks.sessionId, sessionId), eq(gitConflictHunks.hunkIndex, -1)))
+      .all()
+      .map((row) => row.path)
   }
 }

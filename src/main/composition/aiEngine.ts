@@ -76,7 +76,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
               ? ANALYSTE_MODEL
               : kind === 'skill_card'
                 ? SKILL_CARD_MODEL
-                : kind === 'file_summary' || kind === 'git_message'
+                : kind === 'file_summary' || kind === 'git_message' || kind === 'git_conflict'
                   ? current.elementModel
                   : undefined
       }

@@ -103,3 +103,19 @@ export const GitMessageOut = z.object({
     .max(6)
 })
 export type GitMessageOut = z.infer<typeof GitMessageOut>
+
+/** Sortie de `git_conflict` (spec 021 US4) : une proposition par bloc, relue par l'app (marqueurs, index). */
+export const GitConflictOut = z.object({
+  hunks: z
+    .array(
+      z.object({
+        index: z.number().int().min(0).max(1000),
+        explanation: z.string().trim().max(600),
+        risk: z.string().trim().max(300),
+        confidence: z.enum(['sure', 'check']),
+        text: z.string().max(100_000)
+      })
+    )
+    .max(30)
+})
+export type GitConflictOut = z.infer<typeof GitConflictOut>

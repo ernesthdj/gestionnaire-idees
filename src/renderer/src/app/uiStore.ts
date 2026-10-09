@@ -75,6 +75,10 @@ interface UiState {
   readonly repoGenesisId: string | null
   openRepo(genesisId: string): void
   closeRepo(): void
+  /** Fusion en cours dont la vue de résolution remplace la carte (spec 021 US4) ; `null` : aucune. */
+  readonly conflictGenesisId: string | null
+  openConflicts(genesisId: string): void
+  closeConflicts(): void
   /** Ouvre la carte du neurone sur sa discussion (menu, Entrée, historique, exécution d'une action…). */
   openChat(neuronId: string): void
   /** Replie la discussion ouverte (`chatNeuronId`). */
@@ -194,6 +198,9 @@ export const useUiStore = create<UiState>()((set, get) => ({
   closeExplorer: () => set({ explorerGenesisId: null }),
   openRepo: (genesisId) => set({ view: 'ideas', repoGenesisId: genesisId }),
   closeRepo: () => set({ repoGenesisId: null }),
+  conflictGenesisId: null,
+  openConflicts: (genesisId) => set({ view: 'ideas', conflictGenesisId: genesisId }),
+  closeConflicts: () => set({ conflictGenesisId: null }),
   showToast: (text, undo) =>
     set((state) => ({
       toast: nextToast(state.toast, {

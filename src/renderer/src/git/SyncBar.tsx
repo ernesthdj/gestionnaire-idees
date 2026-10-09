@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import type { GitStatusView } from '@shared/git/model'
+import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys } from './gitQueries'
@@ -62,10 +63,18 @@ export function SyncBar({
   })
   const merge = useMutation({
     mutationFn: (upstreamHead: string) =>
-      call<{ hash: string }>('git:merge', { genesisId, confirm: true, expectedUpstreamHead: upstreamHead }),
-    onSuccess: () => {
+      call<{ result: 'merged' | 'conflicts'; hash: string }>('git:merge', {
+        genesisId,
+        confirm: true,
+        expectedUpstreamHead: upstreamHead
+      }),
+    onSuccess: (result) => {
       setDiverged(null)
-      setNotice('Les deux historiques sont fusionnés.')
+      if (result.result === 'conflicts') {
+        // Conflits (US4) : la vue de résolution s'ouvre à la place de la carte.
+        setNotice('Des fichiers sont en conflit : résous-les.')
+        useUiStore.getState().openConflicts(genesisId)
+      } else setNotice('Les deux historiques sont fusionnés.')
     },
     onSettled: refresh
   })

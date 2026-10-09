@@ -121,7 +121,9 @@ import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { createStructureRoutes } from './ipc/structureHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
-import { createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import { createConflictRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import { ConflictService } from './application/git/ConflictService'
+import { reviewConflict, runGitConflict } from './application/ai/GitConflictTask'
 import { GitAccess } from './application/git/GitAccess'
 import { SyncService } from './application/git/SyncService'
 import { PublishService } from './application/git/PublishService'
@@ -755,7 +757,23 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     repository: gitRepository,
     gh: ghRunner,
     status: (genesisId) => gitService.status(genesisId),
-    changed: (genesisId) => broadcast('git:changed', { genesisId })
+    changed: (genesisId) => broadcast('git:changed', { genesisId }),
+    openMerge: (genesisId, mergeHead, head) => {
+      gitRepository.openMergeSession({ genesisId, mergeHead, head })
+    }
+  })
+  // Conflits guidés (spec 021 US4) : Claude propose bloc par bloc, sans outil ; mentalyas décide.
+  const gitConflicts = new ConflictService({
+    access: gitAccess,
+    queue: gitQueue,
+    repository: gitRepository,
+    status: (genesisId) => gitService.status(genesisId),
+    changed: (genesisId) => broadcast('git:changed', { genesisId }),
+    localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+    propose: async (input, indexes) => {
+      const result = await runGitConflict(ai.gateway, input)
+      return result.ok ? reviewConflict(result.value.data, indexes) : null
+    }
   })
   const gitPublish = new PublishService({
     access: gitAccess,
@@ -1041,6 +1059,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createStructureRoutes(structure, elementFiles),
       ...createGitRoutes(gitService),
       ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
+      ...createConflictRoutes(gitConflicts),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),

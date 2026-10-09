@@ -20,6 +20,8 @@ export interface SyncDeps {
   readonly gh: Pick<GhRunner, 'run' | 'status'>
   readonly status: (genesisId: string) => Promise<GitStatusView>
   readonly changed: (genesisId: string) => void
+  /** Fusion en conflit (US4) : la session de résolution s'ouvre (commit fusionné, HEAD de départ). */
+  readonly openMerge: (genesisId: string, mergeHead: string, head: string) => void
   readonly now?: () => Date
 }
 
@@ -106,11 +108,11 @@ export class SyncService {
     })
   }
 
-  /** Fusion de deux historiques (après confirmation) ; tant que les conflits guidés (US4) n'existent pas, on abandonne. */
+  /** Fusion de deux historiques (après confirmation) ; des conflits ouvrent la vue de résolution (US4). */
   async merge(
     genesisId: string,
     expectedUpstreamHead: string
-  ): Promise<{ readonly result: 'merged'; readonly hash: string }> {
+  ): Promise<{ readonly result: 'merged' | 'conflicts'; readonly hash: string }> {
     const repo = await this.deps.access.writable(genesisId)
     return this.deps.queue.run(genesisId, repo.gitDir, async () => {
       const status = await this.deps.access.readStatus(repo)
@@ -123,14 +125,20 @@ export class SyncService {
       if (upstreamHead !== expectedUpstreamHead) {
         throw new AppError('UPSTREAM_CHANGED', 'Le distant a changé depuis ton aperçu : vérifie de nouveau.')
       }
+      const head = (await this.deps.access.head(repo)) ?? ''
       const merged = await this.deps.access.run(repo, args.mergeArgs(upstreamHead), {})
       if (merged.code !== 0) {
-        await this.deps.access.run(repo, args.mergeAbortArgs(), {})
+        const conflicted = (await this.deps.access.read(repo, args.unmergedArgs())).stdout !== ''
+        if (!conflicted) {
+          // Échec sans conflit (hook, refus) : rien ne reste ouvert.
+          await this.deps.access.run(repo, args.mergeAbortArgs(), {})
+          this.deps.changed(genesisId)
+          throw new AppError('GIT_FAILED', lastLines(merged.stderr.trim(), 400) || 'La fusion a échoué.')
+        }
+        // Conflits : la vue de résolution s'ouvre (US4), le dépôt reste en fusion jusqu'à Terminer ou Abandonner.
+        this.deps.openMerge(genesisId, upstreamHead, head)
         this.deps.changed(genesisId)
-        throw new AppError(
-          'CONFLICTS_ABORTED',
-          'La fusion a des conflits : elle a été annulée, ton dépôt est intact. Résous-la en terminal pour l’instant.'
-        )
+        return { result: 'conflicts' as const, hash: head }
       }
       this.deps.changed(genesisId)
       return { result: 'merged' as const, hash: (await this.deps.access.head(repo)) ?? '' }
@@ -225,15 +233,6 @@ export class SyncService {
       this.deps.changed(input.genesisId)
       return { pushed: preview.total }
     })
-  }
-
-  /** Abandon d'une fusion ouverte par l'app. */
-  async mergeAbort(genesisId: string): Promise<GitStatusView> {
-    const repo = await this.deps.access.ready(genesisId)
-    if (this.deps.access.operationOf(repo) !== 'merge') throw new AppError('NO_MERGE', 'Aucune fusion en cours.')
-    await this.deps.queue.run(genesisId, repo.gitDir, () => this.deps.access.write(repo, args.mergeAbortArgs()))
-    this.deps.changed(genesisId)
-    return this.deps.status(genesisId)
   }
 
   /** Remote à utiliser : `origin` s'il existe, sinon le seul remote, sinon `null`. */
