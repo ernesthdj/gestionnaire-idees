@@ -115,6 +115,11 @@ export const neurons = sqliteTable(
     /** Étape d'un plan d'attaque (spec 011) : rang parmi ses sœurs (①②③) et statut d'avancement. */
     rank: integer('rank'),
     stepStatus: text('step_status', { enum: ['a_faire', 'en_cours', 'fait', 'bloque'] }),
+    /**
+     * Vue de la carte où l'étape est née (spec 023 D19) : elle n'apparaît que dans cette vue. `null` : étape d'avant
+     * la D19, rangée dans Workflow.
+     */
+    structureView: text('structure_view', { enum: ['workflow', 'progression', 'architecture'] }),
     /** Verrou (spec 011) : fiche, titre et description figés ; ses sous-nœuds s'appuient sur ce contexte. */
     lockedAt: text('locked_at'),
     /** Verrou proposé par Claude, en attente de la décision de mentalyas. */

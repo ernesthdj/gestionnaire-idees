@@ -1,3 +1,4 @@
+import type { StructureView } from '@shared/brainstorms/viewState'
 import { randomUUID } from 'node:crypto'
 import { AppError } from '../../domain/errors'
 import { checkDependencies, renumber, type DependencyProblem } from '../../domain/plan/dependencies'
@@ -41,6 +42,11 @@ export interface PlanDeps {
   /** Actions finales (spec 013) : une action acceptée est une feuille, jamais découpée. */
   readonly finals?: { isFinal(neuronId: string): boolean }
   readonly now?: () => Date
+  /**
+   * Vue affichée de la carte d'un genesis (spec 023 D19) : une étape née sous le genesis y est rangée ; `null` : pas
+   * de vue (genesis sans projet lié ni carte).
+   */
+  readonly structureView?: (genesisId: string) => StructureView | null
 }
 
 const PROBLEMS: Readonly<Record<DependencyProblem, string>> = {
@@ -132,6 +138,11 @@ export class PlanService {
     const parent = repository.node(proposal.parentId)
     if (parent === undefined) throw new AppError('NOT_FOUND', 'Nœud introuvable')
     const accepted = proposal.items.filter((item) => input.accept.includes(item.id))
+    // Vue de naissance (spec 023 D19) : celle affichée pour une étape du genesis, celle de son parent sinon.
+    const view =
+      parent.kind === 'step'
+        ? (repository.children(parent.parentId ?? '').find((step) => step.id === parent.id)?.view ?? null)
+        : (this.deps.structureView?.(parent.genesisId) ?? null)
 
     const batchId = randomUUID()
     const born: string[] = []
@@ -157,7 +168,8 @@ export class PlanService {
           depth: parent.depth + 1,
           rank,
           title: item.title,
-          content: item.why
+          content: item.why,
+          view
         })
         entry('step', id, null, { title: item.title, parentId: parent.id })
         repository.decideItem(item.id, 'valide', id)

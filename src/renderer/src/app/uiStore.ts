@@ -17,7 +17,8 @@ export interface Toast {
 
 /** Lecture d'une carte de structure (spec 017 D20). */
 /** Lecture d'une carte de projet lié : Workflow (spec 023), Progression ou Architecture (spec 017 D20). */
-export type StructureView = 'workflow' | 'progression' | 'architecture'
+export type { StructureView } from '@shared/brainstorms/viewState'
+import type { StructureView } from '@shared/brainstorms/viewState'
 
 /** Vue affichée : une section de la navigation, ou les réglages (⚙). */
 export type View = Section | 'settings'

@@ -11,11 +11,15 @@ const id = z.string().min(1).max(200)
 
 export const VIEW_STATE_LIMITS = { cards: 20, genesis: 500, bytes: 256 * 1024 } as const
 
+/** Lectures d'une carte de projet lié (spec 017 D20, spec 023). */
+export const STRUCTURE_VIEWS = ['workflow', 'progression', 'architecture'] as const
+export type StructureView = (typeof STRUCTURE_VIEWS)[number]
+
 export const ViewStateSchema = z.strictObject({
   version: z.literal(1),
   viewport: z.strictObject({ x: finite, y: finite, zoom: z.number().min(0.05).max(4) }).nullable(),
   structureViews: z
-    .record(id, z.enum(['workflow', 'progression', 'architecture']))
+    .record(id, z.enum(STRUCTURE_VIEWS))
     .refine((views) => Object.keys(views).length <= VIEW_STATE_LIMITS.genesis, 'Trop de vues'),
   openCards: z
     .array(

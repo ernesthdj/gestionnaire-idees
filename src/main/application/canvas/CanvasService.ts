@@ -127,6 +127,7 @@ export class CanvasService {
           waitsFor: step.waitsFor,
           offset: step.offset,
           ...(step.folded === true ? { collapsed: true } : {}),
+          ...(step.view === null ? {} : { view: step.view }),
           ...(summary === undefined ? {} : { sheetSummary: summary }),
           ...(final === undefined
             ? {}

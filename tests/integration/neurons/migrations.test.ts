@@ -192,6 +192,13 @@ describe('migrations du modèle de neurones', () => {
     expect(columns('git_repos')).toContain('last_seen_commit')
   })
 
+  it('should_add_the_step_view_column_then_remove_it_with_the_down_migration', () => {
+    expect(columns('neurons')).toContain('structure_view')
+    runDown('0044_step_view')
+    expect(columns('neurons')).not.toContain('structure_view')
+    expect(columns('neurons')).toContain('step_status')
+  })
+
   it('should_add_the_widget_settings_table_then_remove_it_with_the_down_migration', () => {
     expect(columns('widget_settings')).toEqual(
       expect.arrayContaining(['block_id', 'fields_json', 'values_json', 'updated_at'])

@@ -75,6 +75,29 @@ describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
     expect(after.steps[1]?.waitsFor).toEqual([after.steps[0]?.id])
   })
 
+  it('should_file_a_born_step_in_the_view_shown_and_its_substeps_in_the_same', async () => {
+    let shown: 'workflow' | 'progression' | 'architecture' | null = 'progression'
+    const viewed = new PlanService({ repository: new PlanRepository(t.handle.db), structureView: () => shown })
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    viewed.decide({ proposalId, accept: items, reject: [] })
+    const [budget] = (await view()).steps
+    expect(budget?.view).toBe('progression')
+    // Une sous-étape garde la vue de son parent, même si la carte a changé de vue entre-temps.
+    shown = 'workflow'
+    const sub = viewed.propose({ parentId: budget?.id ?? '', steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })
+    const subItems = (await view()).proposals.find((p) => p.id === sub.proposalId)?.items.map((item) => item.id) ?? []
+    viewed.decide({ proposalId: sub.proposalId, accept: subItems, reject: [] })
+    expect((await view()).steps.find((step) => step.title === 'Devis')?.view).toBe('progression')
+  })
+
+  it('should_leave_a_step_without_view_when_the_genesis_has_none', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    expect((await view()).steps[0]).not.toHaveProperty('view')
+  })
+
   it('should_keep_the_fold_of_a_step_and_of_the_genesis_when_set', async () => {
     const { proposalId } = propose()
     const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []

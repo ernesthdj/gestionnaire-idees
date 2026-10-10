@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { parseViewState } from '@shared/brainstorms/viewState'
 import { checkGitUrl } from '@shared/reprise/gitUrl'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -481,7 +482,20 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   // Actions finales (spec 013) : une étape feuille devient exécutable sur proposition de Claude, acceptée par mentalyas.
   const finalRepository = new FinalRepository(database.db)
   const finals = new FinalService({ repository: finalRepository, plan: planRepository })
-  const plan = new PlanService({ repository: planRepository, finals })
+  const plan = new PlanService({
+    repository: planRepository,
+    finals,
+    // Vue de la carte d'un genesis (spec 023 D19) : celle choisie dans son brainstorm, sinon Progression s'il a une
+    // carte de structure (vue par défaut de l'interface).
+    structureView: (genesisId) => {
+      const brainstormId = planRepository.brainstormOf(genesisId)
+      const chosen =
+        brainstormId === null
+          ? undefined
+          : parseViewState(brainstormRepository.get(brainstormId)?.viewStateJson ?? null)?.structureViews[genesisId]
+      return chosen ?? (planRepository.hasMap(genesisId) ? 'progression' : null)
+    }
+  })
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)
   const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })

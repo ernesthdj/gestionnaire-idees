@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { useUiStore } from '../app/uiStore'
 import { call, IpcFailure } from '../lib/ipc'
 import { probeAction } from '../analyste/probe'
+import { flushViewState } from '../home/useBrainstorms'
 
 /**
  * Décision de mentalyas sur une couche proposée par Claude (spec 011) : valider ou refuser des fantômes. Valider
@@ -19,6 +20,8 @@ export function usePlanDecide(): {
     async (input: { proposalId: string; accept: readonly string[]; reject: readonly string[] }): Promise<void> => {
       setBusy(true)
       try {
+        // La vue affichée de chaque carte est relue par le main : l'étape née y est rangée (spec 023 D19).
+        await flushViewState()
         const result = await call<{ readonly batchId: string | null; readonly born: readonly string[] }>(
           'plan:decide',
           input

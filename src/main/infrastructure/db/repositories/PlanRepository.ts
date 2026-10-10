@@ -1,3 +1,4 @@
+import type { StructureView } from '@shared/brainstorms/viewState'
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
@@ -29,6 +30,8 @@ export interface StepRow extends PlanNodeRow {
   readonly sheetJson: string | null
   /** Ses sous-étapes sont repliées sur la carte (spec 022 D14). */
   readonly folded?: boolean
+  /** Vue de la carte où elle est née (spec 023 D19) ; `null` : étape d'avant la D19. */
+  readonly view: StructureView | null
 }
 
 export interface ProposalItemRow {
@@ -59,6 +62,7 @@ export interface NewStep {
   readonly title: string
   /** « Pourquoi » de la proposition : description de l'étape. */
   readonly content: string
+  readonly view: StructureView | null
 }
 
 export interface NewProposalItem {
@@ -108,7 +112,8 @@ const NODE_COLUMNS = {
   posY: neurons.posY,
   stepStatus: neurons.stepStatus,
   sheetJson: neurons.sheetJson,
-  planFolded: neurons.planFolded
+  planFolded: neurons.planFolded,
+  structureView: neurons.structureView
 } as const
 
 /** Plans d'attaque (spec 011) : étapes, dépendances, propositions de couche et verrous. */
@@ -174,7 +179,8 @@ export class PlanRepository {
               status: statusOf(row.stepStatus),
               waitsFor: waits.get(row.id) ?? [],
               sheetJson: row.sheetJson,
-              folded: row.planFolded
+              folded: row.planFolded,
+              view: row.structureView
             }
           ]
     )
@@ -204,6 +210,22 @@ export class PlanRepository {
     return genesisId === undefined ? [] : this.steps(genesisId).filter((row) => row.parentId === parentId)
   }
 
+  /** Brainstorm d'un genesis (spec 024) ; `null` hors brainstorm. */
+  brainstormOf(genesisId: string): string | null {
+    return this.db.select({ id: neurons.brainstormId }).from(neurons).where(eq(neurons.id, genesisId)).get()?.id ?? null
+  }
+
+  /** Vrai si le genesis a une carte de structure (éléments vivants, spec 009). */
+  hasMap(genesisId: string): boolean {
+    return (
+      this.db
+        .select({ id: neurons.id })
+        .from(neurons)
+        .where(and(eq(neurons.genesisId, genesisId), eq(neurons.kind, 'element'), ne(neurons.state, 'archived')))
+        .get() !== undefined
+    )
+  }
+
   insertStep(step: NewStep): void {
     this.db
       .insert(neurons)
@@ -219,7 +241,8 @@ export class PlanRepository {
         origin: 'claude',
         state: 'raw',
         rank: step.rank,
-        stepStatus: 'a_faire'
+        stepStatus: 'a_faire',
+        structureView: step.view
       })
       .run()
   }

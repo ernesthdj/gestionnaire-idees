@@ -46,6 +46,8 @@ export interface StepView {
   readonly offset: { readonly x: number; readonly y: number }
   /** Ses sous-étapes sont repliées sur la carte (spec 022 D14) ; absent sinon. */
   readonly collapsed?: boolean
+  /** Vue de la carte où elle est née (spec 023 D19) ; absente : étape d'avant la D19, rangée dans Workflow. */
+  readonly view?: 'workflow' | 'progression' | 'architecture'
   readonly sheetSummary?: string
   /** Action finale (spec 013) : proposée ou acceptée ; absente pour une étape ordinaire. */
   readonly final?: StepFinalView

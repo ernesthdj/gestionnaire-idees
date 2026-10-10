@@ -1,0 +1,1 @@
+ALTER TABLE `neurons` ADD `structure_view` text;

@@ -14,7 +14,7 @@ import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { contentLabel } from './elementContent'
 import { progressOf, type ElementProgress } from './progress'
 import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
-import type { StructureArchitectureView } from '@shared/ipc/canvas'
+import type { StepView, StructureArchitectureView } from '@shared/ipc/canvas'
 import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
 import { deliverableNodeId, documentNodeId, PLAN_BAR_SIZE, planLayout, type PlacedPlanItem } from './planLayout'
 import { nodeVisuals, type NodeIconKey, type NodeVisual, type TreeNodeInput } from './living/nodeVisual'
@@ -355,6 +355,20 @@ function planTree(genesisId: string, items: readonly PlacedPlanItem[]): TreeNode
 }
 
 /** Vue de l'écran Idées → nœuds (idées, blocs) et arêtes (liens) React Flow. Positions = centres (nodeOrigin 0.5). */
+/**
+ * Une étape n'apparaît que dans la vue de la carte où elle est née (spec 023 D19). `shown` : vue affichée du genesis,
+ * `null` s'il n'en a pas (aucune barre de vues, ou projet lié sans vue choisie) — tout reste alors visible. Une étape
+ * d'avant la D19 est rangée dans Workflow pour un projet lié, dans Progression sinon. Pur.
+ */
+export function stepShown(
+  step: Pick<StepView, 'view'>,
+  shown: StructureViewKind | null,
+  linkedProject: boolean
+): boolean {
+  if (shown === null) return true
+  return (step.view ?? (linkedProject ? 'workflow' : 'progression')) === shown
+}
+
 export function buildGraph(
   view: IdeasCanvasView,
   layout: CanvasLayout,
@@ -386,12 +400,26 @@ export function buildGraph(
       .filter((idea) => idea.linkedProject === true && structureViews[idea.id] === 'workflow')
       .map((idea) => idea.id)
   )
+  // Vue affichée de chaque carte (comme sa barre) : Workflow, Architecture si l'architecture est connue, Progression.
+  const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
+  const mapped = new Set(view.elements.map((element) => element.genesisId))
+  const shownViewOf = (id: string): StructureViewKind | null =>
+    workflowIds.has(id)
+      ? 'workflow'
+      : !mapped.has(id)
+        ? null
+        : structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
+          ? 'architecture'
+          : 'progression'
   // Plans d'attaque (spec 011, spec 022 R4) : disposés d'abord, pour connaître le repli de chaque genesis.
   const elementGenesis = new Set([...view.elements.map((element) => element.genesisId), ...workflowIds])
   const plans = new Map(
     view.ideas.flatMap((genesis) => {
       const center = layout.positions.get(genesis.id)
-      const steps = view.steps.filter((step) => step.genesisId === genesis.id)
+      const shown = shownViewOf(genesis.id)
+      const steps = view.steps.filter(
+        (step) => step.genesisId === genesis.id && stepShown(step, shown, genesis.linkedProject === true)
+      )
       const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
       const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
       const documents = view.documents.filter((document) => ids.has(document.neuronId))
@@ -622,7 +650,6 @@ export function buildGraph(
   }
   // Vue Architecture (D20) : seulement pour une carte basculée dont l'architecture est connue ; les autres gardent la
   // vue Progression, inchangée.
-  const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
   const progress = progressOf(view.elements)
   const switched = [...genesisCenters.keys()].filter(
     (id) => structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
