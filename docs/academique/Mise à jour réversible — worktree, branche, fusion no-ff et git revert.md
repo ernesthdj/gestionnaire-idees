@@ -17,6 +17,8 @@ prerequis: ["[[Analyste en lecture seule — moindre privilège et propositions 
 > **En 30 secondes** — mentalyas accepte une proposition. L'app crée une **deuxième copie de travail** du dépôt (un *worktree*) sur une branche `analyste/<id>-<titre>` : Claude y code, l'app commite et lance les vérifications, mentalyas **essaie** sur un profil d'essai, puis **garde** (fusion dans `main` avec un commit de fusion, jamais de push) ou **jette** (branche et copie supprimées). Plus tard, « Annuler » **révoque** la mise à jour par un nouveau commit (`git revert -m 1`) : rien n'est jamais réécrit.
 >
 > ⚠️ **Statut** : conçu le 07/10 (tâches T030–T038), **pas encore codé**. Les commandes viennent de L3-analyste-appliquer §2 et sont **⚠️ Probables**.
+>
+> ⚠️ **Correction du 10/10** — « pas encore codé » → **codé** (US4 le 08/10, US5 le 09/10) ; détails dans le bloc « Évolution du 08→09/10 » en bas de la note.
 
 ```mermaid
 stateDiagram-v2
@@ -117,3 +119,10 @@ L'analyse croisée (`/speckit-analyze`, constat I1) a trouvé en **lisant le cod
 - [[Coquille de bureau — zone de notification, instance unique et fenêtres cachées]] — le verrou d'instance unique qui impose le profil d'essai.
 - [[Permissions relayées — l'humain dans la boucle d'un agent]] — les commandes de Claude restent demandées pendant le codage.
 - [[Glossaire — Écriture atomique (temporaire puis renommage)]] — même souci du « jamais à moitié », ici sans transaction disponible.
+
+## Évolution du 08→09/10 — codé de bout en bout (US4, US5)
+> 🆕 Le statut « pas encore codé » de l'en-tête est **dépassé** : US4 (coder sur une branche isolée) est livrée le 08/10, US5 (annuler une mise à jour gardée) le 09/10 (`application/analyste/UpdateService.ts`). Les commandes de la section 3 sont désormais **lues dans le code** (toujours non exécutées par ce cours).
+- **Annuler sans surprise** (`revert`) : avant `git revert -m 1 --no-edit <fusion>`, l'app vérifie que la fusion est bien **dans l'historique actuel** (`merge-base --is-ancestor <fusion> HEAD`) ; un conflit pendant l'annulation → `revert --abort`, **rien n'est changé**, et le message propose de le faire à la main.
+- **Libérer la copie avant de la supprimer** : la conversation de codage (`claude -p`) tourne **dans** la copie de travail ; sous Windows, son processus garde des fichiers ouverts et `worktree remove` échouerait. Correctif du 08/10 : `endConversation` arrête d'abord ce processus. → [[Glossaire — Verrou de fichier sous Windows (EPERM, EBUSY)]], [[Glossaire — Arbre de processus (enfants, taskkill T)]]
+- **Rattraper au démarrage** (`reconcile`) : une branche `analyste/*` déjà fusionnée (app fermée au mauvais moment) est reconnue (`merge-base --is-ancestor`), sa copie retirée et le commit de fusion retrouvé (`--merges`) — même idée d'**idempotence** que le `sweep` de la bibliothèque de skills.
+- **À comparer** : l'Analyste garde son propre lanceur git (`GitCli`) sur **sa** copie ; le volet Dépôt de la spec 021 passe par `GitRunner` + `assertSafeArgs`, qui refuse `add -A`. → [[Git piloté par l'app — préfixe sûr, arguments construits, configuration piégée et push gardé]]

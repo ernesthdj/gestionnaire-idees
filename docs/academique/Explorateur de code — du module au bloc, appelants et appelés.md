@@ -155,3 +155,7 @@ Les noms cités par le guide (codes en ligne du Markdown, 100 au plus, 300 carac
 - [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]] — les noms cités du guide mènent ici.
 - [[Carte des idées — simulation de forces et croisements de liens]] — l'autre carte de l'app : ici la disposition est en **colonnes par catégorie** (orchestration → domaine → infrastructure → plomberie, `layout.ts`), pas par forces.
 - [[Glossaire — Traversée de chemin et lien symbolique]] — pourquoi `realpath` avant de lire.
+
+## Évolution du 09/10 — la même extraction, une autre carte (spec 023)
+- La vue **Workflow** réutilise l'extraction **tree-sitter** de l'analyse statique pour dessiner l'**anatomie** d'un fichier cité par une tâche (`domain/workflow/anatomy.ts`) : ses blocs, ses imports, ses appels **internes** reconnus par le nom (ambigus si plusieurs blocs portent le même nom), et les blocs « peut-être inutilisés » — volontairement large pour éviter les fausses alertes. Bornes : 500 blocs, 200 imports, 2 000 appels.
+- « Que fait ce fichier ? » : explication par l'IA, **écartant** tout morceau dont le nom n'est pas un bloc du fichier, et mise en cache par **empreinte du contenu**. → [[Vue Workflow — l'état lu dans les fichiers, parseur ligne à ligne et clés stables]]

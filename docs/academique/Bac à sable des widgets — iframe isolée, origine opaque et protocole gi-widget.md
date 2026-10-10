@@ -153,3 +153,8 @@ session.webRequest.onBeforeRequest((details, callback) => {
 - Le cadre peut désormais **recevoir** des données (`gi.onInputs`) et **publier** un résultat (`gi.output`) par `postMessage`. Les cinq barrières ne changent pas : `postMessage` n'est pas une connexion réseau, la CSP `default-src 'none'` reste identique.
 - Le prélude gagne un objet `window.gi` **figé** (`Object.freeze`, `writable: false`). Comme pour le cadre système : **le prélude n'est pas une barrière**. Les deux décisions sont dans le main — ce qui entre (autorisation par empreinte) → [[Widget branché — autorisation par empreinte et pont postMessage]] ; ce qui sort (bornes) → [[Cadre résultat — sortie bornée, vue figée et rafales regroupées]].
 - Nouvelle adresse servie : `gi-widget://result/<bloc>` (`parseResultUrl`), même enveloppe isolée, pour du **code figé de l'app**.
+
+## Évolution du 10/10 — une mémoire et un panneau, toujours derrière la vitre (spec 026)
+- Trois nouveaux messages du cadre : `gi:saveState` (état JSON **64 Ko** au plus, revalidé dans le main, gardé d'une version à l'autre), `gi:declareSettings` (réglages **déclarés**, panneau **dessiné par l'app**), et en retour `gi:state` / `gi:settings`. Les cinq barrières ne bougent pas : tout passe encore par `postMessage`, filtré par `event.source`.
+- **Plein écran** : le même cadre isolé, à taille réelle (pas de réduction au-delà de 760 px) — l'aperçu sur la carte n'est qu'une mise à l'échelle.
+→ [[Réglages déclarés par un widget — le widget décrit, l'app dessine et ramène chaque valeur]]

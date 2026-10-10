@@ -119,3 +119,7 @@ La **vérité** est dans la base (une transaction, donc tout ou rien) ; le disqu
 - [[Glossaire — Traversée de chemin et lien symbolique]] — `libraryPath` garde chaque copie sous la racine ; liens symboliques non suivis au repérage.
 - [[Glossaire — Idempotence]] — le nettoyage de démarrage peut tourner deux fois sans dégât.
 - [[Mise à jour réversible — worktree, branche, fusion no-ff et git revert]] — autre façon d'écrire « à côté » de ce qui tourne.
+
+## Évolution du 09/10 — le même clone pour tout projet (spec 021 US3, spec 024 US5)
+- « Cloner par lien » (volet Dépôt) et « Nouveau brainstorm depuis un lien Git » (accueil) réutilisent **le même `CloneService`** et **le même `checkGitUrl`** (`shared/reprise/gitUrl.ts`) : un seul contrôle d'adresse pour la reprise de projet, les skills et git. Un identifiant dans l'adresse (`https://user:jeton@…`) n'est **jamais** affiché, journalisé ni stocké (`display` sans identifiant).
+- Le dossier cloné devient un **dépôt non de confiance** : ses hooks restent coupés et sa configuration locale est **classée** avant toute autre commande. → [[Git piloté par l'app — préfixe sûr, arguments construits, configuration piégée et push gardé]]

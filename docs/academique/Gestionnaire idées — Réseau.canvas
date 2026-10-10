@@ -54,7 +54,15 @@
 		{"id":"label_020","type":"text","text":"Spec 020 — Arbre de skills (nuit du 07→08/10)\nParcours 39 à 41 : brouillon → audit → bibliothèque\nNouveaux glossaires : Verrou de fichier Windows, Bundler et shim — voir MOC\nAnalyste (note 34) : codé, preuve R1 échouée — voir son bloc « Évolution »","x":-720,"y":16800,"width":320,"height":240},
 		{"id":"c_skill_brouillon","type":"file","file":"docs/academique/Brouillon puis installation — trois verrous, versions par empreinte et retour arrière.md","x":-160,"y":16800,"width":380,"height":320,"color":"4"},
 		{"id":"c_skill_audit","type":"file","file":"docs/academique/Audit d'un contenu importé — règles fixes, IA sans outil et le plus sévère l'emporte.md","x":-160,"y":17200,"width":380,"height":320,"color":"4"},
-		{"id":"c_skill_biblio","type":"file","file":"docs/academique/Bibliothèque de skills — adresse contrôlée, clone sans hooks, copie par version et bascule de référence.md","x":-160,"y":17600,"width":380,"height":320,"color":"4"}
+		{"id":"c_skill_biblio","type":"file","file":"docs/academique/Bibliothèque de skills — adresse contrôlée, clone sans hooks, copie par version et bascule de référence.md","x":-160,"y":17600,"width":380,"height":320,"color":"4"},
+		{"id":"label_0810","type":"text","text":"Session du 08→10/10 — l'app pilote le projet (specs 021, 023–026)\nParcours 42 à 48 : git → conflit ; workflow → sauvegarde → lancer → réglages → tests e2e\nNouveaux glossaires : Fusion à trois voies, Concurrence optimiste, Bombe de décompression, Arbre de processus — voir MOC\nAnalyste (note 35) : codé — voir son bloc « Évolution du 08→09/10 »","x":-720,"y":18100,"width":320,"height":280},
+		{"id":"c_git","type":"file","file":"docs/academique/Git piloté par l'app — préfixe sûr, arguments construits, configuration piégée et push gardé.md","x":-160,"y":18100,"width":380,"height":320,"color":"1"},
+		{"id":"c_conflit","type":"file","file":"docs/academique/Conflit de fusion — trois versions lues dans l'index, blocs à décider et aperçu validé.md","x":-160,"y":18500,"width":380,"height":320,"color":"1"},
+		{"id":"c_workflow","type":"file","file":"docs/academique/Vue Workflow — l'état lu dans les fichiers, parseur ligne à ligne et clés stables.md","x":290,"y":18100,"width":380,"height":320,"color":"5"},
+		{"id":"c_savepoint","type":"file","file":"docs/academique/Points de sauvegarde — instantané compressé, point caché avant retour et colonnes épargnées.md","x":290,"y":18500,"width":380,"height":320,"color":"5"},
+		{"id":"c_run","type":"file","file":"docs/academique/Lancer un projet — processus de longue durée, sortie par lots bornée et arbre de processus.md","x":290,"y":18900,"width":380,"height":320,"color":"5"},
+		{"id":"c_widget_settings","type":"file","file":"docs/academique/Réglages déclarés par un widget — le widget décrit, l'app dessine et ramène chaque valeur.md","x":290,"y":19300,"width":380,"height":320,"color":"5"},
+		{"id":"c_e2e","type":"file","file":"docs/academique/Tests de bout en bout — Playwright pilote Electron sur un profil fictif.md","x":-160,"y":19300,"width":380,"height":320,"color":"2"}
 	],
 	"edges":[
 		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
@@ -100,6 +108,14 @@
 		{"id":"e_c_avance_c_consigne","fromNode":"c_avance","fromSide":"bottom","toNode":"c_consigne","toSide":"top","label":"38 bien guider l'agent"},
 		{"id":"e_c_maj_c_skill_brouillon","fromNode":"c_maj","fromSide":"bottom","toNode":"c_skill_brouillon","toSide":"top","label":"39 Claude propose, mentalyas installe"},
 		{"id":"e_c_skill_brouillon_c_skill_audit","fromNode":"c_skill_brouillon","fromSide":"bottom","toNode":"c_skill_audit","toSide":"top","label":"40 juger le contenu d’un inconnu"},
-		{"id":"e_c_skill_audit_c_skill_biblio","fromNode":"c_skill_audit","fromSide":"bottom","toNode":"c_skill_biblio","toSide":"top","label":"41 le garder sans l’exécuter"}
+		{"id":"e_c_skill_audit_c_skill_biblio","fromNode":"c_skill_audit","fromSide":"bottom","toNode":"c_skill_biblio","toSide":"top","label":"41 le garder sans l’exécuter"},
+		{"id":"e_c_skill_biblio_c_git","fromNode":"c_skill_biblio","fromSide":"bottom","toNode":"c_git","toSide":"top","label":"42 git sur un dépôt non fiable"},
+		{"id":"e_c_git_c_conflit","fromNode":"c_git","fromSide":"bottom","toNode":"c_conflit","toSide":"top","label":"43 quand les deux ont changé"},
+		{"id":"e_c_consigne_c_workflow","fromNode":"c_consigne","fromSide":"bottom","toNode":"c_workflow","toSide":"top","label":"44 lire l'état dans les fichiers"},
+		{"id":"e_c_workflow_c_savepoint","fromNode":"c_workflow","fromSide":"bottom","toNode":"c_savepoint","toSide":"top","label":"45 photographier le canevas"},
+		{"id":"e_c_savepoint_c_run","fromNode":"c_savepoint","fromSide":"bottom","toNode":"c_run","toSide":"top","label":"46 lancer le projet"},
+		{"id":"e_c_run_c_widget_settings","fromNode":"c_run","fromSide":"bottom","toNode":"c_widget_settings","toSide":"top","label":"47 widgets réglables"},
+		{"id":"e_c_conflit_c_e2e","fromNode":"c_conflit","fromSide":"bottom","toNode":"c_e2e","toSide":"top","label":"48 prouver le parcours"},
+		{"id":"e_c_widget_settings_c_e2e","fromNode":"c_widget_settings","fromSide":"left","toNode":"c_e2e","toSide":"right","label":"48"}
 	]
 }

@@ -41,3 +41,6 @@ writeFileSync(path, scaffold, { encoding: 'utf8', flag: 'wx' })    // créer san
 ## Évolution du 08/10 — un dossier entier, et la limite de Windows
 - **Dossier atomique** (skills, `SkillStore.replace`) : préparer le dossier complet dans `.tmp-<uuid>` **à côté**, renommer l'ancien en `.old-<uuid>`, mettre le nouveau à sa place, supprimer l'ancien ; échec au milieu → l'ancien reprend sa place. → [[Brouillon puis installation — trois verrous, versions par empreinte et retour arrière]]
 - **Limite** : sous Windows, un dossier dont un fichier est **ouvert** ne se renomme pas (`EPERM`). Pour la bibliothèque de skills, lue par l'app, on a donc abandonné le renommage : nouvelle version écrite à côté, **référence basculée en base**, ancienne supprimée au mieux. → [[Glossaire — Verrou de fichier sous Windows (EPERM, EBUSY)]]
+
+## Évolution du 09/10 — le fichier résolu d'un conflit
+- `ConflictService.resolveFile` écrit l'aperçu validé dans un fichier temporaire **à côté**, puis le renomme sur le fichier du projet (`writeFileSync` + `renameSync`) : l'éditeur ou le serveur de dev du projet ne voit jamais un fichier à moitié écrit. Avant d'écrire, l'app vérifie que l'aperçu est **celui affiché** (empreinte) et qu'il ne reste **aucun marqueur** `<<<<<<<`. → [[Conflit de fusion — trois versions lues dans l'index, blocs à décider et aperçu validé]]
