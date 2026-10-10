@@ -212,6 +212,20 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(screen.queryByRole('button', { name: 'Initialiser git' })).toBeNull()
   })
 
+  it('should_show_the_canvas_project_beside_the_folder_of_a_genesis_linked_elsewhere', async () => {
+    renderChat(view({ projectFolder: 'PID' }))
+    expect(await screen.findByText('Projet : PID')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Lier un dossier existant…' })).toBeTruthy()
+    cleanup()
+    renderChat(view({ folder: 'autre', projectFolder: 'PID' }))
+    expect(await screen.findByText('Dossier : autre')).toBeTruthy()
+    expect(screen.getByText('Projet : PID')).toBeTruthy()
+    cleanup()
+    renderChat(view({ folder: 'PID', projectFolder: 'PID' }))
+    await screen.findByText('Dossier : PID')
+    expect(screen.queryByText('Projet : PID')).toBeNull()
+  })
+
   it('should_offer_to_map_a_linked_project', async () => {
     const { api } = renderChat(view({ folder: 'gestionnaire-idees' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Cartographier ce projet' }))

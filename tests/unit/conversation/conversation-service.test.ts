@@ -56,6 +56,7 @@ describe('conversations Claude Code des neurones', () => {
       manques: []
     }),
     projectDir: null,
+    projectFolder: null,
     genesisId: null,
     elementType: null,
     pathsJson: null,
@@ -417,6 +418,30 @@ describe('conversations Claude Code des neurones', () => {
     expect(neurons.get(N1)?.sessionId).not.toBe('5e550000-0000-4000-8000-000000000009')
   })
 
+  it('should_resume_the_session_next_time_when_a_turn_is_interrupted_after_the_cli_opened_it', async () => {
+    await service.send(N1, 'Salut')
+    const first = processes[0] as FakeProcess
+    first.emit({ type: 'system', subtype: 'init', session_id: 's', model: 'claude-opus-5-5', apiKeySource: 'none' })
+    expect(neurons.get(N1)).toMatchObject({ sessionStarted: true })
+    first.exit('')
+    expect(events.at(-1)).toMatchObject({ type: 'chat:error', payload: { code: 'PROCESS_FAILED' } })
+    await service.send(N1, 'On reprend')
+    const { args } = (processes[1] as FakeProcess).options
+    expect(args[args.indexOf('--resume') + 1]).toBe(neurons.get(N1)?.sessionId)
+  })
+
+  it('should_resume_the_session_next_time_when_the_cli_says_its_id_is_already_in_use', async () => {
+    neurons.set(N1, neuron(N1, { sessionId: '6e4785ef-e1b1-48da-904a-3a636303977f', sessionStarted: false }))
+    await service.send(N1, 'Salut')
+    expect((processes[0] as FakeProcess).options.args).toContain('--session-id')
+    ;(processes[0] as FakeProcess).exit('Error: Session ID 6e4785ef-e1b1-48da-904a-3a636303977f is already in use.')
+    expect(events.at(-1)).toMatchObject({ type: 'chat:error', payload: { code: 'PROCESS_FAILED' } })
+    expect(neurons.get(N1)).toMatchObject({ sessionId: '6e4785ef-e1b1-48da-904a-3a636303977f', sessionStarted: true })
+    await service.send(N1, 'On reprend')
+    const { args } = (processes[1] as FakeProcess).options
+    expect(args[args.indexOf('--resume') + 1]).toBe('6e4785ef-e1b1-48da-904a-3a636303977f')
+  })
+
   it('should_record_tokens_per_turn_and_keep_the_last_subscription_reading', async () => {
     await service.send(N1, 'Salut')
     const process = processes[0] as FakeProcess
@@ -464,6 +489,43 @@ describe('conversations Claude Code des neurones', () => {
     expect(process.options.cwd).toBe('C:/projets/brainstormer')
     expect(process.options.args).toContain('--session-id')
     expect(sent(process)).toContain('Dossier de projet lié : « brainstormer »')
+  })
+
+  it('should_open_a_genesis_without_folder_in_the_project_of_its_canvas', async () => {
+    neurons.set(N1, neuron(N1, { projectFolder: 'C:/projets/PID' }))
+    expect(service.open(N1)).toMatchObject({ folder: null, projectFolder: 'PID' })
+    await service.send(N1, 'Salut')
+    const process = processes[0] as FakeProcess
+    expect(process.options.cwd).toBe('C:/projets/PID')
+    expect(process.options.args).not.toContain('--add-dir')
+    expect(sent(process)).toContain('Dossier de projet lié : « PID »')
+  })
+
+  it('should_open_a_genesis_linked_elsewhere_in_its_canvas_project_with_its_folder_in_addition', async () => {
+    neurons.set(N1, neuron(N1, { projectDir: 'C:/projets/autre', projectFolder: 'C:/projets/PID' }))
+    await service.send(N1, 'Salut')
+    const process = processes[0] as FakeProcess
+    expect(process.options.cwd).toBe('C:/projets/PID')
+    const { args } = process.options
+    expect(args[args.indexOf('--add-dir') + 1]).toBe('C:/projets/autre')
+    expect(sent(process)).toContain('Dossier ouvert en plus : « autre »')
+  })
+
+  it('should_open_a_step_in_the_folder_of_its_genesis_with_the_canvas_project_in_addition', async () => {
+    neurons.set(N1, neuron(N1, { projectDir: 'C:/projets/autre', projectFolder: 'C:/projets/PID' }))
+    neurons.set(N2, neuron(N2, { kind: 'step', genesisId: N1, parentId: N1, rank: 1, projectFolder: 'C:/projets/PID' }))
+    await service.send(N2, 'On commence ?')
+    const process = processes[0] as FakeProcess
+    expect(process.options.cwd).toBe('C:/projets/autre')
+    const { args } = process.options
+    expect(args[args.indexOf('--add-dir') + 1]).toBe('C:/projets/PID')
+  })
+
+  it('should_explain_when_the_folder_opened_in_addition_has_disappeared', async () => {
+    neurons.set(N1, neuron(N1, { projectDir: 'C:/disparu', projectFolder: 'C:/projets/PID' }))
+    await service.send(N1, 'Salut')
+    expect(processes).toHaveLength(0)
+    expect(events.at(-1)).toMatchObject({ type: 'chat:error', payload: { code: 'FOLDER_MISSING' } })
   })
 
   it('should_keep_the_folder_when_the_picker_is_cancelled_and_unlink_on_request', async () => {

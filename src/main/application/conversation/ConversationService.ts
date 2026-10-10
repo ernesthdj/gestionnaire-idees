@@ -14,6 +14,7 @@ import type {
 } from '@shared/ipc/chat'
 import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
 import { hookSettings } from '../../domain/conversation/hookSettings'
+import { conversationDirs, type ConversationDirs } from '../../domain/conversation/workingDirs'
 import { rankLabel } from '@shared/plan/rankLabel'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
@@ -128,6 +129,8 @@ export function conversationArgs(input: {
   readonly permissionMode?: PermissionMode
   /** Conversation Skills : outils restreints et mode Demander figé (spec 020 H1). */
   readonly profile?: 'skills'
+  /** Second dossier ouvert à Claude (spec 024 D19), mêmes droits que le dossier de travail. */
+  readonly extraDir?: string | null
 }): string[] {
   const skills = input.profile === 'skills'
   const mode = skills ? 'default' : (input.permissionMode ?? 'default')
@@ -179,6 +182,7 @@ export function conversationArgs(input: {
     '--permission-mode',
     mode,
     ...(mode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
+    ...(input.extraDir === undefined || input.extraDir === null ? [] : ['--add-dir', input.extraDir]),
     '--append-system-prompt',
     input.frame
   ]
@@ -280,8 +284,9 @@ export class ConversationService {
       busy: live?.busy ?? false,
       partial: live?.partial ?? '',
       usage: this.usage(neuronId),
-      folder: ((dir) => (dir === null ? null : basename(dir)))(this.folderOf(neuron)),
-      git: ((dir) => dir !== null && (this.deps.isGitRepo?.(dir) ?? false))(this.folderOf(neuron)),
+      folder: ((dir) => (dir === null ? null : basename(dir)))(this.linkedOf(neuron)),
+      git: ((dir) => dir !== null && (this.deps.isGitRepo?.(dir) ?? false))(this.linkedOf(neuron)),
+      projectFolder: neuron.projectFolder === null ? null : basename(neuron.projectFolder),
       role:
         neuron.kind === 'element'
           ? 'element'
@@ -469,8 +474,8 @@ ${text}`
     }
     const settings = this.deps.settings()
     const exists = this.deps.folderExists ?? existsSync
-    const folder = this.folderOf(neuron)
-    if (folder !== null && !exists(folder)) {
+    const { cwd: folder, extra } = this.dirsOf(neuron)
+    if ((folder !== null && !exists(folder)) || (extra !== null && !exists(extra))) {
       this.fail(neuron.id, 'FOLDER_MISSING', null)
       return undefined
     }
@@ -489,6 +494,7 @@ ${text}`
       frame: neuron.kind === 'skills_chat' ? (this.deps.skillsFrame ?? this.deps.frame) : this.deps.frame,
       settings: { ...settings, model },
       permissionMode: this.permissionModeOf(neuron),
+      extraDir: extra,
       ...(neuron.kind === 'skills_chat' ? { profile: 'skills' as const } : {})
     })
     const neuronId = neuron.id
@@ -539,6 +545,8 @@ ${text}`
     switch (event.kind) {
       case 'init':
         if (event.model !== '') live.model = event.model
+        // Le CLI a ouvert la session : elle existe sur le disque, même si ce tour est interrompu ensuite.
+        this.markStarted(neuronId, live)
         return
       case 'delta':
         live.partial += event.text
@@ -597,14 +605,18 @@ ${text}`
       else this.fail(neuronId, 'PROCESS_FAILED', null)
       return
     }
-    if (!live.started) {
-      live.started = true
-      this.deps.repository.setSession(neuronId, live.sessionId, true)
-    }
+    this.markStarted(neuronId, live)
     const text = (event.text === '' ? live.partial : event.text).trim()
     live.partial = ''
     const message = text === '' ? null : this.save(neuronId, 'assistant', text)
     this.deps.emit({ type: 'chat:turnEnd', payload: { neuronId, message, interrupted: false } })
+  }
+
+  /** La session existe pour le CLI : les prochains processus la reprennent (`--resume`). */
+  private markStarted(neuronId: string, live: Live): void {
+    if (live.started) return
+    live.started = true
+    this.deps.repository.setSession(neuronId, live.sessionId, true)
   }
 
   private emitUsage(neuronId: string): void {
@@ -631,6 +643,12 @@ ${text}`
       this.fail(neuronId, 'SESSION_RESET', null)
       return
     }
+    if (/session id .* already in use/i.test(stderr)) {
+      // La session existe déjà sur le disque (tour interrompu avant d'être marqué) : la reprendre au prochain envoi.
+      this.deps.repository.setSession(neuronId, live.sessionId, true)
+      this.fail(neuronId, 'PROCESS_FAILED', null)
+      return
+    }
     if (/not logged in|log in|login|authenticat/i.test(stderr)) {
       this.fail(neuronId, 'NOT_LOGGED_IN', null)
       return
@@ -649,7 +667,7 @@ ${text}`
   }
 
   private contextOf(neuron: ConversationNeuron, live: Live): NeuronContext {
-    const folder = this.folderOf(neuron)
+    const { cwd: folder, extra } = this.dirsOf(neuron)
     const base = {
       id: neuron.id,
       title: neuron.title,
@@ -658,6 +676,7 @@ ${text}`
       maturity: this.deps.repository.maturity(neuron.id),
       resumed: live.started,
       folder: folder === null ? null : basename(folder),
+      extraFolder: extra === null ? null : basename(extra),
       locked: neuron.lockedAt !== null
     }
     if (neuron.kind === 'step') {
@@ -740,11 +759,19 @@ ${text}`
   /** Dossier de travail effectif d'une conversation (spec 014 : projet des règles « Toujours »). */
   workingDir(neuronId: string): string {
     const neuron = this.deps.repository.neuron(neuronId)
-    return (neuron === undefined ? null : this.folderOf(neuron)) ?? this.deps.settings().cwd
+    return (neuron === undefined ? null : this.dirsOf(neuron).cwd) ?? this.deps.settings().cwd
   }
 
-  /** Dossier de travail d'un neurone : le sien, ou celui du projet de son genesis (élément de structure). */
-  private folderOf(neuron: ConversationNeuron): string | null {
+  /**
+   * Dossiers d'une conversation (spec 024 D19) : le projet du canevas, plus le dossier lié au neurone ou à son
+   * genesis (élément, étape) s'il est ailleurs.
+   */
+  private dirsOf(neuron: ConversationNeuron): ConversationDirs {
+    return conversationDirs({ kind: neuron.kind, linked: this.linkedOf(neuron), project: neuron.projectFolder })
+  }
+
+  /** Dossier lié au neurone, ou au genesis d'un élément ou d'une étape. */
+  private linkedOf(neuron: ConversationNeuron): string | null {
     if (neuron.projectDir !== null) return neuron.projectDir
     if (neuron.genesisId === null) return null
     return this.deps.repository.neuron(neuron.genesisId)?.projectDir ?? null

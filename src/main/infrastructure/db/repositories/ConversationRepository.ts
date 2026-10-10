@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { and, asc, desc, eq, gte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import type { GaugeLevel } from '@shared/ipc/neurons'
 import type { AppDatabase } from '../client'
 import { writeChanges, type ChangeEntry } from './changeLog'
 import { aiCalls } from '../schema'
+import { brainstorms } from '../schemaBrainstorms'
 import { contextAssessments, neuronMessages, neurons, settings } from '../schemaNeurons'
 
 export type MessageRole = 'user' | 'assistant' | 'tool' | 'error'
@@ -34,6 +35,8 @@ export interface ConversationNeuron {
   readonly sheetJson: string | null
   /** Dossier de projet lié ; `null` : dossier de travail de l'app. */
   readonly projectDir: string | null
+  /** Dossier du projet du canevas de son genesis (spec 024 D19) ; `null` : canevas sans dossier. */
+  readonly projectFolder: string | null
   /** Élément d'une carte de structure (spec 009) : son genesis ; `null` pour une idée. */
   readonly genesisId: string | null
   readonly elementType: string | null
@@ -113,7 +116,19 @@ export class ConversationRepository {
       .get()
     if (row === undefined) return undefined
     const { absorbedIn, ...rest } = row
-    return { ...rest, absorbed: absorbedIn !== null }
+    return { ...rest, absorbed: absorbedIn !== null, projectFolder: this.projectFolder(row.genesisId ?? row.rootId) }
+  }
+
+  /** Dossier du projet du canevas d'un genesis (spec 024 D19) ; `null` : canevas sans dossier ou archivé. */
+  private projectFolder(genesisId: string): string | null {
+    return (
+      this.db
+        .select({ folder: brainstorms.folderPath })
+        .from(neurons)
+        .innerJoin(brainstorms, eq(brainstorms.id, neurons.brainstormId))
+        .where(and(eq(neurons.id, genesisId), isNull(brainstorms.archivedAt)))
+        .get()?.folder ?? null
+    )
   }
 
   setSession(id: string, sessionId: string, started: boolean): void {

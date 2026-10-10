@@ -31,6 +31,8 @@ export interface ChatState {
   readonly usage: ChatUsageView | null
   /** Dossier de projet lié (nom) ; `null` : aucun. */
   readonly folder: string | null
+  /** Dossier du projet du canevas, contexte de la conversation (spec 024 D19). */
+  readonly projectFolder: string | null
   /** Le dossier est un dépôt git (spec 016). */
   readonly git: boolean
   readonly role: ChatView['role']
@@ -93,6 +95,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     partial: '',
     usage: null,
     folder: null,
+    projectFolder: null,
     role: 'genesis',
     elementType: null,
     stepLabel: null,
@@ -132,6 +135,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           partial: view.partial,
           usage: view.usage ?? null,
           folder: view.folder ?? null,
+          projectFolder: view.projectFolder ?? null,
           role: view.role ?? 'genesis',
           elementType: view.elementType ?? null,
           stepLabel: view.stepLabel ?? null,
@@ -257,7 +261,12 @@ export function useChat(neuronId: string): ChatState & ChatActions {
   const refreshProject = useCallback(async (): Promise<void> => {
     try {
       const view = await call<ChatView>('chat:open', { neuronId })
-      setState((current) => ({ ...current, folder: view.folder ?? null, git: view.git ?? false }))
+      setState((current) => ({
+        ...current,
+        folder: view.folder ?? null,
+        projectFolder: view.projectFolder ?? null,
+        git: view.git ?? false
+      }))
     } catch {
       // Le neurone a pu être retiré : le panneau se fermera avec la carte.
     }

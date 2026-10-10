@@ -456,6 +456,14 @@ export function ChatPanel({
           )}
           {chat.role === 'skills' ? null : (
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+              {chat.projectFolder === null || chat.projectFolder === chat.folder ? null : (
+                <span
+                  className="rounded-full bg-surface-raised px-2 py-0.5"
+                  title="Projet du canevas : Claude y a toujours accès"
+                >
+                  Projet : {chat.projectFolder}
+                </span>
+              )}
               {chat.role !== 'genesis' ? null : chat.folder === null ? (
                 <>
                   <button

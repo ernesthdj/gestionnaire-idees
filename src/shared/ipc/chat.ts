@@ -71,6 +71,8 @@ export interface ChatView {
   readonly usage: ChatUsageView
   /** Nom du dossier de projet lié (la conversation s'y ouvre) ; `null` : aucun. Le chemin complet reste dans le main. */
   readonly folder: string | null
+  /** Nom du dossier du projet du canevas (spec 024 D19) : contexte de toutes ses conversations ; `null` : aucun. */
+  readonly projectFolder?: string | null
   /**
    * Genesis (idée ou projet), élément d'une carte de structure (spec 009), étape d'un plan d'attaque (spec 011),
    * conversation Skills (spec 020) ou nœud de la vue Workflow (spec 023).
