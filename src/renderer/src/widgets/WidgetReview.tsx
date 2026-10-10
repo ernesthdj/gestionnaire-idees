@@ -15,6 +15,14 @@ import { CodeView } from './CodeView'
 import { useWidgetIo, useWidgetReview, type WidgetIoActions } from './useWidgetIo'
 
 function sourceLabel(input: WidgetInputView): string {
+  if (input.sourceKind === 'element') {
+    return input.title === null ? 'Lire un élément retiré' : `Lire l’élément « ${input.title} » de la carte`
+  }
+  if (input.sourceKind === 'workflow') {
+    return input.title === null
+      ? 'Lire un nœud du Workflow qui n’existe plus'
+      : `Lire « ${input.title} » du Workflow (relu dans les fichiers du projet)`
+  }
   if (input.sourceKind === 'plan_step') {
     return input.title === null ? 'Lire une étape retirée' : `Lire l’étape ${input.label ?? ''} « ${input.title} »`
   }
@@ -46,6 +54,12 @@ function InputRow({ input, io }: { readonly input: WidgetInputView; readonly io:
         <p className="mt-1 text-xs text-content-muted">
           Ancienne source : le texte d’une prochaine étape et le titre de son idée. Débranche-la et branche plutôt une
           étape du plan d’attaque.
+        </p>
+      ) : input.sourceKind === 'element' || input.sourceKind === 'workflow' ? (
+        <p className="mt-1 text-xs text-content-muted">
+          {input.sourceKind === 'element'
+            ? 'Transmis : titre, type, résumé, fichiers couverts, fiche et éléments parents.'
+            : 'Transmis : titre, état, fichier et section d’origine, fichiers de code cités et ses tâches.'}
         </p>
       ) : (
         <fieldset className="mt-2">

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import type { StructureView } from '@shared/brainstorms/viewState'
 import type { DeliverableFileRow, FinalActionRow } from '../../infrastructure/db/repositories/FinalRepository'
 import type { DeliverableView } from '@shared/ipc/finals'
 import {
@@ -32,7 +33,10 @@ export interface CanvasDeps {
     NeuronRepository,
     'canvasRoots' | 'matchingRootIds' | 'categories' | 'savePositions' | 'latestGaugeLevels'
   >
-  readonly blocks: Pick<BlockRepository, 'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction'>
+  readonly blocks: Pick<
+    BlockRepository,
+    'list' | 'get' | 'insert' | 'update' | 'softDelete' | 'log' | 'transaction' | 'setView'
+  >
   /** Branchements d'entrée des widgets (spec 005). */
   readonly io: { links(): IoLinkView[] }
   /** Liens libres de la carte (spec 007) ; mentalyas en trace entre deux idées (spec 010). */
@@ -196,13 +200,16 @@ export class CanvasService {
       categories: this.deps.neurons.categories(),
       highlighted: filtered ? this.deps.neurons.matchingRootIds(filter) : null,
       blocks,
-      // Un trait n'a de sens que si sa source (idée ou étape de plan, spec 015) est encore sur la carte.
+      // Un trait n'a de sens que si sa source (idée, étape de plan, élément) est encore sur la carte ; celle d'un nœud
+      // Workflow est vérifiée par l'interface, qui seule dessine ces nœuds (spec 023 D24).
       io: this.deps.io
         .links()
         .filter(
           (link) =>
             (link.sourceKind === 'idea' && visible.has(link.sourceId)) ||
-            (link.sourceKind === 'plan_step' && steps.some((step) => step.id === link.sourceId))
+            (link.sourceKind === 'plan_step' && steps.some((step) => step.id === link.sourceId)) ||
+            (link.sourceKind === 'element' && elements.some((element) => element.id === link.sourceId)) ||
+            link.sourceKind === 'workflow'
         ),
       mapLinks: (this.deps.mapLinks?.list() ?? []).filter(
         (link) => present.has(link.from.id) && present.has(link.to.id)
@@ -294,6 +301,15 @@ export class CanvasService {
   createBlock(input: { readonly kind: CreatableBlockKind; readonly x: number; readonly y: number }): BlockView {
     const { kind, x, y } = input
     return this.deps.blocks.insert({ kind, x, y, ...BLOCK_DEFAULT_SIZES[kind], text: kind === 'label' ? '' : null })
+  }
+
+  /** « Envoyer vers… » (spec 023 D25) : le bloc quitte la vue où il est né pour une autre. */
+  setBlockView(id: string, view: StructureView): BlockView {
+    if (this.deps.blocks.get(id) === undefined) throw new AppError('NOT_FOUND', 'Bloc introuvable')
+    this.deps.blocks.setView(id, view)
+    const moved = this.deps.blocks.get(id)
+    if (moved === undefined) throw new AppError('NOT_FOUND', 'Bloc introuvable')
+    return moved
   }
 
   /** Déplacement, redimensionnement (bornes du type) et texte d'une note. */

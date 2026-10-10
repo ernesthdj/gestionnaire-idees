@@ -13,6 +13,7 @@ const VIEW: WorkflowView = {
   folded: {},
   empty: true,
   readAt: '2026-10-09T10:00:00.000Z',
+  taskFiles: [],
   missingFiles: []
 }
 

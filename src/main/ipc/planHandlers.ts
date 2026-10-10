@@ -7,7 +7,7 @@ import { defineRoute, type IpcRoute } from './registry'
 const ItemIds = z.array(z.uuid()).max(12)
 
 /** Canaux `plan:*` (spec 011 contracts/ipc.md) — chaque charge utile est validée. */
-export function createPlanRoutes(plan: Pick<PlanService, 'decide' | 'move' | 'setFolded'>): IpcRoute[] {
+export function createPlanRoutes(plan: Pick<PlanService, 'decide' | 'move' | 'setFolded' | 'removeMany'>): IpcRoute[] {
   return [
     defineRoute({
       channel: 'plan:decide',
@@ -29,6 +29,12 @@ export function createPlanRoutes(plan: Pick<PlanService, 'decide' | 'move' | 'se
         plan.move(stepId, x, y)
         return { ok: true }
       }
+    }),
+    defineRoute({
+      // Étapes nées dans la vue Workflow (spec 023 D23) : retirées ensemble, en un lot annulable.
+      channel: 'plan:removeSteps',
+      input: z.object({ stepIds: z.array(z.uuid()).min(1).max(200) }).strict(),
+      handler: async ({ stepIds }) => plan.removeMany(stepIds)
     }),
     defineRoute({
       channel: 'plan:setCollapsed',

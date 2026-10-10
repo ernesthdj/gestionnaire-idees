@@ -1,12 +1,13 @@
 import { existsSync, readdirSync, realpathSync } from 'node:fs'
 import { isAbsolute, join, relative } from 'node:path'
 import type { CodeLang } from '@shared/ipc/reprise'
-import type { SpecView, WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
+import type { SpecView, TaskFileView, TaskView, WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
 import { AppError } from '../../domain/errors'
 import { langOf } from '../../domain/reprise/fileFilter'
 import { brainstormDocs, brainstormLevel } from '../../domain/workflow/brainstorm'
 import { WORKFLOW_LIMITS } from '../../domain/workflow/limits'
 import { foundationSummary, parseSpec } from '../../domain/workflow/parseSpec'
+import { hasTasks, parseTaskFile } from '../../domain/workflow/parseTaskFile'
 import { parseTasks } from '../../domain/workflow/parseTasks'
 import { buildSpec } from '../../domain/workflow/specStatus'
 import type { ConversationNeuron } from '../../infrastructure/db/repositories/ConversationRepository'
@@ -21,6 +22,9 @@ export interface WorkflowDeps {
 /** Fichiers de méthode lisibles dans une carte Workflow, en plus des chemins cités par les tâches. */
 const METHOD_FILE =
   /^(specs\/\d{3}[\w.-]*\/(spec|tasks|plan|research|data-model|quickstart)\.md|docs\/brainstorm\/L\d[\w-]*\.md|docs\/FOUNDATION\.md)$/
+
+/** Fichiers qui ont des cases sans être des tâches (D20) : règles, historique, fondation (déjà un nœud). */
+const NOT_TASK_FILES = new Set(['claude.md', 'journal.md', 'changelog.md', 'foundation.md'])
 
 type Read = { readonly kind: 'ok'; readonly text: string } | { readonly kind: 'missing' } | { readonly kind: 'refused' }
 
@@ -61,6 +65,7 @@ export class WorkflowService {
       }),
       specs
     )
+    const taskFiles = this.taskFiles(root)
     const foundationFile = this.readText(root, 'docs/FOUNDATION.md')
     const summary = foundationFile.kind === 'ok' ? foundationSummary(foundationFile.text) : null
     return {
@@ -68,9 +73,10 @@ export class WorkflowService {
       foundation: summary === null ? null : { path: 'docs/FOUNDATION.md', summary },
       specs,
       brainstorm,
+      taskFiles,
       folded: this.deps.folds.get(genesisId),
-      empty: specs.length === 0 && brainstorm.length === 0,
-      missingFiles: this.missing(root, specs),
+      empty: specs.length === 0 && brainstorm.length === 0 && taskFiles.length === 0,
+      missingFiles: this.missing(root, [...specTasks(specs), ...taskFiles.flatMap(fileTasks)]),
       readAt: (this.deps.now ?? (() => new Date()))().toISOString()
     }
   }
@@ -86,17 +92,51 @@ export class WorkflowService {
   target(genesisId: string, path: string): { root: string; path: string; lang: CodeLang } {
     const root = this.rootOf(genesisId)
     const normalized = path.replace(/\\/g, '/')
-    if (!METHOD_FILE.test(normalized) && !this.citedFiles(root).has(normalized)) {
+    if (
+      !METHOD_FILE.test(normalized) &&
+      !this.taskFilePaths(root).includes(normalized) &&
+      !this.citedFiles(root).has(normalized)
+    ) {
       throw new AppError('NOT_FOUND', 'Ce fichier n’est cité par aucune tâche de ce projet.')
     }
     return { root, path: normalized, lang: langOf(normalized) }
   }
 
+  /**
+   * Fichiers de tâches du projet (D20) : Markdown avec au moins une case, à la racine et directement dans `docs/`,
+   * hors règles, historique et fondation ; racine d'abord, puis `docs/`, par ordre alphabétique.
+   */
+  private taskFiles(root: string): TaskFileView[] {
+    return this.taskFilePaths(root).flatMap((path) => {
+      const read = this.readText(root, path)
+      if (read.kind === 'missing') return []
+      if (read.kind === 'refused') return [{ ...parseTaskFile(path, ''), partial: true }]
+      return [parseTaskFile(path, read.text)]
+    })
+  }
+
+  private taskFilePaths(root: string): string[] {
+    const candidates = [
+      ...this.list(root, '.', 'file').sort(),
+      ...this.list(root, 'docs', 'file')
+        .sort()
+        .map((name) => `docs/${name}`)
+    ].filter((path) => {
+      const name = path.split('/').at(-1)?.toLowerCase() ?? ''
+      return name.endsWith('.md') && !NOT_TASK_FILES.has(name)
+    })
+    const paths: string[] = []
+    for (const path of candidates) {
+      if (paths.length >= WORKFLOW_LIMITS.taskFiles) break
+      const read = this.readText(root, path)
+      if (read.kind === 'ok' && hasTasks(read.text)) paths.push(path)
+    }
+    return paths
+  }
+
   /** Chemins cités introuvables sous la racine (un lien qui sort du projet compte comme introuvable). */
-  private missing(root: string, specs: readonly SpecView[]): string[] {
-    const cited = new Set(
-      specs.flatMap((spec) => [...spec.socle, ...spec.stories.flatMap((story) => story.tasks)].flatMap((t) => t.files))
-    )
+  private missing(root: string, tasks: readonly TaskView[]): string[] {
+    const cited = new Set(tasks.flatMap((task) => task.files))
     let real: string
     try {
       real = realpathSync(root)
@@ -122,6 +162,8 @@ export class WorkflowService {
       if (tasks.kind !== 'ok') continue
       for (const task of parseTasks(tasks.text).tasks) for (const file of task.files) cited.add(file)
     }
+    for (const file of this.taskFiles(root))
+      for (const task of fileTasks(file)) for (const path of task.files) cited.add(path)
     return cited
   }
 
@@ -148,7 +190,7 @@ export class WorkflowService {
       const real = realpathSync(root)
       const target = realpathSync(join(real, ...relDir.split('/')))
       const inside = relative(real, target)
-      if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) return []
+      if ((inside === '' && relDir !== '.') || inside.startsWith('..') || isAbsolute(inside)) return []
       return readdirSync(target, { withFileTypes: true })
         .filter((entry) => (kind === 'dir' ? entry.isDirectory() : entry.isFile()))
         .map((entry) => entry.name)
@@ -157,3 +199,11 @@ export class WorkflowService {
     }
   }
 }
+
+const specTasks = (specs: readonly SpecView[]): TaskView[] =>
+  specs.flatMap((spec) => [...spec.socle, ...spec.stories.flatMap((story) => story.tasks)])
+
+const fileTasks = (file: TaskFileView): TaskView[] => [
+  ...file.tasks,
+  ...file.lots.flatMap((lot) => [...lot.tasks, ...lot.groups.flatMap((group) => group.tasks)])
+]

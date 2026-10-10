@@ -91,6 +91,38 @@ describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
     expect((await view()).steps.find((step) => step.title === 'Devis')?.view).toBe('progression')
   })
 
+  it('should_refuse_a_step_in_the_workflow_view_and_point_to_the_task_file', async () => {
+    let shown: 'workflow' | 'progression' | null = 'progression'
+    const viewed = new PlanService({ repository: new PlanRepository(t.handle.db), structureView: () => shown })
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    shown = 'workflow'
+    const refused = { code: 'VALIDATION', message: expect.stringContaining('fichier de tâches') }
+    expect(() => viewed.decide({ proposalId, accept: items, reject: [] })).toThrow(expect.objectContaining(refused))
+    expect(() => viewed.propose({ parentId: genesis, steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })).toThrow(
+      expect.objectContaining(refused)
+    )
+    // Écarter une proposition reste possible ; les étapes déjà nées hors Workflow se découpent encore.
+    expect(viewed.decide({ proposalId, accept: [], reject: items }).born).toEqual([])
+    expect((await view()).steps).toEqual([])
+  })
+
+  it('should_remove_several_steps_with_their_substeps_in_a_single_batch', async () => {
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    await dispatch('plan:decide', { proposalId, accept: items, reject: [] })
+    const [budget, lieu] = (await view()).steps
+    const sub = plan.propose({ parentId: budget?.id ?? '', steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })
+    const subItems = (await view()).proposals.find((p) => p.id === sub.proposalId)?.items.map((item) => item.id) ?? []
+    plan.decide({ proposalId: sub.proposalId, accept: subItems, reject: [] })
+    expect((await view()).steps).toHaveLength(3)
+    const removed = await dispatch('plan:removeSteps', { stepIds: [budget?.id, lieu?.id] })
+    expect(removed).toMatchObject({ success: true, data: { batchId: expect.any(String) } })
+    expect((await view()).steps).toEqual([])
+    expect((await dispatch('plan:removeSteps', { stepIds: [] })).success).toBe(false)
+    expect((await dispatch('plan:removeSteps', { stepIds: [genesis] })).success).toBe(false)
+  })
+
   it('should_leave_a_step_without_view_when_the_genesis_has_none', async () => {
     const { proposalId } = propose()
     const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []

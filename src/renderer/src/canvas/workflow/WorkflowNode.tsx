@@ -4,8 +4,20 @@ import { useUiStore } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { WorkflowNodeType } from '../buildGraph'
 import { LivingNode } from '../living/LivingNode'
+import { useRunningChats } from './runningChats'
 import { useWorkflowFold } from './WorkflowCard'
 import './workflow.css'
+
+/** Nœuds Workflow qui se branchent sur un widget (spec 023 D24) : pas une branche, un message ni un groupe « Faites ». */
+const CONNECTABLE: ReadonlySet<string> = new Set([
+  'taskFile',
+  'taskGroup',
+  'fileTask',
+  'spec',
+  'story',
+  'socle',
+  'task'
+])
 
 /**
  * Nœud de la vue Workflow (spec 023) : petit cercle vivant (couleur de sa branche, pictogramme, pastille de statut),
@@ -17,6 +29,9 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
   const fold = useWorkflowFold(genesisId)
+  // Tâche dont la conversation de nœud tourne : « en cours » le temps du tour (D21).
+  const chatId = client.getQueryData<{ readonly neuronId: string }>(['workflow-chat', item.key])?.neuronId
+  const working = useRunningChats((state) => chatId !== undefined && state.running.has(chatId))
   if (item.subject.kind === 'message') {
     // Dossier introuvable (déplacé, disque débranché) : le relier comme depuis le menu du genesis.
     const relink = (): void => {
@@ -52,6 +67,7 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
   }
   const toggle = (): void => fold(item.key, !item.collapsed)
   const meta = [
+    working ? 'Claude y travaille' : null,
     item.progress === undefined ? null : `${item.progress.done}/${item.progress.total}`,
     item.partial ? 'lecture partielle' : null
   ]
@@ -62,7 +78,7 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
       <LivingNode
         id={item.key}
         title={item.title}
-        visual={visual}
+        visual={working && visual.status !== 'done' ? { ...visual, status: 'doing' } : visual}
         open={open}
         {...(meta === '' ? {} : { meta })}
         {...(item.descendants === 0
@@ -71,6 +87,17 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
       >
         <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
         <Handle type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
+        {CONNECTABLE.has(item.subject.kind) ? (
+          // Point d'accroche visible au survol : on le tire vers un widget pour lui transmettre le nœud (spec 023 D24).
+          <Handle
+            id="connect"
+            type="source"
+            position={Position.Right}
+            isConnectableEnd={false}
+            className="neuron-connector"
+            title="Tirer vers un widget pour lui transmettre ce nœud du Workflow"
+          />
+        ) : null}
       </LivingNode>
     </div>
   )

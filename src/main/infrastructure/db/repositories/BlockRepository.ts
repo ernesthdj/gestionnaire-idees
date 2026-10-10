@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import type { StructureView } from '@shared/brainstorms/viewState'
 import type { BlockView } from '@shared/ipc/canvas'
 import type { CanvasScope } from './canvasScope'
 import type { AppDatabase } from '../client'
@@ -19,7 +20,8 @@ const COLUMNS = {
   title: canvasBlocks.title,
   parentBlockId: canvasBlocks.parentBlockId,
   frameId: canvasBlocks.frameId,
-  origin: canvasBlocks.origin
+  origin: canvasBlocks.origin,
+  view: canvasBlocks.structureView
 }
 
 /** Nouveau bloc : les champs propres aux cadres résultat (005) et aux primitives du pont (007) sont facultatifs. */
@@ -44,7 +46,9 @@ export class BlockRepository {
   constructor(
     private readonly db: AppDatabase,
     /** Brainstorm actif (spec 024) : seuls ses blocs sont sur la carte, un bloc nouveau lui appartient. */
-    private readonly scope?: CanvasScope
+    private readonly scope?: CanvasScope,
+    /** Vue affichée de la carte du canevas actif (spec 023 D25) : un bloc nouveau y naît ; `null` : aucune. */
+    private readonly viewForNew?: () => StructureView | null
   ) {}
 
   transaction<T>(work: () => T): T {
@@ -74,20 +78,49 @@ export class BlockRepository {
   }
 
   insert(block: NewBlock): BlockView {
+    // Un cadre résultat ou un panneau de réglages suit la vue de son widget.
+    const view =
+      block.view ??
+      (block.sourceBlockId === undefined || block.sourceBlockId === null
+        ? (this.viewForNew?.() ?? null)
+        : (this.get(block.sourceBlockId)?.view ?? null))
     const created = {
       id: randomUUID(),
       ...block,
+      view,
       sourceBlockId: block.sourceBlockId ?? null,
       title: block.title ?? null,
       parentBlockId: block.parentBlockId ?? null,
       frameId: block.frameId ?? null,
       origin: block.origin ?? 'user'
     }
+    const { view: structureView, ...columns } = created
     this.db
       .insert(canvasBlocks)
-      .values({ ...created, brainstormId: this.scope?.forNew() ?? null })
+      .values({ ...columns, structureView, brainstormId: this.scope?.forNew() ?? null })
       .run()
     return { ...created, versionId: null }
+  }
+
+  /**
+   * Range dans une vue les blocs d'un brainstorm qui n'en ont pas encore (spec 023 D25 : blocs posés avant, rangés une
+   * fois dans la vue affichée à l'ouverture).
+   */
+  assignViewless(brainstormId: string, view: StructureView): number {
+    return this.db
+      .update(canvasBlocks)
+      .set({ structureView: view })
+      .where(and(eq(canvasBlocks.brainstormId, brainstormId), isNull(canvasBlocks.structureView)))
+      .run().changes
+  }
+
+  /** Envoie un bloc vers une autre vue de la carte, avec son cadre résultat et son panneau de réglages (D25). */
+  setView(id: string, view: StructureView): void {
+    this.db
+      .update(canvasBlocks)
+      .set({ structureView: view })
+      .where(sql`${canvasBlocks.id} = ${id} OR ${canvasBlocks.sourceBlockId} = ${id}`)
+      .run()
   }
 
   /** Cadre résultat visible d'un widget (le plus ancien s'il y en a plusieurs après une annulation). */

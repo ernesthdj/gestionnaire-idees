@@ -6,6 +6,7 @@ import { buildSpec, specStatus } from '../../src/main/domain/workflow/specStatus
 const task = (id: string, done: boolean, story: number | null, files: string[] = []): TaskView => ({
   id,
   done,
+  state: done ? 'done' : 'todo',
   story,
   text: id,
   files

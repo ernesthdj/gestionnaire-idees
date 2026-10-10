@@ -99,6 +99,26 @@ d'appel et blocs offerts ; un clic sur un bloc surligne son code ; le parcours s
 - [x] T062 [US1] D16 : nœud « ✓ Faites (N) » replié d'office sous chaque user story et socle (`workflowTree.ts`, `workflowGraph.ts`, `WorkflowNode.tsx`, `prompts.ts` : pas de « Discuter » pour implémenter une tâche faite) ; tests `renderer/workflow-tree`, `renderer/workflow-view`
 - [x] T063 [US1] Test guidé D16 — attendre le retour
 
+## Phase 9 — Tâches des fichiers existants, trois états, Workflow en lecture seule (D20 à D23) — ajoutée le 2026-10-10
+- [x] T072 [P] `src/main/domain/workflow/parseTaskFile.ts` (pur) : un fichier Markdown → titre, lots (`##`), groupes (`###`), tâches à trois états, clés stables (chemin + titres + texte, rang en cas de doublon), bornes ; tests `tests/unit/workflow/parse-task-file.test.ts`
+- [x] T073 [P] `parseTasks.ts` : `- [~]` reconnu ; `TaskView.state` (`todo` · `doing` · `done`), `done` gardé ; statut et compteurs des specs inchangés ; tests
+- [x] T074 `WorkflowService` : découverte des fichiers de tâches (racine et `docs/` directement, exclusions D20, 50 fichiers), `WorkflowView.taskFiles`, chemins cités et lecteur ouverts à ces fichiers ; tests `tests/integration/workflow/`
+- [x] T075 Renderer `workflowTree.ts` / `workflowGraph.ts` : une branche par fichier, lots, groupes, tâches restantes et « ✓ Faites (N) », pastille « en cours », repli mémorisé ; `WorkflowCard` pour une tâche de fichier (Discuter, fichiers cités) ; tests renderer + axe
+- [x] T076 « En cours » en direct (D21) : une tâche dont la conversation de nœud tourne s'allume le temps du tour ; tests
+- [x] T077 Lecture seule (D22) : `PlanService` refuse une étape dans la vue Workflow (MCP `plan_proposer` : message qui renvoie au fichier de tâches) ; le renderer n'offre plus de création d'étape en Workflow ; tests
+- [x] T078 Étapes existantes (D23) : masquées en Workflow, bandeau « Les reporter dans les fichiers » / « Les retirer » (archivage annulable) ; tests
+- [x] T079 [P] Démo : un fichier de tâches à trois états dans le dossier de méthode fictif ; ligne `seed:demo` de `CLAUDE.md`
+- [x] T080 Vérifications (`typecheck`, `lint`, `prettier`, `npm test`), test de l'app sur PID et sur la démo, JOURNAL ; confirmation avant commit
+
+## Phase 10 — Chaque vue son canevas (D25) — ajoutée le 2026-10-10
+- [x] T081 Migration `0045_block_view` (+ `down`), `canvas_blocks.structure_view`, `BlockRepository` (vue à la création, héritée par le cadre résultat et les réglages, `assignViewless`, `setView`), `BrainstormService.open` (rangement des anciens blocs), canal `canvas:setBlockView` ; tests `integration/canvas/block-view`, `neurons/migrations`
+- [x] T082 Renderer : vue enregistrée avant chaque création de bloc, blocs et lignes d'entrée de la seule vue affichée (`buildGraph`), menu « Envoyer vers… » (`ContextMenu`) ; tests `renderer/step-view`
+- [x] T083 Test de bout en bout : widget créé en Workflow, absent de Progression, envoyé vers Progression
+
+## Phase 11 — Brancher une tâche ou un élément sur un widget (D24) — ajoutée le 2026-10-10
+- [x] T084 Sources `element` et `workflow` (`shared/ipc/widgetIo.ts`, schéma), `domain/widgets/structureInputs.ts` (élément et nœud Workflow retrouvé par sa clé, borné), `WidgetIoService` (validation, assemblage, titre), canal `widgetIo:connect` (clé Workflow validée), cadre des widgets v6, traits de la carte ; tests `unit/widgets/structure-inputs`, `integration/widgets/widget-io`, `unit/ipc/widget-io-handlers`
+- [x] T085 Renderer : poignée au survol des éléments et des nœuds Workflow branchables, `connectionIntent`, revue du widget, point d'arrivée détaché du bord, tout le widget accepte un lien en cours ; tests `renderer/canvas-connection`, e2e `workflow-task-files`, `widget-wireframe`
+
 ## Phase 7 — Finitions
 - [x] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`
 - [x] T039 [P] Démo : `src/main/infrastructure/db/demo/seedDemo.ts` crée un petit dossier de méthode fictif dans le profil démo (deux specs, un L1 à brainstormer, une fondation) lié à un genesis ; mise à jour de la ligne `seed:demo` de `CLAUDE.md`

@@ -30,6 +30,8 @@ export interface BrainstormDeps {
   readonly attach: (neuronId: string, dir: string) => void
   /** Retire un genesis tout juste créé (création de zéro qui échoue). */
   readonly discardGenesis: (neuronId: string) => void
+  /** Range les blocs sans vue dans la vue affichée du canevas (spec 023 D25), à l'ouverture. */
+  readonly assignBlockViews?: (brainstormId: string) => void
   /** État git déjà lu, sans `git fetch` (spec 021) ; `null` : pas de dépôt, illisible ou git absent. */
   readonly gitState: (
     genesisId: string
@@ -132,6 +134,7 @@ export class BrainstormService {
     }
     this.deps.scope.set(row.id)
     this.deps.repository.touchOpened(row.id, this.now().toISOString())
+    this.deps.assignBlockViews?.(row.id)
     const view = this.view(row)
     const root = this.root()
     const git = view.genesisId === null || row.folderPath === null ? null : await this.deps.gitState(view.genesisId)

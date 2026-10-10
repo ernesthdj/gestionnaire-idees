@@ -47,7 +47,9 @@ import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
 import { ResultNode } from './nodes/ResultNode'
 import { SettingsNode } from './nodes/SettingsNode'
 import { WidgetNode } from './nodes/WidgetNode'
-import { ToolMenu, type Tool } from './ToolMenu'
+import { ContextMenu, ToolMenu, type MenuItem, type Tool } from './ToolMenu'
+import { flushViewState } from '../home/useBrainstorms'
+import { STRUCTURE_VIEWS, type StructureView } from '@shared/brainstorms/viewState'
 import { useBlockActions } from './useBlockActions'
 import { stillNode } from './nodes/stillNode'
 import { NeuronNode } from './nodes/NeuronNode'
@@ -89,6 +91,12 @@ const NODE_TYPES: NodeTypes = {
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
+const VIEW_NAMES: Readonly<Record<StructureView, string>> = {
+  workflow: 'Workflow',
+  progression: 'Progression',
+  architecture: 'Architecture'
+}
+
 const BLOCK_TYPES: ReadonlySet<string> = new Set([
   'block',
   'label',
@@ -225,11 +233,16 @@ function CanvasInner(): React.JSX.Element {
   const [draft, setDraft] = useState<{ at: Point; position: Point } | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
+  // Un lien est en train d'être tiré : les widgets entiers l'acceptent, leurs iframes ne captent plus la souris.
+  const [connecting, setConnecting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
   const [importing, setImporting] = useState(false)
   /** Boîte à outils ouverte par un clic droit dans le vide : position à l'écran et point de la carte visé. */
   const [tools, setTools] = useState<{ at: Point; position: Point } | null>(null)
   const closeTools = useCallback(() => setTools(null), [])
+  // « Envoyer vers… » d'un bloc (spec 023 D25) : clic droit sur un bloc rangé dans une vue de la carte.
+  const [blockMenu, setBlockMenu] = useState<{ id: string; at: Point; view: StructureView } | null>(null)
+  const closeBlockMenu = useCallback(() => setBlockMenu(null), [])
   const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
   const clickTimer = useRef(0)
@@ -531,6 +544,8 @@ function CanvasInner(): React.JSX.Element {
     const box = surface.current?.getBoundingClientRect()
     if (box === undefined) return
     const center = flow.screenToFlowPosition({ x: box.left + box.width / 2, y: box.top + box.height / 2 })
+    // La vue affichée est relue par le main : le bloc y naît (spec 023 D25).
+    await flushViewState()
     await call('canvas:createBlock', { x: Math.round(center.x), y: Math.round(center.y) })
     await client.invalidateQueries({ queryKey: ['canvas'] })
   }, [flow, client])
@@ -571,12 +586,24 @@ function CanvasInner(): React.JSX.Element {
       return
     }
     try {
+      await flushViewState()
       const block = await call<BlockView>('canvas:createBlock', { kind: tool, x: position.x, y: position.y })
       probeAction('block.create', 'block', 'souris', block.id)
       markBorn(block.id)
       await client.invalidateQueries({ queryKey: ['canvas'] })
     } catch (error) {
       showToast(error instanceof IpcFailure ? error.message : 'L’objet n’a pas pu être ajouté.')
+    }
+  }
+
+  const sendBlock = async (id: string, target: StructureView): Promise<void> => {
+    setBlockMenu(null)
+    try {
+      await call('canvas:setBlockView', { id, view: target })
+      showToast(`Bloc envoyé vers ${VIEW_NAMES[target]}.`)
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'Le bloc n’a pas pu être envoyé.')
     }
   }
 
@@ -597,7 +624,11 @@ function CanvasInner(): React.JSX.Element {
   // Lien tiré d'une idée vers une autre (FR-031) : un lien libre, créé tout de suite, sans libellé.
   // Vers un widget (spec 005 FR-001) : l'idée devient une entrée, et la revue s'ouvre.
   const openReview = useWidgetReview((state) => state.open)
-  const connectInput = async (blockId: string, source: string, sourceKind: 'idea' | 'plan_step'): Promise<void> => {
+  const connectInput = async (
+    blockId: string,
+    source: string,
+    sourceKind: 'idea' | 'plan_step' | 'element' | 'workflow'
+  ): Promise<void> => {
     try {
       const next = await call<WidgetIoStateView>('widgetIo:connect', { blockId, sourceKind, sourceId: source })
       client.setQueryData(widgetIoKey(blockId), next)
@@ -707,6 +738,7 @@ function CanvasInner(): React.JSX.Element {
             reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0 || glide === 'on') ? 'on' : 'paused'
           }
           data-glide={glide}
+          data-connecting={connecting ? 'true' : undefined}
           data-structure-focus={focused.length > 0 ? 'on' : 'off'}
           onKeyDownCapture={onKeyDownCapture}
           onKeyDown={onKeyDown}
@@ -740,6 +772,8 @@ function CanvasInner(): React.JSX.Element {
               nodesConnectable
               connectionRadius={64}
               onConnect={onConnect}
+              onConnectStart={() => setConnecting(true)}
+              onConnectEnd={() => setConnecting(false)}
               isValidConnection={isValidConnection}
               zoomOnDoubleClick={false}
               // Tab va d'idée en idée.
@@ -803,6 +837,12 @@ function CanvasInner(): React.JSX.Element {
                 })
               }}
               onNodeContextMenu={(event, node) => {
+                const block = view?.blocks.find((entry) => entry.id === node.id)
+                if (block?.view !== undefined && block.view !== null) {
+                  event.preventDefault()
+                  setBlockMenu({ id: block.id, at: { x: event.clientX, y: event.clientY }, view: block.view })
+                  return
+                }
                 if (node.type !== 'neuron') return
                 event.preventDefault()
                 setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
@@ -870,6 +910,22 @@ function CanvasInner(): React.JSX.Element {
           ) : null}
           {tools === null ? null : (
             <ToolMenu at={tools.at} onPick={(tool) => void pickTool(tool)} onClose={closeTools} />
+          )}
+          {blockMenu === null ? null : (
+            <ContextMenu
+              at={blockMenu.at}
+              label="Envoyer le bloc vers une autre vue"
+              items={STRUCTURE_VIEWS.filter((target) => target !== blockMenu.view).map(
+                (target): MenuItem<StructureView> => ({
+                  tool: target,
+                  icon: '→',
+                  label: `Envoyer vers ${VIEW_NAMES[target]}`,
+                  hint: 'Il quittera cette vue de la carte'
+                })
+              )}
+              onPick={(target) => void sendBlock(blockMenu.id, target)}
+              onClose={closeBlockMenu}
+            />
           )}
           {menuNeuron === undefined || menu === null || view === undefined ? null : (
             <NeuronMenu

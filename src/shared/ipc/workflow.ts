@@ -12,10 +12,17 @@ export type SpecMarker = (typeof SPEC_MARKERS)[number]
 export const SPEC_STATUSES = ['specified', 'planned', 'active', 'paused', 'delivered', 'abandoned'] as const
 export type SpecStatus = (typeof SPEC_STATUSES)[number]
 
+/** État d'une tâche (D21) : `- [ ]`, `- [~]`, `- [x]`. */
+export const TASK_STATES = ['todo', 'doing', 'done'] as const
+export type TaskState = (typeof TASK_STATES)[number]
+
 export interface TaskView {
-  /** `T032`. */
+  /** `T032` ; vide pour une tâche d'un fichier de tâches qui n'en porte pas. */
   readonly id: string
   readonly done: boolean
+  readonly state: TaskState
+  /** Clé stable d'une tâche d'un fichier de tâches (D20) ; absente dans un `tasks.md` (clé tirée de `id`). */
+  readonly key?: string
   /** Numéro de la user story (`[US2]` → 2) ; `null` pour une tâche du socle. */
   readonly story: number | null
   /** Description, sans case ni étiquettes. */
@@ -74,6 +81,36 @@ export interface BrainstormDocView {
   readonly coveredBy: readonly string[]
 }
 
+/** Groupe (`###`) ou lot (`##`) d'un fichier de tâches (D20). */
+export interface TaskGroupView {
+  readonly key: string
+  readonly title: string
+  /** Tâches placées directement sous ce titre. */
+  readonly tasks: readonly TaskView[]
+  /** Sous-groupes (`###`) d'un lot ; toujours vide pour un groupe. */
+  readonly groups: readonly TaskGroupView[]
+  readonly done: number
+  readonly total: number
+  readonly status: SpecStatus
+}
+
+/** Fichier Markdown de tâches du projet (D20) : une branche de la vue Workflow. */
+export interface TaskFileView {
+  readonly key: string
+  /** Chemin relatif : `docs/USER-STORIES.md`. */
+  readonly path: string
+  readonly title: string
+  /** Tâches avant le premier `##`. */
+  readonly tasks: readonly TaskView[]
+  /** Lots (`##`). */
+  readonly lots: readonly TaskGroupView[]
+  readonly done: number
+  readonly total: number
+  readonly status: SpecStatus
+  /** Fichier tronqué (trop de tâches) ou illisible. */
+  readonly partial: boolean
+}
+
 /** Idée à brainstormer (D11) : un document de niveau 1 qu'aucune spec ne cite, hors fondation. */
 export const isToBrainstorm = (doc: BrainstormDocView): boolean =>
   doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md'
@@ -83,9 +120,11 @@ export interface WorkflowView {
   readonly foundation: { readonly path: string; readonly summary: string } | null
   readonly specs: readonly SpecView[]
   readonly brainstorm: readonly BrainstormDocView[]
+  /** Fichiers de tâches du projet, hors Spec Kit (D20). */
+  readonly taskFiles: readonly TaskFileView[]
   /** Écarts au repli par défaut, par clé de nœud (research R6, R7). */
   readonly folded: Readonly<Record<string, boolean>>
-  /** Ni `specs/` ni `docs/brainstorm/`. */
+  /** Ni `specs/`, ni `docs/brainstorm/`, ni fichier de tâches. */
   readonly empty: boolean
   /** Chemins cités par des tâches qui n'existent pas (ou plus) dans le dossier du projet : listés grisés (FR-012). */
   readonly missingFiles: readonly string[]

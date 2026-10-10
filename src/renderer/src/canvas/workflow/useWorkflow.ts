@@ -2,18 +2,25 @@ import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react
 import { useCallback, useEffect } from 'react'
 import type { WorkflowView } from '@shared/ipc/workflow'
 import { call, IpcFailure } from '../../lib/ipc'
+import { watchRunningChats } from './runningChats'
 import type { WorkflowEntry } from './workflowTree'
 
 /**
  * Vues Workflow des projets liés basculés en Workflow (spec 023 D10) : lues à l'ouverture de la vue, puis relues à
  * chaque fin de tour de Claude (il a pu cocher une case) et sur « Relire ». Rien n'est lu pour les autres projets.
+ * Les tours en cours sont suivis pour allumer « en cours » la tâche dont la conversation tourne (D21).
  */
 export function useWorkflows(genesisIds: readonly string[]): Readonly<Record<string, WorkflowEntry>> {
   const client = useQueryClient()
   const watching = genesisIds.length > 0
   useEffect(() => {
     if (!watching) return undefined
-    return window.api.on('chat:turnEnd', () => void client.invalidateQueries({ queryKey: ['workflow'] }))
+    const offRunning = watchRunningChats()
+    const offTurn = window.api.on('chat:turnEnd', () => void client.invalidateQueries({ queryKey: ['workflow'] }))
+    return () => {
+      offRunning()
+      offTurn()
+    }
   }, [client, watching])
   // `combine` stable : le même objet est rendu tant que les données et erreurs reçues ne changent pas (la carte ne se
   // reconstruit pas à chaque rendu).

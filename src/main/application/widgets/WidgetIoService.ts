@@ -44,6 +44,10 @@ export interface WidgetIoDependencies {
   readonly document: (rootId: string) => HatchedResultView | null
   /** Plans, fiches et annexes (spec 015) ; absent : une idée ne transmet que son identité, aucune étape n'est branchable. */
   readonly context?: PlanContextPort
+  /** Élément d'une carte de structure, avec son contexte (spec 023 D24) ; `undefined` s'il a disparu. */
+  readonly element?: (id: string) => Extract<WidgetInputData, { kind: 'element' }> | undefined
+  /** Nœud de la vue Workflow, relu dans les fichiers du projet (spec 023 D24) ; `undefined` s'il n'existe plus. */
+  readonly workflowNode?: (key: string) => Extract<WidgetInputData, { kind: 'workflow' }> | undefined
 }
 
 /**
@@ -91,6 +95,12 @@ export class WidgetIoService {
     if (input.sourceKind === 'plan_step' && this.plans?.liveStep(input.sourceId) === undefined) {
       throw new AppError('NOT_FOUND', 'Étape introuvable')
     }
+    if (input.sourceKind === 'element' && this.deps.element?.(input.sourceId) === undefined) {
+      throw new AppError('NOT_FOUND', 'Élément introuvable')
+    }
+    if (input.sourceKind === 'workflow' && this.deps.workflowNode?.(input.sourceId) === undefined) {
+      throw new AppError('NOT_FOUND', 'Ce nœud du Workflow ne se branche pas (ou n’existe plus)')
+    }
     const already = repository
       .inputs(input.blockId)
       .some((entry) => entry.sourceKind === input.sourceKind && entry.sourceId === input.sourceId)
@@ -102,7 +112,9 @@ export class WidgetIoService {
   /** Parties transmises par ce branchement ; les changer redemande l'autorisation. */
   setParts(input: { readonly inputId: string; readonly parts: readonly InputPart[] }): WidgetIoStateView {
     const row = this.inputOrThrow(input.inputId)
-    if (row.sourceKind === 'step') throw new AppError('VALIDATION', 'Une ancienne prochaine étape n’a pas de parties')
+    if (row.sourceKind === 'step' || row.sourceKind === 'element' || row.sourceKind === 'workflow') {
+      throw new AppError('VALIDATION', 'Cette source transmet tout son contexte : elle n’a pas de parties à cocher')
+    }
     this.deps.repository.setParts(row.id, partsFor(row.sourceKind, input.parts))
     return this.state(row.blockId)
   }
@@ -370,7 +382,15 @@ export class WidgetIoService {
 
   private assemble(rows: readonly WidgetInputRow[]): WidgetInputData[] {
     return rows.flatMap((row): WidgetInputData[] => {
-      // Source disparue (idée ou étape retirée) : entrée vide, sans erreur.
+      // Source disparue (idée, étape, élément retiré, tâche sortie du fichier) : entrée vide, sans erreur.
+      if (row.sourceKind === 'element') {
+        const element = this.deps.element?.(row.sourceId)
+        return element === undefined ? [] : [element]
+      }
+      if (row.sourceKind === 'workflow') {
+        const node = this.deps.workflowNode?.(row.sourceId)
+        return node === undefined ? [] : [node]
+      }
       if (row.sourceKind === 'plan_step') {
         const facts = this.plans?.step(row.sourceId)
         return facts === undefined ? [] : [assemblePlanStep(facts, row.parts.filter(isStepPart))]
@@ -388,6 +408,8 @@ export class WidgetIoService {
     kind: InputSourceKind,
     id: string
   ): { readonly title: string | null; readonly label: string | null } {
+    if (kind === 'element') return { title: this.deps.element?.(id)?.title ?? null, label: null }
+    if (kind === 'workflow') return { title: this.deps.workflowNode?.(id)?.title ?? null, label: null }
     if (kind !== 'plan_step') return { title: this.liveTree(id)?.root.title ?? null, label: null }
     const step = this.plans?.liveStep(id)
     return step === undefined || this.plans === undefined

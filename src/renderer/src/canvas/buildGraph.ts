@@ -104,6 +104,12 @@ export type StructureBarNodeType = Node<
     readonly view: StructureViewKind | null
     readonly hasMap: boolean
     readonly architecture: StructureArchitectureView | null
+    readonly workflowSteps: readonly {
+      readonly id: string
+      readonly parentId: string
+      readonly title: string
+      readonly rank: number
+    }[]
   },
   'structureBar'
 >
@@ -365,9 +371,15 @@ export function stepShown(
   shown: StructureViewKind | null,
   linkedProject: boolean
 ): boolean {
+  // La vue Workflow ne montre que les fichiers du projet (spec 023 D22) : aucune étape, même née là avant D22.
+  if (shown === 'workflow') return false
   if (shown === null) return true
-  return (step.view ?? (linkedProject ? 'workflow' : 'progression')) === shown
+  return bornIn(step, linkedProject) === shown
 }
+
+/** Vue de naissance d'une étape (D19) ; sans vue, celle d'un projet lié est Workflow (rangées avant D19). */
+const bornIn = (step: Pick<StepView, 'view'>, linkedProject: boolean): StructureViewKind =>
+  step.view ?? (linkedProject ? 'workflow' : 'progression')
 
 export function buildGraph(
   view: IdeasCanvasView,
@@ -411,6 +423,15 @@ export function buildGraph(
         : structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
           ? 'architecture'
           : 'progression'
+  // Blocs de la vue affichée (spec 023 D25) : chaque vue de la carte a son propre canevas ; un bloc sans vue (canevas
+  // sans carte de structure) est partout, et tous restent visibles si aucune carte n'a de vue.
+  const shownViews = new Set(
+    view.ideas.map((idea) => shownViewOf(idea.id)).filter((kind): kind is StructureViewKind => kind !== null)
+  )
+  const blocks = view.blocks.filter(
+    (block) => block.view === undefined || block.view === null || shownViews.size === 0 || shownViews.has(block.view)
+  )
+  const shownBlocks = new Set(blocks.map((block) => block.id))
   // Plans d'attaque (spec 011, spec 022 R4) : disposés d'abord, pour connaître le repli de chaque genesis.
   const elementGenesis = new Set([...view.elements.map((element) => element.genesisId), ...workflowIds])
   const plans = new Map(
@@ -421,7 +442,7 @@ export function buildGraph(
         (step) => step.genesisId === genesis.id && stepShown(step, shown, genesis.linkedProject === true)
       )
       const ids = new Set([genesis.id, ...steps.map((step) => step.id)])
-      const proposals = view.proposals.filter((proposal) => ids.has(proposal.parentId))
+      const proposals = shown === 'workflow' ? [] : view.proposals.filter((proposal) => ids.has(proposal.parentId))
       const documents = view.documents.filter((document) => ids.has(document.neuronId))
       const deliverables = view.deliverables.filter((deliverable) => ids.has(deliverable.neuronId))
       if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) return []
@@ -462,7 +483,7 @@ export function buildGraph(
       deletable: false
     }
   })
-  const blockNodes = view.blocks.map((block): CanvasNode => ({
+  const blockNodes = blocks.map((block): CanvasNode => ({
     id: block.id,
     type: BLOCK_NODE_TYPES[block.kind],
     // Un cadre se dessine sous ce qu'il regroupe.
@@ -474,18 +495,20 @@ export function buildGraph(
     ariaLabel: blockAriaLabel(block),
     deletable: false
   }))
-  const ioEdges = view.io.map((link): BranchEdgeType => ({
-    id: `io-${link.id}`,
-    type: 'branch',
-    source: link.sourceId,
-    target: link.blockId,
-    data: { style: 'io' },
-    deletable: false,
-    selectable: false,
-    focusable: false
-  }))
+  const ioEdges = view.io
+    .filter((link) => shownBlocks.has(link.blockId))
+    .map((link): BranchEdgeType => ({
+      id: `io-${link.id}`,
+      type: 'branch',
+      source: link.sourceId,
+      target: link.blockId,
+      data: { style: 'io' },
+      deletable: false,
+      selectable: false,
+      focusable: false
+    }))
   // Un cadre résultat est relié au widget dont il affiche la sortie.
-  const resultEdges = view.blocks.flatMap((block): BranchEdgeType[] =>
+  const resultEdges = blocks.flatMap((block): BranchEdgeType[] =>
     block.sourceBlockId === null
       ? []
       : [
@@ -502,8 +525,8 @@ export function buildGraph(
         ]
   )
   // Arbre de notes dessiné par Claude (spec 007) : trait plein du parent à l'enfant.
-  const visibleBlocks = new Set(view.blocks.map((block) => block.id))
-  const noteEdges = view.blocks.flatMap((block): BranchEdgeType[] =>
+  const visibleBlocks = shownBlocks
+  const noteEdges = blocks.flatMap((block): BranchEdgeType[] =>
     block.parentBlockId === null || !visibleBlocks.has(block.parentBlockId)
       ? []
       : [
@@ -708,7 +731,11 @@ export function buildGraph(
                     ? 'architecture'
                     : 'progression',
               hasMap: withMap.has(id),
-              architecture: architectureOf.get(id) ?? null
+              architecture: architectureOf.get(id) ?? null,
+              // Étapes nées dans la vue Workflow avant D22 : masquées, signalées par la barre (D23).
+              workflowSteps: view.steps
+                .filter((step) => step.genesisId === id && bornIn(step, linked.has(id)) === 'workflow')
+                .map((step) => ({ id: step.id, parentId: step.parentId, title: step.title, rank: step.rank }))
             },
             draggable: false,
             selectable: false,
@@ -783,9 +810,26 @@ export function buildGraph(
       })
     }
   }
+  const nodes = [
+    ...neuronNodes,
+    ...blockNodes,
+    ...bandNodes,
+    ...elementNodes,
+    ...barNodes,
+    ...planNodes,
+    ...workflowNodes
+  ]
+  // Un branchement dont la source n'est pas dessinée (nœud Workflow d'une autre vue, élément replié…) n'a pas de trait.
+  const drawn = new Set(nodes.map((node) => node.id))
   return {
-    nodes: [...neuronNodes, ...blockNodes, ...bandNodes, ...elementNodes, ...barNodes, ...planNodes, ...workflowNodes],
-    edges: [...ioEdges, ...resultEdges, ...noteEdges, ...planEdges, ...workflowEdges],
+    nodes,
+    edges: [
+      ...ioEdges.filter((edge) => drawn.has(edge.source)),
+      ...resultEdges,
+      ...noteEdges,
+      ...planEdges,
+      ...workflowEdges
+    ],
     mapEdges: [...mapEdges, ...structureEdges]
   }
 }

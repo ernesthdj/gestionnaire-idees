@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { STRUCTURE_VIEWS } from '@shared/brainstorms/viewState'
 import { BLOCK_LIMITS, CREATABLE_BLOCK_KINDS, LABEL_MAX_CHARS, LINK_LABEL_MAX } from '@shared/ipc/canvas'
 import type { CanvasService } from '../application/canvas/CanvasService'
 import { defineRoute, type IpcRoute } from './registry'
@@ -60,6 +61,11 @@ export function createCanvasRoutes(canvas: CanvasService): IpcRoute[] {
       channel: 'canvas:createBlock',
       input: z.object({ kind: z.enum(CREATABLE_BLOCK_KINDS).default('empty'), x: Coordinate, y: Coordinate }).strict(),
       handler: async (input) => canvas.createBlock(input)
+    }),
+    defineRoute({
+      channel: 'canvas:setBlockView',
+      input: z.object({ id: z.uuid(), view: z.enum(STRUCTURE_VIEWS) }).strict(),
+      handler: async ({ id, view }) => canvas.setBlockView(id, view)
     }),
     defineRoute({
       channel: 'canvas:updateBlock',

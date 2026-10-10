@@ -7,15 +7,16 @@ import { call, IpcFailure } from '../../lib/ipc'
 import type { StructureBarNodeType } from '../buildGraph'
 import { useMapping } from '../mapping/mappingStore'
 import { RunButton } from '../../run/RunButton'
+import { reportStepsPrompt } from '../workflow/prompts'
 
 /**
  * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule « Workflow | Progression | Architecture » et
  * architecture de la carte, reconnue par Claude ou choisie par mentalyas (sa correction prime, annulable dans
  * l'Historique). Sans carte de structure dessinée, seule la vue Workflow est possible ; en Workflow, « Relire » relit
- * les fichiers du projet.
+ * les fichiers du projet, et les étapes qui y étaient nées avant D22 sont signalées (les reporter, les retirer).
  */
 export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): React.JSX.Element {
-  const { genesisId, view, hasMap, architecture } = data
+  const { genesisId, view, hasMap, architecture, workflowSteps } = data
   const client = useQueryClient()
   const setStructureView = useUiStore((state) => state.setStructureView)
   const showToast = useUiStore((state) => state.showToast)
@@ -42,6 +43,30 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
     } catch (error) {
       useMapping.getState().finish(genesisId, false)
       showToast(error instanceof IpcFailure ? error.message : 'La mise à jour de la carte n’a pas pu démarrer.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  /** Étapes nées dans Workflow (D23) : la consigne pour les reporter attend dans le chat du genesis. */
+  const report = (): void => {
+    const ui = useUiStore.getState()
+    ui.seedChatDraft(genesisId, reportStepsPrompt(genesisId, workflowSteps))
+    ui.openChat(genesisId)
+  }
+  const removeSteps = async (): Promise<void> => {
+    const ids = new Set(workflowSteps.map((step) => step.id))
+    setBusy(true)
+    try {
+      const { batchId } = await call<{ readonly batchId: string }>('plan:removeSteps', {
+        stepIds: workflowSteps.filter((step) => !ids.has(step.parentId)).map((step) => step.id)
+      })
+      showToast(`${workflowSteps.length} étape(s) retirée(s) de la carte.`, {
+        batchId,
+        undoneText: 'Étapes remises sur la carte.'
+      })
+      await client.invalidateQueries({ queryKey: ['canvas'] })
+    } catch (error) {
+      showToast(error instanceof IpcFailure ? error.message : 'Les étapes n’ont pas pu être retirées.')
     } finally {
       setBusy(false)
     }
@@ -116,6 +141,38 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
         >
           Relire
         </button>
+      ) : null}
+      {view === 'workflow' && workflowSteps.length > 0 ? (
+        <span
+          role="status"
+          className="flex items-center gap-2 rounded-md border border-idea/50 px-2 py-1 text-xs text-content"
+          title="La vue Workflow ne montre plus que les fichiers du projet : ces étapes y sont masquées."
+        >
+          {workflowSteps.length} étape{workflowSteps.length > 1 ? 's' : ''} générée
+          {workflowSteps.length > 1 ? 's' : ''} masquée{workflowSteps.length > 1 ? 's' : ''}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              report()
+            }}
+            className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
+          >
+            Les reporter dans les fichiers
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(event) => {
+              event.stopPropagation()
+              void removeSteps()
+            }}
+            className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
+          >
+            Les retirer
+          </button>
+        </span>
       ) : null}
       <RunButton genesisId={genesisId} />
       {!hasMap ? null : (

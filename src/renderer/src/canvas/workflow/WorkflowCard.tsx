@@ -395,7 +395,17 @@ function WorkflowSheet({
         'Toutes les tâches du socle sont faites.'
       )
     case 'done':
+    case 'fileDone':
       return taskList(subject.tasks, '')
+    case 'taskGroup': {
+      const remaining = [...subject.group.tasks, ...subject.group.groups.flatMap((group) => group.tasks)].filter(
+        (task) => !task.done
+      )
+      return taskList(
+        remaining.map((task) => ({ id: task.state === 'doing' ? '◐' : '·', text: task.text })),
+        'Toutes ses tâches sont faites.'
+      )
+    }
     case 'doc':
       return subject.family.length === 0 ? (
         <p className="text-content-muted">Pas encore de document de détail.</p>
@@ -428,6 +438,12 @@ export function filesOf(item: WorkflowItem): readonly string[] {
       return union(subject.tasks)
     case 'spec':
       return union([...subject.spec.socle, ...subject.spec.stories.flatMap((story) => story.tasks)])
+    case 'fileTask':
+      return subject.task.files
+    case 'fileDone':
+      return union(subject.tasks)
+    case 'taskGroup':
+      return union([...subject.group.tasks, ...subject.group.groups.flatMap((group) => group.tasks)])
     default:
       return []
   }
@@ -535,6 +551,11 @@ function readablesOf(item: WorkflowItem): { path: string; label: string }[] {
       return [{ path: `${subject.spec.dir}/tasks.md`, label: 'Lire les tâches' }]
     case 'doc':
       return [{ path: `docs/brainstorm/${subject.doc.name}`, label: 'Lire le document' }]
+    case 'taskFile':
+    case 'taskGroup':
+    case 'fileTask':
+    case 'fileDone':
+      return [{ path: subject.file.path, label: 'Lire le fichier' }]
     default:
       return []
   }
@@ -590,7 +611,7 @@ export function WorkflowCard({
     staleTime: Infinity
   })
   const readables = readablesOf(item)
-  const sheetKinds = new Set(['spec', 'story', 'socle', 'done', 'doc'])
+  const sheetKinds = new Set(['spec', 'story', 'socle', 'done', 'doc', 'taskGroup', 'fileDone'])
   const actions =
     readables.length === 0 ? undefined : (
       <>

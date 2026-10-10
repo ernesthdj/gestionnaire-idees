@@ -39,10 +39,11 @@ export const INPUT_PARTS = [
   'subtree'
 ] as const satisfies readonly InputPart[]
 
-/** Nature d'une source : idée, étape de plan, ou ancienne prochaine étape (archive). */
-export type InputSourceKind = 'idea' | 'plan_step' | 'step'
-/** Natures qu'on peut brancher aujourd'hui. */
-export const CONNECTABLE_SOURCES = ['idea', 'plan_step'] as const
+/**
+ * Nature d'une source : idée, étape de plan, élément d'une carte de structure, nœud de la vue Workflow (spec 023 D24),
+ * ou ancienne prochaine étape (archive).
+ */
+export type InputSourceKind = 'idea' | 'plan_step' | 'element' | 'workflow' | 'step'
 
 /** Branchement d'entrée : une idée ou une étape de plan reliée à un widget. */
 export interface WidgetInputView {
@@ -142,6 +143,40 @@ export type WidgetInputData =
         readonly documents: readonly DocumentData[]
         readonly deliverable: readonly { readonly path: string; readonly status: 'cree' | 'modifie' }[]
       }
+      readonly truncated?: true
+    }
+  | {
+      /** Élément d'une carte de structure (spec 023 D24) : tout son contexte, sans parties à cocher. */
+      readonly kind: 'element'
+      readonly id: string
+      readonly genesisId: string
+      readonly title: string
+      /** Module, composant, donnée, interface… */
+      readonly type: string
+      readonly summary: string | null
+      /** Fichiers et dossiers du projet qu'il couvre. */
+      readonly paths: readonly string[]
+      readonly sheet: SheetData
+      /** Éléments parents, du plus haut au plus proche. */
+      readonly path: readonly { readonly id: string; readonly title: string; readonly type: string }[]
+    }
+  | {
+      /** Nœud de la vue Workflow (spec 023 D24), relu dans les fichiers du projet à chaque demande. */
+      readonly kind: 'workflow'
+      readonly key: string
+      readonly genesisId: string
+      readonly node: 'file' | 'group' | 'task' | 'spec' | 'story' | 'socle'
+      readonly title: string
+      /** État d'une tâche (`todo`, `doing`, `done`) ou statut d'un fichier, d'un lot, d'une spec. */
+      readonly state: string
+      /** Fichier de méthode où il vit (`docs/USER-STORIES.md`, `specs/022-x/tasks.md`). */
+      readonly file: string
+      /** Lot, groupe, user story ou spec qui le contient ; `null` au premier niveau. */
+      readonly section: string | null
+      /** Chemins de code cités par ses tâches. */
+      readonly files: readonly string[]
+      /** Ses tâches (groupe, fichier, spec, user story) ; vide pour une tâche. */
+      readonly tasks: readonly { readonly id: string; readonly text: string; readonly state: string }[]
       readonly truncated?: true
     }
   | { readonly kind: 'step'; readonly ideaId: string; readonly ideaTitle: string; readonly text: string }

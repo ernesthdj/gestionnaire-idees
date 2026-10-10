@@ -25,7 +25,14 @@ import { installReactFlowMocks } from './support/reactFlowMocks'
 
 const G = HATCHED_A_ID
 
-const task = (id: string, done: boolean, story: number | null): TaskView => ({ id, done, story, text: id, files: [] })
+const task = (id: string, done: boolean, story: number | null): TaskView => ({
+  id,
+  done,
+  state: done ? 'done' : 'todo',
+  story,
+  text: id,
+  files: []
+})
 const spec = (number: string, status: SpecView['status'], tasks: TaskView[]): SpecView => {
   const done = tasks.filter((entry) => entry.done).length
   const own = (n: number) => tasks.filter((entry) => entry.story === n)
@@ -68,6 +75,7 @@ const WORKFLOW: WorkflowView = {
   folded: {},
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
+  taskFiles: [],
   missingFiles: []
 }
 const element: ElementView = {

@@ -79,15 +79,16 @@ describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
     const widget = page.getByRole('region', { name: 'Widget IA' })
     await widget.getByText(/Tire un lien d’une idée/).waitFor()
 
-    // Brancher le genesis : tirer son point d'accroche jusqu'au widget.
+    // Brancher le genesis : tirer son point d'accroche et le lâcher au milieu du widget (tout le widget l'accepte).
     const idea = page.locator('.react-flow__node').filter({ hasText: 'application de notes' }).first()
     await idea.hover()
     const from = await idea.locator('.neuron-connector').boundingBox()
-    const to = await widget.locator('.io-target').boundingBox()
+    const to = await widget.boundingBox()
     if (from === null || to === null) throw new Error('points d’accroche introuvables')
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
     await page.mouse.down()
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
+    await run.shot('026-00-lien-sur-le-widget')
     await page.mouse.up()
     await page.getByRole('button', { name: 'Plus tard' }).click()
 

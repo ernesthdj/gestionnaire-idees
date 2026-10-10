@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { CONNECTABLE_SOURCES, INPUT_PARTS } from '@shared/ipc/widgetIo'
+import { INPUT_PARTS } from '@shared/ipc/widgetIo'
+import { WORKFLOW_KEY } from '@shared/ipc/workflow'
 import type { WidgetIoService } from '../application/widgets/WidgetIoService'
 import { defineRoute, type IpcRoute } from './registry'
 
@@ -15,7 +16,13 @@ export function createWidgetIoRoutes(io: WidgetIoService): IpcRoute[] {
     }),
     defineRoute({
       channel: 'widgetIo:connect',
-      input: z.object({ blockId: Id, sourceKind: z.enum(CONNECTABLE_SOURCES), sourceId: Id }).strict(),
+      // Un nœud du Workflow se désigne par sa clé de carte (spec 023 D24) ; les autres sources, par leur identifiant.
+      input: z.union([
+        z.object({ blockId: Id, sourceKind: z.enum(['idea', 'plan_step', 'element']), sourceId: Id }).strict(),
+        z
+          .object({ blockId: Id, sourceKind: z.literal('workflow'), sourceId: z.string().max(160).regex(WORKFLOW_KEY) })
+          .strict()
+      ]),
       handler: async (input) => io.connect(input)
     }),
     defineRoute({

@@ -428,6 +428,8 @@ export const canvasBlocks = sqliteTable(
     deletedAt: text('deleted_at'),
     /** Brainstorm (canevas) du bloc (spec 024 R1). */
     brainstormId: text('brainstorm_id'),
+    /** Vue de la carte où le bloc est né (spec 023 D25) ; `null` : toutes (canevas sans vue). */
+    structureView: text('structure_view', { enum: ['workflow', 'progression', 'architecture'] }),
     createdAt: createdAt()
   },
   (t) => [
@@ -470,7 +472,7 @@ export const widgetInputs = sqliteTable(
     blockId: text('block_id')
       .notNull()
       .references(() => canvasBlocks.id, { onDelete: 'cascade' }),
-    sourceKind: text('source_kind', { enum: ['idea', 'plan_step', 'step'] }).notNull(),
+    sourceKind: text('source_kind', { enum: ['idea', 'plan_step', 'element', 'workflow', 'step'] }).notNull(),
     /** Idée, étape de plan (spec 015), ou idée dont l'ancienne prochaine étape est branchée. */
     sourceId: text('source_id').notNull(),
     partsJson: text('parts_json').notNull().default('[]'),

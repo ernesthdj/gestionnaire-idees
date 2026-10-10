@@ -25,6 +25,7 @@ const G = '00000000-0000-4000-8000-0000000000b1'
 const task = (id: string, done: boolean, story: number | null): TaskView => ({
   id,
   done,
+  state: done ? 'done' : 'todo',
   story,
   text: `Faire ${id} dans \`src/${id}.ts\``,
   files: [`src/${id}.ts`]
@@ -70,6 +71,7 @@ const VIEW: WorkflowView = {
   folded: {},
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
+  taskFiles: [],
   missingFiles: []
 }
 const CHAT_ID = '00000000-0000-4000-8000-0000000000b9'
@@ -227,7 +229,7 @@ function renderCard(key: string, elements: readonly ElementView[] = [], missingF
 describe('consignes de « Discuter » (spec 023 US2)', () => {
   it('should_ask_to_implement_a_task_lead_a_story_or_brainstorm_an_idea_and_nothing_for_a_spec', () => {
     expect(promptFor(item(workflowKey(G, 'task', '022', 'T011')))).toBe(
-      'Implémente la tâche T011 de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) en suivant /speckit-implement : lis la spec et le plan, fais la tâche, vérifie (typecheck, lint, tests), puis coche sa case.'
+      'Implémente la tâche T011 de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) en suivant /speckit-implement : marque sa case « - [~] » en commençant, lis la spec et le plan, fais la tâche, vérifie (typecheck, lint, tests), puis coche sa case « - [x] ».'
     )
     expect(promptFor(item(workflowKey(G, 'story', '022', '1')))).toContain(
       "Mène les tâches restantes de l'US1 « Carte des idées » de la spec specs/022-noeuds-vivants, dans l'ordre : T011."

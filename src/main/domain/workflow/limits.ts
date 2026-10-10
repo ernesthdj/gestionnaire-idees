@@ -8,6 +8,8 @@ export const WORKFLOW_LIMITS = {
   specs: 200,
   tasksPerSpec: 1000,
   brainstormDocs: 300,
+  /** Fichiers de tâches hors Spec Kit (D20). */
+  taskFiles: 50,
   pathsPerTask: 20,
   taskText: 500,
   statusLine: 200,

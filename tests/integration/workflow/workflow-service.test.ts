@@ -97,6 +97,29 @@ describe('vue Workflow d’un projet lié (spec 023)', () => {
     expect(view).toMatchObject({ empty: false, readAt: '2026-10-09T10:00:00.000Z' })
   })
 
+  it('should_read_the_task_files_of_a_project_without_spec_kit_in_a_fixed_order', () => {
+    write('README.md', '# Projet\nSans case.\n')
+    write('TODO.md', '- [ ] Ranger\n')
+    write('CLAUDE.md', '- [x] Brainstorm initial\n')
+    write('docs/USER-STORIES.md', '# User Stories\n## Auth\n- [x] Inscription\n- [~] Hachage dans `app/User.php`\n')
+    write('docs/FOUNDATION.md', '# Fondation\n- [ ] Critère\n')
+    write('docs/JOURNAL.md', '- [x] Entrée\n')
+    write('docs/brainstorm/L1-idee.md', '# Idée\n- [ ] Question\n')
+    write('docs/notes/cours.md', '- [ ] Note\n')
+    write('app/User.php', '<?php\n')
+    const view = service.read(genesis)
+    expect(view.taskFiles.map((file) => [file.path, file.title, file.status, file.done, file.total])).toEqual([
+      ['TODO.md', 'TODO', 'planned', 0, 1],
+      ['docs/USER-STORIES.md', 'User Stories', 'active', 1, 2]
+    ])
+    expect(view.empty).toBe(false)
+    expect(view.missingFiles).toEqual([])
+    expect(service.file(genesis, 'docs/USER-STORIES.md').lines[0]).toBe('# User Stories')
+    expect(service.file(genesis, 'app/User.php')).toMatchObject({ path: 'app/User.php', lang: 'php' })
+    expect(() => service.file(genesis, 'CLAUDE.md')).toThrow(expect.objectContaining({ code: 'NOT_FOUND' }))
+    expect(service.read(genesis).taskFiles.map((file) => file.key)).toEqual(view.taskFiles.map((file) => file.key))
+  })
+
   it('should_return_an_empty_view_when_the_project_has_no_method_files', () => {
     write('src/index.ts', 'export {}\n')
     expect(service.read(genesis)).toMatchObject({ specs: [], brainstorm: [], foundation: null, empty: true })

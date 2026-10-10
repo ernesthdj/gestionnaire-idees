@@ -95,8 +95,8 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 
 | Commande | Effet |
 |----------|-------|
-| `npm run dev` | Lance l'app en developpement (rechargement a chaud) |
-| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure et lie au dossier de methode fictif `projet-demo/` du profil : 2 specs, un L1 a brainstormer, une fondation, pour la vue Workflow) |
+| `npm run dev` | Lance l'app en developpement (rechargement a chaud de l'interface seulement : apres une modification du main ou du preload, relancer l'app) |
+| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure et lie au dossier de methode fictif `projet-demo/` du profil : 2 specs, un L1 a brainstormer, une fondation, un fichier de taches a trois etats `docs/TACHES-DESIGN.md`, pour la vue Workflow) |
 | `npm run seed:demo:reset` | Idem en recreant le profil demo de zero (efface uniquement ce dossier fictif) |
 | `npm test` | Tests Vitest |
 | `npm run typecheck` | Verification TypeScript (main/preload + renderer) |

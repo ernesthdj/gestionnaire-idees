@@ -1,7 +1,7 @@
 import type { CanvasNeuronView, ElementView, ProposalView, StepStatus, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
 import type { DeliverableView } from '@shared/ipc/finals'
-import { BRANCH_TITLES, SPEC_STATUS_LABELS, type WorkflowItem } from '../workflow/workflowTree'
+import { BRANCH_TITLES, SPEC_STATUS_LABELS, TASK_STATE_LABELS, type WorkflowItem } from '../workflow/workflowTree'
 
 /**
  * Contenu d'une carte de détails (spec 022 D6, D7) selon la sorte de nœud : badge, ligne d'information, titre, résumé et
@@ -232,6 +232,49 @@ function workflowHead(item: WorkflowItem): CardHead {
         title: subject.doc.title,
         summary:
           count === 0 ? null : `${count} document${count > 1 ? 's' : ''} de détail (niveaux 2 à 4) dans sa famille.`,
+        gauge: null
+      }
+    }
+    case 'taskFile': {
+      const { file } = subject
+      return {
+        badge: 'Fichier de tâches',
+        meta: [file.path, SPEC_STATUS_LABELS[file.status], file.partial ? 'lecture partielle' : null]
+          .filter((part): part is string => part !== null)
+          .join(' · '),
+        title: file.title,
+        summary: null,
+        gauge: progressGauge(file.done, file.total)
+      }
+    }
+    case 'taskGroup': {
+      const { file, group } = subject
+      return {
+        badge: group.groups.length > 0 || file.lots.includes(group) ? 'Lot' : 'Groupe',
+        meta: `${file.title} · ${SPEC_STATUS_LABELS[group.status]}`,
+        title: group.title,
+        summary: null,
+        gauge: progressGauge(group.done, group.total)
+      }
+    }
+    case 'fileTask': {
+      const { file, group, task } = subject
+      const text = plain(task.text)
+      return {
+        badge: task.id === '' ? 'Tâche' : `Tâche ${task.id}`,
+        meta: `${group === null ? file.title : group.title} · ${TASK_STATE_LABELS[task.state]}`,
+        title: text.length <= 120 ? text : `${text.slice(0, 119)}…`,
+        summary: text.length <= 120 ? null : text,
+        gauge: null
+      }
+    }
+    case 'fileDone': {
+      const { file, group, tasks } = subject
+      return {
+        badge: 'Tâches faites',
+        meta: group === null ? file.title : `${group.title} · ${file.title}`,
+        title: `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} faite${tasks.length > 1 ? 's' : ''}`,
+        summary: null,
         gauge: null
       }
     }

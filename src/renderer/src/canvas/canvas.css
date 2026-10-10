@@ -197,8 +197,10 @@
   animation: neuron-fade-in 150ms ease-out;
 }
 
-/* Point d'accroche d'un lien (FR-031) : visible au survol ou quand l'idée est sélectionnée / a le focus. */
+/* Point d'accroche d'un lien (FR-031) : visible au survol ou quand l'idée est sélectionnée / a le focus ; détaché du
+   bord du cercle pour ne pas se confondre avec le rang et le repli. */
 .neuron-connector.react-flow__handle {
+  right: -14px;
   width: 16px;
   height: 16px;
   border: 2px solid var(--color-accent);
@@ -209,6 +211,10 @@
 }
 .react-flow__node-neuron:hover .neuron-connector.react-flow__handle,
 .react-flow__node-plan:hover .neuron-connector.react-flow__handle,
+.react-flow__node-element:hover .neuron-connector.react-flow__handle,
+.react-flow__node-workflow:hover .neuron-connector.react-flow__handle,
+.react-flow__node-element:focus-visible .neuron-connector.react-flow__handle,
+.react-flow__node-workflow:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-plan:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron:focus-visible .neuron-connector.react-flow__handle,
 .react-flow__node-neuron.selected .neuron-connector.react-flow__handle,
@@ -273,10 +279,29 @@
   stroke-width: 2;
 }
 .io-target.react-flow__handle {
-  width: 14px;
-  height: 14px;
+  /* Détaché du bord gauche : le cadre de sélection et les poignées de redimensionnement ne le recouvrent plus. */
+  left: -14px;
+  z-index: 10;
+  width: 18px;
+  height: 18px;
   border: 2px solid var(--color-accent);
   background: var(--color-surface);
+}
+/* Pendant qu'un lien se tire : une iframe ne capte plus la souris (sinon la carte perd le glisser au-dessus d'elle), et
+   tout le widget devient son point d'arrivée, en pointillés. */
+[data-connecting='true'] iframe {
+  pointer-events: none;
+}
+[data-connecting='true'] .io-target.react-flow__handle {
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  border-radius: 12px;
+  border-style: dashed;
+  background: color-mix(in oklab, var(--color-accent) 8%, transparent);
 }
 
 /* Lien libre de la carte (spec 007) : trait fin, discret, sous les nœuds. */

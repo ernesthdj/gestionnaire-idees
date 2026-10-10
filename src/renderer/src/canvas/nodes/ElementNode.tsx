@@ -145,6 +145,15 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
       >
         <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
         <Handle type="source" position={Position.Right} isConnectable={false} className="neuron-handle" />
+        {/* Point d'accroche visible au survol : on le tire vers un widget pour lui transmettre l'élément (spec 023 D24). */}
+        <Handle
+          id="connect"
+          type="source"
+          position={Position.Right}
+          isConnectableEnd={false}
+          className="neuron-connector"
+          title="Tirer vers un widget pour lui transmettre cet élément"
+        />
       </LivingNode>
     </div>
   )

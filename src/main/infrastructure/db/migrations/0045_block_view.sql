@@ -1,0 +1,1 @@
+ALTER TABLE `canvas_blocks` ADD `structure_view` text;

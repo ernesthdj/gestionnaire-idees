@@ -8,6 +8,7 @@ import { NeuronRepository } from '../../../src/main/infrastructure/db/repositori
 import { WidgetIoRepository } from '../../../src/main/infrastructure/db/repositories/WidgetIoRepository'
 import { WidgetRepository } from '../../../src/main/infrastructure/db/repositories/WidgetRepository'
 import { extensions, neurons } from '../../../src/main/infrastructure/db/schemaNeurons'
+import type { WidgetInputData } from '../../../src/shared/ipc/widgetIo'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 
 describe('entrées des widgets (spec 005 lot 1)', () => {
@@ -16,6 +17,9 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
   let widgets: WidgetRepository
   let blockId: string
   let rootId: string
+  // Éléments de structure et nœuds Workflow branchables (spec 023 D24), simulés.
+  let structure: Map<string, Extract<WidgetInputData, { kind: 'element' }>>
+  let workflow: Map<string, Extract<WidgetInputData, { kind: 'workflow' }>>
 
   const addVersion = (ts: string): string => {
     const version = widgets.insertVersion({
@@ -33,6 +37,8 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
   }
 
   beforeEach(async () => {
+    structure = new Map()
+    workflow = new Map()
     t = createNeuronHarness()
     const db = t.handle.db
     widgets = new WidgetRepository(db)
@@ -43,7 +49,9 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
       widgets,
       blocks: new BlockRepository(db),
       tree: (id) => (neuronRepository.root(id) === undefined ? undefined : t.neurons.getTree(id)),
-      document: (id) => hatched.result(id)
+      document: (id) => hatched.result(id),
+      element: (id) => structure.get(id),
+      workflowNode: (key) => workflow.get(key)
     })
     blockId = new BlockRepository(db).insert({ kind: 'widget', x: 0, y: 0, width: 520, height: 440, text: null }).id
 
@@ -245,6 +253,52 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     })
     history.undo(batchId)
     expect(io.state(blockId)).toMatchObject({ approved: true, inputs: [{ id: inputId }] })
+  })
+
+  it('should_connect_an_element_and_a_workflow_node_and_give_their_whole_context_while_they_exist', () => {
+    const elementId = '00000000-0000-4000-8000-0000000000e1'
+    const key = 'wf:00000000-0000-4000-8000-0000000000a1:ttask:fab-cd'
+    structure.set(elementId, {
+      kind: 'element',
+      id: elementId,
+      genesisId: rootId,
+      title: 'Données',
+      type: 'module',
+      summary: 'Base locale',
+      paths: ['src/db'],
+      sheet: { resume: '', points_cles: [], decisions: [], questions_ouvertes: [], manques: [] },
+      path: []
+    })
+    workflow.set(key, {
+      kind: 'workflow',
+      key,
+      genesisId: rootId,
+      node: 'task',
+      title: 'Hachage du mot de passe',
+      state: 'doing',
+      file: 'docs/USER-STORIES.md',
+      section: 'Inscription',
+      files: ['app/User.php'],
+      tasks: []
+    })
+    const versionId = addVersion('gi.onInputs(() => {})')
+    io.connect({ blockId, sourceKind: 'element', sourceId: elementId })
+    const state = io.connect({ blockId, sourceKind: 'workflow', sourceId: key })
+    expect(state.inputs.map((input) => [input.sourceKind, input.title, input.parts])).toEqual([
+      ['element', 'Données', []],
+      ['workflow', 'Hachage du mot de passe', []]
+    ])
+    expect(() => io.setParts({ inputId: state.inputs[0]?.id ?? '', parts: ['identity'] })).toThrow(
+      expect.objectContaining({ code: 'VALIDATION' })
+    )
+    io.approve(blockId)
+    expect(io.inputs({ blockId, versionId }).inputs.map((input) => input.kind)).toEqual(['element', 'workflow'])
+    // La tâche sort du fichier : son entrée devient vide, sans erreur ; on ne peut plus la brancher.
+    workflow.delete(key)
+    expect(io.inputs({ blockId, versionId }).inputs.map((input) => input.kind)).toEqual(['element'])
+    expect(() => io.connect({ blockId: blockId, sourceKind: 'workflow', sourceId: `${key}x` })).toThrow(
+      expect.objectContaining({ code: 'NOT_FOUND' })
+    )
   })
 
   it('should_give_an_empty_input_when_the_idea_no_longer_exists', () => {

@@ -3,7 +3,12 @@ import { randomUUID } from 'node:crypto'
 import { AppError } from '../../domain/errors'
 import { checkDependencies, renumber, type DependencyProblem } from '../../domain/plan/dependencies'
 import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
-import { normalizeTitle, type PlanRepository, type StepRow } from '../../infrastructure/db/repositories/PlanRepository'
+import {
+  normalizeTitle,
+  type PlanNodeRow,
+  type PlanRepository,
+  type StepRow
+} from '../../infrastructure/db/repositories/PlanRepository'
 
 /** Bornes d'un plan lisible (spec 011, Edge Cases). */
 export const PLAN_LIMITS = { stepsPerLayer: 12, depth: 4 } as const
@@ -75,6 +80,7 @@ export class PlanService {
         'Cette étape est une action finale : elle ne se découpe plus (mentalyas peut la rétrograder).'
       )
     }
+    this.refuseWorkflow(parent)
     if (parent.depth + 1 > PLAN_LIMITS.depth) {
       throw new AppError('VALIDATION', `Au plus ${PLAN_LIMITS.depth} niveaux sous le genesis : regroupe plutôt.`)
     }
@@ -138,11 +144,8 @@ export class PlanService {
     const parent = repository.node(proposal.parentId)
     if (parent === undefined) throw new AppError('NOT_FOUND', 'Nœud introuvable')
     const accepted = proposal.items.filter((item) => input.accept.includes(item.id))
-    // Vue de naissance (spec 023 D19) : celle affichée pour une étape du genesis, celle de son parent sinon.
-    const view =
-      parent.kind === 'step'
-        ? (repository.children(parent.parentId ?? '').find((step) => step.id === parent.id)?.view ?? null)
-        : (this.deps.structureView?.(parent.genesisId) ?? null)
+    if (accepted.length > 0) this.refuseWorkflow(parent)
+    const view = this.birthView(parent)
 
     const batchId = randomUUID()
     const born: string[] = []
@@ -195,6 +198,23 @@ export class PlanService {
   }
 
   /** Étape glissée par mentalyas : sa branche suit (décalage relatif à sa place calculée, non historisé). */
+  /** Vue de naissance (spec 023 D19) : celle affichée pour une étape du genesis, celle de son parent sinon. */
+  private birthView(parent: PlanNodeRow): StructureView | null {
+    return parent.kind === 'step'
+      ? (this.deps.repository.children(parent.parentId ?? '').find((step) => step.id === parent.id)?.view ?? null)
+      : (this.deps.structureView?.(parent.genesisId) ?? null)
+  }
+
+  /** La vue Workflow se lit dans les fichiers du projet (spec 023 D22) : aucune étape n'y naît. */
+  private refuseWorkflow(parent: PlanNodeRow): void {
+    if (this.birthView(parent) !== 'workflow') return
+    throw new AppError(
+      'VALIDATION',
+      'La vue Workflow se lit dans les fichiers du projet : ajoute ces tâches dans son fichier de tâches ' +
+        '(cases « - [ ] », ou tasks.md d’une spec) au lieu de créer des étapes.'
+    )
+  }
+
   move(stepId: string, x: number, y: number): void {
     if (!this.isStep(stepId)) throw new AppError('NOT_FOUND', 'Étape introuvable')
     this.deps.repository.setOffset(stepId, x, y)
@@ -212,47 +232,62 @@ export class PlanService {
 
   /** Retire une étape et ses descendants (archivage), renumérote ses sœurs, retire ses dépendances ; annulable. */
   remove(stepId: string): { readonly batchId: string } {
+    return this.removeMany([stepId])
+  }
+
+  /**
+   * Retire plusieurs étapes et leurs descendants en un seul lot d'Historique (spec 023 D23 : étapes nées dans la vue
+   * Workflow avant qu'elle ne se lise que dans les fichiers) ; annulable d'un geste.
+   */
+  removeMany(stepIds: readonly string[]): { readonly batchId: string } {
     const { repository } = this.deps
-    const step = repository.node(stepId)
-    if (step === undefined || step.kind !== 'step' || step.parentId === null) {
-      throw new AppError('NOT_FOUND', 'Étape introuvable')
+    for (const stepId of stepIds) {
+      const step = repository.node(stepId)
+      if (step === undefined || step.kind !== 'step' || step.parentId === null) {
+        throw new AppError('NOT_FOUND', 'Étape introuvable')
+      }
     }
-    const parentId = step.parentId
     const batchId = randomUUID()
     repository.transaction(() => {
       const entries: ChangeEntry[] = []
       const entry = (entity: string, entityId: string, before: unknown, after: unknown): void => {
         entries.push({ kind: 'delete', entity, entityId, before, after })
       }
-      const removed: StepRow[] = []
-      const collect = (id: string): void => {
-        for (const child of repository.children(id)) {
-          collect(child.id)
-          removed.push(child)
+      const archived = new Set<string>()
+      for (const stepId of stepIds) {
+        const parentId = repository.node(stepId)?.parentId
+        if (archived.has(stepId) || parentId === null || parentId === undefined) continue
+        const removed: StepRow[] = []
+        const collect = (id: string): void => {
+          for (const child of repository.children(id)) {
+            collect(child.id)
+            removed.push(child)
+          }
         }
-      }
-      collect(stepId)
-      const siblings = repository.children(parentId)
-      const self = siblings.find((sibling) => sibling.id === stepId)
-      if (self !== undefined) removed.push(self)
-      const gone = new Set(removed.map((row) => row.id))
-      for (const row of removed) {
-        for (const dependency of repository.dependenciesTouching(row.id)) {
-          const key = `${dependency.stepId}>${dependency.waitsForId}`
-          if (entries.some((existing) => existing.entityId === key)) continue
-          repository.removeDependency(dependency.stepId, dependency.waitsForId)
-          entry('step_dependency', key, { waitsFor: dependency.waitsForId }, null)
+        collect(stepId)
+        const siblings = repository.children(parentId)
+        const self = siblings.find((sibling) => sibling.id === stepId)
+        if (self !== undefined) removed.push(self)
+        const gone = new Set(removed.map((row) => row.id))
+        for (const row of removed) {
+          for (const dependency of repository.dependenciesTouching(row.id)) {
+            const key = `${dependency.stepId}>${dependency.waitsForId}`
+            if (entries.some((existing) => existing.entityId === key)) continue
+            repository.removeDependency(dependency.stepId, dependency.waitsForId)
+            entry('step_dependency', key, { waitsFor: dependency.waitsForId }, null)
+          }
         }
-      }
-      for (const row of removed) {
-        repository.setArchived(row.id, true)
-        entry('step', row.id, { title: row.title, parentId: row.parentId }, null)
-      }
-      const before = new Map(siblings.map((sibling) => [sibling.id, sibling.rank] as const))
-      for (const sibling of renumber(siblings.filter((row) => !gone.has(row.id)))) {
-        if (before.get(sibling.id) === sibling.rank) continue
-        repository.setRank(sibling.id, sibling.rank)
-        entry('step_rank', sibling.id, { rank: before.get(sibling.id) ?? null }, { rank: sibling.rank })
+        for (const row of removed) {
+          repository.setArchived(row.id, true)
+          archived.add(row.id)
+          entry('step', row.id, { title: row.title, parentId: row.parentId }, null)
+        }
+        const before = new Map(siblings.map((sibling) => [sibling.id, sibling.rank] as const))
+        for (const sibling of renumber(siblings.filter((row) => !gone.has(row.id)))) {
+          if (before.get(sibling.id) === sibling.rank) continue
+          repository.setRank(sibling.id, sibling.rank)
+          entry('step_rank', sibling.id, { rank: before.get(sibling.id) ?? null }, { rank: sibling.rank })
+        }
       }
       repository.log(batchId, entries)
     })

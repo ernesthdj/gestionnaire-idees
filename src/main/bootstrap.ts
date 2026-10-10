@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { parseViewState } from '@shared/brainstorms/viewState'
+import { parseViewState, type StructureView } from '@shared/brainstorms/viewState'
+import { readSheet } from './domain/conversation/sheet'
+import { elementInput, workflowInput } from './domain/widgets/structureInputs'
 import { checkGitUrl } from '@shared/reprise/gitUrl'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -411,7 +413,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
   const widgetIoRepository = new WidgetIoRepository(database.db)
-  const blockRepository = new BlockRepository(database.db, brainstormScope)
+  // Un bloc naît dans la vue affichée de la carte du canevas actif (spec 023 D25).
+  const blockRepository = new BlockRepository(database.db, brainstormScope, () => canvasView(brainstormScope.active()))
 
   const appSettings = new AppSettingsRepository(database.db)
   const widgetRepository = new WidgetRepository(database.db)
@@ -421,6 +424,21 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     blocks: blockRepository,
     tree: (rootId) => (neuronRepository.root(rootId) === undefined ? undefined : neurons.getTree(rootId)),
     document: (rootId) => hatchedRepository.result(rootId),
+    // Éléments de structure et nœuds du Workflow branchés (spec 023 D24) : relus à chaque demande.
+    element: (id) => {
+      const genesisId = conversationRepository.neuron(id)?.genesisId
+      if (genesisId === null || genesisId === undefined) return undefined
+      const elements = elementRepository.list(genesisId).map((row) => ({ ...row, sheet: readSheet(row.sheetJson) }))
+      return elementInput(elements, id)
+    },
+    workflowNode: (key) => {
+      const genesisId = key.split(':')[1] ?? ''
+      try {
+        return workflowInput(workflow.read(genesisId), key)
+      } catch {
+        return undefined
+      }
+    },
     // Contexte des plans d'attaque (spec 015) : lu à la demande, une fois l'app démarrée (dépôts créés plus bas).
     context: {
       node: (id) => planRepository.node(id),
@@ -460,6 +478,21 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const elementRepository = new ElementRepository(database.db)
   const conversationRepository = new ConversationRepository(database.db)
   const planRepository = new PlanRepository(database.db)
+  // Vue affichée de la carte d'un genesis (spec 023 D19) : celle choisie dans son brainstorm, sinon Progression s'il a
+  // une carte de structure (vue par défaut de l'interface).
+  const structureViewOf = (genesisId: string): StructureView | null => {
+    const brainstormId = planRepository.brainstormOf(genesisId)
+    const chosen =
+      brainstormId === null
+        ? undefined
+        : parseViewState(brainstormRepository.get(brainstormId)?.viewStateJson ?? null)?.structureViews[genesisId]
+    return chosen ?? (planRepository.hasMap(genesisId) ? 'progression' : null)
+  }
+  // Vue affichée d'un canevas (spec 023 D25) : celle de la carte de son genesis principal.
+  const canvasView = (brainstormId: string | null): StructureView | null => {
+    const genesisId = brainstormId === null ? null : brainstormRepository.genesisOf(brainstormId)
+    return genesisId === null ? null : structureViewOf(genesisId)
+  }
   // Documents Markdown des neurones (spec 012) : vrais fichiers, dossier choisi ici, jamais par Claude ni l'interface.
   const documentRepository = new DocumentRepository(database.db)
   // Projets repris (spec 017) : un projet « Local uniquement » n'est jamais transmis à Claude (garde unique, R5).
@@ -485,16 +518,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const plan = new PlanService({
     repository: planRepository,
     finals,
-    // Vue de la carte d'un genesis (spec 023 D19) : celle choisie dans son brainstorm, sinon Progression s'il a une
-    // carte de structure (vue par défaut de l'interface).
-    structureView: (genesisId) => {
-      const brainstormId = planRepository.brainstormOf(genesisId)
-      const chosen =
-        brainstormId === null
-          ? undefined
-          : parseViewState(brainstormRepository.get(brainstormId)?.viewStateJson ?? null)?.structureViews[genesisId]
-      return chosen ?? (planRepository.hasMap(genesisId) ? 'progression' : null)
-    }
+    structureView: structureViewOf
   })
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)
@@ -859,6 +883,10 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     },
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     discardGenesis: (neuronId) => brainstormRepository.discardFreshRoot(neuronId),
+    assignBlockViews: (brainstormId) => {
+      const view = canvasView(brainstormId)
+      if (view !== null) blockRepository.assignViewless(brainstormId, view)
+    },
     gitState: async (genesisId) => {
       try {
         const status = await gitService.status(genesisId)

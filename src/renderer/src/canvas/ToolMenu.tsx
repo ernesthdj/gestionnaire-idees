@@ -2,25 +2,46 @@ import { useEffect, useRef } from 'react'
 
 export type Tool = 'idea' | 'label' | 'widget'
 
-const TOOLS: readonly { readonly tool: Tool; readonly icon: string; readonly label: string; readonly hint: string }[] =
-  [
-    { tool: 'idea', icon: '◆', label: 'Nouvelle idée', hint: 'Une idée à développer' },
-    { tool: 'label', icon: 'T', label: 'Note', hint: 'Un texte libre posé sur la carte' },
-    { tool: 'widget', icon: '▣', label: 'Widget IA', hint: 'Un outil que Claude fabrique pour toi' }
-  ]
+/** Entrée d'un menu contextuel de la carte. */
+export interface MenuItem<T extends string> {
+  readonly tool: T
+  readonly icon: string
+  readonly label: string
+  readonly hint: string
+}
 
-interface ToolMenuProps {
+const TOOLS: readonly MenuItem<Tool>[] = [
+  { tool: 'idea', icon: '◆', label: 'Nouvelle idée', hint: 'Une idée à développer' },
+  { tool: 'label', icon: 'T', label: 'Note', hint: 'Un texte libre posé sur la carte' },
+  { tool: 'widget', icon: '▣', label: 'Widget IA', hint: 'Un outil que Claude fabrique pour toi' }
+]
+
+interface ToolMenuProps<T extends string> {
   /** Position à l'écran du clic droit ; le menu reste dans la fenêtre. */
   readonly at: { readonly x: number; readonly y: number }
-  readonly onPick: (tool: Tool) => void
+  readonly onPick: (tool: T) => void
   readonly onClose: () => void
 }
 
 /**
  * Boîte à outils de la carte (spec 004 FR-001) : clic droit dans le vide, l'outil choisi crée son objet à cet
- * endroit. Menu au sens ARIA : flèches haut/bas, Début/Fin, Entrée ; Échap ou clic ailleurs le referme.
+ * endroit.
  */
-export function ToolMenu({ at, onPick, onClose }: ToolMenuProps): React.JSX.Element {
+export function ToolMenu(props: ToolMenuProps<Tool>): React.JSX.Element {
+  return <ContextMenu {...props} items={TOOLS} label="Outils de la carte" />
+}
+
+/**
+ * Menu contextuel de la carte (boîte à outils, « Envoyer vers… » d'un bloc). Menu au sens ARIA : flèches haut/bas,
+ * Début/Fin, Entrée ; Échap ou clic ailleurs le referme.
+ */
+export function ContextMenu<T extends string>({
+  at,
+  onPick,
+  onClose,
+  items,
+  label
+}: ToolMenuProps<T> & { readonly items: readonly MenuItem<T>[]; readonly label: string }): React.JSX.Element {
   const menu = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -59,13 +80,13 @@ export function ToolMenu({ at, onPick, onClose }: ToolMenuProps): React.JSX.Elem
     <div
       ref={menu}
       role="menu"
-      aria-label="Outils de la carte"
+      aria-label={label}
       onKeyDown={move}
       onContextMenu={(event) => event.preventDefault()}
       className="fixed z-50 w-60 rounded-lg border border-content-muted/30 bg-surface p-1 text-sm text-content shadow-lg"
       style={{ left: Math.min(at.x, window.innerWidth - 248), top: Math.min(at.y, window.innerHeight - 180) }}
     >
-      {TOOLS.map(({ tool, icon, label, hint }) => (
+      {items.map(({ tool, icon, label: name, hint }) => (
         <button
           key={tool}
           type="button"
@@ -78,7 +99,7 @@ export function ToolMenu({ at, onPick, onClose }: ToolMenuProps): React.JSX.Elem
             {icon}
           </span>
           <span>
-            <span className="block font-medium">{label}</span>
+            <span className="block font-medium">{name}</span>
             <span className="block text-xs text-content-muted">{hint}</span>
           </span>
         </button>

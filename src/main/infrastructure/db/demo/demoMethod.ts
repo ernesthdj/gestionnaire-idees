@@ -3,8 +3,9 @@ import { dirname, join } from 'node:path'
 
 /**
  * Dossier de méthode FICTIF du profil démo (spec 023 T039) : une fondation, deux specs (l'une en cours, l'autre
- * planifiée), un L1 cité par une spec et un L1 à brainstormer, plus un petit fichier de code cité par une tâche — de
- * quoi montrer la vue Workflow, ses cartes, le lecteur et « Que fait ce fichier ? ». Aucune donnée réelle.
+ * planifiée), un L1 cité par une spec et un L1 à brainstormer, un fichier de tâches à trois états (D20, D21), plus un
+ * petit fichier de code cité par une tâche — de quoi montrer la vue Workflow, ses cartes, le lecteur et « Que fait ce
+ * fichier ? ». Aucune donnée réelle.
  */
 const FILES: Readonly<Record<string, string>> = {
   'docs/FOUNDATION.md': `# Fondation — Application de notes (démo)
@@ -65,6 +66,19 @@ Enregistrer une note en fichier Markdown.
   'specs/002-export/tasks.md': `# Tasks: Export des notes (démo)
 
 - [ ] T001 [US1] Écrire une note en Markdown dans \`src/notes/export.ts\`
+`,
+  'docs/TACHES-DESIGN.md': `# Tâches — Design de l'application (démo)
+
+## Écrans
+### Liste des notes
+- [x] Maquette de la liste
+- [~] Tri par date dans \`src/notes/search.ts\`
+- [ ] État vide (« aucune note »)
+### Recherche
+- [ ] Champ de recherche toujours visible
+
+## Accessibilité
+- [x] Contraste AA des couleurs
 `,
   'src/notes/search.ts': `/** Une note de l'application (démo). */
 export interface Note {

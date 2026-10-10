@@ -1,3 +1,4 @@
+import type { StructureView } from '../brainstorms/viewState'
 import type { ArchitectureKind } from '../structure/architecture'
 import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
@@ -140,6 +141,8 @@ export interface BlockView {
   readonly frameId: string | null
   /** Posé par mentalyas ou par Claude Code. */
   readonly origin: BlockOrigin
+  /** Vue de la carte où il est né (spec 023 D25) ; absent ou `null` : toutes. */
+  readonly view?: StructureView | null
 }
 
 export type BlockOrigin = 'user' | 'claude'

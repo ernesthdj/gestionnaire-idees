@@ -1,7 +1,7 @@
-import type { TaskView } from '@shared/ipc/workflow'
+import type { TaskState, TaskView } from '@shared/ipc/workflow'
 import { clip, WORKFLOW_LIMITS } from './limits'
 
-const TASK = /^\s*-\s\[( |x|X)\]\s+(T\d{3,4}[a-z]?)\b(.*)$/
+const TASK = /^\s*-\s\[( |x|X|~)\]\s+(T\d{3,4}[a-z]?)\b(.*)$/
 const LABEL = /^\s*\[(P|US(\d+))\]/
 /** Chemin relatif plausible : au moins un dossier, un nom avec extension ; ni absolu ni remontée. */
 const PATH = /^[\w.@-]+(?:\/[\w.@-]+)+$/
@@ -24,7 +24,13 @@ export function citedPaths(text: string): string[] {
   return [...found]
 }
 
-/** Tâches d'un `tasks.md` : `- [ ] T012 [P] [US1] description` (identifiant suffixé `T009b` admis) ; `truncated` au-delà de la borne. Pur. */
+/** État d'une case (D21) : `x` faite, `~` en cours, sinon à faire. Pur. */
+export function taskState(mark: string): TaskState {
+  if (mark === 'x' || mark === 'X') return 'done'
+  return mark === '~' ? 'doing' : 'todo'
+}
+
+/** Tâches d'un `tasks.md` : `- [ ] T012 [P] [US1] description` (`- [~]` : en cours) (identifiant suffixé `T009b` admis) ; `truncated` au-delà de la borne. Pur. */
 export function parseTasks(text: string): { readonly tasks: TaskView[]; readonly truncated: boolean } {
   const tasks: TaskView[] = []
   const seen = new Set<string>()
@@ -42,9 +48,11 @@ export function parseTasks(text: string): { readonly tasks: TaskView[]; readonly
       rest = rest.slice(label[0].length)
     }
     const description = rest.trim()
+    const state = taskState(match[1] ?? ' ')
     tasks.push({
       id,
-      done: match[1] !== ' ',
+      done: state === 'done',
+      state,
       story,
       text: clip(description, WORKFLOW_LIMITS.taskText),
       files: citedPaths(description)

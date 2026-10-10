@@ -3,13 +3,13 @@ import type { ParsedSpec } from './parseSpec'
 
 /**
  * Statut retenu d'une spec (spec 023 D7, data-model) : le marqueur de sa ligne `**Status**` prime ; sinon calculé
- * depuis ses cases (sans `tasks.md` : spécifiée ; aucune cochée : planifiée ; toutes : livrée ; sinon en cours). Pur.
+ * depuis ses cases (sans `tasks.md` : spécifiée ; aucune cochée ni en cours : planifiée ; toutes : livrée ; sinon en cours). Pur.
  */
 export function specStatus(marker: SpecMarker | null, tasks: readonly TaskView[] | null): SpecStatus {
   if (marker !== null) return marker
   if (tasks === null) return 'specified'
   const done = tasks.filter((task) => task.done).length
-  if (done === 0) return 'planned'
+  if (done === 0 && !tasks.some((task) => task.state === 'doing')) return 'planned'
   return done === tasks.length ? 'delivered' : 'active'
 }
 
