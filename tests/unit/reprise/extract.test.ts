@@ -149,6 +149,32 @@ describe('extraction de la structure d’un fichier (spec 017 R3)', () => {
     expect(extraction.calls[0]?.from).toBe(1)
   })
 
+  it('should_count_a_known_function_passed_as_a_value_as_a_weak_call_when_it_is_an_argument_jsx_or_object_value', () => {
+    const extraction = fromSource(
+      'tsx',
+      [
+        "import { flush } from './probe'",
+        'export function listen(target: Window): void {',
+        '  const onError = (): void => undefined',
+        "  target.addEventListener('error', onError)",
+        '  setInterval(flush, 1000)',
+        '  register({ run: onError, flush, label: name })',
+        '}',
+        'export function Page(): JSX.Element {',
+        '  const analyze = (): void => undefined',
+        '  return <button onClick={analyze} title={name}>ok</button>',
+        '}',
+        'class Store { save(): void {} bind(): void { subscribe(this.save) } }'
+      ].join('\n')
+    )
+    const references = extraction.calls.filter(
+      (call) => !['addEventListener', 'setInterval', 'register', 'subscribe'].includes(call.callee)
+    )
+    expect(
+      references.map((call) => `${call.receiver === null ? '' : `${call.receiver}|`}${call.callee}@${call.from}`)
+    ).toEqual(['onError@0', 'flush@0', 'onError@0', 'flush@0', 'analyze@2', 'this|save@6'])
+  })
+
   it('should_mark_public_csharp_members_and_interface_members_as_exported', () => {
     const extraction = fromSource(
       'cs',

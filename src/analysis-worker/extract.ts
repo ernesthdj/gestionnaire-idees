@@ -40,6 +40,7 @@ export interface RawImport {
   readonly line: number
 }
 
+/** Appel, ou référence faible à une fonction passée en valeur (TS / JS : `setInterval(flush)`, `onClick={go}`). */
 export interface RawCall {
   /** Symbole qui contient l'appel ; `null` : niveau du fichier. */
   readonly from: number | null
@@ -156,7 +157,25 @@ class Collector {
     this.calls.push({ from, callee, receiver, isNew, line: line(node) })
   }
 
+  /** Noms passés en valeur (`setInterval(flush)`, `onClick={analyze}`, `{ run: this.run }`), triés dans `result()`. */
+  private readonly references: RawCall[] = []
+
+  /** Référence faible à une fonction passée en valeur : comptée comme un appel si le nom désigne un bloc connu. */
+  addReference(from: number | null, value: Node): void {
+    const self = value.type === 'member_expression' && value.childForFieldName('object')?.type === 'this'
+    const named = value.type === 'identifier' || value.type === 'shorthand_property_identifier'
+    const callee = named ? value.text : self ? value.childForFieldName('property')?.text : ''
+    if (callee === undefined || callee === '') return
+    this.references.push({ from, callee, receiver: self ? 'this' : null, isNew: false, line: line(value) })
+  }
+
   result(): FileExtraction {
+    // Seuls les noms de fonctions, méthodes et classes du fichier ou importés : une variable ordinaire n'est pas un appel.
+    const known = new Set([
+      ...this.symbols.filter((symbol) => symbol.kind !== 'namespace' && symbol.kind !== 'interface').map((s) => s.name),
+      ...this.imports.flatMap((entry) => entry.names.map((name) => name.local))
+    ])
+    const references = this.references.filter((reference) => known.has(reference.callee))
     // Les parents précèdent leurs enfants : une passe suffit pour savoir si la classe d'un membre est offerte.
     const symbols: RawSymbol[] = []
     for (const symbol of this.symbols) {
@@ -171,7 +190,7 @@ class Collector {
       namespace: this.namespace,
       symbols,
       imports: this.imports,
-      calls: this.calls,
+      calls: [...this.calls, ...references],
       routes: this.routes,
       registrations: this.registrations,
       topLevelCode: this.topLevelCode
@@ -395,6 +414,24 @@ function walkTs(node: Node, parent: number | null, out: Collector): void {
       }
       break
     }
+    // Fonction passée en valeur : argument (`addEventListener('error', onError)`), valeur d'attribut JSX
+    // (`onClick={analyze}`) ou de propriété d'objet (`{ run: start }`, `{ start }`).
+    case 'arguments':
+      for (const argument of children(node)) out.addReference(parent, argument)
+      break
+    case 'jsx_expression': {
+      const value = children(node)[0]
+      if (node.parent?.type === 'jsx_attribute' && value !== undefined) out.addReference(parent, value)
+      break
+    }
+    case 'pair': {
+      const value = node.childForFieldName('value')
+      if (value !== null) out.addReference(parent, value)
+      break
+    }
+    case 'shorthand_property_identifier':
+      out.addReference(parent, node)
+      break
     // `export { a, b as c }` et `export default a` : noms offerts après leur déclaration.
     case 'export_statement': {
       const clause = children(node).find((child) => child.type === 'export_clause')

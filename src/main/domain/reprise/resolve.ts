@@ -239,6 +239,18 @@ export function resolveGraph(
         current = current.parent === null ? undefined : extraction.symbols[current.parent]
       return current === undefined ? undefined : { id: file.symbolIds[current.key] ?? '', file, raw: current }
     }
+    // Fonctions locales (`const onError = …` dans une fonction, fonction locale C#), par bloc qui les contient.
+    const locals = new Map<string, RawSymbol>()
+    for (const symbol of extraction.symbols)
+      if (symbol.kind === 'function' && symbol.parent !== null) locals.set(`${symbol.parent}|${symbol.name}`, symbol)
+    /** Fonction locale `name` visible depuis le bloc `key` : déclarée en lui ou dans un bloc qui l'englobe. */
+    const inScope = (key: number | null, name: string): Indexed | undefined => {
+      for (let scope = key; scope !== null; scope = extraction.symbols[scope]?.parent ?? null) {
+        const raw = locals.get(`${scope}|${name}`)
+        if (raw !== undefined) return { id: file.symbolIds[raw.key] ?? '', file, raw }
+      }
+      return undefined
+    }
 
     // Imports résolus dans le projet (TS / JS, PHP).
     for (const entry of extraction.imports) {
@@ -276,6 +288,11 @@ export function resolveGraph(
         continue
       }
       const owner = classOf(call.from)
+      const local = call.receiver === null ? inScope(call.from, call.callee) : undefined
+      if (local !== undefined) {
+        link(from, rawTarget, 'call', { found: [local], sure: true })
+        continue
+      }
       if (call.receiver === null || RECEIVER_SELF.test(call.receiver)) {
         const own = owner === undefined ? undefined : methodOf(owner, call.callee)
         if (own !== undefined) {
