@@ -672,12 +672,28 @@ export function ChatPanel({
             ))}
           </div>
         ) : null}
-        {!chat.loading &&
-        chat.messages.length === 0 &&
-        !chat.busy &&
-        !localOnly &&
-        chat.role !== 'skills' &&
-        chat.role !== 'workflow' ? (
+        {!chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly && chat.role === 'step' ? (
+          // Une étape se réalise par son action finale (spec 013 D6) : Claude la propose, tu l'acceptes sur la carte.
+          <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
+            <p>
+              Claude connaît l’étape, son plan et le projet. Pour la réaliser, il propose une action finale : tu
+              l’acceptes sur la carte, tu lances « Exécuter », puis tu revois le livrable.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary" onClick={() => void chat.send(FINAL_MESSAGE)}>
+                Réaliser cette étape
+              </Button>
+              <Button onClick={() => (draft.trim() === '' ? void chat.send(OPENING_MESSAGE) : submit())}>
+                En discuter d’abord
+              </Button>
+            </div>
+          </div>
+        ) : !chat.loading &&
+          chat.messages.length === 0 &&
+          !chat.busy &&
+          !localOnly &&
+          chat.role !== 'skills' &&
+          chat.role !== 'workflow' ? (
           <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
             <p>Claude connaît déjà le titre de l’idée et sa fiche. Lance le cadrage, ou écris directement.</p>
             {/* Une consigne préparée dans le champ (spec 024 D8 : nom et description du projet) part à la place du

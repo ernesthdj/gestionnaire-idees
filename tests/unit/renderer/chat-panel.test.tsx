@@ -271,6 +271,21 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(screen.queryByRole('button', { name: 'Proposer l’action finale' })).toBeNull()
   })
 
+  it('should_offer_to_carry_out_an_empty_step_through_its_final_action_instead_of_a_brainstorm', async () => {
+    const { api } = renderChat(view({ role: 'step', stepLabel: '①', title: 'Socle technique' }))
+    const start = await screen.findByRole('button', { name: 'Réaliser cette étape' })
+    expect(screen.queryByRole('button', { name: 'Commencer le brainstorm' })).toBeNull()
+    expect(screen.getByText(/tu lances « Exécuter », puis tu revois le livrable/)).toBeDefined()
+    await userEvent.click(start)
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: FINAL_MESSAGE })
+  })
+
+  it('should_still_let_a_step_be_discussed_first_when_asked', async () => {
+    const { api } = renderChat(view({ role: 'step', stepLabel: '①', title: 'Socle technique' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'En discuter d’abord' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', { neuronId: ID, text: OPENING_MESSAGE })
+  })
+
   it('should_present_an_element_conversation_without_folder_controls', async () => {
     renderChat(view({ role: 'element', elementType: 'composant', folder: 'gestionnaire-idees' }))
     expect(await screen.findByText(/composant du projet/)).toBeTruthy()
