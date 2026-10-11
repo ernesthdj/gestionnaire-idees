@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { SECTIONS, type NavigateEvent } from '@shared/ipc/app'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 import type { MapChangedPayload } from '@shared/ipc/mcp'
+import { watchWaitingChats } from '../chat/waitingChats'
 import { useUiStore } from './uiStore'
 
 /**
@@ -21,7 +22,9 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   // Dossier de skills modifié (spec 020) : l'arbre et la fiche ouverte se relisent.
   ['skills:changed', [['skills'], ['skill'], ['skillDrafts'], ['skillDraftDiff']]],
   // Écriture git de l'app (spec 021) : état, branches et historique du dépôt se relisent.
-  ['git:changed', [['git']]]
+  ['git:changed', [['git']]],
+  // Fin d'un tour de Claude : il a pu écrire dans le dossier du projet, le badge du dépôt se relit (audit 2026-10-11).
+  ['chat:turnEnd', [['git']]]
 ]
 
 function isMapChanged(payload: unknown): payload is MapChangedPayload {
@@ -53,6 +56,8 @@ export function useMainEvents(): void {
         for (const queryKey of keys) void client.invalidateQueries({ queryKey })
       })
     )
+    // Demandes de permission en attente : signalées sur le nœud de leur conversation.
+    unsubscribes.push(watchWaitingChats())
     unsubscribes.push(
       window.api.on('app:navigate', (payload) => {
         if (isNavigateEvent(payload)) navigate(payload)

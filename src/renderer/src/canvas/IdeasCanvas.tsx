@@ -213,6 +213,8 @@ function CanvasInner(): React.JSX.Element {
   const reduced = useReducedMotionPreference(settings.motion)
   const structureViews = useUiStore((state) => state.structureViews)
   const analysisLinks = useUiStore((state) => state.analysisLinks)
+  // Canevas d'un projet (spec 024) : « Reprendre un projet existant » n'y a pas sa place (audit 2026-10-11).
+  const projectFolder = useUiStore((state) => state.brainstorm?.folder ?? null)
   const toggleAnalysisLinks = useUiStore((state) => state.toggleAnalysisLinks)
   const openChat = useUiStore((state) => state.openChat)
   // Cartes de détails (spec 022 D15) : plusieurs à la fois, une discussion par carte ; plus de volet de droite.
@@ -717,7 +719,7 @@ function CanvasInner(): React.JSX.Element {
         openCards={cards.length}
         onCloseCards={cardsApi.closeAll}
         onAddBlock={addBlockSafely}
-        onImport={startImport}
+        {...(projectFolder === null ? { onImport: startImport } : {})}
       />
       {importing ? (
         <ImportWizard

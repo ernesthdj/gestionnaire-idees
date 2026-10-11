@@ -38,7 +38,7 @@ const MATURITY_LABELS: Readonly<Record<string, string>> = {
 const SHORT_MODEL_NAMES: Readonly<Record<string, string>> = {
   'claude-opus-5-5': 'Opus 5.5',
   'claude-sonnet-5-5': 'Sonnet 5.5',
-  'claude-haiku-4-5': 'Haiku 4.5',
+  'claude-haiku-5-5': 'Haiku 5.5',
   'claude-opus-5': 'Opus 5'
 }
 
@@ -680,7 +680,12 @@ export function ChatPanel({
         chat.role !== 'workflow' ? (
           <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
             <p>Claude connaît déjà le titre de l’idée et sa fiche. Lance le cadrage, ou écris directement.</p>
-            <Button variant="primary" onClick={() => void chat.send(OPENING_MESSAGE)}>
+            {/* Une consigne préparée dans le champ (spec 024 D8 : nom et description du projet) part à la place du
+                message générique : elle porte le cadrage voulu. */}
+            <Button
+              variant="primary"
+              onClick={() => (draft.trim() === '' ? void chat.send(OPENING_MESSAGE) : submit())}
+            >
               Commencer le brainstorm
             </Button>
           </div>

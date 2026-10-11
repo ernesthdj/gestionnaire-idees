@@ -165,7 +165,7 @@ describe('conversations Claude Code des neurones', () => {
       settings: () => ({
         cwd: 'C:\\ws',
         model: 'claude-sonnet-5-5',
-        elementModel: 'claude-haiku-4-5',
+        elementModel: 'claude-haiku-5-5',
         electronPath: 'C:\\e.exe',
         relayPath: 'C:\\relay.js',
         profileDir: 'C:\\profil'
@@ -553,7 +553,7 @@ describe('conversations Claude Code des neurones', () => {
     expect(service.open(N3)).toMatchObject({ role: 'step', stepLabel: '②.1' })
     await service.send(N3, 'On commence ?')
     const process = processes[0] as FakeProcess
-    expect(process.options.args[process.options.args.indexOf('--model') + 1]).toBe('claude-haiku-4-5')
+    expect(process.options.args[process.options.args.indexOf('--model') + 1]).toBe('claude-haiku-5-5')
     const context = sent(process)
     expect(context).toContain('étape ②.1 « Visiter trois locaux »')
     expect(context).toContain(`Chemin : Idée c1 › ② Choisir le lieu › ②.1 Visiter trois locaux.`)
@@ -568,7 +568,7 @@ describe('conversations Claude Code des neurones', () => {
     expect(genesisArgs[genesisArgs.indexOf('--model') + 1]).toBe('claude-sonnet-5-5')
     await service.send(N2, 'Élément')
     const elementArgs = (processes[1] as FakeProcess).options.args
-    expect(elementArgs[elementArgs.indexOf('--model') + 1]).toBe('claude-haiku-4-5')
+    expect(elementArgs[elementArgs.indexOf('--model') + 1]).toBe('claude-haiku-5-5')
     finish(processes[0] as FakeProcess, 'ok')
     const view = service.setModel(N1, 'claude-opus-5-5')
     expect(view).toMatchObject({ model: 'claude-opus-5-5', modelChoice: 'claude-opus-5-5' })

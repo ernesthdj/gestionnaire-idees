@@ -30,8 +30,8 @@ describe('canaux IA (spec 010 : Claude Code, plus de clé API)', () => {
 
   it('should_update_only_allowed_fields_and_refuse_unknown_models', async () => {
     const harness = createAiRoutesHarness()
-    const updated = data<AiConfigView>(await harness.dispatch('ai:setConfig', { elementModel: 'claude-haiku-4-5' }))
-    expect(updated.elementModel).toBe('claude-haiku-4-5')
+    const updated = data<AiConfigView>(await harness.dispatch('ai:setConfig', { elementModel: 'claude-haiku-5-5' }))
+    expect(updated.elementModel).toBe('claude-haiku-5-5')
     expect((await harness.dispatch('ai:setConfig', { elementModel: 'gpt-5' })).success).toBe(false)
     expect((await harness.dispatch('ai:setConfig', { capCents: 500 })).success).toBe(false)
   })

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { currentModel } from '@shared/ipc/ai'
 import type { AppDatabase } from '../client'
 import { aiConfig } from '../schema'
 
@@ -37,7 +38,12 @@ export class AiConfigRepository {
     const parsed = AiConfigSchema.safeParse(stored)
     // Document corrompu : on repart des valeurs par défaut plutôt que de planter.
     const config = parsed.success ? parsed.data : AiConfigSchema.parse({})
-    return { ...config, claudeModel: RETIRED_MODELS[config.claudeModel] ?? config.claudeModel }
+    return {
+      ...config,
+      claudeModel: currentModel(RETIRED_MODELS[config.claudeModel] ?? config.claudeModel),
+      elementModel: currentModel(config.elementModel),
+      widgetModel: currentModel(config.widgetModel)
+    }
   }
 
   update(patch: Partial<AiConfig>): AiConfig {

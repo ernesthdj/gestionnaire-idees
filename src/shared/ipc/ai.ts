@@ -1,8 +1,16 @@
 /** Vues et constantes partagées des réglages IA (spec 010). Aucun secret : plus de clé API. */
 
 /** Modèles proposés dans Réglages › IA et dans le chat (Opus 5 gardé pour les réglages existants). */
-export const CLAUDE_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-4-5', 'claude-opus-5'] as const
+export const CLAUDE_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5'] as const
 export type ClaudeModel = (typeof CLAUDE_MODELS)[number]
+
+/** Modèles retirés de la liste, remplacés par leur version actuelle à la lecture (réglages, conversations). */
+const REPLACED_MODELS: Readonly<Record<string, ClaudeModel>> = { 'claude-haiku-4-5': 'claude-haiku-5-5' }
+
+/** Modèle enregistré ramené à un modèle proposé : un ancien Haiku 4.5 devient Haiku 5.5. */
+export function currentModel(model: string): string {
+  return REPLACED_MODELS[model] ?? model
+}
 
 export interface AiStatusView {
   readonly ollama: {

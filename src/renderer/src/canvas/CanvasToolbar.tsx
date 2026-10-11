@@ -16,8 +16,11 @@ interface CanvasToolbarProps {
   readonly openCards: number
   readonly onCloseCards: () => void
   readonly onAddBlock: () => void
-  /** « Reprendre un projet existant » (spec 017) : le chemin inverse de « Nouvelle idée ». */
-  readonly onImport: () => void
+  /**
+   * « Reprendre un projet existant » (spec 017) : le chemin inverse de « Nouvelle idée ». Absent sur le canevas d'un
+   * projet (un projet par canevas, spec 024) : la reprise se lance alors depuis le Project Manager.
+   */
+  readonly onImport?: () => void
 }
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -107,9 +110,11 @@ export const CanvasToolbar = memo(function CanvasToolbar({
           placeholder="Rechercher…"
           className="h-8 w-48 rounded-md bg-surface-raised px-2"
         />
-        <Button onClick={onImport} title="Importer un projet écrit par d’autres pour le comprendre (dossier)">
-          Reprendre un projet existant
-        </Button>
+        {onImport === undefined ? null : (
+          <Button onClick={onImport} title="Importer un projet écrit par d’autres pour le comprendre (dossier)">
+            Reprendre un projet existant
+          </Button>
+        )}
         <Button onClick={onAddBlock} title="Bloc libre : accueillera les mini-widgets en v2">
           + Bloc
         </Button>

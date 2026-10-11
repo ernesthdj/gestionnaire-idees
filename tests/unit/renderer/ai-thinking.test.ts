@@ -5,7 +5,7 @@ describe('étiquette du moteur qui réfléchit', () => {
   it('should_name_the_claude_model_when_claude_works', () => {
     expect(workerLabel({ engine: 'claude', model: 'claude-opus-5-5' })).toBe('Claude Opus 5.5')
     expect(workerLabel({ engine: 'claude', model: 'claude-sonnet-5-5' })).toBe('Claude Sonnet 5.5')
-    expect(workerLabel({ engine: 'claude', model: 'claude-haiku-4-5' })).toBe('Claude Haiku 4.5')
+    expect(workerLabel({ engine: 'claude', model: 'claude-haiku-5-5' })).toBe('Claude Haiku 5.5')
     expect(workerLabel({ engine: 'claude', model: 'claude-opus-5' })).toBe('Claude Opus 5')
   })
 

@@ -16,6 +16,7 @@ import { withContext, type NeuronContext } from '../../domain/conversation/conte
 import { hookSettings } from '../../domain/conversation/hookSettings'
 import { conversationDirs, type ConversationDirs } from '../../domain/conversation/workingDirs'
 import { rankLabel } from '@shared/plan/rankLabel'
+import { currentModel } from '@shared/ipc/ai'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PermissionService } from './PermissionService'
@@ -300,7 +301,7 @@ export class ConversationService {
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
-      modelChoice: neuron.chatModel,
+      modelChoice: neuron.chatModel === null ? null : currentModel(neuron.chatModel),
       permissionMode: this.permissionModeOf(neuron),
       reprise: this.deps.repriseOf?.(neuronId) ?? null
     }
@@ -752,7 +753,7 @@ ${text}`
 
   /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */
   private modelOf(neuron: ConversationNeuron, settings: ConversationSettings): string {
-    if (neuron.chatModel !== null) return neuron.chatModel
+    if (neuron.chatModel !== null) return currentModel(neuron.chatModel)
     return neuron.genesisId === null ? settings.model : (settings.elementModel ?? settings.model)
   }
 

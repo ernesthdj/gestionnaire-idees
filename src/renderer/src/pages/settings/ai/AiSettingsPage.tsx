@@ -8,7 +8,7 @@ const LOCAL_MODEL_SUGGESTIONS = ['qwen3.5:9b', 'llama3.1:8b', 'gemma3:4b']
 export const MODEL_LABELS: Readonly<Record<string, string>> = {
   'claude-opus-5-5': 'Opus 5.5 — meilleur raisonnement',
   'claude-sonnet-5-5': 'Sonnet 5.5 — équilibré, plus économe',
-  'claude-haiku-4-5': 'Haiku 4.5 — le plus rapide, le plus économe',
+  'claude-haiku-5-5': 'Haiku 5.5 — le plus rapide, le plus économe',
   'claude-opus-5': 'Opus 5 — ancienne génération'
 }
 

@@ -81,6 +81,7 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
         visual={working && visual.status !== 'done' ? { ...visual, status: 'doing' } : visual}
         open={open}
         {...(meta === '' ? {} : { meta })}
+        {...(chatId === undefined ? {} : { chatId })}
         {...(item.descendants === 0
           ? {}
           : { fold: { collapsed: item.collapsed, count: item.descendants, onToggle: toggle } })}

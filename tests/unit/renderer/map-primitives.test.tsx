@@ -105,6 +105,24 @@ describe('primitives du pont MCP sur la carte (spec 007)', () => {
     await userEvent.click(screen.getByRole('button', { name: /annuler/i }))
     expect(api.invoke).toHaveBeenCalledWith('history:undo', { batchId: 'b1' })
   })
+
+  it('should_refresh_the_repository_state_when_a_claude_turn_ends', () => {
+    const api = installFakeApi({})
+    function Host(): null {
+      useMainEvents()
+      return null
+    }
+    const client = new QueryClient()
+    client.setQueryData(['git', 'g1', 'status'], { files: [] })
+    render(
+      <QueryClientProvider client={client}>
+        <Host />
+      </QueryClientProvider>
+    )
+    expect(client.getQueryState(['git', 'g1', 'status'])?.isInvalidated).toBe(false)
+    act(() => api.emit('chat:turnEnd', { neuronId: 'n1' }))
+    expect(client.getQueryState(['git', 'g1', 'status'])?.isInvalidated).toBe(true)
+  })
 })
 
 describe('Réglages › Claude Code (spec 007 US5)', () => {

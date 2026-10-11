@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { useWaitingChats } from '../../chat/waitingChats'
 import { NODE_ICONS } from './icons'
 import type { NodeIconKey, NodeStatus, NodeVisual } from './nodeVisual'
 import { rhythmStyle } from './rhythm'
@@ -34,6 +35,8 @@ export interface LivingNodeProps {
   readonly open?: boolean
   /** Ligne discrète sous le titre (avancement « 33/49 », lecture partielle…). */
   readonly meta?: string
+  /** Neurone de sa conversation, si ce n'est pas `id` (nœud Workflow) : « attend ton accord » quand Claude attend. */
+  readonly chatId?: string
   /** Contenu ajouté dans la couche flottante, posé sur le cercle (poignées React Flow, pastilles…). */
   readonly children?: ReactNode
 }
@@ -55,8 +58,10 @@ export function LivingNode({
   fold,
   open = false,
   meta,
+  chatId = id,
   children
 }: LivingNodeProps): React.JSX.Element {
+  const waiting = useWaitingChats((state) => state.waiting.has(chatId))
   const Icon = NODE_ICONS[orb?.inner ?? visual.icon]
   const faceStyle = {
     '--living-size': `${orb?.size ?? visual.size}px`,
@@ -126,6 +131,14 @@ export function LivingNode({
         <span className="living-label">
           {title}
           {meta === undefined ? null : <span className="living-meta">{meta}</span>}
+          {waiting ? (
+            <span
+              role="status"
+              className="mt-1 inline-block rounded-full border border-amber-500/60 bg-surface-raised px-2 py-0.5 text-[10.5px] font-semibold text-content"
+            >
+              ⏸ attend ton accord
+            </span>
+          ) : null}
         </span>
         {children}
       </div>

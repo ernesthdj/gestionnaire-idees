@@ -64,7 +64,7 @@ function renderChat(initial: ChatView = view()) {
     'project:initGit': () => ({ ok: true }),
     'chat:setModel': (payload) => ({
       ...current,
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-5-5',
       modelChoice: (payload as { model: string | null }).model
     })
   })
@@ -91,6 +91,18 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     expect(field.value).toBe('Implémente la tâche T032')
     expect(useUiStore.getState().chatDrafts[ID]).toBeUndefined()
     expect(api.invoke).not.toHaveBeenCalledWith('chat:send', expect.anything())
+  })
+
+  it('should_send_the_prepared_instruction_when_starting_the_brainstorm_with_a_seeded_draft', async () => {
+    useUiStore.getState().seedChatDraft(ID, 'Lançons le brainstorm du projet « Essai »')
+    const { api } = renderChat()
+    await screen.findByDisplayValue('Lançons le brainstorm du projet « Essai »')
+    await userEvent.click(await screen.findByRole('button', { name: 'Commencer le brainstorm' }))
+    expect(api.invoke).toHaveBeenCalledWith('chat:send', {
+      neuronId: ID,
+      text: 'Lançons le brainstorm du projet « Essai »'
+    })
+    expect(api.invoke).not.toHaveBeenCalledWith('chat:send', { neuronId: ID, text: OPENING_MESSAGE })
   })
 
   it('should_stream_the_answer_show_actions_and_unlock_sending_at_the_end_of_the_turn', async () => {
@@ -299,8 +311,8 @@ describe('chat d’un neurone (spec 008 lot A)', () => {
     const { api } = renderChat()
     const select = await screen.findByLabelText('Modèle de cette conversation')
     expect(screen.getByRole('option', { name: 'Défaut (Opus 5.5)' })).toBeTruthy()
-    await userEvent.selectOptions(select, 'claude-haiku-4-5')
-    expect(api.invoke).toHaveBeenCalledWith('chat:setModel', { neuronId: ID, model: 'claude-haiku-4-5' })
+    await userEvent.selectOptions(select, 'claude-haiku-5-5')
+    expect(api.invoke).toHaveBeenCalledWith('chat:setModel', { neuronId: ID, model: 'claude-haiku-5-5' })
   })
 })
 

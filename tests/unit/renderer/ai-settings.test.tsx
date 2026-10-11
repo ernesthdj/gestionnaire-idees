@@ -36,8 +36,8 @@ describe('Réglages › IA (spec 010)', () => {
     expect(screen.queryByText(/Budget mensuel/)).toBeNull()
     expect((screen.getByLabelText(/Genesis/) as HTMLSelectElement).value).toBe('claude-opus-5-5')
     expect((screen.getByLabelText(/Éléments de projet/) as HTMLSelectElement).value).toBe('claude-sonnet-5-5')
-    await userEvent.selectOptions(screen.getByLabelText(/Éléments de projet/), 'claude-haiku-4-5')
-    expect(api.invoke).toHaveBeenCalledWith('ai:setConfig', { elementModel: 'claude-haiku-4-5' })
+    await userEvent.selectOptions(screen.getByLabelText(/Éléments de projet/), 'claude-haiku-5-5')
+    expect(api.invoke).toHaveBeenCalledWith('ai:setConfig', { elementModel: 'claude-haiku-5-5' })
   })
 
   it('should_explain_when_claude_code_is_missing', async () => {
