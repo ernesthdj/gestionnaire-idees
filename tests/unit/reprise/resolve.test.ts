@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { loadEngine, type Engine } from '../../../src/analysis-worker/engine'
-import { resolveGraph, type ResolvedEdge } from '../../../src/main/domain/reprise/resolve'
+import { extractFile } from '../../../src/analysis-worker/extract'
+import { resolveGraph, type ResolvedEdge, type ResolveFile } from '../../../src/main/domain/reprise/resolve'
 import { extractFixture, FIXTURE_CONFIG, GRAMMARS_DIR } from '../../support/reprise'
 
 /** Nom court d'un symbole : sans chemin ni namespace (`Shop.Domain.`, `App.Http.Controllers.`…). */
@@ -90,5 +91,37 @@ describe('résolution des liens d’un projet repris (spec 017 R3, SC-006)', () 
       'route <fichier> → OrderController.store'
     ])
     expect(entries.map((entry) => entry.label).sort()).toEqual(['GET /orders', 'POST /orders'])
+  })
+
+  it('should_resolve_a_local_function_called_or_passed_as_a_value_within_its_enclosing_block', () => {
+    const path = 'src/probe.tsx'
+    const result = extractFile(
+      engine,
+      'tsx',
+      [
+        'export function listen(target: Window): void {',
+        '  const onError = (): void => report()',
+        '  const report = (): void => undefined',
+        "  target.addEventListener('error', onError)",
+        '}',
+        'export function Page(): JSX.Element {',
+        '  const analyze = (): void => undefined',
+        '  return <button onClick={analyze}>ok</button>',
+        '}'
+      ].join('\n')
+    )
+    if (!result.ok) throw new Error(result.reason)
+    const file: ResolveFile = {
+      path,
+      lang: 'tsx',
+      extraction: result.extraction,
+      symbolIds: result.extraction.symbols.map((symbol) => `${path}#${symbol.qualifiedName}`),
+      fileSymbolId: `${path}#<fichier>`
+    }
+    expect(sure(resolveGraph([file], FIXTURE_CONFIG).edges)).toEqual([
+      'call Page → Page.analyze',
+      'call listen → listen.onError',
+      'call listen.onError → listen.report'
+    ])
   })
 })
