@@ -3,23 +3,22 @@ import { memo } from 'react'
 import { useInternalNode, useReactFlow, useStore, ViewportPortal } from '@xyflow/react'
 import type { ChatView } from '@shared/ipc/chat'
 import type { IdeasCanvasView } from '@shared/ipc/canvas'
-import { ChatPanel, Sheet } from '../../chat/ChatPanel'
+import { Sheet } from '../../chat/ChatPanel'
 import { call } from '../../lib/ipc'
 import type { CanvasNode } from '../buildGraph'
-import { FileViewer } from '../FileViewer'
 import { FinalPanel } from '../FinalPanel'
 import { GhostPanel } from '../GhostPanel'
-import { ElementFileReader, ElementFiles } from '../../chat/ElementFiles'
+import { ElementFiles } from '../../chat/ElementFiles'
 import { contentLabel } from '../elementContent'
 import { ELEMENT_STYLES, ElementLayerSelect, STATUS_LABELS } from '../nodes/ElementNode'
 import { DeliverableFiles } from '../nodes/DeliverableNode'
-import { DocumentReader } from '../nodes/DocumentNode'
 import { GhostDecision, StepFinalActions } from '../nodes/PlanNode'
 import { usePlanFold } from '../usePlanFold'
-import { canChat, cardHead, type CardSubject } from './cardContent'
+import { shownNodeId, useSidePanel, type ChatTabInput } from '../side/sidePanelStore'
+import { canChat, cardHead, type CardHead, type CardSubject } from './cardContent'
 import { useCards, type OpenCard } from './cardsStore'
 import { DetailCard, type NodeBox } from './DetailCard'
-import { WorkflowCard, WorkflowFileReader, WorkflowFoundation } from '../workflow/WorkflowCard'
+import { WorkflowCard, WorkflowFoundation } from '../workflow/WorkflowCard'
 import { useUiStore } from '../../app/uiStore'
 
 /** Fiche tenue par Claude dans la conversation du neurone (spec 008), lue sans démarrer de conversation. */
@@ -108,6 +107,16 @@ function neuronOf(subject: CardSubject): string | null {
   return null
 }
 
+/** Titre et sorte d'un onglet du panneau de droite (spec 027 D4), d'après l'en-tête de la carte du nœud. */
+export function tabLabelOf(head: CardHead): { readonly title: string; readonly kindLabel: string } {
+  return { title: head.title, kindLabel: head.meta === null ? head.badge : `${head.badge} · ${head.meta}` }
+}
+
+/** Ce qu'il faut pour ouvrir l'onglet d'un nœud de la carte. */
+export function tabInputOf(nodeId: string, subject: CardSubject): ChatTabInput {
+  return { nodeId, neuronId: canChat(subject) ? neuronOf(subject) : null, ...tabLabelOf(cardHead(subject)) }
+}
+
 function IdeaCard({
   card,
   active,
@@ -127,6 +136,8 @@ function IdeaCard({
   const toggleFold = usePlanFold()
   const client = useQueryClient()
   const structureViews = useUiStore((state) => state.structureViews)
+  const side = useSidePanel()
+  const chatShown = useSidePanel((state) => shownNodeId(state) === card.id)
   if (node === undefined) return null
   const subject = subjectOf(node as CanvasNode, view)
   if (subject === null) return null
@@ -137,6 +148,7 @@ function IdeaCard({
     height: node.measured.height ?? node.height ?? 0
   }
   const neuronId = neuronOf(subject)
+  const tab = tabInputOf(card.id, subject)
   // Le nœud interne porte les mêmes données que le nœud de la carte (plus sa mesure).
   const mapNode = node as CanvasNode
   const fold =
@@ -222,12 +234,12 @@ function IdeaCard({
       <button
         type="button"
         className="card-button card-button-primary"
-        aria-pressed={card.side === 'reader'}
         onClick={() =>
-          cards.setSide(card.id, card.side === 'reader' ? null : 'reader', {
+          side.openReader(tab, {
             source: 'document',
             path: subject.document.id,
-            tab: 'file'
+            tab: 'file',
+            document: subject.document
           })
         }
       >
@@ -235,48 +247,9 @@ function IdeaCard({
       </button>
     ) : undefined
 
-  // Vue Workflow d'un projet lié (spec 023 US3) : la fondation dans la carte du genesis, lisible à droite.
+  // Vue Workflow d'un projet lié (spec 023 US3) : la fondation dans la carte du genesis, lue dans le panneau.
   const workflowGenesis =
     subject.kind === 'idea' && subject.neuron.linkedProject === true && structureViews[subject.neuron.id] === 'workflow'
-  const side =
-    card.side === 'reader' && workflowGenesis && card.reader?.source === 'workflow' ? (
-      <WorkflowFileReader
-        key={card.reader.path}
-        genesisId={card.id}
-        path={card.reader.path}
-        onClose={() => cards.setSide(card.id, null)}
-      />
-    ) : card.side === 'chat' && neuronId !== null ? (
-      <ChatPanel neuronId={neuronId} onClose={() => cards.setSide(card.id, null)} />
-    ) : card.side === 'reader' && subject.kind === 'deliverable' && card.reader !== null ? (
-      <FileViewer
-        key={card.reader.path}
-        neuronId={subject.deliverable.neuronId}
-        path={card.reader.path}
-        onClose={() => cards.setSide(card.id, null)}
-      />
-    ) : card.side === 'reader' && subject.kind === 'element' && card.reader !== null ? (
-      <ElementFileReader
-        key={card.reader.path}
-        elementId={subject.element.id}
-        path={card.reader.path}
-        onBack={() => cards.setSide(card.id, null)}
-      />
-    ) : card.side === 'reader' && subject.kind === 'document' ? (
-      <>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className="detail-card-close"
-            aria-label="Fermer le document"
-            onClick={() => cards.setSide(card.id, null)}
-          >
-            ✕
-          </button>
-        </div>
-        <DocumentReader document={subject.document} />
-      </>
-    ) : undefined
 
   return (
     <DetailCard
@@ -291,7 +264,7 @@ function IdeaCard({
             files: (
               <WorkflowFoundation
                 genesisId={card.id}
-                onRead={(path) => cards.setSide(card.id, 'reader', { source: 'workflow', path, tab: 'file' })}
+                onRead={(path) => side.openReader(tab, { source: 'workflow', path, tab: 'file', genesisId: card.id })}
               />
             )
           }
@@ -302,7 +275,9 @@ function IdeaCard({
                 files: (
                   <ElementFiles
                     elementId={subject.element.id}
-                    onOpen={(path) => cards.setSide(card.id, 'reader', { source: 'element', path, tab: 'file' })}
+                    onOpen={(path) =>
+                      side.openReader(tab, { source: 'element', path, tab: 'file', elementId: subject.element.id })
+                    }
                   />
                 )
               }
@@ -311,7 +286,7 @@ function IdeaCard({
       {...(sheet === undefined ? {} : { sheet })}
       {...(subject.kind === 'ghost' ? { sheetLabel: 'Pourquoi' } : {})}
       canChat={canChat(subject)}
-      {...(side === undefined ? {} : { side })}
+      chatShown={chatShown}
       {...(fold === null
         ? {}
         : {
@@ -326,8 +301,8 @@ function IdeaCard({
       onMove={(offset) => cards.move(card.id, offset)}
       onToggleSheet={() => cards.toggleSheet(card.id)}
       onTogglePin={() => cards.togglePin(card.id)}
-      onToggleChat={() => cards.setSide(card.id, card.side === 'chat' ? null : 'chat')}
-      onEscape={() => (card.side === 'reader' ? cards.setSide(card.id, null) : cards.close(card.id))}
+      onChat={() => side.openChat(tab)}
+      onEscape={() => cards.close(card.id)}
       onGoto={goto}
     />
   )
@@ -335,7 +310,7 @@ function IdeaCard({
 
 /**
  * Cartes de détails ouvertes sur la carte des idées (spec 022) : dans la couche de la carte (elles suivent leur nœud
- * et le zoom). Une carte dont le nœud a disparu (supprimé, filtré, replié) n'est pas dessinée.
+ * et le zoom) ; leur conversation et leurs fichiers s'ouvrent dans le panneau de droite (spec 027). Une carte dont le nœud a disparu (supprimé, filtré, replié) n'est pas dessinée.
  */
 export const IdeaCards = memo(function IdeaCards({
   view,

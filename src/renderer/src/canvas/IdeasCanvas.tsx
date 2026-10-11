@@ -61,7 +61,10 @@ import { useCreateLink } from './useCreateLink'
 import { RemoveIdeasDialog } from './RemoveIdeasDialog'
 import { useRemoveIdea, useRemoveIdeas } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
-import { IdeaCards } from './cards/IdeaCards'
+import { IdeaCards, subjectOf, tabInputOf, tabLabelOf } from './cards/IdeaCards'
+import { cardHead } from './cards/cardContent'
+import { useSidePanel } from './side/sidePanelStore'
+import { focusViewOf, viewNodeIds, viewTitles } from './side/viewNodes'
 import { useCards } from './cards/cardsStore'
 import { useSmoothZoom } from './useSmoothZoom'
 import { GLIDE_MS, useGlide } from './useGlide'
@@ -205,6 +208,9 @@ function mapNodeOf(target: EventTarget): { readonly id: string; readonly type: s
     ?.slice('react-flow__node-'.length)
   return type === undefined ? null : { id, type }
 }
+
+/** Attente maximale d'un nœud après une bascule de vue (« Centrer sur le nœud ») : la vue Workflow se lit d'abord. */
+const FOCUS_WAIT_MS = 4000
 
 function CanvasInner(): React.JSX.Element {
   const flow = useReactFlow()
@@ -536,6 +542,69 @@ function CanvasInner(): React.JSX.Element {
     if (view === undefined || graph.nodes.length === 0) return
     for (const card of useCards.getState().cards) if (!shown.has(card.id)) useCards.getState().close(card.id)
   }, [graph, view])
+  // Onglets du panneau de droite (spec 027 FR-014) : titre et sorte suivent leur nœud ; un nœud qui n'existe plus ferme
+  // son onglet. Un nœud seulement caché (repli, autre vue, filtre) le garde.
+  const tabKeys = useSidePanel((state) => state.tabs.map((tab) => tab.key).join('|'))
+  useEffect(() => {
+    if (view === undefined || tabKeys === '') return
+    const labels = viewTitles(view)
+    for (const node of graph.nodes) {
+      const subject = subjectOf(node, view)
+      if (subject !== null && subject.kind !== 'workflow') labels.set(node.id, tabLabelOf(cardHead(subject)))
+    }
+    const filtered = Object.values(filter).some((value) => value !== undefined && value !== '')
+    useSidePanel.getState().syncWithView(labels, filtered ? undefined : viewNodeIds(view))
+  }, [graph, view, filter, tabKeys])
+
+  // « Centrer sur le nœud » (spec 027 D4, R5) : le panneau dépose une demande, la carte l'exécute. Le nœud est centré
+  // sur sa place finale (même pendant un glissement), sans animation si elles sont réduites ; s'il est dans une autre
+  // vue de la carte du projet, la vue bascule d'abord, puis il est centré dès qu'il est dessiné. Chaque demande (nonce)
+  // n'est exécutée qu'une fois.
+  const focus = useSidePanel((state) => state.focus)
+  const setStructureView = useUiStore((state) => state.setStructureView)
+  const pendingFocus = useRef<{ readonly nodeId: string; readonly until: number } | null>(null)
+  const graphRef = useRef(graph)
+  graphRef.current = graph
+  const centerOn = useCallback(
+    (nodeId: string): boolean => {
+      const node = graphRef.current.nodes.find((entry) => entry.id === nodeId && entry.className !== 'living-gone')
+      if (node === undefined) return false
+      void flow.setCenter(node.position.x, node.position.y, {
+        zoom: flow.getZoom(),
+        duration: timingFor('dive', reduced).duration
+      })
+      return true
+    },
+    [flow, reduced]
+  )
+  const notShown = useCallback(
+    () => showToast('Ce nœud n’est pas affiché sur la carte (supprimé, replié ou filtré).'),
+    [showToast]
+  )
+  const handledFocus = useRef(0)
+  useEffect(() => {
+    if (focus === null || focus.nonce === handledFocus.current) return
+    handledFocus.current = focus.nonce
+    pendingFocus.current = null
+    if (centerOn(focus.nodeId)) return
+    const current = viewRef.current
+    const target = current === undefined ? null : focusViewOf(focus.nodeId, current)
+    if (target === null || useUiStore.getState().structureViews[target.genesisId] === target.kind) {
+      notShown()
+      return
+    }
+    pendingFocus.current = { nodeId: focus.nodeId, until: Date.now() + FOCUS_WAIT_MS }
+    setStructureView(target.genesisId, target.kind)
+  }, [focus, centerOn, notShown, setStructureView])
+  useEffect(() => {
+    const pending = pendingFocus.current
+    if (pending === null) return
+    if (centerOn(pending.nodeId)) pendingFocus.current = null
+    else if (Date.now() > pending.until) {
+      pendingFocus.current = null
+      notShown()
+    }
+  }, [graph, centerOn, notShown])
 
   const recenter = useCallback(() => {
     if (bounds !== null) void flow.fitBounds(bounds, { padding: 0.05, duration: timingFor('dive', reduced).duration })
@@ -677,12 +746,11 @@ function CanvasInner(): React.JSX.Element {
       return
     }
     if (event.key === 'Escape' && !isEditable(event.target)) {
-      // Échap agit sur la carte active (D15) : replie d'abord le lecteur, puis la ferme.
+      // Échap ferme la carte active (D15) ; le lecteur vit dans le panneau de droite (spec 027).
       const active = cards.find((card) => card.id === activeCardId)
       if (active !== undefined) {
         event.preventDefault()
-        if (active.side === 'reader') cardsApi.setSide(active.id, null)
-        else cardsApi.close(active.id)
+        cardsApi.close(active.id)
       }
       return
     }
@@ -815,16 +883,18 @@ function CanvasInner(): React.JSX.Element {
                 // Nœud Workflow (spec 023) : sa carte s'étire avec la conversation du projet, consigne pré-remplie.
                 if (node.type === 'workflow') {
                   cardsApi.closeUnpinned(node.id)
-                  discussWorkflow(node.data.item)
+                  discussWorkflow(node.data.item, node.data.genesisId)
                   return
                 }
                 const conversational =
                   node.type === 'neuron' ||
                   node.type === 'element' ||
                   (node.type === 'plan' && node.data.item.kind === 'step')
-                if (conversational) {
+                const subject = view === undefined ? null : subjectOf(node, view)
+                if (conversational && subject !== null) {
                   cardsApi.closeUnpinned(node.id)
-                  cardsApi.open(node.id, { side: 'chat' })
+                  cardsApi.open(node.id)
+                  useSidePanel.getState().openChat(tabInputOf(node.id, subject))
                 }
               }}
               // Clic dans le vide : les cartes non épinglées se ferment (D28) ; une carte épinglée reste.

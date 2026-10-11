@@ -788,7 +788,8 @@ export function ChatPanel({
             placeholder="Ta réponse, une idée, une question…"
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              event.stopPropagation()
+              // La frappe reste dans le champ ; Échap remonte au panneau (spec 027 FR-012 : focus rendu à la carte).
+              if (event.key !== 'Escape') event.stopPropagation()
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault()
                 submit()

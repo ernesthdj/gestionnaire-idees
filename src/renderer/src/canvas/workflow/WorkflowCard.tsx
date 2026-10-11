@@ -11,28 +11,36 @@ import type {
 import { KIND_LABELS } from '../../explorer/labels'
 import { coveringElement, normalizeElementPath } from '@shared/structure/covers'
 import { useUiStore } from '../../app/uiStore'
-import { ChatPanel } from '../../chat/ChatPanel'
 import { Markdown } from '../../chat/Markdown'
 import { CodeLines } from '../../lib/CodeLines'
 import { call, IpcFailure } from '../../lib/ipc'
 import { cardHead } from '../cards/cardContent'
 import { useCards, type OpenCard } from '../cards/cardsStore'
 import { DetailCard, type NodeBox } from '../cards/DetailCard'
+import { shownNodeId, useSidePanel, type WorkflowChatTabInput } from '../side/sidePanelStore'
 import { FileExplanation } from './FileExplanation'
 import { promptFor } from './prompts'
 import { decorateTasks } from './tasksMarkdown'
 import type { WorkflowItem } from './workflowTree'
 
+/** Onglet du panneau de droite d'un nœud Workflow (spec 027) : titre et sorte d'après l'en-tête de sa carte. */
+export function workflowTabOf(item: WorkflowItem, genesisId: string): WorkflowChatTabInput {
+  const head = cardHead({ kind: 'workflow', item, genesisId })
+  return { nodeId: item.key, genesisId, title: head.title, kindLabel: head.badge }
+}
+
 /**
- * « Discuter » sur un nœud Workflow (spec 023 D6, précisé le 2026-10-09) : la carte du nœud s'étire vers la droite avec
- * **sa propre conversation** (créée au premier « Discuter », reprise ensuite), la consigne pré-remplie dans le champ ;
- * rien n'est envoyé sans geste de mentalyas. Sans consigne (branche, message), rien ne se passe.
+ * « Discuter » sur un nœud Workflow (spec 023 D6, précisé le 2026-10-09 ; spec 027) : **sa propre conversation**
+ * (créée au premier « Discuter », reprise ensuite) s'ouvre dans un onglet du panneau de droite, la consigne pré-remplie
+ * dans le champ ; la carte du nœud s'ouvre aussi. Rien n'est envoyé sans geste de mentalyas. Sans consigne (branche,
+ * message), rien ne se passe.
  */
-export function discussWorkflow(item: WorkflowItem): boolean {
+export function discussWorkflow(item: WorkflowItem, genesisId: string): boolean {
   const prompt = promptFor(item)
   if (prompt === null) return false
   useUiStore.getState().seedChatDraft(item.key, prompt)
-  useCards.getState().open(item.key, { side: 'chat' })
+  useCards.getState().open(item.key)
+  useSidePanel.getState().openWorkflowChat(workflowTabOf(item, genesisId))
   return true
 }
 
@@ -562,8 +570,9 @@ function readablesOf(item: WorkflowItem): { path: string; label: string }[] {
 }
 
 /**
- * Carte de détails d'un nœud Workflow (spec 023 US2, US3) : en-tête (statut, avancement), « Discuter » qui étire la
- * carte vers la droite avec la conversation propre au nœud et la consigne pré-remplie, lecture des fichiers de méthode à droite, fiche (user stories,
+ * Carte de détails d'un nœud Workflow (spec 023 US2, US3) : en-tête (statut, avancement), « Discuter » qui ouvre la
+ * conversation propre au nœud dans le panneau de droite (spec 027) avec la consigne pré-remplie, lecture des fichiers de
+ * méthode dans le même onglet, fiche (user stories,
  * reliquats, brainstorm d'origine, tâches restantes) vers le bas, repli de ses sous-nœuds.
  */
 export function WorkflowCard({
@@ -595,21 +604,15 @@ export function WorkflowCard({
   const files = filesOf(item)
   const missing = new Set(workflow.data?.missingFiles ?? [])
   const fold = useWorkflowFold(genesisId)
-  const read = (path: string): void => cards.setSide(card.id, 'reader', { source: 'workflow', path, tab: 'file' })
+  const side = useSidePanel()
+  const chatShown = useSidePanel((state) => shownNodeId(state) === card.id)
+  const read = (path: string): void =>
+    side.openReader(
+      { ...workflowTabOf(item, genesisId), workflow: true },
+      { source: 'workflow', path, tab: 'file', genesisId }
+    )
   const canDiscuss = promptFor(item) !== null
-  // Conversation propre au nœud : retrouvée ou créée quand la discussion s'ouvre (spec 023 D6).
   const head = cardHead({ kind: 'workflow', item, genesisId })
-  const chat = useQuery({
-    queryKey: ['workflow-chat', item.key],
-    queryFn: () =>
-      call<{ readonly neuronId: string }>('workflow:chat', {
-        genesisId,
-        key: item.key,
-        title: `${head.badge} · ${head.title}`.slice(0, 200)
-      }),
-    enabled: card.side === 'chat' && canDiscuss,
-    staleTime: Infinity
-  })
   const readables = readablesOf(item)
   const sheetKinds = new Set(['spec', 'story', 'socle', 'done', 'doc', 'taskGroup', 'fileDone'])
   const actions =
@@ -637,40 +640,7 @@ export function WorkflowCard({
         ? { sheet: <WorkflowSheet item={item} onRead={read} />, sheetLabel: 'Détail' }
         : {})}
       canChat={canDiscuss}
-      {...(card.side === 'chat' && canDiscuss
-        ? {
-            side:
-              chat.data === undefined ? (
-                <p
-                  className={chat.error === null ? 'text-content-muted' : 'text-con'}
-                  role={chat.error === null ? undefined : 'alert'}
-                >
-                  {chat.error === null
-                    ? 'Ouverture de la conversation…'
-                    : chat.error instanceof IpcFailure
-                      ? chat.error.message
-                      : 'La conversation n’a pas pu être ouverte.'}
-                </p>
-              ) : (
-                <ChatPanel
-                  neuronId={chat.data.neuronId}
-                  draftKey={card.id}
-                  onClose={() => cards.setSide(card.id, null)}
-                />
-              )
-          }
-        : card.side === 'reader' && card.reader !== null
-          ? {
-              side: (
-                <WorkflowFileReader
-                  key={card.reader.path}
-                  genesisId={genesisId}
-                  path={card.reader.path}
-                  onClose={() => cards.setSide(card.id, null)}
-                />
-              )
-            }
-          : {})}
+      chatShown={chatShown}
       {...(item.descendants === 0
         ? {}
         : {
@@ -686,8 +656,8 @@ export function WorkflowCard({
       onMove={(offset) => cards.move(card.id, offset)}
       onToggleSheet={() => cards.toggleSheet(card.id)}
       onTogglePin={() => cards.togglePin(card.id)}
-      onToggleChat={() => (card.side === 'chat' ? cards.setSide(card.id, null) : discussWorkflow(item))}
-      onEscape={() => (card.side === 'reader' ? cards.setSide(card.id, null) : cards.close(card.id))}
+      onChat={() => discussWorkflow(item, genesisId)}
+      onEscape={() => cards.close(card.id)}
       onGoto={onGoto}
     />
   )

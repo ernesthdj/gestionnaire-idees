@@ -378,7 +378,7 @@ export function stepShown(
 }
 
 /** Vue de naissance d'une étape (D19) ; sans vue, celle d'un projet lié est Workflow (rangées avant D19). */
-const bornIn = (step: Pick<StepView, 'view'>, linkedProject: boolean): StructureViewKind =>
+export const bornIn = (step: Pick<StepView, 'view'>, linkedProject: boolean): StructureViewKind =>
   step.view ?? (linkedProject ? 'workflow' : 'progression')
 
 export function buildGraph(

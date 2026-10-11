@@ -167,7 +167,7 @@ les outils Write/Edit ; en filet, comparer `git status` avant et après le tour.
 | Priorité | Sujet | Effort estimé | Section | État |
 |----------|-------|---------------|---------|------|
 | 1 | Une seule source de vérité pour les tâches (plan → fichier de tâches) | spec | §5.1, §5.2 | à spécifier |
-| 2 | Conversation en panneau fixe hors du canevas | spec | §5.4, §5.5 | à spécifier |
+| 2 | Conversation en panneau fixe hors du canevas | spec | §5.4, §5.5 | ✅ livré le 11/10 (spec 027) : panneau fixe à onglets (conversations, lecteurs, Dépôt), anneau et « Centrer », largeur réglable ; parcours rejoué avec Claude réel sans dézoomer ni glisser la carte |
 | 3 | Bouton « Réaliser cette étape » et statut d'étape qui avance | moyen | §5.3, §4.3 | ✅ corrigé le 11/10 (spec 013 D6) : le parcours action finale → livrable accepté devient le chemin proposé ; le statut reste validé par le livrable (D3) |
 | 4 | Bouton de départ qui envoie le brouillon préparé | petit | §4.1 | ✅ corrigé le 11/10 |
 | 5 | Badge du dépôt rafraîchi après chaque tour de Claude | petit | §4.2 | ✅ corrigé le 11/10 |

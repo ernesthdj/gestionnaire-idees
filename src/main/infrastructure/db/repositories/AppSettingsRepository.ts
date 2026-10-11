@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { isValidAccelerator } from '@shared/app/accelerator'
 import {
   CAPTURE_MAX_CHARS,
+  CHAT_PANEL_WIDTH,
   DEFAULT_APP_SETTINGS,
   MOTION_MODES,
   THEMES,
@@ -21,7 +22,11 @@ const FIELDS = {
   theme: { key: 'app.theme', schema: z.enum(THEMES) },
   motion: { key: 'app.motion', schema: z.enum(MOTION_MODES) },
   onboardingDone: { key: 'app.onboardingDone', schema: z.boolean() },
-  chatPermissionMode: { key: 'chat.defaultPermissionMode', schema: z.enum(DEFAULT_PERMISSION_MODES) }
+  chatPermissionMode: { key: 'chat.defaultPermissionMode', schema: z.enum(DEFAULT_PERMISSION_MODES) },
+  chatPanelWidth: {
+    key: 'ui.chatPanelWidth',
+    schema: z.number().int().min(CHAT_PANEL_WIDTH.min).max(CHAT_PANEL_WIDTH.max)
+  }
 } as const
 
 const DRAFT_KEY = 'capture.draft'
@@ -69,7 +74,8 @@ export class AppSettingsRepository {
       theme: read('theme'),
       motion: read('motion'),
       onboardingDone: read('onboardingDone'),
-      chatPermissionMode: read('chatPermissionMode')
+      chatPermissionMode: read('chatPermissionMode'),
+      chatPanelWidth: read('chatPanelWidth')
     }
   }
 

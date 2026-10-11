@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import type { BrainstormListItem, BrainstormOpenView, BrainstormView } from '@shared/ipc/brainstorms'
 import { useUiStore } from '../app/uiStore'
 import { useCards } from '../canvas/cards/cardsStore'
+import { chatKeys, useSidePanel } from '../canvas/side/sidePanelStore'
 import { call } from '../lib/ipc'
 import { viewStateOf } from './viewState'
 
@@ -23,7 +24,7 @@ export async function flushViewState(): Promise<void> {
   pending = undefined
   const { brainstorm, structureViews, viewport } = useUiStore.getState()
   if (brainstorm === null) return
-  const state = viewStateOf(structureViews, useCards.getState().cards, viewport)
+  const state = viewStateOf(structureViews, useCards.getState().cards, viewport, chatKeys(useSidePanel.getState()))
   await call('brainstorms:viewState', { id: brainstorm.id, state }).catch(() => undefined)
 }
 
@@ -45,11 +46,16 @@ export function useViewStateSync(): void {
     const offCards = useCards.subscribe((state, before) => {
       if (state.cards !== before.cards) schedule()
     })
+    // Un onglet de conversation ouvert ou fermé change `side` des cartes gardées (spec 027).
+    const offTabs = useSidePanel.subscribe((state, before) => {
+      if (state.tabs !== before.tabs) schedule()
+    })
     const onUnload = (): void => void flushViewState()
     window.addEventListener('beforeunload', onUnload)
     return () => {
       offUi()
       offCards()
+      offTabs()
       window.removeEventListener('beforeunload', onUnload)
       window.clearTimeout(pending)
     }

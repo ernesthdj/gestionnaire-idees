@@ -5,6 +5,7 @@ import { ReactFlowProvider, type NodeProps } from '@xyflow/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import {
   buildGraph,
   computeLayout,
@@ -227,6 +228,7 @@ describe('vue Workflow dans la carte des idées (spec 023 US1)', () => {
   beforeEach(() => {
     useUiStore.setState({ view: 'ideas', toast: null, bornId: null, structureViews: { [G]: 'workflow' } })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   it('should_read_the_project_files_and_draw_the_workflow_when_the_view_is_chosen', async () => {
@@ -265,6 +267,7 @@ describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)
       chatDrafts: {}
     })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   const renderLinked = () => {
@@ -299,7 +302,11 @@ describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)
     fireEvent.doubleClick(screen.getByRole('group', { name: 'Tâche T003 à faire : T003' }))
     const key = workflowKey(G, 'task', '001', 'T003')
     await waitFor(() => expect(seed).toHaveBeenCalledWith(key, expect.stringContaining('Implémente la tâche T003')))
-    expect(useCards.getState().cards.find((card) => card.id === key)).toMatchObject({ side: 'chat' })
+    expect(useCards.getState().cards.some((card) => card.id === key)).toBe(true)
+    expect(useSidePanel.getState().tabs.find((tab) => tab.key === key)).toMatchObject({
+      kind: 'workflowChat',
+      genesisId: G
+    })
   })
 
   it('should_show_the_foundation_in_the_genesis_card_when_the_workflow_view_is_on', async () => {

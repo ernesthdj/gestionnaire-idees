@@ -5,6 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
+import { SidePanel } from '../../../src/renderer/src/canvas/side/SidePanel'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import type { DocumentContentView } from '../../../src/shared/ipc/documents'
@@ -65,18 +67,20 @@ function renderCanvas(content: Partial<DocumentContentView> = {}) {
   const result = render(
     <QueryClientProvider client={client}>
       <IdeasCanvas />
+      <SidePanel />
     </QueryClientProvider>
   )
   return { api, ...result }
 }
 
-/** Spec 022 : le document est un nœud ; sa carte de détails s'étire en lecteur (« Lire le document »). */
+/** Spec 022 : le document est un nœud ; « Lire le document » ouvre son lecteur dans le panneau de droite (spec 027). */
 async function node(): Promise<HTMLElement> {
   fireEvent.click(await screen.findByText('Cahier des charges'))
   const card = await screen.findByRole('dialog', { name: 'Détails : Cahier des charges' })
-  if (within(card).queryByRole('region', { name: 'Document : Cahier des charges' }) === null)
+  if (screen.queryByRole('region', { name: 'Document : Cahier des charges' }) === null)
     fireEvent.click(within(card).getByRole('button', { name: 'Lire le document' }))
-  return within(card).findByRole('region', { name: 'Document : Cahier des charges' })
+  const side = await screen.findByRole('complementary', { name: 'Panneau de droite' })
+  return within(side).findByRole('region', { name: 'Document : Cahier des charges' })
 }
 
 describe('nœud document sur la carte (spec 012 US1)', () => {
@@ -84,6 +88,7 @@ describe('nœud document sur la carte (spec 012 US1)', () => {
   beforeEach(() => {
     useUiStore.setState({ view: 'ideas', chatNeuronId: null, toast: null })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   it('should_render_the_markdown_of_the_file_with_its_location_and_without_raw_html', async () => {

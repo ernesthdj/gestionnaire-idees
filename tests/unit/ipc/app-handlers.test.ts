@@ -35,6 +35,15 @@ describe('canaux app:*', () => {
     expect(stored().theme).toBe('dark')
   })
 
+  it('should_save_the_side_panel_width_when_within_bounds', async () => {
+    const { dispatch, stored } = setup()
+    expect(await dispatch('app:setSettings', { chatPanelWidth: 50 })).toMatchObject({
+      success: true,
+      data: { chatPanelWidth: 50 }
+    })
+    expect(stored().chatPanelWidth).toBe(50)
+  })
+
   it('should_save_the_carbon_theme_when_chosen', async () => {
     const { dispatch, stored } = setup()
     const result = await dispatch('app:setSettings', { theme: 'carbon' })
@@ -54,7 +63,11 @@ describe('canaux app:*', () => {
     { onboardingDone: true },
     { unknown: 1 },
     // Spec 014 D8 : Libre ne peut pas être le défaut (il se confirme conversation par conversation).
-    { chatPermissionMode: 'bypassPermissions' }
+    { chatPermissionMode: 'bypassPermissions' },
+    // Spec 027 D6 : largeur du panneau de droite, entière, de 25 à 55.
+    { chatPanelWidth: 80 },
+    { chatPanelWidth: 30.5 },
+    { chatPanelWidth: '40' }
   ])('should_refuse_invalid_or_foreign_field_%o', async (patch) => {
     const { dispatch, stored } = setup()
     expect(await dispatch('app:setSettings', patch)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })

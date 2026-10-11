@@ -43,7 +43,7 @@ describe('publier, tirer, pousser dans l’app (spec 021 US2, e2e)', () => {
     const badge = page.getByRole('button', { name: /^Dépôt : ⎇ main/ })
     await badge.waitFor({ timeout: 30_000 })
     await badge.evaluate((element) => (element as unknown as { click(): void }).click())
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('button', { name: '↑ Pousser (2)' }).click()
     await panel.getByRole('list', { name: 'Commits à pousser' }).waitFor()
     expect(await panel.getByText('Aucun fichier sensible dans les commits à pousser.').count()).toBe(1)
@@ -66,7 +66,7 @@ describe('publier, tirer, pousser dans l’app (spec 021 US2, e2e)', () => {
     commit(OTHER, { 'c.ts': 'export const c = 3\n' }, 'feat: c')
     git(OTHER, ['push', '-q', 'origin', 'main'])
 
-    const panel = run.page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = run.page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('button', { name: 'Vérifier le distant' }).click()
     await panel.getByRole('button', { name: '↓ Tirer (1)' }).click()
     await panel.getByText('1 commit(s) tiré(s).').waitFor()

@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards, type OpenCard } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { promptFor } from '../../../src/renderer/src/canvas/workflow/prompts'
+import { SidePanel } from '../../../src/renderer/src/canvas/side/SidePanel'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { discussWorkflow, WorkflowCard } from '../../../src/renderer/src/canvas/workflow/WorkflowCard'
 import { workflowKey, workflowTree, type WorkflowItem } from '../../../src/renderer/src/canvas/workflow/workflowTree'
 import type { ElementView } from '../../../src/shared/ipc/canvas'
@@ -107,8 +109,6 @@ const card = (id: string): OpenCard => ({
   id,
   offset: { x: 0, y: 0 },
   sheet: false,
-  side: null,
-  reader: null,
   z: 1,
   pinned: false
 })
@@ -169,6 +169,7 @@ let saved: WorkflowSavedSummaryView = { summary: null, outdated: false }
 
 function renderCard(key: string, elements: readonly ElementView[] = [], missingFiles: readonly string[] = []) {
   useCards.setState({ cards: [card(key)], activeId: key })
+  useSidePanel.getState().reset()
   const api = installFakeApi({
     'workflow:file': (payload) => {
       const path = (payload as { path: string }).path
@@ -221,6 +222,7 @@ function renderCard(key: string, elements: readonly ElementView[] = [], missingF
   const result = render(
     <QueryClientProvider client={client}>
       <Current />
+      <SidePanel />
     </QueryClientProvider>
   )
   return { api, ...result }
@@ -251,17 +253,18 @@ describe('consignes de « Discuter » (spec 023 US2)', () => {
 describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
   beforeEach(() => useUiStore.setState({ chatDrafts: {} }))
 
-  it('should_open_the_task_own_conversation_in_its_card_with_the_instruction_prefilled_when_discussing', async () => {
+  it('should_open_the_task_own_conversation_in_the_side_panel_with_the_instruction_prefilled_when_discussing', async () => {
     const user = userEvent.setup()
     const { container, api } = renderCard(workflowKey(G, 'task', '022', 'T011'))
     expect(screen.getByText('Tâche T011')).toBeDefined()
     expect(screen.getByText('US1 · Spec 022 · à faire')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Discuter' }))
-    // La carte de la tâche elle-même s'étire avec la conversation du projet, la consigne dans le champ.
+    // Spec 027 : la conversation propre à la tâche s'ouvre dans un onglet du panneau de droite, la consigne dans le champ.
     const key = workflowKey(G, 'task', '022', 'T011')
-    expect(useCards.getState().cards.find((entry) => entry.id === key)).toMatchObject({ side: 'chat' })
+    expect(useSidePanel.getState().tabs).toMatchObject([{ kind: 'workflowChat', key, genesisId: G }])
     expect(useCards.getState().cards.some((entry) => entry.id === G)).toBe(false)
-    const field = (await screen.findByLabelText('Message à Claude')) as HTMLTextAreaElement
+    const side = screen.getByRole('complementary', { name: 'Panneau de droite' })
+    const field = (await within(side).findByLabelText('Message à Claude')) as HTMLTextAreaElement
     expect(field.value).toContain('Implémente la tâche T011')
     expect(useUiStore.getState().chatDrafts[key]).toBeUndefined()
     // Conversation propre à la tâche (créée au premier « Discuter »), pas celle du genesis.
@@ -398,8 +401,10 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
 
   it('should_do_nothing_when_discussing_a_branch', () => {
     useCards.setState({ cards: [], activeId: null })
-    expect(discussWorkflow(item(workflowKey(G, 'branch', 'active')))).toBe(false)
+    useSidePanel.getState().reset()
+    expect(discussWorkflow(item(workflowKey(G, 'branch', 'active')), G)).toBe(false)
     expect(useCards.getState().cards).toEqual([])
+    expect(useSidePanel.getState().tabs).toEqual([])
   })
 })
 
@@ -496,7 +501,9 @@ describe('« Que fait ce fichier ? » dans le lecteur (spec 023 D15)', () => {
     fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'src/T011.ts' })).toBeNull()
     const key = workflowKey(G, 'task', '022', 'T011')
-    expect(useCards.getState().cards.find((entry) => entry.id === key)?.side).toBe('reader')
+    expect(useSidePanel.getState().tabs.find((tab) => tab.key === key)).toMatchObject({
+      reader: { path: 'src/T011.ts' }
+    })
     expect(reader()).not.toBeNull()
   })
 

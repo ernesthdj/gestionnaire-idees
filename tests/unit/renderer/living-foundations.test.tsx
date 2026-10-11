@@ -8,7 +8,6 @@ import {
   EMPTY_CARDS,
   moveCard,
   openCard,
-  setSide,
   togglePin,
   toggleSheet
 } from '../../../src/renderer/src/canvas/cards/cardsStore'
@@ -43,19 +42,10 @@ describe('cardsStore', () => {
     expect(closeCard(closeCard(state, 'b'), 'c')).toEqual({ cards: [], activeId: null })
   })
 
-  it('should_replace_the_chat_by_the_reader_when_a_file_opens', () => {
-    let state = openCard(EMPTY_CARDS, 'a', { side: 'chat' })
-    expect(state.cards[0]?.side).toBe('chat')
-    state = setSide(state, 'a', 'reader', { source: 'deliverable', path: 'src/x.ts', tab: 'diff' })
-    expect(state.cards[0]).toMatchObject({ side: 'reader', reader: { path: 'src/x.ts' } })
-    state = setSide(state, 'a', 'chat')
-    expect(state.cards[0]).toMatchObject({ side: 'chat', reader: null })
-  })
-
   it('should_keep_the_sheet_and_offset_independent_when_changed', () => {
-    let state = openCard(EMPTY_CARDS, 'a', { side: 'chat' })
+    let state = openCard(EMPTY_CARDS, 'a', { sheet: true })
     state = toggleSheet(moveCard(state, 'a', { x: 40, y: -12 }), 'a')
-    expect(state.cards[0]).toMatchObject({ sheet: true, side: 'chat', offset: { x: 40, y: -12 } })
+    expect(state.cards[0]).toMatchObject({ sheet: false, offset: { x: 40, y: -12 } })
   })
 })
 

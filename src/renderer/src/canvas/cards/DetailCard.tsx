@@ -35,8 +35,8 @@ export interface DetailCardProps {
   readonly sheetLabel?: string
   /** La sorte de nœud a une conversation (« Discuter »). */
   readonly canChat: boolean
-  /** Contenu de l'étirement de droite (discussion ou lecteur), quand il est ouvert. */
-  readonly side?: ReactNode
+  /** Sa conversation est l'onglet affiché du panneau de droite (spec 027). */
+  readonly chatShown?: boolean
   readonly fold?: {
     readonly collapsed: boolean
     readonly count: number
@@ -50,8 +50,9 @@ export interface DetailCardProps {
   readonly onToggleSheet: () => void
   /** Épingler / détacher (D28). */
   readonly onTogglePin: () => void
-  readonly onToggleChat: () => void
-  /** Échap : replie d'abord le lecteur, puis ferme la carte. */
+  /** « Discuter » : ouvre (ou affiche) l'onglet de la conversation dans le panneau de droite (spec 027 D1). */
+  readonly onChat: () => void
+  /** Échap : ferme la carte. */
   readonly onEscape: () => void
   readonly onGoto: (id: string) => void
 }
@@ -73,24 +74,11 @@ function Grip(): React.JSX.Element {
 /**
  * Carte de détails d'un nœud (spec 022 D5, D6, D10, D15, D16, D18) : posée à droite de son nœud dans la couche de la
  * carte (elle le suit et subit le zoom), reliée par un trait ; en-tête déplaçable (poignée), ✕ ; statut, résumé,
- * jauge, nœuds liés, fichiers, gestes ; « Fiche » s'étire vers le bas, « Discuter » ou un fichier vers la droite.
- * Plusieurs cartes peuvent être ouvertes : la carte active passe devant.
+ * jauge, nœuds liés, fichiers, gestes ; « Fiche » s'étire vers le bas ; « Discuter » et les fichiers s'ouvrent dans le
+ * panneau de droite (spec 027 D1, D5). Plusieurs cartes peuvent être ouvertes : la carte active passe devant.
  */
 export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
-  const {
-    card,
-    active,
-    anchor,
-    zoom,
-    head,
-    related = [],
-    files,
-    actions,
-    sheet,
-    sheetLabel = 'Fiche',
-    side,
-    fold
-  } = props
+  const { card, active, anchor, zoom, head, related = [], files, actions, sheet, sheetLabel = 'Fiche', fold } = props
   const root = useRef<HTMLElement>(null)
   const tether = useRef<SVGPathElement>(null)
   // À l'ouverture (et seulement là), le focus entre dans la carte : Entrée sur un nœud, puis Tab dans la carte.
@@ -261,8 +249,8 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
               <button
                 type="button"
                 className="card-button card-button-primary"
-                aria-pressed={card.side === 'chat'}
-                onClick={props.onToggleChat}
+                aria-pressed={props.chatShown === true}
+                onClick={props.onChat}
               >
                 Discuter
               </button>
@@ -275,9 +263,6 @@ export function DetailCard(props: DetailCardProps): React.JSX.Element | null {
             </button>
           )}
         </div>
-        {side === undefined || card.side === null ? null : (
-          <div className={`detail-card-side detail-card-side-${card.side}`}>{side}</div>
-        )}
       </section>
     </>
   )

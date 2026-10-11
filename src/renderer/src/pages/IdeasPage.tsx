@@ -2,18 +2,18 @@ import { useEffect } from 'react'
 import { useUiStore } from '../app/uiStore'
 import { IdeasCanvas } from '../canvas/IdeasCanvas'
 import { useCards } from '../canvas/cards/cardsStore'
-import { RepoPanel } from '../git/RepoPanel'
+import { SidePanel } from '../canvas/side/SidePanel'
 import { BrainstormBar } from '../home/BrainstormBar'
 import { ConflictView } from '../git/ConflictView'
 import { RunPanel } from '../run/RunPanel'
 import { useRunShortcuts } from '../run/useRunShortcuts'
 
 /**
- * Écran Idées : le bandeau du brainstorm ouvert (spec 024), la carte, et à droite le volet Dépôt d'un projet quand il est ouvert (spec 021, 62 / 38).
- * `Ctrl+Maj+G` ouvre ou ferme le volet du genesis dont la carte est active.
+ * Écran Idées : le bandeau du brainstorm ouvert (spec 024), la carte, et à droite le panneau à onglets (spec 027, 62 / 38) :
+ * conversations, lecteurs de fichiers et Dépôt (spec 021). `Ctrl+Maj+G` ouvre ou ferme l'onglet Dépôt du genesis dont la
+ * carte est active.
  */
 export function IdeasPage(): React.JSX.Element {
-  const repoGenesisId = useUiStore((state) => state.repoGenesisId)
   const openRepo = useUiStore((state) => state.openRepo)
   const closeRepo = useUiStore((state) => state.closeRepo)
   useEffect(() => {
@@ -33,14 +33,14 @@ export function IdeasPage(): React.JSX.Element {
   // Un canevas par brainstorm (spec 024) : changer de brainstorm remonte la carte (cadrage, physique).
   const brainstormId = useUiStore((state) => state.brainstorm?.id ?? null)
   const epoch = useUiStore((state) => state.canvasEpoch)
-  // Résolution d'une fusion (spec 021 US4) : la vue remplace la carte, le volet Dépôt reste à côté.
+  // Résolution d'une fusion (spec 021 US4) : la vue remplace la carte, le panneau de droite reste à côté.
   const conflictGenesisId = useUiStore((state) => state.conflictGenesisId)
   const closeConflicts = useUiStore((state) => state.closeConflicts)
   useRunShortcuts()
   return (
     <div className="flex h-full min-h-0 flex-col">
       <BrainstormBar />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           {conflictGenesisId === null ? (
             <IdeasCanvas key={`${brainstormId ?? 'aucun'}:${epoch}`} />
@@ -48,7 +48,7 @@ export function IdeasPage(): React.JSX.Element {
             <ConflictView genesisId={conflictGenesisId} onClose={closeConflicts} />
           )}
         </div>
-        {repoGenesisId === null ? null : <RepoPanel genesisId={repoGenesisId} onClose={closeRepo} />}
+        <SidePanel />
       </div>
       <RunPanel />
     </div>

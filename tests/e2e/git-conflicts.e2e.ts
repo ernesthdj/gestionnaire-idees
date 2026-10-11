@@ -34,7 +34,7 @@ describe('résoudre un conflit dans l’app (spec 021 US4, e2e)', () => {
     const badge = page.getByRole('button', { name: /^Dépôt : ⎇ main/ })
     await badge.waitFor({ timeout: 30_000 })
     await badge.evaluate((element) => (element as unknown as { click(): void }).click())
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('button', { name: '↓ Tirer (1)' }).click()
     await panel.getByRole('button', { name: 'Fusionner les deux historiques' }).click()
     await page.getByRole('region', { name: 'Résolution de la fusion' }).waitFor()

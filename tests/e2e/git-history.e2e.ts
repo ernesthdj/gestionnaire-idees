@@ -34,7 +34,7 @@ describe('qui a fait quoi et quand dans l’app (spec 021 US5, e2e)', () => {
     const badge = page.getByRole('button', { name: /^Dépôt : ⎇ main/ })
     await badge.waitFor({ timeout: 30_000 })
     await badge.evaluate((element) => (element as unknown as { click(): void }).click())
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('tab', { name: 'Historique' }).click()
     const timeline = panel.getByRole('region', { name: 'Frise des auteurs' })
     await timeline.waitFor()

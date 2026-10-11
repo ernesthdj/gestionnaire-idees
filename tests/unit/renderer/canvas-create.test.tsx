@@ -6,6 +6,8 @@ import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { TIER_SIZE, tierOf } from '../../../src/renderer/src/canvas/buildGraph'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
+import { SidePanel } from '../../../src/renderer/src/canvas/side/SidePanel'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import { canvasView, emptyCanvasView, HATCHED_A_ID, RAW_ID } from '../../fixtures/ui/canvas'
@@ -27,6 +29,7 @@ function renderCanvas(view: IdeasCanvasView = canvasView(), handlers: Parameters
   const result = render(
     <QueryClientProvider client={client}>
       <IdeasCanvas />
+      <SidePanel />
     </QueryClientProvider>
   )
   return { api, ...result }
@@ -45,6 +48,7 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
   beforeEach(() => {
     useUiStore.setState({ view: 'ideas', toast: null, bornId: null })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   it('should_grow_with_the_context_level_from_raw_to_hatched', () => {
@@ -125,14 +129,18 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     })
     const node = await waitFor(() => screen.getByRole('group', { name: /Acheter un flash cobra/ }))
     fireEvent.click(node)
-    // Spec 022 D5 : un clic ouvre la carte de détails ; « Discuter » y ouvre la conversation, sur le côté.
+    // Spec 022 D5 : un clic ouvre la carte de détails ; « Discuter » ouvre la conversation dans le panneau de droite
+    // (spec 027 D1), hors de la carte.
     const panel = await screen.findByRole('dialog', { name: `Détails : ${idea.title}` })
     // La couche de la carte de React Flow ignore la souris : la carte doit la réactiver (sinon ✕ et glisser sont morts).
     expect(panel.style.pointerEvents).toBe('all')
     expect(useUiStore.getState().chatNeuronId).toBeNull()
     fireEvent.click(within(panel).getByRole('button', { name: 'Discuter' }))
     expect(useUiStore.getState()).toMatchObject({ chatNeuronId: RAW_ID })
-    expect(await within(panel).findByRole('button', { name: 'Commencer le brainstorm' })).toBeDefined()
+    const side = screen.getByRole('complementary', { name: 'Panneau de droite' })
+    expect(await within(side).findByRole('button', { name: 'Commencer le brainstorm' })).toBeDefined()
+    expect(within(panel).queryByRole('button', { name: 'Commencer le brainstorm' })).toBeNull()
+    expect(within(panel).getByRole('button', { name: 'Discuter' }).getAttribute('aria-pressed')).toBe('true')
     // Spec 008 : ouvrir une idée ne fait plus jamais brainstormer l'IA locale.
     expect(api.invoke).not.toHaveBeenCalledWith('growth:develop', expect.anything())
     // La carte des idées reste affichée autour de la carte de détails.
@@ -145,7 +153,11 @@ describe('carte unique : taille, création, liens (FR-029 à FR-031)', () => {
     fireEvent.click(within(panel).getByRole('button', { name: 'Détacher la carte' }))
     fireEvent.click(await pane(container))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: `Détails : ${idea.title}` })).toBeNull())
+    // Spec 027 FR-004 : fermer la carte ne ferme pas l'onglet de sa conversation ; son × le ferme.
+    expect(useUiStore.getState().chatNeuronId).toBe(RAW_ID)
+    fireEvent.click(within(side).getByRole('button', { name: 'Fermer la conversation' }))
     expect(useUiStore.getState().chatNeuronId).toBeNull()
+    expect(screen.queryByRole('complementary', { name: 'Panneau de droite' })).toBeNull()
   })
 
   it('should_warn_before_removing_an_idea_and_offer_to_undo', async () => {

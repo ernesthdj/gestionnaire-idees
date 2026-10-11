@@ -1,6 +1,6 @@
 /*
  * Cartes de détails (spec 022) : dans la couche de la carte (elles subissent le zoom), à droite de leur nœud. Fiche :
- * étirement vers le bas ; discussion ou lecteur : étirement vers la droite. Thème Carbone : liserés argentés et éclat
+ * étirement vers le bas ; discussion et lecteur : panneau de droite (spec 027). Thème Carbone : liserés argentés et éclat
  * qui fait le tour de la carte (plus vif sur la carte active).
  */
 
@@ -70,16 +70,6 @@
     transform: translateX(-8px) scale(0.94);
   }
 }
-@keyframes card-stretch {
-  from {
-    max-width: 0;
-    opacity: 0;
-  }
-  to {
-    max-width: 640px;
-    opacity: 1;
-  }
-}
 @keyframes card-drop {
   from {
     max-height: 0;
@@ -91,7 +81,6 @@
   }
 }
 [data-reduced-motion='true'] .detail-card,
-[data-reduced-motion='true'] .detail-card-side,
 [data-reduced-motion='true'] .detail-card-sheet {
   animation-duration: 150ms;
 }
@@ -267,40 +256,6 @@
   border: 1px solid var(--color-accent);
   background: transparent;
   color: var(--color-accent);
-}
-
-/* Étirement de droite : discussion (le volet de conversation habituel) ou lecteur de fichier. */
-.detail-card-side {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  height: 600px;
-  margin-left: 14px;
-  padding-left: 14px;
-  overflow: hidden;
-  border-left: 1px solid color-mix(in oklab, var(--color-content-muted) 25%, transparent);
-  animation: card-stretch 320ms var(--ease-soft) both;
-}
-.detail-card-side-chat {
-  /* La discussion garde sa taille : son fil défile à l'intérieur. */
-  width: 460px;
-}
-/* Lecteur (D24) : il prend la taille de son contenu, entre un minimum et un maximum ; au-delà, il défile. Pas de
-   redimensionnement manuel. */
-.detail-card-side-reader {
-  width: max-content;
-  min-width: 360px;
-  max-width: 720px;
-  height: auto;
-  max-height: 600px;
-  overflow: auto;
-}
-/* Lecteur Workflow avec l'explication (spec 023 D17) : explication et code côte à côte, sur une hauteur fixe. */
-.detail-card-side-reader:has(> .workflow-reader-wide) {
-  width: 1000px;
-  max-width: none;
-  height: 600px;
-  overflow: hidden;
 }
 
 /* ---------- Thème Carbone ---------- */

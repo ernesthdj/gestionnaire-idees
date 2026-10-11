@@ -2,10 +2,9 @@ import { create } from 'zustand'
 
 /**
  * Cartes de détails ouvertes (spec 022 D15, D16, D18, D28) : un clic à l'extérieur ferme les cartes, sauf celles
- * épinglées (plusieurs discussions à la fois) ; la dernière touchée est active (au premier plan, Échap n'agit que sur
- * elle). Décalage en unités de la carte : la carte suit son
- * nœud et le zoom. À droite, la discussion et le lecteur se remplacent l'un l'autre ; la fiche (bas) est indépendante.
- * Règles pures (testées) + magasin zustand.
+ * épinglées ; la dernière touchée est active (au premier plan, Échap n'agit que sur elle). Décalage en unités de la
+ * carte : la carte suit son nœud et le zoom. La fiche s'étire vers le bas ; la discussion et le lecteur vivent dans le
+ * panneau de droite (spec 027 D1). Règles pures (testées) + magasin zustand.
  */
 
 export interface Offset {
@@ -13,7 +12,7 @@ export interface Offset {
   readonly y: number
 }
 
-/** Fichier ouvert dans le lecteur de la carte. */
+/** Fichier ouvert dans un lecteur (onglet du panneau de droite, spec 027 D5). */
 export interface ReaderTarget {
   readonly source: 'deliverable' | 'element' | 'document' | 'skill' | 'workflow'
   readonly path: string
@@ -24,18 +23,14 @@ export interface OpenCard {
   readonly id: string
   readonly offset: Offset
   readonly sheet: boolean
-  readonly side: 'chat' | 'reader' | null
-  readonly reader: ReaderTarget | null
   /** Ordre d'empilement : la plus grande valeur est devant. */
   readonly z: number
-  /** Épinglée (D28) : elle reste ouverte malgré un clic à l'extérieur (travail à plusieurs discussions). */
+  /** Épinglée (D28, amendée par la spec 027 D2) : elle reste ouverte malgré un clic à l'extérieur. */
   readonly pinned: boolean
 }
 
-/** Ouverture directe sur la discussion, le lecteur ou la fiche (action finale, étape proposée). */
+/** Ouverture directe sur la fiche (action finale, étape proposée). */
 export interface OpenOptions {
-  readonly side?: 'chat' | 'reader'
-  readonly reader?: ReaderTarget
   readonly sheet?: boolean
 }
 
@@ -61,20 +56,16 @@ export function activate(state: CardsState, id: string): CardsState {
   return { ...update(state, id, (card) => ({ ...card, z })), activeId: id }
 }
 
-/** Ouvre la carte d'un nœud (ou l'active si elle l'est déjà) ; `side` ouvre directement la discussion ou le lecteur. */
+/** Ouvre la carte d'un nœud (ou l'active si elle l'est déjà) ; `sheet` déplie directement sa fiche. */
 export function openCard(state: CardsState, id: string, options: OpenOptions = {}): CardsState {
   const opened = state.cards.some((card) => card.id === id)
     ? state
     : {
         ...state,
-        cards: [
-          ...state.cards,
-          { id, offset: { x: 0, y: 0 }, sheet: false, side: null, reader: null, z: topZ(state) + 1, pinned: false }
-        ]
+        cards: [...state.cards, { id, offset: { x: 0, y: 0 }, sheet: false, z: topZ(state) + 1, pinned: false }]
       }
   const active = activate(opened, id)
-  const sided = options.side === undefined ? active : setSide(active, id, options.side, options.reader)
-  return options.sheet === true ? update(sided, id, (card) => ({ ...card, sheet: true })) : sided
+  return options.sheet === true ? update(active, id, (card) => ({ ...card, sheet: true })) : active
 }
 
 /** Ferme une carte ; la plus haute des restantes devient active. */
@@ -112,20 +103,6 @@ export function toggleSheet(state: CardsState, id: string): CardsState {
   return update(state, id, (card) => ({ ...card, sheet: !card.sheet }))
 }
 
-/** Ouvre la discussion ou le lecteur à droite (l'un remplace l'autre) ; `null` replie le côté. */
-export function setSide(
-  state: CardsState,
-  id: string,
-  side: 'chat' | 'reader' | null,
-  reader?: ReaderTarget
-): CardsState {
-  return update(state, id, (card) => ({
-    ...card,
-    side,
-    reader: side === 'reader' ? (reader ?? card.reader) : null
-  }))
-}
-
 interface CardsStore extends CardsState {
   open(id: string, options?: OpenOptions): void
   close(id: string): void
@@ -135,7 +112,6 @@ interface CardsStore extends CardsState {
   toggleSheet(id: string): void
   togglePin(id: string): void
   closeUnpinned(keep?: string): void
-  setSide(id: string, side: 'chat' | 'reader' | null, reader?: ReaderTarget): void
 }
 
 export const useCards = create<CardsStore>()((set) => ({
@@ -147,6 +123,5 @@ export const useCards = create<CardsStore>()((set) => ({
   move: (id, offset) => set((state) => moveCard(state, id, offset)),
   toggleSheet: (id) => set((state) => toggleSheet(state, id)),
   togglePin: (id) => set((state) => togglePin(state, id)),
-  closeUnpinned: (keep) => set((state) => closeUnpinned(state, keep)),
-  setSide: (id, side, reader) => set((state) => setSide(state, id, side, reader))
+  closeUnpinned: (keep) => set((state) => closeUnpinned(state, keep))
 }))

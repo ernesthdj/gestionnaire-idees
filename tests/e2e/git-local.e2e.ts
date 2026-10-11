@@ -37,7 +37,7 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
     const badge = page.getByRole('button', { name: /^Dépôt : ⎇ main · 4 modifiés/ })
     await badge.waitFor({ timeout: 30_000 })
     await badge.evaluate((element) => (element as unknown as { click(): void }).click())
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.waitFor()
     const boxes = panel.getByRole('checkbox')
     expect(await boxes.count()).toBe(4)
@@ -48,7 +48,7 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
 
   it('should_commit_only_the_two_checked_files_without_running_the_untrusted_hook', async () => {
     const { page } = run
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await prepare(panel, 'a.txt')
     await panel.getByRole('button', { name: /Commiter \(1 fichier\)/ }).waitFor()
     await prepare(panel, 'b.txt')
@@ -76,7 +76,7 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
 
   it('should_refuse_the_commit_when_the_selection_changed_outside_the_app', async () => {
     const { page } = run
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await prepare(panel, 'c.txt')
     await panel.getByRole('button', { name: /Commiter \(1 fichier\)/ }).waitFor()
     writeFileSync(join(DEMO_PROJECT, 'd.txt'), 'D\n')
@@ -90,7 +90,7 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
 
   it('should_create_a_branch_and_switch_back', async () => {
     const { page } = run
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('tab', { name: 'Branches' }).click()
     await panel.getByLabel('Nouvelle branche').fill('essai/volet')
     await panel.getByRole('button', { name: 'Créer et y passer' }).click()
@@ -104,7 +104,7 @@ describe('volet Dépôt dans l’app (spec 021 US1, e2e)', () => {
 
   it('should_revert_the_last_commit_after_confirmation', async () => {
     const { page } = run
-    const panel = page.getByRole('complementary', { name: 'Dépôt' })
+    const panel = page.getByRole('region', { name: 'Dépôt' })
     await panel.getByRole('tab', { name: 'Historique' }).click()
     await panel.getByRole('button', { name: 'Annuler le commit test(e2e): a et b' }).click()
     await panel.getByRole('button', { name: 'Confirmer l’annulation' }).click()

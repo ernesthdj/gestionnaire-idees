@@ -8,7 +8,8 @@ import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { ProjectManager } from '../../../src/renderer/src/home/ProjectManager'
 import { BrainstormBar } from '../../../src/renderer/src/home/BrainstormBar'
-import { cardsOf, viewStateOf } from '../../../src/renderer/src/home/viewState'
+import { cardsOf, chatTabsOf, viewStateOf } from '../../../src/renderer/src/home/viewState'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 
@@ -70,6 +71,7 @@ describe('Project Manager (spec 024 US1, US3)', () => {
   beforeEach(() => {
     useUiStore.setState({ view: 'home', brainstorm: null, openSummary: null, structureViews: {} })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   it('should_list_brainstorms_and_reopen_one_exactly_as_it_was_left', async () => {
@@ -99,7 +101,9 @@ describe('Project Manager (spec 024 US1, US3)', () => {
     expect(ui.view).toBe('ideas')
     expect(ui.structureViews).toEqual({ [G]: 'workflow' })
     expect(ui.restoredViewport).toEqual({ x: 5, y: 6, zoom: 0.7 })
-    expect(useCards.getState().cards.map((card) => [card.id, card.side, card.pinned])).toEqual([[G, 'chat', true]])
+    expect(useCards.getState().cards.map((card) => [card.id, card.pinned])).toEqual([[G, true]])
+    // Spec 027 : la conversation gardée revient dans un onglet du panneau de droite.
+    expect(useSidePanel.getState().tabs.map((tab) => [tab.kind, tab.key])).toEqual([['chat', G]])
     expect(await screen.findByText(/3 fichiers non commités/)).toBeDefined()
     expect(screen.getByText('[2026-10-09] FEAT — dernière entrée')).toBeDefined()
   })
@@ -135,7 +139,8 @@ describe('Project Manager (spec 024 US1, US3)', () => {
       github: false
     })
     expect(useUiStore.getState().chatDrafts[G]).toMatch(/« Essai local » \(Un essai\)/)
-    expect(useCards.getState().cards.find((card) => card.id === G)?.side).toBe('chat')
+    expect(useCards.getState().cards.some((card) => card.id === G)).toBe(true)
+    expect(useSidePanel.getState().shownKey).toBe(G)
   })
 
   it('should_ask_for_the_vault_when_none_is_chosen', async () => {
@@ -146,17 +151,25 @@ describe('Project Manager (spec 024 US1, US3)', () => {
 
   it('should_turn_the_interface_into_a_bounded_view_state_and_back', () => {
     const cards = [
-      { id: 'b', offset: { x: 0, y: 0 }, sheet: false, side: 'reader' as const, reader: null, z: 2, pinned: false },
-      { id: 'a', offset: { x: 1, y: 1 }, sheet: true, side: 'chat' as const, reader: null, z: 1, pinned: true }
+      { id: 'b', offset: { x: 0, y: 0 }, sheet: false, z: 2, pinned: false },
+      { id: 'a', offset: { x: 1, y: 1 }, sheet: true, z: 1, pinned: true },
+      { id: 'wf:g:task:1', offset: { x: 0, y: 0 }, sheet: false, z: 3, pinned: false }
     ]
-    const state = viewStateOf({ g: 'architecture' }, cards, null)
+    // Une carte dont la conversation a un onglet ouvert (spec 027) est gardée avec `side: 'chat'`.
+    const state = viewStateOf({ g: 'architecture' }, cards, null, new Set(['a', 'wf:g:task:1']))
     expect(state.openCards.map((card) => [card.id, card.side])).toEqual([
       ['a', 'chat'],
-      ['b', null]
+      ['b', null],
+      ['wf:g:task:1', 'chat']
+    ])
+    expect(chatTabsOf(state).map((tab) => [tab.kind, tab.nodeId])).toEqual([
+      ['chat', 'a'],
+      ['workflowChat', 'wf:g:task:1']
     ])
     expect(cardsOf(state).cards.map((card) => [card.id, card.z])).toEqual([
       ['a', 1],
-      ['b', 2]
+      ['b', 2],
+      ['wf:g:task:1', 3]
     ])
     expect(cardsOf(null)).toEqual({ cards: [], activeId: null })
   })

@@ -5,6 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { IdeasCanvas } from '../../../src/renderer/src/canvas/IdeasCanvas'
+import { SidePanel } from '../../../src/renderer/src/canvas/side/SidePanel'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
 import type { IdeasCanvasView, StepView } from '../../../src/shared/ipc/canvas'
 import type { MainWindowChannel } from '../../../src/shared/ipc/channels'
@@ -73,6 +75,7 @@ function renderCanvas(
   const result = render(
     <QueryClientProvider client={client}>
       <IdeasCanvas />
+      <SidePanel />
     </QueryClientProvider>
   )
   return { api, ...result }
@@ -83,6 +86,7 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
   beforeEach(() => {
     useUiStore.setState({ view: 'ideas', chatNeuronId: null, toast: null })
     useCards.setState({ cards: [], activeId: null })
+    useSidePanel.getState().reset()
   })
 
   /** Ouvre la carte de détails d'un nœud par un clic sur son titre (spec 022 D5). */
@@ -278,10 +282,13 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
       }),
       'deliverable:openInEditor': () => ({ ok: true })
     })
-    const viewer = await openCard('Livrable · 1 fichier', 'Livrable de « Valider le budget »')
-    await user.click(within(viewer).getByRole('button', { name: 'Lire src/a.ts (modifié)' }))
+    const card = await openCard('Livrable · 1 fichier', 'Livrable de « Valider le budget »')
+    await user.click(within(card).getByRole('button', { name: 'Lire src/a.ts (modifié)' }))
     expect(api.invoke).toHaveBeenCalledWith('deliverable:file', { neuronId: STEP_1, path: 'src/a.ts' })
-    expect(await within(viewer).findByText('Modifié depuis l’écriture de Claude')).toBeTruthy()
+    // Spec 027 D5 : le fichier s'ouvre dans l'onglet du livrable, dans le panneau de droite.
+    const side = screen.getByRole('complementary', { name: 'Panneau de droite' })
+    expect(await within(side).findByText('Modifié depuis l’écriture de Claude')).toBeTruthy()
+    const viewer = within(side).getByRole('region', { name: /src\/a\.ts/ })
     // La différence part du contenu actuel (retouché) : 2 lignes ajoutées, 1 retirée.
     expect(within(viewer).getByRole('tabpanel').textContent).toContain('+2 · −1')
     // Les lignes de la différence sont colorées elles aussi.
@@ -294,12 +301,13 @@ describe('plan d’attaque sur la carte (spec 011 US1)', () => {
     // Le contenu n'est jamais interprété : la balise reste du texte.
     expect(code?.querySelector('script')).toBeNull()
     expect(code?.textContent).toContain('<script>alert(1)</script>')
-    await expectNoAxeViolations(viewer)
+    await expectNoAxeViolations(side)
     // L'éditeur s'ouvre à la première ligne changée du contenu actuel.
     await user.click(within(viewer).getByRole('button', { name: 'Ouvrir dans l’éditeur' }))
     expect(api.invoke).toHaveBeenCalledWith('deliverable:openInEditor', { neuronId: STEP_1, path: 'src/a.ts', line: 1 })
+    // Un livrable n'a pas de conversation : fermer la visionneuse ferme son onglet.
     await user.click(within(viewer).getByRole('button', { name: 'Fermer la visionneuse' }))
-    expect(within(viewer).queryByRole('tabpanel')).toBeNull()
+    expect(screen.queryByRole('complementary', { name: 'Panneau de droite' })).toBeNull()
   })
 
   it('should_show_a_proposed_final_action_on_its_step_and_accept_it_with_its_check_button', async () => {

@@ -48,6 +48,17 @@
   transform: scale(1.15);
   filter: drop-shadow(0 0 14px color-mix(in oklab, var(--living-hue, var(--color-accent)) 55%, transparent));
 }
+/* Conversation affichée dans le panneau de droite (spec 027 D4) : anneau plein, hors du cercle, distinct du focus
+   (contour), de la sélection (tirets) et de la carte ouverte (lueur). */
+.living[data-chat] .living-face::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+  pointer-events: none;
+}
 
 /* Racine : orbe en dégradé, disque clair au centre, anneau fin ; onde si éclose, pâle et pointillé si brute. */
 .living-orb {

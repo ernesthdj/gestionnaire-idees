@@ -4,6 +4,7 @@ import { SECTIONS, type NavigateEvent } from '@shared/ipc/app'
 import type { MainWindowEvent } from '@shared/ipc/channels'
 import type { MapChangedPayload } from '@shared/ipc/mcp'
 import { watchWaitingChats } from '../chat/waitingChats'
+import { watchRunningChats } from '../canvas/workflow/runningChats'
 import { useUiStore } from './uiStore'
 
 /**
@@ -56,8 +57,10 @@ export function useMainEvents(): void {
         for (const queryKey of keys) void client.invalidateQueries({ queryKey })
       })
     )
-    // Demandes de permission en attente : signalées sur le nœud de leur conversation.
+    // Demandes de permission en attente et tours en cours : signalés sur le nœud de leur conversation et sur son onglet
+    // du panneau de droite (spec 027), pour toute l'app (pas seulement quand une vue Workflow est affichée).
     unsubscribes.push(watchWaitingChats())
+    unsubscribes.push(watchRunningChats())
     unsubscribes.push(
       window.api.on('app:navigate', (payload) => {
         if (isNavigateEvent(payload)) navigate(payload)

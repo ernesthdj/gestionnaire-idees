@@ -19,7 +19,8 @@ const TABS: readonly { readonly tab: Tab; readonly label: string }[] = [
 ]
 
 /**
- * Volet Dépôt d'un projet (spec 021 T016, US1), à côté de la carte : état en tête, onglets Changements, Branches,
+ * Volet Dépôt d'un projet (spec 021 T016, US1), onglet « ⎇ Dépôt » du panneau de droite (spec 027 D3) : état en tête,
+ * onglets Changements, Branches,
  * Historique. Configuration à risque (dépôt non de confiance) : aucune commande, explication et sortie ; opération
  * lancée hors de l'app (rebase, fusion en terminal) : lecture seule. L'état se relit au retour du focus.
  */
@@ -42,16 +43,7 @@ export function RepoPanel({
   const openConflicts = useUiStore((state) => state.openConflicts)
 
   return (
-    <aside
-      aria-labelledby={titleId}
-      className="flex h-full w-[38%] min-w-[360px] shrink-0 flex-col gap-3 overflow-hidden border-l border-content-muted/20 bg-surface p-4"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') {
-          event.stopPropagation()
-          onClose()
-        }
-      }}
-    >
+    <section aria-labelledby={titleId} className="repo-panel flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="text-base font-semibold">
@@ -62,7 +54,7 @@ export function RepoPanel({
             {status?.trusted === true ? ' · projet de confiance (hooks actifs)' : ''}
           </p>
         </div>
-        <button type="button" className="detail-card-close" aria-label="Fermer le volet Dépôt" onClick={onClose}>
+        <button type="button" className="detail-card-close" aria-label="Fermer l’onglet Dépôt" onClick={onClose}>
           ✕
         </button>
       </div>
@@ -153,6 +145,6 @@ export function RepoPanel({
           )}
         </>
       )}
-    </aside>
+    </section>
   )
 }

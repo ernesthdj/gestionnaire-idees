@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useWaitingChats } from '../../chat/waitingChats'
+import { shownNodeId, useSidePanel } from '../side/sidePanelStore'
 import { NODE_ICONS } from './icons'
 import type { NodeIconKey, NodeStatus, NodeVisual } from './nodeVisual'
 import { rhythmStyle } from './rhythm'
@@ -44,7 +45,8 @@ export interface LivingNodeProps {
 /**
  * Nœud vivant (spec 022 D3, D11, D17) : une couche qui flotte à son propre rythme (sans toucher à la position gérée par
  * React Flow), un orbe pour une racine ou un petit cercle coloré par sa grande branche, avec son pictogramme, son rang,
- * sa pastille de statut, son trombone et sa pastille de repli ; le titre dessous.
+ * sa pastille de statut, son trombone et sa pastille de repli ; le titre dessous. Un anneau signale que sa conversation est
+ * l'onglet affiché du panneau de droite (spec 027).
  */
 export function LivingNode({
   id,
@@ -62,13 +64,20 @@ export function LivingNode({
   children
 }: LivingNodeProps): React.JSX.Element {
   const waiting = useWaitingChats((state) => state.waiting.has(chatId))
+  // Conversation affichée dans le panneau de droite (spec 027 D4) : anneau « conversation ouverte », sur un seul nœud.
+  const chatShown = useSidePanel((state) => shownNodeId(state) === id)
   const Icon = NODE_ICONS[orb?.inner ?? visual.icon]
   const faceStyle = {
     '--living-size': `${orb?.size ?? visual.size}px`,
     ...(visual.branch === null ? {} : { '--living-hue': `var(--color-branch-${visual.branch})` })
   } as CSSProperties
   return (
-    <div className="living" data-open={open ? 'true' : undefined} style={rhythmStyle(id) as CSSProperties}>
+    <div
+      className="living"
+      data-open={open ? 'true' : undefined}
+      data-chat={chatShown ? 'true' : undefined}
+      style={rhythmStyle(id) as CSSProperties}
+    >
       <div className="living-float">
         <div
           className={

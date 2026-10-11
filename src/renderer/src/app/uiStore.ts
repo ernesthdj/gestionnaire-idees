@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import type { NavigateEvent, Section } from '@shared/ipc/app'
 import type { BrainstormOpenView, BrainstormView, HubAnomaly } from '@shared/ipc/brainstorms'
 import type { ViewState } from '@shared/brainstorms/viewState'
-import { useCards, type CardsState } from '../canvas/cards/cardsStore'
-import { cardsOf } from '../home/viewState'
+import { useCards } from '../canvas/cards/cardsStore'
+import { cardsOf, chatTabsOf } from '../home/viewState'
 import { deliverableNodeId, ghostNodeId } from '../canvas/planLayout'
+import { repoGenesisId, shownChatId, shownTab, useSidePanel } from '../canvas/side/sidePanelStore'
 
 export interface Toast {
   readonly id: number
@@ -44,15 +45,15 @@ interface UiState {
   setViewport(viewport: Viewport): void
   takeRestoredViewport(): Viewport | null
   /**
-   * Neurone dont la conversation est ouverte (spec 008) : la carte active si sa discussion est ouverte, sinon la plus
-   * haute dont la discussion l'est (spec 022 : une discussion par carte de détails) ; `null` sans discussion.
+   * Conversation affichée (spec 008) : celle de l'onglet affiché du panneau de droite (spec 027), neurone d'un nœud ou
+   * clé d'une tâche Workflow ; `null` sans conversation affichée (lecteur, Dépôt, panneau vide).
    */
   readonly chatNeuronId: string | null
   /** Étape proposée par Claude (fantôme, spec 011) : sa carte s'ouvre sur son détail (fiche). */
   openGhost(ghostId: string): void
   /** Action finale (spec 013) : la carte de l'étape s'ouvre sur sa fiche. */
   openFinal(neuronId: string): void
-  /** Fichier du livrable d'une action finale (spec 013 D4) : lu dans le lecteur de la carte du livrable. */
+  /** Fichier du livrable d'une action finale (spec 013 D4) : lu dans l'onglet du livrable (panneau de droite). */
   openViewer(neuronId: string, path: string): void
   /** Vue de chaque carte de structure (spec 017 D20) : « architecture » une fois basculée, « progression » sinon. */
   readonly structureViews: Readonly<Record<string, StructureView>>
@@ -72,7 +73,7 @@ interface UiState {
   readonly explorerGenesisId: string | null
   openExplorer(genesisId: string): void
   closeExplorer(): void
-  /** Projet dont le volet Dépôt est ouvert à côté de la carte (spec 021 US1) ; `null` : aucun. */
+  /** Projet dont l'onglet « ⎇ Dépôt » est ouvert dans le panneau de droite (spec 021 US1, spec 027 D3) ; `null` : aucun. */
   readonly repoGenesisId: string | null
   openRepo(genesisId: string): void
   closeRepo(): void
@@ -80,9 +81,12 @@ interface UiState {
   readonly conflictGenesisId: string | null
   openConflicts(genesisId: string): void
   closeConflicts(): void
-  /** Ouvre la carte du neurone sur sa discussion (menu, Entrée, historique, exécution d'une action…). */
+  /**
+   * Ouvre la carte du neurone et l'onglet de sa conversation (menu, historique, exécution d'une action…) ; titre et sorte
+   * de l'onglet sont repris de la carte dès qu'elle est lue.
+   */
   openChat(neuronId: string): void
-  /** Replie la discussion ouverte (`chatNeuronId`). */
+  /** Ferme l'onglet de la conversation affichée (`chatNeuronId`). */
   closeChat(): void
   show(view: View): void
   navigate(event: NavigateEvent): void
@@ -98,16 +102,13 @@ interface UiState {
 
 const nextToast = (current: Toast | null, toast: Omit<Toast, 'id'>): Toast => ({ id: (current?.id ?? 0) + 1, ...toast })
 
-/** État d'interface (research R4) : navigation par état, sans routeur. */
-/** Discussion ouverte d'après les cartes : l'active si sa discussion est ouverte, sinon la plus haute. */
-export function chatOf(cards: CardsState): string | null {
-  const chats = cards.cards.filter((card) => card.side === 'chat')
-  if (chats.some((card) => card.id === cards.activeId)) return cards.activeId
-  return (
-    chats.reduce<(typeof chats)[number] | null>((top, card) => (top === null || card.z > top.z ? card : top), null)
-      ?.id ?? null
-  )
+/** Ouvre la carte d'un neurone et l'onglet de sa conversation (titre définitif lu dans la carte par le canevas). */
+function openNeuronChat(neuronId: string): void {
+  useCards.getState().open(neuronId)
+  useSidePanel.getState().openChat({ nodeId: neuronId, neuronId, title: 'Conversation', kindLabel: '' })
 }
+
+/** État d'interface (research R4) : navigation par état, sans routeur. */
 
 export const useUiStore = create<UiState>()((set, get) => ({
   view: 'home',
@@ -118,6 +119,12 @@ export const useUiStore = create<UiState>()((set, get) => ({
   enterBrainstorm: (opened) => {
     const state = opened.viewState
     useCards.setState(cardsOf(state))
+    // Un panneau par canevas (spec 027 FR-014) : les onglets du canevas quitté se ferment, ceux de celui-ci reviennent.
+    useSidePanel.getState().reset()
+    for (const tab of chatTabsOf(state)) {
+      if (tab.kind === 'workflowChat') useSidePanel.getState().openWorkflowChat(tab)
+      else useSidePanel.getState().openChat(tab)
+    }
     set({
       brainstorm: opened.brainstorm,
       openSummary:
@@ -128,7 +135,6 @@ export const useUiStore = create<UiState>()((set, get) => ({
       viewport: state?.viewport ?? null,
       restoredViewport: state?.viewport ?? null,
       explorerGenesisId: null,
-      repoGenesisId: null,
       view: 'ideas'
     })
   },
@@ -156,16 +162,16 @@ export const useUiStore = create<UiState>()((set, get) => ({
   show: (view) => set({ view }),
   // Une idée capturée s'ouvre directement sur sa conversation (spec 010 US2).
   navigate: ({ section, diveRootId }) => {
-    if (diveRootId !== undefined && diveRootId !== null) useCards.getState().open(diveRootId, { side: 'chat' })
+    if (diveRootId !== undefined && diveRootId !== null) openNeuronChat(diveRootId)
     set({ view: section })
   },
   openChat: (neuronId) => {
-    useCards.getState().open(neuronId, { side: 'chat' })
+    openNeuronChat(neuronId)
     set({ view: 'ideas' })
   },
   closeChat: () => {
-    const id = get().chatNeuronId
-    if (id !== null) useCards.getState().setSide(id, null)
+    const tab = shownTab(useSidePanel.getState())
+    if (tab !== null && get().chatNeuronId !== null) useSidePanel.getState().close(tab.key)
   },
   openGhost: (ghostId) => {
     useCards.getState().open(ghostNodeId(ghostId), { sheet: true })
@@ -176,10 +182,14 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ view: 'ideas' })
   },
   openViewer: (neuronId, path) => {
-    useCards.getState().open(deliverableNodeId(neuronId), {
-      side: 'reader',
-      reader: { source: 'deliverable', path, tab: 'diff' }
-    })
+    const nodeId = deliverableNodeId(neuronId)
+    useCards.getState().open(nodeId)
+    useSidePanel
+      .getState()
+      .openReader(
+        { nodeId, neuronId: null, title: 'Livrable', kindLabel: 'Livrable' },
+        { source: 'deliverable', path, tab: 'diff', deliverableNeuronId: neuronId }
+      )
     set({ view: 'ideas' })
   },
   explorerGenesisId: null,
@@ -197,8 +207,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
   openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),
   closeExplorer: () => set({ explorerGenesisId: null }),
-  openRepo: (genesisId) => set({ view: 'ideas', repoGenesisId: genesisId }),
-  closeRepo: () => set({ repoGenesisId: null }),
+  openRepo: (genesisId) => {
+    useSidePanel.getState().openRepo(genesisId)
+    set({ view: 'ideas' })
+  },
+  closeRepo: () => useSidePanel.getState().closeRepo(),
   conflictGenesisId: null,
   openConflicts: (genesisId) => set({ view: 'ideas', conflictGenesisId: genesisId }),
   closeConflicts: () => set({ conflictGenesisId: null }),
@@ -213,8 +226,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   hideToast: () => set({ toast: null })
 }))
 
-// La discussion ouverte suit les cartes (sonde de l'Analyste, suppression d'une idée, tests).
-useCards.subscribe((cards) => {
-  const chatNeuronId = chatOf(cards)
-  if (useUiStore.getState().chatNeuronId !== chatNeuronId) useUiStore.setState({ chatNeuronId })
+// La conversation affichée et le Dépôt ouvert suivent le panneau de droite (sonde de l'Analyste, badge, raccourci).
+useSidePanel.subscribe((panel) => {
+  const chatNeuronId = shownChatId(panel)
+  const repo = repoGenesisId(panel)
+  const current = useUiStore.getState()
+  if (current.chatNeuronId !== chatNeuronId || current.repoGenesisId !== repo)
+    useUiStore.setState({ chatNeuronId, repoGenesisId: repo })
 })

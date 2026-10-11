@@ -42,6 +42,20 @@ describe('réglages de l’app', () => {
     expect(repository.get().chatPermissionMode).toBe('default')
   })
 
+  it('should_keep_the_side_panel_width_within_its_bounds_when_set_or_read', () => {
+    // Spec 027 D6 : 38 % par défaut, réglable de 25 à 55, entier.
+    expect(repository.get().chatPanelWidth).toBe(38)
+    repository.update({ chatPanelWidth: 44 })
+    expect(repository.get().chatPanelWidth).toBe(44)
+    for (const invalid of [24, 56, 38.5]) expect(() => repository.update({ chatPanelWidth: invalid })).toThrow()
+    expect(repository.get().chatPanelWidth).toBe(44)
+    // Valeur hors bornes ou d'un autre type en base : retour au défaut.
+    handle.db.update(settings).set({ valueJson: '90' }).run()
+    expect(repository.get().chatPanelWidth).toBe(38)
+    handle.db.update(settings).set({ valueJson: '"large"' }).run()
+    expect(repository.get().chatPanelWidth).toBe(38)
+  })
+
   it('should_write_nothing_when_one_field_is_invalid', () => {
     expect(() => repository.update({ theme: 'dark', shortcut: 'Space' })).toThrow()
     expect(repository.get().theme).toBe('system')
