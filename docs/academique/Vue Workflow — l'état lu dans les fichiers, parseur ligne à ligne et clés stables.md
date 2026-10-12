@@ -99,3 +99,6 @@ Si la clé était « tâche n°7 », insérer une tâche au-dessus décalerait t
 - [[Glossaire — Clé stable et upsert]] — même idée, ici appliquée à l'affichage.
 - [[Glossaire — Empreinte SHA-256]] — cache de l'explication.
 - [[Avancement vivant — agrégation récursive, outil dédié et consigne au bon endroit]] — autre façon de suivre l'avancement (déclaré par Claude) dans la vue Progression.
+
+## Évolution du 13/10 — lecture asynchrone (correction de l'Analyste)
+`workflow:read` lisait les fichiers de méthode avec `readFileSync` dans le main. Une proposition de l'Analyste interne, gardée par mentalyas (fusion `fabab92`), passe à `readProjectTextAsync` : **mêmes protections** (racine réelle, fichier sensible refusé, taille bornée, binaire refusé), factorisées en petites fonctions partagées par les deux versions, mais lectures `fs/promises` : le main sert l'interface pendant que le disque lit. → [[Glossaire — Boucle d'événements (synchrone, asynchrone, céder la main)]]

@@ -65,7 +65,11 @@
 		{"id":"c_e2e","type":"file","file":"docs/academique/Tests de bout en bout — Playwright pilote Electron sur un profil fictif.md","x":-160,"y":19300,"width":380,"height":320,"color":"2"},
 		{"id":"label_1112","type":"text","text":"Session du 11→12/10 — lire la conversation, croire le graphe (spec 027, spec 017 US6)\nParcours 49 à 50 : panneau fixe à onglets → lever les ambiguïtés du graphe\nNouveaux glossaires : Tabindex itinérant, Demande à nonce, Fonction passée en valeur — voir MOC\nNote 50 prolonge l'Explorateur de code (note 31)","x":-720,"y":19800,"width":320,"height":260},
 		{"id":"c_panel","type":"file","file":"docs/academique/Panneau fixe à onglets — une source de vérité, règles pures et façade gardée.md","x":-160,"y":19800,"width":380,"height":320,"color":"5"},
-		{"id":"c_resolve","type":"file","file":"docs/academique/Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie.md","x":290,"y":19800,"width":380,"height":320,"color":"6"}
+		{"id":"c_resolve","type":"file","file":"docs/academique/Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie.md","x":290,"y":19800,"width":380,"height":320,"color":"6"},
+		{"id":"label_1213","type":"text","text":"Session du 12→13/10 — afficher sans exécuter, ne rien laisser fuir, mesurer (spec 017 livrée)\nParcours 51 à 53 : Markdown non fiable → garde de bout en bout → désengorger le main\nNouveaux glossaires : Boucle d'événements, Interrupteur de fonctionnalité — voir MOC\nSpec 028 (dossier du nœud) en pause : pas de nœud","x":-720,"y":20300,"width":320,"height":260},
+		{"id":"c_markdown","type":"file","file":"docs/academique/Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image.md","x":-160,"y":20300,"width":380,"height":320,"color":"5"},
+		{"id":"c_guard","type":"file","file":"docs/academique/Garde de confidentialité de bout en bout — garder par contenu, tester par énumération.md","x":290,"y":20300,"width":380,"height":320,"color":"1"},
+		{"id":"c_perf","type":"file","file":"docs/academique/Mesurer puis désengorger le main — banc par phases, bornes, différences et tranches.md","x":740,"y":20300,"width":380,"height":320,"color":"6"}
 	],
 	"edges":[
 		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
@@ -121,6 +125,9 @@
 		{"id":"e_c_conflit_c_e2e","fromNode":"c_conflit","fromSide":"bottom","toNode":"c_e2e","toSide":"top","label":"48 prouver le parcours"},
 		{"id":"e_c_widget_settings_c_e2e","fromNode":"c_widget_settings","fromSide":"left","toNode":"c_e2e","toSide":"right","label":"48"},
 		{"id":"e_c_e2e_c_panel","fromNode":"c_e2e","fromSide":"bottom","toNode":"c_panel","toSide":"top","label":"49 la conversation hors de la carte"},
-		{"id":"e_c_panel_c_resolve","fromNode":"c_panel","fromSide":"right","toNode":"c_resolve","toSide":"left","label":"50 croire le graphe"}
+		{"id":"e_c_panel_c_resolve","fromNode":"c_panel","fromSide":"right","toNode":"c_resolve","toSide":"left","label":"50 croire le graphe"},
+		{"id":"e_c_panel_c_markdown","fromNode":"c_panel","fromSide":"bottom","toNode":"c_markdown","toSide":"top","label":"51 afficher sans exécuter"},
+		{"id":"e_c_markdown_c_guard","fromNode":"c_markdown","fromSide":"right","toNode":"c_guard","toSide":"left","label":"52 ne rien laisser fuir"},
+		{"id":"e_c_guard_c_perf","fromNode":"c_guard","fromSide":"right","toNode":"c_perf","toSide":"left","label":"53 mesurer"}
 	]
 }

@@ -88,7 +88,7 @@ Skills du depot : `/journal`, `/selfdoubt`, `/speckit-*` (`.claude/skills/`). In
 
 Active : oui
 Dossier : docs/academique/
-Derniere mise a jour : 2026-10-12
+Derniere mise a jour : 2026-10-13
 
 ## Stack
 

@@ -103,3 +103,8 @@ On cherche les éléments par **rôle + nom accessible** (ce que lit un lecteur 
 - [[Glossaire — Bundler et shim (le code livré n'est pas le code testé)]] — la raison n°1 d'un test sur l'app construite.
 - [[Glossaire — Information sans la couleur seule (accessibilité)]] — l'accessibilité sert aussi les tests.
 - [[Coquille de bureau — zone de notification, instance unique et fenêtres cachées]] — l'instance unique explique pourquoi on ferme toujours l'app.
+
+## Évolution du 13/10 — l'e2e qui mesure, et ce que jsdom ne voit pas
+- **Banc de mesure** : `reprise-bench.e2e.ts` importe par l'interface un projet **généré** de 5 000 fichiers et mesure durées, centiles d'aller-retour IPC et temps par image, résultats écrits en JSON. Un test e2e peut **chiffrer** une promesse de spec (SC-004, SC-005), pas seulement vérifier un parcours → [[Mesurer puis désengorger le main — banc par phases, bornes, différences et tranches]].
+- **Ce que l'unitaire ne voit pas** : un schéma Mermaid en image `data:` passait les tests jsdom mais ne se **décodait** pas dans Chromium (`naturalWidth = 0`) ; seul `markdown-mermaid.e2e.ts` l'a vu → [[Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image]].
+- **Profil démo enrichi** : `demoReprise.ts` ajoute un projet repris fictif « Local uniquement » ; hors des e2e sauf `GI_E2E_REPRISE_DEMO=1`, pour que les autres tests gardent un profil prévisible.

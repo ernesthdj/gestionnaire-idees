@@ -40,3 +40,6 @@ Extrait de `src/renderer/index.html` :
 - **CSP de l'app** (`src/renderer/index.html`) : une seule ouverture ajoutée, `frame-src gi-widget:` — l'app accepte d'emboîter un cadre, uniquement de ce protocole.
 - **CSP d'un widget** (`WIDGET_CSP`) : `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; …` envoyée **en en-tête HTTP et en `<meta>`**. Ici la CSP ne sert plus à empêcher une injection (tout le document est du code non fiable) mais à **empêcher de sortir** : aucun `connect-src`, donc aucun réseau. `default-src` est la valeur de repli de toute directive de chargement absente.
 - Le piège « jamais `'unsafe-inline'` » ci-dessus vaut pour l'app ; dans le bac à sable c'est un choix assumé → [[Bac à sable des widgets — iframe isolée, origine opaque et protocole gi-widget]].
+
+## Évolution du 13/10 — `img-src data:` pour afficher un schéma sans l'exécuter
+Les schémas Mermaid des fichiers `.md` (12/10) sont rendus en SVG puis affichés comme **image** `data:image/svg+xml,…`, que la CSP de la fenêtre autorise déjà (`img-src 'self' data:`). On n'ouvre ni `script-src` ni l'insertion de HTML : un SVG chargé comme image ne peut rien exécuter. → [[Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image]]

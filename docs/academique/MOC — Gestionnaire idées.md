@@ -1,8 +1,8 @@
 ---
 type: MOC
-subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés ; session du 04→06/10 : interface visuelle de Claude Code, specs 007 à 016 ; matin du 07/10 : reprise d'un projet existant, spec 017 US4 et D16 ; après-midi du 07/10 : carte de structure ordonnée (D17) et conception de l'Analyste interne, spec 019 ; soir du 07/10 : sonde codée (019 US1), carte de structure D18–D21 — contenu, statut, vue Architecture, avancement vivant ; nuit du 07→08/10 : Arbre de skills, spec 020 US1, US3, US4 et D12 ; Analyste US2 et preuve R1 ; brainstorm et spec 021 Git et GitHub ; session du 08→10/10 : Analyste US4-US5, nœuds vivants (022), carte Workflow (023), Git et GitHub dans l'app (021), accueil ProjectMaster et points de sauvegarde (024), lancer un projet (025), réglages des widgets (026), tests e2e ; session du 11→12/10 : conversation en panneau fixe à onglets (spec 027), levée des ambiguïtés du graphe d'appels par l'IA (spec 017 US6), faux code mort)
-tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets, #mcp, #claude-code, #processus, #fichiers, #reprise, #analyste, #git, #vie-privee, #architecture, #prompt, #accessibilite, #skills, #windows, #build, #tests, #concurrence, #analyse-statique]
-date: 2026-10-12
+subject: Gestionnaire_idées — le Brainstormer (session inaugurale du 2026-09-28 : specs 001 et 002 ; session du soir 28→29/09 : spec 003 interface ; session du 29→30/09 : cycle 2, économies d'API, spec 004 widgets ; après-midi et soir du 30/09 : prochaine étape, specs 005 et 006 widgets branchés et proposés ; session du 04→06/10 : interface visuelle de Claude Code, specs 007 à 016 ; matin du 07/10 : reprise d'un projet existant, spec 017 US4 et D16 ; après-midi du 07/10 : carte de structure ordonnée (D17) et conception de l'Analyste interne, spec 019 ; soir du 07/10 : sonde codée (019 US1), carte de structure D18–D21 — contenu, statut, vue Architecture, avancement vivant ; nuit du 07→08/10 : Arbre de skills, spec 020 US1, US3, US4 et D12 ; Analyste US2 et preuve R1 ; brainstorm et spec 021 Git et GitHub ; session du 08→10/10 : Analyste US4-US5, nœuds vivants (022), carte Workflow (023), Git et GitHub dans l'app (021), accueil ProjectMaster et points de sauvegarde (024), lancer un projet (025), réglages des widgets (026), tests e2e ; session du 11→12/10 : conversation en panneau fixe à onglets (spec 027), levée des ambiguïtés du graphe d'appels par l'IA (spec 017 US6), faux code mort ; session du 12→13/10 : .md mis en forme et Mermaid, spec 017 livrée — confidentialité de bout en bout et mesures 5 000 fichiers, spec 028 mise en pause par interrupteur, lecture asynchrone de la vue Workflow)
+tags: [#MOC, #electron, #ia, #neurones, #securite, #ui, #widgets, #mcp, #claude-code, #processus, #fichiers, #reprise, #analyste, #git, #vie-privee, #architecture, #prompt, #accessibilite, #skills, #windows, #build, #tests, #concurrence, #analyse-statique, #performance, #markdown]
+date: 2026-10-13
 ---
 
 # Gestionnaire idées — Map of Content
@@ -83,7 +83,14 @@ flowchart TD
     end
     T1 --> K1
     Y2 --> K2
+    subgraph "Session du 12→13/10 — afficher sans exécuter, ne rien laisser fuir, mesurer (spec 017 livrée)"
+        L1["Markdown non fiable<br/>arbre + Mermaid en image"] --> L2["Garde de bout en bout<br/>par contenu + énumération"] --> L3["Désengorger le main<br/>phases, bornes, tranches"]
+    end
+    K1 --> L1
+    K2 --> L2
 ```
+
+> 🆕 **Session du 12→13/10 (spec 017 livrée, spec 028 en pause, .md mis en forme)** : tout `.md` s'ouvre **mis en forme** ; les encadrés `[!NOTE]` passent par un petit **plugin remark** et les schémas Mermaid sont dessinés puis affichés **en image** (`data:`), pour qu'un fichier piégé ne puisse rien exécuter. La spec 017 « Reprise — Voir » est **livrée** après deux vérifications de bout en bout : la **confidentialité** d'un projet « Local uniquement » sur tout le parcours (3 fuites trouvées ; garde par **contenu**, test par **énumération** des outils) et la **performance** sur 5 000 fichiers (le goulot était l'écriture : borne de 20 candidats, réécriture par **différences**, **tranches** et `setImmediate`). La spec 028 « Le dossier du nœud » a été codée (lots 1-2) puis **coupée par un interrupteur** sur décision de mentalyas. Nouvelles notes : 3 concepts, 2 glossaires ; blocs « Évolution du 13/10 » dans 5 notes (PRNG, CSP, Consigne pour un agent outillé, Tests e2e, Vue Workflow). Pas de note pour le composant visuel du dossier (en pause ; sa technique de bruit est dans le glossaire PRNG) ni pour le projet repris de démo (données fictives).
 
 > 🆕 **Session du 11→12/10 (spec 027, spec 017 US6, correctif de l'Analyste)** : deux audits d'usage (un projet de zéro, puis Bike_cycle mené loin) ont fixé les priorités. La conversation sort de la carte zoomable pour un **panneau fixe à onglets** : un magasin unique écrit en **règles pures**, des **façades** pour ne pas toucher les appelants, un motif ARIA d'onglets au clavier, « Centrer » par **demande à nonce**, une largeur validée par le main. Côté reprise, l'IA peut **lever les ambiguïtés** du graphe d'appels en choisissant dans une **liste fermée** que le code revérifie (« déduit », jamais « sûr ») ; et l'Analyste a corrigé lui-même un **faux code mort** (fonctions passées en valeur). Nouvelles notes : 2 concepts, 3 glossaires ; blocs « Évolution du 12/10 » dans 5 notes (Graphe d'appels, Explorateur, Injection de prompt, TanStack Query et Zustand, Throttle et debounce). Rien de nouveau à enseigner dans les correctifs de l'audit du 11/10 ni dans la spec 013 D6 (chemin rendu visible, pas de mécanisme nouveau).
 
@@ -154,6 +161,8 @@ flowchart TD
 - [[Glossaire — Tabindex itinérant (motif ARIA des onglets)]] — un groupe, un arrêt de Tab ; les flèches à l'intérieur *(12/10)*
 - [[Glossaire — Demande à nonce (exécutée une seule fois)]] — un événement mis dans l'état, exécuté une fois *(12/10)*
 - [[Glossaire — Fonction passée en valeur (première classe) et faux code mort]] — « jamais appelée » n'est pas « jamais utilisée » *(12/10)*
+- [[Glossaire — Boucle d'événements (synchrone, asynchrone, céder la main)]] — un fil, une file ; couper en tranches et laisser passer *(13/10)*
+- [[Glossaire — Interrupteur de fonctionnalité (feature flag)]] — couper une fonction entière sans effacer son code *(13/10)*
 
 ## Concepts fondamentaux
 *À maîtriser en premier — la charpente*
@@ -241,6 +250,12 @@ flowchart TD
 - [[Panneau fixe à onglets — une source de vérité, règles pures et façade gardée]] — *intermédiaire* — hors de la couche zoomée, règles pures, façades, onglets ARIA, nonce, largeur validée par le main
 - [[Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie]] — *avancé* — candidats gardés, lots de 50, entrée JSON, liste fermée revérifiée, « déduit » jamais « sûr »
 
+## Afficher sans exécuter, ne rien laisser fuir, mesurer (spec 017 livrée — 12→13/10)
+*Trois vérifications de bout en bout : ce qu'on dessine, ce qui sort vers Claude, ce que coûte un gros projet*
+- [[Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image]] — *intermédiaire* — mdast → hast, `skipHtml`, plugin d'encadrés, SVG resérialisé en XML puis affiché en image
+- [[Garde de confidentialité de bout en bout — garder par contenu, tester par énumération]] — *avancé* — trois fuites réelles, tout UUID des arguments, tous les outils du pont testés
+- [[Mesurer puis désengorger le main — banc par phases, bornes, différences et tranches]] — *avancé* — 1,2 Go évités, différences seulement, `setImmediate`, O(n²) → O(n)
+
 ## Ponts outil ↔ mécanisme
 - [[Drizzle ORM ↔ SQL paramétré et migrations]] — ce que l'ORM fait à ta place (et pourquoi pas Prisma)
 - [[Zod ↔ type guards et sortie structurée]] — un schéma pour l'IPC, pour guider l'IA et pour la vérifier (+ sortie tolérante, 29/09)
@@ -302,12 +317,18 @@ flowchart TD
     - *Session du 11→12/10* : relire d'abord le bloc « Évolution du 12/10 » de [[TanStack Query et Zustand ↔ cache de données et état d'interface]].
 49. [[Panneau fixe à onglets — une source de vérité, règles pures et façade gardée]] — avec [[Glossaire — Tabindex itinérant (motif ARIA des onglets)]] et [[Glossaire — Demande à nonce (exécutée une seule fois)]] ; puis le bloc « Évolution du 12/10 » de [[Glossaire — Throttle et debounce (regrouper des événements)]]
 50. [[Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie]] — d'abord [[Glossaire — Fonction passée en valeur (première classe) et faux code mort]] (le graphe corrigé sans IA), puis les blocs « Évolution du 12/10 » de [[Glossaire — Graphe d'appels (appelants et appelés)]], de l'Explorateur et de [[Injection de prompt — cadre figé et données balisées]]
+    - *Session du 12→13/10* : relire d'abord les blocs « Évolution du 13/10 » de [[Glossaire — CSP (Content Security Policy)]] et de [[Consigne pour un agent outillé — dire ce qui ne change pas, nommer l'outil et l'anti-outil]].
+51. [[Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image]] — puis le bloc « Évolution du 13/10 » de [[Tests de bout en bout — Playwright pilote Electron sur un profil fictif]]
+52. [[Garde de confidentialité de bout en bout — garder par contenu, tester par énumération]] — après [[Guide de reprise — contexte borné, sections fixes et sources vérifiées]] (la promesse « Local uniquement ») ; puis [[Glossaire — Interrupteur de fonctionnalité (feature flag)]]
+53. [[Mesurer puis désengorger le main — banc par phases, bornes, différences et tranches]] — d'abord [[Glossaire — Boucle d'événements (synchrone, asynchrone, céder la main)]] ; puis les blocs « Évolution du 13/10 » de la Vue Workflow et du glossaire PRNG
 
 > 🔁 **Répétition espacée** : notes 9 à 11 denses → **revoir dans 2 jours**, en refaisant les « Rappel actif » sans regarder les réponses. Notes 16 et 18 (algorithmes) → **revoir dans 2 jours** aussi : refais à la main le calcul d'orientation sur 4 points, et déroule une annulation avec conflit. Note 19 → **revoir dans 2 jours** : récite les cinq barrières et ce que chacune coupe, sans regarder le tableau. Notes 21 à 23 → **revoir dans 2 jours** : dessine de mémoire le trajet d'une donnée idée → widget → cadre résultat en nommant, à chaque frontière, **qui décide** ; puis explique pourquoi l'appel à Claude est **hors** de la transaction d'éclosion. Notes 24 à 29 → **revoir dans 2 jours** : dessine de mémoire les quatre processus (Claude Code, relais, main, renderer) et le trajet d'une demande de permission, avec les trois délais ; puis déroule à la main le DFS gris/noir sur A→B→C→A ; enfin, cite les trois règles pour lancer un programme. Notes 30 et 31 → **revoir dans 2 jours** : sans regarder, liste l'ordre de l'entrée du guide (et ce qui est compté quand ça déborde), déroule `checkSource` sur trois sources (un fichier, un `fichier#symbole` inventé, une clé de module) ; puis dessine deux dossiers, trois fonctions et leurs appels, et trace la flèche agrégée que montre la carte. Notes 32 à 35 → **revoir dans 2 jours** : ordonne à la main 4 frères avec 3 dépendances (dont un cycle) et numérote-les ; explique à voix haute pourquoi `sha256("oui")` n'est pas secret et `HMAC(clé, "oui")` l'est ; dessine le graphe git d'une fusion `--no-ff` puis de son `revert -m 1`, en nommant le parent 1. Notes 36 à 38 → **revoir dans 2 jours** : classe à la main 5 dossiers d'un projet C# en couches Clean et trace les « sens interdits » ; calcule l'avancement d'un module à 3 niveaux ; réécris une consigne qui ajoute un champ « priorité » en disant ce qui ne change pas et quel outil ne pas utiliser. Notes 39 à 41 → **revoir dans 2 jours** : récite les trois verrous d'un brouillon de skill et ce que chacun retire ; classe à la main trois lignes de script (`curl …`, `curl … | bash`, « ignore tes règles ») avec `mostSevere` ; dessine sur papier une mise à jour de la bibliothèque pendant qu'un fichier de l'ancienne copie est ouvert, jusqu'au nettoyage du démarrage.
 >
 > 🔁 **Session du 08→10/10** : notes 42 et 43 → **revoir dans 2 jours** : récite les 4 protections de git (préfixe, `assertSafeArgs`, configuration classée, push gardé) et déroule à la main le tableau de la fusion à trois voies sur 5 lignes. Note 45 → **revoir dans 3 jours** : explique sans regarder pourquoi le point caché est posé **dans** la transaction.
 >
 > 🔁 **Session du 11→12/10** : note 50 → **revoir dans 2 jours** : énumère sans regarder les trois issues d'une réponse de l'IA (déduit, indécidable, rejeté) et ce qui décide de chacune. Note 49 → **revoir dans 3 jours** : réécris `targetIndex` de mémoire, puis explique pourquoi `handledFocus` est un `ref`.
+>
+> 🔁 **Session du 12→13/10** : note 53 → **revoir dans 2 jours** : dessine sur papier la boucle d'événements du main pendant une écriture par tranches (une tranche, `setImmediate`, un message IPC qui passe) ; puis trouve toi-même une boucle O(n²) dans un de tes projets C# et réécris-la avec un `Dictionary`. Note 52 → **revoir dans 3 jours** : cite les trois fuites et, pour chacune, **pourquoi** l'ancien test ne pouvait pas la voir.
 
 ## Questions de révision globale
 > **Q :** Suis une réponse de l'utilisateur, de son clic jusqu'au disque puis jusqu'à Claude : quelles barrières traverse-t-elle ?
@@ -388,6 +409,12 @@ flowchart TD
 > **Q :** L'IA répond à un lot de 50 liens avec un 51ᵉ élément, un doublon et une cible hors candidats. Que garde l'app ?
 > **R :** Zod refuse déjà plus de 50 éléments (la réponse entière est écartée). Sous 50 : l'élément inconnu, le doublon et la cible hors liste sont comptés `rejected` et ne changent rien ; seuls les choix **dans les candidats de ce lien** deviennent « déduits ».
 
+> **Q :** Donne trois endroits où l'app **affiche ou transmet un contenu étranger sans lui obéir**.
+> **R :** Le `.md` d'un projet (HTML brut ignoré, Mermaid en image `data:`) ; les données d'un widget (affichées par `textContent`) ; le contenu d'un projet envoyé à l'IA (balisé comme donnée dans un cadre figé).
+
+> **Q :** Donne trois façons, vues le 12→13/10, de garder le main réactif.
+> **R :** Écrire par tranches avec `setImmediate` entre deux ; n'écrire que les différences (et borner les données inutiles) ; lire le disque avec `fs/promises` au lieu de `readFileSync`.
+
 ## Ressources complémentaires
 - Cadrage : `docs/FOUNDATION.md` (§0 amendements Brainstormer prioritaires), `docs/brainstorm/L1-…L4c-*.md`, `.specify/memory/constitution.md` (v1.1.0)
 - Specs : `specs/001-moteur-ia-hybride/`, `specs/002-structuration-ia/`, `specs/003-interface-mvp1/` (spec, plan, research, data-model, contracts, tasks, analysis-report)
@@ -406,4 +433,5 @@ flowchart TD
 - *Mise à jour du 10/10* — Graphe : 8 992 nœuds, 15 170 liens, 489 communautés ; nœuds centraux `useUiStore` (97 liens), `SkillRepository` (48), `GitService` (33), `WidgetIoService` (33) ; nouvelles communautés « Cartes et vue Workflow », « Tests e2e Playwright », « Sécurité des commandes gh », « Conflits Git guidés », « Arguments Git », « Harnais de tests Git », « Schéma DB et brainstorms »
 - Code clé de la session : `src/main/domain/git/` (`args.ts`, `riskyConfig.ts`, `pushRules.ts`, `sensitive.ts`, `splitHunks.ts`), `src/main/application/git/`, `src/main/domain/workflow/`, `src/main/application/brainstorms/SavePointService.ts`, `src/main/application/run/RunService.ts`, `src/shared/widgets/settings.ts`, `tests/e2e/`
 - *Mise à jour du 12/10* — Graphe : 9 515 nœuds, 16 169 liens, 514 communautés ; `useUiStore` reste le 2ᵉ nœud le plus connecté (100 liens) ; nouvelle communauté « sidePanelStore.ts » (7ᵉ pôle). Code clé : `src/renderer/src/canvas/side/` (`sidePanelStore.ts`, `SideTabs.tsx`, `panelWidth.ts`), `src/main/application/reprise/ResolutionService.ts`, `src/main/application/ai/RepriseResolutionTask.ts`, `src/main/infrastructure/ai/RepriseResolutionFrame.ts`, `src/main/domain/reprise/callContext.ts`, `src/analysis-worker/extract.ts`. Cadrage : `specs/027-panneau-conversation/`, `specs/017-*/` (US6), `docs/AUDIT-2026-10-11-parcours-nouveau-projet.md`, `docs/AUDIT-2026-10-12-bike-cycle.md`.
+- *Mise à jour du 13/10* — Graphe : 10 053 nœuds, 17 212 liens, 520 communautés. Code clé : `src/renderer/src/chat/{Markdown,MermaidDiagram}.tsx`, `src/main/application/reprise/{ConfidentialityGuard,AnalysisService}.ts`, `src/main/domain/reprise/resolve.ts` (`MAX_CANDIDATES`), `src/main/infrastructure/db/repositories/CodeGraphRepository.ts` (`changedFiles`, `edgeChanges`), `src/main/infrastructure/files/projectFiles.ts` (`readProjectTextAsync`), `src/shared/ipc/folders.ts` (`FOLDERS_ENABLED`), `src/renderer/src/canvas/folder/folderArt.ts`. Tests : `tests/integration/reprise/local-only-end-to-end.test.ts`, `tests/e2e/{reprise-bench,markdown-mermaid}.e2e.ts`. Cadrage : `specs/017-reprise-voir/research.md` (R9, R10), `specs/028-dossier-du-noeud/`, `docs/brainstorm/L1n-dossier-du-noeud.md`.
 - 💡 Glisse ces notes dans NotebookLM / Gemini si tu veux un *study guide* ou un quiz audio.
