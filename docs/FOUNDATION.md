@@ -1,8 +1,8 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** + **amendement L1j (Vue Workflow, 2026-10-09, §0000000)** — voir « État actuel »
-> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md** · **L1j-carte-workflow.md**
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** + **amendement L1j (Vue Workflow, 2026-10-09, §0000000)** + **amendement L1n (Le dossier du nœud, 2026-10-12, §00000000)** — voir « État actuel »
+> Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md** · **L1j-carte-workflow.md** · **L1n-dossier-du-noeud.md · L2-dossier-{rangement, carte, tout-voir, claude-actions, reprise-012}.md · L3-dossier-{rangement, carte, claude-actions, reprise-012}.md · L4b-neurones.md §7**
 
 ---
 
@@ -24,6 +24,40 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 00000000. Amendement du 2026-10-12 — Le dossier du nœud : un porte-documents de verre, relié au nœud
+
+> Détail complet : `docs/brainstorm/L1n-dossier-du-noeud.md` (décisions D1–D7), `L2-dossier-*.md`, `L3-dossier-*.md`,
+> parcours écran `L4b-neurones.md` §7. Spec : `specs/028-dossier-du-noeud/`. Ces fichiers priment.
+
+### 00000000.1 Vision
+Quand Claude rédige de la documentation pour un nœud, ou écrit du code dans sa conversation, rien ne le montre sur la
+carte à côté du nœud. Désormais, **tout nœud qui a des fichiers porte un dossier de verre flottant**, relié à lui, qui
+réunit ses documents et fichiers et se parcourt d'un clic. Référence visuelle : « Glass Folder Cards » (21st.dev),
+réécrite aux jetons du thème.
+
+### 00000000.2 Ce que fera le dossier (spec 028)
+| Sujet | Décision |
+|-------|----------|
+| Périmètre (D1) | Tout nœud (genesis, étape, élément de structure, nœud Workflow, idée) ; **jamais de dossier vide** |
+| Contenu (D2) | Quatre sources : documents rédigés par Claude (`document_ecrire`, étendu à tout nœud) ; fichiers couverts par le nœud (chemins d'un élément) ; fichiers écrits par Claude dans la conversation du nœud ; fichiers ajoutés à la main (« + », glisser). Un fichier n'y figure qu'une fois (source la plus forte) ; rien n'est copié ni déplacé sur le disque |
+| Parcourir (D3) | Clic → éventail des **4 fichiers les plus récents** (documents d'abord) ; « **Tout voir (N)** » → vue Dossier dans l'onglet du nœud du panneau de droite (spec 027) : arborescence, filtre Docs / Code / Autres, recherche par nom et chemin, lecteur |
+| Documents de la spec 012 (D4) | **Rangés dans le dossier** (plus de nœuds documents séparés) ; un document peut être **épinglé** en cadre de lecture à côté du dossier. Amende la spec 012 D3 et D4 ; reprise des documents existants au premier démarrage, sans perte, ce qui avait été arrangé à la main reste épinglé |
+| Illustration (D5) | Encre liquide générée, **teintée de la couleur du nœud** et déclinée par son identifiant ; verre laiteux (clair) ou fumé (sombre) |
+| Placement (D6) | À côté du nœud, relié par un lien fin ; déplaçable, place gardée ; **dézoomé**, pastille « 📁 N » sur le nœud |
+| Claude et actions (D7) | Claude **lit le dossier** (`neurone_contexte` le liste, nouvel outil en lecture `dossier_lire`) ; menu « ··· » (ouvrir dans l'éditeur, épingler, retirer ou « Ne plus afficher », demander à Claude de compléter) ; **glisser** un fichier sur un autre nœud le range aussi ; pastille « nouveau » et animation quand Claude ajoute un fichier |
+
+### 00000000.3 Sécurité
+- Seuls des fichiers du projet lié (ou du dossier `documents` du profil) : chemin relatif vérifié par le main, ni `..`,
+  ni lien symbolique sortant, ni fichier sensible (`.env`, clés).
+- `dossier_lire` ne lit que des fichiers **rangés** dans un nœud de l'arbre de la conversation ; projet « Local
+  uniquement » (spec 017) : noms seulement, aucun contenu ; contenu rendu à Claude comme une donnée, jamais une
+  consigne.
+- Retirer un fichier du dossier ne le supprime jamais du disque ; toute écriture de Claude reste annulable.
+- Composant réécrit : ni script ni ressource externe, CSP inchangée ; licence de la référence vérifiée avant toute
+  reprise de code (sinon réécriture inspirée, sans copie).
 
 ---
 

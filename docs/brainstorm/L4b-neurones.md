@@ -77,3 +77,34 @@ animations deviennent des transitions instantanées ou des fondus courts ; la d�
 | Spec 002 (structuration) | Refonte du cœur : session linéaire → **arbre de questions** ; jauge ; synthèse à la fusion |
 | Spec 003 (interface MVP-1) | Refonte : écran Idées neurones (2c + 2b), fusion, réseau = ancien organigramme, navigation à 4 entrées, animations |
 | Coût IA | 1 appel court (effort bas) par extension + évaluation de contexte ; synthèse à la fusion (effort haut) — plafond mensuel inchangé |
+
+## 7. Le dossier du nœud (ajout du 2026-10-12, L1n)
+
+> Parcours écran du porte-documents d'un nœud. Détail : `L1n-dossier-du-noeud.md`, `L2-dossier-*.md`, `L3-dossier-*.md`.
+
+```mermaid
+graph LR
+    A[Conversation du nœud<br/>« rédige le cours »] -->|document_ecrire / Write| B[Dossier de verre naît<br/>à côté du nœud, relié]
+    B -->|survol| C[Verre penché,<br/>feuilles qui dépassent]
+    C -->|clic| D[Éventail : 4 fichiers récents<br/>« Tout voir (N) »]
+    D -->|clic fichier| E[Onglet du nœud, panneau de droite :<br/>lecteur .md mis en forme]
+    D -->|Tout voir| F[Onglet du nœud : vue Dossier<br/>filtre, recherche, arborescence]
+    F -->|clic fichier| E
+    E -->|← Dossier| F
+    D -->|··· Épingler| G[Cadre de lecture sur la carte]
+    D -->|glisser une feuille| H[Rangé aussi dans<br/>le dossier d'un autre nœud]
+    B -->|dézoom| I[Pastille 📁 N sur le nœud]
+    I -->|clic| B
+```
+
+| Écran | Ce qu'on voit | Gestes |
+|---|---|---|
+| Carte, zoom normal | Dossier de verre (~180 px) relié au nœud, encre aux couleurs du nœud, étiquette « titre · N fichiers », point d'accent s'il y a du nouveau | Survol, clic, Entrée / Espace, glisser le dossier, « + », « ··· » |
+| Carte, dossier ouvert | Éventail de 4 feuilles (nom, sorte, pastille « nouveau »), « Tout voir (N) » | Clic sur une feuille, glisser une feuille, Échap |
+| Carte, dézoomée | Pastille « 📁 N » sur le nœud | Clic : recentre sur le dossier |
+| Panneau de droite, vue Dossier | Comptes par sorte, filtre Tout / Docs / Code / Autres, recherche, arborescence, sources | Clic, menu « ··· », « + Ajouter un fichier du projet » |
+| Panneau de droite, lecteur | `.md` mis en forme (encadrés, Mermaid), code coloré ; « ← Dossier » | Bascule texte brut, ouvrir dans l'éditeur |
+
+**Impacts :** spec 012 (D3, D4 amendées : documents rangés, épingle), spec 027 (vue Dossier dans l'onglet d'un nœud),
+spec 017 US7 (« Fichiers » de la carte de détails remplacés par le dossier), consigne de conversation et pont MCP
+(`dossier_lire`, `document_ecrire` pour tout nœud).

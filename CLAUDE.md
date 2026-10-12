@@ -29,6 +29,10 @@
 > widget, lecture et modification d'un widget par Claude (MCP), plein écran. **Spec 026 livrée le 2026-10-10** :
 > boutons Wireframe / Parcours / Adapter sur un widget relié à un nœud, état persistant, contenu à l'échelle du bloc,
 > panneau de réglages flottant (déclaré par le widget, dessiné par l'app), plein écran.
+> **Évolution (2026-10-12) :** **Le dossier du nœud** (tout nœud qui a des fichiers porte un dossier de verre flottant
+> relié à lui : documents de Claude, fichiers couverts, écrits en conversation ou ajoutés à la main ; éventail des 4
+> plus récents, « Tout voir » dans le panneau de droite, lisible par Claude). Voir `docs/FOUNDATION.md` §00000000 et
+> `docs/brainstorm/L1n-dossier-du-noeud.md`. Spec 028 écrite le 2026-10-12 ; amende la spec 012 (D3, D4).
 
 ---
 
@@ -125,6 +129,6 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (US6 livrée le 2026-10-12 ; reste les finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets » ; livrée le 2026-10-11 : 027 « Conversation en panneau fixe » (onglets à droite de l'écran Idées, hors du zoom de la carte ; amende 022 D6, D10, D28)
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (US6 livrée le 2026-10-12 ; reste les finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets » ; livrée le 2026-10-11 : 027 « Conversation en panneau fixe » (onglets à droite de l'écran Idées, hors du zoom de la carte ; amende 022 D6, D10, D28) ; écrite le 2026-10-12, à planifier après les finitions de la 017 : 028 « Le dossier du nœud » (amende 012 D3, D4)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`
