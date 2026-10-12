@@ -15,7 +15,7 @@ import type { FileSummaryInput } from '../ai/FileSummaryTask'
 
 export interface WorkflowSummariesDeps {
   /** Fichier lisible depuis une carte Workflow (mêmes gardes que `workflow:file`). */
-  readonly file: (genesisId: string, path: string) => WorkflowFileView
+  readonly file: (genesisId: string, path: string) => Promise<WorkflowFileView>
   readonly anatomy: (genesisId: string, path: string) => Promise<WorkflowAnatomyView | null>
   /** Projet repris « Local uniquement » : rien n'est envoyé à Claude (constitution IV). */
   readonly localOnly: (genesisId: string) => boolean
@@ -63,8 +63,8 @@ export class WorkflowSummaries {
   constructor(private readonly deps: WorkflowSummariesDeps) {}
 
   /** Explication enregistrée, sans appel à l'IA : `outdated` si une explication existe mais pour un autre contenu. */
-  saved(genesisId: string, path: string): WorkflowSavedSummaryView {
-    const file = this.deps.file(genesisId, path)
+  async saved(genesisId: string, path: string): Promise<WorkflowSavedSummaryView> {
+    const file = await this.deps.file(genesisId, path)
     const stored = this.deps.store.get(genesisId, file.path)
     if (stored === undefined) return { summary: null, outdated: false }
     if (stored.contentHash !== fingerprint(file)) return { summary: null, outdated: true }
@@ -73,7 +73,7 @@ export class WorkflowSummaries {
 
   /** Explication du contenu actuel : celle enregistrée si elle est à jour, sinon rédigée puis enregistrée. */
   async summary(genesisId: string, path: string): Promise<WorkflowFileSummaryView> {
-    const file = this.deps.file(genesisId, path)
+    const file = await this.deps.file(genesisId, path)
     const hash = fingerprint(file)
     const stored = this.deps.store.get(genesisId, file.path)
     const known = stored?.contentHash === hash ? this.parse(stored.summaryJson) : null

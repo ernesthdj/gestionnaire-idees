@@ -73,7 +73,11 @@ ${path}`,
 }
 
 function setup(lines: string[] = ['export function Carte() {}'], run?: Run, localOnly = false, store = memoryStore()) {
-  const file = vi.fn((_genesisId: string, path: string): WorkflowFileView => ({ path, lang: 'ts', lines }))
+  const file = vi.fn(async (_genesisId: string, path: string): Promise<WorkflowFileView> => ({
+    path,
+    lang: 'ts',
+    lines
+  }))
   const runner = vi.fn<Run>(
     run ?? (async () => ({ ok: true, value: { data: OUT, engine: 'claude', model: 'claude-sonnet-5-5' } }))
   )
@@ -126,20 +130,20 @@ describe('« Que fait ce fichier ? » (spec 023 D15)', () => {
     const lines = ['export function Carte() {}']
     const store = memoryStore()
     const first = setup(lines, undefined, false, store)
-    expect(first.service.saved(G, 'src/carte.ts')).toEqual({ summary: null, outdated: false })
+    await expect(first.service.saved(G, 'src/carte.ts')).resolves.toEqual({ summary: null, outdated: false })
     const explained = await first.service.summary(G, 'src/carte.ts')
     // « Redémarrage » : un nouveau service sur la même base retrouve l'explication sans appeler l'IA.
     const second = setup(lines, undefined, false, store)
-    expect(second.service.saved(G, 'src/carte.ts')).toEqual({ summary: explained, outdated: false })
+    await expect(second.service.saved(G, 'src/carte.ts')).resolves.toEqual({ summary: explained, outdated: false })
     await expect(second.service.summary(G, 'src/carte.ts')).resolves.toEqual(explained)
     expect(second.runner).not.toHaveBeenCalled()
     // Le code change : l'ancienne explication n'est plus montrée, une nouvelle la remplace.
     lines.push('// changé')
-    expect(second.service.saved(G, 'src/carte.ts')).toEqual({ summary: null, outdated: true })
+    await expect(second.service.saved(G, 'src/carte.ts')).resolves.toEqual({ summary: null, outdated: true })
     await second.service.summary(G, 'src/carte.ts')
     expect(second.runner).toHaveBeenCalledTimes(1)
     expect(store.rows.size).toBe(1)
-    expect(second.service.saved(G, 'src/carte.ts').outdated).toBe(false)
+    expect((await second.service.saved(G, 'src/carte.ts')).outdated).toBe(false)
   })
 
   it('should_ignore_a_damaged_saved_explanation_and_write_a_new_one', async () => {
@@ -148,7 +152,7 @@ describe('« Que fait ce fichier ? » (spec 023 D15)', () => {
     await service.summary(G, 'src/carte.ts')
     const row = store.rows.values().next().value as StoredFileSummary
     store.put(G, 'src/carte.ts', { ...row, summaryJson: '{"role": "<script>", "evil": true}' })
-    expect(service.saved(G, 'src/carte.ts')).toEqual({ summary: null, outdated: false })
+    await expect(service.saved(G, 'src/carte.ts')).resolves.toEqual({ summary: null, outdated: false })
     await service.summary(G, 'src/carte.ts')
     expect(runner).toHaveBeenCalledTimes(2)
   })

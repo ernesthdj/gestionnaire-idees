@@ -122,7 +122,7 @@ describe('dossier de méthode du profil démo (spec 023 T039)', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('should_link_the_notes_genesis_to_a_fictive_method_folder_read_by_the_workflow_view', () => {
+  it('should_link_the_notes_genesis_to_a_fictive_method_folder_read_by_the_workflow_view', async () => {
     const projectDir = writeDemoMethodFolder(join(dir, 'projet-demo'))
     expect(seedDemo(handle.db, undefined, { projectDir })).toEqual({ seeded: true })
     const genesis = new NeuronRepository(handle.db)
@@ -131,7 +131,7 @@ describe('dossier de méthode du profil démo (spec 023 T039)', () => {
     expect(genesis).toBeDefined()
     const linked = handle.db.select({ projectDir: neurons.projectDir }).from(neurons).all()
     expect(linked.filter((row) => row.projectDir === projectDir)).toHaveLength(1)
-    const view = new WorkflowService({
+    const view = await new WorkflowService({
       neuron: () => ({ state: 'hatched', projectDir }) as never,
       folds: { get: () => ({}), set: () => undefined } as never
     }).read(genesis?.id ?? '')

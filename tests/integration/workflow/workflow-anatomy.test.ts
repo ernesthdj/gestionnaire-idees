@@ -32,7 +32,7 @@ describe('anatomie d’un fichier dans le lecteur Workflow (spec 023 D12, D14)',
   }
   const service = (runWorker: RunWorker, timeoutMs?: number): WorkflowAnatomy =>
     new WorkflowAnatomy({
-      target: (_genesisId, path) => ({ root, path, lang: (path.endsWith('.ts') ? 'ts' : 'other') as CodeLang }),
+      target: async (_genesisId, path) => ({ root, path, lang: (path.endsWith('.ts') ? 'ts' : 'other') as CodeLang }),
       runWorker,
       ...(timeoutMs === undefined ? {} : { timeoutMs })
     })
