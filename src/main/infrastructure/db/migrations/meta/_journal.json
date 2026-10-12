@@ -330,6 +330,20 @@
       "when": 1791761915639,
       "tag": "0046_reprise_edge_candidates",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1791836407139,
+      "tag": "0047_node_folders",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1791839005752,
+      "tag": "0048_folder_entries",
+      "breakpoints": true
     }
   ]
 }

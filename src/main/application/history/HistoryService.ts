@@ -25,7 +25,8 @@ const UNDOABLE = new Set([
   'document',
   'final',
   'structure',
-  'skills'
+  'skills',
+  'folder'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -177,6 +178,18 @@ function inputSummary(entry: ChangeRow): string {
 function matches(current: Snapshot, expected: Snapshot): boolean {
   if (expected === null || current === null) return expected === current
   return Object.keys(current).every((key) => !(key in expected) || current[key] === expected[key])
+}
+
+/** Dossier d'un nœud (spec 028) : fichier rangé, retiré, masqué ou de nouveau affiché. */
+function folderSummary(entries: readonly ChangeRow[]): string | null {
+  const entry = entries.find((row) => row.entity === 'folder_entry')
+  if (entry === undefined) return null
+  const raw = entry.after?.['name'] ?? entry.before?.['name']
+  const name = typeof raw === 'string' ? `« ${raw} »` : 'un fichier'
+  if (entry.after === null) return `Retiré du dossier : ${name}`
+  if (entry.after['hidden'] === true) return `Masqué du dossier : ${name}`
+  if (entry.before !== null && entry.before['hidden'] === true) return `De nouveau dans le dossier : ${name}`
+  return `Rangé dans le dossier : ${name}`
 }
 
 /** Skills (spec 020) : fichiers d'un skill installés, rétablis ou supprimés, brouillons écrits par Claude. */
@@ -343,6 +356,8 @@ export class HistoryService {
     if (document !== null) return head.kind === 'undo' ? `Annulé — ${document}` : document
     const skills = skillsSummary(entries)
     if (skills !== null) return head.kind === 'undo' ? `Annulé — ${skills}` : skills
+    const folder = folderSummary(entries)
+    if (folder !== null) return head.kind === 'undo' ? `Annulé — ${folder}` : folder
     if (head.kind === 'mcp_write') return mcpSummary(entries, false)
     if (head.kind === 'undo' && this.repository.undoneKind(head.batchId) === 'mcp_write')
       return mcpSummary(entries, true)
@@ -394,6 +409,8 @@ export class HistoryService {
         return structureSummary(head, false)
       case 'skills':
         return 'Skills'
+      case 'folder':
+        return 'Dossier'
       case 'undo': {
         if (this.repository.undoneKind(head.batchId) === 'structure') return structureSummary(head, true)
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')

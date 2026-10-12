@@ -20,6 +20,7 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   ['final:proposed', [['canvas']]],
   // Exécution commencée, fichier écrit, exécution finie (spec 013) : l'action et son livrable changent.
   ['final:changed', [['canvas'], ['history'], ['deliverable'], ['structure']]],
+  ['folder:changed', [['canvas'], ['history'], ['folder']]],
   // Dossier de skills modifié (spec 020) : l'arbre et la fiche ouverte se relisent.
   ['skills:changed', [['skills'], ['skill'], ['skillDrafts'], ['skillDraftDiff']]],
   // Écriture git de l'app (spec 021) : état, branches et historique du dépôt se relisent.

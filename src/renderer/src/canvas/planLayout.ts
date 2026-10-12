@@ -1,6 +1,7 @@
 import type { ProposalView, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
 import type { DeliverableView } from '@shared/ipc/finals'
+import type { FolderBadge } from '@shared/ipc/folders'
 import { rankLabel } from '@shared/plan/rankLabel'
 import { layoutUnder, type AlternateOptions, type Point, type Size } from './layout/alternateLayout'
 import { subNodeSize } from './living/nodeVisual'
@@ -9,7 +10,7 @@ import { subNodeSize } from './living/nodeVisual'
  * Disposition d'un plan d'attaque en sens alterné (spec 022 D11, R4 ; reprend spec 011 R4 / D7 et spec 012 D4) : les
  * étapes descendent en colonne sous le genesis, leurs sous-étapes partent en ligne à droite, les suivantes repartent en
  * colonne, etc. ; chaque branche pousse ses voisines. Sous un nœud, après ses étapes : la barre et les fantômes d'une
- * couche proposée, puis ses annexes (livrable, documents). Si le genesis porte aussi une carte de structure (qui occupe
+ * couche proposée, puis ses annexes (livrable, documents épinglés, dossier — spec 028). Si le genesis porte aussi une carte de structure (qui occupe
  * le dessous), le plan part à sa droite. Un décalage glissé par mentalyas déplace l'étape et toute sa branche ; celui
  * d'une annexe la déplace seule. Un nœud replié (D14) cache ses descendants, posés à sa place (pour y glisser).
  * Fonction pure et déterministe.
@@ -19,7 +20,9 @@ import { subNodeSize } from './living/nodeVisual'
 export const PLAN_CELLS = {
   step: { width: 190, height: 128 },
   sub: { width: 160, height: 116 },
-  bar: { width: 240, height: 64 }
+  bar: { width: 240, height: 64 },
+  /** Dossier d'un nœud (spec 028) : la place qu'occupaient ses documents, à sa taille. */
+  folder: { width: 116, height: 118 }
 } as const
 /** Taille affichée de la barre d'une couche proposée. */
 export const PLAN_BAR_SIZE = { width: 240, height: 40 } as const
@@ -59,6 +62,7 @@ export type PlacedPlanItem =
     })
   | (PlacedBase & { readonly kind: 'document'; readonly document: DocumentView })
   | (PlacedBase & { readonly kind: 'deliverable'; readonly deliverable: DeliverableView })
+  | (PlacedBase & { readonly kind: 'folder'; readonly folder: FolderBadge })
   | (PlacedBase & { readonly kind: 'bar'; readonly proposal: ProposalView })
 
 export interface PlanEdge {
@@ -82,6 +86,8 @@ export const barNodeId = (proposalId: string): string => `plan-bar-${proposalId}
 export const documentNodeId = (documentId: string): string => `document-${documentId}`
 /** Livrable d'une action finale (spec 013) : un par action. */
 export const deliverableNodeId = (neuronId: string): string => `deliverable-${neuronId}`
+/** Dossier d'un nœud (spec 028) : un par nœud. */
+export const folderNodeId = (neuronId: string): string => `folder-${neuronId}`
 
 type Entry =
   | { readonly kind: 'step'; readonly id: string; readonly step: StepView }
@@ -94,6 +100,7 @@ type Entry =
   | { readonly kind: 'bar'; readonly id: string; readonly proposal: ProposalView }
   | { readonly kind: 'document'; readonly id: string; readonly document: DocumentView }
   | { readonly kind: 'deliverable'; readonly id: string; readonly deliverable: DeliverableView }
+  | { readonly kind: 'folder'; readonly id: string; readonly folder: FolderBadge }
 
 const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y })
 
@@ -108,6 +115,8 @@ export function planLayout(input: {
   readonly documents?: readonly DocumentView[]
   /** Livrables des actions finales de ce plan (spec 013). */
   readonly deliverables?: readonly DeliverableView[]
+  /** Dossiers du genesis et de ses étapes (spec 028), en dernière annexe. */
+  readonly folders?: readonly FolderBadge[]
   /** Rayon de l'orbe du genesis (place de son titre sous lui). */
   readonly rootRadius?: number
   /** Le genesis porte une carte de structure : le plan part à sa droite. */
@@ -132,6 +141,9 @@ export function planLayout(input: {
     push(deliverable.neuronId, { kind: 'deliverable', id: deliverableNodeId(deliverable.neuronId), deliverable })
   for (const document of input.documents ?? [])
     push(document.neuronId, { kind: 'document', id: documentNodeId(document.id), document })
+  for (const folder of input.folders ?? [])
+    if (folder.anchor.kind === 'neuron')
+      push(folder.anchor.id, { kind: 'folder', id: folderNodeId(folder.neuronId), folder })
 
   const entries = new Map<string, Entry>()
   const parentOf = new Map<string, string>()
@@ -155,6 +167,7 @@ export function planLayout(input: {
     sizeOf: (id) => {
       const entry = entries.get(id)
       if (entry?.kind === 'bar') return PLAN_CELLS.bar
+      if (entry?.kind === 'folder') return PLAN_CELLS.folder
       return parentOf.get(id) === input.genesisId ? PLAN_CELLS.step : PLAN_CELLS.sub
     },
     across: ACROSS,
@@ -183,7 +196,9 @@ export function planLayout(input: {
       ? entry.document.offset
       : entry.kind === 'deliverable'
         ? entry.deliverable.offset
-        : { x: 0, y: 0 }
+        : entry.kind === 'folder'
+          ? entry.folder.offset
+          : { x: 0, y: 0 }
   const finalOf = (id: string): Point | null => {
     const placed = base.get(id)
     const entry = entries.get(id)
@@ -242,6 +257,7 @@ export function planLayout(input: {
         })
       else if (entry.kind === 'bar') items.push({ ...common, kind: 'bar', proposal: entry.proposal })
       else if (entry.kind === 'document') items.push({ ...common, kind: 'document', document: entry.document })
+      else if (entry.kind === 'folder') items.push({ ...common, kind: 'folder', folder: entry.folder })
       else items.push({ ...common, kind: 'deliverable', deliverable: entry.deliverable })
       if (visible && entry.kind !== 'bar')
         edges.push({
@@ -249,7 +265,7 @@ export function planLayout(input: {
           source: parentId,
           target: entry.id,
           ghost: entry.kind === 'ghost',
-          annex: entry.kind === 'document' || entry.kind === 'deliverable'
+          annex: entry.kind === 'document' || entry.kind === 'deliverable' || entry.kind === 'folder'
         })
       walk(entry.id)
     }

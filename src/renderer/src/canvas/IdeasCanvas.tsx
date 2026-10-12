@@ -71,6 +71,7 @@ import { GLIDE_MS, useGlide } from './useGlide'
 import { connectionIntent } from './connection'
 import { useWorkflows } from './workflow/useWorkflow'
 import { WorkflowNode } from './workflow/WorkflowNode'
+import { FolderNode } from './folder/FolderNode'
 import { discussWorkflow } from './workflow/WorkflowCard'
 
 /** Types de nœuds ; chacun ne se redessine que si son contenu change (glissements fluides, spec 022). */
@@ -90,7 +91,8 @@ const NODE_TYPES: NodeTypes = {
   planBar: stillNode(PlanBarNode),
   document: stillNode(DocumentNode),
   deliverable: stillNode(DeliverableNode),
-  workflow: stillNode(WorkflowNode)
+  workflow: stillNode(WorkflowNode),
+  folder: stillNode(FolderNode)
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -127,6 +129,8 @@ const CARD_TYPES: ReadonlySet<string> = new Set(['neuron', 'plan', 'element', 'd
 /** Un message de la vue Workflow (projet vide, dossier introuvable) n'a pas de carte. */
 const hasCard = (node: MapNode): boolean =>
   CARD_TYPES.has(node.type ?? '') && !(node.type === 'workflow' && node.data.item.subject.kind === 'message')
+/** Nœuds placés par une disposition (plan, annexes, dossiers) : un glissement devient un décalage enregistré. */
+const PLACED_TYPES: ReadonlySet<string> = new Set(['plan', 'document', 'deliverable', 'folder'])
 /** Attente avant d'ouvrir une carte au clic : un double-clic ouvre directement la discussion. */
 const CLICK_DELAY_MS = 220
 /** Parent d'un nœud dans son arbre (étape, élément) ; `null` pour une racine ou un bloc. */
@@ -358,6 +362,9 @@ function CanvasInner(): React.JSX.Element {
         if (node.type === 'document') {
           const { id, offset } = node.data.document
           await call('document:move', { id, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
+        } else if (node.type === 'folder') {
+          const { neuronId, offset } = node.data.badge
+          await call('folder:move', { neuronId, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
         } else if (node.type === 'deliverable') {
           const { neuronId, offset } = node.data.deliverable
           await call('deliverable:move', { neuronId, x: Math.round(offset.x + dx), y: Math.round(offset.y + dy) })
@@ -920,15 +927,15 @@ function CanvasInner(): React.JSX.Element {
                 setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY } })
               }}
               onNodeDragStart={(_event, node) => {
-                // Étape ou document : placés par la disposition du plan, hors de la physique.
-                if (node.type === 'plan' || node.type === 'document' || node.type === 'deliverable') {
+                // Étape, document ou dossier : placés par la disposition, hors de la physique.
+                if (PLACED_TYPES.has(node.type ?? '')) {
                   planDrag.current = { id: node.id, at: node.position }
                   return
                 }
                 // Les autres objets ne bougent pas pendant un glisser (retour de mentalyas, 2026-10-06).
               }}
               onNodeDragStop={(_event, node) => {
-                if (node.type === 'plan' || node.type === 'document' || node.type === 'deliverable') {
+                if (PLACED_TYPES.has(node.type ?? '')) {
                   void savePlanDrag(node)
                   return
                 }

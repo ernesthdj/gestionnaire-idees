@@ -8,7 +8,6 @@ import type {
   DocumentRepository,
   DocumentRow
 } from '../../infrastructure/db/repositories/DocumentRepository'
-import type { PlanRepository } from '../../infrastructure/db/repositories/PlanRepository'
 import type { DocumentFiles, DocumentFolderRef } from '../../infrastructure/documents/DocumentFiles'
 import type { EntityHandler } from '../history/HistoryService'
 
@@ -32,8 +31,8 @@ export interface DocumentDeps {
     | 'latestVersion'
   >
   readonly files: Pick<DocumentFiles, 'folder' | 'takenNames' | 'write' | 'read' | 'trash' | 'pathOf'>
-  /** Genesis ou étape vivants : rattachement possible d'un document. */
-  readonly nodes: Pick<PlanRepository, 'node'>
+  /** Nœud vivant de la carte qui reçoit le document (genesis, étape, élément, nœud Workflow ; spec 028 D1). */
+  readonly nodes: { node(id: string): { readonly id: string; readonly genesisId: string } | undefined }
   /** Dossier de projet lié au genesis ; `null` : documents dans le profil. */
   readonly projectDir: (genesisId: string) => string | null
   readonly now?: () => Date

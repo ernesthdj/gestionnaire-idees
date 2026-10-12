@@ -32,6 +32,9 @@
 > Détail complet : `docs/brainstorm/L1n-dossier-du-noeud.md` (décisions D1–D7), `L2-dossier-*.md`, `L3-dossier-*.md`,
 > parcours écran `L4b-neurones.md` §7. Spec : `specs/028-dossier-du-noeud/`. Ces fichiers priment.
 
+> **2026-10-12 : en pause.** Lot 1 livré puis désactivé par mentalyas (les nœuds se suffisent avec leur lecteur) ;
+> code gardé derrière l'interrupteur `FOLDERS_ENABLED`, pour un autre besoin.
+
 ### 00000000.1 Vision
 Quand Claude rédige de la documentation pour un nœud, ou écrit du code dans sa conversation, rien ne le montre sur la
 carte à côté du nœud. Désormais, **tout nœud qui a des fichiers porte un dossier de verre flottant**, relié à lui, qui

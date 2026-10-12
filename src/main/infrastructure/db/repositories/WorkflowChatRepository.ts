@@ -17,6 +17,18 @@ export class WorkflowChatRepository {
       .get()?.id
   }
 
+  /** Toutes les conversations de nœuds Workflow : où poser le dossier de chacune sur la carte (spec 028). */
+  chats(): { readonly id: string; readonly genesisId: string; readonly key: string }[] {
+    return this.db
+      .select({ id: neurons.id, genesisId: neurons.genesisId, key: neurons.elementKey })
+      .from(neurons)
+      .where(eq(neurons.kind, 'workflow_chat'))
+      .all()
+      .flatMap((row) =>
+        row.genesisId === null || row.key === null ? [] : [{ id: row.id, genesisId: row.genesisId, key: row.key }]
+      )
+  }
+
   insert(input: {
     readonly id: string
     readonly genesisId: string

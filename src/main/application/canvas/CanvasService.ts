@@ -23,10 +23,10 @@ import type { MapLinkRepository } from '../../infrastructure/db/repositories/Map
 import type { NeuronRepository } from '../../infrastructure/db/repositories/NeuronRepository'
 import type { PlanRepository, ProposalRow } from '../../infrastructure/db/repositories/PlanRepository'
 import type { DocumentRepository } from '../../infrastructure/db/repositories/DocumentRepository'
-import type { DocumentView } from '@shared/ipc/documents'
-import { fileLabel } from '../mcp/DocumentTools'
+import type { FolderBadge } from '@shared/ipc/folders'
+import { documentView } from '../documents/documentView'
 import { contentOf } from '../../domain/reprise/content'
-import { measuredLinks, normalizeElementPath, type FileCall } from '../../domain/reprise/measured'
+import { covers, measuredLinks, normalizeElementPath, type FileCall } from '../../domain/reprise/measured'
 
 export interface CanvasDeps {
   readonly neurons: Pick<
@@ -51,8 +51,12 @@ export interface CanvasDeps {
   readonly projectFiles?: (genesisId: string) => readonly string[]
   /** Plans d'attaque (spec 011) : étapes, propositions en attente, verrous des genesis. */
   readonly plan?: Pick<PlanRepository, 'steps' | 'pendingProposals' | 'rootLocks' | 'foldedRoots'>
-  /** Documents des neurones (spec 012). */
+  /** Documents des neurones (spec 012) : sur la carte, seulement les épinglés (spec 028 D4). */
   readonly documents?: Pick<DocumentRepository, 'list'>
+  /** Dossiers des nœuds (spec 028) : documents et fichiers rangés à côté de leur nœud. */
+  readonly folders?: {
+    badges(onMap: ReadonlySet<string>, covered?: ReadonlyMap<string, readonly string[]>): FolderBadge[]
+  }
   /** Actions finales (spec 013), proposées ou acceptées. */
   readonly finals?: {
     list(): readonly FinalActionRow[]
@@ -150,20 +154,11 @@ export class CanvasService {
       .filter((proposal) => nodes.has(proposal.parentId))
       .map(proposalView)
       .filter((proposal) => proposal.items.length > 0)
-    // Un document n'apparaît que si son neurone est sur la carte.
+    // Avec les dossiers (spec 028 D4), seul un document épinglé est sur la carte ; sans eux, tous (spec 012). Son
+    // neurone doit être dessiné.
     const documents = (this.deps.documents?.list() ?? [])
-      .filter((document) => nodes.has(document.neuronId))
-      .map((document): DocumentView => ({
-        id: document.id,
-        neuronId: document.neuronId,
-        genesisId: document.genesisId,
-        title: document.title,
-        fileLabel: fileLabel(document),
-        width: document.width,
-        height: document.height,
-        origin: document.origin,
-        offset: { x: document.offsetX, y: document.offsetY }
-      }))
+      .filter((document) => (this.deps.folders === undefined || document.pinned) && nodes.has(document.neuronId))
+      .map(documentView)
     // Livrable : annexe d'une action exécutée (ou en cours), si son étape est sur la carte.
     const stepIds = new Set(steps.map((step) => step.id))
     const deliverables = [...finals.values()]
@@ -189,6 +184,11 @@ export class CanvasService {
       (this.deps.elements?.views() ?? []).filter((element) => visible.has(element.genesisId))
     )
     const present = new Set([...visible, ...blocks.map((block) => block.id), ...elements.map((element) => element.id)])
+    const folders =
+      this.deps.folders?.badges(
+        new Set([...nodes, ...elements.map((element) => element.id)]),
+        this.covered(elements)
+      ) ?? []
     const filtered = filter.nature !== undefined || filter.categoryId !== undefined || filter.search !== undefined
     return {
       counts: {
@@ -220,8 +220,31 @@ export class CanvasService {
       steps,
       proposals,
       documents,
-      deliverables
+      deliverables,
+      folders
     }
+  }
+
+  /** Fichiers du projet que couvrent les chemins de chaque élément : son dossier (spec 028 D2 b). */
+  private covered(elements: readonly ElementView[]): Map<string, readonly string[]> {
+    const filesOf = this.deps.projectFiles
+    const covered = new Map<string, readonly string[]>()
+    if (filesOf === undefined) return covered
+    const byGenesis = new Map<string, readonly string[]>()
+    for (const element of elements) {
+      if (element.paths.length === 0) continue
+      let files = byGenesis.get(element.genesisId)
+      if (files === undefined) {
+        files = filesOf(element.genesisId)
+        byGenesis.set(element.genesisId, files)
+      }
+      const paths = element.paths.map(normalizeElementPath)
+      covered.set(
+        element.id,
+        files.filter((file) => covers(paths, file))
+      )
+    }
+    return covered
   }
 
   /** Contenu réel de chaque élément (spec 017 D18) : doc ou code, d'après les fichiers que couvrent ses chemins. */

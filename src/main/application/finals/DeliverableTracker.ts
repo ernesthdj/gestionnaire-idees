@@ -21,6 +21,15 @@ export interface DeliverableTrackerDeps {
     readonly projectDir: (neuronId: string) => string | null
     readonly addPath: (neuronId: string, relative: string) => void
   }
+  /**
+   * Dossier du nœud (spec 028 D2 c) : tout fichier écrit avec succès dans la conversation d'un nœud lié à un projet y
+   * est rangé, quelle que soit la sorte du nœud.
+   */
+  readonly folder?: {
+    /** Dossier du projet lié au genesis du nœud ; `null` : aucun. */
+    readonly projectDir: (neuronId: string) => string | null
+    readonly record: (neuronId: string, relative: string) => void
+  }
   readonly now?: () => number
 }
 
@@ -48,12 +57,18 @@ const IGNORED: ToolResult = { text: 'ignoré' }
  */
 export class DeliverableTracker {
   private readonly pending = new Map<string, PendingWrite>()
+  /** Écritures annoncées à ranger dans le dossier du nœud, en attente de leur résultat. */
+  private readonly filing = new Map<
+    string,
+    { readonly neuronId: string; readonly relative: string; readonly at: number }
+  >()
 
   constructor(private readonly deps: DeliverableTrackerDeps) {}
 
   /** Hook avant écriture (outil interne `ecriture_avant`). */
   before(neuronId: string, input: EcritureAvantInput): ToolResult {
     this.prune()
+    this.announceFiling(neuronId, input)
     const target = this.target(neuronId, input.file_path)
     if (target === null) return this.beforeElement(neuronId, input)
     let before: string | null
@@ -73,8 +88,13 @@ export class DeliverableTracker {
     return { text: 'suivi' }
   }
 
-  /** Résultat de l'outil (flux de la conversation) : l'écriture réussie rejoint le livrable. */
+  /** Résultat de l'outil (flux de la conversation) : l'écriture réussie rejoint le livrable et le dossier du nœud. */
   after(neuronId: string, toolUseId: string, ok: boolean): void {
+    const filed = this.filing.get(toolUseId)
+    if (filed !== undefined && filed.neuronId === neuronId) {
+      this.filing.delete(toolUseId)
+      if (ok) this.deps.folder?.record(neuronId, filed.relative)
+    }
     const entry = this.pending.get(toolUseId)
     if (entry === undefined || entry.neuronId !== neuronId) return
     this.pending.delete(toolUseId)
@@ -118,6 +138,13 @@ export class DeliverableTracker {
     return { text: 'suivi' }
   }
 
+  /** Écriture dans le projet lié du nœud : à ranger dans son dossier si l'outil réussit. */
+  private announceFiling(neuronId: string, input: EcritureAvantInput): void {
+    const projectDir = this.deps.folder?.projectDir(neuronId) ?? null
+    const relativePath = projectDir === null ? null : this.relativeTo(projectDir, input.file_path)
+    if (relativePath !== null) this.filing.set(input.tool_use_id, { neuronId, relative: relativePath, at: this.now() })
+  }
+
   /** Chemin relatif sûr (`/`) d'un fichier absolu sous le projet ; `null` s'il en sort ou est refusé. */
   private relativeTo(projectDir: string, filePath: string): string | null {
     if (!isAbsolute(filePath)) return null
@@ -142,6 +169,7 @@ export class DeliverableTracker {
   private prune(): void {
     const limit = this.now() - PENDING_TTL_MS
     for (const [id, entry] of this.pending) if (entry.at < limit) this.pending.delete(id)
+    for (const [id, entry] of this.filing) if (entry.at < limit) this.filing.delete(id)
   }
 
   private now(): number {

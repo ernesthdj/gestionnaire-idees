@@ -18,6 +18,7 @@ export interface ChangeEntry {
     | 'final'
     | 'structure'
     | 'skills'
+    | 'folder'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown

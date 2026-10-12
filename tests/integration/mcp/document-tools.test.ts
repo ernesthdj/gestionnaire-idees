@@ -5,12 +5,12 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { BRAINSTORMER_FRAME } from '../../../src/main/application/conversation/frame'
 import { DocumentService } from '../../../src/main/application/documents/DocumentService'
+import { mapNodes } from '../../../src/main/application/documents/mapNodes'
 import { DocumentTools } from '../../../src/main/application/mcp/DocumentTools'
 import { NeuronTools } from '../../../src/main/application/mcp/NeuronTools'
 import { toMcpError } from '../../../src/main/domain/mcp/errors'
 import { ConversationRepository } from '../../../src/main/infrastructure/db/repositories/ConversationRepository'
 import { DocumentRepository } from '../../../src/main/infrastructure/db/repositories/DocumentRepository'
-import { PlanRepository } from '../../../src/main/infrastructure/db/repositories/PlanRepository'
 import { neurons } from '../../../src/main/infrastructure/db/schemaNeurons'
 import { DocumentFiles } from '../../../src/main/infrastructure/documents/DocumentFiles'
 import { DocumentEcrireInput, MCP_TOOLS } from '../../../src/shared/mcp/tools'
@@ -36,7 +36,7 @@ describe('outils MCP document_ecrire et document_lire (spec 012 US1)', () => {
       documents: new DocumentService({
         repository,
         files: new DocumentFiles({ profileDir: join(root, 'profil') }),
-        nodes: new PlanRepository(t.handle.db),
+        nodes: mapNodes(conversations),
         projectDir: () => null
       }),
       repository,
@@ -86,7 +86,7 @@ describe('outils MCP document_ecrire et document_lire (spec 012 US1)', () => {
   })
 
   it('should_refuse_with_the_way_forward_when_the_conversation_is_a_structure_element', async () => {
-    // Cours PLGI (2026-10-12) : un élément de structure n'a pas de document ; avant, « Neurone introuvable ».
+    // Dossiers coupés (spec 028, `FOLDERS_ENABLED`) : un élément de structure n'a pas de document relié (spec 012).
     const element = (await t.neurons.create({ text: 'Actif = Passif' })).id
     t.handle.db.update(neurons).set({ kind: 'element', genesisId: studio }).where(eq(neurons.id, element)).run()
     let caught: unknown
@@ -98,9 +98,47 @@ describe('outils MCP document_ecrire et document_lire (spec 012 US1)', () => {
     expect(caught).toMatchObject({ code: 'NON_MODIFIABLE' })
     expect((caught as Error).message).toContain('écris le fichier .md directement dans le projet')
     expect(repository.ofNeuron(element)).toHaveLength(0)
-    expect(written).toHaveLength(0)
-    // La consigne de conversation le dit d'avance.
     expect(BRAINSTORMER_FRAME).toContain('élément de carte de structure, écris le .md dans le projet')
+  })
+
+  it('should_file_a_document_for_any_map_node_when_folders_are_on', async () => {
+    // Spec 028 D1 (dossiers rallumés) : l'élément « Actif = Passif » reçoit son cours.
+    tools = new DocumentTools({
+      allNodes: true,
+      documents: new DocumentService({
+        repository,
+        files: new DocumentFiles({ profileDir: join(root, 'profil') }),
+        nodes: mapNodes(new ConversationRepository(t.handle.db)),
+        projectDir: () => null
+      }),
+      repository,
+      conversations: new ConversationRepository(t.handle.db),
+      onWritten: (event) => written.push(event)
+    })
+    const node = async (kind: 'element' | 'workflow_chat', text: string): Promise<string> => {
+      const id = (await t.neurons.create({ text })).id
+      t.handle.db.update(neurons).set({ kind, genesisId: studio, rootId: studio }).where(eq(neurons.id, id)).run()
+      return id
+    }
+    const element = await node('element', 'Actif = Passif')
+    const workflow = await node('workflow_chat', 'Tâche T012')
+    write({ titre: 'Cours', contenu: '# Actif = Passif' }, element)
+    write({ titre: 'Notes de tâche', contenu: '# T012' }, workflow)
+    expect(repository.ofNeuron(element).map((document) => document.title)).toEqual(['Cours'])
+    expect(repository.ofNeuron(workflow).map((document) => document.genesisId)).toEqual([studio])
+    expect(written.map((entry) => entry.summary)).toEqual([
+      'Claude : document « Cours » pour « Actif = Passif »',
+      'Claude : document « Notes de tâche » pour « Tâche T012 »'
+    ])
+  })
+
+  it('should_refuse_a_document_for_a_skills_conversation', async () => {
+    const skills = (await t.neurons.create({ text: 'Skills' })).id
+    t.handle.db.update(neurons).set({ kind: 'skills_chat' }).where(eq(neurons.id, skills)).run()
+    expect(() => write({ titre: 'x', contenu: 'y' }, skills)).toThrow(
+      expect.objectContaining({ code: 'NON_MODIFIABLE' })
+    )
+    expect(written).toHaveLength(0)
   })
 
   it('should_refuse_a_document_over_500_ko_with_a_clear_code', () => {

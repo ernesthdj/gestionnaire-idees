@@ -3,6 +3,7 @@ import type { ArchitectureKind } from '../structure/architecture'
 import type { CategoryView, GaugeLevel, Nature, RootView } from './neurons'
 import type { IoLinkView } from './widgetIo'
 import type { DocumentView } from './documents'
+import type { FolderBadge } from './folders'
 import type { DeliverableView, StepFinalView } from './finals'
 import type { LinkProvenance } from './reprise'
 
@@ -99,10 +100,12 @@ export interface IdeasCanvasView {
   readonly steps: readonly StepView[]
   /** Couches proposées par Claude, en attente (fantômes). */
   readonly proposals: readonly ProposalView[]
-  /** Documents Markdown rattachés aux neurones visibles (spec 012). */
+  /** Documents Markdown épinglés sur la carte (spec 012 ; les autres sont dans le dossier de leur nœud, spec 028). */
   readonly documents: readonly DocumentView[]
   /** Livrables des actions finales exécutées ou en cours (spec 013). */
   readonly deliverables: readonly DeliverableView[]
+  /** Dossiers des nœuds qui ont des fichiers (spec 028) ; absent : aucun. */
+  readonly folders?: readonly FolderBadge[]
 }
 
 /** Libellé court d'un lien entre deux idées (1 à 3 mots en pratique). */

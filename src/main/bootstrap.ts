@@ -3,12 +3,16 @@ import { parseViewState, type StructureView } from '@shared/brainstorms/viewStat
 import { readSheet } from './domain/conversation/sheet'
 import { elementInput, workflowInput } from './domain/widgets/structureInputs'
 import { checkGitUrl } from '@shared/reprise/gitUrl'
-import { join } from 'node:path'
+import { isAbsolute, join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, dialog, ipcMain, safeStorage, shell as electronShell } from 'electron'
 import { ContextImportService } from './application/ai/ContextImportService'
 import { CaptureService } from './application/capture/CaptureService'
 import { CanvasService } from './application/canvas/CanvasService'
+import { FolderService } from './application/folders/FolderService'
+import { FolderRepository } from './infrastructure/db/repositories/FolderRepository'
+import { createFolderRoutes } from './ipc/folderHandlers'
+import { FOLDERS_ENABLED } from '@shared/ipc/folders'
 import { HistoryService } from './application/history/HistoryService'
 import { ExampleStore } from './application/ai/ExampleStore'
 import { NeuronService } from './application/neurons/NeuronService'
@@ -108,6 +112,7 @@ import { projectKey } from './domain/conversation/permissions'
 import { EditorService } from './application/finals/EditorService'
 import { detectEditors, isProgram, launchEditor } from './infrastructure/editor/EditorLauncher'
 import { DocumentService } from './application/documents/DocumentService'
+import { mapNodes } from './application/documents/mapNodes'
 import { DocumentRepository } from './infrastructure/db/repositories/DocumentRepository'
 import { DocumentFiles } from './infrastructure/documents/DocumentFiles'
 import { createToolHandler } from './application/mcp/toolHandler'
@@ -515,7 +520,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const documents = new DocumentService({
     repository: documentRepository,
     files: new DocumentFiles({ profileDir: dataDir }),
-    nodes: planRepository,
+    // Tout nœud vivant de la carte reçoit ses documents dans son dossier (spec 028 D1).
+    nodes: mapNodes(conversationRepository),
     // Un projet repris n'est jamais modifié (spec 017 FR-030) : ses documents vivent dans le profil.
     projectDir: (genesisId) =>
       repriseRepository.project(genesisId) === undefined
@@ -597,6 +603,23 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     executions,
     emit: (neuronId) => broadcast('final:changed', { neuronId })
   })
+  // Dossiers des nœuds (spec 028) : documents, fichiers couverts, écrits en conversation ou ajoutés ; place, ouverture.
+  const workflowChatRepository = new WorkflowChatRepository(database.db)
+  /** Dossier du projet lié au genesis d'un nœud (genesis, étape, élément, conversation Workflow). */
+  const folderProjectDir = (neuronId: string): string | null => {
+    const neuron = conversationRepository.neuron(neuronId)
+    if (neuron === undefined) return null
+    return projectDirOf(neuron.kind === 'root' ? neuron.id : (neuron.genesisId ?? neuron.id))
+  }
+  const folders = new FolderService({
+    repository: new FolderRepository(database.db),
+    documents: documentRepository,
+    workflowChats: () => workflowChatRepository.chats(),
+    projectDirOf: folderProjectDir,
+    files: projectFiles,
+    exists: existsSync,
+    changed: (neuronId) => broadcast('folder:changed', { neuronId })
+  })
   // Livrable reconstitué à partir des écritures réelles de Claude (hook avant écriture, spec 014 R5).
   const deliverables = new DeliverableTracker({
     finals: finalRepository,
@@ -612,7 +635,16 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       addPath: (neuronId, relative) => {
         if (elementRepository.addPath(neuronId, relative)) broadcast('final:changed', { neuronId })
       }
-    }
+    },
+    // Tout fichier écrit avec succès dans la conversation d'un nœud lié rejoint son dossier (spec 028 D2 c).
+    ...(FOLDERS_ENABLED
+      ? {
+          folder: {
+            projectDir: folderProjectDir,
+            record: (neuronId: string, relative: string) => folders.record(neuronId, relative)
+          }
+        }
+      : {})
   })
   // Graphe des projets repris (spec 017) ; l'explorateur le charge une fois, vidé du cache à chaque analyse ou
   // correction, et donne aussi à la carte les appels mesurés entre ses éléments (US7).
@@ -621,6 +653,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   // Contenu des éléments de carte (spec 017 D18) : inventaire du dossier lié, fichiers sensibles déjà exclus.
   const projectFileIndex = new ProjectFileIndex({ scan: (root) => scanProject(root).retained.map((file) => file.path) })
   const canvas = new CanvasService({
+    ...(FOLDERS_ENABLED ? { folders } : {}),
     plan: planRepository,
     documents: documentRepository,
     finals: {
@@ -709,6 +742,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           onProposed: (summary) => broadcast('plan:proposed', { summary })
         }),
         new DocumentTools({
+          allNodes: FOLDERS_ENABLED,
           documents,
           repository: documentRepository,
           conversations: conversationRepository,
@@ -1151,6 +1185,26 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         deliverableReview
       ),
       ...createDocumentRoutes({ documents, reveal: (path) => electronShell.showItemInFolder(path) }),
+      ...(FOLDERS_ENABLED
+        ? createFolderRoutes({
+            folders,
+            // Sélecteur natif ouvert dans le dossier du projet du nœud ; le chemin choisi est revérifié par le service.
+            pickFile: async (neuronId) => {
+              const projectDir = folderProjectDir(neuronId)
+              if (projectDir === null) return undefined
+              const result = await dialog.showOpenDialog({
+                title: 'Ranger un fichier du projet dans ce dossier',
+                defaultPath: projectDir,
+                properties: ['openFile']
+              })
+              const picked = result.canceled ? undefined : result.filePaths[0]
+              if (picked === undefined) return undefined
+              const inside = relative(projectDir, picked)
+              if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) return null
+              return inside.split(sep).join('/')
+            }
+          })
+        : []),
       ...createCanvasRoutes(canvas),
       ...createHistoryRoutes(
         new HistoryService(new HistoryRepository(database.db), {
@@ -1158,7 +1212,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           ...finals.historyHandlers(),
           ...executions.historyHandlers(),
           ...skillService.historyHandlers(),
-          ...skillCards.historyHandlers()
+          ...skillCards.historyHandlers(),
+          ...folders.historyHandlers()
         })
       ),
       ...createWidgetRoutes(widgets),
@@ -1184,7 +1239,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         (genesisId) => conversationRepository.neuron(genesisId)?.projectDir != null,
         workflowAnatomy,
         new WorkflowChats({
-          repository: new WorkflowChatRepository(database.db),
+          repository: workflowChatRepository,
           linkedGenesis: (genesisId) => {
             const genesis = conversationRepository.neuron(genesisId)
             return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null

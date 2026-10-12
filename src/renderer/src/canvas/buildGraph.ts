@@ -16,7 +16,16 @@ import { progressOf, type ElementProgress } from './progress'
 import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
 import type { StepView, StructureArchitectureView } from '@shared/ipc/canvas'
 import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
-import { deliverableNodeId, documentNodeId, PLAN_BAR_SIZE, planLayout, type PlacedPlanItem } from './planLayout'
+import type { FolderBadge } from '@shared/ipc/folders'
+import { FOLDER_NODE_SIZE } from './folder/folderGeometry'
+import {
+  deliverableNodeId,
+  documentNodeId,
+  folderNodeId,
+  PLAN_BAR_SIZE,
+  planLayout,
+  type PlacedPlanItem
+} from './planLayout'
 import { nodeVisuals, type NodeIconKey, type NodeVisual, type TreeNodeInput } from './living/nodeVisual'
 import type { DocumentView } from '@shared/ipc/documents'
 import { ELEMENT_ICONS, ELEMENT_NODE_STATUS, STATUS_LABELS } from './nodes/ElementNode'
@@ -152,6 +161,21 @@ export type DocumentNodeType = Node<
   },
   'document'
 >
+/** Dossier d'un nœud (spec 028) : ses documents et fichiers, à côté de lui, relié par un trait fin. */
+export type FolderNodeType = Node<
+  {
+    readonly badge: FolderBadge
+    /** Titre et sorte du nœud qui porte le dossier (onglet du panneau de droite). */
+    readonly title: string
+    readonly kindLabel: string
+    /** Couleur de l'encre du panneau arrière (catégorie du genesis). */
+    readonly color: string
+    readonly dimmed: boolean
+    /** Où il est posé par rapport à son nœud : le trait fin part de ce côté. */
+    readonly side: 'below' | 'left'
+  },
+  'folder'
+>
 /** Livrable d'une action finale (spec 013), annexe sous son action. */
 export type DeliverableNodeType = Node<
   {
@@ -183,6 +207,7 @@ export type CanvasNode =
   | LayerBandNodeType
   | StructureBarNodeType
   | WorkflowNodeType
+  | FolderNodeType
 
 const BLOCK_NODE_TYPES = {
   empty: 'block',
@@ -323,6 +348,32 @@ const HIDDEN_NODE = {
   domAttributes: { 'aria-hidden': true }
 } as const
 
+/** Écart entre le bord d'un élément (ou d'un nœud Workflow) et son dossier, posé à sa gauche (spec 028 D6). */
+const FOLDER_GAP = 28
+
+/** Nœud React Flow d'un dossier (spec 028) : glissable, sa place devient un décalage par rapport à celle par défaut. */
+function folderNode(
+  badge: FolderBadge,
+  position: { readonly x: number; readonly y: number },
+  color: string,
+  dimmed: boolean,
+  owner: { readonly title: string; readonly kindLabel: string },
+  side: 'below' | 'left' = 'below'
+): FolderNodeType {
+  return {
+    id: folderNodeId(badge.neuronId),
+    type: 'folder',
+    position,
+    width: FOLDER_NODE_SIZE.width,
+    height: FOLDER_NODE_SIZE.height,
+    data: { badge, title: owner.title, kindLabel: owner.kindLabel, color, dimmed, side },
+    draggable: true,
+    selectable: false,
+    ariaLabel: `Dossier de « ${owner.title} » : ${badge.count} fichier${badge.count > 1 ? 's' : ''}${badge.unseen ? ', nouveau' : ''}`,
+    deletable: false
+  }
+}
+
 /** Genesis qui portent une carte de structure. */
 const withMapIds = (view: IdeasCanvasView): Set<string> => new Set(view.elements.map((element) => element.genesisId))
 
@@ -331,6 +382,7 @@ export function planItemId(item: Exclude<PlacedPlanItem, { kind: 'bar' }>): stri
   if (item.kind === 'step') return item.step.id
   if (item.kind === 'ghost') return `ghost-${item.ghost.id}`
   if (item.kind === 'document') return documentNodeId(item.document.id)
+  if (item.kind === 'folder') return folderNodeId(item.folder.neuronId)
   return deliverableNodeId(item.deliverable.neuronId)
 }
 
@@ -346,7 +398,8 @@ function planTree(genesisId: string, items: readonly PlacedPlanItem[]): TreeNode
   return [
     { id: genesisId, parentId: null, icon: 'idea' },
     ...items.flatMap((item): TreeNodeInput[] =>
-      item.kind === 'bar'
+      // Barre et dossier : hors de l'arbre vivant (ni branche ni taille de sous-nœud).
+      item.kind === 'bar' || item.kind === 'folder'
         ? []
         : [
             {
@@ -445,7 +498,14 @@ export function buildGraph(
       const proposals = shown === 'workflow' ? [] : view.proposals.filter((proposal) => ids.has(proposal.parentId))
       const documents = view.documents.filter((document) => ids.has(document.neuronId))
       const deliverables = view.deliverables.filter((deliverable) => ids.has(deliverable.neuronId))
-      if (center === undefined || (steps.length === 0 && proposals.length === 0 && documents.length === 0)) return []
+      const folders = (view.folders ?? []).filter(
+        (folder) => folder.anchor.kind === 'neuron' && ids.has(folder.anchor.id)
+      )
+      if (
+        center === undefined ||
+        (steps.length === 0 && proposals.length === 0 && documents.length === 0 && folders.length === 0)
+      )
+        return []
       const plan = planLayout({
         genesisId: genesis.id,
         center,
@@ -453,6 +513,7 @@ export function buildGraph(
         proposals,
         documents,
         deliverables,
+        folders,
         rootRadius: TIER_SIZE[tierOf(genesis)] / 2,
         // Avec une carte de structure, le plan prend le côté qu'elle laisse libre : à droite quand elle descend, dessous
         // quand « Réorganiser » la fait partir à droite ; il n'est alors pas transposé lui-même.
@@ -575,6 +636,17 @@ export function buildGraph(
       }
     }
     for (const placed of plan.items) {
+      if (placed.kind === 'folder') {
+        const step = steps.find((entry) => entry.id === placed.folder.neuronId)
+        planNodes.push({
+          ...folderNode(placed.folder, { x: placed.x, y: placed.y }, color, dimmed, {
+            title: step?.title ?? genesis.title,
+            kindLabel: step === undefined ? 'Idée' : 'Étape'
+          }),
+          ...(placed.folded ? HIDDEN_NODE : {})
+        })
+        continue
+      }
       if (placed.kind === 'bar') {
         planNodes.push({
           id: `plan-bar-${placed.proposal.id}`,
@@ -810,6 +882,55 @@ export function buildGraph(
       })
     }
   }
+  // Dossiers des éléments et des nœuds Workflow (spec 028 D6) : à gauche de leur nœud, le côté libre (leurs enfants
+  // partent à droite en vue Progression comme en Workflow).
+  const placedFolders = new Set(planNodes.filter((node) => node.type === 'folder').map((node) => node.id))
+  const anchors = new Map<string, CanvasNode>(
+    [...elementNodes, ...workflowNodes, ...neuronNodes].map((node) => [node.id, node] as const)
+  )
+  const sideFolders: FolderNodeType[] = []
+  const folderEdges: BranchEdgeType[] = []
+  for (const folder of view.folders ?? []) {
+    if (placedFolders.has(folderNodeId(folder.neuronId))) continue
+    const anchorId = folder.anchor.kind === 'neuron' ? folder.anchor.id : folder.anchor.key
+    const anchor = anchors.get(anchorId)
+    if (anchor === undefined) continue
+    const genesisId =
+      anchor.type === 'element'
+        ? anchor.data.element.genesisId
+        : folder.anchor.kind === 'workflow'
+          ? folder.anchor.genesisId
+          : anchorId
+    const genesis = view.ideas.find((idea) => idea.id === genesisId)
+    const half = (anchor.width ?? TIER_SIZE.hatched) / 2
+    sideFolders.push(
+      folderNode(
+        folder,
+        {
+          x: anchor.position.x - half - FOLDER_GAP - FOLDER_NODE_SIZE.width / 2 + folder.offset.x,
+          y: anchor.position.y + folder.offset.y
+        },
+        genesis?.category?.color ?? '#71717a',
+        genesis === undefined ? false : isDimmed(genesis.id),
+        anchor.type === 'element'
+          ? { title: anchor.data.element.title, kindLabel: 'Élément' }
+          : anchor.type === 'workflow'
+            ? { title: anchor.data.item.title, kindLabel: 'Nœud Workflow' }
+            : { title: genesis?.title ?? '', kindLabel: 'Idée' },
+        'left'
+      )
+    )
+    folderEdges.push({
+      id: `folder-link-${folder.neuronId}`,
+      type: 'branch',
+      source: anchorId,
+      target: folderNodeId(folder.neuronId),
+      data: { style: 'solid', branch: null },
+      deletable: false,
+      selectable: false,
+      focusable: false
+    })
+  }
   const nodes = [
     ...neuronNodes,
     ...blockNodes,
@@ -817,7 +938,8 @@ export function buildGraph(
     ...elementNodes,
     ...barNodes,
     ...planNodes,
-    ...workflowNodes
+    ...workflowNodes,
+    ...sideFolders
   ]
   // Un branchement dont la source n'est pas dessinée (nœud Workflow d'une autre vue, élément replié…) n'a pas de trait.
   const drawn = new Set(nodes.map((node) => node.id))
@@ -828,7 +950,8 @@ export function buildGraph(
       ...resultEdges,
       ...noteEdges,
       ...planEdges,
-      ...workflowEdges
+      ...workflowEdges,
+      ...folderEdges
     ],
     mapEdges: [...mapEdges, ...structureEdges]
   }

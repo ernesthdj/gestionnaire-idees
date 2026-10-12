@@ -19,6 +19,8 @@ export interface DocumentRow {
   readonly currentVersionId: string | null
   readonly offsetX: number
   readonly offsetY: number
+  /** Épinglé hors du dossier de son nœud, en cadre de lecture (spec 028 D4). */
+  readonly pinned: boolean
   readonly createdAt: string
   readonly deletedAt: string | null
 }
@@ -32,7 +34,10 @@ export interface DocumentVersionRow {
   readonly createdAt: string
 }
 
-export type NewDocument = Omit<DocumentRow, 'currentVersionId' | 'offsetX' | 'offsetY' | 'createdAt' | 'deletedAt'>
+export type NewDocument = Omit<
+  DocumentRow,
+  'currentVersionId' | 'offsetX' | 'offsetY' | 'pinned' | 'createdAt' | 'deletedAt'
+>
 
 /** Documents rattachés aux neurones (spec 012) et leurs versions. */
 export class DocumentRepository {
@@ -91,6 +96,17 @@ export class DocumentRepository {
 
   version(id: string): DocumentVersionRow | undefined {
     return this.db.select().from(documentVersions).where(eq(documentVersions.id, id)).get()
+  }
+
+  /** Dernière écriture de Claude par document (« nouveau » dans le dossier, spec 028 D7) ; absent : jamais lui. */
+  claudeWrites(): Map<string, string> {
+    const rows = this.db
+      .select({ documentId: documentVersions.documentId, at: sql<string>`max(${documentVersions.createdAt})` })
+      .from(documentVersions)
+      .where(eq(documentVersions.author, 'claude'))
+      .groupBy(documentVersions.documentId)
+      .all()
+    return new Map(rows.map((row) => [row.documentId, row.at] as const))
   }
 
   /** Dernière version enregistrée (secours quand le fichier a disparu). */

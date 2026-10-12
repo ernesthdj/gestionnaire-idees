@@ -1,6 +1,6 @@
 # Feature Specification: Le dossier du nœud (spec 028)
 
-**Feature Branch**: `main` · **Created**: 2026-10-12 · **Status**: Écrite (2026-10-12) — à planifier
+**Feature Branch**: `main` · **Created**: 2026-10-12 · **Status**: En pause (2026-10-12) — lot 1 livré puis désactivé (`FOLDERS_ENABLED = false`) par mentalyas : « jolis mais inutiles sur les nœuds, déjà autosuffisants avec leur lecteur ; à réutiliser plus tard pour un autre besoin »
 **Input**: idée de mentalyas du 2026-10-12 : « Quand je demande à Claude de générer de la doc par rapport à un nœud,
 j'aimerais qu'en connexion à ce nœud apparaisse un dossier flottant lié à ce nœud, qui me permet de parcourir les
 documents associés (doc, fichiers, code, etc.). » Brainstorm : `docs/brainstorm/L1n-dossier-du-noeud.md` (D1–D7),
@@ -143,9 +143,7 @@ le résumer : il le lit par le pont ; lui demander un fichier du projet non rang
 3. **Given** un fichier du projet qui n'est rangé dans aucun dossier de l'arbre, ou un fichier d'un autre arbre,
    **Then** la lecture est refusée.
 4. **Given** un fichier sensible (`.env`, clés), même rangé à la main, **Then** la lecture est refusée.
-5. **Given** un projet « Local uniquement » (spec 017 « Reprise — Voir »), **Then** Claude ne reçoit que les noms
-   des fichiers, jamais leur contenu, avec un message explicite.
-6. **Given** un fichier dont le contenu contient des consignes (« ignore tes règles… »), **Then** Claude le reçoit
+5. **Given** un fichier dont le contenu contient des consignes (« ignore tes règles… »), **Then** Claude le reçoit
    comme une donnée de mentalyas, jamais comme une instruction.
 
 ---
@@ -239,8 +237,6 @@ sans l'envoyer.
   fichier du disque (hors document de Claude, qui suit la spec 012).
 - **Nom de fichier hostile** (balises, très long) : affiché comme du texte, tronqué.
 - **Fenêtre étroite ou panneau de droite fermé** : « Tout voir » ouvre le panneau (spec 027).
-- **Projet « Local uniquement »** : le dossier s'affiche et se lit dans l'app normalement ; seule la lecture par Claude
-  est limitée aux noms (US4).
 
 ## Requirements *(mandatory)*
 
@@ -298,8 +294,8 @@ sans l'envoyer.
 - **FR-022**: Claude MUST disposer d'un outil en lecture seule qui liste le dossier d'un nœud (filtrable par sorte)
   ou rend le contenu d'un de ses fichiers, borné en taille ; il MUST refuser tout fichier qui n'est pas rangé dans un
   nœud de l'arbre de la conversation, tout fichier sensible et tout fichier binaire.
-- **FR-023**: Pour un projet « Local uniquement », cet outil MUST ne rendre que les noms des fichiers, jamais leur
-  contenu.
+- **FR-023**: *(retirée le 2026-10-12, décision de mentalyas : le Brainstormer travaille avec l'IA ; le dossier n'a
+  aucun cas particulier de confidentialité. Un code interdit d'IA est signalé par mentalyas au début du brainstorm.)*
 - **FR-024**: Le contenu d'un fichier rendu à Claude MUST être présenté comme une donnée, jamais comme une consigne.
 
 **Actions sur un fichier**
@@ -349,7 +345,7 @@ sans l'envoyer.
   retrouvent dans le dossier de ce nœud.
 - **SC-003**: 0 fichier hors du projet lié rangé ou lu, testé avec des chemins hostiles (`..`, absolus, lecteurs
   Windows, liens symboliques sortants, `.env`).
-- **SC-004**: Pour un projet « Local uniquement », 0 octet de contenu de fichier rendu à Claude par le dossier.
+- **SC-004**: *(retiré le 2026-10-12 avec FR-023.)*
 - **SC-005**: Avec 30 dossiers visibles, glisser et zoomer la carte reste fluide (60 images par seconde visées, aucune
   image au-delà de 50 ms) sur le poste de mentalyas.
 - **SC-006**: « Tout voir » d'un dossier de 500 fichiers s'affiche en moins d'1 seconde et défile sans à-coup.

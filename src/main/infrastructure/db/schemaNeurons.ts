@@ -372,7 +372,8 @@ export const changeLog = sqliteTable(
         'document',
         'final',
         'structure',
-        'skills'
+        'skills',
+        'folder'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */
@@ -623,6 +624,8 @@ export const documents = sqliteTable(
     /** Décalage manuel (glissé par mentalyas) par rapport à sa place d'annexe sous son neurone. */
     offsetX: real('offset_x').notNull().default(0),
     offsetY: real('offset_y').notNull().default(0),
+    /** Épinglé hors du dossier de son nœud, en cadre de lecture sur la carte (spec 028 D4). */
+    pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     deletedAt: text('deleted_at')
   },
