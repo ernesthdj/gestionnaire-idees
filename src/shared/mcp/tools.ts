@@ -343,7 +343,8 @@ export const MCP_TOOLS = {
   document_ecrire: {
     description:
       'Rédige un document Markdown qui détaille UN neurone (spécification, recherche, décision argumentée, guide…) : ' +
-      'il devient un nœud fichier relié à ce neurone et un vrai fichier .md (dossier choisi par l’app). Sans ' +
+      'il devient un nœud fichier relié à ce neurone et un vrai fichier .md (dossier choisi par l’app). Genesis ou ' +
+      'étape seulement (pas un élément de carte de structure : écrire le fichier dans le projet). Sans ' +
       '`document` : crée un document pour le neurone de la conversation (ou `id`) ; avec `document` : le réécrit ' +
       '(`mode: "remplacer"`) ou le complète (`"ajouter"`). Titres Markdown, listes, tableaux ; pas de HTML. 500 Ko au plus.',
     input: DocumentEcrireInput,

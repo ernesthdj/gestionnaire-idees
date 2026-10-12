@@ -1,7 +1,9 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { BRAINSTORMER_FRAME } from '../../../src/main/application/conversation/frame'
 import { DocumentService } from '../../../src/main/application/documents/DocumentService'
 import { DocumentTools } from '../../../src/main/application/mcp/DocumentTools'
 import { NeuronTools } from '../../../src/main/application/mcp/NeuronTools'
@@ -9,6 +11,7 @@ import { toMcpError } from '../../../src/main/domain/mcp/errors'
 import { ConversationRepository } from '../../../src/main/infrastructure/db/repositories/ConversationRepository'
 import { DocumentRepository } from '../../../src/main/infrastructure/db/repositories/DocumentRepository'
 import { PlanRepository } from '../../../src/main/infrastructure/db/repositories/PlanRepository'
+import { neurons } from '../../../src/main/infrastructure/db/schemaNeurons'
 import { DocumentFiles } from '../../../src/main/infrastructure/documents/DocumentFiles'
 import { DocumentEcrireInput, MCP_TOOLS } from '../../../src/shared/mcp/tools'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
@@ -80,6 +83,24 @@ describe('outils MCP document_ecrire et document_lire (spec 012 US1)', () => {
     expect(() => write({ id: other, titre: 'x', contenu: 'y' })).toThrow(
       expect.objectContaining({ code: 'NON_MODIFIABLE' })
     )
+  })
+
+  it('should_refuse_with_the_way_forward_when_the_conversation_is_a_structure_element', async () => {
+    // Cours PLGI (2026-10-12) : un élément de structure n'a pas de document ; avant, « Neurone introuvable ».
+    const element = (await t.neurons.create({ text: 'Actif = Passif' })).id
+    t.handle.db.update(neurons).set({ kind: 'element', genesisId: studio }).where(eq(neurons.id, element)).run()
+    let caught: unknown
+    try {
+      write({ titre: 'Cours', contenu: '# Actif = Passif' }, element)
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toMatchObject({ code: 'NON_MODIFIABLE' })
+    expect((caught as Error).message).toContain('écris le fichier .md directement dans le projet')
+    expect(repository.ofNeuron(element)).toHaveLength(0)
+    expect(written).toHaveLength(0)
+    // La consigne de conversation le dit d'avance.
+    expect(BRAINSTORMER_FRAME).toContain('élément de carte de structure, écris le .md dans le projet')
   })
 
   it('should_refuse_a_document_over_500_ko_with_a_clear_code', () => {

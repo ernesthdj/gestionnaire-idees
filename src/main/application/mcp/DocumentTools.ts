@@ -41,6 +41,18 @@ export class DocumentTools {
       return { text: `${summary} (${fileLabel(document)}) — annulable par mentalyas.`, data: { document: document.id } }
     }
     const neuron = conversationTarget(this.deps.conversations, input.id, caller, true)
+    // Seuls un genesis et ses étapes portent des documents sur la carte (spec 012) : refus explicite, avec la marche à
+    // suivre, plutôt qu'un « Neurone introuvable » venu du service.
+    if (neuron.kind === 'element') {
+      throw new McpToolError(
+        'NON_MODIFIABLE',
+        'Un élément de carte de structure n’a pas de document relié : écris le fichier .md directement dans le projet, ' +
+          'sous un chemin de l’élément ; il rejoint ses fichiers.'
+      )
+    }
+    if (neuron.kind !== 'root' && neuron.kind !== 'step') {
+      throw new McpToolError('NON_MODIFIABLE', 'Seuls un genesis et les étapes de son plan ont des documents reliés.')
+    }
     const { document, batchId } = this.deps.documents.create({
       neuronId: neuron.id,
       title: input.titre,
