@@ -116,7 +116,9 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > Migrations : `npm run db:generate`, puis ecrire a la main `migrations/down/<nom>.down.sql` (constitution).
 > `npm audit` : 0 alerte (2026-10-06) grace a deux `overrides` dans `package.json` : `@esbuild-kit/core-utils > esbuild`
 > (dependance morte de drizzle-kit) et `global-agent ^4` (packaging seulement ; a retirer si un packaging derriere un
-> proxy echoue). Jamais `npm audit fix --force` (il retrograderait drizzle-kit 0.31 → 0.18).
+> proxy echoue) ; depuis le 2026-10-12, `lodash-es ^4.18.1` et `mermaid > katex 0.18.8` (dependances de mermaid
+> 12.0.0, schemas des fichiers .md ; a retirer quand mermaid les remonte). Jamais `npm audit fix --force` (il
+> retrograderait drizzle-kit 0.31 → 0.18 et mermaid 12 → 10).
 > `npm ci` echoue si l'app ou le relais MCP tourne (`electron.exe` verrouille) : fermer l'app, ou `npm install` puis
 > `node node_modules/electron/install.js`.
 

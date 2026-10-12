@@ -4,6 +4,8 @@ import type { ElementFilesView, ElementFileView } from '@shared/ipc/reprise'
 import { KIND_LABELS } from '../explorer/labels'
 import { CodeLines } from '../lib/CodeLines'
 import { call, IpcFailure } from '../lib/ipc'
+import { Segmented } from '../lib/Segmented'
+import { Markdown } from './Markdown'
 
 const errorText = (error: unknown, fallback: string): string => (error instanceof IpcFailure ? error.message : fallback)
 
@@ -77,7 +79,8 @@ export function ElementFiles({
 
 /**
  * Lecteur d'un fichier d'élément, en lecture seule (spec 017 US7) : le code coloré et numéroté ; pour un projet
- * analysé, ses symboles et le nombre de leurs appelants, un clic place la vue sur le symbole.
+ * analysé, ses symboles et le nombre de leurs appelants, un clic place la vue sur le symbole. Un fichier Markdown
+ * s'affiche mis en forme, ou en texte brut à la demande (comme le lecteur Workflow, spec 023 D13).
  */
 export function ElementFileReader({
   elementId,
@@ -90,6 +93,8 @@ export function ElementFileReader({
 }): React.JSX.Element {
   const titleId = useId()
   const [marked, setMarked] = useState<{ readonly from: number; readonly to: number } | null>(null)
+  const isMarkdown = /\.md$/i.test(path)
+  const [formatted, setFormatted] = useState(isMarkdown)
   const query = useQuery({
     queryKey: ['structure', elementId, 'file', path],
     queryFn: () => call<ElementFileView>('structure:file', { elementId, path })
@@ -111,6 +116,17 @@ export function ElementFileReader({
             {path}
           </h3>
         </div>
+        {isMarkdown ? (
+          <Segmented
+            label="Affichage du fichier"
+            value={formatted ? 'formatted' : 'raw'}
+            options={[
+              { value: 'formatted', label: 'Mis en forme' },
+              { value: 'raw', label: 'Texte brut' }
+            ]}
+            onChange={(value) => setFormatted(value === 'formatted')}
+          />
+        ) : null}
       </header>
       {query.error !== null ? (
         <p role="alert" className="text-con">
@@ -118,6 +134,10 @@ export function ElementFileReader({
         </p>
       ) : file === undefined ? (
         <p className="text-content-muted">Lecture du fichier…</p>
+      ) : formatted ? (
+        <div className="min-h-0 flex-1 overflow-auto pr-1">
+          <Markdown inertLinks text={file.lines.join('\n')} />
+        </div>
       ) : (
         <>
           {file.symbols.length === 0 ? null : (

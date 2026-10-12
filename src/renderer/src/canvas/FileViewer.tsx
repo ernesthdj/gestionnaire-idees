@@ -3,13 +3,14 @@ import { useId, useMemo, useState } from 'react'
 import type { DeliverableFileDetailView } from '@shared/ipc/finals'
 import { lineDiff } from '@shared/diff/lineDiff'
 import { useUiStore } from '../app/uiStore'
+import { Markdown } from '../chat/Markdown'
 import { highlight, splitHighlightLines, type HighlightNode } from '../lib/highlight'
 import { Highlighted } from '../lib/Highlighted'
 import { call, IpcFailure } from '../lib/ipc'
 
 export const viewerKey = (neuronId: string, path: string): readonly string[] => ['deliverable', neuronId, 'file', path]
 
-type Tab = 'diff' | 'file'
+type Tab = 'formatted' | 'diff' | 'file'
 
 /** Première ligne changée dans le contenu de référence (actuel, sinon écrit par Claude) : l'éditeur s'y ouvre. */
 export function firstChangedLine(file: DeliverableFileDetailView): number {
@@ -25,7 +26,8 @@ export function firstChangedLine(file: DeliverableFileDetailView): number {
 
 /**
  * Visionneuse en lecture seule d'un fichier du livrable (spec 013 D4) : la différence depuis l'état d'avant
- * l'exécution, et le contenu actuel coloré avec ses numéros de ligne. Rien n'est éditable ici.
+ * l'exécution, et le contenu actuel coloré avec ses numéros de ligne. Un fichier Markdown s'ouvre mis en forme (onglet
+ * de plus, avant les deux autres). Rien n'est éditable ici.
  */
 export function FileViewer({
   neuronId,
@@ -36,7 +38,8 @@ export function FileViewer({
   readonly path: string
   readonly onClose: () => void
 }): React.JSX.Element {
-  const [tab, setTab] = useState<Tab>('diff')
+  const isMarkdown = /\.md$/i.test(path)
+  const [tab, setTab] = useState<Tab>(isMarkdown ? 'formatted' : 'diff')
   const titleId = useId()
   const query = useQuery({
     queryKey: viewerKey(neuronId, path),
@@ -96,6 +99,11 @@ export function FileViewer({
       ) : (
         <>
           <div role="tablist" aria-label="Affichage" className="flex gap-1 border-b border-content-muted/20 px-4">
+            {isMarkdown ? (
+              <TabButton id="formatted" current={tab} onSelect={setTab}>
+                Mis en forme
+              </TabButton>
+            ) : null}
             <TabButton id="diff" current={tab} onSelect={setTab}>
               Différences
             </TabButton>
@@ -103,18 +111,25 @@ export function FileViewer({
               Fichier
             </TabButton>
           </div>
-          <div
-            role="tabpanel"
-            aria-label={tab === 'diff' ? 'Différences' : 'Fichier'}
-            className="min-h-0 flex-1 overflow-auto"
-            tabIndex={0}
-          >
-            {tab === 'diff' ? <DiffView file={file} /> : <SourceView file={file} />}
+          <div role="tabpanel" aria-label={TAB_LABELS[tab]} className="min-h-0 flex-1 overflow-auto" tabIndex={0}>
+            {tab === 'formatted' ? (
+              <FormattedView file={file} />
+            ) : tab === 'diff' ? (
+              <DiffView file={file} />
+            ) : (
+              <SourceView file={file} />
+            )}
           </div>
         </>
       )}
     </section>
   )
+}
+
+const TAB_LABELS: Readonly<Record<Tab, string>> = {
+  formatted: 'Mis en forme',
+  diff: 'Différences',
+  file: 'Fichier'
 }
 
 function TabButton({
@@ -208,6 +223,16 @@ function DiffView({ file }: { readonly file: DeliverableFileDetailView }): React
           </pre>
         </>
       )}
+    </div>
+  )
+}
+
+function FormattedView({ file }: { readonly file: DeliverableFileDetailView }): React.JSX.Element {
+  const note = unreadable(file)
+  if (note !== null) return <p className="p-4 text-content-muted">{note}</p>
+  return (
+    <div className="px-4 py-2">
+      <Markdown inertLinks text={file.current ?? ''} />
     </div>
   )
 }

@@ -1,12 +1,72 @@
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { MermaidDiagram } from './MermaidDiagram'
 
 /**
  * Markdown des réponses de Claude (spec 008) : titres, gras, listes, cases à cocher, tableaux, code, liens. Sûr :
  * aucun HTML brut n'est interprété (`skipHtml`), les URL dangereuses sont neutralisées (filtre par défaut de
  * react-markdown), les liens s'ouvrent hors de l'app (seuls les liens https passent : `guardNavigation`), les images
- * ne sont jamais chargées (texte alternatif seulement).
+ * ne sont jamais chargées (texte alternatif seulement). Les encadrés GitHub (`> [!NOTE]`, `> [!IMPORTANT]`…) sont mis
+ * en forme, les blocs ```mermaid dessinés (`MermaidDiagram`).
  */
+
+/** Nœud de l'arbre Markdown (mdast), réduit à ce que lit `remarkCallouts`. */
+interface MdNode {
+  readonly type: string
+  value?: string
+  readonly children?: MdNode[]
+  data?: { hProperties?: Record<string, string> }
+}
+
+const CALLOUTS = {
+  note: { label: 'Note', icon: 'ℹ', tone: 'border-accent text-accent' },
+  tip: { label: 'Astuce', icon: '💡', tone: 'border-pro text-pro' },
+  important: { label: 'Important', icon: '❗', tone: 'border-seed text-seed' },
+  warning: { label: 'Attention', icon: '⚠', tone: 'border-idea text-idea' },
+  caution: { label: 'Prudence', icon: '⛔', tone: 'border-con text-con' }
+} as const
+type CalloutKind = keyof typeof CALLOUTS
+const CALLOUT_MARK = /^\[!(note|tip|important|warning|caution)\][ \t]*\n?/i
+
+const isCalloutKind = (value: string | undefined): value is CalloutKind =>
+  value !== undefined && Object.hasOwn(CALLOUTS, value)
+
+/** Repère `[!TYPE]` en tête d'une citation : la marque est retirée, le type passe au rendu (`data-callout`). */
+function remarkCallouts() {
+  const visit = (node: MdNode): void => {
+    if (node.type === 'blockquote') {
+      const first = node.children?.[0]?.type === 'paragraph' ? node.children[0].children?.[0] : undefined
+      const match = first?.type === 'text' ? CALLOUT_MARK.exec(first.value ?? '') : null
+      if (first !== undefined && match !== null) {
+        first.value = (first.value ?? '').slice(match[0].length)
+        node.data = { ...node.data, hProperties: { 'data-callout': (match[1] ?? '').toLowerCase() } }
+      }
+    }
+    node.children?.forEach(visit)
+  }
+  return (tree: MdNode): void => visit(tree)
+}
+
+/** Élément HTML (hast) reçu par un composant, réduit à ce que lit `mermaidSource`. */
+interface HtmlNode {
+  readonly type: string
+  readonly tagName?: string
+  readonly value?: string
+  readonly properties?: { readonly className?: unknown }
+  readonly children?: readonly HtmlNode[]
+}
+
+/** Source d'un bloc ```mermaid (`<pre><code class="language-mermaid">`) ; `null` pour tout autre bloc. */
+function mermaidSource(pre: HtmlNode | undefined): string | null {
+  const code = pre?.children?.find((child) => child.type === 'element')
+  const classes = code?.properties?.className
+  if (code?.tagName !== 'code' || !Array.isArray(classes) || !classes.includes('language-mermaid')) return null
+  return (code.children ?? [])
+    .map((child) => child.value ?? '')
+    .join('')
+    .replace(/\n$/, '')
+}
+
 function Code({
   children,
   className
@@ -47,11 +107,33 @@ const COMPONENTS: Components = {
     />
   ),
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-  blockquote: ({ children }) => (
-    <blockquote className="my-2 border-l-2 border-content-muted/40 pl-3 text-content-muted">{children}</blockquote>
-  ),
+  blockquote: ({ children, ...props }) => {
+    const kind = (props as { readonly 'data-callout'?: string })['data-callout']
+    if (!isCalloutKind(kind)) {
+      return (
+        <blockquote className="my-2 border-l-2 border-content-muted/40 pl-3 text-content-muted">{children}</blockquote>
+      )
+    }
+    const callout = CALLOUTS[kind]
+    return (
+      <blockquote className={`my-2 rounded-r-md border-l-4 bg-surface-raised py-1 pl-3 ${callout.tone}`}>
+        <p className="mt-1 text-xs font-semibold">
+          <span aria-hidden="true">{callout.icon} </span>
+          {callout.label}
+        </p>
+        <div className="text-content">{children}</div>
+      </blockquote>
+    )
+  },
   code: Code,
-  pre: ({ children }) => <pre className="my-2 overflow-x-auto rounded-md bg-surface p-3 text-xs">{children}</pre>,
+  pre: ({ children, node }) => {
+    const diagram = mermaidSource(node)
+    return diagram === null ? (
+      <pre className="my-2 overflow-x-auto rounded-md bg-surface p-3 text-xs">{children}</pre>
+    ) : (
+      <MermaidDiagram source={diagram} />
+    )
+  },
   a: ({ children, href }) => (
     <a href={href} target="_blank" rel="noreferrer noopener" className="text-accent underline">
       {children}
@@ -99,7 +181,7 @@ export function Markdown({
     }
   }
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={components}>
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkCallouts]} skipHtml components={components}>
       {text}
     </ReactMarkdown>
   )

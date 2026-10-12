@@ -13,6 +13,7 @@ import { coveringElement, normalizeElementPath } from '@shared/structure/covers'
 import { useUiStore } from '../../app/uiStore'
 import { Markdown } from '../../chat/Markdown'
 import { CodeLines } from '../../lib/CodeLines'
+import { Segmented } from '../../lib/Segmented'
 import { call, IpcFailure } from '../../lib/ipc'
 import { cardHead } from '../cards/cardContent'
 import { useCards, type OpenCard } from '../cards/cardsStore'
@@ -55,37 +56,6 @@ export function useWorkflowFold(genesisId: string): (key: string, folded: boolea
       client.invalidateQueries({ queryKey: ['workflow', genesisId] })
     )
   }
-}
-
-/** Bascule à deux positions de l'en-tête du lecteur (« Mis en forme | Texte brut » d'un fichier Markdown). */
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange
-}: {
-  readonly label: string
-  readonly value: T
-  readonly options: readonly { readonly value: T; readonly label: string }[]
-  readonly onChange: (value: T) => void
-}): React.JSX.Element {
-  return (
-    <div role="group" aria-label={label} className="flex shrink-0 gap-0.5">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={`rounded px-1.5 py-0.5 text-xs hover:bg-surface-raised ${
-            value === option.value ? 'bg-accent/15 font-semibold' : 'text-content-muted'
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 type ReaderView = 'formatted' | 'raw' | 'code'
