@@ -48,3 +48,6 @@ push(value) {
 > **Q :** Pourquoi un debounce serait-il faux pour un widget « chronomètre » qui émet toutes les 100 ms ? **R :** La rafale ne s'arrête jamais : le minuteur serait relancé sans fin et **aucun** résultat ne serait jamais écrit.
 
 **Pièges** : ⚠️ oublier d'annuler le minuteur au démontage du composant (le projet appelle `throttle.cancel()` dans le nettoyage de `useEffect`) — sinon un rappel s'exécute pour un widget qui n'est plus affiché.
+
+## Évolution du 12/10 — un debounce pour écrire en base
+La poignée du panneau de conversation (spec 027) : chaque flèche ←/→ change la largeur **tout de suite** à l'écran (brouillon), mais l'enregistrement part **400 ms après la dernière touche** (`WIDTH_SAVE_DELAY_MS`) — dix flèches, une seule écriture via `app:setSettings`. À la souris, pas de délai : on enregistre au **lâcher**. → [[Panneau fixe à onglets — une source de vérité, règles pures et façade gardée]]

@@ -46,3 +46,9 @@ statut: complet
 **Question d'oral probable** : « Pourquoi ne pas tout mettre dans Zustand ? » → Parce que les données du moteur ont une **source de vérité ailleurs** (la base, dans le main) : il faut les traiter comme un cache — savoir quand elles sont périmées et les relire — ce que Zustand ne fait pas.
 
 **Lien avec la suite** : [[Plongée radiale — couronne sur un arc et affichage optimiste]] (cache + provisoire) et [[Annuler par lot — journal avant-après, conflit et lot inverse]] (invalidation de 5 écrans après annulation).
+
+## Évolution du 12/10 — un magasin de règles pures, et une façade pour migrer
+La spec 027 ajoute `sidePanelStore` (7ᵉ communauté du graphe du 12/10 ; `useUiStore` reste le 2ᵉ nœud le plus connecté, 100 liens). Deux idées nouvelles par rapport au tableau ci-dessus :
+- **Règles pures, emballage mince** : toute la logique est faite de fonctions `état → état` testées sans React ; `create(...)` se contente d'appeler `set((s) => regle(s, …))`.
+- **Façade + miroir** : `uiStore` garde ses anciennes actions (`openChat`, `openRepo`…) qui **délèguent** au panneau, et s'abonne à lui pour recopier deux valeurs dérivées. Une écriture, une copie en lecture : on migre sans toucher les appelants et sans deux vérités.
+La largeur du panneau, elle, n'est **pas** un état d'interface jetable : c'est un réglage, persisté par le main (Zod) et relu par TanStack Query. → [[Panneau fixe à onglets — une source de vérité, règles pures et façade gardée]]

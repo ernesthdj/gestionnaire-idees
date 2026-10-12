@@ -62,7 +62,10 @@
 		{"id":"c_savepoint","type":"file","file":"docs/academique/Points de sauvegarde — instantané compressé, point caché avant retour et colonnes épargnées.md","x":290,"y":18500,"width":380,"height":320,"color":"5"},
 		{"id":"c_run","type":"file","file":"docs/academique/Lancer un projet — processus de longue durée, sortie par lots bornée et arbre de processus.md","x":290,"y":18900,"width":380,"height":320,"color":"5"},
 		{"id":"c_widget_settings","type":"file","file":"docs/academique/Réglages déclarés par un widget — le widget décrit, l'app dessine et ramène chaque valeur.md","x":290,"y":19300,"width":380,"height":320,"color":"5"},
-		{"id":"c_e2e","type":"file","file":"docs/academique/Tests de bout en bout — Playwright pilote Electron sur un profil fictif.md","x":-160,"y":19300,"width":380,"height":320,"color":"2"}
+		{"id":"c_e2e","type":"file","file":"docs/academique/Tests de bout en bout — Playwright pilote Electron sur un profil fictif.md","x":-160,"y":19300,"width":380,"height":320,"color":"2"},
+		{"id":"label_1112","type":"text","text":"Session du 11→12/10 — lire la conversation, croire le graphe (spec 027, spec 017 US6)\nParcours 49 à 50 : panneau fixe à onglets → lever les ambiguïtés du graphe\nNouveaux glossaires : Tabindex itinérant, Demande à nonce, Fonction passée en valeur — voir MOC\nNote 50 prolonge l'Explorateur de code (note 31)","x":-720,"y":19800,"width":320,"height":260},
+		{"id":"c_panel","type":"file","file":"docs/academique/Panneau fixe à onglets — une source de vérité, règles pures et façade gardée.md","x":-160,"y":19800,"width":380,"height":320,"color":"5"},
+		{"id":"c_resolve","type":"file","file":"docs/academique/Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie.md","x":290,"y":19800,"width":380,"height":320,"color":"6"}
 	],
 	"edges":[
 		{"id":"e_moc_spec","fromNode":"moc","fromSide":"bottom","toNode":"c_spec","toSide":"top","label":"0"},
@@ -116,6 +119,8 @@
 		{"id":"e_c_savepoint_c_run","fromNode":"c_savepoint","fromSide":"bottom","toNode":"c_run","toSide":"top","label":"46 lancer le projet"},
 		{"id":"e_c_run_c_widget_settings","fromNode":"c_run","fromSide":"bottom","toNode":"c_widget_settings","toSide":"top","label":"47 widgets réglables"},
 		{"id":"e_c_conflit_c_e2e","fromNode":"c_conflit","fromSide":"bottom","toNode":"c_e2e","toSide":"top","label":"48 prouver le parcours"},
-		{"id":"e_c_widget_settings_c_e2e","fromNode":"c_widget_settings","fromSide":"left","toNode":"c_e2e","toSide":"right","label":"48"}
+		{"id":"e_c_widget_settings_c_e2e","fromNode":"c_widget_settings","fromSide":"left","toNode":"c_e2e","toSide":"right","label":"48"},
+		{"id":"e_c_e2e_c_panel","fromNode":"c_e2e","fromSide":"bottom","toNode":"c_panel","toSide":"top","label":"49 la conversation hors de la carte"},
+		{"id":"e_c_panel_c_resolve","fromNode":"c_panel","fromSide":"right","toNode":"c_resolve","toSide":"left","label":"50 croire le graphe"}
 	]
 }

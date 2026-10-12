@@ -39,3 +39,7 @@ Volet du bloc « Order.Place »    :  → appelle     Order.Validate, Mailer.Sen
 > **Q :** Quelle question répond la liste des **appelants** d'une fonction ? **R :** « Qui est touché si je la modifie ? » — l'impact d'un changement.
 
 **Pièges** : ⚠️ croire le graphe statique complet (un appel construit dynamiquement, `$obj->$method()` en PHP, n'y figure pas toujours) ; ⚠️ confondre « importe » (dépendance de fichier) et « appelle » (exécution).
+
+## Évolution du 12/10 — un graphe plus juste, par deux chemins
+- **Déterministe** : une fonction **passée en valeur** (`setInterval(flush)`, `onClick={go}`, `{ run: start }`) compte désormais comme une référence faible, et une fonction locale se cherche par **portée** (bloc puis blocs englobants). Fin d'une série de « faux code mort » → [[Glossaire — Fonction passée en valeur (première classe) et faux code mort]].
+- **Assisté** : les liens « incertains » gardent la liste de leurs **cibles possibles** (`candidates_json`) ; l'IA peut en choisir une d'après 8 lignes de contexte, le code revérifie, le lien devient « déduit » avec sa raison → [[Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie]]. L'échelle de fiabilité reste : sûr > déduit > incertain.

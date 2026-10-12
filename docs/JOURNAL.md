@@ -1434,3 +1434,12 @@ vectoriel de Gemini est écarté. Spec après la 024 (US4, US5) et la 021 ; 5 qu
 **Limite connue :** une réanalyse recalcule les liens et efface les déductions de l'IA (seules les corrections manuelles survivent, FR-018) ; relancer « Préciser » les refait.
 **Erreur corrigée :** la raison, trop longue, écrasait le nom du lien dans le panneau (`shrink-0`) — vue sur la capture e2e, raison passée sur sa propre ligne.
 **Vérifié (e2e, app réelle, Claude simulé) :** `cs-app` repris en « Claude autorisé », `store.Save` → `InvoiceRepository.Save` « déduit » avec sa raison, cible étrangère rejetée, `.env` absent de la demande.
+
+### [2026-10-12 02:11] SESSION — End
+**Resume :** session du 11 au 12/10. Audit d'usage « nouveau projet de zéro » et ses correctifs (consigne de départ, badge du dépôt, attente de permission, Haiku 5.5, « Réaliser cette étape » spec 013 D6) ; spec 027 « Conversation en panneau fixe » spécifiée, planifiée et livrée en 5 lots (onglets, anneau et « Centrer », largeur réglable, passe réelle) ; audit d'usage « mener un vrai projet » sur Bike_cycle (profil réel, 7 commits dans ce projet, 29 constats, propositions et priorités) ; spec 017 US6 (lever les ambiguïtés du graphe avec l'IA) codée par Claude depuis l'app, revue et commitée ; correctif de l'Analyste (faux code mort).
+**Branche :** main
+**Commits pushes :** 7
+
+### [2026-10-12 02:30] DOCS — parcours académique (session du 11→12/10, /hub end 7bis, mode auto)
+**Fichiers :** `docs/academique/` — créées : `Panneau fixe à onglets — une source de vérité, règles pures et façade gardée.md`, `Lever les ambiguïtés du graphe d'appels — l'IA choisit dans une liste fermée, le code vérifie.md`, `Glossaire — Tabindex itinérant (motif ARIA des onglets).md`, `Glossaire — Demande à nonce (exécutée une seule fois).md`, `Glossaire — Fonction passée en valeur (première classe) et faux code mort.md` ; étendues (blocs « Évolution du 12/10 ») : `Glossaire — Graphe d'appels…`, `Explorateur de code…`, `Injection de prompt…`, `TanStack Query et Zustand…`, `Glossaire — Throttle et debounce…` ; MOC (parcours 48 → 50, section « Lire la conversation, croire le graphe », questions de révision, graphe du 12/10) et canvas (3 nœuds, 2 flèches) mis à jour ; `CLAUDE.md` (dernière mise à jour).
+**Points ⚠️ :** code lu, non exécuté. Correctifs de l'audit du 11/10 et spec 013 D6 sans nouvelle note (chemin rendu visible, pas de mécanisme nouveau) ; audits d'usage non enseignés (constats, pas de notion). La qualité réelle des choix de l'IA (US6) n'est pas mesurée : l'e2e utilise un Claude simulé.
