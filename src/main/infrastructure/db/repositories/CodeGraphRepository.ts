@@ -17,6 +17,26 @@ export interface AnalyzedFile {
   readonly entries: readonly CodeEntryPointRow[]
 }
 
+/** Empreinte d'une ligne, indépendante de l'ordre de ses colonnes (`null` et absent confondus). */
+function fingerprint(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(fingerprint).join(',')}]`
+  if (typeof value === 'object' && value !== null) {
+    return `{${Object.keys(value)
+      .sort()
+      .filter((key) => (value as Record<string, unknown>)[key] != null)
+      .map((key) => `${JSON.stringify(key)}:${fingerprint((value as Record<string, unknown>)[key])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+const fileFingerprint = (entry: AnalyzedFile): string =>
+  fingerprint([
+    entry.file,
+    [...entry.symbols].sort((a, b) => a.id.localeCompare(b.id)),
+    [...entry.entries].sort((a, b) => a.symbolId.localeCompare(b.symbolId))
+  ])
+
 /** Lignes insérées par requête : sous la limite de variables de SQLite, quel que soit le nombre de colonnes. */
 const CHUNK = 200
 
@@ -89,6 +109,58 @@ export class CodeGraphRepository {
     })
   }
 
+  /**
+   * Fichiers dont l'analyse diffère de ce qui est en base (nouveaux compris) : une réanalyse ne réécrit qu'eux
+   * (spec 017 SC-004 : un fichier modifié sur 5 000 → quelques lignes écrites, pas tout le graphe).
+   */
+  changedFiles(genesisId: string, analyzed: readonly AnalyzedFile[]): AnalyzedFile[] {
+    const stored = new Map<string, { file: CodeFileRow; symbols: CodeSymbolRow[]; entries: CodeEntryPointRow[] }>()
+    for (const file of this.files(genesisId)) stored.set(file.id, { file, symbols: [], entries: [] })
+    const symbols = this.db
+      .select({ symbol: codeSymbols })
+      .from(codeSymbols)
+      .innerJoin(codeFiles, eq(codeFiles.id, codeSymbols.fileId))
+      .where(eq(codeFiles.genesisId, genesisId))
+      .all()
+    const fileOfSymbol = new Map<string, string>()
+    for (const { symbol } of symbols) {
+      stored.get(symbol.fileId)?.symbols.push(symbol)
+      fileOfSymbol.set(symbol.id, symbol.fileId)
+    }
+    for (const entry of this.entryPoints(genesisId)) {
+      stored.get(fileOfSymbol.get(entry.symbolId) ?? '')?.entries.push(entry)
+    }
+    return analyzed.filter((entry) => {
+      const before = stored.get(entry.file.id)
+      return before === undefined || fileFingerprint(before) !== fileFingerprint(entry)
+    })
+  }
+
+  /** Liens à retirer et à écrire pour passer de ce qui est en base à `edges` (comparés ligne à ligne). */
+  edgeChanges(
+    genesisId: string,
+    edges: readonly CodeEdgeInput[]
+  ): { readonly remove: string[]; readonly write: CodeEdgeInput[] } {
+    const stored = new Map(this.edges(genesisId).map((edge) => [edge.id, fingerprint(edge)] as const))
+    const next = new Set(edges.map((edge) => edge.id))
+    return {
+      remove: [...stored.keys()].filter((id) => !next.has(id)),
+      write: edges.filter((edge) => stored.get(edge.id) !== fingerprint({ candidatesJson: null, ...edge }))
+    }
+  }
+
+  /** Applique une partie des changements de liens, en une transaction. */
+  applyEdgeChanges(genesisId: string, remove: readonly string[], write: readonly CodeEdgeInput[]): void {
+    this.db.transaction((tx) => {
+      for (const ids of chunks([...remove, ...write.map((edge) => edge.id)])) {
+        tx.delete(codeEdges)
+          .where(and(eq(codeEdges.genesisId, genesisId), inArray(codeEdges.id, ids)))
+          .run()
+      }
+      for (const part of chunks(write)) tx.insert(codeEdges).values(part).run()
+    })
+  }
+
   /** Fichiers disparus du projet (ou devenus ignorés) : retirés avec leurs symboles. */
   removeFiles(genesisId: string, paths: readonly string[]): void {
     if (paths.length === 0) return
@@ -141,10 +213,8 @@ export class CodeGraphRepository {
 
   /** Liens recalculés pour tout le projet après une analyse (résolution rapide, en mémoire). */
   replaceEdges(genesisId: string, edges: readonly CodeEdgeInput[]): void {
-    this.db.transaction((tx) => {
-      tx.delete(codeEdges).where(eq(codeEdges.genesisId, genesisId)).run()
-      for (const part of chunks(edges)) tx.insert(codeEdges).values(part).run()
-    })
+    const { remove, write } = this.edgeChanges(genesisId, edges)
+    this.applyEdgeChanges(genesisId, remove, write)
   }
 
   /** Liens incertains qui ont des cibles possibles : ce que « Préciser les liens » peut encore lever (US6). */

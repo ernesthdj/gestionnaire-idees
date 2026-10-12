@@ -1,7 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { loadEngine, type Engine } from '../../../src/analysis-worker/engine'
 import { extractFile } from '../../../src/analysis-worker/extract'
-import { resolveGraph, type ResolvedEdge, type ResolveFile } from '../../../src/main/domain/reprise/resolve'
+import {
+  MAX_CANDIDATES,
+  resolveGraph,
+  type ResolvedEdge,
+  type ResolveFile
+} from '../../../src/main/domain/reprise/resolve'
 import { extractFixture, FIXTURE_CONFIG, GRAMMARS_DIR } from '../../support/reprise'
 
 /** Nom court d'un symbole : sans chemin ni namespace (`Shop.Domain.`, `App.Http.Controllers.`…). */
@@ -91,6 +96,38 @@ describe('résolution des liens d’un projet repris (spec 017 R3, SC-006)', () 
       'route <fichier> → OrderController.store'
     ])
     expect(entries.map((entry) => entry.label).sort()).toEqual(['GET /orders', 'POST /orders'])
+  })
+
+  it('should_keep_no_candidate_list_when_a_called_name_is_too_common_to_choose_from', () => {
+    /** `count` fichiers JS qui définissent chacun `Job.run`, et un appelant qui appelle `job.run()`. */
+    const project = (count: number): ResolveFile[] => {
+      const sources = [
+        ...Array.from({ length: count }, (_, index) => [`src/job${index}.js`, 'class Job { run() { return 1 } }']),
+        ['src/main.js', 'function start(job) { return job.run() }']
+      ]
+      return sources.map(([path = '', code = '']) => {
+        const result = extractFile(engine, 'js', code)
+        if (!result.ok) throw new Error(result.reason)
+        return {
+          path,
+          lang: 'js',
+          extraction: result.extraction,
+          symbolIds: result.extraction.symbols.map((symbol) => `${path}#${symbol.qualifiedName}`),
+          fileSymbolId: `${path}#<fichier>`
+        }
+      })
+    }
+    const callOf = (count: number): ResolvedEdge | undefined =>
+      resolveGraph(project(count), FIXTURE_CONFIG).edges.find((edge) => edge.rawTarget === 'job.run')
+    expect(callOf(MAX_CANDIDATES)).toMatchObject({ provenance: 'uncertain', toSymbolId: null })
+    expect(callOf(MAX_CANDIDATES)?.candidates).toHaveLength(MAX_CANDIDATES)
+    // Un nom de plus : le lien reste incertain, avec le nombre de cibles, mais sans liste à trancher.
+    expect(callOf(MAX_CANDIDATES + 1)).toMatchObject({
+      provenance: 'uncertain',
+      toSymbolId: null,
+      reason: `${MAX_CANDIDATES + 1} cibles possibles`,
+      candidates: []
+    })
   })
 
   it('should_resolve_a_local_function_called_or_passed_as_a_value_within_its_enclosing_block', () => {

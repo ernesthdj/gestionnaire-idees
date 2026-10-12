@@ -187,6 +187,8 @@ export interface AppContext {
   readonly widgets: WidgetRepository
   /** Range dans un brainstorm les genesis et blocs qui n'en ont pas (spec 024 R10) : rejoué après la graine de démo. */
   adoptLegacyCanvas(): void
+  /** Lance l'analyse d'un projet repris (graine de démo, spec 017 T037). */
+  analyzeReprise(genesisId: string): void
   stop(): void
 }
 
@@ -411,7 +413,13 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     onChanged: () => broadcast('skills:changed', { scannedAt: Date.now() })
   })
   const skillUsage = new SkillUsageScanner({ projectsDir: join(app.getPath('home'), '.claude', 'projects') })
-  const neurons = new NeuronService({ repository: neuronRepository, gateway: ai.gateway })
+  // Projets repris (spec 017) : un projet « Local uniquement » n'est jamais transmis à Claude (garde unique, R5).
+  const repriseRepository = new RepriseRepository(database.db)
+  const neurons = new NeuronService({
+    repository: neuronRepository,
+    gateway: ai.gateway,
+    localOnly: (id) => repriseRepository.project(id)?.confidentiality === 'local'
+  })
   neuronsRef.current = neurons
   const hatchedRepository = new HatchedRepository(database.db)
   const widgetIoRepository = new WidgetIoRepository(database.db)
@@ -474,7 +482,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     gateway: ai.gateway,
     emit: (event) => broadcast(event.type, event),
     inputContext: (blockId) => widgetIo.inputContext(blockId),
-    savedState: (blockId) => widgetIo.savedState(blockId)
+    savedState: (blockId) => widgetIo.savedState(blockId),
+    // Garde créée plus bas : lue seulement à la génération d'un widget, l'app démarrée.
+    localOnly: (blockId) => widgetIo.sourceNeurons(blockId).some((id) => !confidentiality.claudeAllowed(id))
   })
   const mapLinkRepository = new MapLinkRepository(database.db)
   const elementRepository = new ElementRepository(database.db)
@@ -497,8 +507,6 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   }
   // Documents Markdown des neurones (spec 012) : vrais fichiers, dossier choisi ici, jamais par Claude ni l'interface.
   const documentRepository = new DocumentRepository(database.db)
-  // Projets repris (spec 017) : un projet « Local uniquement » n'est jamais transmis à Claude (garde unique, R5).
-  const repriseRepository = new RepriseRepository(database.db)
   const confidentiality = new ConfidentialityGuard({
     neuron: (id) => conversationRepository.neuron(id),
     project: (genesisId) => repriseRepository.project(genesisId),
@@ -1040,7 +1048,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       running: resolution.isRunning(genesisId),
       pending: codeGraph.resolvableEdges(genesisId)
     }),
-    createGenesis: async (title) => (await neurons.create({ text: title })).id,
+    // Un projet repris n'est pas catégorisé : son nom de dossier ne part vers aucune IA avant que sa
+    // confidentialité soit enregistrée (spec 017 SC-002).
+    createGenesis: async (title) => neurons.insert({ text: title }),
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     dataDir,
     isArchived: (genesisId) => conversationRepository.neuron(genesisId)?.state === 'archived',
@@ -1252,6 +1262,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     appSettings,
     widgets: widgetRepository,
     adoptLegacyCanvas,
+    analyzeReprise: (genesisId) => void analysis.analyze(genesisId),
     stop: () => {
       runs.stopAll()
       stopWatching()

@@ -45,8 +45,10 @@ export class ConfidentialityGuard {
   }
 
   /**
-   * Outils du pont : refusés si l'appelant ou la cible (`id`, `projet`, `document`) appartient à un projet local —
-   * y compris pour une session Claude Code externe, sans neurone. Les vues de la carte sont masquées à part.
+   * Outils du pont : refusés si l'appelant ou l'un des identifiants des arguments appartient à un projet local —
+   * y compris pour une session Claude Code externe, sans neurone. Tous les identifiants comptent, où qu'ils soient
+   * (`id`, `projet`, `document`, `element`, `ancre`, `parent`, `source`, extrémités de liens, `ids`, clés `wf:…`) :
+   * un champ ajouté à un outil reste gardé sans y penser. Les vues de la carte sont masquées à part.
    */
   guardTools(
     handle: (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult>
@@ -61,17 +63,24 @@ export class ConfidentialityGuard {
 
   private targets(args: unknown, caller: McpCaller): string[] {
     const ids: string[] = caller.neuronId === null ? [] : [caller.neuronId]
-    if (typeof args !== 'object' || args === null) return ids
-    const record = args as Record<string, unknown>
-    for (const key of ['id', 'projet']) {
-      const value = record[key]
-      if (typeof value === 'string') ids.push(value)
-    }
-    const document = record['document']
-    if (typeof document === 'string') {
-      const owner = this.deps.documentNeuron?.(document)
+    for (const id of uuidsIn(args)) {
+      ids.push(id)
+      // Un document (spec 012) appartient au projet de son neurone.
+      const owner = this.deps.documentNeuron?.(id)
       if (owner !== undefined) ids.push(owner)
     }
     return ids
   }
+}
+
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+
+/** Identifiants contenus dans des arguments déjà validés (objets, tableaux, textes), sans doublon. */
+function uuidsIn(value: unknown, found = new Set<string>(), depth = 0): Set<string> {
+  if (typeof value === 'string') {
+    for (const match of value.matchAll(UUID)) found.add(match[0].toLowerCase())
+  } else if (typeof value === 'object' && value !== null && depth < 8) {
+    for (const item of Array.isArray(value) ? value : Object.values(value)) uuidsIn(item, found, depth + 1)
+  }
+  return found
 }

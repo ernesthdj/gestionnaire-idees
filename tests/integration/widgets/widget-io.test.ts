@@ -291,6 +291,8 @@ describe('entrées des widgets (spec 005 lot 1)', () => {
     expect(() => io.setParts({ inputId: state.inputs[0]?.id ?? '', parts: ['identity'] })).toThrow(
       expect.objectContaining({ code: 'VALIDATION' })
     )
+    // Neurones d'origine (garde de confidentialité, spec 017) : l'élément, et le genesis de la clé Workflow.
+    expect(io.sourceNeurons(blockId)).toEqual([elementId, '00000000-0000-4000-8000-0000000000a1'])
     io.approve(blockId)
     expect(io.inputs({ blockId, versionId }).inputs.map((input) => input.kind)).toEqual(['element', 'workflow'])
     // La tâche sort du fichier : son entrée devient vide, sans erreur ; on ne peut plus la brancher.

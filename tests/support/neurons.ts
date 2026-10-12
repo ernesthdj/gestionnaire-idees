@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { NeuronService } from '../../src/main/application/neurons/NeuronService'
 import { openDatabase, type DatabaseHandle } from '../../src/main/infrastructure/db/client'
 import { NeuronRepository } from '../../src/main/infrastructure/db/repositories/NeuronRepository'
+import type { GatewayDependencies } from '../../src/main/application/ai/AIGateway'
 import { createGatewayHarness, type GatewayHarness } from './gateway'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../src/main/infrastructure/db/migrations')
@@ -18,12 +19,12 @@ export interface NeuronHarness {
 }
 
 /** Base chiffrée temporaire et service des idées, IA simulée (la catégorisation locale reste arrêtée). */
-export function createNeuronHarness(): NeuronHarness {
+export function createNeuronHarness(gateway: Partial<GatewayDependencies> = {}): NeuronHarness {
   const dir = mkdtempSync(join(tmpdir(), 'gi-neurons-'))
   const file = join(dir, 'g.db')
   const key = '5'.repeat(64)
   let handle = openDatabase({ file, key, migrationsFolder: MIGRATIONS })
-  const h = createGatewayHarness()
+  const h = createGatewayHarness(gateway)
   h.ollama.setAvailable(false)
   const build = (db: DatabaseHandle): NeuronService =>
     new NeuronService({ repository: new NeuronRepository(db.db), gateway: h.gateway })

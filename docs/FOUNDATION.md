@@ -245,6 +245,12 @@ navigable par niveaux, en expliquent chaque partie par une **analogie simple**, 
 | — | Parcours d'une fonctionnalité, questions au projet, suivi des changements | v2 | — |
 | — | Couche dynamique, direction « rétro-néo-futuriste » (WebGL) | v3 | — |
 
+> **2026-10-12 : spec 017 « Reprise — Voir » livrée** (R1 à R4, plus la levée des ambiguïtés par l'IA et les
+> fichiers d'un élément de carte ; le clone passe par le Project Manager, specs 021 et 024). Mesurée sur un projet
+> de 5 000 fichiers dans l'app réelle : analyse 43 s, réanalyse 3,6 s, changement de niveau de l'explorateur 85 ms ;
+> aucune donnée d'un projet « Local uniquement » envoyée à Claude, vérifié sur tout le parcours, pont MCP compris
+> (`specs/017-reprise-voir/research.md` R9, R10). Suite : spec 018 (Juger : mesures, diagnostic, pont vers la carte).
+
 Dépendances nouvelles à confirmer au plan : `web-tree-sitter` + grammaires TS, JS, C#, PHP (MIT, WASM).
 
 ---

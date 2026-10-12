@@ -37,7 +37,14 @@ function titleOf(text: string): string {
 export class NeuronService {
   private readonly inFlight = new Set<Promise<void>>()
 
-  constructor(private readonly deps: { readonly repository: NeuronRepository; readonly gateway: AIGateway }) {}
+  constructor(
+    private readonly deps: {
+      readonly repository: NeuronRepository
+      readonly gateway: AIGateway
+      /** Genesis d'un projet repris « Local uniquement » (spec 017) : jamais de repli sur Claude. */
+      readonly localOnly?: (id: string) => boolean
+    }
+  ) {}
 
   async create(input: CreateNeuronInput): Promise<RootView> {
     const id = this.insert(input)
@@ -172,7 +179,8 @@ export class NeuronService {
         input: text,
         schema: CategoryOut,
         schemaName: 'CategoryOut',
-        requestId: `${CATEGORIZE_PREFIX}${id}`
+        requestId: `${CATEGORIZE_PREFIX}${id}`,
+        localOnly: this.deps.localOnly?.(id) === true
       })
       .then((result) => {
         if (result.ok) this.applyCategory(id, result.value.data)

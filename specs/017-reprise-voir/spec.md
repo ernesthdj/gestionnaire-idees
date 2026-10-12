@@ -1,6 +1,6 @@
 # Feature Specification: Reprise — Voir (spec 017)
 
-**Feature Branch**: `main` · **Created**: 2026-10-06 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-06 · **Status**: Livrée (2026-10-12) — US1 à US7 ; le clone (US5) passe par le Project Manager (specs 021, 024)
 **Input**: « Imaginons que je rejoigne une boîte et que je doive reprendre un projet en cours de route, dans lequel sont
 déjà passés d'autres devs. Au lieu de perdre du temps à lire moi-même chaque ligne de code et les README, je veux
 charger le projet dans l'app […] et, grâce à Claude, cartographier le projet : avoir directement l'arborescence et le

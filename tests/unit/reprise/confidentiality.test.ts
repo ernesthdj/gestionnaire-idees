@@ -8,6 +8,7 @@ const OPEN = '00000000-0000-4000-8000-0000000000a2'
 const ELEMENT = '00000000-0000-4000-8000-0000000000a3'
 const STEP = '00000000-0000-4000-8000-0000000000a4'
 const OTHER_ELEMENT = '00000000-0000-4000-8000-0000000000a5'
+const DOCUMENT = '00000000-0000-4000-8000-0000000000d1'
 
 /** Vue minimale : seuls les champs que le masquage lit comptent. */
 function view(): IdeasCanvasView {
@@ -32,7 +33,7 @@ function view(): IdeasCanvasView {
       { id: 'p1', parentId: STEP, items: [] },
       { id: 'p2', parentId: OPEN, items: [] }
     ],
-    documents: [{ id: 'd1', neuronId: LOCAL, genesisId: LOCAL, title: 'Guide de reprise' }],
+    documents: [{ id: DOCUMENT, neuronId: LOCAL, genesisId: LOCAL, title: 'Guide de reprise' }],
     deliverables: [{ neuronId: STEP, genesisId: LOCAL }]
   } as unknown as IdeasCanvasView
 }
@@ -47,7 +48,7 @@ describe('confidentialité d’un projet repris (spec 017 FR-004, R5)', () => {
   const guard = new ConfidentialityGuard({
     neuron: (id) => rows.get(id),
     project: (genesisId) => (genesisId === LOCAL ? { confidentiality: 'local' } : undefined),
-    documentNeuron: (documentId) => (documentId === 'd1' ? LOCAL : undefined)
+    documentNeuron: (documentId) => (documentId === DOCUMENT ? LOCAL : undefined)
   })
 
   it('should_refuse_claude_for_the_genesis_its_elements_and_its_steps_when_the_project_is_local', () => {
@@ -67,13 +68,32 @@ describe('confidentialité d’un projet repris (spec 017 FR-004, R5)', () => {
     const refused = (tool: Parameters<typeof guarded>[0], args: unknown, neuronId: string | null) =>
       expect(() => guarded(tool, args, { neuronId })).toThrow(expect.objectContaining({ message: LOCAL_ONLY_MESSAGE }))
     refused('noeud_lire', { id: ELEMENT }, null)
-    refused('document_lire', { document: 'd1' }, null)
+    refused('document_lire', { document: DOCUMENT }, null)
     refused('structure_lire', { projet: LOCAL }, null)
     refused('neurone_contexte', {}, STEP)
     refused('etat', {}, ELEMENT)
     expect(handle).not.toHaveBeenCalled()
     expect(guarded('etat', {}, { neuronId: null })).toEqual({ text: 'ok' })
     expect(guarded('noeud_lire', { id: OTHER_ELEMENT }, { neuronId: OPEN })).toEqual({ text: 'ok' })
+  })
+
+  it('should_refuse_a_local_id_wherever_it_sits_in_the_arguments', () => {
+    const handle = vi.fn(() => ({ text: 'ok' }))
+    const guarded = guard.guardTools(handle)
+    const refused = (tool: Parameters<typeof guarded>[0], args: unknown) =>
+      expect(() => guarded(tool, args, { neuronId: OPEN })).toThrow(
+        expect.objectContaining({ message: LOCAL_ONLY_MESSAGE })
+      )
+    refused('element_avancer', { element: ELEMENT, statut: 'en_cours' })
+    refused('dessiner', { ancre: LOCAL, noeuds: [{ cle: 'n', titre: 'Note' }] })
+    refused('dessiner', { noeuds: [{ cle: 'n', titre: 'Note', parent: STEP }] })
+    refused('dessiner', { noeuds: [{ cle: 'n', titre: 'Note' }], liens: [{ de: 'n', vers: LOCAL.toUpperCase() }] })
+    refused('relier', { de: OPEN, vers: STEP })
+    refused('retirer', { ids: [OPEN, ELEMENT] })
+    refused('widget_poser', { titre: 'Vue', source: LOCAL })
+    refused('noeud_lire', { id: `wf:${LOCAL}:spec:017` })
+    expect(handle).not.toHaveBeenCalled()
+    expect(guarded('relier', { de: OPEN, vers: OTHER_ELEMENT }, { neuronId: null })).toEqual({ text: 'ok' })
   })
 
   it('should_mask_a_local_project_on_the_map_seen_by_claude', () => {

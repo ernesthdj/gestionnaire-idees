@@ -24,6 +24,11 @@ export interface WidgetDependencies {
   readonly inputContext?: (blockId: string) => { readonly titles: readonly string[]; readonly json: string } | null
   /** État enregistré par le widget (spec 026 D5), `null` s'il n'en a pas. */
   readonly savedState?: (blockId: string) => unknown
+  /**
+   * Un nœud branché appartient à un projet repris « Local uniquement » (spec 017 SC-002) : la génération passe par le
+   * modèle local, jamais par Claude.
+   */
+  readonly localOnly?: (blockId: string) => boolean
 }
 
 /** Trace laissée dans la conversation du widget par une construction prédéfinie (spec 026). */
@@ -158,6 +163,7 @@ export class WidgetService {
         kind: 'widget',
         input: request,
         schema: WidgetOut,
+        localOnly: this.deps.localOnly?.(input.blockId) === true,
         ...(current === undefined ? {} : { verbatim: currentCode(current) }),
         onEngine: (engine, model) => emit({ type: 'widget:thinking', blockId: input.blockId, engine, model })
       })

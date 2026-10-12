@@ -240,6 +240,13 @@ export class WidgetIoService {
    * Contexte complet des nœuds branchés (valeurs comprises, spec 026 D1), remis à Claude quand il construit ou fait
    * évoluer le widget ; `null` si rien de vivant n'est branché. Les parties décochées ne sont pas transmises.
    */
+  /** Neurones d'où viennent les entrées d'un widget (genesis pour un nœud Workflow `wf:<genesis>:…`). */
+  sourceNeurons(blockId: string): string[] {
+    return this.deps.repository
+      .inputs(blockId)
+      .map((row) => (row.sourceKind === 'workflow' ? (row.sourceId.split(':')[1] ?? '') : row.sourceId))
+  }
+
   inputContext(blockId: string): { readonly titles: readonly string[]; readonly json: string } | null {
     const rows = this.deps.repository.inputs(blockId)
     const inputs = this.assemble(rows)

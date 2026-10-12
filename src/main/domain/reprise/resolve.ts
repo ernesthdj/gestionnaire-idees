@@ -51,6 +51,13 @@ interface Indexed {
   readonly raw: RawSymbol
 }
 
+/**
+ * Cibles possibles gardées pour un lien incertain (spec 017 T036) : au-delà, le nom est trop commun (`Run`, `handle`)
+ * pour que l'IA ou mentalyas tranchent sur une liste ; le lien reste incertain, sans candidats. Sans borne, un projet
+ * de 5 000 fichiers écrivait plus d'un gigaoctet de candidats à chaque analyse.
+ */
+export const MAX_CANDIDATES = 20
+
 const TS_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '/index.ts', '/index.tsx', '/index.js']
 const HTTP_ATTRIBUTES = /^Http(Get|Post|Put|Patch|Delete)$/
 const RECEIVER_SELF = /^(this|\$this|base|self|static|parent)$/
@@ -224,7 +231,7 @@ export function resolveGraph(
       kind,
       provenance: 'uncertain',
       reason: `${result.found.length} cibles possibles`,
-      candidates: result.found.map((symbol) => symbol.id)
+      candidates: result.found.length > MAX_CANDIDATES ? [] : result.found.map((symbol) => symbol.id)
     })
   }
 

@@ -56,6 +56,20 @@ describe('NeuronService', () => {
     expect(service.getTree(created.id).root).toMatchObject({ nature: 'reflection', natureSource: 'user' })
   })
 
+  it('should_never_fall_back_to_claude_when_categorizing_a_local_only_project', async () => {
+    h = createGatewayHarness({ config: () => ({ allowClaudeFallback: true }) })
+    h.ollama.setAvailable(false)
+    const local = new NeuronService({
+      repository: new NeuronRepository(handle.db),
+      gateway: h.gateway,
+      localOnly: () => true
+    })
+    await local.create({ text: 'Boutique Acme' })
+    await local.settled()
+    expect(h.claude.requests).toEqual([])
+    expect(h.queued).toEqual([])
+  })
+
   it('should_apply_queued_categorization_when_local_ai_comes_back', async () => {
     h.ollama.setAvailable(false)
     const created = await service.create({ text: 'Réserver un restaurant' })

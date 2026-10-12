@@ -128,9 +128,9 @@
 - [x] T034 [US6] Test guidé (quickstart §3, §6) *(e2e dans l'app réelle, `tests/e2e/reprise-resolution.e2e.ts`, Claude simulé : l'appel `store.Save` de `cs-app` devient « déduit » vers `InvoiceRepository.Save` avec sa raison dans le panneau, une cible hors candidats est rejetée, le `.env` n'est jamais envoyé)*
 
 ## Phase 9 — Finitions
-- [ ] T035 Test de bout en bout SC-002 (projet local : aucune tâche ni conversation Claude sur tout le parcours, et aucun contenu lisible par le pont MCP, session externe comprise) et SC-003 (`hostile-app` : rien exécuté) dans `tests/integration/reprise/`
-- [ ] T036 Mesures SC-004 / SC-005 sur 5 000 fichiers (plan B WebGL seulement si échec), consignées dans `research.md`
-- [ ] T037 Démo `npm run seed:demo` (projet repris fictif), `docs/FOUNDATION.md` (§000 : 017 livrée), `CLAUDE.md` (commande, dépendance, spec en cours), `docs/JOURNAL.md`
+- [x] T035 Test de bout en bout SC-002 (projet local : aucune tâche ni conversation Claude sur tout le parcours, et aucun contenu lisible par le pont MCP, session externe comprise) et SC-003 (`hostile-app` : rien exécuté) dans `tests/integration/reprise/` *(`local-only-end-to-end.test.ts`, 2 réglages de l'IA × 6 cas ; 3 fuites trouvées et corrigées : widget branché, garde du pont limitée à 3 champs, catégorisation du genesis — research R10)*
+- [x] T036 Mesures SC-004 / SC-005 sur 5 000 fichiers (plan B WebGL seulement si échec), consignées dans `research.md` *(`tests/e2e/reprise-bench.e2e.ts` dans l'app réelle : analyse 42,9 s, réanalyse 3,6 s, niveau 85 ms ; plan B inutile ; cibles possibles bornées à 20, réanalyse par différences, écriture par tranches — research R9)*
+- [x] T037 Démo `npm run seed:demo` (projet repris fictif), `docs/FOUNDATION.md` (§000 : 017 livrée), `CLAUDE.md` (commande, dépendance, spec en cours), `docs/JOURNAL.md` *(`boutique-demo/` « Local uniquement » dans le profil démo, graine séparée `seedDemoReprise` (ajoutée aussi à un profil démo déjà rempli), analysée à sa création ; tests `demo-reprise.test.ts` et `demo-reprise.e2e.ts`)*
 
 ## Dépendances
 T001–T003 → T004 → T005 → (T006, T007 en parallèle) → T008 → US1 (T009–T012) → US3 (T013–T016 en parallèle → T017 → T018)

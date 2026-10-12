@@ -85,3 +85,62 @@ Sources : `docs/brainstorm/L3-reprise-{import, analyse, explorateur}.md` (concep
 - I : « l'app peut lancer git, résolu par chemin absolu dans le PATH, sans shell, arguments fixes construits par le
   main » (régularise la spec 016) ; II inchangé ; IV : « pour un projet repris marqué *Local uniquement*, le modèle
   local remplace Claude ; rien du projet n'est envoyé à Claude » ; Contraintes techniques : `@vscode/tree-sitter-wasm`.
+
+## R9 — Mesures SC-004 / SC-005 (T036, 2026-10-12)
+- **Banc** : `tests/e2e/reprise-bench.e2e.ts`, dans l'app réelle (Electron + Playwright, analyse dans le processus
+  séparé), sur le poste de mentalyas. Projet fictif généré (`tests/support/benchProject.ts`, déterministe, jamais
+  versionné) : 5 002 fichiers de code (3 000 TS en 10 paquets npm, 1 251 C# en 5 projets .NET, 751 PHP PSR-4 et
+  routes Laravel) qui s'importent et s'appellent ; 31 502 symboles, 37 901 liens. Résultats bruts :
+  `test-results/e2e/reprise-bench.json`.
+
+| Critère | Mesure | Seuil |
+|---|---|---|
+| SC-004 analyse complète | **42,9 s** | < 2 min |
+| SC-004 réanalyse après la modification d'un fichier | **3,6 s** | < 10 s |
+| SC-004 app utilisable pendant l'analyse | aller-retour avec le main : 6 ms (95ᵉ centile), 1,6 s au pire une fois en fin d'analyse ; images de l'interface : 7 ms (95ᵉ centile) | — |
+| SC-005 passage d'un niveau à l'autre | **85 ms** (modules → dossiers), **64 ms** (retour) ; choix d'un module : 37 ms | < 1 s |
+| SC-005 carte fluide | glisser la carte : 7,1 ms par image (95ᵉ centile) | — |
+
+- **Plan B WebGL (`sigma.js`)** : **non nécessaire**, React Flow tient largement (≤ 150 nœuds par niveau).
+- **Défauts trouvés et corrigés par la mesure** :
+  1. **Cibles possibles sans borne** : un lien incertain gardait *toutes* les cibles de même nom (jusqu'à 3 000 pour
+     `Run`, `handle`) : ~90 Ko par lien, **≈ 1,2 Go** écrits dans la base chiffrée à chaque analyse (28 s sur 37) et
+     des listes géantes envoyées à l'IA par « Préciser les liens ». Borne `MAX_CANDIDATES = 20`
+     (`domain/reprise/resolve.ts`) : au-delà, le lien reste incertain avec le nombre de cibles, sans liste à
+     trancher. Analyse 37,5 s → 8,6 s (hors Electron), réanalyse 48,6 s → 6,5 s.
+  2. **Réanalyse qui réécrivait tout** : `CodeGraphRepository` promettait de ne réécrire que les fichiers modifiés,
+     mais recevait tous les fichiers et remplaçait tous les liens. Désormais `changedFiles` et `edgeChanges`
+     comparent à la base (empreinte de chaque ligne, ordre des colonnes ignoré) et seules les différences sont
+     écrites ; comparer à la base, pas à une copie en mémoire, garde le comportement (un lien précisé par l'IA
+     redevient incertain à la réanalyse, comme avant).
+  3. **Main bloqué en fin d'analyse** (3,6 s) : assemblage et écriture du graphe d'une traite. Écriture par tranches
+     (250 fichiers, 2 000 liens, chacune en transaction) et `setImmediate` entre les phases : 1,6 s au pire.
+  4. Deux boucles quadratiques de `AnalysisService.write` (points d'entrée par fichier, nettoyage du cache)
+     remplacées par des tables d'index.
+- **Reste observé, non bloquant** : un double-clic envoyé dans la première seconde après l'ouverture de
+  l'explorateur sur ce projet est perdu (le niveau se dessine encore) ; un clic ensuite répond en 37 ms. Les 1,6 s
+  du main en fin d'analyse viennent de la résolution des liens (calcul pur, en mémoire) : la déplacer dans le
+  processus d'analyse les supprimerait, si l'usage le demande.
+
+## R10 — SC-002 / SC-003 sur tout le parcours (T035, 2026-10-12)
+- **Test** : `tests/integration/reprise/local-only-end-to-end.test.ts`, services composés comme dans `bootstrap.ts`,
+  projet piégé (`hostile-app` + `.env`, `node_modules/.bin`, hook git, `core.fsmonitor`, filtre `clean`) repris
+  « Local uniquement » ; deux réglages de l'IA (modèle local en marche ; modèle local arrêté avec repli vers Claude
+  autorisé). Sorties vers Claude enregistrées : moteur Claude de la passerelle, lancement de `claude -p`, réponses du
+  pont MCP ; un marqueur unique semé dans tout le projet ne doit jamais en sortir. **Chaque outil public du pont** est
+  appelé avec les identifiants du projet à toutes les places possibles, par une session externe, par la conversation
+  d'un autre projet et par les nœuds du projet ; un outil ajouté sans cas fait échouer le test.
+- **Fuites trouvées et corrigées** :
+  1. **Widget branché sur le projet** (spec 005, 026) : « Wireframe », « Parcours », « Adapter » ou une demande
+     envoyaient le contexte complet du nœud à Claude. `WidgetService` reçoit `localOnly` (un nœud branché appartient
+     à un projet local → modèle local imposé, jamais de repli).
+  2. **Garde du pont limitée à `id`, `projet`, `document`** : `element_avancer` (champ `element`) modifiait un élément
+     du projet et renvoyait son titre ; `dessiner` (`ancre`, `parent`, liens) et `widget_poser` (`source`)
+     écrivaient dans le projet. La garde examine désormais **tout identifiant** des arguments (clés `wf:…`
+     comprises).
+  3. **Catégorisation du genesis d'un projet repris** : lancée avant que la confidentialité soit enregistrée, elle
+     pouvait envoyer le nom du dossier à Claude si le repli était autorisé. Le genesis d'une reprise n'est plus
+     catégorisé, et `NeuronService` impose le modèle local pour un genesis local.
+- **Git** : sur le dépôt piégé non de confiance, la lecture de l'état ne déclenche pas `core.fsmonitor` (témoin
+  absent, alors qu'un `git status` sans le préfixe sûr de l'app le déclenche) ; un filtre `clean` bloque toute
+  commande (`RISKY_CONFIG`).

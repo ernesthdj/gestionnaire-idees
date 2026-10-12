@@ -41,7 +41,9 @@ export interface AnalysisDeps {
     | 'replaceModules'
     | 'writeFiles'
     | 'removeFiles'
-    | 'replaceEdges'
+    | 'changedFiles'
+    | 'edgeChanges'
+    | 'applyEdgeChanges'
     | 'symbol'
     | 'edge'
     | 'updateCategory'
@@ -221,15 +223,19 @@ export class AnalysisService {
     })
     if (outcome !== 'done') return this.end(genesisId, runId, outcome)
     this.cache.set(genesisId, cache)
-    for (const path of [...cache.keys()]) if (!code.some((file) => file.path === path)) cache.delete(path)
+    const codePaths = new Set(code.map((file) => file.path))
+    for (const path of [...cache.keys()]) if (!codePaths.has(path)) cache.delete(path)
 
     progress('resolve', 0, 1)
-    const stats = this.write(genesisId, scan, manifests, cache, errors)
+    const stats = await this.write(genesisId, scan, manifests, cache, errors)
     this.end(genesisId, runId, 'done', { ...stats, durationMs: Date.now() - started })
   }
 
-  /** Assemble le graphe en mémoire puis l'écrit d'un bloc. */
-  private write(
+  /**
+   * Assemble le graphe en mémoire puis l'écrit, chaque table d'un bloc (transaction). Entre deux phases, le main
+   * reprend la main (SC-004 : sur 5 000 fichiers, l'assemblage et l'écriture d'une traite le bloquaient 3,5 s).
+   */
+  private async write(
     genesisId: string,
     scan: ProjectScan,
     manifests: readonly { readonly path: string; readonly content: string }[],
@@ -238,7 +244,7 @@ export class AnalysisService {
       string,
       { readonly status: 'parse_error' | 'too_large'; readonly reason: string; readonly lines: number }
     >
-  ): Omit<AnalysisStatsView, 'durationMs'> {
+  ): Promise<Omit<AnalysisStatsView, 'durationMs'>> {
     const overrides = this.deps.reprise.overrides(genesisId)
     const { modules, moduleOf } = detectModules(
       scan.retained.map((file) => file.path),
@@ -274,8 +280,11 @@ export class AnalysisService {
       tsPaths: tsPathsOf(manifests.find((manifest) => manifest.path === 'tsconfig.json')?.content),
       psr4: psr4Of(manifests.find((manifest) => manifest.path === 'composer.json')?.content)
     }
+    await breathe()
     const { edges, entries } = resolveGraph(resolveFiles, config)
+    await breathe()
     const entryIds = new Set(entries.map((entry) => entry.symbolId))
+    const entriesOf = new Map<string, (typeof entries)[number][]>()
 
     // Symboles et catégories (règles, puis corrections de mentalyas).
     const pathOf = new Map<string, { readonly path: string; readonly qualifiedName: string }>()
@@ -346,6 +355,10 @@ export class AnalysisService {
       }
       symbolsOf.set(resolved.path, rows)
     }
+    for (const entry of entries) {
+      const path = pathOf.get(entry.symbolId)?.path
+      if (path !== undefined) entriesOf.set(path, [...(entriesOf.get(path) ?? []), entry])
+    }
     for (const file of scan.retained) {
       const fileId = stableId(genesisId, 'file', file.path)
       const cached = cache.get(file.path)
@@ -364,12 +377,15 @@ export class AnalysisService {
           error: error?.reason ?? null
         },
         symbols: symbolsOf.get(file.path) ?? [],
-        entries: entries
-          .filter((entry) => pathOf.get(entry.symbolId)?.path === file.path)
-          .map((entry) => ({ symbolId: entry.symbolId, kind: entry.kind, label: entry.label.slice(0, 200) }))
+        entries: (entriesOf.get(file.path) ?? []).map((entry) => ({
+          symbolId: entry.symbolId,
+          kind: entry.kind,
+          label: entry.label.slice(0, 200)
+        }))
       })
     }
 
+    await breathe()
     // Liens, avec les corrections de mentalyas.
     const edgeRows: CodeEdgeInput[] = edges.map((edge) => {
       const origin = pathOf.get(edge.fromSymbolId)
@@ -404,8 +420,21 @@ export class AnalysisService {
         .map((file) => file.path)
         .filter((path) => !current.has(path))
     )
-    this.deps.graph.writeFiles(genesisId, analyzed)
-    this.deps.graph.replaceEdges(genesisId, edgeRows)
+    // Seules les différences avec la base sont écrites, par tranches : le main respire entre deux.
+    const changed = this.deps.graph.changedFiles(genesisId, analyzed)
+    for (let start = 0; start < changed.length; start += FILES_PER_WRITE) {
+      this.deps.graph.writeFiles(genesisId, changed.slice(start, start + FILES_PER_WRITE))
+      await breathe()
+    }
+    const { remove, write } = this.deps.graph.edgeChanges(genesisId, edgeRows)
+    for (let start = 0; start < remove.length; start += EDGES_PER_WRITE) {
+      this.deps.graph.applyEdgeChanges(genesisId, remove.slice(start, start + EDGES_PER_WRITE), [])
+      await breathe()
+    }
+    for (let start = 0; start < write.length; start += EDGES_PER_WRITE) {
+      this.deps.graph.applyEdgeChanges(genesisId, [], write.slice(start, start + EDGES_PER_WRITE))
+      await breathe()
+    }
 
     const status = (value: string): number => analyzed.filter((entry) => entry.file.status === value).length
     return {
@@ -443,3 +472,10 @@ export class AnalysisService {
     return (this.deps.now?.() ?? new Date()).toISOString()
   }
 }
+
+/** Tranches d'écriture du graphe : chacune tient en une fraction de seconde sur 5 000 fichiers (T036). */
+const FILES_PER_WRITE = 250
+const EDGES_PER_WRITE = 2_000
+
+/** Rend la main à la boucle d'évènements du main (échanges avec l'interface) avant la phase suivante. */
+const breathe = (): Promise<void> => new Promise((done) => setImmediate(done))

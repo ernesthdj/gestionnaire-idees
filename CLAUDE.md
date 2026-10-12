@@ -9,7 +9,7 @@
 > **Vision (2026-10-04, prioritaire) :** le Brainstormer devient l'**interface visuelle de Claude Code** (pont MCP, moteur `claude -p`, terminal intégré). Voir `docs/FOUNDATION.md` §00 et `docs/brainstorm/L1c-pont-claude-code.md`.
 > **Évolution (2026-10-06) :** **reprendre un projet existant** (import dossier / git, analyse statique TS · C# · PHP,
 > explorateur à 4 niveaux, guide de reprise, diagnostic en couleurs). Voir `docs/FOUNDATION.md` §000 et
-> `docs/brainstorm/L1f-reprise-projet.md`. Specs prévues : 017 (Voir), 018 (Juger).
+> `docs/brainstorm/L1f-reprise-projet.md`. Spec 017 (Voir) livrée le 2026-10-12 ; 018 (Juger) prévue.
 > **Évolution (2026-10-07) :** **Analyste interne** (sonde sans contenu, Claude en lecture seule qui propose, mise à jour
 > sur une branche `analyste/*` gardée ou jetée, annulable). Voir `docs/FOUNDATION.md` §0000 et
 > `docs/brainstorm/L1g-analyste-interne.md`. Spec prévue : 019 (à confirmer), après amendement de la constitution.
@@ -100,7 +100,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 | Commande | Effet |
 |----------|-------|
 | `npm run dev` | Lance l'app en developpement (rechargement a chaud de l'interface seulement : apres une modification du main ou du preload, relancer l'app) |
-| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure et lie au dossier de methode fictif `projet-demo/` du profil : 2 specs, un L1 a brainstormer, une fondation, un fichier de taches a trois etats `docs/TACHES-DESIGN.md`, pour la vue Workflow) |
+| `npm run seed:demo` | Lance l'app sur le profil demo (`%APPDATA%/gestionnaire-idees-demo` : 2 genesis fictifs eclos, l'un avec un plan d'attaque a 3 niveaux, l'autre avec une carte de structure et lie au dossier de methode fictif `projet-demo/` du profil : 2 specs, un L1 a brainstormer, une fondation, un fichier de taches a trois etats `docs/TACHES-DESIGN.md`, pour la vue Workflow ; plus un projet repris fictif `boutique-demo/` « Local uniquement », dans son propre canevas, analyse au premier lancement, spec 017) |
 | `npm run seed:demo:reset` | Idem en recreant le profil demo de zero (efface uniquement ce dossier fictif) |
 | `npm test` | Tests Vitest |
 | `npm run typecheck` | Verification TypeScript (main/preload + renderer) |
@@ -123,12 +123,14 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > proxy echoue) ; depuis le 2026-10-12, `lodash-es ^4.18.1` et `mermaid > katex 0.18.8` (dependances de mermaid
 > 12.0.0, schemas des fichiers .md ; a retirer quand mermaid les remonte). Jamais `npm audit fix --force` (il
 > retrograderait drizzle-kit 0.31 → 0.18 et mermaid 12 → 10).
+> Tests e2e (`npm run e2e`) : `reprise-bench.e2e.ts` mesure la reprise d'un projet genere de 5 000 fichiers (2 a 3 min,
+> seuils de la spec 017 SC-004 / SC-005, resultats dans `test-results/e2e/reprise-bench.json`).
 > `npm ci` echoue si l'app ou le relais MCP tourne (`electron.exe` verrouille) : fermer l'app, ou `npm install` puis
 > `node node_modules/electron/install.js`.
 
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; en cours : 017 « Reprise — Voir » (US6 livrée le 2026-10-12 ; reste les finitions T035–T037 ; US5 clone en pause) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets » ; livrée le 2026-10-11 : 027 « Conversation en panneau fixe » (onglets à droite de l'écran Idées, hors du zoom de la carte ; amende 022 D6, D10, D28) ; écrite le 2026-10-12, à planifier après les finitions de la 017 : 028 « Le dossier du nœud » (amende 012 D3, D4)
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; livrée le 2026-10-12 : 017 « Reprise — Voir » (US1–US7, mesures et confidentialité vérifiées : `research.md` R9, R10 ; le clone passe par le Project Manager) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets » ; livrée le 2026-10-11 : 027 « Conversation en panneau fixe » (onglets à droite de l'écran Idées, hors du zoom de la carte ; amende 022 D6, D10, D28) ; écrite le 2026-10-12, à planifier après les finitions de la 017 : 028 « Le dossier du nœud » (amende 012 D3, D4)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

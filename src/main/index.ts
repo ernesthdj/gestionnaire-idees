@@ -3,6 +3,7 @@ import { isAbsolute, join } from 'node:path'
 import { app, globalShortcut, Notification, session } from 'electron'
 import { bootstrap, type AppContext } from './bootstrap'
 import { writeDemoMethodFolder } from './infrastructure/db/demo/demoMethod'
+import { DEMO_REPRISE_FOLDER, seedDemoReprise, writeDemoRepriseFolder } from './infrastructure/db/demo/demoReprise'
 import { DEFAULT_DEMO_SIZE, seedDemo } from './infrastructure/db/demo/seedDemo'
 import { GlobalShortcut } from './shell/GlobalShortcut'
 import { loginItemSettings, startsHidden } from './shell/lifecycle'
@@ -100,6 +101,15 @@ function start(): void {
       const empty = e2eProfile && process.env['GI_E2E_EMPTY'] === '1'
       if (!empty && seedDemo(context.database.db, DEFAULT_DEMO_SIZE, { projectDir }).seeded)
         context.logger.info('demo.seeded', {})
+      // Projet repris fictif « Local uniquement » (spec 017 T037), analysé à sa création ; dans les tests e2e (qui
+      // comptent les idées de la démo), seulement sur demande (`GI_E2E_REPRISE_DEMO`).
+      if (!e2eProfile || process.env['GI_E2E_REPRISE_DEMO'] === '1') {
+        const reprise = seedDemoReprise(
+          context.database.db,
+          writeDemoRepriseFolder(join(demoData, DEMO_REPRISE_FOLDER))
+        )
+        if (reprise.seeded) context.analyzeReprise(reprise.genesisId)
+      }
       // Tests e2e : coffre fictif (dossier `projects/` d'un ProjectMaster temporaire) passé par `GI_E2E_VAULT`.
       const e2eVault = e2eProfile ? process.env['GI_E2E_VAULT'] : undefined
       if (e2eVault !== undefined && isAbsolute(e2eVault)) context.appSettings.saveProjectsRoot(e2eVault)
