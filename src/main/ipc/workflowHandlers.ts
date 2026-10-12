@@ -49,7 +49,8 @@ export function createWorkflowRoutes(
     defineRoute({
       channel: 'workflow:savedSummary',
       input: z.strictObject({ genesisId: z.uuid(), path: ProjectFile }),
-      handler: async ({ genesisId, path }) => summaries?.saved(genesisId, path) ?? { summary: null, outdated: false }
+      handler: async ({ genesisId, path }) =>
+        (await summaries?.saved(genesisId, path)) ?? { summary: null, outdated: false }
     }),
     defineRoute({
       channel: 'workflow:chat',

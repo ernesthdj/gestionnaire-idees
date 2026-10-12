@@ -449,7 +449,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     workflowNode: (key) => {
       const genesisId = key.split(':')[1] ?? ''
       try {
-        return workflowInput(workflow.read(genesisId), key)
+        return workflowInput(workflow.readSync(genesisId), key)
       } catch {
         return undefined
       }

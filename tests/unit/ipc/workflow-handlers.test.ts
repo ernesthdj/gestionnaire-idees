@@ -19,8 +19,8 @@ const VIEW: WorkflowView = {
 
 function setup(exists = true) {
   const workflow = {
-    read: vi.fn(() => VIEW),
-    file: vi.fn(() => ({ path: 'src/a.ts', lang: 'ts' as const, lines: [] }))
+    read: vi.fn(async () => VIEW),
+    file: vi.fn(async () => ({ path: 'src/a.ts', lang: 'ts' as const, lines: [] }))
   }
   const folds = { set: vi.fn() }
   return { workflow, folds, dispatch: createDispatcher(createWorkflowRoutes(workflow, folds, () => exists)) }
@@ -58,7 +58,7 @@ describe('canaux workflow:* (spec 023)', () => {
 
   it('should_explain_only_relative_files_and_refuse_without_the_service', async () => {
     const summaries = {
-      saved: vi.fn(() => ({ summary: null, outdated: true })),
+      saved: vi.fn(async () => ({ summary: null, outdated: true })),
       summary: vi.fn(async () => ({
         role: 'r',
         receives: 'e',

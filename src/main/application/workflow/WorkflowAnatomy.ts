@@ -9,7 +9,7 @@ export const ANATOMY_TIMEOUT_MS = 10_000
 
 export interface WorkflowAnatomyDeps {
   /** Fichier lisible depuis une carte Workflow (mêmes gardes que `workflow:file`). */
-  readonly target: (genesisId: string, path: string) => { root: string; path: string; lang: CodeLang }
+  readonly target: (genesisId: string, path: string) => Promise<{ root: string; path: string; lang: CodeLang }>
   /** Processus d'analyse syntaxique de l'app (tree-sitter, spec 017 R2), isolé du main. */
   readonly runWorker: RunWorker
   readonly timeoutMs?: number
@@ -28,7 +28,7 @@ export class WorkflowAnatomy {
   constructor(private readonly deps: WorkflowAnatomyDeps) {}
 
   async anatomy(genesisId: string, path: string): Promise<WorkflowAnatomyView | null> {
-    const target = this.deps.target(genesisId, path)
+    const target = await this.deps.target(genesisId, path)
     const lang = target.lang
     if (!isWorkerLang(lang)) return null
     return new Promise((resolve) => {
