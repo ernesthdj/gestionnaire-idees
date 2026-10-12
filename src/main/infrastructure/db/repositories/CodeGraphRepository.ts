@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray } from 'drizzle-orm'
+import { and, count, eq, inArray, isNotNull, notInArray } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { codeEdges, codeEntryPoints, codeFiles, codeModules, codeSymbols } from '../schemaReprise'
 
@@ -7,6 +7,8 @@ export type CodeFileRow = typeof codeFiles.$inferSelect
 export type CodeSymbolRow = typeof codeSymbols.$inferSelect
 export type CodeEdgeRow = typeof codeEdges.$inferSelect
 export type CodeEntryPointRow = typeof codeEntryPoints.$inferSelect
+/** Lien à écrire : les cibles possibles (`candidatesJson`) ne sont données que pour un lien incertain. */
+export type CodeEdgeInput = Omit<CodeEdgeRow, 'candidatesJson'> & { readonly candidatesJson?: string | null }
 
 /** Un fichier analysé et ce qu'il contient, écrit d'un bloc (ses anciens symboles sont remplacés). */
 export interface AnalyzedFile {
@@ -138,15 +140,39 @@ export class CodeGraphRepository {
   }
 
   /** Liens recalculés pour tout le projet après une analyse (résolution rapide, en mémoire). */
-  replaceEdges(genesisId: string, edges: readonly CodeEdgeRow[]): void {
+  replaceEdges(genesisId: string, edges: readonly CodeEdgeInput[]): void {
     this.db.transaction((tx) => {
       tx.delete(codeEdges).where(eq(codeEdges.genesisId, genesisId)).run()
       for (const part of chunks(edges)) tx.insert(codeEdges).values(part).run()
     })
   }
 
-  /** Mise à jour d'un lien (résolution par l'IA, correction de mentalyas). */
-  updateEdge(genesisId: string, id: string, patch: Pick<CodeEdgeRow, 'toSymbolId' | 'provenance' | 'reason'>): boolean {
+  /** Liens incertains qui ont des cibles possibles : ce que « Préciser les liens » peut encore lever (US6). */
+  resolvableEdges(genesisId: string): number {
+    return (
+      this.db
+        .select({ total: count() })
+        .from(codeEdges)
+        .where(
+          and(
+            eq(codeEdges.genesisId, genesisId),
+            eq(codeEdges.provenance, 'uncertain'),
+            isNotNull(codeEdges.candidatesJson)
+          )
+        )
+        .get()?.total ?? 0
+    )
+  }
+
+  /**
+   * Mise à jour d'un lien (résolution par l'IA, correction de mentalyas). `candidatesJson: null` retire les cibles
+   * possibles : le lien n'est plus proposé à l'IA avant la prochaine analyse.
+   */
+  updateEdge(
+    genesisId: string,
+    id: string,
+    patch: Pick<CodeEdgeRow, 'toSymbolId' | 'provenance' | 'reason'> & { readonly candidatesJson?: string | null }
+  ): boolean {
     return (
       this.db
         .update(codeEdges)

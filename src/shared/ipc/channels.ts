@@ -126,6 +126,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'reprise:setCategory',
   'reprise:setTarget',
   'reprise:guide',
+  'reprise:resolve',
   'explorer:view',
   'explorer:node',
   'explorer:code',

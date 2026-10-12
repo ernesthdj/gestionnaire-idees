@@ -34,14 +34,15 @@ function Links({
       ) : (
         <ul className="mt-1 space-y-1">
           {links.map((link, index) => (
-            <li key={`${link.key}-${index}`} className="flex items-baseline gap-2 text-xs">
+            <li key={`${link.key}-${index}`} className="flex flex-wrap items-baseline gap-x-2 text-xs">
               <span aria-hidden="true" title={PROVENANCE_LABELS[link.provenance].text}>
                 {PROVENANCE_LABELS[link.provenance].mark}
               </span>
               <button type="button" className="min-w-0 truncate text-left underline" onClick={() => onGo(link)}>
                 {link.title}
               </button>
-              <span className="shrink-0 text-content-muted">
+              {/* Une raison (lien déduit ou incertain) est une phrase : elle passe sur sa propre ligne. */}
+              <span className={`text-content-muted ${link.reason === null ? 'shrink-0' : 'basis-full pl-5'}`}>
                 {PROVENANCE_LABELS[link.provenance].text}
                 {link.reason === null ? '' : ` — ${link.reason}`}
               </span>

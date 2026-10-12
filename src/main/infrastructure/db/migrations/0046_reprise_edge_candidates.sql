@@ -1,0 +1,1 @@
+ALTER TABLE `code_edges` ADD `candidates_json` text;

@@ -63,6 +63,24 @@ export const GuideOut = z.object({
 })
 export type GuideOut = z.infer<typeof GuideOut>
 
+/**
+ * Sortie de `reprise_resolution` (spec 017 US6) : pour chaque lien ambigu reçu, la cible choisie parmi ses candidats
+ * (`null` : aucun ne convient) et la raison en une phrase. Schéma fermé ; l'appartenance de la cible aux candidats
+ * envoyés est revérifiée par le service, jamais crue.
+ */
+export const ResolutionOut = z.object({
+  items: z
+    .array(
+      z.object({
+        edgeId: z.string().min(1).max(64),
+        targetId: z.string().min(1).max(64).nullable(),
+        reason: z.string().trim().min(1).max(160)
+      })
+    )
+    .max(50)
+})
+export type ResolutionOut = z.infer<typeof ResolutionOut>
+
 /** Sortie de `resumer` (IA locale) : résumé court d'une idée et de ce que le brainstorming lui a apporté. */
 
 /**

@@ -5,6 +5,10 @@ import { GIT_MESSAGE_FRAME, GIT_MESSAGE_FRAME_VERSION } from '../../infrastructu
 import { GIT_CONFLICT_FRAME, GIT_CONFLICT_FRAME_VERSION } from '../../infrastructure/ai/GitConflictFrame'
 import { GIT_STORY_FRAME, GIT_STORY_FRAME_VERSION } from '../../infrastructure/ai/GitStoryFrame'
 import { REPRISE_GUIDE_FRAME, REPRISE_GUIDE_FRAME_VERSION } from '../../infrastructure/ai/RepriseGuideFrame'
+import {
+  REPRISE_RESOLUTION_FRAME,
+  REPRISE_RESOLUTION_FRAME_VERSION
+} from '../../infrastructure/ai/RepriseResolutionFrame'
 import { SKILL_AUDIT_FRAME, SKILL_AUDIT_FRAME_VERSION } from '../../infrastructure/ai/SkillAuditFrame'
 import { SKILL_CARD_FRAME, SKILL_CARD_FRAME_VERSION } from '../../infrastructure/ai/SkillCardFrame'
 import { SYSTEM_FRAME, wrapUserData } from '../../infrastructure/ai/SystemFrame'
@@ -19,6 +23,7 @@ const MAX_EXAMPLES = 3
 const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
   widget: WIDGET_FRAME,
   reprise_guide: REPRISE_GUIDE_FRAME,
+  reprise_resolution: REPRISE_RESOLUTION_FRAME,
   analyste: ANALYSTE_FRAME,
   skill_audit: SKILL_AUDIT_FRAME,
   skill_card: SKILL_CARD_FRAME,
@@ -32,6 +37,7 @@ const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
 const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
   widget: WIDGET_FRAME_VERSION,
   reprise_guide: REPRISE_GUIDE_FRAME_VERSION,
+  reprise_resolution: REPRISE_RESOLUTION_FRAME_VERSION,
   analyste: ANALYSTE_FRAME_VERSION,
   skill_audit: SKILL_AUDIT_FRAME_VERSION,
   skill_card: SKILL_CARD_FRAME_VERSION,

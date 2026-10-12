@@ -10,7 +10,7 @@ import type {
   RepriseProjectView
 } from '../../../src/shared/ipc/reprise'
 import { expectNoAxeViolations } from '../../support/axe'
-import { installFakeApi } from './support/fakeApi'
+import { FakeIpcError, installFakeApi } from './support/fakeApi'
 import { installReactFlowMocks } from './support/reactFlowMocks'
 
 const GENESIS = '00000000-0000-4000-8000-0000000000f5'
@@ -18,7 +18,8 @@ const SYMBOL = 'a'.repeat(32)
 
 const project = (
   extra: Partial<RepriseProjectView['analysis']> = {},
-  guide: RepriseProjectView['guide'] = { documentId: null, running: false }
+  guide: RepriseProjectView['guide'] = { documentId: null, running: false },
+  resolution: RepriseProjectView['resolution'] = { running: false, pending: 0 }
 ): RepriseProjectView => ({
   genesisId: GENESIS,
   name: 'cs-app',
@@ -27,7 +28,8 @@ const project = (
   remote: null,
   folderMissing: false,
   analysis: { state: 'idle', progress: null, stats: null, analyzedAt: '2026-10-07T08:00:00.000Z', ...extra },
-  guide
+  guide,
+  resolution
 })
 const GUIDE = [
   '# Guide de reprise — cs-app',
@@ -180,6 +182,7 @@ const ORDER_SERVICE: FileCodeView = {
           line: 12,
           kind: 'call',
           provenance: 'syntax',
+          reason: null,
           count: 1,
           at: null
         }
@@ -191,7 +194,8 @@ const ORDER_SERVICE: FileCodeView = {
           path: 'Infrastructure/SqlOrderRepository.cs',
           line: 8,
           kind: 'call',
-          provenance: 'uncertain',
+          provenance: 'deduced',
+          reason: 'le champ _repository est typé IOrderRepository',
           count: 2,
           at: 6
         }
@@ -201,7 +205,11 @@ const ORDER_SERVICE: FileCodeView = {
   ]
 }
 
-function renderExplorer(projectView: RepriseProjectView = project(), nodeDetail: ExplorerNodeDetailView = detail) {
+function renderExplorer(
+  projectView: RepriseProjectView = project(),
+  nodeDetail: ExplorerNodeDetailView = detail,
+  extra: Parameters<typeof installFakeApi>[0] = {}
+) {
   const api = installFakeApi({
     'document:get': () => ({ id: 'd1', content: GUIDE, hash: 'h', missing: false }),
     'explorer:locate': () => ({
@@ -250,7 +258,8 @@ function renderExplorer(projectView: RepriseProjectView = project(), nodeDetail:
     }),
     'explorer:saveState': () => ({ ok: true }),
     'reprise:setCategory': () => ({ ok: true }),
-    'reprise:analyze': () => ({ runId: 'r1' })
+    'reprise:analyze': () => ({ runId: 'r1' }),
+    ...extra
   })
   const onClose = vi.fn()
   const result = render(
@@ -411,5 +420,71 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     expect(api.invoke).toHaveBeenCalledWith('reprise:analyze', { genesisId: GENESIS })
     await user.click(screen.getByRole('button', { name: '← Carte' }))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('should_run_the_resolution_from_the_button_and_say_what_became_deduced_and_what_stays_uncertain', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderExplorer(project({}, undefined, { running: false, pending: 3 }), detail, {
+      'reprise:resolve': () => ({ runId: 'r2', deduced: 2, undecided: 1, remaining: 0, stopped: false })
+    })
+    const button = await screen.findByRole('button', { name: /Préciser les liens avec l’IA \(3\)/ })
+    expect(button.getAttribute('aria-describedby')).toBeTruthy()
+    expect(document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(
+      /3 liens incertains\. Le modèle local lit quelques lignes.*rien ne part vers Claude/
+    )
+    await user.click(button)
+    expect(api.invoke).toHaveBeenCalledWith('reprise:resolve', { genesisId: GENESIS })
+    expect(
+      await screen.findByText(/2 liens précisés \(« déduit », avec sa raison\)\. 1 lien reste incertain/)
+    ).toBeTruthy()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_leave_the_button_unavailable_when_no_uncertain_link_is_left_or_the_project_is_not_analyzed', async () => {
+    renderExplorer(project({}, undefined, { running: false, pending: 0 }))
+    const none = await screen.findByRole('button', { name: 'Préciser les liens avec l’IA' })
+    expect((none as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('should_tell_when_the_ai_stopped_and_the_links_were_left_uncertain', async () => {
+    const user = userEvent.setup()
+    renderExplorer(project({}, undefined, { running: false, pending: 120 }), detail, {
+      'reprise:resolve': () => ({ runId: 'r3', deduced: 50, undecided: 0, remaining: 70, stopped: true })
+    })
+    await user.click(await screen.findByRole('button', { name: /Préciser les liens/ }))
+    expect(await screen.findByText(/L’IA est devenue indisponible : 70 liens sont laissés incertains/)).toBeTruthy()
+  })
+
+  it('should_show_a_clear_error_when_the_ai_is_unavailable', async () => {
+    const user = userEvent.setup()
+    renderExplorer(project({}, undefined, { running: false, pending: 2 }), detail, {
+      'reprise:resolve': () => {
+        throw new FakeIpcError('AI_UNAVAILABLE')
+      }
+    })
+    await user.click(await screen.findByRole('button', { name: /Préciser les liens/ }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+  })
+
+  it('should_show_the_reason_of_a_deduced_link_in_the_element_panel', async () => {
+    const user = userEvent.setup()
+    renderExplorer(project(), {
+      ...detail,
+      callees: [
+        {
+          key: 's:c',
+          title: 'Shop.Infrastructure.SqlOrderRepository.Save',
+          path: 'Infrastructure/SqlOrderRepository.cs',
+          provenance: 'deduced',
+          reason: 'le champ _repository est typé IOrderRepository'
+        }
+      ]
+    })
+    await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
+    await user.click(
+      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: /^Domain/ })
+    )
+    const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
+    expect(await within(panel).findByText(/déduit — le champ _repository est typé IOrderRepository/)).toBeTruthy()
   })
 })

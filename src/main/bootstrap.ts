@@ -92,8 +92,10 @@ import { scanProject } from './infrastructure/reprise/ProjectScanner'
 import { ProjectFileIndex } from './infrastructure/reprise/ProjectFileIndex'
 import { createRepriseRoutes } from './ipc/repriseHandlers'
 import { GuideService } from './application/reprise/GuideService'
+import { ResolutionService } from './application/reprise/ResolutionService'
 import { runFileSummary } from './application/ai/FileSummaryTask'
 import { runRepriseGuide } from './application/ai/RepriseGuideTask'
+import { runRepriseResolution } from './application/ai/RepriseResolutionTask'
 import { readProjectText } from './infrastructure/reprise/projectText'
 import { maskLocalProjects } from './domain/reprise/maskLocal'
 import { RepriseRepository } from './infrastructure/db/repositories/RepriseRepository'
@@ -997,6 +999,18 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     emit: (event) => broadcast(event.type, event.payload),
     onWritten: (event) => broadcast('map:changed', event)
   })
+  // Levée des ambiguïtés (spec 017 US6) : lots de liens incertains, Claude ou le modèle local selon la confidentialité.
+  const resolution = new ResolutionService({
+    reprise: repriseRepository,
+    graph: codeGraph,
+    claudeAllowed: (genesisId) => confidentiality.claudeAllowed(genesisId),
+    runResolution: (items, options) => runRepriseResolution(ai.gateway, items, options),
+    readText: readProjectText,
+    emit: (event) => {
+      explorer.invalidate(event.payload.genesisId)
+      broadcast(event.type, event.payload)
+    }
+  })
   // Fichiers d'un élément de carte (spec 017 US7) : lecture seule sous le dossier lié, symboles si le projet est analysé.
   const elementFiles = new ElementFilesService({
     neuron: (id) => conversationRepository.neuron(id),
@@ -1022,6 +1036,10 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         running: guide.isRunning(genesisId)
       }
     },
+    resolution: (genesisId) => ({
+      running: resolution.isRunning(genesisId),
+      pending: codeGraph.resolvableEdges(genesisId)
+    }),
     createGenesis: async (title) => (await neurons.create({ text: title })).id,
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     dataDir,
@@ -1137,7 +1155,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createWidgetIoRoutes(widgetIo),
       ...createChatRoutes(conversations, permissions),
       ...createProjectRoutes(projects),
-      ...createRepriseRoutes(reprise, analysis, guide),
+      ...createRepriseRoutes(reprise, analysis, guide, resolution),
       ...createExplorerRoutes(explorer),
       ...createStructureRoutes(structure, elementFiles),
       ...createMapUpdateRoutes(mapUpdates),

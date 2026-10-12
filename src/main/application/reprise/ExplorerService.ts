@@ -261,6 +261,7 @@ export class ExplorerService {
         line: isFile ? 1 : other.startLine,
         kind: edge.kind,
         provenance: edge.provenance,
+        reason: edge.reason,
         count: edge.count,
         at
       }

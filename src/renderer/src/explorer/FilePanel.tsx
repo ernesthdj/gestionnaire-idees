@@ -34,6 +34,10 @@ const shortName = (title: string): string =>
     .slice(-2)
     .join('.')
 
+/** Raison d'un lien déduit ou incertain, à la suite de sa fiabilité (` — raison`). */
+const reasonOf = (link: CodeBlockLinkView): string =>
+  link.reason === null || link.provenance === 'syntax' || link.provenance === 'user' ? '' : ` — ${link.reason}`
+
 function LinkChips({
   label,
   links,
@@ -51,8 +55,8 @@ function LinkChips({
         <button
           key={`${link.symbolId}-${index}`}
           type="button"
-          title={`${link.title} — ${link.path}, ${PROVENANCE_LABELS[link.provenance].text}`}
-          aria-label={`${link.title} (${link.path}), ${PROVENANCE_LABELS[link.provenance].text} : ouvrir`}
+          title={`${link.title} — ${link.path}, ${PROVENANCE_LABELS[link.provenance].text}${reasonOf(link)}`}
+          aria-label={`${link.title} (${link.path}), ${PROVENANCE_LABELS[link.provenance].text}${reasonOf(link)} : ouvrir`}
           onClick={() => onGo(link)}
           className="rounded border border-content-muted/40 px-1.5 text-left underline-offset-2 hover:underline"
         >

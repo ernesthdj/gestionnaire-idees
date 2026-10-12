@@ -123,9 +123,9 @@
 
 ## Phase 8 — US6 Lever les ambiguïtés avec l'IA (P3)
 **Test indépendant** : `cs-app` : l'appel `Save()` ambigu devient « déduit » vers la bonne classe ; une cible hors candidats est rejetée.
-- [ ] T032 [US6] Tâche `reprise_resolution` (lots de 50, contexte ≤ 8 lignes, candidats par id, sortie Zod fermée), routage Claude / Ollama par la garde ; `ResolutionService` dans `src/main/application/reprise/ResolutionService.ts` (liens `deduced` avec raison, reclassements justifiés, abonnement épuisé → liens laissés incertains) ; IPC `reprise:resolve` + tests
-- [ ] T033 [US6] Interface : « Préciser les liens avec l'IA » dans l'explorateur, raison d'un lien déduit dans le panneau + tests renderer/axe
-- [ ] T034 [US6] Test guidé (quickstart §3, §6) — attendre le retour
+- [x] T032 [US6] Tâche `reprise_resolution` (lots de 50, contexte ≤ 8 lignes, candidats par id, sortie Zod fermée), routage Claude / Ollama par la garde ; `ResolutionService` dans `src/main/application/reprise/ResolutionService.ts` (liens `deduced` avec raison, reclassements justifiés, abonnement épuisé → liens laissés incertains) ; IPC `reprise:resolve` + tests
+- [x] T033 [US6] Interface : « Préciser les liens avec l'IA » dans l'explorateur, raison d'un lien déduit dans le panneau + tests renderer/axe
+- [x] T034 [US6] Test guidé (quickstart §3, §6) *(e2e dans l'app réelle, `tests/e2e/reprise-resolution.e2e.ts`, Claude simulé : l'appel `store.Save` de `cs-app` devient « déduit » vers `InvoiceRepository.Save` avec sa raison dans le panneau, une cible hors candidats est rejetée, le `.env` n'est jamais envoyé)*
 
 ## Phase 9 — Finitions
 - [ ] T035 Test de bout en bout SC-002 (projet local : aucune tâche ni conversation Claude sur tout le parcours, et aucun contenu lisible par le pont MCP, session externe comprise) et SC-003 (`hostile-app` : rien exécuté) dans `tests/integration/reprise/`

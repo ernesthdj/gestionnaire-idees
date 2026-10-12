@@ -80,6 +80,18 @@ export interface RepriseProjectView {
   }
   /** Guide de reprise (spec 017 US4) : document du genesis (`null` : pas encore rédigé), rédaction en cours. */
   readonly guide: { readonly documentId: string | null; readonly running: boolean }
+  /** Levée des ambiguïtés (US6) : passe en cours, liens incertains que l'IA peut encore préciser. */
+  readonly resolution: { readonly running: boolean; readonly pending: number }
+}
+
+/** Résultat d'une passe « Préciser les liens avec l'IA » (`reprise:resolve`, spec 017 US6). */
+export interface ResolutionResultView {
+  readonly runId: string
+  readonly deduced: number
+  readonly undecided: number
+  /** Liens non soumis ou laissés incertains parce que l'IA s'est arrêtée. */
+  readonly remaining: number
+  readonly stopped: boolean
 }
 
 export interface ExplorerFiltersView {
@@ -187,6 +199,8 @@ export interface CodeBlockLinkView {
   readonly line: number
   readonly kind: 'import' | 'call' | 'implements' | 'route' | 'injects'
   readonly provenance: LinkProvenance
+  /** Pourquoi le lien est « déduit » ou « incertain » (levée d'ambiguïté, US6) ; `null` : sûr ou corrigé. */
+  readonly reason: string | null
   readonly count: number
   /** Ligne de ce fichier où le nom appelé apparaît dans le bloc (approchée) ; `null` : pas trouvée. */
   readonly at: number | null

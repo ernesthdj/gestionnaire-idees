@@ -16,7 +16,7 @@ projet ne vient jamais de l'interface (`previewId` éphémère, 15 min).
 | `reprise:cancelAnalysis` | `{ genesisId }` | `{}` | — |
 | `reprise:setCategory` | `{ genesisId, symbolId, category }` | `{}` | `NOT_FOUND` |
 | `reprise:setTarget` | `{ genesisId, edgeId, targetSymbolId: string \| null }` | `{}` | `NOT_FOUND` |
-| `reprise:resolve` | `{ genesisId }` (lève les ambiguïtés, US6) | `{ runId }` | `BUSY`, `AI_UNAVAILABLE` |
+| `reprise:resolve` | `{ genesisId }` (lève les ambiguïtés, US6 : une passe de 500 liens au plus, par lots de 50) | `{ runId, deduced, undecided, remaining, stopped }` (rend la main à la fin de la passe) | `BUSY`, `NOT_ANALYZED`, `NOT_FOUND`, `AI_UNAVAILABLE`, `AI_FAILED` |
 | `reprise:guide` | `{ genesisId }` (produit / régénère le guide) | `{ documentId }` | `BUSY`, `AI_UNAVAILABLE`, `NOT_ANALYZED` |
 | `explorer:view` | `{ genesisId, level: 1..4, parentKey?, focusKey?, depth?: 1 \| 2, filters: { categories[], langs[], hideUncertain } }` | `ExplorerView` | `NOT_FOUND`, `NOT_ANALYZED` |
 | `explorer:node` | `{ genesisId, nodeKey }` | `ExplorerNodeDetailView` | `NOT_FOUND` |
@@ -47,8 +47,12 @@ projet ne vient jamais de l'interface (`previewId` éphémère, 15 min).
   `{ type: 'fileError', id, reason }` | `{ type: 'done' }`.
 
 ## Tâches IA (AIGateway)
-- `reprise_resolution` : entrée `{ items: { edgeId, call, context ≤ 8 lignes, candidates: { id, label }[] }[≤50] }` →
-  `{ items: { edgeId, targetId: string | null, reason ≤ 160 }[] }` (targetId ∈ candidats).
+- `reprise_resolution` : entrée `{ items: { edgeId, call, context ≤ 8 lignes, candidates: { id, label }[] }[≤50] }`
+  (JSON, le code du projet y est échappé) → `{ items: { edgeId, targetId: string | null, reason ≤ 160 }[] }`.
+  Le service revérifie : `edgeId` du lot et unique, `targetId` ∈ candidats envoyés (sinon rejeté, lien inchangé) ;
+  un choix accepté → lien `deduced` avec sa raison (jamais `syntax`) ; `null` → le lien reste `uncertain`, sans
+  cible, avec la raison, et n'est plus proposé avant la prochaine analyse. Premier lot refusé → erreur ; lot suivant
+  refusé (abonnement épuisé, modèle arrêté) → passe terminée avec `stopped`, le reste inchangé. Aucun outil.
 - `reprise_guide` : entrée `{ name, modules, entryPoints, files (arbre), readme, configs }` (borné à ~40 000 caractères)
   → `{ sections: { id, analogy, markdown, sources: string[] }[9], modules: { key, summary, analogy }[] }` (T024 : les
   titres sont fixés par l'app d'après `id` ; l'`analogy` obligatoire garantit l'ouverture de chaque section par une

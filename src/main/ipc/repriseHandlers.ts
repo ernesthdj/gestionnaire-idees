@@ -3,6 +3,7 @@ import { CODE_CATEGORIES, CONFIDENTIALITY_LEVELS } from '@shared/ipc/reprise'
 import type { AnalysisService } from '../application/reprise/AnalysisService'
 import type { GuideService } from '../application/reprise/GuideService'
 import type { RepriseService } from '../application/reprise/RepriseService'
+import type { ResolutionService } from '../application/reprise/ResolutionService'
 import { defineRoute, type IpcRoute } from './registry'
 
 /**
@@ -12,9 +13,19 @@ import { defineRoute, type IpcRoute } from './registry'
 export function createRepriseRoutes(
   reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'view' | 'setConfidentiality'>,
   analysis?: Pick<AnalysisService, 'analyze' | 'cancel' | 'setCategory' | 'setTarget'>,
-  guide?: Pick<GuideService, 'generate'>
+  guide?: Pick<GuideService, 'generate'>,
+  resolution?: Pick<ResolutionService, 'resolve'>
 ): IpcRoute[] {
   return [
+    ...(resolution === undefined
+      ? []
+      : [
+          defineRoute({
+            channel: 'reprise:resolve',
+            input: z.strictObject({ genesisId: z.uuid() }),
+            handler: async ({ genesisId }) => resolution.resolve(genesisId)
+          })
+        ]),
     ...(guide === undefined
       ? []
       : [

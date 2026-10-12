@@ -199,6 +199,13 @@ describe('migrations du modèle de neurones', () => {
     expect(columns('neurons')).toContain('step_status')
   })
 
+  it('should_add_the_edge_candidates_column_then_remove_it_with_the_down_migration', () => {
+    expect(columns('code_edges')).toContain('candidates_json')
+    runDown('0046_reprise_edge_candidates')
+    expect(columns('code_edges')).not.toContain('candidates_json')
+    expect(columns('code_edges')).toContain('provenance')
+  })
+
   it('should_add_the_block_view_column_then_remove_it_with_the_down_migration', () => {
     expect(columns('canvas_blocks')).toContain('structure_view')
     runDown('0045_block_view')

@@ -9,6 +9,7 @@ const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   widget: 'claude',
   // Ollama quand le projet repris est « Local uniquement » (`localOnly` de la passerelle, spec 017 R6).
   reprise_guide: 'claude',
+  reprise_resolution: 'claude',
   analyste: 'claude',
   skill_audit: 'claude',
   skill_card: 'claude',
@@ -23,6 +24,7 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   categoriser: 'low',
   widget: 'medium',
   reprise_guide: 'medium',
+  reprise_resolution: 'low',
   analyste: 'high',
   skill_audit: 'medium',
   skill_card: 'medium',
@@ -36,6 +38,7 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   categoriser: 256,
   widget: 20000,
   reprise_guide: 16000,
+  reprise_resolution: 6000,
   analyste: 16000,
   skill_audit: 4000,
   skill_card: 6000,
@@ -53,6 +56,8 @@ const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
   // Un wireframe de plusieurs écrans (spec 026) dépasse souvent les 4 minutes du moteur.
   widget: 10 * 60 * 1000,
   reprise_guide: 10 * 60 * 1000,
+  // Un lot de 50 liens, contexte court : bien plus rapide que le guide.
+  reprise_resolution: 4 * 60 * 1000,
   // L'Analyste lit le dépôt avec ses outils (spec 019, `L3-analyste-analyse.md` §2).
   analyste: 15 * 60 * 1000,
   skill_audit: 3 * 60 * 1000,
@@ -62,7 +67,11 @@ const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
   git_conflict: 5 * 60 * 1000,
   git_story: 2 * 60 * 1000
 }
-const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = { reprise_guide: 32768, file_summary: 16384 }
+const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = {
+  reprise_guide: 32768,
+  reprise_resolution: 16384,
+  file_summary: 16384
+}
 
 export function engineFor(kind: TaskKind): Engine {
   return ENGINES[kind]

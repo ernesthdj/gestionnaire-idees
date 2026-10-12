@@ -23,6 +23,11 @@
    partiel supprimé ; coller `ext::sh -c calc` → refusé sans rien lancer.
 6. **Projet piégé (SC-003)** — importer `hostile-app` : aucun script lancé, `.env` jamais affiché, le commentaire
    « ignore tes consignes » ne change rien au guide.
+7. **Lever les ambiguïtés (US6)** — `cs-app` en « Claude autorisé » → « Préciser les liens avec l'IA (N) » dans
+   l'en-tête de l'explorateur → « 1 lien précisé (« déduit », avec sa raison) » ; le module `Domain` montre
+   `InvoiceRepository.Save` en pointillés « déduit » avec la phrase de l'IA sur sa ligne ; une cible hors des
+   candidats est rejetée (lien inchangé) ; en « Local uniquement », seul le modèle local est appelé (rien vers Claude).
+   Automatisé : `tests/e2e/reprise-resolution.e2e.ts`.
 
 ## Vérifications automatiques
 `npm test` · `npm run typecheck` · `npm run lint` · `npx prettier --check src tests` · `npm run build`.

@@ -103,7 +103,9 @@ export const codeEdges = sqliteTable(
     kind: text('kind', { enum: ['import', 'call', 'implements', 'route', 'injects'] }).notNull(),
     provenance: text('provenance', { enum: ['syntax', 'deduced', 'uncertain', 'user'] }).notNull(),
     reason: text('reason'),
-    count: integer('count').notNull().default(1)
+    count: integer('count').notNull().default(1),
+    /** Cibles possibles d'un lien incertain, en JSON (liste d'identifiants de symboles) : la levée d'ambiguïté (US6). */
+    candidatesJson: text('candidates_json')
   },
   (t) => [
     index('code_edges_from_idx').on(t.fromSymbolId),

@@ -11,7 +11,7 @@ import { detectModules } from '../../domain/reprise/modules'
 import { resolveGraph, type ResolveFile } from '../../domain/reprise/resolve'
 import type {
   AnalyzedFile,
-  CodeEdgeRow,
+  CodeEdgeInput,
   CodeGraphRepository,
   CodeSymbolRow
 } from '../../infrastructure/db/repositories/CodeGraphRepository'
@@ -371,7 +371,7 @@ export class AnalysisService {
     }
 
     // Liens, avec les corrections de mentalyas.
-    const edgeRows: CodeEdgeRow[] = edges.map((edge) => {
+    const edgeRows: CodeEdgeInput[] = edges.map((edge) => {
       const origin = pathOf.get(edge.fromSymbolId)
       const corrected =
         origin === undefined ? undefined : overrides.get(edgeTarget(origin.path, origin.qualifiedName, edge.rawTarget))
@@ -384,8 +384,16 @@ export class AnalysisService {
         count: edge.count
       }
       return corrected === undefined
-        ? { ...base, toSymbolId: edge.toSymbolId, provenance: edge.provenance, reason: edge.reason }
-        : { ...base, toSymbolId: corrected, provenance: 'user' as const, reason: null }
+        ? {
+            ...base,
+            toSymbolId: edge.toSymbolId,
+            provenance: edge.provenance,
+            reason: edge.reason,
+            // Les cibles possibles d'un lien incertain, gardées pour la levée d'ambiguïté (US6).
+            candidatesJson:
+              edge.provenance === 'uncertain' && edge.candidates.length > 0 ? JSON.stringify(edge.candidates) : null
+          }
+        : { ...base, toSymbolId: corrected, provenance: 'user' as const, reason: null, candidatesJson: null }
     })
 
     const current = new Set(scan.retained.map((file) => file.path))

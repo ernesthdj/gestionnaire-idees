@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AnalysisService } from '../../../src/main/application/reprise/AnalysisService'
 import type { GuideService } from '../../../src/main/application/reprise/GuideService'
 import type { RepriseService } from '../../../src/main/application/reprise/RepriseService'
+import type { ResolutionService } from '../../../src/main/application/reprise/ResolutionService'
 import { createRepriseRoutes } from '../../../src/main/ipc/repriseHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
 
@@ -21,14 +22,18 @@ function setup() {
     setTarget: vi.fn()
   }
   const guide = { generate: vi.fn(async () => ({ documentId: 'd1' })) }
+  const resolution = {
+    resolve: vi.fn(async () => ({ runId: 'r2', deduced: 1, undecided: 0, remaining: 0, stopped: false }))
+  }
   const dispatch = createDispatcher(
     createRepriseRoutes(
       service as unknown as RepriseService,
       analysis as unknown as AnalysisService,
-      guide as unknown as GuideService
+      guide as unknown as GuideService,
+      resolution as unknown as ResolutionService
     )
   )
-  return { dispatch, service, analysis, guide }
+  return { dispatch, service, analysis, guide, resolution }
 }
 
 describe('canaux reprise:* (spec 017 US1)', () => {
@@ -40,6 +45,17 @@ describe('canaux reprise:* (spec 017 US1)', () => {
     })
     expect(await dispatch('reprise:guide', { genesisId: '../x' })).toMatchObject({ success: false })
     expect(guide.generate).toHaveBeenCalledTimes(1)
+  })
+
+  it('should_resolve_the_links_of_a_valid_genesis_only_and_refuse_extra_fields', async () => {
+    const { dispatch, resolution } = setup()
+    expect(await dispatch('reprise:resolve', { genesisId: ID })).toMatchObject({
+      success: true,
+      data: { runId: 'r2', deduced: 1 }
+    })
+    expect(await dispatch('reprise:resolve', { genesisId: '../x' })).toMatchObject({ success: false })
+    expect(await dispatch('reprise:resolve', { genesisId: ID, targetId: 'x' })).toMatchObject({ success: false })
+    expect(resolution.resolve).toHaveBeenCalledTimes(1)
   })
 
   it('should_create_with_an_explicit_confidentiality_and_pass_the_confirmation', async () => {

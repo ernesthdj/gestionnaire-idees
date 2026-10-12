@@ -31,6 +31,7 @@ import { FilePanel, type OpenFile } from './FilePanel'
 import { GuidePanel } from './GuidePanel'
 import { CATEGORY_LABELS, KIND_LABELS, LEVEL_NAMES, PROVENANCE_LABELS } from './labels'
 import { NodePanel } from './NodePanel'
+import { ResolveLinks } from './ResolveLinks'
 import { semanticZoom } from './semanticZoom'
 import { useExplorer } from './useExplorer'
 
@@ -301,6 +302,14 @@ export function ExplorerPage({
               <Button onClick={() => void explorer.analyze()} disabled={view?.folderMissing === true}>
                 {neverAnalyzed ? 'Analyser' : 'Réanalyser'}
               </Button>
+            )}
+            {project === undefined || explorer.progress !== null ? null : (
+              <ResolveLinks
+                genesisId={genesisId}
+                resolution={project.resolution}
+                confidentiality={project.confidentiality}
+                disabled={project.analysis.analyzedAt === null || view?.folderMissing === true}
+              />
             )}
             <Button onClick={() => setList((current) => !current)} aria-pressed={list}>
               {list ? 'Vue carte' : 'Vue liste'}
