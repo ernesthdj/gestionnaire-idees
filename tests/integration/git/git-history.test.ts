@@ -178,6 +178,25 @@ describe('qui a fait quoi et quand (spec 021 US5, lot 1)', { timeout: 60_000 }, 
     close()
   })
 
+  it('should_mark_the_nodes_touched_since_the_last_seen_commit_by_their_last_author', async () => {
+    const repo = buildScenario(join(root, 'nouveautes'), 'trois-auteurs')
+    const { genesisId, history, close } = harness(repo)
+    const [depart, , , fixA] = (await history.replaySteps(genesisId)).commits
+    // Vu au départ : feat: a (Bob), feat: b (Chloé) et fix: a (Alice) sont arrivés, tous dans src.
+    const since = await history.touched(genesisId, depart?.hash ?? '', fixA?.hash ?? '', ['d:src', 'r:m:app'])
+    expect(since.commits).toBe(3)
+    expect(since.nodes.map((node) => node.key)).toEqual(['d:src'])
+    const src = since.nodes[0]
+    expect(since.authors.find((author) => author.key === src?.last)?.name).toMatch(/Fictive/)
+    expect(src?.shares.map((share) => share.percent)).toEqual([33, 33, 33])
+    const none = await history.touched(genesisId, fixA?.hash ?? '', fixA?.hash ?? '', ['d:src'])
+    expect(none).toEqual({ nodes: [], authors: [], commits: 0 })
+    await expect(history.touched(genesisId, 'f'.repeat(40), fixA?.hash ?? '', ['d:src'])).rejects.toMatchObject({
+      code: 'STALE'
+    })
+    close()
+  })
+
   it('should_count_commits_in_a_partial_clone_until_everything_is_downloaded', async () => {
     const { work } = bareWithClone(join(root, 'partiel'))
     commit(work, { 'src/a.ts': 'export const a = 1\nexport const b = 2\n' }, 'feat: a', AUTHORS.bob)

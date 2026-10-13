@@ -1,5 +1,12 @@
 import type { AuthorView } from '@shared/git/model'
-import type { HistoryView, NodeReplayView, ReplayStepsView, ReplayWeight, StoryView } from '@shared/git/history'
+import type {
+  HistoryView,
+  NodeReplayView,
+  ReplayStepsView,
+  ReplayWeight,
+  StoryView,
+  TouchedView
+} from '@shared/git/history'
 import * as args from '../../domain/git/args'
 import { authorKey, authorViews, mainKeyOf, pseudonyms } from '../../domain/git/authors'
 import { fileToNode, type NodeTree } from '../../domain/git/fileToNode'
@@ -39,6 +46,16 @@ export const REPLAY_LIMIT = 5_000
 const REFETCH_TIMEOUT_MS = 30 * 60_000
 const PARTIAL_FILTER = /^remote\.(.+)\.partialclonefilter$/i
 const KEY = /^[0-9a-f]{16}$/
+
+/** Chemin du dépôt → nœud visible parmi `keys` (`null` : hors de la vue), mémorisé par chemin. */
+function ownerOf(keys: readonly string[], tree: NodeTree): (path: string) => string | null {
+  const visible = new Set(keys)
+  const owners = new Map<string, string | null>()
+  return (path) => {
+    if (!owners.has(path)) owners.set(path, fileToNode(path, visible, tree))
+    return owners.get(path) ?? null
+  }
+}
 
 /**
  * « Qui a fait quoi et quand » (spec 021 US5, lot 1) : la frise (une page de commits, auteurs par clé, identités
@@ -167,14 +184,38 @@ export class GitHistoryService {
     const upto = loaded.steps.findIndex((step) => step.hash === at)
     if (upto < 0) throw new AppError('STALE', 'Ce commit ne fait plus partie de la rediffusion : recharge-la.')
     const aliases = this.deps.repository.aliases(genesisId)
-    const visible = new Set(keys)
-    const owners = new Map<string, string | null>()
-    const owner = (path: string): string | null => {
-      if (!owners.has(path)) owners.set(path, fileToNode(path, visible, tree))
-      return owners.get(path) ?? null
-    }
     const steps = loaded.steps.map((step) => ({ ...step, authorKey: mainKeyOf(step.authorKey, aliases) }))
-    return { nodes: replayNodes(steps, upto, owner, loaded.weight) }
+    return { nodes: replayNodes(steps, upto, ownerOf(keys, tree), loaded.weight) }
+  }
+
+  /**
+   * « Depuis ta dernière visite » sur la carte (spec 021 T030, D13) : nœuds visibles `keys` touchés par les commits
+   * `from..to` (le dernier vu → la tête du distant), un commit comptant 1 par nœud ; auteurs avec les identités
+   * fusionnées appliquées. Lecture seule.
+   */
+  async touched(genesisId: string, from: string, to: string, keys: readonly string[]): Promise<TouchedView> {
+    const tree = this.deps.tree(genesisId)
+    if (tree === null) throw new AppError('NOT_ANALYZED', 'Analyse le projet pour voir ses nouveautés sur la carte.')
+    const repo = await this.deps.access.ready(genesisId)
+    const result = await this.deps.access.read(repo, args.rangeReplayArgs(from, to), { maxOutput: 16 * 1024 * 1024 })
+    if (result.code !== 0) {
+      throw new AppError('STALE', 'Ces commits ne sont plus dans le dépôt : actualise le volet Dépôt.')
+    }
+    const parsed = parseReplayLog(result.stdout)
+    const secret = this.deps.authorSecret()
+    const aliases = this.deps.repository.aliases(genesisId)
+    const steps = parsed.map((commit) => ({
+      authorKey: mainKeyOf(authorKey(secret, commit.email), aliases),
+      changes: commit.changes
+    }))
+    return {
+      nodes: replayNodes(steps, steps.length - 1, ownerOf(keys, tree), 'commits'),
+      authors: this.authorsOf(
+        genesisId,
+        parsed.map((commit) => ({ name: commit.name, email: commit.email }))
+      ).authors,
+      commits: parsed.length
+    }
   }
 
   /**

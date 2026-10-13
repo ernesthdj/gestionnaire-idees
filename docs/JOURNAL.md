@@ -1722,3 +1722,30 @@ montre désormais la période du zoom (7, 31 ou 365 jours : « sur une semaine �
 chaleur plafonnée en hauteur pour les périodes courtes ; les jours de calage avant la période (début au lundi) restent
 vides, le total est celui de la période. Vérifié sur un clone de ce dépôt aux trois zooms.
 **Regle apprise :** une commande doit agir sur ce qu'elle surplombe ; sinon l'utilisateur conclut qu'elle ne marche pas.
+
+### [2026-10-13 21:15] FEAT — spec 021 T030 : nouveautés depuis ta dernière visite surlignées sur la carte
+**Fichiers :** `src/main/domain/git/args.ts` (`rangeReplayArgs`), `src/main/application/git/GitHistoryService.ts`
+(`touched`, `ownerOf` partagé avec `replay`), `src/shared/git/history.ts` (`TouchedInput`, `TouchedView`),
+`src/shared/ipc/channels.ts` et `src/main/ipc/gitHandlers.ts` (`git:touched`), `src/renderer/src/explorer/{useUpdatesMarks.ts,
+UpdatesBar.tsx}` (nouveaux), `ExplorerPage.tsx`, `ExplorerNodes.tsx` (`MarksKindContext`), `src/renderer/src/app/{uiStore.ts,
+AppShell.tsx}` (`explorerMarks: 'replay' | 'updates'` remplace `explorerReplay`), `src/renderer/src/git/HistoryTab.tsx` ;
+tests `integration/git/git-history.test.ts`, `renderer/{explorer-page,git-sync-panel}.test.tsx` ; spec 021 (D13, T030, T032).
+**Quoi :** dernier report de la 021. Dans « Depuis ta dernière visite » (volet Dépôt), « Voir sur la carte » (projet repris
+seulement : il a une cartographie) ouvre l'explorateur ; chaque élément touché par `last_seen..tête du distant` porte la
+couleur et les initiales du dernier auteur passé (parts en commits), les autres sont estompés ; barre en bas : nombre de
+commits, d'éléments touchés à ce niveau, légende ; Échap ou « Quitter les nouveautés ».
+**Choix :** réutiliser la rediffusion (même `fileToNode`, même `replayNodes` en poids « commits », mêmes pastilles) plutôt
+qu'un second marquage ; l'intervalle vient de `git:updates` (empreintes validées par Zod puis par `rangeReplayArgs`).
+**Non couvert en e2e :** seul un clone par l'app pose « dernier vu », et le clone n'accepte qu'une adresse https ; pas de
+porte « adresse locale » ajoutée pour un test. Logique couverte sur un vrai dépôt git (intégration), interface en jsdom.
+
+### [2026-10-13 21:35] TEST — spec 021 T057 (SC-006) mesuré ; `side-panel.e2e.ts` rendu déterministe
+**Fichiers :** `specs/021-git-github/{research.md (R18), tasks.md, spec.md}`, `CLAUDE.md`, `tests/e2e/side-panel.e2e.ts`.
+**SC-006 :** clone de `eslint/eslint` (11 063 commits) par « Depuis un lien Git », app construite, profil et coffre de
+test temporaires : canevas ouvert 7,1 s après le clic (seuil : 3 min). Clone partiel `blob:none` par défaut. Script de
+mesure ponctuel, non gardé dans le dépôt.
+**side-panel :** deux passes complètes des e2e (sans le banc) vertes, 42/42, sans échec ce soir ; restaient une pause
+fixe de 1,5 s et trois clics forcés sur des nœuds qui peuvent glisser après « Tout afficher » ou une bascule de vue →
+`settled()` avant chaque clic. Trois passes seules vertes.
+**Règle apprise :** une instabilité qui ne se reproduit pas se traite quand même à sa cause probable (attente à l'aveugle),
+avec le même remède que les cas déjà élucidés.

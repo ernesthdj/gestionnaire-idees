@@ -187,6 +187,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'git:story',
   'git:replaySteps',
   'git:replay',
+  'git:touched',
   'git:fetchAll',
   'git:prList',
   'git:prView',

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { GitStatusView } from '../../../src/shared/git/model'
 import type { PublishPreviewView, PushPreviewView } from '../../../src/shared/git/sync'
+import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { HistoryTab } from '../../../src/renderer/src/git/HistoryTab'
 import { PublishPanel } from '../../../src/renderer/src/git/PublishPanel'
 import { repoStateText } from '../../../src/renderer/src/git/RepoBadge'
@@ -230,9 +231,27 @@ describe('publier, tirer, pousser dans le volet (spec 021 T025, US2)', () => {
     })
     expect(await screen.findByText(/Depuis ta dernière visite : 1 commit/)).toBeDefined()
     expect(screen.getByText('feat: nouveau')).toBeDefined()
+    // Sans projet repris (pas de cartographie), pas de « Voir sur la carte ».
+    expect(screen.queryByRole('button', { name: 'Voir sur la carte' })).toBeNull()
     await expectNoAxeViolations(container)
     await user.click(screen.getByRole('button', { name: 'Marquer comme vu' }))
     await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('git:markSeen', { genesisId: G, hash: UP }))
     await waitFor(() => expect(screen.queryByText(/Depuis ta dernière visite/)).toBeNull())
+  })
+
+  it('should_open_the_explorer_on_the_news_when_the_project_has_a_map', async () => {
+    const user = userEvent.setup()
+    renderWith(<HistoryTab genesisId={G} readOnly={false} />, {
+      'git:log': () => ({ commits: [], authors: [] }),
+      'reprise:get': () => ({ genesisId: G }),
+      'git:updates': () => ({
+        lastSeen: HEAD,
+        upstreamHead: UP,
+        commits: [{ hash: UP, subject: 'feat: nouveau', date: '2026-10-10T10:00:00Z', authorKey: 'k', isMerge: false }],
+        authors: []
+      })
+    })
+    await user.click(await screen.findByRole('button', { name: 'Voir sur la carte' }))
+    expect(useUiStore.getState()).toMatchObject({ explorerGenesisId: G, explorerMarks: 'updates' })
   })
 })

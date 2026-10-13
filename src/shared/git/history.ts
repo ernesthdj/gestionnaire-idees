@@ -64,4 +64,11 @@ const ExplorerKey = z
   .refine((key) => /^(r:)?[mdfs]:/.test(key), 'clé de nœud')
 export const ReplayStepsInput = z.strictObject({ genesisId })
 export const ReplayInput = z.strictObject({ genesisId, at: Hash, keys: z.array(ExplorerKey).max(500) })
+/** Nœuds touchés par les commits arrivés depuis la dernière visite (spec 021 T030). */
+export interface TouchedView {
+  readonly nodes: readonly NodeReplayView[]
+  readonly authors: readonly AuthorView[]
+  readonly commits: number
+}
+export const TouchedInput = z.strictObject({ genesisId, from: Hash, to: Hash, keys: z.array(ExplorerKey).max(500) })
 export const FetchAllInput = z.strictObject({ genesisId, confirm: z.literal(true) })

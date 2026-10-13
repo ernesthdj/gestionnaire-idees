@@ -77,7 +77,7 @@ export function AppShell(): React.JSX.Element {
   const show = useUiStore((state) => state.show)
   const explorerGenesisId = useUiStore((state) => state.explorerGenesisId)
   const closeExplorer = useUiStore((state) => state.closeExplorer)
-  const explorerReplay = useUiStore((state) => state.explorerReplay)
+  const explorerMarks = useUiStore((state) => state.explorerMarks)
   const hasBrainstorm = useUiStore((state) => state.brainstorm !== null)
   useApplyTheme(settings.theme)
   useMainEvents()
@@ -134,9 +134,9 @@ export function AppShell(): React.JSX.Element {
           <main className="min-h-0 flex-1 overflow-hidden">
             {explorerGenesisId !== null && view === 'ideas' ? (
               <ExplorerPage
-                key={`${explorerGenesisId}:${explorerReplay}`}
+                key={`${explorerGenesisId}:${explorerMarks}`}
                 genesisId={explorerGenesisId}
-                replay={explorerReplay}
+                marks={explorerMarks}
                 onClose={closeExplorer}
               />
             ) : (

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExplorerPage } from '../../../src/renderer/src/explorer/ExplorerPage'
+import type { ExplorerMarks } from '../../../src/renderer/src/app/uiStore'
 import type {
   ExplorerNodeDetailView,
   ExplorerView,
@@ -208,7 +209,8 @@ const ORDER_SERVICE: FileCodeView = {
 function renderExplorer(
   projectView: RepriseProjectView = project(),
   nodeDetail: ExplorerNodeDetailView = detail,
-  extra: Parameters<typeof installFakeApi>[0] = {}
+  extra: Parameters<typeof installFakeApi>[0] = {},
+  marks: ExplorerMarks | null = null
 ) {
   const api = installFakeApi({
     'document:get': () => ({ id: 'd1', content: GUIDE, hash: 'h', missing: false }),
@@ -264,7 +266,7 @@ function renderExplorer(
   const onClose = vi.fn()
   const result = render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <ExplorerPage genesisId={GENESIS} onClose={onClose} />
+      <ExplorerPage genesisId={GENESIS} marks={marks} onClose={onClose} />
     </QueryClientProvider>
   )
   return { api, onClose, ...result }
@@ -550,5 +552,64 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     expect(api.invoke).toHaveBeenCalledWith('git:replay', expect.objectContaining({ at: first }))
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('region', { name: 'Rediffusion' })).toBeNull()
+  })
+
+  it('should_highlight_the_modules_touched_since_the_last_visit_then_quit', async () => {
+    const user = userEvent.setup()
+    const colleague = {
+      key: 'c'.repeat(16),
+      name: 'Collègue Fictif',
+      email: 'c@example.invalid',
+      initials: 'CF',
+      color: '#0f766e'
+    }
+    const [seen, head] = ['3'.repeat(40), '4'.repeat(40)]
+    const { api, container } = renderExplorer(
+      project(),
+      detail,
+      {
+        'git:updates': () => ({ lastSeen: seen, upstreamHead: head, commits: [], authors: [] }),
+        'git:touched': () => ({
+          nodes: [
+            {
+              key: 'm:dir:Domain',
+              main: colleague.key,
+              last: colleague.key,
+              shares: [{ authorKey: colleague.key, percent: 100 }]
+            }
+          ],
+          authors: [colleague],
+          commits: 2
+        })
+      },
+      'updates'
+    )
+    const bar = await screen.findByRole('region', { name: 'Depuis ta dernière visite' })
+    expect(
+      await within(bar).findByText(/2 commits depuis ta dernière visite : 1 élément touché à ce niveau/)
+    ).toBeTruthy()
+    expect(within(bar).getByText('Collègue Fictif')).toBeTruthy()
+    expect(api.invoke).toHaveBeenCalledWith('git:touched', {
+      genesisId: GENESIS,
+      from: seen,
+      to: head,
+      keys: expect.arrayContaining(['m:dir:Controllers', 'm:dir:Domain'])
+    })
+    expect(await screen.findByLabelText(/Domain.*nouveauté de Collègue Fictif/)).toBeTruthy()
+    await expectNoAxeViolations(container)
+    await user.click(within(bar).getByRole('button', { name: 'Quitter les nouveautés' }))
+    expect(screen.queryByRole('region', { name: 'Depuis ta dernière visite' })).toBeNull()
+  })
+
+  it('should_say_nothing_is_new_when_the_last_seen_commit_is_the_remote_head', async () => {
+    const head = '4'.repeat(40)
+    const { api } = renderExplorer(
+      project(),
+      detail,
+      { 'git:updates': () => ({ lastSeen: head, upstreamHead: head, commits: [], authors: [] }) },
+      'updates'
+    )
+    expect(await screen.findByText('Rien de nouveau depuis ta dernière visite.')).toBeTruthy()
+    expect(api.invoke).not.toHaveBeenCalledWith('git:touched', expect.anything())
   })
 })

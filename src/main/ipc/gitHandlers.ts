@@ -39,6 +39,7 @@ import {
   MergeAuthorsInput,
   ReplayInput,
   ReplayStepsInput,
+  TouchedInput,
   StoryInput,
   UnmergeAuthorInput
 } from '@shared/git/history'
@@ -276,7 +277,7 @@ export function createConflictRoutes(
 export function createGitHistoryRoutes(
   history: Pick<
     GitHistoryService,
-    'history' | 'mergeAuthors' | 'unmergeAuthor' | 'story' | 'replaySteps' | 'replay' | 'fetchAll'
+    'history' | 'mergeAuthors' | 'unmergeAuthor' | 'story' | 'replaySteps' | 'replay' | 'touched' | 'fetchAll'
   >
 ): IpcRoute[] {
   return [
@@ -309,6 +310,11 @@ export function createGitHistoryRoutes(
       channel: 'git:replay',
       input: ReplayInput,
       handler: async ({ genesisId, at, keys }) => history.replay(genesisId, at, keys)
+    }),
+    defineRoute({
+      channel: 'git:touched',
+      input: TouchedInput,
+      handler: async ({ genesisId, from, to, keys }) => history.touched(genesisId, from, to, keys)
     }),
     defineRoute({
       channel: 'git:fetchAll',

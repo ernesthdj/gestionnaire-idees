@@ -137,12 +137,12 @@ lancée, aucun hook ni script ; adresse piégée refusée sans lancement ; clone
   pré-positionné sur `git.lastCloneParent`, cible vide, dossier de données refusé) dans
   `src/main/ipc/repriseHandlers.ts` ; fin → `RepriseService.preview(path, 'git', display)` ; à `reprise:create` :
   `git_repos` (`cloned`, `last_seen_commit`), ni `trusted_projects` ni registre du hub + tests
-- [x] T030 [P] [US3] (livrée le 2026-10-13 avec US5 lot 2 : `fileToNode(path, visibles, arbre)` remonte l'arbre de l'explorateur, dossier connu le plus profond pour un fichier supprimé, nœud « Racine » `r:` ; surlignage de « Depuis ta dernière visite » toujours reporté) Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
+- [x] T030 [P] [US3] (livrée le 2026-10-13 avec US5 lot 2 : `fileToNode(path, visibles, arbre)` remonte l'arbre de l'explorateur, dossier connu le plus profond pour un fichier supprimé, nœud « Racine » `r:` ; surlignage de « Depuis ta dernière visite » livré le 2026-10-13 au soir : `git:touched`, « Voir sur la carte », barre `UpdatesBar`) Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
   repli sur dossiers de premier niveau) + tests
 - [x] T031 [US3] (dans `GitService.updates` / `markSeen` ; `last_seen_commit` avancé seulement par « Marquer comme vu », scénario 7) `UpdatesService` `src/main/application/git/UpdatesService.ts` : `git:updates`
   (`last_seen..@{upstream}`, ≤ 500 commits, nœuds touchés), `git:markSeen` ; `last_seen_commit` avancé aussi par
   « Tirer » + tests
-- [x] T032 [US3] (formulaire « Depuis un lien Git » du Project Manager au lieu de l'assistant, D13 ; nœuds touchés reportés) Interface : `src/renderer/src/reprise/ImportWizard.tsx` source « Depuis un lien GitHub » (E5 :
+- [x] T032 [US3] (formulaire « Depuis un lien Git » du Project Manager au lieu de l'assistant, D13 ; nœuds touchés livrés le 2026-10-13 : « Voir sur la carte » ouvre l'explorateur avec les éléments touchés marqués) Interface : `src/renderer/src/reprise/ImportWizard.tsx` source « Depuis un lien GitHub » (E5 :
   adresse vérifiée en direct, dossier, nom, « Tout télécharger » replié, progression par phase, Annuler, question
   500 Mo, erreurs claires), badge « ✦ N nouveautés », section « Depuis ta dernière visite » dans `HistoryTab.tsx`
   (Marquer comme vu, nœuds touchés surlignés) + tests renderer/axe
@@ -235,7 +235,7 @@ seule sans licence, destination hors `snippets/` / `techno/` refusée.
 - [x] T056 (`tests/integration/git/git-audit.test.ts` : toutes les commandes des parcours US5–US7 enregistrées, aucune interdite ; base et entrées de Claude sans jeton, identifiant d'adresse, nom ni e-mail ; SC-005 tenu par le clone sans hooks des specs 020 / 024) Bout en bout `tests/integration/git/` : SC-002 (toutes les commandes lancées pendant les scénarios
   enregistrées : aucune interdite), SC-004 (base, journaux, entrées d'IA parcourus : ni faux jeton, ni identifiant
   d'adresse, ni nom / e-mail fictif d'auteur), SC-005 (aucun hook ni script sur un clone)
-- [ ] T057 Mesure SC-006 (dépôt public ≈ 10 000 commits : cloné et visible < 3 min), consignée dans `research.md`
+- [x] T057 Mesure SC-006 (dépôt public ≈ 10 000 commits : cloné et visible < 3 min), consignée dans `research.md` (2026-10-13 : `eslint/eslint`, 11 063 commits, 7,1 s)
 - [x] T058 (report « `CloneService` à profils » vérifié : juste dans 017 T029 et 020 T027 / T031a) `docs/FOUNDATION.md` (§000000 : 021 livrée), `CLAUDE.md` (spec en cours, `gh`), `docs/JOURNAL.md` ; vérifier
   que le report « `CloneService` à profils » fait en T028 est toujours juste dans les specs 017 et 020
 

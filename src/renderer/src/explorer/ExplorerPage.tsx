@@ -15,6 +15,7 @@ import { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } 
 import type { CodeCategory, CodeLang, ExplorerLinkView, ExplorerPlaceView, ExplorerView } from '@shared/ipc/reprise'
 import { colorSchemeOf } from '@shared/ipc/app'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
+import type { ExplorerMarks } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { Button } from '../components/atoms/Button'
 import { call } from '../lib/ipc'
@@ -24,6 +25,7 @@ import {
   ExplorerNodeActionsContext,
   FolderNode,
   ModuleNode,
+  MarksKindContext,
   ReplayMarksContext,
   type FolderNodeType,
   type ModuleNodeType
@@ -33,10 +35,12 @@ import { GuidePanel } from './GuidePanel'
 import { CATEGORY_LABELS, KIND_LABELS, LEVEL_NAMES, PROVENANCE_LABELS } from './labels'
 import { NodePanel } from './NodePanel'
 import { ReplayBar } from './ReplayBar'
+import { UpdatesBar } from './UpdatesBar'
 import { ResolveLinks } from './ResolveLinks'
 import { semanticZoom } from './semanticZoom'
 import { useExplorer } from './useExplorer'
 import { useReplay, type ReplayMark } from './useReplay'
+import { useUpdatesMarks } from './useUpdatesMarks'
 
 const NODE_TYPES = { module: ModuleNode, folder: FolderNode }
 const ARIA_LABELS = {
@@ -52,17 +56,24 @@ const ARIA_LABELS = {
 
 type CodeNodeType = ModuleNodeType | FolderNodeType
 
-/** Ce que dit un nœud pendant la rediffusion (lecteur d'écran) ; vide hors rediffusion. */
-const replayText = (marks: ReadonlyMap<string, ReplayMark> | null, key: string): string => {
+/** Ce que dit un nœud marqué (lecteur d'écran) ; vide sans marques. */
+const marksText = (marks: ShownMarks | null, key: string): string => {
   if (marks === null) return ''
-  const mark = marks.get(key)
+  const mark = marks.byKey.get(key)
+  if (marks.kind === 'updates') return mark === undefined ? '' : `, nouveauté de ${mark.author.name}`
   return mark === undefined ? ', jamais touché jusqu’ici' : `, rediffusion : ${mark.author.name}`
+}
+
+/** Marques montrées sur la carte : rediffusion ou nouveautés depuis la dernière visite (spec 021 T030). */
+interface ShownMarks {
+  readonly kind: ExplorerMarks
+  readonly byKey: ReadonlyMap<string, ReplayMark>
 }
 
 function toFlow(
   view: ExplorerView,
   selected: string | null,
-  marks: ReadonlyMap<string, ReplayMark> | null
+  marks: ShownMarks | null
 ): { nodes: CodeNodeType[]; edges: Edge[] } {
   return {
     nodes: view.nodes.map((node) => ({
@@ -72,7 +83,7 @@ function toFlow(
       data: { ...node, selected: node.key === selected },
       ariaLabel: `${KIND_LABELS[node.kind].text} ${node.title}, ${CATEGORY_LABELS[node.category].text}${
         node.childCount === 0 ? '' : `, ${node.childCount} éléments à l’intérieur`
-      }${node.files.length === 0 ? '' : `, ${node.files.length} fichiers`}${replayText(marks, node.key)}`
+      }${node.files.length === 0 ? '' : `, ${node.files.length} fichiers`}${marksText(marks, node.key)}`
     })) as CodeNodeType[],
     edges: view.edges.map((edge) => ({
       id: `${edge.from}→${edge.to}`,
@@ -114,8 +125,12 @@ function ExplorerMap({
   const settings = useEffectiveSettings()
   const flow = useReactFlow()
   const surface = useRef<HTMLDivElement>(null)
-  const marks = useContext(ReplayMarksContext)
-  const built = useMemo(() => toFlow(view, selected, marks), [view, selected, marks])
+  const byKey = useContext(ReplayMarksContext)
+  const kind = useContext(MarksKindContext)
+  const built = useMemo(
+    () => toFlow(view, selected, byKey === null ? null : { kind, byKey }),
+    [view, selected, byKey, kind]
+  )
   const [nodes, setNodes] = useState<CodeNodeType[]>(built.nodes)
   useEffect(() => setNodes(built.nodes), [built.nodes])
   useEffect(() => {
@@ -209,19 +224,24 @@ function ExplorerMap({
  */
 export function ExplorerPage({
   genesisId,
-  replay: replayAtOpen = false,
+  marks: marksAtOpen = null,
   onClose
 }: {
   readonly genesisId: string
-  /** Ouvrir directement en rediffusion (« Rejouer sur la carte » de l'onglet Historique, spec 021 US5). */
-  readonly replay?: boolean
+  /**
+   * Marques à l'ouverture : rediffusion (« Rejouer sur la carte » de l'onglet Historique, spec 021 US5) ou nouveautés
+   * depuis la dernière visite (« Voir sur la carte », T030).
+   */
+  readonly marks?: ExplorerMarks | null
   readonly onClose: () => void
 }): React.JSX.Element {
   const explorer = useExplorer(genesisId)
-  const [replaying, setReplaying] = useState(replayAtOpen)
+  const [shown, setShown] = useState<ExplorerMarks | null>(marksAtOpen)
+  const replaying = shown === 'replay'
   const visibleKeys = useMemo(() => (explorer.view?.nodes ?? []).map((node) => node.key), [explorer.view])
   const replay = useReplay(genesisId, replaying, visibleKeys)
-  const quitReplay = useCallback(() => setReplaying(false), [])
+  const updates = useUpdatesMarks(genesisId, shown === 'updates', visibleKeys)
+  const quitMarks = useCallback(() => setShown(null), [])
   const ids = { title: useId(), search: useId(), lang: useId() }
   const [list, setList] = useState(false)
   const [query, setQuery] = useState('')
@@ -333,7 +353,10 @@ export function ExplorerPage({
                 disabled={project.analysis.analyzedAt === null || view?.folderMissing === true}
               />
             )}
-            <Button onClick={() => setReplaying((current) => !current)} aria-pressed={replaying}>
+            <Button
+              onClick={() => setShown((current) => (current === 'replay' ? null : 'replay'))}
+              aria-pressed={replaying}
+            >
               Rediffusion
             </Button>
             <Button onClick={() => setList((current) => !current)} aria-pressed={list}>
@@ -492,21 +515,25 @@ export function ExplorerPage({
             />
           ) : (
             <ExplorerNodeActionsContext.Provider value={nodeActions}>
-              <ReplayMarksContext.Provider value={replaying ? replay.marks : null}>
-                <ReactFlowProvider>
-                  <ExplorerMap
-                    genesisId={genesisId}
-                    view={view}
-                    parentKey={explorer.parentKey}
-                    selected={explorer.selected}
-                    centerKey={centerKey}
-                    onSelect={select}
-                    onOpen={(key) => explorer.open(key)}
-                    onUp={up}
-                    onCentered={clearCenter}
-                  />
-                </ReactFlowProvider>
-              </ReplayMarksContext.Provider>
+              <MarksKindContext.Provider value={shown ?? 'replay'}>
+                <ReplayMarksContext.Provider
+                  value={shown === 'replay' ? replay.marks : shown === 'updates' ? updates.marks : null}
+                >
+                  <ReactFlowProvider>
+                    <ExplorerMap
+                      genesisId={genesisId}
+                      view={view}
+                      parentKey={explorer.parentKey}
+                      selected={explorer.selected}
+                      centerKey={centerKey}
+                      onSelect={select}
+                      onOpen={(key) => explorer.open(key)}
+                      onUp={up}
+                      onCentered={clearCenter}
+                    />
+                  </ReactFlowProvider>
+                </ReplayMarksContext.Provider>
+              </MarksKindContext.Provider>
             </ExplorerNodeActionsContext.Provider>
           )}
         </div>
@@ -585,8 +612,10 @@ export function ExplorerPage({
           replay={replay}
           selected={explorer.selected === null ? undefined : (replay.marks.get(explorer.selected) ?? null)}
           selectedTitle={view?.nodes.find((node) => node.key === explorer.selected)?.title ?? null}
-          onQuit={quitReplay}
+          onQuit={quitMarks}
         />
+      ) : shown === 'updates' ? (
+        <UpdatesBar updates={updates} onQuit={quitMarks} />
       ) : null}
       <details className="border-t border-content-muted/20 px-4 py-1 text-xs">
         <summary className="cursor-pointer">Légende</summary>

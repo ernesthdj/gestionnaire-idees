@@ -327,6 +327,27 @@ export const replayArgs = (limit: number, numstat: boolean): string[] => [
   '--format=%x1e%H%x1f%an%x1f%ae%x1f%aI'
 ]
 
+/**
+ * Commits arrivés `from..to` (« Depuis ta dernière visite » sur la carte, T030) avec leurs fichiers, du plus ancien au
+ * plus récent (500 au plus, comme la liste du volet), même format que `replayArgs`.
+ */
+export const rangeReplayArgs = (from: string, to: string): string[] => {
+  if (![from, to].every((hash) => /^[0-9a-f]{7,40}$/.test(hash))) throw new Error('empreinte refusée')
+  return [
+    'log',
+    '-n500',
+    '--reverse',
+    '-z',
+    '--no-color',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--no-renames',
+    '--name-only',
+    '--format=%x1e%H%x1f%an%x1f%ae%x1f%aI',
+    `${from}..${to}`
+  ]
+}
+
 /** « Tout télécharger » (R13) : le filtre du clone partiel est retiré de la configuration locale du dépôt… */
 export const unsetPartialFilterArgs = (remote: string): string[] => [
   'config',

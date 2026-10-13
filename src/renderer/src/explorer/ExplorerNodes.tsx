@@ -2,6 +2,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { createContext, useContext, useState } from 'react'
 import type { ExplorerNodeView } from '@shared/ipc/reprise'
 import { CATEGORY_LABELS } from './labels'
+import type { ExplorerMarks } from '../app/uiStore'
 import type { ReplayMark } from './useReplay'
 
 /** Actions offertes aux nœuds de la carte (D16) : ouvrir un fichier dans le volet, zoomer dans un sous-dossier. */
@@ -23,6 +24,9 @@ export const ExplorerNodeActionsContext = createContext<ExplorerNodeActions>({
  * table n'a jamais été touché jusqu'au commit choisi (pastille « — », bordure neutre).
  */
 export const ReplayMarksContext = createContext<ReadonlyMap<string, ReplayMark> | null>(null)
+
+/** Nature des marques posées (rediffusion ou nouveautés depuis la dernière visite, T030) : change ce qui est dit. */
+export const MarksKindContext = createContext<ExplorerMarks>('replay')
 
 /** Bordure et pastille d'auteur d'un nœud pendant la rediffusion (couleur ET initiales). */
 function ReplayBadge({ id }: { readonly id: string }): React.JSX.Element | null {

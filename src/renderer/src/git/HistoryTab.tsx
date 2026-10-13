@@ -128,7 +128,7 @@ function ReplayEntry({ genesisId }: { readonly genesisId: string }): React.JSX.E
   })
   if (reprise.data === undefined) return null
   return (
-    <Button className="self-start" onClick={() => openExplorer(genesisId, true)}>
+    <Button className="self-start" onClick={() => openExplorer(genesisId, 'replay')}>
       ▶ Rejouer sur la carte
     </Button>
   )
@@ -145,6 +145,13 @@ interface UpdatesView extends LogView {
  */
 function SinceLastVisit({ genesisId }: { readonly genesisId: string }): React.JSX.Element | null {
   const refresh = useRefreshGit(genesisId)
+  const openExplorer = useUiStore((state) => state.openExplorer)
+  // Un projet repris (spec 017) a une cartographie : les éléments touchés s'y surlignent (T030).
+  const reprise = useQuery({
+    queryKey: ['reprise', genesisId],
+    queryFn: () => call('reprise:get', { genesisId }),
+    retry: false
+  })
   const updates = useQuery({
     queryKey: [...gitKeys.all(genesisId), 'updates'],
     queryFn: () => call<UpdatesView>('git:updates', { genesisId }),
@@ -167,6 +174,15 @@ function SinceLastVisit({ genesisId }: { readonly genesisId: string }): React.JS
         <p className="flex-1 text-xs font-semibold">
           ✦ Depuis ta dernière visite : {data.commits.length} commit{data.commits.length > 1 ? 's' : ''}
         </p>
+        {reprise.data === undefined ? null : (
+          <button
+            type="button"
+            className="rounded-md border border-content-muted/40 px-2 py-1 text-xs hover:bg-surface-raised"
+            onClick={() => openExplorer(genesisId, 'updates')}
+          >
+            Voir sur la carte
+          </button>
+        )}
         <button
           type="button"
           className="rounded-md border border-content-muted/40 px-2 py-1 text-xs hover:bg-surface-raised disabled:opacity-50"
