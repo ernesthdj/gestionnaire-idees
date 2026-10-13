@@ -5,11 +5,17 @@ import type { AuthorView, GitCommitView } from '@shared/git/model'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys } from './gitQueries'
-import { ContributionSkyline } from './skyline/ContributionSkyline'
+import { ContributionSkyline, type SkylineSpan } from './skyline/ContributionSkyline'
 
 type Zoom = 'semaine' | 'mois' | 'annee'
 const SPANS: Readonly<Record<Zoom, number>> = { semaine: 7, mois: 31, annee: 366 }
 const DAY = 24 * 60 * 60 * 1000
+/** La Skyline suit le zoom de la frise. */
+const SKYLINE_SPANS: Readonly<Record<Zoom, SkylineSpan>> = {
+  semaine: { days: 7, label: 'sur une semaine' },
+  mois: { days: 31, label: 'sur un mois' },
+  annee: { days: 365, label: 'sur un an' }
+}
 const PAGE = 5_000
 
 const errorText = (error: unknown): string => (error instanceof IpcFailure ? error.message : 'L’opération a échoué.')
@@ -24,7 +30,7 @@ export function withRealNames(story: StoryView, authors: readonly AuthorView[]):
 }
 
 /** Écart minimal entre deux points d'une même ligne, et marge de la piste (en % de la largeur). */
-const MIN_GAP = 3
+const MIN_GAP = 1.5
 const EDGE = 4
 
 /**
@@ -79,15 +85,60 @@ export function windowOf(
   }
   const times = commits.map((commit) => Date.parse(commit.date))
   const end = Math.max(...times, 0)
-  const limit = end - SPANS[zoom] * DAY
-  // Historique plus court que le zoom : la frise commence au premier commit affiché (rien n'est tassé à droite).
-  const start = Math.max(limit, Math.min(...times, end))
-  return { start, end, shown: commits.filter((commit) => Date.parse(commit.date) >= limit) }
+  // Toujours toute la période du zoom : semaine, mois et année se distinguent même sur un historique court.
+  const start = end - SPANS[zoom] * DAY
+  return { start, end, shown: commits.filter((commit) => Date.parse(commit.date) >= start) }
+}
+
+/** Tranche de temps regroupée en un seul point : 6 h à la semaine, un jour au mois, une semaine à l'année. */
+const BUCKETS: Readonly<Record<Zoom, number>> = { semaine: DAY / 4, mois: DAY, annee: 7 * DAY }
+
+export interface CommitBucket {
+  readonly key: string
+  readonly authorKey: string
+  /** Du plus ancien au plus récent. */
+  readonly commits: readonly GitCommitView[]
+  /** Milieu de la tranche (ms). */
+  readonly at: number
+}
+
+/**
+ * Points de la frise : les commits d'un même auteur dans une même tranche sont regroupés (un point, leur nombre), sinon
+ * des centaines de commits s'empileraient au bord de la piste et les zooms se ressembleraient. Triés par date. Pur.
+ */
+export function bucketsOf(commits: readonly GitCommitView[], zoom: Zoom): CommitBucket[] {
+  const groups = new Map<string, { slot: number; list: GitCommitView[] }>()
+  for (const commit of [...commits].sort((a, b) => Date.parse(a.date) - Date.parse(b.date))) {
+    const slot = sliceStart(Date.parse(commit.date), zoom)
+    const key = `${commit.authorKey}:${slot}`
+    const group = groups.get(key) ?? { slot, list: [] }
+    group.list.push(commit)
+    groups.set(key, group)
+  }
+  return [...groups]
+    .map(([key, { slot, list }]) => ({
+      key,
+      authorKey: list[0]?.authorKey ?? '',
+      commits: list,
+      at: slot + BUCKETS[zoom] / 2
+    }))
+    .sort((a, b) => a.at - b.at || a.authorKey.localeCompare(b.authorKey))
+}
+
+/** Début de la tranche d'un instant, sur le calendrier local : minuit (+ 6 h par 6 h à la semaine), lundi à l'année. */
+function sliceStart(time: number, zoom: Zoom): number {
+  const date = new Date(time)
+  const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  if (zoom === 'semaine') return midnight.getTime() + Math.floor(date.getHours() / 6) * (DAY / 4)
+  if (zoom === 'mois') return midnight.getTime()
+  midnight.setDate(midnight.getDate() - ((midnight.getDay() + 6) % 7))
+  return midnight.getTime()
 }
 
 /**
  * Frise « qui a fait quoi et quand » (spec 021 US5, lot 1) : une ligne par auteur (couleur ET initiales, légende
- * toujours visible), un point par commit, zoom semaine / mois / année, flèches ← → = commit précédent / suivant,
+ * toujours visible), un point par tranche de temps (son nombre de commits), zoom semaine / mois / année, flèches ← → =
+ * point précédent / suivant,
  * « Charger plus », fusion de deux identités d'une même personne, « Raconter la période » par Claude (pseudonymes,
  * vrais noms remis ici).
  */
@@ -149,9 +200,10 @@ export function Timeline({
   if (pages === null || view === null) return null
   if (pages.commits.length === 0) return null
   const authors = new Map(pages.authors.map((author) => [author.key, author] as const))
-  // Du plus ancien au plus récent : ← = commit précédent, → = suivant.
-  const ordered = [...view.shown].sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+  // Points du plus ancien au plus récent : ← = point précédent, → = suivant.
+  const ordered = bucketsOf(view.shown, zoom)
   const span = Math.max(1, view.end - view.start)
+  const lastOf = (bucket: CommitBucket): string => bucket.commits.at(-1)?.hash ?? ''
   const current = pages.commits.find((commit) => commit.hash === selected) ?? null
   const focused = focus === null ? undefined : authors.get(focus)
   // Un jour de la Skyline (« AAAA-MM-JJ ») : frise d'une semaine centrée sur midi de ce jour, premier commit choisi.
@@ -166,11 +218,11 @@ export function Timeline({
     setSelected(first?.hash ?? null)
   }
   const move = (from: string, step: number): void => {
-    const index = ordered.findIndex((commit) => commit.hash === from)
+    const index = ordered.findIndex((bucket) => bucket.key === from)
     const next = ordered[index + step]
     if (next === undefined) return
-    setSelected(next.hash)
-    points.current.get(next.hash)?.focus()
+    setSelected(lastOf(next))
+    points.current.get(next.key)?.focus()
   }
   const error = [load, mergeAuthors, unmerge, story].find((mutation) => mutation.error !== null)?.error ?? null
 
@@ -200,6 +252,7 @@ export function Timeline({
         dates={skylineDates}
         color={focused?.color ?? null}
         title={focused?.name ?? 'Tous les auteurs'}
+        span={SKYLINE_SPANS[zoom]}
         onDayClick={showDay}
       />
 
@@ -272,34 +325,42 @@ export function Timeline({
             </span>
             <div className="relative h-5 flex-1 rounded bg-surface-raised">
               {spread(
-                ordered.filter((commit) => commit.authorKey === author.key),
-                (commit) => (view.end === view.start ? 50 : ((Date.parse(commit.date) - view.start) / span) * 100)
-              ).map(({ item: commit, left }) => (
-                <button
-                  key={commit.hash}
-                  ref={(element) => {
-                    if (element === null) points.current.delete(commit.hash)
-                    else points.current.set(commit.hash, element)
-                  }}
-                  type="button"
-                  aria-label={`${commit.subject}, ${dateText(commit.date)}, ${author.name}`}
-                  aria-pressed={selected === commit.hash}
-                  onClick={() => setSelected(commit.hash)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                      event.preventDefault()
-                      move(commit.hash, event.key === 'ArrowLeft' ? -1 : 1)
+                ordered.filter((bucket) => bucket.authorKey === author.key),
+                (bucket) => ((bucket.at - view.start) / span) * 100
+              ).map(({ item: bucket, left }) => {
+                const count = bucket.commits.length
+                const only = bucket.commits[0]
+                const pressed = bucket.commits.some((commit) => commit.hash === selected)
+                return (
+                  <button
+                    key={bucket.key}
+                    ref={(element) => {
+                      if (element === null) points.current.delete(bucket.key)
+                      else points.current.set(bucket.key, element)
+                    }}
+                    type="button"
+                    aria-label={
+                      count === 1 && only !== undefined
+                        ? `${only.subject}, ${dateText(only.date)}, ${author.name}`
+                        : `${count} commits du ${dateText(bucket.commits[0]?.date ?? '')} au ${dateText(bucket.commits.at(-1)?.date ?? '')}, ${author.name}`
                     }
-                  }}
-                  className={`absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-                    selected === commit.hash ? 'border-content' : 'border-surface'
-                  }`}
-                  style={{
-                    left: `${left}%`,
-                    background: author.color
-                  }}
-                />
-              ))}
+                    aria-pressed={pressed}
+                    onClick={() => setSelected(lastOf(bucket))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.preventDefault()
+                        move(bucket.key, event.key === 'ArrowLeft' ? -1 : 1)
+                      }
+                    }}
+                    className={`absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 text-[9px] font-semibold text-white ${
+                      count === 1 ? 'h-3 w-3' : count < 10 ? 'h-4 w-4' : 'h-5 min-w-5 px-0.5'
+                    } ${pressed ? 'border-content' : 'border-surface'}`}
+                    style={{ left: `${left}%`, background: author.color }}
+                  >
+                    {count === 1 ? null : count}
+                  </button>
+                )
+              })}
             </div>
           </div>
         ))}
@@ -325,7 +386,12 @@ export function Timeline({
         ) : null}
         <Button
           disabled={story.isPending || ordered.length === 0}
-          onClick={() => story.mutate({ from: ordered[0]?.hash ?? '', to: ordered.at(-1)?.hash ?? '' })}
+          onClick={() =>
+            story.mutate({
+              from: ordered[0]?.commits[0]?.hash ?? '',
+              to: lastOf(ordered.at(-1) ?? { key: '', authorKey: '', commits: [], at: 0 })
+            })
+          }
         >
           {story.isPending ? 'Claude raconte…' : '✨ Raconter la période'}
         </Button>

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   barHeight,
   buildGrid,
@@ -26,6 +26,43 @@ type RGB = readonly [number, number, number]
 
 /** Part de la couleur de base à chaque niveau (1 à 4), mêlée à la couleur des jours vides. */
 const LEVEL_MIX = [0.35, 0.55, 0.78, 1] as const
+
+/**
+ * Palettes au choix (référence visuelle de mentalyas, composant « Contribution Skyline ») : quatre teintes par thème, du
+ * jour le plus calme au plus chargé. `auto` : la couleur de l'auteur choisi, sinon l'accent du thème.
+ */
+export const PALETTES = {
+  github: { light: ['#c6e48b', '#7bc96f', '#239a3b', '#196127'], dark: ['#0e4429', '#006d32', '#26a641', '#39d353'] },
+  halloween: {
+    light: ['#ffee4a', '#ffc501', '#fe9600', '#b33c00'],
+    dark: ['#631c03', '#bd561d', '#fa7a18', '#fddf68']
+  },
+  ocean: { light: ['#b8e3f5', '#6ec3eb', '#2a8fd1', '#0b4f8a'], dark: ['#0c2d4a', '#12508a', '#2a88d8', '#7cc7ff'] },
+  ember: { light: ['#fde2c4', '#fbad6e', '#f06b3a', '#b3261e'], dark: ['#4a1a10', '#8f2f16', '#e0572a', '#ffa46b'] },
+  grape: { light: ['#e4d4fb', '#b794f4', '#805ad5', '#44337a'], dark: ['#2d1f4f', '#553c9a', '#8b5cf6', '#c4b5fd'] },
+  mono: { light: ['#d4d4d4', '#a3a3a3', '#525252', '#171717'], dark: ['#333333', '#5c5c5c', '#a3a3a3', '#fafafa'] }
+} as const
+export type PaletteName = 'auto' | keyof typeof PALETTES
+const PALETTE_NAMES: Readonly<Record<PaletteName, string>> = {
+  auto: 'Auto (auteur ou thème)',
+  github: 'GitHub',
+  halloween: 'Halloween',
+  ocean: 'Océan',
+  ember: 'Braise',
+  grape: 'Raisin',
+  mono: 'Gris'
+}
+const PALETTE_KEY = 'skyline.palette'
+const isPalette = (value: string | null): value is PaletteName => value !== null && Object.hasOwn(PALETTE_NAMES, value)
+/** Palette retenue (confort par poste) ; `auto` si le stockage est indisponible. */
+function savedPalette(): PaletteName {
+  try {
+    const value = window.localStorage.getItem(PALETTE_KEY)
+    return isPalette(value) ? value : 'auto'
+  } catch {
+    return 'auto'
+  }
+}
 const LEVEL_NAMES = ['Aucun commit', 'Peu', 'Modéré', 'Soutenu', 'Intense'] as const
 
 let probe: CanvasRenderingContext2D | null = null
@@ -89,6 +126,7 @@ function quadPath(ctx: CanvasRenderingContext2D, p: Float32Array, o: number, rad
 
 const numbers = new Intl.NumberFormat('fr-BE')
 const shortDate = new Intl.DateTimeFormat('fr-BE', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const yearDate = new Intl.DateTimeFormat('fr-BE', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 const longDate = new Intl.DateTimeFormat('fr-BE', {
   weekday: 'long',
   day: 'numeric',
@@ -99,8 +137,19 @@ const longDate = new Intl.DateTimeFormat('fr-BE', {
 const commits = (count: number): string =>
   count === 0 ? 'aucun commit' : `${numbers.format(count)} commit${count > 1 ? 's' : ''}`
 const describe = (date: string, count: number): string => `${commits(count)} le ${longDate.format(keyMs(date))}`
-const range = (start: string | null, end: string | null): string =>
-  start === null || end === null ? '—' : `${shortDate.format(keyMs(start))} — ${shortDate.format(keyMs(end))}`
+/** Période ; `withYear` : l'année aussi (la période d'un an commence et finit le même jour du mois). */
+const range = (start: string | null, end: string | null, withYear = false): string => {
+  const format = withYear ? yearDate : shortDate
+  return start === null || end === null ? '—' : `${format.format(keyMs(start))} — ${format.format(keyMs(end))}`
+}
+
+export interface SkylineSpan {
+  readonly days: number
+  /** « sur un an », « sur un mois »… */
+  readonly label: string
+}
+const YEAR: SkylineSpan = { days: 365, label: 'sur un an' }
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1)
 
 interface Engine {
   readonly kick: () => void
@@ -120,6 +169,7 @@ export function ContributionSkyline({
   dates,
   color,
   title,
+  span = YEAR,
   onDayClick
 }: {
   /** Dates ISO des commits affichés. */
@@ -127,15 +177,19 @@ export function ContributionSkyline({
   /** Couleur de base (celle d'un auteur) ; `null` : l'accent du thème. */
   readonly color: string | null
   readonly title: string
+  /** Période montrée (le zoom de la frise) : nombre de jours et son nom (« sur un an »). */
+  readonly span?: SkylineSpan
   readonly onDayClick?: (date: string) => void
 }): React.JSX.Element {
   const model = useMemo(() => {
     const days = dates.map(dayOf).filter(Number.isFinite)
     const end = days.length === 0 ? dayOf(new Date().toISOString()) : Math.max(...days)
-    const grid = buildGrid(countByDay(dates), end)
+    const grid = buildGrid(countByDay(dates), end, span.days)
     return { ...grid, stats: computeStats(grid.cells), months: monthLabels(grid.cells, grid.weeks) }
-  }, [dates])
+  }, [dates, span.days])
   const [view, setView] = useState<View>('3d')
+  const [palette, setPalette] = useState<PaletteName>(savedPalette)
+  const paletteId = useId()
   const [active, setActive] = useState(-1)
   const [legendLevel, setLegendLevel] = useState(-1)
   const [swatches, setSwatches] = useState<readonly string[]>([])
@@ -146,10 +200,21 @@ export function ContributionSkyline({
   const tipRef = useRef<HTMLDivElement>(null)
   const engine = useRef<Engine | null>(null)
   // Ce que lit la boucle de rendu, rafraîchi à chaque rendu : elle ne garde jamais de props périmées.
-  const cfg = useRef({ model, color, legendLevel, target: 1, onDayClick, setActive, setSwatches, setAnnounce })
+  const cfg = useRef({
+    model,
+    color,
+    palette,
+    legendLevel,
+    target: 1,
+    onDayClick,
+    setActive,
+    setSwatches,
+    setAnnounce
+  })
   cfg.current = {
     model,
     color,
+    palette,
     legendLevel,
     target: view === '3d' ? 1 : 0,
     onDayClick,
@@ -251,7 +316,11 @@ export function ContributionSkyline({
       font = `400 10px ${style.fontFamily || 'sans-serif'}`
       const base = toRGB(cfg.current.color ?? style.getPropertyValue('--color-accent').trim(), [37, 99, 235])
       const empty = mix(bg, fg, dark ? 0.11 : 0.075)
-      const all: RGB[] = [empty, ...LEVEL_MIX.map((share) => mix(empty, base, share))]
+      const chosen = cfg.current.palette
+      const all: RGB[] =
+        chosen === 'auto'
+          ? [empty, ...LEVEL_MIX.map((share) => mix(empty, base, share))]
+          : [empty, ...PALETTES[chosen][dark ? 'dark' : 'light'].map((hex) => toRGB(hex, base))]
       all.forEach((value, level) => value.forEach((channel, index) => (colorGoal[level * 3 + index] = channel)))
       if (!colorsReady || reduced) {
         colors.set(colorGoal)
@@ -301,7 +370,8 @@ export function ContributionSkyline({
       gutter = width < 520 ? 0 : 30
       dpr = Math.min(2, window.devicePixelRatio || 1)
       const flat = extent(camera(0), 0, true)
-      height2 = 24 + ((flat.maxY - flat.minY) / (flat.maxX - flat.minX)) * (width - gutter - 4)
+      // Une semaine ou un mois : peu de colonnes, la carte resterait très haute sans plafond.
+      height2 = Math.min(260, 24 + ((flat.maxY - flat.minY) / (flat.maxX - flat.minX)) * (width - gutter - 4))
       const relief = extent(camera(1), 1, true)
       const natural = ((relief.maxY - relief.minY) / (relief.maxX - relief.minX)) * (width - 40) + 40
       height3 = Math.max(Math.min(natural, width * 0.6, 420), Math.min(natural, 200))
@@ -771,7 +841,15 @@ export function ContributionSkyline({
 
   useEffect(() => engine.current?.kick(), [view, legendLevel])
   useEffect(() => engine.current?.load(), [model])
-  useEffect(() => engine.current?.retheme(), [color])
+  useEffect(() => engine.current?.retheme(), [color, palette])
+  const choosePalette = (next: PaletteName): void => {
+    setPalette(next)
+    try {
+      window.localStorage.setItem(PALETTE_KEY, next)
+    } catch {
+      // Stockage indisponible : le choix vaut pour cette session.
+    }
+  }
   // La largeur de l'infobulle la garde dans le cadre : mesurée quand son texte change.
   useLayoutEffect(() => {
     if (tipRef.current !== null && active >= 0) engine.current?.tipWidth(tipRef.current.offsetWidth)
@@ -783,10 +861,10 @@ export function ContributionSkyline({
   const plural = (count: number, word: string): string => (count > 1 ? `${word}s` : word)
   const blocks = [
     {
-      label: 'Sur un an',
+      label: capital(span.label),
       value: numbers.format(stats.total),
       unit: plural(stats.total, 'commit'),
-      sub: range(model.cells[0]?.date ?? null, model.cells.at(-1)?.date ?? null)
+      sub: range(model.cells[0]?.date ?? null, model.cells.at(-1)?.date ?? null, true)
     },
     {
       label: 'Jour le plus chargé',
@@ -817,8 +895,25 @@ export function ContributionSkyline({
       <header className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <p className="font-semibold">
           {title} : <span className="tabular-nums">{numbers.format(stats.total)}</span> commit
-          {stats.total > 1 ? 's' : ''} sur un an
+          {stats.total > 1 ? 's' : ''} {span.label}
         </p>
+        <label htmlFor={paletteId} className="sr-only">
+          Couleurs de la Skyline
+        </label>
+        <select
+          id={paletteId}
+          value={palette}
+          onChange={(event) => {
+            if (isPalette(event.target.value)) choosePalette(event.target.value)
+          }}
+          className="ml-auto h-7 rounded-md bg-surface-raised px-1"
+        >
+          {(Object.keys(PALETTE_NAMES) as PaletteName[]).map((name) => (
+            <option key={name} value={name}>
+              {PALETTE_NAMES[name]}
+            </option>
+          ))}
+        </select>
         <div role="group" aria-label="Vue de la Skyline" className="flex gap-1">
           {(['2d', '3d'] as const).map((value) => (
             <button
@@ -843,7 +938,7 @@ export function ContributionSkyline({
             ref={canvasRef}
             tabIndex={0}
             role="img"
-            aria-label={`${commits(stats.total)} sur un an, en ${is3d ? 'relief 3D' : 'carte de chaleur'}. Flèches du clavier pour lire chaque jour, Entrée pour le voir dans la frise.`}
+            aria-label={`${commits(stats.total)} ${span.label}, en ${is3d ? 'relief 3D' : 'carte de chaleur'}. Flèches du clavier pour lire chaque jour, Entrée pour le voir dans la frise.`}
             className="absolute top-0 left-0 block outline-none"
             style={{ maxWidth: 'none', touchAction: is3d ? 'pan-y' : 'auto' }}
           />

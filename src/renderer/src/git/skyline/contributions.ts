@@ -78,16 +78,18 @@ export const levelOf = (count: number, busy: number): number =>
   count <= 0 ? 0 : busy <= 0 ? 4 : 1 + Math.min(3, Math.floor((count / busy) * 4))
 
 /**
- * La grille d'un an finissant le jour `endMs`, commencée le lundi de la semaine d'il y a un an. Les niveaux se calculent
- * sur le 95e centile des jours actifs : un jour exceptionnel n'écrase pas tous les autres au niveau 1.
+ * La grille de `days` jours (un an par défaut) finissant le jour `endMs`, commencée le lundi de sa première semaine ;
+ * les jours de calage avant la période restent vides (le total est celui de la période). Les niveaux se calculent sur le
+ * 95e centile des jours actifs : un jour exceptionnel n'écrase pas tous les autres au niveau 1.
  */
-export function buildGrid(counts: ReadonlyMap<string, number>, endMs: number): Grid {
-  let start = endMs - 364 * DAY_MS
-  start -= ((new Date(start).getUTCDay() + 6) % 7) * DAY_MS
+export function buildGrid(counts: ReadonlyMap<string, number>, endMs: number, days = 365): Grid {
+  const first = endMs - (Math.max(1, days) - 1) * DAY_MS
+  const start = first - ((new Date(first).getUTCDay() + 6) % 7) * DAY_MS
   const raw: { date: string; count: number; week: number; day: number }[] = []
   for (let ms = start, index = 0; ms <= endMs; ms += DAY_MS, index += 1) {
     const date = toKey(ms)
-    raw.push({ date, count: counts.get(date) ?? 0, week: Math.floor(index / 7), day: index % 7 })
+    const count = ms < first ? 0 : (counts.get(date) ?? 0)
+    raw.push({ date, count, week: Math.floor(index / 7), day: index % 7 })
   }
   const active = raw
     .map((cell) => cell.count)

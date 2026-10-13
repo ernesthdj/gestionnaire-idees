@@ -26,6 +26,19 @@ describe('Skyline des contributions, calculs purs (spec 021 D16)', () => {
     expect(grid.max).toBe(3)
   })
 
+  it('should_follow_a_shorter_span_and_leave_the_monday_padding_empty', () => {
+    // Mardi 13 octobre, une semaine : la période commence le mercredi 7, la grille le lundi 5.
+    const counts = new Map([
+      ['2026-10-05', 9],
+      ['2026-10-07', 2],
+      ['2026-10-13', 1]
+    ])
+    const grid = buildGrid(counts, END, 7)
+    expect(grid.cells[0]).toMatchObject({ date: '2026-10-05', count: 0 })
+    expect(grid.weeks).toBe(2)
+    expect(computeStats(grid.cells).total).toBe(3)
+  })
+
   it('should_level_days_by_quarters_of_the_95th_percentile_so_one_huge_day_does_not_flatten_the_rest', () => {
     expect(levelOf(0, 10)).toBe(0)
     expect(levelOf(1, 10)).toBe(1)

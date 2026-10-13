@@ -1682,3 +1682,43 @@ une note demandée sur un dépôt MIT aurait écrit le code. Copie et note sont 
 code n'est jamais préparé quand la licence ne le permet pas. La règle AGPL attrapait la GPL-3.0, qui la cite.
 **Regle apprise :** quand un mode « sans le contenu » existe, ne jamais dériver son texte de celui « avec contenu » :
 préparer les deux séparément, et ne jamais préparer le contenu interdit.
+
+### [2026-10-13 18:50] FIX — Entrée permanente du volet Dépôt dans la barre du projet
+**Fichiers :** `src/renderer/src/git/RepoBadge.tsx` (variante `bar`), `src/renderer/src/home/BrainstormBar.tsx`,
+`tests/unit/renderer/brainstorm-bar.test.tsx`
+**Resume :** Retour de mentalyas en test : le volet Dépôt ne s'ouvrait que par le bandeau d'ouverture (refermable) ou
+le badge du genesis sur la carte ; bandeau fermé, plus d'accès visible. Le badge du dépôt (branche, état, ↑ ↓) est
+désormais aussi dans la barre du projet ouvert, à côté de « Points de sauvegarde », toujours visible ; un clic ouvre
+le volet. Raccourci existant : Ctrl+Maj+G.
+**Regle apprise :** une fonction ne doit jamais n'être accessible que depuis un élément refermable : toujours une
+entrée permanente.
+
+### [2026-10-13 19:10] FIX — Frise : zooms distincts et commits regroupés ; Skyline : choix des couleurs
+**Fichiers :** `src/renderer/src/git/Timeline.tsx` (`bucketsOf`, fenêtre pleine), `src/renderer/src/git/skyline/ContributionSkyline.tsx`
+(palettes, période avec l'année), `src/renderer/src/git/RepoBadge.tsx` (nom accessible de la barre), tests
+(`git-timeline.test.tsx`, `brainstorm-bar.test.tsx`, e2e `git-history.e2e.ts`)
+**Resume :** Retours de mentalyas en test. (1) Semaine / mois / année semblaient sans effet : sur ce dépôt (209 commits
+en 15 jours, un seul auteur), les points, tenus à 3 % d'écart, s'empilaient au bord droit, et un historique plus court
+que le zoom faisait commencer la frise au premier commit (mois = année). La frise couvre désormais toute la période du
+zoom, et les commits d'un auteur sont regroupés par tranche du calendrier local (6 h à la semaine, un jour au mois, une
+semaine à l'année) en une pastille qui porte leur nombre ; les flèches passent de pastille en pastille. Vérifié sur un
+clone de ce dépôt. (2) « Changement de couleurs » : sélecteur de palette de la Skyline (Auto, GitHub, Halloween, Océan,
+Braise, Raisin, Gris, d'après la référence), retenu par poste. (3) « Sur un an » affiche l'année (« 13 oct. — 13 oct. »
+était ambigu). Le badge de la barre se nomme « Dépôt du projet : … » (deux badges au même nom gênaient les e2e).
+**Erreur corrigée :** premier regroupement calé sur la fenêtre (qui finit à l'heure du dernier commit) au lieu du
+calendrier : un même jour était coupé en deux.
+**Observé :** `side-panel.e2e.ts` échoue parfois dans la suite complète (un test différent à chaque fois), jamais seul :
+instable, sans lien avec ces changements ; à traiter à part (même cause probable que les e2e rendus déterministes ce
+matin).
+**Regle apprise :** une frise de points doit regrouper au-delà d'une densité donnée ; un écart minimal entre points ne
+suffit pas, il pousse tout au bord.
+
+### [2026-10-13 19:25] FIX — La Skyline suit le zoom de la frise
+**Fichiers :** `src/renderer/src/git/skyline/{contributions.ts,ContributionSkyline.tsx}`, `src/renderer/src/git/Timeline.tsx`, tests
+(`skyline.test.ts`, `git-timeline.test.tsx`, e2e `git-history.e2e.ts`)
+**Resume :** Retour de mentalyas : le zoom semaine / mois / année « ne fonctionne toujours pas ». Les boutons sont juste
+au-dessus de la Skyline, qui occupe la place, mais ne changeaient que les lignes de la frise en dessous. La Skyline
+montre désormais la période du zoom (7, 31 ou 365 jours : « sur une semaine », « sur un mois », « sur un an »), carte de
+chaleur plafonnée en hauteur pour les périodes courtes ; les jours de calage avant la période (début au lundi) restent
+vides, le total est celui de la période. Vérifié sur un clone de ce dépôt aux trois zooms.
+**Regle apprise :** une commande doit agir sur ce qu'elle surplombe ; sinon l'utilisateur conclut qu'elle ne marche pas.

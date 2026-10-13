@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HistoryView } from '../../../src/shared/git/history'
-import { Timeline, withRealNames, windowOf } from '../../../src/renderer/src/git/Timeline'
+import { bucketsOf, Timeline, withRealNames, windowOf } from '../../../src/renderer/src/git/Timeline'
 import { expectNoAxeViolations } from '../../support/axe'
 import { installFakeApi } from './support/fakeApi'
 
@@ -128,10 +128,18 @@ describe('frise des auteurs (spec 021 T043, US5 lot 1)', () => {
     const user = userEvent.setup()
     const { container } = renderTimeline({ 'git:history': () => history() })
     const skyline = await screen.findByRole('region', { name: 'Skyline des contributions' })
-    expect(skyline.textContent).toContain('Tous les auteurs : 4 commits sur un an')
+    expect(skyline.textContent).toContain('Tous les auteurs : 4 commits sur un mois')
     await user.click(screen.getByRole('button', { name: 'Skyline de Alice Fictive' }))
     expect(screen.getByRole('button', { name: 'Skyline de Alice Fictive', pressed: true })).toBeDefined()
+    expect(skyline.textContent).toContain('Alice Fictive : 2 commits sur un mois')
+    // La Skyline suit le zoom de la frise.
+    await user.click(screen.getByRole('button', { name: 'année' }))
     expect(skyline.textContent).toContain('Alice Fictive : 2 commits sur un an')
+    await user.click(screen.getByRole('button', { name: 'semaine' }))
+    expect(skyline.textContent).toContain('sur une semaine')
+    await user.click(screen.getByRole('button', { name: 'mois' }))
+    await user.selectOptions(screen.getByLabelText('Couleurs de la Skyline'), 'ocean')
+    expect((screen.getByLabelText('Couleurs de la Skyline') as HTMLSelectElement).value).toBe('ocean')
     await user.click(screen.getByRole('button', { name: 'Carte de chaleur' }))
     expect(screen.getByRole('button', { name: 'Carte de chaleur', pressed: true })).toBeDefined()
     await expectNoAxeViolations(container)
@@ -142,5 +150,20 @@ describe('frise des auteurs (spec 021 T043, US5 lot 1)', () => {
   it('should_centre_the_window_on_a_chosen_day', () => {
     const noon = new Date(2026, 9, 1, 12).getTime()
     expect(windowOf(history().commits, 'semaine', noon).shown.map((entry) => entry.subject)).toEqual(['feat: 1'])
+  })
+
+  it('should_group_close_commits_into_one_point_per_slice_and_always_span_the_whole_zoom', () => {
+    const at = (hour: number) => ({
+      ...commit(hour, A, 9),
+      hash: String(hour).padStart(40, 'h'),
+      date: `2026-10-09T${String(hour).padStart(2, '0')}:00:00Z`
+    })
+    const day = [at(1), at(2), at(3), at(13), at(14)]
+    const month = windowOf(day, 'mois')
+    expect(month.end - month.start).toBe(31 * 24 * 3600 * 1000)
+    expect(bucketsOf(day, 'mois').map((bucket) => bucket.commits.length)).toEqual([5])
+    expect(bucketsOf(day, 'semaine').map((bucket) => bucket.commits.length)).toEqual([3, 2])
+    const mixed = [...day, { ...at(4), authorKey: B }]
+    expect(bucketsOf(mixed, 'mois').map((bucket) => bucket.authorKey)).toEqual([A, B])
   })
 })

@@ -39,9 +39,14 @@ describe('qui a fait quoi et quand dans l’app (spec 021 US5, e2e)', () => {
     const timeline = panel.getByRole('region', { name: 'Frise des auteurs' })
     await timeline.waitFor()
     expect(await timeline.getByRole('list', { name: 'Légende des auteurs' }).getByRole('listitem').count()).toBe(3)
-    await timeline.getByRole('button', { name: /^chore: départ,/ }).click()
-    await page.keyboard.press('ArrowRight')
+    // Les commits du scénario datent du même jour : ceux d'Alice sont regroupés en un point (« 2 commits »).
+    await timeline.getByRole('button', { name: /^2 commits du .*Fictive$/ }).waitFor()
+    await timeline.getByRole('button', { name: /^feat: a,/ }).click()
     await timeline.getByText(/sélection : « feat: a »/).waitFor()
+    // Les flèches passent au point voisin (même tranche : ordre des auteurs) ; Bob peut être le premier point.
+    await page.keyboard.press('ArrowLeft')
+    if ((await timeline.getByText(/sélection : « feat: a »/).count()) > 0) await page.keyboard.press('ArrowRight')
+    await timeline.getByText(/sélection : « (?!feat: a »)/).waitFor()
     await run.shot('021-us5-01-frise')
 
     await timeline.getByLabel('Choisir Chloé Fictive pour fusionner').check()
@@ -59,15 +64,24 @@ describe('qui a fait quoi et quand dans l’app (spec 021 US5, e2e)', () => {
     const { page } = run
     const panel = page.getByRole('region', { name: 'Dépôt' })
     const skyline = panel.getByRole('region', { name: 'Skyline des contributions' })
-    await skyline.getByText(/Tous les auteurs : \d+ commits? sur un an/).waitFor()
+    await skyline.getByText(/Tous les auteurs : \d+ commits? sur un mois/).waitFor()
     // Le relief monte en vague (1,3 s) la première fois qu'il est vu.
     await page.waitForTimeout(1800)
     await skyline.screenshot({ path: join(SHOTS, '021-d16-01-skyline-3d.png') })
     await panel.getByRole('button', { name: 'Skyline de Bob Fictif' }).click()
-    await skyline.getByText(/Bob Fictif : \d+ commits? sur un an/).waitFor()
+    await skyline.getByText(/Bob Fictif : \d+ commits? sur un (mois|an)/).waitFor()
     await skyline.getByRole('button', { name: 'Carte de chaleur' }).click()
     await page.waitForTimeout(1800)
     await skyline.screenshot({ path: join(SHOTS, '021-d16-02-skyline-2d-auteur.png') })
+    await skyline.getByLabel('Couleurs de la Skyline').selectOption('ocean')
+    await page.waitForTimeout(800)
+    await skyline.screenshot({ path: join(SHOTS, '021-d16-03-skyline-ocean.png') })
+    const frise = panel.getByRole('region', { name: 'Frise des auteurs' })
+    for (const zoom of ['semaine', 'mois', 'année'] as const) {
+      await frise.getByRole('button', { name: zoom, exact: true }).click()
+      await frise.screenshot({ path: join(SHOTS, `021-us5-frise-${zoom}.png`) })
+    }
+    await skyline.getByLabel('Couleurs de la Skyline').selectOption('auto')
     // Entrée sur le jour actif (le dernier) : la frise se centre sur ce jour.
     await skyline.getByRole('img').focus()
     await page.keyboard.press('ArrowLeft')

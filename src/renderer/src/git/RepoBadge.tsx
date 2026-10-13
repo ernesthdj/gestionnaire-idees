@@ -21,9 +21,16 @@ export function repoStateText(status: GitStatusView): string {
 
 /**
  * Badge du dépôt sur le genesis d'un projet lié (spec 021 T016) : branche et nombre de fichiers modifiés ; un clic ouvre
- * le volet Dépôt. Dossier introuvable ou git absent : dit en clair.
+ * le volet Dépôt. Dossier introuvable ou git absent : dit en clair. `bar` : le même badge dans la barre du projet
+ * ouvert, toujours visible (l'entrée du volet ne dépend plus du bandeau d'ouverture, refermable).
  */
-export function RepoBadge({ genesisId }: { readonly genesisId: string }): React.JSX.Element | null {
+export function RepoBadge({
+  genesisId,
+  variant = 'node'
+}: {
+  readonly genesisId: string
+  readonly variant?: 'node' | 'bar'
+}): React.JSX.Element | null {
   const openRepo = useUiStore((state) => state.openRepo)
   const query = useGitStatus(genesisId)
   const text =
@@ -38,9 +45,13 @@ export function RepoBadge({ genesisId }: { readonly genesisId: string }): React.
   return (
     <button
       type="button"
-      className="living-repo nodrag absolute left-1/2 -top-7 -translate-x-1/2 whitespace-nowrap rounded-full border border-content-muted/30 bg-surface-raised px-2 py-0.5 text-[11px] text-content hover:bg-surface"
+      className={
+        variant === 'bar'
+          ? 'h-8 shrink-0 whitespace-nowrap rounded-md border border-content-muted/40 px-3 text-sm text-content hover:bg-surface-raised'
+          : 'living-repo nodrag absolute left-1/2 -top-7 -translate-x-1/2 whitespace-nowrap rounded-full border border-content-muted/30 bg-surface-raised px-2 py-0.5 text-[11px] text-content hover:bg-surface'
+      }
       title="Ouvrir le volet Dépôt (Ctrl+Maj+G)"
-      aria-label={`Dépôt : ${text}. Ouvrir le volet Dépôt`}
+      aria-label={`${variant === 'bar' ? 'Dépôt du projet' : 'Dépôt'} : ${text}. Ouvrir le volet Dépôt`}
       onClick={(event) => {
         event.stopPropagation()
         openRepo(genesisId)
