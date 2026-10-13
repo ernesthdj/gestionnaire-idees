@@ -26,7 +26,8 @@ const UNDOABLE = new Set([
   'final',
   'structure',
   'skills',
-  'folder'
+  'folder',
+  'git'
 ])
 /** Éléments dont l'état n'est pas comparé : dépendances (liées à leurs tâches), exemples (élagués au fil de l'eau). */
 /** Questions et idées suggérées closes à l'éclosion : leur statut ne bloque jamais une annulation. */
@@ -223,6 +224,14 @@ export interface EntityHandler {
  * Correction de carte de structure par mentalyas (D20) : architecture d'une carte ou couche d'un élément, avec la
  * valeur obtenue après le lot (celle rétablie pour une annulation).
  */
+/** Lien issue / PR ↔ nœud (spec 021 US6), ou son annulation. */
+function gitLinkSummary(head: ChangeRow, undone: boolean): string {
+  const link = head.after ?? head.before
+  const label = `${link?.['kind'] === 'pr' ? 'PR' : 'Issue'} #${String(link?.['number'] ?? '?')}`
+  const text = head.after === null ? `${label} déliée d’une idée` : `${label} reliée à une idée`
+  return undone ? `Annulé — ${text}` : text
+}
+
 function structureSummary(head: ChangeRow, undone: boolean): string {
   const prefix = undone ? 'Annulé — ' : ''
   if (head.entity === 'structure_architecture') {
@@ -415,8 +424,11 @@ export class HistoryService {
         return 'Skills'
       case 'folder':
         return 'Dossier'
+      case 'git':
+        return gitLinkSummary(head, false)
       case 'undo': {
         if (this.repository.undoneKind(head.batchId) === 'structure') return structureSummary(head, true)
+        if (this.repository.undoneKind(head.batchId) === 'git') return gitLinkSummary(head, true)
         const placed = entries.find((entry) => entry.entity === 'neuron_placement')
         if (placed !== undefined) {
           return placed.after?.['kind'] === 'root'

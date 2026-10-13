@@ -373,7 +373,8 @@ export const changeLog = sqliteTable(
         'final',
         'structure',
         'skills',
-        'folder'
+        'folder',
+        'git'
       ]
     }).notNull(),
     /** Auteur du lot : mentalyas, ou Claude Code par le pont MCP (spec 007 FR-013). */

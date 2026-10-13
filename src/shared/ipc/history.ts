@@ -16,6 +16,7 @@ export type HistoryKind =
   | 'structure'
   | 'skills'
   | 'folder'
+  | 'git'
 
 /** Auteur d'un lot : mentalyas, ou Claude Code par le pont MCP (spec 007). */
 export type HistoryActor = 'user' | 'claude'

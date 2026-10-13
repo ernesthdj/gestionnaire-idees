@@ -17,7 +17,10 @@ const ENGINES: Readonly<Record<TaskKind, Engine>> = {
   file_summary: 'claude',
   git_message: 'claude',
   git_conflict: 'claude',
-  git_story: 'claude'
+  git_story: 'claude',
+  git_pr_text: 'claude',
+  git_pr_review: 'claude',
+  git_issue_text: 'claude'
 }
 
 const EFFORT: Readonly<Record<TaskKind, Effort>> = {
@@ -31,7 +34,10 @@ const EFFORT: Readonly<Record<TaskKind, Effort>> = {
   file_summary: 'low',
   git_message: 'low',
   git_conflict: 'medium',
-  git_story: 'low'
+  git_story: 'low',
+  git_pr_text: 'low',
+  git_pr_review: 'medium',
+  git_issue_text: 'low'
 }
 
 const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
@@ -45,7 +51,10 @@ const MAX_TOKENS: Readonly<Record<TaskKind, number>> = {
   file_summary: 3000,
   git_message: 2000,
   git_conflict: 30000,
-  git_story: 3000
+  git_story: 3000,
+  git_pr_text: 3000,
+  git_pr_review: 8000,
+  git_issue_text: 2000
 }
 
 /**
@@ -65,7 +74,10 @@ const TIMEOUT_MS: Partial<Readonly<Record<TaskKind, number>>> = {
   file_summary: 3 * 60 * 1000,
   git_message: 2 * 60 * 1000,
   git_conflict: 5 * 60 * 1000,
-  git_story: 2 * 60 * 1000
+  git_story: 2 * 60 * 1000,
+  git_pr_text: 2 * 60 * 1000,
+  git_pr_review: 5 * 60 * 1000,
+  git_issue_text: 2 * 60 * 1000
 }
 const CONTEXT_TOKENS: Partial<Readonly<Record<TaskKind, number>>> = {
   reprise_guide: 32768,

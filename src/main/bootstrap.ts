@@ -134,7 +134,15 @@ import { MapUpdateService } from './application/structure/MapUpdateService'
 import { RunService } from './application/run/RunService'
 import { createRunRoutes } from './ipc/runHandlers'
 import { createWorkflowRoutes } from './ipc/workflowHandlers'
-import { createConflictRoutes, createGitHistoryRoutes, createGitRoutes, createGitSyncRoutes } from './ipc/gitHandlers'
+import {
+  createConflictRoutes,
+  createGitHistoryRoutes,
+  createGitHubRoutes,
+  createGitRoutes,
+  createGitSyncRoutes
+} from './ipc/gitHandlers'
+import { GitHubService } from './application/git/GitHubService'
+import { runGitIssueText, runGitPrReview, runGitPrText } from './application/ai/GitHubTasks'
 import { GitHistoryService } from './application/git/GitHistoryService'
 import { runGitStory } from './application/ai/GitStoryTask'
 import { ConflictService } from './application/git/ConflictService'
@@ -879,6 +887,35 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     },
     tree: (genesisId) => explorer.tree(genesisId)
   })
+  // Pull requests, issues et fork (spec 021 US6) : Claude propose et relit, mentalyas publie sur clic.
+  const gitHub = new GitHubService({
+    access: gitAccess,
+    queue: gitQueue,
+    gh: ghRunner,
+    repository: gitRepository,
+    authorSecret: () => secrets.getOrCreateRandomKey('git-author-hmac'),
+    localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+    neuron: (genesisId, neuronId) => {
+      const root = neuronRepository.root(genesisId)
+      if (root === undefined) return null
+      if (neuronId === genesisId) return { title: root.title, content: root.content }
+      const found = neuronRepository.neuronsOf(genesisId).find((neuron) => neuron.id === neuronId)
+      return found === undefined ? null : { title: found.title, content: found.content }
+    },
+    changed: (genesisId) => broadcast('git:changed', { genesisId }),
+    prText: async (input) => {
+      const result = await runGitPrText(ai.gateway, input)
+      return result.ok ? result.value.data : null
+    },
+    prReview: async (input) => {
+      const result = await runGitPrReview(ai.gateway, input)
+      return result.ok ? result.value.data : null
+    },
+    issueText: async (input) => {
+      const result = await runGitIssueText(ai.gateway, input)
+      return result.ok ? result.value.data : null
+    }
+  })
   const gitPublish = new PublishService({
     access: gitAccess,
     queue: gitQueue,
@@ -1214,7 +1251,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           ...executions.historyHandlers(),
           ...skillService.historyHandlers(),
           ...skillCards.historyHandlers(),
-          ...folders.historyHandlers()
+          ...folders.historyHandlers(),
+          ...gitHub.historyHandlers()
         })
       ),
       ...createWidgetRoutes(widgets),
@@ -1230,6 +1268,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createGitSyncRoutes(gitSync, gitPublish, ghRunner),
       ...createConflictRoutes(gitConflicts),
       ...createGitHistoryRoutes(gitHistory),
+      ...createGitHubRoutes(gitHub, (url) => electronShell.openExternal(url)),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),

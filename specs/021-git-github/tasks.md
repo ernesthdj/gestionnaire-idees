@@ -196,27 +196,27 @@ nœud ; récit envoyé à Claude sans nom ni e-mail réel.
 ## Phase 8 — US6 Pull requests, issues et fork (P3)
 **Test indépendant** : `gh` simulé : listes bornées ; création de PR et commentaire seulement sur clic après
 récapitulatif ; lien non GitHub non cliquable ; aucune approbation ni fusion possible.
-- [ ] T045 [US6] `GitHubService` lectures `src/main/application/git/GitHubService.ts` : `git:prList`, `git:prView`
+- [x] T045 [US6] (livrée le 2026-10-13 dans `GitHubService` : `--repo=` collé, JSON revalidé par Zod, adresses hors github.com vidées) `GitHubService` lectures `src/main/application/git/GitHubService.ts` : `git:prList`, `git:prView`
   (+ `pr diff`), `git:issueList`, `git:issueView` (Zod strict, bornes, cache 5 min, `NOT_GITHUB`) + tests (fixtures
   JSON)
-- [ ] T046 [P] [US6] `src/renderer/src/git/GitHubMarkdown.tsx` (sans HTML, images jamais chargées, seuls
+- [x] T046 [P] [US6] (`GitHubMarkdown` sur le `Markdown` des réponses, lien propre : github.com → `git:openExternal`, revérifié dans le main ; autre adresse → texte + « copier ») `src/renderer/src/git/GitHubMarkdown.tsx` (sans HTML, images jamais chargées, seuls
   `https://github.com/…` cliquables via `git:openExternal`, autres copiables) + canal `git:openExternal` + tests
   renderer (XSS, hameçonnage) / axe
-- [ ] T047 [P] [US6] Tâches `git_pr_text`, `git_pr_review`, `git_issue_text` sans outil (cadres, schémas, auteurs
+- [x] T047 [P] [US6] (`GitHubFrames.ts` + `GitHubTasks.ts` ; « Co-Authored-By » et signature d'outil retirés des textes proposés et publiés) Tâches `git_pr_text`, `git_pr_review`, `git_issue_text` sans outil (cadres, schémas, auteurs
   pseudonymisés, co-auteur retiré) + `git:prPropose`, `git:prReview`, `git:issuePropose` + tests
-- [ ] T048 [US6] Écritures `GitHubService` : `git:prCreate` (`expectedHead`, `PR_EXISTS`), `git:prComment`,
+- [x] T048 [US6] (`ghArgs` : liste blanche étendue, `merge`, `review`, `close`, `edit`, `--approve`, `--body=`, `--fill`, `--clone` inconstructibles ; FR-005 déjà tenu par `GitService` — hooks coupés sur `pr/*` — et `git-runner.test.ts`) Écritures `GitHubService` : `git:prCreate` (`expectedHead`, `PR_EXISTS`), `git:prComment`,
   `git:issueCreate`, `git:forkPreview` / `git:fork` (remotes `origin` = fork, `upstream` = original, adresse du fork par
   `gitUrl`), `git:prFetchBranch` (fetch seulement, sans exécution) ; récapitulatif + `confirm` ; `git_operations` +
   tests (aucune approbation, fusion ni fermeture constructible ; FR-005 / analyse H2 : dépôt **de confiance** avec
   `core.hooksPath=.husky`, branche `pr/<n>` dont la PR modifie le hook → commit sur `pr/<n>` sans témoin du hook)
-- [ ] T049 [US6] Liens issue ↔ nœud : `git:issueLink` / `git:issueUnlink` (`git_issue_links`, lot `git` annulable),
+- [x] T049 [US6] (lot `git` de l'Historique, entité `git_issue_link` ; pastille `IssueChips` sur le genesis et les éléments de la carte de structure) Liens issue ↔ nœud : `git:issueLink` / `git:issueUnlink` (`git_issue_links`, lot `git` annulable),
   pastille `#n` sur le nœud (numéro seul hors ligne) + tests
-- [ ] T050 [US6] Interface : `PrTab.tsx` (liste, détail, diff, relecture de Claude, « Publier ce commentaire »,
+- [x] T050 [US6] (`PrTab.tsx`, `IssuesTab.tsx`, `ForkDialog.tsx` dans `PushPanel` sur `NO_WRITE_ACCESS` ; relier une issue par le choix d'une idée dans son détail, pas par glisser ; onglets PR et Issues masqués hors GitHub) Interface : `PrTab.tsx` (liste, détail, diff, relecture de Claude, « Publier ce commentaire »,
   « Nouvelle PR »), `IssuesTab.tsx` (liste, recherche, créer depuis un nœud, relier par menu ⋯ ou glisser),
   `ForkDialog.tsx` ; action « Forker » activée et « Créer une branche » enchaînée sur « Nouvelle PR » dans
   `PushDialog.tsx` ; onglets masqués hors
   GitHub + tests renderer/axe
-- [ ] T051 [US6] Test guidé (quickstart §6) — attendre le retour
+- [x] T051 [US6] (intégration avec `gh` simulé et vrai dépôt git : `tests/integration/git/github.test.ts` ; interface : `git-github.test.tsx` ; **non joué contre le vrai GitHub** : demande un compte et le réseau, à faire par mentalyas sur un dépôt de test)
 
 ## Phase 9 — US7 Extraire un morceau (P3)
 **Test indépendant** : dépôts fictifs MIT et sans licence : licence affichée avant copie, en-tête présent, note d'étude

@@ -4,6 +4,14 @@ import { FILE_SUMMARY_FRAME, FILE_SUMMARY_FRAME_VERSION } from '../../infrastruc
 import { GIT_MESSAGE_FRAME, GIT_MESSAGE_FRAME_VERSION } from '../../infrastructure/ai/GitMessageFrame'
 import { GIT_CONFLICT_FRAME, GIT_CONFLICT_FRAME_VERSION } from '../../infrastructure/ai/GitConflictFrame'
 import { GIT_STORY_FRAME, GIT_STORY_FRAME_VERSION } from '../../infrastructure/ai/GitStoryFrame'
+import {
+  GIT_ISSUE_TEXT_FRAME,
+  GIT_ISSUE_TEXT_FRAME_VERSION,
+  GIT_PR_REVIEW_FRAME,
+  GIT_PR_REVIEW_FRAME_VERSION,
+  GIT_PR_TEXT_FRAME,
+  GIT_PR_TEXT_FRAME_VERSION
+} from '../../infrastructure/ai/GitHubFrames'
 import { REPRISE_GUIDE_FRAME, REPRISE_GUIDE_FRAME_VERSION } from '../../infrastructure/ai/RepriseGuideFrame'
 import {
   REPRISE_RESOLUTION_FRAME,
@@ -30,7 +38,10 @@ const OWN_FRAMES: Partial<Readonly<Record<TaskKind, string>>> = {
   file_summary: FILE_SUMMARY_FRAME,
   git_message: GIT_MESSAGE_FRAME,
   git_conflict: GIT_CONFLICT_FRAME,
-  git_story: GIT_STORY_FRAME
+  git_story: GIT_STORY_FRAME,
+  git_pr_text: GIT_PR_TEXT_FRAME,
+  git_pr_review: GIT_PR_REVIEW_FRAME,
+  git_issue_text: GIT_ISSUE_TEXT_FRAME
 }
 
 /** Version du cadre figé d'une tâche, mêlée à ses empreintes (spec 019 R3) : changer de cadre change d'empreinte. */
@@ -44,7 +55,10 @@ const FRAME_VERSIONS: Partial<Readonly<Record<TaskKind, number>>> = {
   file_summary: FILE_SUMMARY_FRAME_VERSION,
   git_message: GIT_MESSAGE_FRAME_VERSION,
   git_conflict: GIT_CONFLICT_FRAME_VERSION,
-  git_story: GIT_STORY_FRAME_VERSION
+  git_story: GIT_STORY_FRAME_VERSION,
+  git_pr_text: GIT_PR_TEXT_FRAME_VERSION,
+  git_pr_review: GIT_PR_REVIEW_FRAME_VERSION,
+  git_issue_text: GIT_ISSUE_TEXT_FRAME_VERSION
 }
 
 export function frameVersionOf(kind: TaskKind): string {

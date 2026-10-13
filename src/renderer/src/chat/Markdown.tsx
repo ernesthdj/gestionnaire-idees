@@ -162,15 +162,19 @@ const INERT_LINK: NonNullable<Components['a']> = ({ children, href }) => (
 export function Markdown({
   text,
   inlineCode,
-  inertLinks = false
+  inertLinks = false,
+  link
 }: {
   readonly text: string
   /** Rendu propre d'un code en ligne (ex. un chemin cité qui devient un lien) ; `null` : rendu par défaut. */
   readonly inlineCode?: (code: string) => React.ReactNode | null
   /** Liens affichés sans être actifs (texte d'un fichier du projet, pas une réponse de Claude). */
   readonly inertLinks?: boolean
+  /** Rendu propre des liens (textes venus de GitHub, spec 021 US6) ; prime sur `inertLinks`. */
+  readonly link?: NonNullable<Components['a']>
 }): React.JSX.Element {
-  let components: Components = inertLinks ? { ...COMPONENTS, a: INERT_LINK } : COMPONENTS
+  let components: Components =
+    link !== undefined ? { ...COMPONENTS, a: link } : inertLinks ? { ...COMPONENTS, a: INERT_LINK } : COMPONENTS
   if (inlineCode !== undefined) {
     components = {
       ...components,

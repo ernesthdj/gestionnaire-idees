@@ -37,6 +37,7 @@ export type ChangeKind =
   | 'structure'
   | 'skills'
   | 'folder'
+  | 'git'
 
 export interface ChangeRow {
   readonly id: string

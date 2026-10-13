@@ -6,17 +6,23 @@ import { BranchesTab } from './BranchesTab'
 import { ChangesTab } from './ChangesTab'
 import { useGitStatus } from './gitQueries'
 import { HistoryTab } from './HistoryTab'
+import { IssuesTab } from './IssuesTab'
+import { PrTab } from './PrTab'
 import { PublishPanel } from './PublishPanel'
 import { PushPanel } from './PushPanel'
 import { SyncBar } from './SyncBar'
 import { repoStateText } from './RepoBadge'
 
-type Tab = 'changes' | 'branches' | 'history'
+type Tab = 'changes' | 'branches' | 'history' | 'prs' | 'issues'
 const TABS: readonly { readonly tab: Tab; readonly label: string }[] = [
   { tab: 'changes', label: 'Changements' },
   { tab: 'branches', label: 'Branches' },
-  { tab: 'history', label: 'Historique' }
+  { tab: 'history', label: 'Historique' },
+  // Dépôt GitHub seulement (spec 021 US6).
+  { tab: 'prs', label: 'PR' },
+  { tab: 'issues', label: 'Issues' }
 ]
+const GITHUB_TABS: ReadonlySet<Tab> = new Set(['prs', 'issues'])
 
 /**
  * Volet Dépôt d'un projet (spec 021 T016, US1), onglet « ⎇ Dépôt » du panneau de droite (spec 027 D3) : état en tête,
@@ -110,7 +116,7 @@ export function RepoPanel({
                 </p>
               ) : null}
               <div role="tablist" aria-label="Volet Dépôt" className="flex gap-1 border-b border-content-muted/20">
-                {TABS.map((entry) => (
+                {TABS.filter((entry) => status.github !== null || !GITHUB_TABS.has(entry.tab)).map((entry) => (
                   <button
                     key={entry.tab}
                     type="button"
@@ -137,6 +143,10 @@ export function RepoPanel({
                   <ChangesTab genesisId={genesisId} status={status} readOnly={locked} />
                 ) : tab === 'branches' ? (
                   <BranchesTab genesisId={genesisId} readOnly={locked} />
+                ) : tab === 'prs' && status.github !== null ? (
+                  <PrTab genesisId={genesisId} status={status} readOnly={locked} />
+                ) : tab === 'issues' && status.github !== null ? (
+                  <IssuesTab genesisId={genesisId} readOnly={locked} />
                 ) : (
                   <HistoryTab genesisId={genesisId} readOnly={locked} />
                 )}

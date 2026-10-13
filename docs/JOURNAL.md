@@ -1634,3 +1634,30 @@ en partiel ; le filtre est retiré avant (research R13). Sous Windows, ▶ s'aff
 texte (U+FE0E).
 **Regle apprise :** pour un journal git avec fichiers, `-z --numstat --format=%x1e…` : un enregistrement par commit
 ouvert par \x1e, l'en-tête finit au premier NUL, puis les fichiers séparés par NUL.
+
+### [2026-10-13 18:30] FEAT — Spec 021 US6 : pull requests, issues et fork
+**Fichiers :** `src/main/application/git/GitHubService.ts`, `src/main/application/ai/GitHubTasks.ts`,
+`src/main/infrastructure/ai/GitHubFrames.ts`, `src/main/domain/git/{ghArgs,args}.ts`, `src/main/infrastructure/git/GhRunner.ts`,
+`src/main/infrastructure/db/repositories/{GitRepository,changeLog,HistoryRepository}.ts`, `schemaNeurons.ts` (type `git`),
+`src/main/application/history/HistoryService.ts`, `src/main/domain/ai/{types,routing}.ts`, `ContextAssembler.ts`, `aiEngine.ts`,
+`src/main/ipc/gitHandlers.ts`, `src/main/bootstrap.ts`, `src/shared/git/github.ts`, `src/shared/ai/schemas.ts`,
+`src/shared/ipc/{channels,history}.ts`, `src/renderer/src/git/{PrTab,IssuesTab,ForkDialog,GitHubMarkdown,IssueChips,RepoPanel,PushPanel}.tsx`,
+`src/renderer/src/chat/Markdown.tsx` (`link`), `src/renderer/src/canvas/nodes/{NeuronNode,ElementNode}.tsx`, tests
+(`tests/unit/git/github-args.test.ts`, `tests/integration/git/github.test.ts`, `tests/unit/renderer/git-github.test.tsx`)
+**Resume :** Onglets **PR** et **Issues** du volet Dépôt (dépôt GitHub seulement). PR : liste (50 au plus, gardée
+5 min, « Actualiser »), détail (description en Markdown sûr, fichiers, diff borné à 2 Mo), « ✨ Relire avec Claude »
+(résumé et remarques gardés dans l'app), commentaire publié seulement après relecture du texte et clic, branche
+`pr/<n>` récupérée sans être lancée, « Nouvelle PR » (texte proposé par Claude, modifiable, récapitulatif puis
+création ; branche poussée exigée, état vu vérifié ; depuis un fork, la PR part vers l'original). Issues : recherche,
+pages de 100, détail, « Nouvelle issue » depuis une idée (texte de Claude, reliée d'office), liens issue ↔ idée dans
+l'app (lot « git » annulable depuis l'Historique) et pastille `#n` sur le genesis et les éléments. **Fork** depuis
+l'aperçu du push quand le compte n'a pas le droit d'écrire : récapitulatif, `gh repo fork` sans clone ni remote, puis
+`origin` = le fork, `upstream` = l'original. Liens d'un texte GitHub : seuls `https://github.com/…` s'ouvrent (le main
+revérifie) ; les autres se copient. `gh` ne peut construire ni approbation, ni fusion, ni fermeture. Vérifié : 2 149
+tests, typecheck, lint, Prettier ; e2e git-local, git-sync, avancement, git-history (12/12). Non joué contre le vrai
+GitHub (compte et réseau) : à faire par mentalyas sur un dépôt de test.
+**Erreur corrigée :** `prComment` renvoyait le numéro journalisé en plus de l'adresse. Deux substitutions Python ont
+transformé `\r\n\t` et `[\\]` en caractères réels dans des expressions régulières : corrigé, et les modifications
+passent désormais par l'outil d'édition ou un script écrit dans un fichier.
+**Regle apprise :** un texte venu de GitHub est une donnée hostile possible : rendu sans HTML ni image, et une adresse
+ne devient cliquable que si le main la revérifie (`https://github.com/`), jamais sur la seule foi du renderer.

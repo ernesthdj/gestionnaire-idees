@@ -3,14 +3,16 @@ import { useState } from 'react'
 import type { FindingView, PushBlock, PushPreviewView } from '@shared/git/sync'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
+import { ForkDialog } from './ForkDialog'
 import { gitKeys } from './gitQueries'
 
 const BLOCKS: Readonly<Record<PushBlock, string>> = {
   SENSITIVE_IN_HISTORY:
     'Un fichier sensible est dans les commits à pousser. Retire-le de l’historique (en terminal) : l’app ne pousse jamais un secret.',
   THIRD_PARTY_DEFAULT_BRANCH:
-    'C’est la branche principale d’un dépôt qui n’est pas à toi. Crée une branche (onglet Branches), pousse-la, puis propose une PR sur GitHub.',
-  NO_WRITE_ACCESS: 'Tu n’as pas le droit d’écrire dans ce dépôt. Fais-en un fork sur GitHub (bientôt dans l’app).'
+    'C’est la branche principale d’un dépôt qui n’est pas à toi. Crée une branche (onglet Branches), pousse-la, puis propose une PR (onglet PR).',
+  NO_WRITE_ACCESS:
+    'Tu n’as pas le droit d’écrire dans ce dépôt. Fais-en un fork : ta copie sur ton compte, d’où tu proposeras une PR.'
 }
 
 const errorText = (error: unknown): string => (error instanceof IpcFailure ? error.message : 'Le push a échoué.')
@@ -56,6 +58,7 @@ export function PushPanel({
 }): React.JSX.Element {
   const client = useQueryClient()
   const [accepted, setAccepted] = useState<readonly string[]>([])
+  const [forking, setForking] = useState(false)
   const preview = useQuery({
     queryKey: [...gitKeys.all(genesisId), 'pushPreview'],
     queryFn: () => call<PushPreviewView>('git:pushPreview', { genesisId }),
@@ -156,6 +159,15 @@ export function PushPanel({
               {BLOCKS[view.blocked]}
             </p>
           )}
+          {view.blocked === 'NO_WRITE_ACCESS' ? (
+            forking ? (
+              <ForkDialog genesisId={genesisId} onDone={() => setForking(false)} />
+            ) : (
+              <Button className="self-start" onClick={() => setForking(true)}>
+                Forker
+              </Button>
+            )
+          ) : null}
           {push.error === null ? null : (
             <p role="alert" className="text-xs text-con">
               {errorText(push.error)}

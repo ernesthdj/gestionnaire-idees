@@ -2,14 +2,18 @@ import { randomUUID } from 'node:crypto'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { AppError } from '../../../domain/errors'
 import type { AppDatabase } from '../client'
+import { writeChanges, type ChangeEntry } from './changeLog'
 import {
   gitAuthorAliases,
   gitClonesRunning,
+  gitIssueLinks,
   gitConflictHunks,
   gitMergeSessions,
   gitOperations,
   gitRepos
 } from '../schemaGit'
+
+export type GitIssueLinkRow = typeof gitIssueLinks.$inferSelect
 
 export type GitOperationKind = (typeof gitOperations.$inferInsert)['kind']
 
@@ -238,5 +242,45 @@ export class GitRepository {
         .where(and(eq(gitAuthorAliases.genesisId, genesisId), eq(gitAuthorAliases.aliasKey, aliasKey)))
         .run().changes > 0
     )
+  }
+
+  // Liens issue / PR ↔ nœud (spec 021 US6) : gardés dans l'app, jamais écrits sur GitHub ; retrait doux (annulable).
+
+  transaction<T>(work: () => T): T {
+    return this.db.transaction(() => work())
+  }
+
+  log(batchId: string, entries: readonly ChangeEntry[], actor: 'user' | 'claude'): void {
+    writeChanges(this.db, batchId, entries, actor)
+  }
+
+  issueLinks(genesisId: string): GitIssueLinkRow[] {
+    return this.db
+      .select()
+      .from(gitIssueLinks)
+      .where(and(eq(gitIssueLinks.genesisId, genesisId), isNull(gitIssueLinks.deletedAt)))
+      .all()
+  }
+
+  issueLink(id: string): GitIssueLinkRow | undefined {
+    return this.db.select().from(gitIssueLinks).where(eq(gitIssueLinks.id, id)).get()
+  }
+
+  insertIssueLink(input: {
+    readonly genesisId: string
+    readonly kind: 'issue' | 'pr'
+    readonly number: number
+    readonly neuronId: string
+  }): string {
+    const id = randomUUID()
+    this.db
+      .insert(gitIssueLinks)
+      .values({ id, ...input })
+      .run()
+    return id
+  }
+
+  setIssueLinkDeleted(id: string, deletedAt: string | null): void {
+    this.db.update(gitIssueLinks).set({ deletedAt }).where(eq(gitIssueLinks.id, id)).run()
   }
 }

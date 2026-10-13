@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ARCHITECTURES, type ArchitectureKind } from '@shared/structure/architecture'
 import { useUiStore } from '../../app/uiStore'
 import type { ElementStatus, ElementType, ElementView } from '@shared/ipc/canvas'
+import { IssueChips } from '../../git/IssueChips'
 import { call } from '../../lib/ipc'
 import type { ElementNodeType } from '../buildGraph'
 import { contentLabel } from '../elementContent'
@@ -199,6 +200,8 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
           className="neuron-connector"
           title="Tirer vers un widget pour lui transmettre cet élément"
         />
+        {/* Issues et PR reliées (spec 021 T049). */}
+        <IssueChips genesisId={element.genesisId} neuronId={element.id} />
       </LivingNode>
     </div>
   )

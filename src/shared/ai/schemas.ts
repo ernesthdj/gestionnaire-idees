@@ -141,3 +141,25 @@ export type GitConflictOut = z.infer<typeof GitConflictOut>
 /** Sortie de `git_story` (spec 021 US5) : le récit d'une période, auteurs en pseudonymes. */
 export const GitStoryOut = z.object({ text: z.string().trim().min(1).max(4_000) })
 export type GitStoryOut = z.infer<typeof GitStoryOut>
+
+/** Sortie de `git_pr_text` et `git_issue_text` (spec 021 US6) : titre et description proposés, modifiables. */
+export const GitHubTextOut = z.object({
+  title: z.string().trim().min(1).max(256),
+  body: z.string().trim().max(20_000)
+})
+export type GitHubTextOut = z.infer<typeof GitHubTextOut>
+
+/** Sortie de `git_pr_review` (spec 021 US6) : relecture gardée dans l'app, jamais publiée sans clic. */
+export const GitPrReviewOut = z.object({
+  summary: z.string().trim().min(1).max(4_000),
+  comments: z
+    .array(
+      z.object({
+        path: z.string().trim().max(400).nullable(),
+        line: z.number().int().min(1).max(1_000_000).nullable(),
+        text: z.string().trim().min(1).max(2_000)
+      })
+    )
+    .max(30)
+})
+export type GitPrReviewOut = z.infer<typeof GitPrReviewOut>

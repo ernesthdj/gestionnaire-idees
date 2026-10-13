@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { AIGateway } from '../application/ai/AIGateway'
 import { LocalQueue } from '../application/ai/LocalQueue'
 import type { AgentContext } from '../application/ai/ports'
-import type { TaskKind } from '../domain/ai/types'
+import { GIT_TASK_KINDS, type TaskKind } from '../domain/ai/types'
 import { resolveClaudePath } from '../infrastructure/claude/claudePath'
 import { e2eClaudeRun } from '../infrastructure/ai/E2eClaude'
 import { ClaudeCliProvider } from '../infrastructure/ai/ClaudeCliProvider'
@@ -81,7 +81,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
               ? ANALYSTE_MODEL
               : kind === 'skill_card'
                 ? SKILL_CARD_MODEL
-                : kind === 'file_summary' || kind === 'git_message' || kind === 'git_conflict' || kind === 'git_story'
+                : kind === 'file_summary' || (GIT_TASK_KINDS as readonly string[]).includes(kind)
                   ? current.elementModel
                   : undefined
       }

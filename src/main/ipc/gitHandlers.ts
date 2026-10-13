@@ -14,6 +14,23 @@ import type { GitService } from '../application/git/GitService'
 import type { PublishService } from '../application/git/PublishService'
 import type { ConflictService } from '../application/git/ConflictService'
 import type { GitHistoryService } from '../application/git/GitHistoryService'
+import type { GitHubService } from '../application/git/GitHubService'
+import {
+  ForkInput,
+  ForkPreviewInput,
+  IssueCreateInput,
+  IssueLinkInput,
+  IssueLinksInput,
+  IssueListInput,
+  IssueNumberInput,
+  IssueProposeInput,
+  OpenExternalInput,
+  PrCommentInput,
+  PrCreateInput,
+  PrListInput,
+  PrNumberInput,
+  PrProposeInput
+} from '@shared/git/github'
 import {
   FetchAllInput,
   HistoryInput,
@@ -295,6 +312,128 @@ export function createGitHistoryRoutes(
       channel: 'git:fetchAll',
       input: FetchAllInput,
       handler: async ({ genesisId }) => history.fetchAll(genesisId)
+    })
+  ]
+}
+
+/**
+ * Pull requests, issues et fork (spec 021 US6) : lectures bornées ; écritures sur GitHub seulement avec `confirm: true`
+ * (récapitulatif vu) ; aucune approbation, fusion ni fermeture n'existe ici. Seuls les liens `https://github.com/…`
+ * s'ouvrent dans le navigateur.
+ */
+export function createGitHubRoutes(
+  github: Pick<
+    GitHubService,
+    | 'prList'
+    | 'prView'
+    | 'prReview'
+    | 'prComment'
+    | 'prPropose'
+    | 'prCreate'
+    | 'prFetchBranch'
+    | 'issueList'
+    | 'issueView'
+    | 'issuePropose'
+    | 'issueCreate'
+    | 'issueLinks'
+    | 'link'
+    | 'unlink'
+    | 'forkPreview'
+    | 'fork'
+  >,
+  openExternal: (url: string) => Promise<void>
+): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'git:prList',
+      input: PrListInput.extend({ fresh: z.boolean().optional() }),
+      handler: async ({ genesisId, state, fresh }) => github.prList(genesisId, state, fresh === true)
+    }),
+    defineRoute({
+      channel: 'git:prView',
+      input: PrNumberInput,
+      handler: async ({ genesisId, number }) => github.prView(genesisId, number)
+    }),
+    defineRoute({
+      channel: 'git:prReview',
+      input: PrNumberInput,
+      handler: async ({ genesisId, number }) => github.prReview(genesisId, number)
+    }),
+    defineRoute({
+      channel: 'git:prComment',
+      input: PrCommentInput,
+      handler: async ({ genesisId, number, body }) => github.prComment(genesisId, number, body)
+    }),
+    defineRoute({
+      channel: 'git:prPropose',
+      input: PrProposeInput,
+      handler: async ({ genesisId, base }) => github.prPropose(genesisId, base)
+    }),
+    defineRoute({
+      channel: 'git:prCreate',
+      input: PrCreateInput,
+      handler: async ({ genesisId, base, title, body, draft, expectedHead }) =>
+        github.prCreate({ genesisId, base, title, body, draft, expectedHead })
+    }),
+    defineRoute({
+      channel: 'git:prFetchBranch',
+      input: PrNumberInput,
+      handler: async ({ genesisId, number }) => github.prFetchBranch(genesisId, number)
+    }),
+    defineRoute({
+      channel: 'git:issueList',
+      input: IssueListInput.extend({ fresh: z.boolean().optional() }),
+      handler: async ({ genesisId, state, search, page, fresh }) =>
+        github.issueList(genesisId, { state, page, ...(search === undefined ? {} : { search }) }, fresh === true)
+    }),
+    defineRoute({
+      channel: 'git:issueView',
+      input: IssueNumberInput,
+      handler: async ({ genesisId, number }) => github.issueView(genesisId, number)
+    }),
+    defineRoute({
+      channel: 'git:issuePropose',
+      input: IssueProposeInput,
+      handler: async ({ genesisId, neuronId }) => github.issuePropose(genesisId, neuronId)
+    }),
+    defineRoute({
+      channel: 'git:issueCreate',
+      input: IssueCreateInput,
+      handler: async ({ genesisId, title, body, fromNeuronId }) =>
+        github.issueCreate({ genesisId, title, body, ...(fromNeuronId === undefined ? {} : { fromNeuronId }) })
+    }),
+    defineRoute({
+      channel: 'git:issueLinks',
+      input: IssueLinksInput,
+      handler: async ({ genesisId }) => github.issueLinks(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:issueLink',
+      input: IssueLinkInput,
+      handler: async ({ genesisId, kind, number, neuronId }) => github.link(genesisId, kind, number, neuronId)
+    }),
+    defineRoute({
+      channel: 'git:issueUnlink',
+      input: IssueLinkInput,
+      handler: async ({ genesisId, kind, number, neuronId }) => github.unlink(genesisId, kind, number, neuronId)
+    }),
+    defineRoute({
+      channel: 'git:forkPreview',
+      input: ForkPreviewInput,
+      handler: async ({ genesisId }) => github.forkPreview(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:fork',
+      input: ForkInput,
+      handler: async ({ genesisId }) => github.fork(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:openExternal',
+      input: OpenExternalInput,
+      handler: async ({ url }) => {
+        await openExternal(url)
+        return { ok: true }
+      }
     })
   ]
 }

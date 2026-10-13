@@ -40,7 +40,10 @@ export class GhRunner {
     return this.program() !== null
   }
 
-  async run(args: readonly string[], options: { readonly stdin?: string } = {}): Promise<ProcessResult> {
+  async run(
+    args: readonly string[],
+    options: { readonly stdin?: string; readonly maxOutput?: number } = {}
+  ): Promise<ProcessResult> {
     assertSafeGhArgs(args)
     const program = this.program()
     if (program === null)
@@ -52,7 +55,7 @@ export class GhRunner {
       cwd: tmpdir(),
       env: ghEnv(),
       timeoutMs: GH_TIMEOUT_MS,
-      maxOutput: 1024 * 1024,
+      maxOutput: options.maxOutput ?? 1024 * 1024,
       ...(options.stdin === undefined ? {} : { stdin: options.stdin })
     })
     if (result.spawnFailed)

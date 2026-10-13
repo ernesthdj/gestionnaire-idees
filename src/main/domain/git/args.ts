@@ -166,6 +166,19 @@ export const remoteAddArgs = (url: string): string[] => {
   return ['remote', 'add', 'origin', url]
 }
 
+/** Fork (spec 021 US6) : l'original devient `upstream`… */
+export const remoteRenameArgs = (from: string, to: string): string[] => ['remote', 'rename', safeRef(from), safeRef(to)]
+/** … et le fork, `origin` (adresse contrôlée par `checkGitUrl`). */
+export const remoteAddNamedArgs = (name: string, url: string): string[] => {
+  if (url.startsWith('-')) throw new Error('adresse de remote refusée')
+  return ['remote', 'add', safeRef(name), url]
+}
+/** Branche `pr/<n>` tirée d'une PR : récupérée seulement (jamais extraite ni exécutée par l'app). */
+export const prFetchArgs = (remote: string, value: number): string[] => {
+  if (!Number.isInteger(value) || value < 1) throw new Error(`numéro de PR refusé : ${value}`)
+  return ['fetch', '--no-tags', '--no-recurse-submodules', '--quiet', safeRef(remote), `pull/${value}/head:pr/${value}`]
+}
+
 /** Vérifier le distant : sans étiquettes ni sous-modules (jamais `--prune`, `--tags`, `--all`). */
 export const fetchArgs = (remote: string): string[] => [
   'fetch',
@@ -255,6 +268,12 @@ export const rangeLogArgs = (from: string, to: string, limit: number): string[] 
     '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s',
     `${from}..${safeRef(to)}`
   ]
+}
+
+/** Fichiers modifiés depuis la base d'une PR (`<base>...HEAD` : depuis l'ancêtre commun), lignes comptées. */
+export const numstatRangeArgs = (from: string): string[] => {
+  if (!/^[0-9a-f]{7,40}$/.test(from)) throw new Error('empreinte refusée')
+  return ['diff', '--numstat', '-z', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', `${from}...HEAD`]
 }
 
 // ── Conflits (US4, L3 conflits) ────────────────────────────────────────────────────────────────────────────────────

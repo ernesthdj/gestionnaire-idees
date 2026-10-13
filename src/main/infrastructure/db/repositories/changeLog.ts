@@ -19,6 +19,7 @@ export interface ChangeEntry {
     | 'structure'
     | 'skills'
     | 'folder'
+    | 'git'
   readonly entity: string
   readonly entityId: string
   readonly before: unknown
