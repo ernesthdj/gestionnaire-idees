@@ -1794,3 +1794,15 @@ dossier. Seul un autre projet repris (non supprimé) du même dossier bloque dé
 **Puis (retour de mentalyas, « j'aurais aimé pouvoir réanalyser ») :** son dossier était déjà analysé pour un autre
 nœud (un ancien « Reprendre » du même dossier). `reprise:get` renvoie alors `analyzedBy` : la barre propose directement
 « Explorateur » sur cette analyse, où « Réanalyser » met la carte à jour ; plus de détour par « Analyser le code… ».
+
+### [2026-10-14 00:30] SPEC — 031 « Explorateur en boîtes » écrite, maquette validée
+**Fichiers :** `specs/031-explorateur-boites/{spec.md, tasks.md, maquette.html}`.
+**Pourquoi :** mentalyas n'était pas satisfait de l'explorateur (style, informations muettes, architecture et liens
+incompréhensibles, zoom par paliers). Maquette interactive itérée avec lui (17 versions, commentaires dans la page) :
+piste A (boîtes de gauche à droite), clic = ouverture sur place, double-clic = entrée par un zoom où le nœud et ses
+fichiers grandissent ensemble, amorces vers les modules voisins, fiche et code à droite, Ctrl+K, molette amortie,
+glisser-déposer de chaque nœud, fondus enchaînés.
+**Vérifié dans la maquette :** rapport fichier/cadre constant pendant le zoom, somme des opacités du relais égale à 1,
+titre relayé au pixel près, aucune erreur.
+**Règle apprise :** pour une transition, mesurer image par image (positions, échelles, opacités) plutôt que juger à
+l'œil ; deux scènes cadrées dans le même rectangle donnent un zoom commun sans approximation.

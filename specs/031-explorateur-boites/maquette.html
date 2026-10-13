@@ -1,0 +1,1393 @@
+<title>Explorateur : trois pistes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : une colonne de lecture (~70 car.), chaque piste = une scène jouable (carte 62 %) + sa fiche (38 %). */
+:root {
+  --bg: #f6f6f9; --surface: #ffffff; --raised: #eef0f6; --fg: #1d1f2a; --muted: #5d6276; --line: #d7dae6;
+  --accent: #5b5bd6; --accent-soft: #e6e6fb;
+  --l-start: #7c6cc4; --l-entry: #d9822b; --l-rules: #2f6fdb; --l-data: #1f9d68; --l-tools: #7a8194;
+  --warn: #b4530f; --bad: #c2384b;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141519; --surface: #1c1d23; --raised: #25272f; --fg: #e9eaf0; --muted: #a2a6b6; --line: #343745;
+  --accent: #8f8ff5; --accent-soft: #2b2c4a;
+  --l-start: #a497e8; --l-entry: #f0a050; --l-rules: #6b9cf5; --l-data: #44c58e; --l-tools: #9aa1b4;
+  --warn: #f0a050; --bad: #f07185; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141519; --surface: #1c1d23; --raised: #25272f; --fg: #e9eaf0; --muted: #a2a6b6; --line: #343745;
+  --accent: #8f8ff5; --accent-soft: #2b2c4a;
+  --l-start: #a497e8; --l-entry: #f0a050; --l-rules: #6b9cf5; --l-data: #44c58e; --l-tools: #9aa1b4;
+  --warn: #f0a050; --bad: #f07185; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; margin: 0 }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 56px }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0 }
+h1 { font-size: clamp(2rem, 4vw, 2.8rem) }
+h2 { font-size: 1.6rem }
+h3 { font-size: 1.15rem }
+p { margin: 0; max-width: 68ch }
+.eyebrow { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
+code, .mono { font-family: var(--font-code); font-size: .88em }
+section { display: flex; flex-direction: column; gap: 18px }
+.intro { display: flex; flex-direction: column; gap: 14px }
+.complaints { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; padding: 0; margin: 0; list-style: none }
+.complaints li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; min-width: 0 }
+.num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--bad); color: #fff; font-weight: 700; font-size: .8rem; display: grid; place-items: center }
+
+/* Vue actuelle (reconstitution) */
+.now { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; overflow-x: auto }
+.now-grid { position: relative; display: grid; grid-template-columns: repeat(3, 170px); gap: 16px 34px; width: max-content; padding: 26px 30px }
+.old { border: 2px solid var(--c); border-radius: 12px; padding: 8px 10px; font-size: .72rem; background: var(--raised); position: relative }
+.old b { display: block; font-size: .85rem }
+.old .cat { color: var(--c) }
+.old .zero { float: right; color: var(--muted) }
+.pin { position: absolute; z-index: 2 }
+.now-steps { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .85rem; color: var(--muted) }
+.now-steps span.step { background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; color: var(--fg) }
+
+/* Pistes */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap }
+.tab { font: inherit; font-weight: 700; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 8px 16px; cursor: pointer }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff }
+.tab:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.pitch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 28px }
+.pitch p { font-size: .95rem }
+.pros, .cons { margin: 0; padding-left: 18px; font-size: .92rem }
+.pros li::marker { content: "+  "; color: var(--l-data); font-weight: 700 }
+.cons li::marker { content: "–  "; color: var(--bad); font-weight: 700 }
+.demo { display: grid; grid-template-columns: minmax(0, 62fr) minmax(0, 38fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden }
+.toolbar { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: .85rem }
+.toolbar .hint { color: var(--muted); margin-left: auto }
+.tbtn { font: inherit; font-size: .85rem; border: 1px solid var(--line); background: var(--raised); color: var(--fg); border-radius: 8px; padding: 4px 10px; cursor: pointer }
+.stage-wrap { position: relative; overflow: hidden; height: 560px; cursor: grab; touch-action: none; min-height: 300px; border-right: 1px solid var(--line);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 18px 18px }
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
+/* Calque des titres pendant une transition : seuls le titre, la couche et le rôle glissent, au-dessus des deux scènes. */
+.portal { position: absolute; z-index: 6; pointer-events: none }
+.portal .pn, .portal .pk, .portal .pr { position: absolute; white-space: nowrap; line-height: 1.55 }
+.portal .pn { font-family: var(--font-display); font-weight: 700; color: var(--fg) }
+.portal .pk { text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--c) }
+.portal .pr { white-space: normal; color: var(--muted); line-height: 1.35 }
+.stage { will-change: transform }
+.stage.ghost { pointer-events: none }
+.stage-wrap.dragging, .stage-wrap.moving, .stage-wrap.moving * { cursor: grabbing !important }
+.node, .file { touch-action: none }
+.stage svg { position: absolute; left: 0; top: 0; overflow: visible; z-index: 1; pointer-events: none }
+.stage svg .lk path { pointer-events: stroke }
+.file, .chip { z-index: 3 }
+.caption { grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 10px 14px; font-size: .9rem; min-height: 46px; color: var(--muted) }
+.caption b { color: var(--fg) }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .85rem; color: var(--muted) }
+.legend svg { vertical-align: middle; margin-right: 6px }
+
+/* Nœuds */
+.node { position: absolute; cursor: pointer; user-select: none; color: var(--fg) }
+.box { background: var(--surface); border: 1.5px solid var(--line); border-left: 5px solid var(--c); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 2px rgb(0 0 0 / .06); display: flex; flex-direction: column; gap: 4px; overflow: hidden }
+.box.sel { box-shadow: 0 0 0 3px var(--accent) }
+.box .kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--c); font-weight: 700; display: flex; justify-content: space-between; gap: 6px }
+.box .name { font-family: var(--font-display); font-size: 1.08rem; font-weight: 700 }
+.box .role { font-size: .88rem; color: var(--muted); line-height: 1.35 }
+.box .meta { font-size: .72rem; color: var(--muted); margin-top: auto }
+.toggle { font-size: .7rem; color: var(--accent); font-weight: 700; text-transform: none; letter-spacing: 0 }
+.file { position: absolute; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: .8rem; line-height: 1.3; overflow: hidden; cursor: pointer }
+.file .fname { font-family: var(--font-code); font-weight: 600; font-size: .8rem; color: var(--fg) }
+.file .frole { color: var(--muted) }
+.file.sel { box-shadow: 0 0 0 2px var(--accent) }
+.ffns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px }
+.ffns span { font-family: var(--font-code); font-size: .7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--accent) }
+.stage svg .stub { pointer-events: all }
+.band { position: absolute; left: 0; border-top: 1px dashed var(--line); }
+.band .bl { position: absolute; left: 10px; top: 10px; width: 140px; font-size: .78rem; color: var(--muted); line-height: 1.3 }
+.band .bl b { display: block; color: var(--c); font-size: .88rem }
+/* Piste C : neurones */
+.orb { border-radius: 50%; display: grid; place-items: center; text-align: center;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 35%, var(--surface)), color-mix(in srgb, var(--c) 12%, var(--surface)) 70%);
+  border: 2px solid var(--c); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 14%, transparent), 0 8px 24px rgb(0 0 0 / .12) }
+.orb.sel { box-shadow: 0 0 0 4px var(--accent), 0 8px 24px rgb(0 0 0 / .12) }
+.orb .oname { font-family: var(--font-display); font-weight: 700; font-size: .9rem; padding: 0 8px }
+.orb .ometa { font-size: .68rem; color: var(--muted) }
+.orb.open .oinner { position: absolute; top: 14px; left: 0; right: 0 }
+.chip { position: absolute; border-radius: 999px; background: var(--surface); border: 1px solid var(--c); font-family: var(--font-code); font-size: .7rem; padding: 3px 9px; white-space: nowrap; display: grid; place-items: center; cursor: pointer }
+.chip.sel { box-shadow: 0 0 0 2px var(--accent) }
+
+/* Fiche */
+.fiche { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; font-size: .9rem; min-width: 0; max-height: 620px; overflow-y: auto }
+.fiche h4 { margin: 0; font-family: var(--font-display); font-size: 1.15rem }
+.fiche .tag { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--c) }
+.fiche dl { margin: 0; display: grid; gap: 10px }
+.fiche dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700 }
+.fiche dd { margin: 2px 0 0 }
+.fiche ul { margin: 2px 0 0; padding-left: 18px }
+.sure { color: var(--l-data); font-weight: 700 } .guess { color: var(--warn); font-weight: 700 }
+.empty { color: var(--muted) }
+
+/* Gros module, recherche, vue intérieure */
+.ffilter { font: inherit; font-size: .78rem; margin-top: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--raised); color: var(--fg); width: 100% }
+.flist { list-style: none; margin: 4px 0 0; padding: 2px; overflow-y: auto; max-height: 246px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised) }
+.flist button { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 7px; width: 100%; padding: 3px 8px; border-radius: 5px; font-family: var(--font-code); font-size: .8rem; cursor: pointer }
+.flist button:hover, .flist button.on { background: var(--accent-soft) }
+.flist button:focus-visible { outline: 2px solid var(--accent) }
+.flist .none, #results .none { padding: 6px 10px; color: var(--muted); font-size: .8rem }
+.dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none }
+.dot.ext { background: var(--accent); border-color: var(--accent) }
+.search { position: relative; flex: 1 1 220px; max-width: 340px }
+#q { font: inherit; font-size: .85rem; width: 100%; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); color: var(--fg) }
+#results { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); list-style: none; margin: 0; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / .2) }
+#results li[role="option"] { display: flex; justify-content: space-between; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: .82rem }
+#results li[aria-selected="true"], #results li[role="option"]:hover { background: var(--accent-soft) }
+#results .where { color: var(--muted); font-size: .75rem; text-align: right }
+kbd { font-family: var(--font-code); font-size: .75rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--raised) }
+.crumb { display: flex; align-items: center; gap: 6px; font-weight: 700 }
+.crumb .back { font: inherit; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline }
+.node.mini { padding: 6px 10px; gap: 0 }
+.node.mini .name { font-size: .85rem }
+.node.frame { box-shadow: 0 0 0 1px var(--c), 0 12px 40px rgb(0 0 0 / .18); background: color-mix(in srgb, var(--c) 6%, var(--surface)) }
+.orb.flat { border-radius: 14px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 8px 12px; gap: 2px; box-shadow: none }
+.orb.flat .kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--c); font-weight: 700; display: flex; justify-content: space-between; width: 100%; gap: 6px }
+.orb.flat .name { font-family: var(--font-display); font-weight: 700 }
+.orb.flat .role { font-size: .8rem; color: var(--muted) }
+.fn { font-family: var(--font-code); font-size: .78rem; background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px }
+pre.code { margin: 4px 0 0; max-height: 340px; overflow: auto; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-family: var(--font-code); font-size: .72rem; line-height: 1.5; white-space: pre }
+
+/* Communs, comparatif */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.card p { font-size: .93rem }
+.before { font-size: .85rem; color: var(--muted); text-decoration: line-through }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface) }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .92rem }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+tr:last-child td { border-bottom: 0 }
+.dots { font-family: var(--font-code); letter-spacing: 2px; color: var(--accent) }
+.reco { border: 2px solid var(--accent); background: var(--accent-soft); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px }
+.qs { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px }
+@media (max-width: 760px) {
+  .demo { grid-template-columns: 1fr } .stage-wrap { border-right: 0; border-bottom: 1px solid var(--line) } .fiche { max-height: none }
+  .pitch { grid-template-columns: 1fr }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">Brainstormer · Explorateur du code · pistes de refonte</span>
+    <h1>Explorateur : trois pistes</h1>
+    <p>Les trois pistes montrent le même petit projet fictif, une boutique en C# (le code des tests de l'app), plus un
+      module <b>Catalogue de 20 fichiers</b> inventé pour voir un gros module. Toutes se lisent <b>à un seul niveau</b> :
+      un clic ouvre un module sur place, un double-clic entre dedans par un zoom continu, et <kbd>Ctrl</kbd>+<kbd>K</kbd>
+      trouve un fichier ou une fonction où qu'il soit. Survole un trait pour lire, en mots, qui appelle quoi.</p>
+  </header>
+
+  <section aria-labelledby="t-now">
+    <span class="eyebrow">Aujourd'hui</span>
+    <h2 id="t-now">Ce qui ne va pas</h2>
+    <ol class="complaints">
+      <li><span class="num">1</span><span><b>Le style des rectangles</b> : des cadres de couleur pleins, tous pareils, sans
+        lien avec le reste de l'app.</span></li>
+      <li><span class="num">2</span><span><b>Des infos qui ne parlent pas</b> : « Orchestration », « 0 dossier »,
+        « (racine) ». On ne sait pas à quoi sert le module.</span></li>
+      <li><span class="num">3</span><span><b>Ni l'architecture ni les liens ne se comprennent</b> : un « 4 » sur un
+        trait, sans dire qui appelle quoi ni pourquoi.</span></li>
+      <li><span class="num">4</span><span><b>Le zoom par paliers</b> : Modules, puis Dossiers, puis Fichiers. Chaque palier
+        remplace l'écran, et on perd le fil.</span></li>
+    </ol>
+    <div class="now" aria-label="Reconstitution de la vue actuelle">
+      <div class="now-grid">
+        <div class="old" style="--c: var(--l-entry)"><b>api</b><span class="cat">⇄ Orchestration</span><span class="zero">0 dossier</span></div>
+        <div class="old" style="--c: var(--l-rules)"><b>core</b><span class="cat">◆ Métier</span><span class="zero">0 dossier</span></div>
+        <div class="old" style="--c: var(--l-data)"><b>infra</b><span class="cat">▭ Infrastructure</span><span class="zero">0 dossier</span></div>
+        <div class="old" style="--c: var(--l-entry)"><b>src (racine)</b><span class="cat">⇄ Orchestration</span><span class="zero">0 dossier</span></div>
+        <div></div>
+        <div class="old" style="--c: var(--l-data)"><b>(racine)</b><span class="cat">▭ Infrastructure</span><span class="zero">1 dossier</span></div>
+        <span class="pin num" style="left:4px; top:4px">1</span>
+        <span class="pin num" style="left:205px; top:70px">2</span>
+        <span class="pin num" style="left:200px; top:20px">3</span>
+      </div>
+      <div class="now-steps"><span class="num">4</span> <span class="step">Modules</span> → double-clic →
+        <span class="step">Dossiers</span> → double-clic → <span class="step">Fichiers</span> : un écran remplace l'autre</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-pistes">
+    <span class="eyebrow">Les pistes, à essayer</span>
+    <h2 id="t-pistes">Un seul niveau, des nœuds qui s'ouvrent</h2>
+    <div class="tabs" role="tablist" aria-label="Pistes">
+      <button class="tab" role="tab" id="tab-A" aria-selected="true" aria-controls="panel">A · Boîtes qui s'ouvrent</button>
+      <button class="tab" role="tab" id="tab-B" aria-selected="false" aria-controls="panel">B · Couches lisibles</button>
+      <button class="tab" role="tab" id="tab-C" aria-selected="false" aria-controls="panel">C · Neurones du code</button>
+    </div>
+    <div id="panel" role="tabpanel" aria-labelledby="tab-A" style="display:flex; flex-direction:column; gap:16px">
+      <div class="pitch">
+        <div style="display:flex; flex-direction:column; gap:8px"><h3 id="p-title"></h3><p id="p-text"></p></div>
+        <div style="display:flex; flex-direction:column; gap:6px"><ul class="pros" id="p-pros"></ul><ul class="cons" id="p-cons"></ul></div>
+      </div>
+      <div class="demo">
+        <div class="toolbar">
+          <div class="search">
+            <input id="q" type="search" placeholder="Fichier ou fonction… (Ctrl+K)" aria-label="Chercher un fichier ou une fonction" role="combobox" aria-expanded="false" aria-controls="results" autocomplete="off">
+            <ul id="results" role="listbox" aria-label="Résultats" hidden></ul>
+          </div>
+          <span class="crumb" id="crumb" hidden><button class="back" type="button">Carte</button> › <span class="here"></span></span>
+          <button class="tbtn" id="reset-view" type="button">Recadrer</button>
+          <button class="tbtn" id="tidy" type="button">Ranger</button>
+          <button class="tbtn" id="open-all" type="button">Tout ouvrir</button>
+          <button class="tbtn" id="close-all" type="button">Tout fermer</button>
+          <span class="hint"><b>Molette</b> : zoomer · <b>glisser le fond</b> : se déplacer · <b>glisser un module ou un fichier</b> : le poser ailleurs · <b>clic</b> : ouvrir (clic dans le vide : refermer) · <b>double-clic</b> : entrer · <kbd>Échap</kbd> : ressortir</span>
+        </div>
+        <div class="stage-wrap" id="stage-wrap"><div class="stage" id="stage"><svg id="links"></svg></div></div>
+        <aside class="fiche" id="fiche" aria-live="polite"></aside>
+        <div class="caption" id="caption">Passe la souris sur un trait ou sur un module.</div>
+      </div>
+      <div class="legend">
+        <span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="currentColor" stroke-width="2.5"/></svg>appel certain</span>
+        <span><svg width="34" height="10"><line x1="2" y1="5" x2="32" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4"/></svg>appel deviné : plusieurs cibles possibles</span>
+        <span>la flèche va de <b>celui qui demande</b> vers <b>celui qui fait</b> · l'épaisseur compte les appels</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-common">
+    <span class="eyebrow">Valable pour les trois pistes</span>
+    <h2 id="t-common">Ce qui change partout</h2>
+    <div class="grid2">
+      <div class="card"><h3>Un rôle en une phrase</h3>
+        <p class="before">« core · ◆ Métier · 0 dossier »</p>
+        <p>« <b>Les règles de la boutique</b> : calcul du total, remise au-delà de 200 €. » Écrite par Claude si le projet
+          est « Claude autorisé ». En « Local uniquement », une phrase tirée des noms et des catégories, marquée « déduit ».</p></div>
+      <div class="card"><h3>Des couches nommées pour toi</h3>
+        <p class="before">Orchestration · Métier · Infrastructure · Plomberie</p>
+        <p><b>Démarrage</b> (ce qui lance tout), <b>Entrée</b> (ce que le site ou l'écran appelle), <b>Règles</b>
+          (ce que fait l'app), <b>Données et outils</b> (base, fichiers, journaux).</p></div>
+      <div class="card"><h3>Des liens qui se lisent</h3>
+        <p class="before">Un « 4 » sur un trait</p>
+        <p>Au survol : « <span class="mono">OrdersController.Post</span> appelle <span class="mono">OrderService.Place</span> ».
+          Un appel deviné le dit : « <span class="mono">Save</span> pourrait être <span class="mono">AuditLog</span> ou
+          <span class="mono">InvoiceRepository</span> ».</p></div>
+      <div class="card"><h3>Trouver vite un fichier</h3>
+        <p class="before">Descendre palier par palier jusqu'au bon dossier</p>
+        <p><kbd>Ctrl</kbd>+<kbd>K</kbd> cherche un fichier ou une fonction (« disc » trouve <span class="mono">CalculateDiscount</span>).
+          Entrée entre dans son module et ouvre son code à droite. Un module de plus de 6 fichiers se montre en liste
+          filtrable ; le point violet marque les fichiers reliés à un autre module.</p></div>
+      <div class="card"><h3>Entrer dans un module</h3>
+        <p class="before">Un écran qui remplace l'autre</p>
+        <p>Double-clic : un zoom continu, le module remplit la carte. On y voit ses fichiers et leurs appels internes (en
+          violet). Les modules qui l'appellent restent à gauche, ceux qu'il appelle à droite. Échap ressort.</p></div>
+      <div class="card"><h3>Pas de dossier vide à l'écran</h3>
+        <p class="before">« src (racine) », « (racine) », « 0 dossier »</p>
+        <p>Un module ne montre que ses fichiers ; les dossiers intermédiaires sont aplatis. « (racine) » devient le nom du
+          fichier qu'elle contient (<span class="mono">Program.cs</span>).</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-compare">
+    <span class="eyebrow">Comparatif</span>
+    <h2 id="t-compare">Laquelle garder</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Critère</th><th>A · Boîtes</th><th>B · Couches</th><th>C · Neurones</th></tr></thead>
+        <tbody>
+          <tr><td>Comprendre l'architecture</td><td class="dots">●●○</td><td class="dots">●●●</td><td class="dots">●○○</td></tr>
+          <tr><td>Lire à quoi sert un module</td><td class="dots">●●●</td><td class="dots">●●●</td><td class="dots">●○○</td></tr>
+          <tr><td>Proche du style du Brainstormer</td><td class="dots">●○○</td><td class="dots">●●○</td><td class="dots">●●●</td></tr>
+          <tr><td>Tient sur un gros projet (50 modules et plus)</td><td class="dots">●●●</td><td class="dots">●●○</td><td class="dots">●○○</td></tr>
+          <tr><td>Travail à prévoir</td><td>moyen</td><td>moyen</td><td>important (placement en cercle)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="reco">
+      <h3>Ma recommandation : B, avec l'habillage des neurones sur les modules ouverts</h3>
+      <p>Tu as dit ne pas comprendre l'architecture. Les couches la montrent sans rien expliquer : on lit de haut en bas, et
+        les traits descendent. Les boîtes de B portent le rôle en mots. Les couleurs et le verre de C peuvent venir
+        ensuite, pour que l'explorateur ressemble au reste de l'app.</p>
+      <p><b>À trancher avec toi :</b></p>
+      <ol class="qs">
+        <li>Quelle piste, ou quel mélange ?</li>
+        <li>Les rôles en une phrase : Claude les écrit-il à l'analyse quand le projet l'autorise, ou seulement sur demande ?</li>
+        <li>Le double-clic pour entrer, avec les modules voisins au bord : ça te va, ou tu préfères n'y voir que le module ?</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // Projet fictif « boutique » : modules, fichiers et appels du code d'exemple des tests de l'app, plus un module
+  // Catalogue de 20 fichiers inventé pour montrer un gros module.
+  const LAYERS = {
+    start: { label: 'Démarrage', hint: 'ce qui lance tout', color: '--l-start' },
+    entry: { label: 'Entrée', hint: 'ce que le site appelle', color: '--l-entry' },
+    rules: { label: 'Règles', hint: 'ce que fait la boutique', color: '--l-rules' },
+    data: { label: 'Données et outils', hint: 'base, factures, journal', color: '--l-data' }
+  }
+  const CODE = {
+    'Program.cs': `var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+builder.Services.AddScoped<IOrderRepository, SqlOrderRepository>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddSingleton<AuditLog>();
+
+var app = builder.Build();
+app.MapControllers();
+app.Run();`,
+    'OrdersController.cs': `[ApiController]
+[Route("orders")]
+public class OrdersController : ControllerBase
+{
+    private readonly OrderService _service;
+
+    [HttpPost]
+    public IActionResult Post(OrderRequest request)
+    {
+        var total = _service.Place(request);
+        return Ok(total);
+    }
+}`,
+    'OrderService.cs': `public class OrderService
+{
+    public decimal CalculateDiscount(decimal total) => total > 200 ? total * 0.1m : 0;
+
+    public decimal Place(OrderRequest request)
+    {
+        var total = request.Price * request.Quantity;
+        var due = total - CalculateDiscount(total);
+        _repository.Save(due);
+        Archive(due);
+        return due;
+    }
+
+    private static void Archive(decimal due)
+    {
+        var store = Stores.Resolve();
+        store.Save(due);   // trois classes ont un Save : cible devinée
+    }
+}`,
+    'Stores.cs': `public static class Stores
+{
+    public static dynamic Resolve() => new object();
+}`,
+    'SqlOrderRepository.cs': `public class SqlOrderRepository : IOrderRepository
+{
+    private readonly List<decimal> _rows = new();
+
+    public void Save(decimal total)
+    {
+        _rows.Add(total);
+    }
+}`,
+    'InvoiceRepository.cs': `public class InvoiceRepository
+{
+    private readonly List<decimal> _invoices = new();
+
+    public void Save(decimal amount)
+    {
+        _invoices.Add(amount);
+    }
+}`,
+    'AuditLog.cs': `public class AuditLog
+{
+    public void Save(decimal value)
+    {
+        Console.WriteLine($"audit {value}");
+    }
+}`
+  }
+  const cat = (id, role, lines, fns) => ({ id, role, lines, fns, invented: true })
+  const MODULES = [
+    { id: 'program', name: 'Démarrage', layer: 'start', role: 'Lance l’application et branche les pièces entre elles.',
+      files: [{ id: 'Program.cs', role: 'Déclare le contrôleur, le stockage et le journal', lines: 14, fns: ['Main'] }] },
+    { id: 'controllers', name: 'Controllers', layer: 'entry', role: 'Reçoit les commandes envoyées par le site et répond le total.',
+      files: [{ id: 'OrdersController.cs', role: 'Reçoit « passer commande »', lines: 24, fns: ['Post'] }] },
+    { id: 'domain', name: 'Domain', layer: 'rules', role: 'Les règles : total, remise de 10 % au-delà de 200 €, enregistrement.',
+      files: [
+        { id: 'OrderService.cs', role: 'Passe la commande, calcule la remise, archive', lines: 29, fns: ['Place', 'CalculateDiscount', 'Archive'] },
+        { id: 'Stores.cs', role: 'Trouve le magasin (non typé, à surveiller)', lines: 6, fns: ['Resolve'] }
+      ] },
+    { id: 'catalog', name: 'Catalogue', layer: 'rules', invented: true, role: 'Produits, prix, stock et promotions (module inventé pour l’exemple).',
+      files: [
+        cat('CatalogService.cs', 'Point d’entrée : fiche produit avec prix et stock', 58, ['GetProduct', 'ListProducts']),
+        cat('ProductQuery.cs', 'Cherche les produits selon des critères', 44, ['Find']),
+        cat('ProductFilter.cs', 'Filtre par prix, catégorie, disponibilité', 37, ['Apply']),
+        cat('SearchIndex.cs', 'Index de recherche plein texte', 61, ['Search', 'Reindex']),
+        cat('Slug.cs', 'Fabrique les adresses lisibles des produits', 18, ['From']),
+        cat('CategoryTree.cs', 'Arborescence des catégories', 40, ['Children', 'PathOf']),
+        cat('Category.cs', 'Une catégorie de produits', 15, ['Name']),
+        cat('Product.cs', 'Un produit : nom, prix de base, images', 33, ['Create']),
+        cat('ProductImage.cs', 'Images d’un produit', 26, ['Thumbnail']),
+        cat('ImageResizer.cs', 'Redimensionne les images', 47, ['Resize']),
+        cat('PriceCalculator.cs', 'Prix final : base, taxes, promotions', 52, ['Compute']),
+        cat('TaxRules.cs', 'TVA selon le pays', 29, ['RateFor']),
+        cat('Currency.cs', 'Conversion et arrondi des montants', 31, ['Round', 'Convert']),
+        cat('PromotionRules.cs', 'Choisit la meilleure promotion', 39, ['Best']),
+        cat('Promotion.cs', 'Une promotion datée', 22, ['IsActive']),
+        cat('Bundle.cs', 'Un lot de produits vendus ensemble', 20, ['Items']),
+        cat('BundlePricing.cs', 'Prix d’un lot', 34, ['ComputeBundle']),
+        cat('StockService.cs', 'Réserve et libère le stock', 49, ['Reserve', 'Release']),
+        cat('StockLevel.cs', 'Niveau de stock d’un produit', 21, ['Available']),
+        cat('Warehouse.cs', 'Un entrepôt et ses emplacements', 28, ['Locate'])
+      ] },
+    { id: 'infra', name: 'Infrastructure', layer: 'data', role: 'Range les commandes et les factures.',
+      files: [
+        { id: 'SqlOrderRepository.cs', role: 'Enregistre une commande', lines: 14, fns: ['Save'] },
+        { id: 'InvoiceRepository.cs', role: 'Enregistre une facture', lines: 12, fns: ['Save'] }
+      ] },
+    { id: 'logging', name: 'Logging', layer: 'data', role: 'Garde une trace de chaque montant.',
+      files: [{ id: 'AuditLog.cs', role: 'Note chaque montant', lines: 12, fns: ['Save'] }] }
+  ]
+  const sure = (from, to, text) => ({ from, to, text, sure: true })
+  const CALLS = [
+    sure('Program.cs', 'OrdersController.cs', 'branche le contrôleur des commandes'),
+    sure('Program.cs', 'SqlOrderRepository.cs', 'choisit le stockage SQL des commandes'),
+    sure('Program.cs', 'OrderService.cs', 'déclare le service des commandes'),
+    sure('Program.cs', 'AuditLog.cs', 'déclare le journal'),
+    sure('OrdersController.cs', 'OrderService.cs', '<code>Post</code> appelle <code>Place</code>'),
+    sure('OrderService.cs', 'SqlOrderRepository.cs', '<code>Place</code> enregistre par <code>Save</code> (via l’interface IOrderRepository)'),
+    sure('OrderService.cs', 'Stores.cs', '<code>Archive</code> demande le magasin à <code>Resolve</code>'),
+    { from: 'OrderService.cs', to: 'InvoiceRepository.cs', text: '<code>Archive</code> appelle un <code>Save</code> sans type : pourrait être celui-ci (trois possibles)', sure: false },
+    { from: 'OrderService.cs', to: 'AuditLog.cs', text: '<code>Archive</code> appelle un <code>Save</code> sans type : pourrait être celui-ci (trois possibles)', sure: false },
+    // Module inventé
+    sure('OrdersController.cs', 'CatalogService.cs', '<code>Post</code> vérifie le produit avec <code>GetProduct</code>'),
+    sure('OrderService.cs', 'PriceCalculator.cs', '<code>Place</code> recalcule le prix avec <code>Compute</code>'),
+    sure('StockService.cs', 'AuditLog.cs', '<code>Reserve</code> note chaque mouvement de stock'),
+    sure('CatalogService.cs', 'ProductQuery.cs', '<code>ListProducts</code> appelle <code>Find</code>'),
+    sure('CatalogService.cs', 'PriceCalculator.cs', '<code>GetProduct</code> appelle <code>Compute</code>'),
+    sure('CatalogService.cs', 'StockService.cs', '<code>GetProduct</code> lit le stock'),
+    sure('CatalogService.cs', 'Product.cs', '<code>GetProduct</code> charge le produit'),
+    sure('ProductQuery.cs', 'ProductFilter.cs', '<code>Find</code> applique les filtres'),
+    sure('ProductQuery.cs', 'SearchIndex.cs', '<code>Find</code> interroge l’index'),
+    sure('ProductQuery.cs', 'CategoryTree.cs', '<code>Find</code> parcourt les catégories'),
+    sure('CategoryTree.cs', 'Category.cs', '<code>Children</code> lit les catégories'),
+    sure('SearchIndex.cs', 'Slug.cs', '<code>Reindex</code> calcule les adresses'),
+    sure('PriceCalculator.cs', 'TaxRules.cs', '<code>Compute</code> demande le taux de TVA'),
+    sure('PriceCalculator.cs', 'Currency.cs', '<code>Compute</code> arrondit le montant'),
+    sure('PriceCalculator.cs', 'PromotionRules.cs', '<code>Compute</code> cherche la meilleure promotion'),
+    sure('PromotionRules.cs', 'Promotion.cs', '<code>Best</code> vérifie les dates'),
+    sure('Bundle.cs', 'BundlePricing.cs', '<code>Items</code> fait calculer le prix du lot'),
+    sure('BundlePricing.cs', 'PriceCalculator.cs', '<code>ComputeBundle</code> appelle <code>Compute</code>'),
+    sure('StockService.cs', 'StockLevel.cs', '<code>Reserve</code> lit le niveau'),
+    sure('StockService.cs', 'Warehouse.cs', '<code>Reserve</code> choisit l’entrepôt'),
+    sure('Product.cs', 'ProductImage.cs', '<code>Create</code> attache les images'),
+    sure('ProductImage.cs', 'ImageResizer.cs', '<code>Thumbnail</code> appelle <code>Resize</code>')
+  ]
+  const fileOwner = {}, fileInfo = {}
+  for (const m of MODULES) for (const f of m.files) { fileOwner[f.id] = m.id; fileInfo[f.id] = f }
+  const modById = Object.fromEntries(MODULES.map((m) => [m.id, m]))
+  const linesOf = (m) => m.files.reduce((s, f) => s + f.lines, 0)
+  const BIG = 6
+  const isBig = (m) => m.files.length > BIG
+  // Fichier relié à un autre module (il porte un trait vers l'extérieur).
+  const external = new Set()
+  for (const c of CALLS) if (fileOwner[c.from] !== fileOwner[c.to]) { external.add(c.from); external.add(c.to) }
+  const codeOf = (f) => CODE[f.id] ?? `// Code d’exemple inventé\npublic class ${f.id.replace('.cs', '')}\n{\n${f.fns.map((n) => `    public void ${n}()\n    {\n        // …\n    }`).join('\n\n')}\n}`
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const PITCH = {
+    A: { title: 'A · Boîtes qui s’ouvrent', text: 'Les modules se suivent de gauche à droite, dans le sens des appels. Un clic ouvre la boîte sur place : ses fichiers apparaissent dedans (en liste filtrable au-delà de 6). Un double-clic entre dans le module : la vue zoome en continu jusqu’à ses fichiers et leurs appels.',
+      pros: ['La plus simple à lire et à faire', 'Tient sur un gros projet (colonnes, défilement)', 'Le rôle en mots est sur la boîte'],
+      cons: ['Les couches restent implicites', 'Style sobre, loin des neurones'] },
+    B: { title: 'B · Couches lisibles', text: 'Quatre bandes horizontales nommées pour toi : Démarrage, Entrée, Règles, Données et outils. Chaque module est rangé dans sa couche, et les traits descendent : on lit l’architecture de haut en bas. Le clic et le double-clic marchent comme en A.',
+      pros: ['L’architecture se voit sans explication', 'Un trait qui remonte saute aux yeux : c’est une anomalie', 'Même ouverture sur place que A'],
+      cons: ['Une couche très peuplée s’élargit beaucoup', 'Le classement en couches peut se tromper : il faudra pouvoir le corriger'] },
+    C: { title: 'C · Neurones du code', text: 'Les modules deviennent des neurones, comme sur ta carte, et leur taille suit le volume de code. Un clic gonfle le neurone et pose ses fichiers en pastilles. Un double-clic entre dedans, comme en A.',
+      pros: ['Même langage visuel que le Brainstormer', 'La taille montre où est le code'],
+      cons: ['Peu de place pour écrire le rôle', 'Un gros module ne tient pas en pastilles : il faut y entrer', 'L’architecture ne se lit pas d’un coup d’œil'] }
+  }
+
+  const stage = document.getElementById('stage')
+  const wrap = document.getElementById('stage-wrap')
+  const svg = document.getElementById('links')
+  const fiche = document.getElementById('fiche')
+  const caption = document.getElementById('caption')
+  const crumb = document.getElementById('crumb')
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const state = { mode: 'A', open: new Set(['domain']), sel: { type: 'module', id: 'domain' }, hover: null, focus: null, filter: {} }
+  let current = null, anim = 0, clickTimer = 0
+
+  // ── Mises en page (coordonnées logiques) ─────────────────────────────────────────────────────────────────────
+  const boxHeight = (m, open, base) => (!open ? base : isBig(m) ? base + 48 + Math.min(m.files.length, 8) * 30 + 6 : base + 20 + m.files.length * 56)
+  function filesInBox(R, m, r, open, top) {
+    m.files.forEach((f, i) => {
+      R.files[f.id] = open && !isBig(m) ? { x: r.x + 12, y: r.y + top + i * 56, w: r.w - 24, h: 48, show: 1 } : { x: r.x + 20, y: r.y + 40, w: r.w - 40, h: 30, show: 0 }
+    })
+  }
+  function layoutA(open) {
+    const cols = [['program'], ['controllers'], ['domain', 'catalog'], ['infra', 'logging']]
+    const R = { nodes: {}, files: {}, bands: [] }
+    let x = 24, H = 0
+    for (const col of cols) {
+      let y = 24, colW = 0
+      for (const id of col) {
+        const m = modById[id], isOpen = open.has(id)
+        const r = { x, y, w: isOpen ? 290 : 220, h: boxHeight(m, isOpen, 128), show: 1 }
+        R.nodes[id] = r; filesInBox(R, m, r, isOpen, 140)
+        y += r.h + 26; colW = Math.max(colW, r.w)
+      }
+      H = Math.max(H, y); x += colW + 70
+    }
+    R.W = x - 46; R.H = H
+    return R
+  }
+  function layoutB(open) {
+    const R = { nodes: {}, files: {}, bands: [] }
+    let y = 0, W = 0
+    for (const layer of ['start', 'entry', 'rules', 'data']) {
+      let x = 176, bandH = 0
+      for (const m of MODULES.filter((mm) => mm.layer === layer)) {
+        const isOpen = open.has(m.id)
+        const r = { x, y: y + 18, w: isOpen ? 300 : 240, h: boxHeight(m, isOpen, 120), show: 1 }
+        R.nodes[m.id] = r; filesInBox(R, m, r, isOpen, 132)
+        x += r.w + 28; bandH = Math.max(bandH, r.h)
+      }
+      R.bands.push({ layer, y, h: bandH + 36 })
+      y += bandH + 36; W = Math.max(W, x)
+    }
+    R.W = W; R.H = y
+    return R
+  }
+  function layoutC(open) {
+    const centers = { program: [90, 200], controllers: [270, 140], domain: [480, 110], catalog: [480, 340], infra: [720, 110], logging: [720, 320] }
+    const R = { nodes: {}, files: {}, bands: [] }
+    const base = (m) => 30 + Math.sqrt(linesOf(m)) * (isBig(m) ? 2.6 : 4.2)
+    const radius = (m) => (open.has(m.id) && !isBig(m) ? 92 + m.files.length * 16 : base(m))
+    const pos = Object.fromEntries(MODULES.map((m) => [m.id, [...centers[m.id]]]))
+    for (const m of MODULES) {
+      if (radius(m) === base(m)) continue
+      const grow = radius(m) - base(m)
+      for (const o of MODULES) {
+        if (o.id === m.id) continue
+        const dx = centers[o.id][0] - centers[m.id][0], dy = centers[o.id][1] - centers[m.id][1], d = Math.hypot(dx, dy) || 1
+        pos[o.id][0] += (dx / d) * grow * 1.15; pos[o.id][1] += (dy / d) * grow * 1.15
+      }
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const m of MODULES) {
+      const r = radius(m), [cx, cy] = pos[m.id]
+      minX = Math.min(minX, cx - r); minY = Math.min(minY, cy - r); maxX = Math.max(maxX, cx + r); maxY = Math.max(maxY, cy + r)
+    }
+    const ox = 24 - minX, oy = 24 - minY
+    for (const m of MODULES) {
+      const r = radius(m), cx = pos[m.id][0] + ox, cy = pos[m.id][1] + oy
+      R.nodes[m.id] = { x: cx - r, y: cy - r, w: 2 * r, h: 2 * r, show: 1 }
+      const n = m.files.length
+      m.files.forEach((f, i) => {
+        const a = -Math.PI / 2 + (n === 1 ? Math.PI : (i / n) * 2 * Math.PI + Math.PI / 2)
+        const dist = n === 1 ? r * 0.28 : r * 0.42, fw = f.id.length * 7 + 22
+        R.files[f.id] = open.has(m.id) && !isBig(m)
+          ? { x: cx + Math.cos(a) * dist - fw / 2, y: cy + 14 + Math.sin(a) * dist - 12, w: fw, h: 24, show: 1 }
+          : { x: cx - fw / 2, y: cy - 12, w: fw, h: 24, show: 0 }
+      })
+    }
+    R.W = maxX - minX + 48; R.H = maxY - minY + 48
+    return R
+  }
+  // Modules reliés au module ouvert : qui l'appelle (porte de gauche), ce qu'il appelle (porte de droite).
+  function doorsOf(fid) {
+    const ids = new Set(modById[fid].files.map((f) => f.id)), callers = [], callees = []
+    for (const c of CALLS) {
+      const a = fileOwner[c.from], b = fileOwner[c.to]
+      if (ids.has(c.to) && !ids.has(c.from) && !callers.includes(a)) callers.push(a)
+      if (ids.has(c.from) && !ids.has(c.to) && !callees.includes(b)) callees.push(b)
+    }
+    return { callers, callees: callees.filter((id) => !callers.includes(id)) }
+  }
+  // Vue intérieure (double-clic) : seul le module, à la taille de son contenu ; ses fichiers rangés par profondeur
+  // d'appel (qui appelle à gauche, qui est appelé à droite), leurs fonctions sur leur boîte ; un appel vers l'extérieur
+  // n'est plus qu'une amorce vers le bord, avec le nom du module visé.
+  function layoutInside(fid) {
+    const m = modById[fid], ids = new Set(m.files.map((f) => f.id))
+    const internal = CALLS.filter((c) => ids.has(c.from) && ids.has(c.to))
+    const depth = Object.fromEntries(m.files.map((f) => [f.id, 0]))
+    for (let k = 0; k < m.files.length; k += 1) for (const c of internal) depth[c.to] = Math.max(depth[c.to], depth[c.from] + 1)
+    const byDepth = []
+    // Au plus 4 colonnes : au-delà, les fichiers deviendraient trop étroits pour être lus.
+    for (const f of m.files) (byDepth[Math.min(3, depth[f.id])] ??= []).push(f)
+    const cols = []
+    for (const group of byDepth.filter(Boolean)) for (let i = 0; i < group.length; i += 7) cols.push(group.slice(i, i + 7))
+    const { callers, callees } = doorsOf(fid)
+    // Le cadre prend la taille de son contenu, avec de l'air : marges larges, colonnes et lignes bien espacées.
+    const stubW = 150, pad = 44, top = 112, rowH = 104, gapX = 96, colW = 210, boxH = 64, stubGap = 62, sideGap = 72
+    const rows = Math.max(...cols.map((c) => c.length))
+    const sideL = callers.length ? stubW + sideGap : 0, sideR = callees.length ? stubW + sideGap : 0
+    const filesW = cols.length * colW + (cols.length - 1) * gapX
+    const fw = Math.max(520, 2 * pad + sideL + sideR + filesW)
+    const fh = Math.max(300, top + Math.max(rows * rowH - (rowH - boxH), Math.max(callers.length, callees.length) * stubGap) + pad)
+    // Petit module : cadre centré dans la carte ; gros module : la carte s'agrandit autour de lui.
+    const margin = 40
+    const VW = Math.max(wrap.clientWidth - 8, fw + 2 * margin), VH = Math.max(wrap.clientHeight - 8, fh + 2 * margin)
+    const frame = { x: (VW - fw) / 2, y: (VH - fh) / 2, w: fw, h: fh, show: 1 }
+    const R = { nodes: { [fid]: frame }, files: {}, bands: [], W: VW, H: VH }
+    const x0 = frame.x + pad + sideL + (fw - 2 * pad - sideL - sideR - filesW) / 2
+    cols.forEach((col, ci) => {
+      // Une colonne plus courte se centre verticalement : les appels restent lisibles.
+      const y0 = frame.y + top + ((rows - col.length) * rowH) / 2
+      col.forEach((f, ri) => { R.files[f.id] = { x: x0 + ci * (colW + gapX), y: y0 + ri * rowH, w: colW, h: boxH, show: 1 } })
+    })
+    // Amorces des appels vers l'extérieur : une place par module visé, sur le bord gauche (qui appelle) ou droit.
+    R.stubs = {
+      in: callers.map((id, i) => ({ id, x: frame.x + pad, y: frame.y + top + 20 + i * stubGap, w: stubW })),
+      out: callees.map((id, i) => ({ id, x: frame.x + frame.w - pad - stubW, y: frame.y + top + 20 + i * stubGap, w: stubW }))
+    }
+    for (const o of MODULES) {
+      if (!R.nodes[o.id]) R.nodes[o.id] = { x: frame.x + frame.w / 2 - 60, y: frame.y + frame.h / 2 - 20, w: 120, h: 40, show: 0 }
+      if (o.id === fid) continue
+      const r = R.nodes[o.id]
+      for (const f of o.files) R.files[f.id] = { x: r.x + 10, y: r.y + 8, w: Math.max(20, r.w - 20), h: 28, show: 0 }
+    }
+    return R
+  }
+  const LAYOUT = { A: layoutA, B: layoutB, C: layoutC }
+  // Glisser-déposer : décalages posés à la main, gardés par vue (piste, ou intérieur d'un module).
+  const offsets = {}
+  const viewKey = () => (state.focus ? 'in:' + state.focus : state.mode)
+  function withOffsets(R) {
+    const off = offsets[viewKey()] ?? {}
+    const shift = (r, d) => { if (r && d) { r.x += d.dx; r.y += d.dy } }
+    for (const id in off) {
+      if (id.startsWith('f:') || state.focus) continue
+      shift(R.nodes[id], off[id])
+      for (const f of modById[id]?.files ?? []) shift(R.files[f.id], off[id])
+    }
+    for (const id in off) if (id.startsWith('f:')) shift(R.files[id.slice(2)], off[id])
+    return R
+  }
+  const mapLayout = () => withOffsets(LAYOUT[state.mode](state.open))
+  const target = () => withOffsets(state.focus ? layoutInside(state.focus) : LAYOUT[state.mode](state.open))
+
+  // ── Éléments ──────────────────────────────────────────────────────────────────────────────────────────────────
+  const els = { nodes: {}, files: {}, bands: [] }
+  function build() {
+    delete svg.dataset.sig
+    stage.querySelectorAll('.node, .file, .chip, .band').forEach((e) => e.remove())
+    els.nodes = {}; els.files = {}; els.bands = []
+    if (state.mode === 'B') {
+      for (const layer of ['start', 'entry', 'rules', 'data']) {
+        const b = document.createElement('div')
+        b.className = 'band'
+        b.style.setProperty('--c', `var(${LAYERS[layer].color})`)
+        b.innerHTML = `<div class="bl"><b>${LAYERS[layer].label}</b>${LAYERS[layer].hint}</div>`
+        stage.appendChild(b); els.bands.push(b)
+      }
+    }
+    for (const m of MODULES) {
+      const n = document.createElement('div')
+      n.className = 'node ' + (state.mode === 'C' ? 'orb' : 'box')
+      n.style.setProperty('--c', `var(${LAYERS[m.layer].color})`)
+      n.tabIndex = 0
+      n.setAttribute('role', 'group')
+      n.dataset.id = m.id
+      n.addEventListener('pointerdown', (e) => startMove(e, 'node', m.id))
+      n.addEventListener('click', (e) => {
+        if (justMoved || e.target.closest('.flist, .ffilter')) return
+        clearTimeout(clickTimer)
+        clickTimer = setTimeout(() => clickModule(m.id), 230)
+      })
+      n.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.flist, .ffilter')) return
+        e.stopPropagation(); clearTimeout(clickTimer); enter(m.id)
+      })
+      n.addEventListener('keydown', (e) => {
+        if (e.target !== n) return
+        if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? enter(m.id) : clickModule(m.id) }
+      })
+      n.addEventListener('mouseenter', () => hoverOn({ type: 'module', id: m.id }))
+      n.addEventListener('mouseleave', hoverOff)
+      stage.appendChild(n); els.nodes[m.id] = n
+      for (const f of m.files) {
+        const e = document.createElement('div')
+        e.className = state.mode === 'C' && !state.focus ? 'chip' : 'file'
+        e.style.setProperty('--c', `var(${LAYERS[m.layer].color})`)
+        e.innerHTML = e.className === 'chip' ? f.id
+          : state.focus === m.id ? `<div class="fname">${f.id}</div><div class="frole">${f.role}</div><div class="ffns">${f.fns.map((n) => `<span>${n}()</span>`).join('')}</div>`
+          : `<div class="fname">${f.id}</div><div class="frole">${f.role}</div>`
+        e.addEventListener('pointerdown', (ev) => startMove(ev, 'file', f.id))
+        e.addEventListener('click', (ev) => { ev.stopPropagation(); if (!justMoved) selectFile(f.id) })
+        e.addEventListener('dblclick', (ev) => ev.stopPropagation())
+        e.addEventListener('mouseenter', () => hoverOn({ type: 'file', id: f.id }))
+        e.addEventListener('mouseleave', hoverOff)
+        stage.appendChild(e); els.files[f.id] = e
+      }
+    }
+    fillNodes()
+  }
+  function fileRows(m) {
+    const q = (state.filter[m.id] ?? '').toLowerCase()
+    const list = m.files.filter((f) => q === '' || f.id.toLowerCase().includes(q) || f.fns.some((n) => n.toLowerCase().includes(q)))
+    if (list.length === 0) return '<li class="none">Aucun fichier</li>'
+    return list.map((f) => `<li><button type="button" data-f="${f.id}" class="${state.sel?.id === f.id ? 'on' : ''}" title="${f.role}">
+      <span class="dot${external.has(f.id) ? ' ext' : ''}" aria-hidden="true"></span>${f.id}</button></li>`).join('')
+  }
+  function fillNodes() {
+    for (const m of MODULES) {
+      const n = els.nodes[m.id], isOpen = state.open.has(m.id)
+      const focused = state.focus === m.id, mini = state.focus !== null && !focused
+      n.classList.toggle('open', isOpen && !state.focus)
+      n.classList.toggle('flat', state.focus !== null)
+      n.classList.toggle('mini', mini)
+      n.classList.toggle('frame', focused)
+      n.setAttribute('aria-label', `${m.name}, ${LAYERS[m.layer].label}. ${m.role}`)
+      const meta = `${m.files.length} fichier${m.files.length > 1 ? 's' : ''} · ${linesOf(m)} lignes`
+      if (mini) {
+        n.innerHTML = `<div class="name">${m.name}</div>`
+      } else if (focused) {
+        n.innerHTML = `<div class="kind"><span>${LAYERS[m.layer].label} · à l’intérieur</span><span class="toggle">Échap : ressortir</span></div>
+          <div class="name">${m.name}</div><div class="role">${m.role} · ${meta}</div>`
+      } else if (state.mode === 'C') {
+        n.innerHTML = `<div class="oinner"><div class="oname">${m.name}</div><div class="ometa">${isOpen && isBig(m) ? `${m.files.length} fichiers · double-clic pour entrer` : meta}</div></div>`
+      } else {
+        n.innerHTML = `<div class="kind"><span>${LAYERS[m.layer].label}</span><span class="toggle">${isOpen ? '▾ Fermer' : '▸ Ouvrir'}</span></div>
+          <div class="name">${m.name}</div><div class="role">${m.role}</div>${isOpen ? '' : `<div class="meta">${meta}</div>`}
+          ${isOpen && isBig(m) ? `<input class="ffilter" type="search" placeholder="Filtrer les ${m.files.length} fichiers…" aria-label="Filtrer les fichiers de ${m.name}" value="${esc(state.filter[m.id] ?? '')}">
+          <ul class="flist" aria-label="Fichiers de ${m.name}">${fileRows(m)}</ul>` : ''}`
+        const input = n.querySelector('.ffilter')
+        if (input) {
+          input.addEventListener('input', () => { state.filter[m.id] = input.value; n.querySelector('.flist').innerHTML = fileRows(m) })
+          n.querySelector('.flist').addEventListener('click', (e) => { const b = e.target.closest('button[data-f]'); if (b) selectFile(b.dataset.f) })
+        }
+      }
+    }
+  }
+
+  // ── Dessin et animation ────────────────────────────────────────────────────────────────────────────────────────
+  const lerp = (a, b, t) => a + (b - a) * t
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+  function mix(A, B, t) {
+    const R = { nodes: {}, files: {}, bands: B.bands.map((b, i) => ({ ...b, y: lerp(A.bands[i]?.y ?? b.y, b.y, t), h: lerp(A.bands[i]?.h ?? b.h, b.h, t) })) }
+    for (const k of ['nodes', 'files']) for (const id in B[k]) {
+      const a = A[k][id] ?? B[k][id], b = B[k][id]
+      R[k][id] = { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t), show: lerp(a.show ?? 1, b.show ?? 1, t) }
+    }
+    R.W = lerp(A.W, B.W, t); R.H = lerp(A.H, B.H, t); R.stubs = B.stubs
+    return R
+  }
+  // Caméra du double-clic (zoom sur un nœud) et fondu de ce qui n'est pas ce nœud.
+  let cam = { tx: 0, ty: 0, k: 1 }
+  // Zoom à la molette (autour du curseur) et déplacement en faisant glisser le fond, par-dessus la caméra.
+  let view = { x: 0, y: 0, k: 1 }
+  const fade = { id: null, v: 1 }
+  // Jamais sous 90 % : au-delà, la carte défile au lieu d'écraser le texte.
+  const scaleOf = (L) => Math.max(0.9, Math.min(1, (wrap.clientWidth - 8) / L.W))
+  function place(L) {
+    const scale = scaleOf(L)
+    stage.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k}) translate(${cam.tx}px, ${cam.ty}px) scale(${scale * cam.k})`
+    stage.style.width = L.W + 'px'; stage.style.height = L.H + 'px'
+    svg.setAttribute('width', L.W); svg.setAttribute('height', L.H)
+    svg.style.opacity = fade.id ? fade.v : 1
+    els.bands.forEach((b, i) => {
+      const d = L.bands[i]; b.style.top = d.y + 'px'; b.style.height = d.h + 'px'; b.style.width = L.W + 'px'
+      b.style.opacity = state.focus ? '0' : String(fade.id ? fade.v : 1)
+    })
+    for (const id in L.nodes) {
+      const r = L.nodes[id], e = els.nodes[id], o = r.show * (fade.id && id !== fade.id ? fade.v : 1)
+      e.style.left = r.x + 'px'; e.style.top = r.y + 'px'; e.style.width = r.w + 'px'; e.style.height = r.h + 'px'
+      e.style.opacity = o; e.style.pointerEvents = o > 0.1 ? 'auto' : 'none'; e.style.zIndex = id === state.focus ? '0' : '2'
+    }
+    for (const id in L.files) {
+      const r = L.files[id], e = els.files[id], o = r.show * (fade.id && fileOwner[id] !== fade.id ? fade.v : 1)
+      e.style.left = r.x + 'px'; e.style.top = r.y + 'px'; e.style.width = r.w + 'px'; e.style.height = r.h + 'px'
+      e.style.opacity = o; e.style.pointerEvents = o > 0.9 ? 'auto' : 'none'; e.style.visibility = o < 0.02 ? 'hidden' : 'visible'
+    }
+    drawLinks(L)
+  }
+  function tween(duration, step, done) {
+    cancelAnimationFrame(anim)
+    const t0 = performance.now(), D = reduce ? 0 : duration
+    const frame = (now) => {
+      const t = D === 0 ? 1 : Math.min(1, (now - t0) / D)
+      step(t)
+      if (t < 1) anim = requestAnimationFrame(frame); else done?.()
+    }
+    anim = requestAnimationFrame(frame)
+  }
+  function go(duration = 380) {
+    const to = target(), from = current ?? to
+    cancelAnimationFrame(anim)
+    const t0 = performance.now(), D = reduce ? 0 : duration
+    const step = (now) => {
+      const t = D === 0 ? 1 : Math.min(1, (now - t0) / D)
+      const L = mix(from, to, ease(t))
+      place(L); current = L
+      if (t < 1) anim = requestAnimationFrame(step)
+    }
+    anim = requestAnimationFrame(step)
+  }
+
+  function endpointOf(fileId, L) {
+    const owner = fileOwner[fileId]
+    const inside = state.focus !== null ? owner === state.focus : state.open.has(owner) && !isBig(modById[owner])
+    return inside ? { rect: L.files[fileId], key: fileId, owner } : { rect: L.nodes[owner], key: owner, owner }
+  }
+  function drawLinks(L) {
+    if (state.focus && L.stubs) return drawInside(L)
+    const agg = new Map()
+    for (const c of CALLS) {
+      if (state.focus && fileOwner[c.from] !== state.focus && fileOwner[c.to] !== state.focus) continue
+      const a = endpointOf(c.from, L), b = endpointOf(c.to, L)
+      // Module fermé : ses appels internes se confondent avec lui ; ouvert, ils relient ses fichiers.
+      if (a.key === b.key) continue
+      const k = a.key + '>' + b.key
+      const g = agg.get(k) ?? { a, b, calls: [] }
+      g.calls.push(c); agg.set(k, g)
+    }
+    const sig = 'carte|' + [...agg.keys()].join(',')
+    if (svg.dataset.sig === sig) {
+      for (const el of svg.querySelectorAll('.lk')) { const g = agg.get(el.dataset.k), d = pathFor(g.a.rect, g.b.rect); for (const path of el.children) path.setAttribute('d', d) }
+      return
+    }
+    svg.dataset.sig = sig
+    let html = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>`
+    for (const [k, g] of agg) {
+      const ok = g.calls.some((c) => c.sure), d = pathFor(g.a.rect, g.b.rect), w = 1.6 + Math.min(4, g.calls.length) * 0.9
+      const internal = g.a.owner === g.b.owner
+      html += `<g class="lk" data-k="${k}" data-ends="${[g.a.key, g.b.key, g.a.owner, g.b.owner].join(' ')}" style="cursor:help">
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="14"/>
+        <path d="${d}" fill="none" stroke="var(${!ok ? '--warn' : internal ? '--accent' : '--muted'})" stroke-width="${w}" ${ok ? '' : 'stroke-dasharray="6 5"'} marker-end="url(#arr)"/></g>`
+    }
+    svg.innerHTML = html
+    svg.querySelectorAll('.lk').forEach((g) => {
+      const info = agg.get(g.dataset.k)
+      g.addEventListener('mouseenter', () => {
+        caption.innerHTML = info.calls.map((c) => `<b class="mono">${c.from}</b> → <b class="mono">${c.to}</b> : ${c.text} <span class="${c.sure ? 'sure' : 'guess'}">${c.sure ? 'certain' : 'deviné'}</span>`).join('<br>')
+        state.hover = { type: 'link', id: g.dataset.k }; applyHover()
+      })
+      g.addEventListener('mouseleave', hoverOff)
+    })
+    applyHover()
+  }
+  // Intérieur d'un module : traits entre ses fichiers, et amorces vers le bord pour les appels qui en sortent ou y entrent.
+  function drawInside(L) {
+    const fid = state.focus, groups = new Map()
+    const slot = (side, id) => L.stubs[side].find((st) => st.id === id)
+    const add = (k, g, c) => { const v = groups.get(k) ?? { ...g, calls: [] }; v.calls.push(c); groups.set(k, v) }
+    for (const c of CALLS) {
+      const a = fileOwner[c.from] === fid, b = fileOwner[c.to] === fid
+      if (a && b) add(c.from + '>' + c.to, { kind: 'in', r1: L.files[c.from], r2: L.files[c.to], ends: [c.from, c.to] }, c)
+      else if (a) { const st = slot('out', fileOwner[c.to]); if (st) add(c.from + '>' + st.id, { kind: 'out', r1: L.files[c.from], st, ends: [c.from, st.id] }, c) }
+      else if (b) { const st = slot('in', fileOwner[c.from]) ?? slot('out', fileOwner[c.from]); if (st) add(st.id + '>' + c.to, { kind: 'from', r2: L.files[c.to], st, ends: [st.id, c.to] }, c) }
+    }
+    const curve = (g) => {
+      if (g.kind === 'in') return pathFor(g.r1, g.r2)
+      if (g.kind === 'out') { const s0 = [g.r1.x + g.r1.w, g.r1.y + g.r1.h / 2], e0 = [g.st.x - 4, g.st.y]; const kx = Math.max(30, (e0[0] - s0[0]) / 2); return `M${s0[0]},${s0[1]} C${s0[0] + kx},${s0[1]} ${e0[0] - kx},${e0[1]} ${e0[0]},${e0[1]}` }
+      const s0 = [g.st.x + g.st.w, g.st.y], e0 = [g.r2.x - 3, g.r2.y + g.r2.h / 2]; const kx = Math.max(30, (e0[0] - s0[0]) / 2)
+      return `M${s0[0]},${s0[1]} C${s0[0] + kx},${s0[1]} ${e0[0] - kx},${e0[1]} ${e0[0]},${e0[1]}`
+    }
+    const sig = 'dedans|' + fid + '|' + [...groups.keys()].join(',')
+    if (svg.dataset.sig === sig) {
+      for (const el of svg.querySelectorAll('.lk')) { const d = curve(groups.get(el.dataset.k)); for (const path of el.children) path.setAttribute('d', d) }
+      for (const el of svg.querySelectorAll('.stub')) {
+        const st = slot('in', el.dataset.id) ?? slot('out', el.dataset.id), [rect, text] = [el.querySelector('rect'), el.querySelector('text')]
+        rect.setAttribute('x', st.x); rect.setAttribute('y', st.y - 13); text.setAttribute('x', st.x + st.w / 2); text.setAttribute('y', st.y + 4)
+      }
+      return
+    }
+    svg.dataset.sig = sig
+    let html = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>`
+    for (const side of ['in', 'out']) for (const st of L.stubs[side]) {
+      const m = modById[st.id]
+      html += `<g class="stub" data-id="${st.id}" style="cursor:pointer"><title>Aller dans ${m.name}</title>
+        <rect x="${st.x}" y="${st.y - 13}" width="${st.w}" height="26" rx="13" fill="var(--raised)" stroke="var(${LAYERS[m.layer].color})" stroke-dasharray="3 3"/>
+        <text x="${st.x + st.w / 2}" y="${st.y + 4}" text-anchor="middle" font-size="12" fill="var(--fg)">${side === 'in' ? '← ' + m.name : m.name + ' →'}</text></g>`
+    }
+    for (const [k, g] of groups) {
+      const ok = g.calls.some((c) => c.sure), w = 1.6 + Math.min(4, g.calls.length) * 0.9
+      const d = curve(g)
+      const color = !ok ? '--warn' : g.kind === 'in' ? '--accent' : '--muted'
+      html += `<g class="lk" data-k="${k}" data-ends="${g.ends.join(' ')}" style="cursor:help">
+        <path d="${d}" fill="none" stroke="transparent" stroke-width="14"/>
+        <path d="${d}" fill="none" stroke="var(${color})" stroke-width="${w}" ${ok ? '' : 'stroke-dasharray="6 5"'} ${g.kind === 'in' ? '' : 'opacity="0.75"'} marker-end="url(#arr)"/></g>`
+    }
+    svg.innerHTML = html
+    svg.querySelectorAll('.lk').forEach((el) => {
+      const info = groups.get(el.dataset.k)
+      el.addEventListener('mouseenter', () => {
+        caption.innerHTML = info.calls.map((c) => `<b class="mono">${c.from}</b> → <b class="mono">${c.to}</b> : ${c.text} <span class="${c.sure ? 'sure' : 'guess'}">${c.sure ? 'certain' : 'deviné'}</span>`).join('<br>')
+        state.hover = { type: 'link', id: el.dataset.k }; applyHover()
+      })
+      el.addEventListener('mouseleave', hoverOff)
+    })
+    svg.querySelectorAll('.stub').forEach((el) => {
+      el.addEventListener('click', () => enter(el.dataset.id))
+      el.addEventListener('mouseenter', () => { state.hover = { type: 'module', id: el.dataset.id }; caption.innerHTML = `Appels avec <b>${modById[el.dataset.id].name}</b> : clic pour y aller.`; applyHover() })
+      el.addEventListener('mouseleave', hoverOff)
+    })
+    applyHover()
+  }
+  // Survol : les traits qui ne touchent pas l'élément survolé s'effacent (sans redessiner sous le pointeur).
+  function applyHover() {
+    const hv = state.hover
+    svg.querySelectorAll('.lk').forEach((g) => {
+      const on = hv === null || (hv.type === 'link' ? g.dataset.k === hv.id : g.dataset.ends.split(' ').includes(hv.id))
+      g.style.opacity = on ? '1' : '0.15'
+    })
+  }
+  function pathFor(r1, r2) {
+    if (state.mode === 'C' && !state.focus) {
+      const c1 = [r1.x + r1.w / 2, r1.y + r1.h / 2], c2 = [r2.x + r2.w / 2, r2.y + r2.h / 2]
+      const dx = c2[0] - c1[0], dy = c2[1] - c1[1], d = Math.hypot(dx, dy) || 1
+      const rad = (r) => Math.min(r.w, r.h) / 2
+      const s = [c1[0] + (dx / d) * rad(r1), c1[1] + (dy / d) * rad(r1)], e = [c2[0] - (dx / d) * (rad(r2) + 4), c2[1] - (dy / d) * (rad(r2) + 4)]
+      const mx = (s[0] + e[0]) / 2 - dy * 0.12, my = (s[1] + e[1]) / 2 + dx * 0.12
+      return `M${s[0]},${s[1]} Q${mx},${my} ${e[0]},${e[1]}`
+    }
+    if (state.mode === 'B' && !state.focus && Math.abs(r2.y - r1.y) > 30) {
+      const down = r2.y > r1.y
+      const s = [r1.x + r1.w / 2, down ? r1.y + r1.h : r1.y], e = [r2.x + r2.w / 2, down ? r2.y - 3 : r2.y + r2.h + 3]
+      const k = Math.max(30, Math.abs(e[1] - s[1]) / 2)
+      return `M${s[0]},${s[1]} C${s[0]},${s[1] + (down ? k : -k)} ${e[0]},${e[1] - (down ? k : -k)} ${e[0]},${e[1]}`
+    }
+    if (r2.x >= r1.x + r1.w - 2) {
+      const s = [r1.x + r1.w, r1.y + r1.h / 2], e = [r2.x - 3, r2.y + r2.h / 2], k = Math.max(30, (e[0] - s[0]) / 2)
+      return `M${s[0]},${s[1]} C${s[0] + k},${s[1]} ${e[0] - k},${e[1]} ${e[0]},${e[1]}`
+    }
+    if (r1.x >= r2.x + r2.w - 2) {
+      const s = [r1.x, r1.y + r1.h / 2], e = [r2.x + r2.w + 3, r2.y + r2.h / 2], k = Math.max(30, (s[0] - e[0]) / 2)
+      return `M${s[0]},${s[1]} C${s[0] - k},${s[1]} ${e[0] + k},${e[1]} ${e[0]},${e[1]}`
+    }
+    // Même colonne : on descend (ou monte) par le côté.
+    const down = r2.y > r1.y
+    const s = [r1.x + r1.w / 2, down ? r1.y + r1.h : r1.y], e = [r2.x + r2.w / 2, down ? r2.y - 3 : r2.y + r2.h + 3]
+    return `M${s[0]},${s[1]} C${s[0] + 40},${(s[1] + e[1]) / 2} ${e[0] + 40},${(s[1] + e[1]) / 2} ${e[0]},${e[1]}`
+  }
+
+  // ── Interactions ─────────────────────────────────────────────────────────────────────────────────────────────
+  function clickModule(id) {
+    if (state.focus) { if (id !== state.focus) enter(id); return }
+    if (state.open.has(id)) state.open.delete(id); else state.open.add(id)
+    state.sel = { type: 'module', id }
+    fillNodes(); paint(); renderFiche(); go()
+  }
+  const lerpCam = (a, b, t) => ({ tx: lerp(a.tx, b.tx, t), ty: lerp(a.ty, b.ty, t), k: lerp(a.k, b.k, t) })
+  const IDENTITY = { tx: 0, ty: 0, k: 1 }
+  function showInside(id) {
+    crumb.hidden = false
+    crumb.querySelector('.here').textContent = modById[id].name
+    caption.innerHTML = `Dans <b>${modById[id].name}</b> : les traits violets relient ses fichiers entre eux ; les amorces du bord gauche viennent de qui l’appelle, celles du bord droit vont vers ce qu’il appelle (clic : y aller). Échap ou double-clic dans le vide pour ressortir.`
+  }
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3)
+  const easeIn = (t) => t * t * t
+  const MORPH_MS = 620
+  // Où le cadre de l'intérieur de `id` apparaîtra, en pixels de la carte visible (cadrage de fitInside).
+  function frameOnScreen(id) {
+    const Li = layoutInside(id), f = Li.nodes[id], sI = scaleOf(Li)
+    const kI = fitScale(Li)
+    return { x: f.x * sI * kI, y: f.y * sI * kI, w: f.w * sI * kI, h: f.h * sI * kI, k: sI * kI }
+  }
+  // Rectangle d'un élément de la carte, en pixels de la carte visible, et le facteur d'échelle qui s'y applique.
+  function measure(el) {
+    const w = wrap.getBoundingClientRect(), b = el.getBoundingClientRect()
+    return { x: b.left - w.left, y: b.top - w.top, w: b.width, h: b.height, k: el.offsetWidth ? b.width / el.offsetWidth : 1 }
+  }
+  // Titre et couche d'un cadre ouvert, à l'échelle k (mesurés) : 17 px du bord gauche, 32,4 px (titre) et 11 px (couche) du haut.
+  const frameTitle = (r) => ({ x: r.x + 17 * r.k, y: r.y + 32.4 * r.k, size: 17.28 * r.k })
+  const frameKind = (r) => ({ x: r.x + 17 * r.k, y: r.y + 11 * r.k, size: 10.9 * r.k })
+  // Calque de morphose posé sur la carte visible : une boîte, son titre, sa couche et (au départ ou à l'arrivée) son rôle.
+  function makePortal(m, kindText) {
+    const el = document.createElement('div')
+    el.className = 'portal'
+    const inset = { x: 0, y: 0 }
+    el.style.setProperty('--c', `var(${LAYERS[m.layer].color})`)
+    el.innerHTML = `<span class="pk">${kindText}</span><span class="pn">${m.name}</span><span class="pr">${m.role}</span>`
+    wrap.appendChild(el)
+    const [kind, name, role] = [el.querySelector('.pk'), el.querySelector('.pn'), el.querySelector('.pr')]
+    return {
+      // Positions données en pixels de la carte visible ; le calque les ramène à lui (liserés : 5 px à gauche, 1,5 px en haut).
+      set(rect, radius, grow, title, kindAt, kindOpacity, roleAt, roleOpacity) {
+        Object.assign(el.style, { left: rect.x + 'px', top: rect.y + 'px', width: rect.w + 'px', height: rect.h + 'px', borderRadius: radius + 'px' })
+        Object.assign(name.style, { left: title.x - rect.x - inset.x + 'px', top: title.y - rect.y - inset.y + 'px', fontSize: title.size + 'px' })
+        Object.assign(kind.style, { left: kindAt.x - rect.x - inset.x + 'px', top: kindAt.y - rect.y - inset.y + 'px', fontSize: kindAt.size + 'px', opacity: kindOpacity })
+        Object.assign(role.style, { left: roleAt.x - rect.x - inset.x + 'px', top: roleAt.y - rect.y - inset.y + 'px', fontSize: roleAt.size + 'px', width: roleAt.w + 'px', opacity: roleOpacity })
+      },
+      remove: () => el.remove()
+    }
+  }
+  const lerpRect = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t), size: lerp(a.size ?? 0, b.size ?? 0, t) })
+  // Ce qu'une boîte de la carte montre : son rectangle, son titre, sa couche et son rôle, mesurés à l'écran.
+  function boxLook(id) {
+    const n = els.nodes[id], r = measure(n)
+    const part = (sel) => { const el = n.querySelector(sel); if (!el) return null; const m = measure(el); return { ...m, size: parseFloat(getComputedStyle(el).fontSize) * r.k } }
+    const title = part('.name') ?? part('.oname') ?? { x: r.x + r.w / 2 - 30, y: r.y + r.h / 2 - 8, size: 14 * r.k }
+    const kind = part('.kind') ?? { x: title.x, y: title.y - 14 * r.k, size: 10.9 * r.k }
+    const role = part('.role') ?? { x: title.x, y: title.y + 24 * r.k, w: r.w - 30 * r.k, size: 13 * r.k }
+    return { r, title, kind, role, radius: state.mode === 'C' ? Math.min(r.w, r.h) / 2 : 12 * r.k, hasKind: !!n.querySelector('.kind'), hasRole: !!n.querySelector('.role') }
+  }
+  // Caméra qui amène le nœud r (coordonnées de la mise en page, échelle s0) sur le rectangle `to` de l'écran, depuis la vue en cours.
+  function cameraOnto(r, s0, to, v = view) {
+    const k = Math.min(to.w / (v.k * s0 * r.w), to.h / (v.k * s0 * r.h))
+    const cx = to.x + to.w / 2, cy = to.y + to.h / 2
+    return { tx: (cx - v.x) / v.k - s0 * k * (r.x + r.w / 2), ty: (cy - v.y) / v.k - s0 * k * (r.y + r.h / 2), k }
+  }
+  const stageTransform = (v, c, s0) => `translate(${v.x}px, ${v.y}px) scale(${v.k}) translate(${c.tx}px, ${c.ty}px) scale(${s0 * c.k})`
+  const clamp01 = (t) => Math.max(0, Math.min(1, t))
+  const smooth = (t) => t * t * (3 - 2 * t)
+  // Fondu sur une fenêtre [a, b] de l'animation, adouci aux deux bouts.
+  const fadeIn = (e, a, b) => smooth(clamp01((e - a) / (b - a)))
+  // Opacités d'une copie figée : le nœud qui se relaie d'un côté, tout le reste de l'autre.
+  function ghostFader(ghost, selector) {
+    const target = ghost.querySelector(selector), links = ghost.querySelector('svg')
+    const others = [...ghost.children].filter((el) => el !== target && el !== links)
+      .concat(links ? [...links.children].filter((el) => el !== target) : [])
+    return (targetOpacity, othersOpacity) => {
+      if (target) target.style.opacity = targetOpacity
+      for (const el of others) el.style.opacity = othersOpacity
+    }
+  }
+  // Copie figée de la carte telle qu'on la voit : elle zoome et s'efface pendant que la vraie carte change de vue.
+  function ghostOfStage() {
+    const ghost = stage.cloneNode(true)
+    ghost.removeAttribute('id'); ghost.querySelector('#links')?.removeAttribute('id')
+    ghost.classList.add('ghost')
+    wrap.insertBefore(ghost, stage)
+    return ghost
+  }
+  const titlesOf = (el) => el.querySelectorAll('.name, .oname, .kind')
+  // Une vue intérieure dont le cadre et les fichiers ont leur propre opacité (le reste reste caché).
+  function insideAt(Li, id, frameAlpha, filesAlpha) {
+    return {
+      ...Li,
+      nodes: Object.fromEntries(Object.entries(Li.nodes).map(([k, r]) => [k, { ...r, show: k === id ? frameAlpha : 0 }])),
+      files: Object.fromEntries(Object.entries(Li.files).map(([k, r]) => [k, { ...r, show: fileOwner[k] === id ? filesAlpha : 0 }]))
+    }
+  }
+  let mapView = { x: 0, y: 0, k: 1 }
+  // Double-clic : l'intérieur est construit tout de suite, à la taille du nœud ; à chaque image, la carte d'ensemble
+  // (copie figée) et l'intérieur cadrent leur nœud dans le même rectangle, qui va de la boîte au cadre final : le nœud et
+  // ses fichiers grandissent ensemble, à la même échelle. Les fichiers sont visibles bien avant la fin ; le titre glisse.
+  function enter(id) {
+    if (state.focus === id) return
+    if (state.focus) { through(id); return }
+    const L = current, s0 = scaleOf(L), m = modById[id], look = boxLook(id), rNode = L.nodes[id]
+    mapView = { ...view }
+    const ghost = ghostOfStage()
+    const gNode = ghost.querySelector(`.node[data-id="${id}"]`)
+    if (gNode) titlesOf(gNode).forEach((e) => (e.style.visibility = 'hidden'))
+    state.focus = id
+    state.sel = state.sel?.type === 'file' && fileOwner[state.sel.id] === id ? state.sel : { type: 'module', id }
+    build(); paint(); renderFiche(); showInside(id)
+    const Li = withOffsets(layoutInside(id))
+    fitInside(Li)
+    const sI = scaleOf(Li), F = frameOnScreen(id), frameEl = els.nodes[id]
+    titlesOf(frameEl).forEach((e) => (e.style.visibility = 'hidden'))
+    const labels = makePortal(m, `${LAYERS[m.layer].label} · à l’intérieur`)
+    const full = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight }
+    const titleTo = frameTitle(F), kindTo = frameKind(F)
+    const fadeGhost = ghostFader(ghost, `.node[data-id="${id}"]`)
+    const step = (e, t) => {
+      const R = lerpRect(look.r, F, e)
+      ghost.style.transform = stageTransform(mapView, cameraOnto(rNode, s0, R, mapView), s0)
+      // Relais : la boîte de la carte s'efface pendant que le cadre apparaît ; le reste de la carte s'estompe.
+      // Fondus calés sur le temps (pas sur le mouvement, qui accélère au milieu) : un relais régulier.
+      const relay = fadeIn(t, 0.15, 0.75)
+      fadeGhost(1 - relay, 1 - fadeIn(t, 0, 0.6))
+      cam = cameraOnto(Li.nodes[id], sI, R)
+      const filesAlpha = fadeIn(t, 0.2, 0.7)
+      current = insideAt(Li, id, relay, filesAlpha)
+      place(current)
+      svg.style.opacity = filesAlpha
+      labels.set(full, 0, e, lerpRect(look.title, titleTo, e), lerpRect(look.kind, kindTo, e), look.hasKind ? 1 : e, look.role, 0)
+    }
+    step(0, 0)
+    tween(MORPH_MS + 80, (t) => step(ease(t), t), () => {
+      ghost.remove(); labels.remove()
+      titlesOf(frameEl).forEach((e) => (e.style.visibility = ''))
+      cam = IDENTITY; current = Li; place(Li)
+    })
+  }
+  // Échap : l'inverse exact. L'intérieur (copie figée) et la carte d'ensemble cadrent leur nœud dans le même rectangle,
+  // du cadre jusqu'à la boîte ; l'intérieur s'efface pendant que la carte revient, et le titre regagne la boîte.
+  function leave() {
+    if (!state.focus) return
+    const id = state.focus, m = modById[id], Li = current, sI = scaleOf(Li), vIn = { ...view }
+    const F = measure(els.nodes[id])
+    const from = { title: frameTitle(F), kind: frameKind(F) }
+    titlesOf(els.nodes[id]).forEach((e) => (e.style.visibility = 'hidden'))
+    const ghost = ghostOfStage()
+    state.focus = null
+    build(); paint(); renderFiche()
+    crumb.hidden = true
+    caption.textContent = 'Passe la souris sur un trait ou sur un module.'
+    const L = mapLayout(), s0 = scaleOf(L)
+    current = L; view = { ...mapView }; cam = IDENTITY; fade.id = null
+    place(L)
+    const look = boxLook(id), nodeEl = els.nodes[id]
+    titlesOf(nodeEl).forEach((e) => (e.style.visibility = 'hidden'))
+    const labels = makePortal(m, LAYERS[m.layer].label)
+    const full = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight }
+    fade.id = id
+    const fadeGhost = ghostFader(ghost, `.node[data-id="${id}"]`)
+    const step = (e, t) => {
+      const R = lerpRect(F, look.r, e)
+      ghost.style.transform = stageTransform(vIn, cameraOnto(Li.nodes[id], sI, R, vIn), sI)
+      // Relais inverse : le cadre se fond dans la boîte (même fenêtre, opacités complémentaires).
+      const relay = fadeIn(t, 0.25, 0.85)
+      fadeGhost(1 - relay, 1 - fadeIn(t, 0, 0.45))
+      cam = cameraOnto(L.nodes[id], s0, R)
+      fade.v = fadeIn(t, 0.3, 0.9)
+      place(L)
+      nodeEl.style.opacity = relay
+      labels.set(full, 0, 1 - e, lerpRect(from.title, look.title, e), lerpRect(from.kind, look.kind, e), look.hasKind ? 1 : 1 - e,
+        look.role, look.hasRole ? smooth(clamp01((e - 0.6) / 0.4)) : 0)
+    }
+    step(0, 0)
+    tween(MORPH_MS + 80, (t) => step(ease(t), t), () => {
+      ghost.remove(); labels.remove()
+      titlesOf(nodeEl).forEach((e) => (e.style.visibility = ''))
+      cam = IDENTITY; fade.id = null; fade.v = 1; place(L)
+    })
+  }
+  // Déjà dans un module : même logique que le double-clic. Le module voisin est construit tout de suite ; l'intérieur
+  // actuel (copie figée) zoome vers l'amorce choisie et le module voisin grandit depuis elle, les deux cadrés dans le même
+  // rectangle ; l'amorce et le nouveau cadre se relaient en fondu, et le nom de l'amorce devient le titre.
+  function through(id) {
+    const LA = current, sA = scaleOf(LA), vA = { ...view }, m = modById[id]
+    const st = LA.stubs?.in.find((x) => x.id === id) ?? LA.stubs?.out.find((x) => x.id === id)
+    const stubG = svg.querySelector(`.stub[data-id="${id}"]`)
+    const from = stubG ? measure(stubG.querySelector('rect')) : { x: wrap.clientWidth / 2 - 60, y: wrap.clientHeight / 2 - 13, w: 120, h: 26 }
+    const textEl = stubG?.querySelector('text')
+    const title0 = textEl ? { ...measure(textEl), size: 12 * vA.k * sA } : { x: from.x + 10, y: from.y + 4, size: 12 }
+    const stubBox = st ? { x: st.x, y: st.y - 13, w: st.w, h: 26 } : null
+    const ghost = ghostOfStage()
+    ghost.querySelector(`.stub[data-id="${id}"] text`)?.setAttribute('visibility', 'hidden')
+    state.focus = id
+    state.sel = state.sel?.type === 'file' && fileOwner[state.sel.id] === id ? state.sel : { type: 'module', id }
+    build(); paint(); renderFiche(); showInside(id)
+    const Li = withOffsets(layoutInside(id))
+    fitInside(Li)
+    const sI = scaleOf(Li), F = frameOnScreen(id), frameEl = els.nodes[id]
+    titlesOf(frameEl).forEach((e) => (e.style.visibility = 'hidden'))
+    const labels = makePortal(m, `${LAYERS[m.layer].label} · à l’intérieur`)
+    const full = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight }
+    const titleTo = frameTitle(F), kindTo = frameKind(F)
+    const fadeGhost = ghostFader(ghost, `.stub[data-id="${id}"]`)
+    const step = (e, t) => {
+      const R = lerpRect(from, F, e)
+      if (stubBox) ghost.style.transform = stageTransform(vA, cameraOnto(stubBox, sA, R, vA), sA)
+      const relay = fadeIn(t, 0.15, 0.75)
+      fadeGhost(1 - relay, 1 - fadeIn(t, 0, 0.6))
+      cam = cameraOnto(Li.nodes[id], sI, R)
+      const filesAlpha = fadeIn(t, 0.2, 0.7)
+      current = insideAt(Li, id, relay, filesAlpha)
+      place(current)
+      svg.style.opacity = filesAlpha
+      labels.set(full, 0, e, lerpRect(title0, titleTo, e), kindTo, relay, kindTo, 0)
+    }
+    step(0, 0)
+    tween(MORPH_MS + 80, (t) => step(ease(t), t), () => {
+      ghost.remove(); labels.remove()
+      titlesOf(frameEl).forEach((e) => (e.style.visibility = ''))
+      cam = IDENTITY; current = Li; place(Li)
+    })
+  }
+  function selectFile(id) {
+    state.sel = { type: 'file', id }
+    paint(); renderFiche()
+    const m = modById[fileOwner[id]]
+    if (isBig(m) && state.open.has(m.id) && !state.focus) els.nodes[m.id].querySelector('.flist').innerHTML = fileRows(m)
+  }
+  function hoverOn(h) {
+    state.hover = h
+    if (h.type === 'module') { const m = modById[h.id]; caption.innerHTML = `<b>${m.name}</b> · ${LAYERS[m.layer].label} : ${m.role}` }
+    else { const f = fileInfo[h.id]; caption.innerHTML = `<b class="mono">${h.id}</b> : ${f.role}` }
+    applyHover()
+  }
+  function hoverOff() { state.hover = null; applyHover() }
+  function paint() {
+    for (const id in els.nodes) els.nodes[id].classList.toggle('sel', state.sel?.type === 'module' && state.sel.id === id)
+    for (const id in els.files) els.files[id].classList.toggle('sel', state.sel?.type === 'file' && state.sel.id === id)
+  }
+  function callList(list, side) {
+    if (list.length === 0) return '<span class="empty">personne</span>'
+    return '<ul>' + list.map((c) => `<li><span class="mono">${side === 'to' ? c.to : c.from}</span> : ${c.text} <span class="${c.sure ? 'sure' : 'guess'}">${c.sure ? 'certain' : 'deviné'}</span></li>`).join('') + '</ul>'
+  }
+  function renderFiche() {
+    const sel = state.sel
+    if (sel === null) { fiche.innerHTML = '<p class="empty">Choisis un module ou un fichier.</p>'; return }
+    if (sel.type === 'module') {
+      const m = modById[sel.id], ids = new Set(m.files.map((f) => f.id))
+      const out = CALLS.filter((c) => ids.has(c.from) && !ids.has(c.to)), inn = CALLS.filter((c) => ids.has(c.to) && !ids.has(c.from))
+      fiche.style.setProperty('--c', `var(${LAYERS[m.layer].color})`)
+      fiche.innerHTML = `<span class="tag">${LAYERS[m.layer].label}</span><h4>${m.name}</h4><p>${m.role}</p>
+        <dl><div><dt>Utilise</dt><dd>${callList(out, 'to')}</dd></div><div><dt>Utilisé par</dt><dd>${callList(inn, 'from')}</dd></div>
+        <div><dt>Contient</dt><dd>${m.files.length} fichier${m.files.length > 1 ? 's' : ''} · ${linesOf(m)} lignes${isBig(m) ? ' · double-clic pour entrer' : ''}</dd></div></dl>`
+    } else {
+      const f = fileInfo[sel.id], m = modById[fileOwner[sel.id]]
+      fiche.style.setProperty('--c', `var(${LAYERS[m.layer].color})`)
+      fiche.innerHTML = `<span class="tag">${LAYERS[m.layer].label} · ${m.name}</span><h4 class="mono">${f.id}</h4><p>${f.role}</p>
+        <dl><div><dt>Fonctions</dt><dd>${f.fns.map((n) => `<span class="fn">${n}</span>`).join(' ')}</dd></div>
+        <div><dt>Appelle</dt><dd>${callList(CALLS.filter((c) => c.from === f.id), 'to')}</dd></div>
+        <div><dt>Appelé par</dt><dd>${callList(CALLS.filter((c) => c.to === f.id), 'from')}</dd></div>
+        <div><dt>Code · ${f.lines} lignes${f.invented ? ' (exemple inventé)' : ''}</dt><dd><pre class="code">${esc(codeOf(f))}</pre></dd></div></dl>`
+    }
+  }
+
+  // ── Recherche (Ctrl+K) : un fichier ou une fonction, où qu'il soit ; Entrée entre dans son module ─────────────
+  const q = document.getElementById('q'), results = document.getElementById('results')
+  const INDEX = []
+  for (const m of MODULES) for (const f of m.files) {
+    INDEX.push({ label: f.id, where: m.name, file: f.id })
+    for (const fn of f.fns) INDEX.push({ label: `${fn}()`, where: `${f.id} · ${m.name}`, file: f.id })
+  }
+  let hits = [], active = 0
+  function search() {
+    const s = q.value.trim().toLowerCase()
+    hits = s === '' ? [] : INDEX.filter((e) => e.label.toLowerCase().includes(s)).slice(0, 8)
+    active = 0
+    results.hidden = hits.length === 0 && s === ''
+    results.innerHTML = hits.length === 0 ? '<li class="none">Aucun fichier ni fonction</li>'
+      : hits.map((h, i) => `<li role="option" id="hit-${i}" aria-selected="${i === active}" data-i="${i}"><span class="mono">${h.label}</span><span class="where">${h.where}</span></li>`).join('')
+    q.setAttribute('aria-activedescendant', hits.length ? 'hit-0' : '')
+    q.setAttribute('aria-expanded', String(!results.hidden))
+  }
+  function choose(i) {
+    const h = hits[i]; if (!h) return
+    results.hidden = true; q.value = ''
+    const owner = fileOwner[h.file]
+    state.sel = { type: 'file', id: h.file }
+    if (state.focus === owner) { paint(); renderFiche() } else enter(owner)
+    els.files[h.file]?.scrollIntoView?.({ block: 'nearest' })
+  }
+  q.addEventListener('input', search)
+  q.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); if (!hits.length) return
+      active = (active + (e.key === 'ArrowDown' ? 1 : hits.length - 1)) % hits.length
+      results.querySelectorAll('li[role="option"]').forEach((li, i) => li.setAttribute('aria-selected', String(i === active)))
+      q.setAttribute('aria-activedescendant', 'hit-' + active)
+    } else if (e.key === 'Enter') { e.preventDefault(); choose(active) }
+    else if (e.key === 'Escape') { results.hidden = true; q.blur() }
+  })
+  results.addEventListener('mousedown', (e) => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); choose(Number(li.dataset.i)) } })
+  q.addEventListener('blur', () => setTimeout(() => (results.hidden = true), 120))
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); q.focus(); q.select() }
+    else if (e.key === 'Escape' && document.activeElement !== q && state.focus) leave()
+  })
+
+  function setMode(mode) {
+    state.mode = mode; state.focus = null; crumb.hidden = true; cam = IDENTITY; fade.id = null; view = { x: 0, y: 0, k: 1 }
+    for (const k of ['A', 'B', 'C']) document.getElementById('tab-' + k).setAttribute('aria-selected', String(k === mode))
+    document.getElementById('panel').setAttribute('aria-labelledby', 'tab-' + mode)
+    const p = PITCH[mode]
+    document.getElementById('p-title').textContent = p.title
+    document.getElementById('p-text').textContent = p.text
+    document.getElementById('p-pros').innerHTML = p.pros.map((x) => `<li>${x}</li>`).join('')
+    document.getElementById('p-cons').innerHTML = p.cons.map((x) => `<li>${x}</li>`).join('')
+    current = null
+    build(); paint(); renderFiche(); go()
+  }
+  for (const k of ['A', 'B', 'C']) document.getElementById('tab-' + k).addEventListener('click', () => setMode(k))
+  document.querySelector('.tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    const order = ['A', 'B', 'C'], i = order.indexOf(state.mode)
+    const next = order[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]
+    setMode(next); document.getElementById('tab-' + next).focus()
+  })
+  document.getElementById('open-all').addEventListener('click', () => { leaveSilently(); MODULES.forEach((m) => state.open.add(m.id)); fillNodes(); go() })
+  document.getElementById('close-all').addEventListener('click', () => { leaveSilently(); state.open.clear(); fillNodes(); go() })
+  function leaveSilently() { if (state.focus) { state.focus = null; crumb.hidden = true; cam = IDENTITY; fade.id = null; build(); paint() } }
+  crumb.querySelector('.back').addEventListener('click', leave)
+  let move = null, justMoved = false
+  function startMove(e, kind, id) {
+    if (e.button !== 0 || e.target.closest('.flist, .ffilter, input, button')) return
+    if (state.focus && kind === 'node') return
+    // Chaque nœud se déplace seul : un fichier quitte sa place sans emmener son module.
+    const key = kind === 'file' ? 'f:' + id : id
+    const off = (offsets[viewKey()] ??= {})
+    const base = off[key] ?? { dx: 0, dy: 0 }
+    move = { id: key, x: e.clientX, y: e.clientY, base, moved: false }
+    e.stopPropagation()
+  }
+  window.addEventListener('pointermove', (e) => {
+    if (!move) return
+    const dx = e.clientX - move.x, dy = e.clientY - move.y
+    if (!move.moved && Math.hypot(dx, dy) < 4) return
+    move.moved = true
+    const k = view.k * scaleOf(current) * cam.k
+    offsets[viewKey()][move.id] = { dx: move.base.dx + dx / k, dy: move.base.dy + dy / k }
+    cancelAnimationFrame(anim)
+    current = target(); place(current)
+    wrap.classList.add('moving')
+  })
+  window.addEventListener('pointerup', () => {
+    if (move?.moved) { justMoved = true; setTimeout(() => (justMoved = false), 0) }
+    move = null; wrap.classList.remove('moving')
+  })
+  document.getElementById('tidy').addEventListener('click', () => { delete offsets[viewKey()]; go() })
+  // Cadrage d'un intérieur : tout voir, sans descendre sous 80 % (sinon les noms deviennent illisibles).
+  function fitScale(L) {
+    const s0 = scaleOf(L)
+    return Math.max(0.8, Math.min(1, (wrap.clientWidth - 8) / (L.W * s0), (wrap.clientHeight - 8) / (L.H * s0)))
+  }
+  function fitInside(L) {
+    const s0 = scaleOf(L)
+    // Plancher à 80 % : en dessous, les noms de fichiers deviennent trop petits ; le reste se rejoint en glissant.
+    view = { x: 0, y: 0, k: fitScale(L) }
+  }
+  function resetView(redraw = true) { aim = null; view = { x: 0, y: 0, k: 1 }; if (redraw && current) place(current) }
+  document.getElementById('reset-view').addEventListener('click', () => {
+    if (state.focus && current) { aim = null; fitInside(current); place(current) } else resetView()
+  })
+  // Molette : zoom continu, le point sous le curseur reste sous le curseur.
+  let aim = null, glide = 0
+  wrap.addEventListener('wheel', (e) => {
+    e.preventDefault()
+    const box = wrap.getBoundingClientRect(), px = e.clientX - box.left, py = e.clientY - box.top
+    const from = aim ?? view
+    // Molette à crans ou pavé tactile : le pas suit l'amplitude du geste, borné.
+    const step = Math.max(-0.35, Math.min(0.35, -e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0022)))
+    const k = Math.min(3, Math.max(0.4, from.k * Math.exp(step)))
+    aim = { x: px - ((px - from.x) * k) / from.k, y: py - ((py - from.y) * k) / from.k, k }
+    if (reduce) { view = aim; aim = null; if (current) place(current); return }
+    if (!glide) glide = requestAnimationFrame(tick)
+  }, { passive: false })
+  function tick() {
+    glide = 0
+    if (!aim) return
+    const t = 0.2
+    view = { x: view.x + (aim.x - view.x) * t, y: view.y + (aim.y - view.y) * t, k: view.k + (aim.k - view.k) * t }
+    if (Math.abs(aim.k - view.k) < 0.001 && Math.abs(aim.x - view.x) < 0.3 && Math.abs(aim.y - view.y) < 0.3) { view = aim; aim = null }
+    if (current) place(current)
+    if (aim) glide = requestAnimationFrame(tick)
+  }
+  // Glisser le fond déplace la vue (pas sur un nœud, un fichier ni un trait).
+  let drag = null
+  wrap.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('.node, .file, .chip, .lk, .stub')) return
+    aim = null
+    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false }
+    // Capture refusée (pointeur déjà relâché) : le glisser marche quand même, sans capture.
+    try { wrap.setPointerCapture(e.pointerId) } catch { /* sans capture */ }
+    wrap.classList.add('dragging')
+  })
+  wrap.addEventListener('pointermove', (e) => {
+    if (!drag) return
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) drag.moved = true
+    view = { ...view, x: drag.vx + e.clientX - drag.x, y: drag.vy + e.clientY - drag.y }
+    if (current) place(current)
+  })
+  let panned = false
+  const endDrag = () => { panned = drag?.moved ?? false; drag = null; wrap.classList.remove('dragging') }
+  // Clic dans le vide de la carte : les modules ouverts sur place se referment (pas après avoir fait glisser le fond).
+  wrap.addEventListener('click', (e) => {
+    if (panned || state.focus || state.open.size === 0) return
+    if (e.target.closest('.node, .file, .chip, .lk, .stub, .portal')) return
+    state.open.clear(); fillNodes(); paint(); go()
+  })
+  wrap.addEventListener('pointerup', endDrag)
+  wrap.addEventListener('pointercancel', endDrag)
+  wrap.addEventListener('dblclick', (e) => { if (!e.target.closest('.node, .file, .chip')) leave() })
+  // Seul un vrai changement de largeur replace la carte (sa hauteur, elle, suit la carte).
+  let lastWidth = 0
+  new ResizeObserver(() => {
+    if (wrap.clientWidth === lastWidth || !current) return
+    lastWidth = wrap.clientWidth; place(current)
+  }).observe(wrap)
+  setMode('A')
+})()
+</script>
