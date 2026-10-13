@@ -1599,3 +1599,12 @@ utilisé avant les deux glisser-déposer vers un widget et avant « Plein écran
 (9/9 chacune). git-sync n'avait aucune trace d'échec : inchangé.
 **Regle apprise :** dans un e2e sur la carte, ne jamais lire une position (`boundingBox`) sans attendre que le nœud
 soit immobile ; un `waitForTimeout` fixe ne suffit pas sous charge.
+
+### [2026-10-13 17:30] DECISION — Gel des fonctionnalités levé
+**Fichiers :** `CLAUDE.md`
+**Resume :** Les deux conditions de la critique sont remplies : la carte de structure remonte l'avancement (spec 030,
+vérifiée sur la carte de Bike_cycle : statut des modules calculé d'après leurs sous-éléments, statut à la main puis
+annulé) et les e2e sont rendus déterministes (`settled`). Prochain chantier : spec 021 « Git et GitHub », recentrée sur
+commit, pull et push par Claude depuis le Brainstormer.
+**Regle apprise :** Bike_cycle est un projet fictif qui sert à éprouver le Brainstormer : on conclut sur le code (e2e,
+démo), jamais sur la justesse de ses données.

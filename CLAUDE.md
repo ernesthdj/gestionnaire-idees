@@ -7,9 +7,9 @@
 > **Description (2026-10-13) :** interface visuelle de Claude Code : une carte où Claude écrit (pont MCP, marqué « par Claude »,
 > annulable) pour brainstormer, piloter un projet, reprendre un projet existant et prototyper dans des widgets. Le besoin
 > d'origine (noter vite + rappel quotidien) est abandonné (décision de mentalyas, critique du 2026-10-13).
-> **Gel des fonctionnalités (2026-10-13) :** aucune nouvelle fonctionnalité tant que la carte de Bike_cycle ne remontre
-> pas l'avancement et que les e2e (git-sync, widget-wireframe, workflow-task-files) ne sont pas stables. Voir
-> `docs/AUDIT-2026-10-13-critique-projet.md`.
+> **Gel des fonctionnalités (2026-10-13) — levé le 2026-10-13 :** posé par la critique (`docs/AUDIT-2026-10-13-critique-projet.md`)
+> jusqu'à ce que la carte de structure remonte l'avancement (spec 030 livrée) et que les e2e soient stables (`settled`,
+> aucun échec sur 4 passes). Bike_cycle n'est qu'un projet de test du Brainstormer.
 > **Vision (2026-09-28) :** « Brainstormer » — réfléchir à n'importe quoi avec Claude via une carte de neurones (Action / Réflexion) qui poussent, fusionnent et se relient. Voir `docs/FOUNDATION.md` §0.
 > **Vision (2026-10-04, prioritaire) :** le Brainstormer devient l'**interface visuelle de Claude Code** (pont MCP, moteur `claude -p`, terminal intégré). Voir `docs/FOUNDATION.md` §00 et `docs/brainstorm/L1c-pont-claude-code.md`.
 > **Évolution (2026-10-06) :** **reprendre un projet existant** (import dossier / git, analyse statique TS · C# · PHP,
@@ -140,7 +140,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 - [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de
   chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow). Tri du
   2026-10-13 (critique) : livrées 001, 003, 004, 006, 007, 008, 009, 010, 016, 017, 020, 023, 024 (US1–US5), 025, 026,
-  027 ; **en pause, à reprendre après le gel : 021 « Git et GitHub »** (recentrée : commit, pull et push par Claude) ;
+  027 ; **en cours : 021 « Git et GitHub »** (reprise le 2026-10-13 : US5 lot 2 + Skyline des contributions, US6, US7 ; commit, pull et push inchangés) ;
   redevenues des idées (« Abandonnée — à reconsidérer ») : 005, 011, 012, 013, 014, 015, 019, 022 ; abandonnées : 002,
   028 « Le dossier du nœud » (code derrière `FOLDERS_ENABLED`, retiré le 2026-11-12 s'il n'a pas resservi), 029 « Scènes
   animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`) ; **livrée le 2026-10-13 : 030
