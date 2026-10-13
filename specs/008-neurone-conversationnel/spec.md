@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-04
 
-**Status**: Validée par mentalyas (2026-10-04) — livraison en 3 lots (A, B, C)
+**Status**: Livrée (statut réaligné le 2026-10-13 : lots A, B, C, toutes les tâches cochées)
 
 **Input**: « Toile vide, clic droit, nouvelle idée avec un titre. Double-clic : le panneau latéral ouvre un chat qui est
 en réalité le CLI Claude, qui sait qu'on est dans le Brainstormer sur un nœud genesis. On brainstorme et le nœud

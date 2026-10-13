@@ -1,6 +1,6 @@
 # Feature Specification: Accueil ProjectMaster (spec 024)
 
-**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Draft — réécrite le 2026-10-09 après la correction de mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-09 · **Status**: Livrée (2026-10-10) — US1 à US5 ; US6, US7 et le reste du lot 7 (T001, T006, T031–T041) abandonnés le 2026-10-13 (tri de la critique)
 **Input**: « Il nous faut une nouvelle user story qui concerne un menu de chargement de brainstorms déjà exécutés, aussi
 une possibilité de sauvegarde de brainstorm sur un certain projet et ainsi retrouver la doc, les schémas, cartographies,
 etc. sur base de ce projet. […] On doit importer ProjectMaster dans un menu de cette app qui nous permet de créer ou

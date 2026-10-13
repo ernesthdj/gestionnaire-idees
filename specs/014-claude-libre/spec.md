@@ -1,6 +1,6 @@
 # Feature Specification: Claude libre — parité avec le terminal
 
-**Feature Branch**: `014-claude-libre` · **Created**: 2026-10-06 · **Status**: En pause (2026-10-09) — T014 et suivantes à reprendre
+**Feature Branch**: `014-claude-libre` · **Created**: 2026-10-06 · **Status**: Abandonnée (2026-10-13) — redevenue une idée, à reconsidérer : T014 et suivantes (le terminal le fait déjà) ; tri de la critique du 2026-10-13
 
 **Input**: demande de mentalyas (2026-10-06) : « je veux quand même avoir la main sur des modifs via le chat avec
 Claude, il ne doit pas être aussi restreint, il doit être libre comme toi depuis l'IDE ; l'interface est utile que pour

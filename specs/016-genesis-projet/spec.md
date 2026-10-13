@@ -1,6 +1,6 @@
 # Feature Specification: Genesis → projet (spec 016)
 
-**Feature Branch**: `main` · **Created**: 2026-10-06 · **Status**: Draft
+**Feature Branch**: `main` · **Created**: 2026-10-06 · **Status**: Livrée (statut réaligné le 2026-10-13 : toutes les tâches cochées)
 **Input**: retour de mentalyas (test de la spec 014) : « je veux pouvoir le faire directement depuis l'app depuis un
 nœud genesis » ; « un nœud genesis n'est pas forcément un projet de code sous git, ça doit venir après le premier
 brainstorm » ; « le dépôt git ne doit pas être obligatoire, un bouton pour en faire un dépôt git n'importe quand » ;

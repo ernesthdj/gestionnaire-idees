@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: En pause (2026-10-09) — lots 3 et 4 (T017–T026) à reprendre
+**Status**: Abandonnée (2026-10-13) — redevenue une idée, à reconsidérer : lots 3 et 4 (T017–T026) ; tri de la critique du 2026-10-13
 
 **Input**: User description: « Les neurones d'idées produisent des données stockées. Je veux que les widgets aient des
 entrées et des sorties : récupérer les infos d'un neurone, les travailler dans un widget, et récupérer la sortie sous

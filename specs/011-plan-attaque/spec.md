@@ -1,6 +1,6 @@
 # Feature Specification: Plan d'attaque — couches de sous-nœuds, ordre, verrouillage
 
-**Feature Branch**: `011-plan-attaque` · **Created**: 2026-10-05 · **Status**: En pause (2026-10-09) — US1 livrée ; US2 à US4 à reprendre
+**Feature Branch**: `011-plan-attaque` · **Created**: 2026-10-05 · **Status**: Abandonnée (2026-10-13) — redevenue une idée, à reconsidérer : US2 à US4 (US1 livrée) ; tri de la critique du 2026-10-13
 
 **Input**: reprise du lot B de la spec 008 (« l'entonnoir en couches »), enrichie le 2026-10-05 par mentalyas : plan
 d'attaque en sous-nœuds proposés par Claude, différenciation visuelle genesis / sous-nœuds, disposition automatique

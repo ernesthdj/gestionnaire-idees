@@ -1,6 +1,6 @@
 # Feature Specification: Bascule — un seul moteur, plus d'API Anthropic (lot C + F11)
 
-**Feature Branch**: `010-bascule` · **Created**: 2026-10-04 · **Status**: Décisions validées par mentalyas (2026-10-04) — plan à valider
+**Feature Branch**: `010-bascule` · **Created**: 2026-10-04 · **Status**: Livrée (statut réaligné le 2026-10-13 : toutes les tâches cochées, constitution 3.0.0)
 
 **Input**: amélioration n° 2 de la revue du 04/10 — « deux moteurs cohabitent ; la synthèse et la génération de widgets
 appellent encore l'API Anthropic » ; L1c n° 3, 5, 7 ; L1d n° 19.

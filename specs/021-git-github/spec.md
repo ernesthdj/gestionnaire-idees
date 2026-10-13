@@ -1,6 +1,6 @@
 # Feature Specification: Git et GitHub (spec 021)
 
-**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: En pause (2026-10-09) — planifiée, à coder
+**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: En pause (2026-10-13) — à reprendre après le gel, recentrée sur le but de mentalyas : commit, pull et push par Claude depuis le Brainstormer
 **Input**: « Pouvoir récupérer direct un projet dans le Brainstormer depuis un lien GitHub, pour pouvoir scrapper les
 open sources ou travailler en colab avec des collègues sur des projets à plusieurs. L'idée est de récupérer un working
 tree et tracer aussi chronologiquement qui a fait quoi et quand, en fonction des collaborateurs, ensuite pouvoir créer un

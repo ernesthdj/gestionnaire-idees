@@ -1,6 +1,6 @@
 # Feature Specification: Le dossier du nœud (spec 028)
 
-**Feature Branch**: `main` · **Created**: 2026-10-12 · **Status**: En pause (2026-10-12) — lot 1 livré puis désactivé (`FOLDERS_ENABLED = false`) par mentalyas : « jolis mais inutiles sur les nœuds, déjà autosuffisants avec leur lecteur ; à réutiliser plus tard pour un autre besoin »
+**Feature Branch**: `main` · **Created**: 2026-10-12 · **Status**: Abandonnée (2026-10-13) — lot 1 livré puis désactivé (`FOLDERS_ENABLED = false`) ; code et tables retirés le 2026-11-12 s'ils n'ont pas resservi
 **Input**: idée de mentalyas du 2026-10-12 : « Quand je demande à Claude de générer de la doc par rapport à un nœud,
 j'aimerais qu'en connexion à ce nœud apparaisse un dossier flottant lié à ce nœud, qui me permet de parcourir les
 documents associés (doc, fichiers, code, etc.). » Brainstorm : `docs/brainstorm/L1n-dossier-du-noeud.md` (D1–D7),

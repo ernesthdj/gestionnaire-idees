@@ -1,6 +1,6 @@
 # Feature Specification: Nœuds vivants (spec 022)
 
-**Feature Branch**: `main` · **Created**: 2026-10-08 · **Status**: En pause (2026-10-09) — idées sur les nœuds genesis à brainstormer (voir « À brainstormer »)
+**Feature Branch**: `main` · **Created**: 2026-10-08 · **Status**: Abandonnée (2026-10-13) — redevenue une idée, à reconsidérer : jamais brainstormée ; tri de la critique du 2026-10-13
 **Input**: « Je veux retravailler l'aspect des nœuds mais sans perdre ce qu'on y a implémenté en termes d'affichage et de
 comportement. Je veux juste des animations plus fluides et un comportement d'ouverture / fermeture au clic pour consulter
 les détails […] je m'en fous de l'aspect circulaire de l'organisation des nœuds, ce qui m'intéresse c'est leur

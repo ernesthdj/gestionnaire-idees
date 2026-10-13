@@ -1,6 +1,6 @@
 # Feature Specification: Arbre de skills (spec 020)
 
-**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: Draft — à valider par mentalyas
+**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: Livrée (2026-10-08) — US1 à US4 ; statut réaligné le 2026-10-13
 **Input**: « Il me faut une nouvelle page dans le volet de gauche qui reprend les skills de Claude. Les skills doivent
 être représentés en nœuds de compétences avec les connexions logiques si certains skills communiquent, un peu comme les
 arbres de compétences dans les jeux vidéo. Le nœud doit avoir le titre du skill, un niveau de puissance / qualité ou

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-29
 
-**Status**: Draft (à valider par mentalyas)
+**Status**: Livrée (statut réaligné le 2026-10-13 : toutes les tâches cochées)
 
 **Input**: User description: « Sur le canva, un clic droit ouvre un panel d'outils : créer un nœud, écrire une note (label)… et surtout créer un IFRAME, que je place où je veux, que j'agrandis ou rapetisse (taille min et max obligatoires), qui lit du HTML, du CSS et du TypeScript, pour que Claude y génère des widgets ou artefacts : je crée des outils personnalisés en promptant dans ma propre app, via une mini chatbox reliée à l'iframe. Plus tard : connecter ces outils à des nœuds de données brainstormés pour traiter l'information. »
 

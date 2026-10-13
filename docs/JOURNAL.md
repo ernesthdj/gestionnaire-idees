@@ -1529,3 +1529,39 @@ vectoriel de Gemini est écarté. Spec après la 024 (US4, US5) et la 021 ; 5 qu
 ### [2026-10-13 00:50] DOCS — parcours académique (session du 12→13/10, /hub end 7bis, mode auto)
 **Fichiers :** `docs/academique/` — créées : `Afficher un Markdown non fiable — arbre syntaxique, plugin remark et schéma Mermaid en image.md`, `Garde de confidentialité de bout en bout — garder par contenu, tester par énumération.md`, `Mesurer puis désengorger le main — banc par phases, bornes, différences et tranches.md`, `Glossaire — Boucle d'événements (synchrone, asynchrone, céder la main).md`, `Glossaire — Interrupteur de fonctionnalité (feature flag).md` ; étendues (blocs « Évolution du 13/10 ») : `Glossaire — Générateur pseudo-aléatoire à graine (PRNG)`, `Glossaire — CSP`, `Consigne pour un agent outillé…`, `Tests de bout en bout…`, `Vue Workflow…` ; MOC (parcours 50 → 53, section « Afficher sans exécuter, ne rien laisser fuir, mesurer », questions de révision, graphe du 13/10) et canvas (3 nœuds, 1 étiquette, 3 flèches) mis à jour ; `CLAUDE.md` (dernière mise à jour).
 **Points ⚠️ :** code lu, non exécuté ; chiffres de performance repris de `specs/017-reprise-voir/research.md` R9 (mesurés sur le poste de mentalyas). Pas de note dédiée au composant visuel du dossier (spec 028 en pause ; sa technique de bruit est dans le glossaire PRNG) ni au projet repris de démo (données fictives).
+
+### [2026-10-13 01:05] FEAT — spec 029 : scènes animées « Comment ça marche » sur l'accueil
+**Fichiers :** `specs/029-scenes-accueil/`, `src/renderer/src/home/scenes/` (`beats.ts`, `useBeatCycle.ts`,
+`TravelDot.tsx`, `sceneKit.tsx`, `SceneIdea.tsx`, `ScenePlan.tsx`, `SceneMcp.tsx`, `SceneReprise.tsx`, `scenes.css`,
+`HowItWorks.tsx`), `src/renderer/src/home/ProjectManager.tsx`, `tests/unit/renderer/scene-beats.test.ts`,
+`tests/unit/renderer/how-it-works.test.tsx`, `.specify/feature.json`
+**Resume :** Quatre scènes vectorielles (Idée → neurone, Plan d'attaque, Pont MCP, Reprise) inspirées du composant
+« Services Stack » (21st.dev, MIT, code non repris) et validées sur un prototype autonome. SVG dans le JSX, transitions
+CSS (`stroke-dashoffset`, `transform-box: fill-box`, `scaleX`, cache en `steps()`), point voyageur par
+`getPointAtLength`. Le domaine pur `beats.ts` décide des phases (fondu → remise à zéro → étapes → pause) ; le hook
+`useBeatCycle` ne fait que les enchaîner. Section dépliée sans brainstorm, repliée sinon ; figée sur l'état final en
+mouvement réduit, hors écran (IntersectionObserver) ou en pause. Couleurs : jetons de `tokens.css` uniquement, teintes
+douces par `color-mix`. Aucune dépendance ajoutée, CSP inchangée.
+**Regle apprise :** une animation en boucle se teste par ses phases (fonction pure) et par les classes posées sur le
+SVG avec de fausses minuteries, pas par le rendu (jsdom ne calcule ni transitions ni `getPointAtLength`).
+
+### [2026-10-13 01:20] DOCS — critique impartiale du projet (à relire en début de prochaine session)
+**Fichiers :** `docs/AUDIT-2026-10-13-critique-projet.md`
+**Resume :** Critique demandée par mentalyas : ce qui est intelligent (pont MCP, sécurité, annulation par lot, mesures),
+utile, redondant (widgets sur 5 specs, 4 façons de rattacher du contenu, 6 vues), inefficace (fichiers trop gros,
+98 migrations, e2e instables, documentation plus lourde que le produit) ; dispersion des fonctionnalités (10 specs livrées sur
+28) et besoin d'origine (rappel quotidien) disparu. Se termine par une checklist de décisions à prendre ensemble :
+usage réel, gel des fonctionnalités, tri des 16 specs non livrées, code mort, fin de session allégée, statuts réalignés.
+
+### [2026-10-13 14:30] DOCS — décisions de la critique : gel, tri des specs, statuts réalignés
+**Fichiers :** `docs/AUDIT-2026-10-13-critique-projet.md`, `CLAUDE.md`, `specs/0{04,05,08,10,11,12,13,14,15,16,19,20,21,22,24,28,29}-*/spec.md`
+**Resume :** Les sept décisions de la critique sont prises avec mentalyas. Quatre usages sont gardés (carte + conversation,
+piloter, reprendre, widgets). **Gel des fonctionnalités** jusqu'à ce que la carte de Bike_cycle remontre l'avancement et
+que les e2e soient stables. Tri spec par spec : 021 « Git et GitHub » gardée pour après le gel (commit, pull et push par
+Claude) ; 005, 011, 012, 013, 014, 015, 019, 022 redeviennent des idées ; 024 livrée (US1–US5) ; 028 abandonnée (code
+retiré le 2026-11-12 s'il n'a pas resservi) ; 029 abandonnée, code rangé sur `archive/029-scenes-accueil`. Le besoin
+d'origine (rappel quotidien) est abandonné : la description est mise à jour. Microsoft Graph + MSAL sont retirés de la
+stack (absents du code). Ollama et l'anonymisation de l'import de contexte servent encore. Le retrait des tables
+d'archive est reporté à un chantier à part. Skill `/hub` : graphe hebdomadaire, cours sur confirmation.
+**Regle apprise :** un statut de spec qui ne commence pas par « Livrée », « En pause » ou « Abandonnée » est invisible
+pour la vue Workflow ; cinq specs finies (004, 008, 010, 016, 020) y apparaissaient comme non livrées.

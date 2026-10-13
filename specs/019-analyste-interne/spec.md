@@ -1,6 +1,6 @@
 # Feature Specification: Analyste interne (spec 019)
 
-**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: En pause (2026-10-09) — US1 (sonde) livrée ; la suite à reprendre
+**Feature Branch**: `main` · **Created**: 2026-10-07 · **Status**: Abandonnée (2026-10-13) — redevenue une idée, à reconsidérer : la suite de US1 (sonde livrée) ; tri de la critique du 2026-10-13
 **Input**: « Implémenter une sorte de sonde interne qui récupère des logs et analyse l'app en cours de fonctionnement
 avec Claude lui-même, mais sur base d'un contexte bien précis d'Analyste interne. […] Une sorte de testeur
 complémentaire à l'utilisateur qui, sur base de l'utilisation et du comportement de l'app, fait lui-même des

@@ -4,7 +4,12 @@
 > **Slug :** gestionnaire-idees
 > **Type :** Desktop App
 > **Cree le :** 2026-09-28
-> **Description :** Mini app desktop pour noter vite fait à la main les idées du quotidien (idées générales, achats, projets, sorties — tout ce qui vient sur le moment et qu'on oublie ensuite), les structurer en tâches et recevoir un rappel chaque jour.
+> **Description (2026-10-13) :** interface visuelle de Claude Code : une carte où Claude écrit (pont MCP, marqué « par Claude »,
+> annulable) pour brainstormer, piloter un projet, reprendre un projet existant et prototyper dans des widgets. Le besoin
+> d'origine (noter vite + rappel quotidien) est abandonné (décision de mentalyas, critique du 2026-10-13).
+> **Gel des fonctionnalités (2026-10-13) :** aucune nouvelle fonctionnalité tant que la carte de Bike_cycle ne remontre
+> pas l'avancement et que les e2e (git-sync, widget-wireframe, workflow-task-files) ne sont pas stables. Voir
+> `docs/AUDIT-2026-10-13-critique-projet.md`.
 > **Vision (2026-09-28) :** « Brainstormer » — réfléchir à n'importe quoi avec Claude via une carte de neurones (Action / Réflexion) qui poussent, fusionnent et se relient. Voir `docs/FOUNDATION.md` §0.
 > **Vision (2026-10-04, prioritaire) :** le Brainstormer devient l'**interface visuelle de Claude Code** (pont MCP, moteur `claude -p`, terminal intégré). Voir `docs/FOUNDATION.md` §00 et `docs/brainstorm/L1c-pont-claude-code.md`.
 > **Évolution (2026-10-06) :** **reprendre un projet existant** (import dossier / git, analyse statique TS · C# · PHP,
@@ -94,7 +99,7 @@ Derniere mise a jour : 2026-10-13
 
 Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiffre (Drizzle + better-sqlite3-multiple-ciphers)
 · Ollama (IA locale) + Claude Code (`claude -p`, abonnement — plus d'API Anthropic depuis la spec 010) · pont MCP
-(`@modelcontextprotocol/sdk`, relais `src/mcp-relay/`) · Microsoft Graph + MSAL Node · Zod. Detail : `docs/FOUNDATION.md` §5 et §00.
+(`@modelcontextprotocol/sdk`, relais `src/mcp-relay/`) · Zod. Detail : `docs/FOUNDATION.md` §5 et §00.
 
 ## Commandes
 
@@ -132,6 +137,12 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 ## Workflows actifs
 
 - [x] Brainstorm initial (`/brainstorm`) — niveaux 1 a 4, export `docs/FOUNDATION.md`
-- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow) ; livrée le 2026-10-12 : 017 « Reprise — Voir » (US1–US7, mesures et confidentialité vérifiées : `research.md` R9, R10 ; le clone passe par le Project Manager) ; 023 « Carte Workflow » livrée le 2026-10-09 ; en pause : 005, 011, 012, 013, 014, 015, 019, 021 (planifiée), 022 ; livrées le 2026-10-10 : 024 « Accueil ProjectMaster » (US1–US5), 025 « Lancer un projet », 026 « Wireframes et parcours dans les widgets » ; livrée le 2026-10-11 : 027 « Conversation en panneau fixe » (onglets à droite de l'écran Idées, hors du zoom de la carte ; amende 022 D6, D10, D28) ; en pause le 2026-10-12 : 028 « Le dossier du nœud » (lot 1 livré puis désactivé, interrupteur `FOLDERS_ENABLED` dans `src/shared/ipc/folders.ts`, code et tests gardés ; l'amendement de la 012 D3, D4 ne s'applique pas tant qu'il est coupé)
+- [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de
+  chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow). Tri du
+  2026-10-13 (critique) : livrées 001, 003, 004, 006, 007, 008, 009, 010, 016, 017, 020, 023, 024 (US1–US5), 025, 026,
+  027 ; **en pause, à reprendre après le gel : 021 « Git et GitHub »** (recentrée : commit, pull et push par Claude) ;
+  redevenues des idées (« Abandonnée — à reconsidérer ») : 005, 011, 012, 013, 014, 015, 019, 022 ; abandonnées : 002,
+  028 « Le dossier du nœud » (code derrière `FOLDERS_ENABLED`, retiré le 2026-11-12 s'il n'a pas resservi), 029 « Scènes
+  animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`
