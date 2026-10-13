@@ -12,6 +12,7 @@ function setup() {
   const service = {
     previewFolder: vi.fn(async () => null),
     create: vi.fn(async () => ({ genesisId: ID })),
+    adopt: vi.fn(() => ({ genesisId: ID })),
     view: vi.fn(),
     setConfidentiality: vi.fn((_id: string, level: string) => ({ level }))
   }

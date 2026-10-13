@@ -1135,6 +1135,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     attach: (neuronId, dir) => conversations.attach(neuronId, dir),
     dataDir,
     isArchived: (genesisId) => conversationRepository.neuron(genesisId)?.state === 'archived',
+    projectDirOf: (genesisId) => conversationRepository.neuron(genesisId)?.projectDir ?? null,
     onCreated: (genesisId) => {
       try {
         analysis.analyze(genesisId)

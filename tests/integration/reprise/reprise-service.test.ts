@@ -142,4 +142,45 @@ describe('reprendre un projet depuis un dossier (spec 017 US1)', () => {
     rmSync(project, { recursive: true, force: true })
     expect(service.view(genesisId).folderMissing).toBe(true)
   })
+  it('should_analyse_a_project_that_already_has_its_folder_without_a_new_node', async () => {
+    const created: string[] = []
+    const adopting = new RepriseService({
+      repository: reprise,
+      pickFolder: async () => undefined,
+      scan: (folder) => scanProject(folder, limit),
+      linkedFolders: () => conversations.linkedFolders(),
+      createGenesis: async () => {
+        throw new Error('aucun nouveau nœud')
+      },
+      attach: () => undefined,
+      dataDir,
+      projectDirOf: (genesisId) => conversations.neuron(genesisId)?.projectDir ?? null,
+      onCreated: (genesisId) => created.push(genesisId),
+      now: () => new Date(clock)
+    })
+    const genesisId = (await t.neurons.create({ text: 'Mon projet' })).id
+    await expect(Promise.resolve().then(() => adopting.adopt(genesisId, 'local'))).rejects.toMatchObject({
+      code: 'NO_FOLDER'
+    })
+    conversations.setProjectDir(genesisId, project, 'session-a')
+    // Un élément du projet travaille dans le même dossier : ce n'est pas un conflit.
+    const element = (await t.neurons.create({ text: 'Élément du projet' })).id
+    conversations.setProjectDir(element, project, 'session-d')
+    expect(adopting.adopt(genesisId, 'local')).toEqual({ genesisId })
+    expect(created).toEqual([genesisId])
+    expect(adopting.view(genesisId)).toMatchObject({ name: 'laravel-app', confidentiality: 'local', source: 'folder' })
+    expect(() => adopting.adopt(genesisId, 'local')).toThrow(expect.objectContaining({ code: 'ALREADY_ANALYZED' }))
+    // Un second projet ne peut pas reprendre un dossier déjà analysé.
+    const twin = (await t.neurons.create({ text: 'Jumeau' })).id
+    conversations.setProjectDir(twin, project, 'session-b')
+    expect(() => adopting.adopt(twin, 'claude')).toThrow(expect.objectContaining({ code: 'ALREADY_LINKED' }))
+    // Son explorateur est celui du projet qui a déjà analysé le dossier.
+    expect(() => adopting.view(twin)).toThrow(
+      expect.objectContaining({ code: 'NOT_FOUND', details: { analyzedBy: genesisId } })
+    )
+    // Jamais le dossier de données de l'app.
+    const inside = (await t.neurons.create({ text: 'Données' })).id
+    conversations.setProjectDir(inside, dataDir, 'session-c')
+    expect(() => adopting.adopt(inside, 'local')).toThrow(expect.objectContaining({ code: 'FOLDER_REFUSED' }))
+  })
 })

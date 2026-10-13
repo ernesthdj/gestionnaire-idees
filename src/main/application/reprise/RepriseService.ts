@@ -32,6 +32,8 @@ export interface RepriseDeps {
   readonly newId?: () => string
   /** Genesis supprimé (archivé) : son ancien projet repris ne compte plus (spec 017 D9). */
   readonly isArchived?: (genesisId: string) => boolean
+  /** Dossier lié à un neurone (spec 008, 024) ; `null` : aucun. */
+  readonly projectDirOf?: (genesisId: string) => string | null
   /** Projet créé : son analyse démarre (spec 017 US3). */
   readonly onCreated?: (genesisId: string) => void
 }
@@ -132,9 +134,57 @@ export class RepriseService {
     return { genesisId }
   }
 
+  /**
+   * « Analyser le code » d'un projet qui a déjà son dossier (spec 017 D23, 2026-10-13) : la fiche « projet repris » se
+   * crée sur le genesis existant (ni nouveau nœud ni nouveau canevas), avec la confidentialité choisie, puis l'analyse
+   * démarre. Le dossier est celui lié au genesis, relu ici : jamais un chemin venu de l'interface. Mêmes refus qu'à
+   * l'import (données de l'app, projet trop grand), et un dossier déjà repris par un autre projet.
+   */
+  adopt(genesisId: string, confidentiality: Confidentiality): { readonly genesisId: string } {
+    const dir = this.deps.projectDirOf?.(genesisId) ?? null
+    if (dir === null) throw new AppError('NO_FOLDER', 'Ce projet n’est lié à aucun dossier.')
+    if (!(this.deps.exists ?? existsSync)(dir))
+      throw new AppError('FOLDER_MISSING', 'Le dossier du projet est introuvable.')
+    if (this.deps.repository.project(genesisId) !== undefined) {
+      throw new AppError('ALREADY_ANALYZED', 'Ce projet a déjà son analyse : ouvre l’explorateur.')
+    }
+    const preview = this.preview(dir, 'folder', null)
+    this.previews.delete(preview.previewId)
+    if (preview.tooLarge) throw new AppError('TOO_LARGE', 'Projet trop grand pour l’analyse.')
+    const root = (this.deps.realpath ?? realpathSync)(dir)
+    // Les autres neurones du projet (éléments, conversations) travaillent dans le même dossier : seul un AUTRE projet
+    // repris de ce dossier est un conflit ; celui d'un genesis supprimé laisse la place (D9).
+    const existing = this.deps.repository.projectByRoot(root)
+    if (existing !== undefined) {
+      if (this.deps.isArchived?.(existing.genesisId) !== true) {
+        throw new AppError('ALREADY_LINKED', 'Ce dossier est déjà analysé pour un autre projet de la carte.', {
+          neuronId: existing.genesisId
+        })
+      }
+      this.deps.repository.deleteProject(existing.genesisId)
+    }
+    this.deps.repository.createProject({
+      genesisId,
+      rootDir: root,
+      source: 'folder',
+      remoteUrl: null,
+      confidentiality,
+      confidentialityChangedAt: this.now().toISOString()
+    })
+    this.deps.onCreated?.(genesisId)
+    return { genesisId }
+  }
+
   view(genesisId: string): RepriseProjectView {
     const project = this.deps.repository.project(genesisId)
-    if (project === undefined) throw new AppError('NOT_FOUND', 'Projet repris introuvable.')
+    if (project === undefined) {
+      const sibling = this.analyzedElsewhere(genesisId)
+      throw new AppError(
+        'NOT_FOUND',
+        'Projet repris introuvable.',
+        sibling === null ? undefined : { analyzedBy: sibling }
+      )
+    }
     return {
       genesisId,
       name: basename(project.rootDir),
@@ -164,6 +214,26 @@ export class RepriseService {
     }
     this.deps.repository.setConfidentiality(genesisId, level, this.now().toISOString())
     return { level }
+  }
+
+  /**
+   * Autre genesis dont l'analyse porte sur le dossier lié à `genesisId` (un ancien « Reprendre » du même dossier, D23) :
+   * son explorateur sert ce projet ; `null` : aucun.
+   */
+  private analyzedElsewhere(genesisId: string): string | null {
+    const dir = this.deps.projectDirOf?.(genesisId) ?? null
+    if (dir === null) return null
+    let root: string
+    try {
+      root = (this.deps.realpath ?? realpathSync)(dir)
+    } catch {
+      return null
+    }
+    const other = this.deps.repository.projectByRoot(root)
+    if (other === undefined || other.genesisId === genesisId || this.deps.isArchived?.(other.genesisId) === true) {
+      return null
+    }
+    return other.genesisId
   }
 
   /** Neurone déjà lié à ce dossier (même chemin réel, casse ignorée) ; `null` : aucun. */

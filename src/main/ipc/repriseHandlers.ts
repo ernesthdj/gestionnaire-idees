@@ -11,7 +11,7 @@ import { defineRoute, type IpcRoute } from './registry'
  * choisi au sélecteur natif du main, puis désigné par un `previewId` éphémère.
  */
 export function createRepriseRoutes(
-  reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'view' | 'setConfidentiality'>,
+  reprise: Pick<RepriseService, 'previewFolder' | 'create' | 'adopt' | 'view' | 'setConfidentiality'>,
   analysis?: Pick<AnalysisService, 'analyze' | 'cancel' | 'setCategory' | 'setTarget'>,
   guide?: Pick<GuideService, 'generate'>,
   resolution?: Pick<ResolutionService, 'resolve'>
@@ -89,6 +89,12 @@ export function createRepriseRoutes(
       // La confidentialité est obligatoire : aucune valeur par défaut (spec 017 FR-003).
       input: z.strictObject({ previewId: z.uuid(), confidentiality: z.enum(CONFIDENTIALITY_LEVELS) }),
       handler: async ({ previewId, confidentiality }) => reprise.create(previewId, confidentiality)
+    }),
+    defineRoute({
+      channel: 'reprise:adopt',
+      // Le dossier est celui lié au genesis (lu dans le main) ; la confidentialité reste obligatoire (FR-003).
+      input: z.strictObject({ genesisId: z.uuid(), confidentiality: z.enum(CONFIDENTIALITY_LEVELS) }),
+      handler: async ({ genesisId, confidentiality }) => reprise.adopt(genesisId, confidentiality)
     }),
     defineRoute({
       channel: 'reprise:get',

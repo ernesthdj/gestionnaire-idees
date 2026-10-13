@@ -1761,3 +1761,36 @@ avec le même remède que les cas déjà élucidés.
 Dépôt de la 021), impossible de revenir depuis l'app. Remis sur `main` dans un terminal, rien de perdu.
 **Règle apprise :** une app qui pilote git doit reconnaître son propre dépôt : y changer de branche, c'est se remplacer
 soi-même.
+
+### [2026-10-13 23:05] TEST — spec 021 US6 contre le vrai GitHub (compte de mentalyas, à sa demande)
+**Comment :** app construite pilotée par Playwright, profil de test neuf, `gh` réel ; script ponctuel non gardé.
+**Résultat :** tout passe. Publier → dépôt privé `brainstormer-essai-github` ; branche `essai/pr`, commit, push ; PR #1
+au texte proposé par Claude (réel), relecture de Claude affichée, commentaire publié ; issue #2 proposée par Claude depuis
+le genesis, créée et reliée à l'idée. Fork : clone de `octocat/Spoon-Knife`, push refusé (« pas le droit d'écrire »),
+« Forker » → fork `ernesthdj/Spoon-Knife`, `origin` → le fork, `upstream` → l'original. Rien n'a été écrit chez octocat.
+**Vu :** dans le panneau de droite à 38 %, la barre d'onglets du Dépôt déborde (« Issues » coupé).
+**À faire par mentalyas :** supprimer les deux dépôts de test sur GitHub (le jeton gh n'a pas `delete_repo`).
+
+### [2026-10-13 23:20] FEAT — bouton « Explorateur » dans la barre d'un projet repris
+**Fichiers :** `src/renderer/src/home/BrainstormBar.tsx` (`ExplorerEntry`), `tests/unit/renderer/brainstorm-bar.test.tsx`.
+**Pourquoi :** mentalyas ne trouvait pas seul la vue aux nœuds rectangulaires (l'explorateur, spec 017) : elle n'avait
+que deux entrées cachées (un lien dans l'en-tête de la conversation, « Rejouer sur la carte » dans le Dépôt).
+**Quoi :** « Explorateur » dans la barre du projet, à côté du badge Dépôt, seulement pour un projet repris (`reprise:get`).
+
+### [2026-10-13 23:55] FEAT — spec 017 D23 : « Analyser le code… » d'un projet déjà lié à son dossier
+**Fichiers :** `src/main/application/reprise/RepriseService.ts` (`adopt`, dépendance `projectDirOf`), `src/main/ipc/repriseHandlers.ts`
+et `src/shared/ipc/channels.ts` (`reprise:adopt`), `src/main/bootstrap.ts`, `src/renderer/src/home/BrainstormBar.tsx` (« Analyser
+le code… » / « Explorateur ») ; tests `integration/reprise/reprise-service.test.ts`, `unit/ipc/reprise-handlers.test.ts`,
+`unit/renderer/brainstorm-bar.test.tsx`, e2e `explorer-adopt.e2e.ts` (nouveau) ; `specs/017-reprise-voir/spec.md` (D23).
+**Pourquoi :** mentalyas n'avait l'explorateur sur aucun de ses projets : seuls les projets entrés par « Reprendre » ou par
+un clone avaient une analyse ; ses projets du coffre, déjà liés, ne pouvaient même pas être repris (dossier déjà lié).
+**Choix :** fiche « projet repris » créée sur le genesis existant (pas de second nœud), dossier relu dans le main (jamais
+un chemin de l'interface), confidentialité obligatoire, refus repris de l'import (données de l'app, trop grand, autre nœud).
+**Vérifié (e2e) :** genesis de démo lié à un projet C# fictif → « Analyser le code… », « Local uniquement », explorateur
+avec ses modules, puis « Explorateur » dans la barre ; aucun nœud ajouté à la carte.
+**Erreur corrigée (test de mentalyas) :** « Ce dossier est déjà lié à un autre neurone » sur son projet : le contrôle de
+l'import (tout neurone lié au dossier) refusait les éléments et conversations du projet, qui travaillent dans le même
+dossier. Seul un autre projet repris (non supprimé) du même dossier bloque désormais.
+**Puis (retour de mentalyas, « j'aurais aimé pouvoir réanalyser ») :** son dossier était déjà analysé pour un autre
+nœud (un ancien « Reprendre » du même dossier). `reprise:get` renvoie alors `analyzedBy` : la barre propose directement
+« Explorateur » sur cette analyse, où « Réanalyser » met la carte à jour ; plus de détour par « Analyser le code… ».

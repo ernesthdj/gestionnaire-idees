@@ -127,6 +127,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:setPermissionMode',
   'reprise:previewFolder',
   'reprise:create',
+  'reprise:adopt',
   'reprise:get',
   'reprise:setConfidentiality',
   'reprise:analyze',
