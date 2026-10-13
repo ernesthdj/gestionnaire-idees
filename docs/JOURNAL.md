@@ -1565,3 +1565,25 @@ stack (absents du code). Ollama et l'anonymisation de l'import de contexte serve
 d'archive est reporté à un chantier à part. Skill `/hub` : graphe hebdomadaire, cours sur confirmation.
 **Regle apprise :** un statut de spec qui ne commence pas par « Livrée », « En pause » ou « Abandonnée » est invisible
 pour la vue Workflow ; cinq specs finies (004, 008, 010, 016, 020) y apparaissaient comme non livrées.
+
+### [2026-10-13 15:10] FIX — spec 030 « Avancement fiable » : la carte de structure suit le travail
+**Fichiers :** `specs/030-avancement-fiable/`, `src/shared/mcp/tools.ts`, `src/main/application/structure/StructureService.ts`,
+`src/main/domain/structure/status.ts`, `src/main/application/history/HistoryService.ts`,
+`src/main/application/conversation/frame.ts`, `src/main/ipc/structureHandlers.ts`, `src/shared/ipc/channels.ts`,
+`src/renderer/src/canvas/{progress.ts,buildGraph.ts,nodes/ElementNode.tsx,cards/IdeaCards.tsx}`,
+`src/renderer/src/git/{ChangesTab.tsx,CommitDelivery.tsx}`, `src/main/infrastructure/db/demo/seedDemo.ts`, tests
+(`tests/unit/structure/status.test.ts`, `tests/unit/renderer/element-status.test.tsx`, `element-progress.test.ts`,
+`tests/integration/structure/structure.test.ts`, `tests/e2e/avancement.e2e.ts`)
+**Resume :** Première réparation du gel (audit Bike_cycle §3.1, propositions C1 à C4). (1) `element_avancer` accepte
+l'identifiant **ou la clé** d'un autre élément du même projet (`projet` pour une session sans neurone) ;
+`structure_lire` affiche les identifiants ; un identifiant inconnu est refusé avec « pas une étape du plan d'attaque ».
+(2) Choix du statut dans la carte de détails d'une feuille : un lot « par toi », annulable, l'avancement suit le statut
+(domaine pur `manualProgress` : livrée = 100 %, rouvrir efface un 100 %). (3) Statut affiché des parents calculé
+(`statusOf`) : livré quand tous les enfants le sont, en cours dès que l'un avance, bloqué s'il l'est lui-même. (4) Après
+un commit dans le volet Dépôt, les feuilles dont un chemin couvre un fichier commité sont proposées « Passer en
+livrée », cochées d'office ; rien sans clic. Aucune migration, aucune dépendance. Carte démo : chemins fictifs ajoutés
+pour le lot 4. Vérifié : 2 118 tests, typecheck, lint, Prettier ; e2e joué dans l'app (2/2).
+**Erreur corrigée :** le renderer affichait son propre toast après `element:setStatus`, aussitôt remplacé par celui du
+main (`map:changed`, déjà annulable) : un seul toast, celui du main.
+**Regle apprise :** toute écriture de la carte émise par le main (`emit`) a déjà sa notification annulable ; le renderer
+ne montre que les erreurs.

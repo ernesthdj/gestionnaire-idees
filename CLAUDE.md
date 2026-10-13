@@ -143,6 +143,8 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
   027 ; **en pause, à reprendre après le gel : 021 « Git et GitHub »** (recentrée : commit, pull et push par Claude) ;
   redevenues des idées (« Abandonnée — à reconsidérer ») : 005, 011, 012, 013, 014, 015, 019, 022 ; abandonnées : 002,
   028 « Le dossier du nœud » (code derrière `FOLDERS_ENABLED`, retiré le 2026-11-12 s'il n'a pas resservi), 029 « Scènes
-  animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`)
+  animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`) ; **livrée le 2026-10-13 : 030
+  « Avancement fiable »** (réparation du gel : `element_avancer` par clé, statut à la main, statut calculé des parents,
+  « livrée » proposée au commit)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

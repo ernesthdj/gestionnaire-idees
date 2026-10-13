@@ -229,6 +229,10 @@ function structureSummary(head: ChangeRow, undone: boolean): string {
     const kind = head.after?.['architecture']
     return `${prefix}Architecture de la carte : ${typeof kind === 'string' ? kind : 'aucune'}`
   }
+  if (head.entity === 'element_progress') {
+    const status = head.after?.['status']
+    return `${prefix}Statut d’un élément : ${typeof status === 'string' ? status : 'aucun'}`
+  }
   const layer = head.after?.['layer']
   return `${prefix}Couche d’un élément : ${typeof layer === 'string' ? layer : 'non classé'}`
 }

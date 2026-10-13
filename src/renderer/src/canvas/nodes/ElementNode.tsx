@@ -110,6 +110,50 @@ export function ElementLayerSelect({
   )
 }
 
+/** Statuts proposés à la main (spec 030 D2) ; le statut courant s'y ajoute s'il est autre. */
+const MANUAL_STATUSES: readonly ElementStatus[] = ['a_faire', 'en_cours', 'livree', 'bloquee']
+
+/**
+ * Statut d'un élément sans sous-éléments, changé à la main dans sa carte de détails (spec 030 D2) : « par toi »,
+ * annulable par la notification du main.
+ */
+export function ElementStatusSelect({ element }: { readonly element: ElementView }): React.JSX.Element {
+  const client = useQueryClient()
+  const showToast = useUiStore((state) => state.showToast)
+  const options =
+    element.status === null || MANUAL_STATUSES.includes(element.status)
+      ? MANUAL_STATUSES
+      : [element.status, ...MANUAL_STATUSES]
+  const setStatus = (value: ElementStatus): void => {
+    void call('element:setStatus', { elementIds: [element.id], status: value })
+      // La notification annulable vient du main (`map:changed`), comme pour toute écriture de la carte.
+      .then(() => client.invalidateQueries({ queryKey: ['canvas'] }))
+      .catch(() => showToast('Le statut n’a pas pu être changé.'))
+  }
+  return (
+    <select
+      value={element.status ?? ''}
+      onChange={(event) => {
+        const value = options.find((status) => status === event.target.value)
+        if (value !== undefined) setStatus(value)
+      }}
+      aria-label={`Statut de « ${element.title} »`}
+      className="nodrag h-7 max-w-36 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
+    >
+      {element.status === null ? (
+        <option value="" disabled>
+          Statut…
+        </option>
+      ) : null}
+      {options.map((status) => (
+        <option key={status} value={status}>
+          {STATUS_LABELS[status]}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 /**
  * Élément d'une carte de structure (spec 009, 017) en **petit cercle vivant** (spec 022 US3) : couleur de son module,
  * pictogramme de son type, numéro de progression, pastille de statut (contour en pointillés s'il est bloqué),
@@ -117,7 +161,8 @@ export function ElementLayerSelect({
  * détails (type, statut, résumé, avancement, couche, fichiers) ; le bouton de repli ne l'ouvre pas.
  */
 export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Element {
-  const { element, number, visual, open } = data
+  const { element, number, visual, open, shownStatus } = data
+  const status = shownStatus?.status ?? element.status
   const client = useQueryClient()
   const content = element.content ?? null
   const toggle = (): void => {
@@ -127,9 +172,9 @@ export function ElementNode({ data }: NodeProps<ElementNodeType>): React.JSX.Ele
   }
   return (
     <div
-      className={`nopan living-element${element.status === 'bloquee' ? ' living-blocked' : ''}`}
+      className={`nopan living-element${status === 'bloquee' ? ' living-blocked' : ''}`}
       data-content={content?.kind ?? 'none'}
-      data-status={element.status ?? 'none'}
+      data-status={status ?? 'none'}
     >
       <LivingNode
         id={element.id}

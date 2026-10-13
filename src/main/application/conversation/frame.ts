@@ -68,5 +68,6 @@ export const BRAINSTORMER_FRAME = [
   'celle d’un élément, concentre-toi sur lui',
   '(ses fichiers, ses liens) et tiens SA fiche. Quand tu y travailles (code, tests, commit), tiens-le à jour avec',
   'element_avancer à chaque étape franchie (« avancement » en %, « reste » à faire) ; travail terminé (tests verts,',
-  'commit) : statut « livree », 100 %. Ses parents se remplissent seuls.'
+  'commit) : statut « livree », 100 %. Ses parents se remplissent seuls. Un travail qui fait aussi avancer un autre',
+  'élément du projet (une API et son écran) : element_avancer avec sa clé (« element »), lue dans structure_lire.'
 ].join('\n')

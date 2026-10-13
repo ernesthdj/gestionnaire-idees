@@ -217,6 +217,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'workflow:setFolded',
   'structure:setArchitecture',
   'element:setLayer',
+  'element:setStatus',
+  'structure:covered',
   'analyste:repo:status',
   'analyste:repo:choose',
   'analyste:events',

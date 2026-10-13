@@ -4,6 +4,7 @@ import type { GitDiffView, GitFileView, GitStatusView } from '@shared/git/model'
 import { Button } from '../components/atoms/Button'
 import { WindowedList } from '../components/WindowedList'
 import { call, IpcFailure } from '../lib/ipc'
+import { CommitDelivery, type CoveredElement } from './CommitDelivery'
 import { DiffView } from './DiffView'
 import { gitKeys, useRefreshGit } from './gitQueries'
 
@@ -47,6 +48,7 @@ export function ChangesTab({
   const [message, setMessage] = useState('')
   const [shown, setShown] = useState<{ readonly path: string; readonly staged: boolean } | null>(null)
   const [proposal, setProposal] = useState<Proposal | null>(null)
+  const [covered, setCovered] = useState<readonly CoveredElement[]>([])
   // Une ligne par fichier : préparé s'il l'est (même s'il a aussi des modifications non préparées).
   const files = [...new Map(status.files.map((file) => [file.path, file] as const)).values()].map((file) => ({
     ...file,
@@ -68,17 +70,24 @@ export function ChangesTab({
     }
   })
   const commit = useMutation({
-    mutationFn: () =>
-      call<{ hash: string; branch: string }>('git:commit', {
+    mutationFn: async () => {
+      const paths = staged
+      const result = await call<{ hash: string; branch: string }>('git:commit', {
         genesisId,
         message,
-        expectedStaged: staged,
+        expectedStaged: paths,
         confirm: true
-      }),
-    onSuccess: () => {
+      })
+      return { ...result, paths }
+    },
+    onSuccess: ({ paths }) => {
       setMessage('')
       setProposal(null)
       setShown(null)
+      // Éléments de la carte que ce commit couvre (spec 030 D5) : proposés, jamais passés en livrée d'office.
+      void call<readonly CoveredElement[]>('structure:covered', { genesisId, paths })
+        .then(setCovered)
+        .catch(() => setCovered([]))
     },
     onSettled: () => refresh()
   })
@@ -125,6 +134,13 @@ export function ChangesTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {covered.length === 0 ? null : (
+        <CommitDelivery
+          key={covered.map((element) => element.id).join()}
+          elements={covered}
+          onDone={() => setCovered([])}
+        />
+      )}
       {files.length === 0 ? (
         <p className="text-sm text-content-muted">Rien à commiter : la copie de travail est propre.</p>
       ) : (

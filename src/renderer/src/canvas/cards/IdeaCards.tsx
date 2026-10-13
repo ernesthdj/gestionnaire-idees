@@ -10,7 +10,7 @@ import { FinalPanel } from '../FinalPanel'
 import { GhostPanel } from '../GhostPanel'
 import { ElementFiles } from '../../chat/ElementFiles'
 import { contentLabel } from '../elementContent'
-import { ELEMENT_STYLES, ElementLayerSelect, STATUS_LABELS } from '../nodes/ElementNode'
+import { ELEMENT_STYLES, ElementLayerSelect, ElementStatusSelect, STATUS_LABELS } from '../nodes/ElementNode'
 import { DeliverableFiles } from '../nodes/DeliverableNode'
 import { GhostDecision, StepFinalActions } from '../nodes/PlanNode'
 import { usePlanFold } from '../usePlanFold'
@@ -49,13 +49,16 @@ export function subjectOf(node: CanvasNode, view: IdeasCanvasView): CardSubject 
     case 'deliverable':
       return { kind: 'deliverable', deliverable: node.data.deliverable, stepTitle: node.data.title }
     case 'element': {
-      const { element, number, progress } = node.data
+      const { element, number, progress, shownStatus } = node.data
       return {
         kind: 'element',
         element,
         number,
         typeLabel: ELEMENT_STYLES[element.type].label,
-        statusLabel: element.status === null ? null : STATUS_LABELS[element.status],
+        statusLabel:
+          shownStatus === undefined || shownStatus === null
+            ? null
+            : `${STATUS_LABELS[shownStatus.status]}${shownStatus.fromChildren ? ' (d’après ses sous-éléments)' : ''}`,
         percent: progress === undefined || progress === null ? null : progress.percent,
         contentText: contentLabel(element.content),
         note: progress?.fromChildren === true ? null : (element.progressNote ?? null)
@@ -226,10 +229,13 @@ function IdeaCard({
     ) : subject.kind === 'ghost' ? (
       <GhostDecision title={subject.ghost.title} proposalId={subject.proposalId} ghostId={subject.ghost.id} />
     ) : subject.kind === 'element' ? (
-      <ElementLayerSelect
-        element={subject.element}
-        architecture={mapNode.type === 'element' ? (mapNode.data.architecture ?? null) : null}
-      />
+      <span className="flex flex-wrap items-center gap-2">
+        {subject.element.childCount === 0 ? <ElementStatusSelect element={subject.element} /> : null}
+        <ElementLayerSelect
+          element={subject.element}
+          architecture={mapNode.type === 'element' ? (mapNode.data.architecture ?? null) : null}
+        />
+      </span>
     ) : subject.kind === 'document' ? (
       <button
         type="button"

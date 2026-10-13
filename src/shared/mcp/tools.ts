@@ -229,10 +229,14 @@ export const StructureDessinerInput = z.strictObject({
     .optional()
 })
 export type StructureDessinerInput = z.infer<typeof StructureDessinerInput>
-/** Avancement d'un élément de structure (D21), depuis sa conversation : au moins un champ. */
+/**
+ * Avancement d'un élément de structure (D21) : celui de la conversation, ou `element` (identifiant ou clé, spec 030
+ * D1) du même projet ; `projet` pour une session sans neurone. Au moins un champ.
+ */
 export const ElementAvancerInput = z
   .strictObject({
-    element: Id.optional(),
+    element: z.string().trim().min(1).max(300).optional(),
+    projet: Id.optional(),
     statut: z.enum(ELEMENT_STATUSES).optional(),
     avancement: z.number().int().min(0).max(100).optional(),
     reste: z.string().trim().max(200).optional()
@@ -409,7 +413,8 @@ export const MCP_TOOLS = {
   },
   element_avancer: {
     description:
-      'Tient à jour l’élément de carte de structure de cette conversation (ou `element`, du même projet) : statut, ' +
+      'Tient à jour l’élément de carte de structure de cette conversation, ou `element` (son identifiant ou sa clé, ' +
+      'lus dans structure_lire ; jamais une étape du plan d’attaque) d’un autre élément du même projet : statut, ' +
       '« avancement » 0–100 % et « reste » (ce qui reste à faire, une phrase). Appelle-le à chaque étape franchie ; ' +
       'travail terminé (tests verts, commit) : statut « livree » (100 %). Annulable par mentalyas.',
     input: ElementAvancerInput,
@@ -417,7 +422,8 @@ export const MCP_TOOLS = {
   },
   structure_lire: {
     description:
-      'Lit la carte de structure du projet (clés, types, titres, statuts, chemins, parents) avant de la mettre à jour.',
+      'Lit la carte de structure du projet (identifiants, clés, types, titres, statuts, chemins, parents) avant de la ' +
+      'mettre à jour.',
     input: StructureLireInput,
     writes: false
   },

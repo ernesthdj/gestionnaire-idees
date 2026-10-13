@@ -67,14 +67,38 @@ function demoSheet(level: (typeof LEVELS)[number]): Sheet {
   }
 }
 
-/** Carte de structure fictive du dernier genesis (spec 009) : modules, composants, tâche et liens typés. */
+/**
+ * Carte de structure fictive du dernier genesis (spec 009) : modules, composants, tâche et liens typés ; chemins
+ * fictifs relatifs au dossier lié, pour la proposition « livrée » au commit (spec 030 D5).
+ */
 const DEMO_STRUCTURE = [
-  { key: 'module:app', type: 'module', title: 'Application', parent: null, status: 'en_cours' },
-  { key: 'module:donnees', type: 'module', title: 'Données', parent: null, status: 'livree' },
-  { key: 'composant:ecran', type: 'composant', title: 'Écran principal', parent: 'module:app', status: 'en_cours' },
-  { key: 'composant:reglages', type: 'composant', title: 'Réglages', parent: 'module:app', status: 'idee' },
-  { key: 'donnee:base', type: 'donnee', title: 'Base locale', parent: 'module:donnees', status: 'livree' },
-  { key: 'tache:sauvegarde', type: 'tache', title: 'Sauvegarde nocturne', parent: 'module:donnees', status: 'a_faire' }
+  { key: 'module:app', type: 'module', title: 'Application', parent: null, status: 'en_cours', paths: ['src'] },
+  { key: 'module:donnees', type: 'module', title: 'Données', parent: null, status: 'livree', paths: [] },
+  {
+    key: 'composant:ecran',
+    type: 'composant',
+    title: 'Écran principal',
+    parent: 'module:app',
+    status: 'en_cours',
+    paths: ['src/ecran.ts']
+  },
+  {
+    key: 'composant:reglages',
+    type: 'composant',
+    title: 'Réglages',
+    parent: 'module:app',
+    status: 'idee',
+    paths: ['src/reglages.ts']
+  },
+  { key: 'donnee:base', type: 'donnee', title: 'Base locale', parent: 'module:donnees', status: 'livree', paths: [] },
+  {
+    key: 'tache:sauvegarde',
+    type: 'tache',
+    title: 'Sauvegarde nocturne',
+    parent: 'module:donnees',
+    status: 'a_faire',
+    paths: []
+  }
 ] as const
 const DEMO_RELATIONS = [
   { from: 'composant:ecran', to: 'donnee:base', relation: 'lit_ecrit' },
@@ -273,7 +297,7 @@ export function seedDemo(
           elementType: element.type,
           elementKey: element.key,
           elementStatus: element.status,
-          pathsJson: '[]',
+          pathsJson: JSON.stringify(element.paths),
           collapsed: false
         })
         .run()

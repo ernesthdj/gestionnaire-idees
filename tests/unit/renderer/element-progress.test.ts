@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { progressOf } from '../../../src/renderer/src/canvas/progress'
+import { progressOf, statusOf } from '../../../src/renderer/src/canvas/progress'
 import type { ElementView } from '../../../src/shared/ipc/canvas'
 
 const element = (id: string, parentId: string, extra: Partial<ElementView> = {}): ElementView => ({
@@ -69,5 +69,40 @@ describe('avancement mixte des éléments (spec 017 D21)', () => {
   it('should_keep_100_for_a_delivered_parent_whose_children_carry_no_information', () => {
     const progress = progressOf([element('p', 'g', { status: 'livree' }), element('p1', 'p')])
     expect(progress.get('p')).toEqual({ percent: 100, fromChildren: false })
+  })
+})
+
+describe('statut affiché des parents (spec 030 D4)', () => {
+  it('should_show_a_module_delivered_when_all_its_children_are_and_in_progress_as_soon_as_one_moves', () => {
+    const done = statusOf([
+      element('m', 'g', { status: 'a_faire' }),
+      element('m1', 'm', { status: 'livree' }),
+      element('m2', 'm', { status: 'faite' })
+    ])
+    expect(done.get('m')).toEqual({ status: 'livree', fromChildren: true })
+    const moving = statusOf([
+      element('m', 'g', { status: 'a_faire' }),
+      element('m1', 'm', { status: 'a_faire', progress: 20 }),
+      element('m2', 'm')
+    ])
+    expect(moving.get('m')).toEqual({ status: 'en_cours', fromChildren: true })
+    expect(moving.get('m1')).toEqual({ status: 'a_faire', fromChildren: false })
+    expect(moving.has('m2')).toBe(false)
+  })
+
+  it('should_propagate_through_levels_keep_a_blocked_parent_and_keep_its_own_status_when_nothing_moves', () => {
+    const statuses = statusOf([
+      element('app', 'g'),
+      element('api', 'app', { status: 'a_faire' }),
+      element('depot', 'api', { status: 'livree' }),
+      element('web', 'app', { status: 'bloquee' }),
+      element('ecran', 'web', { status: 'livree' }),
+      element('doc', 'g', { status: 'specifiee' }),
+      element('doc1', 'doc', { status: 'a_faire' })
+    ])
+    expect(statuses.get('api')).toEqual({ status: 'livree', fromChildren: true })
+    expect(statuses.get('web')).toEqual({ status: 'bloquee', fromChildren: false })
+    expect(statuses.get('app')).toEqual({ status: 'en_cours', fromChildren: true })
+    expect(statuses.get('doc')).toEqual({ status: 'specifiee', fromChildren: false })
   })
 })

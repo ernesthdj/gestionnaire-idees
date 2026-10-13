@@ -6,7 +6,8 @@ import { McpToolError } from '../../domain/mcp/errors'
 import { resolveStructure } from '../../domain/structure/resolve'
 import { AppError } from '../../domain/errors'
 import { ARCHITECTURES, layerOf, type ArchitectureKind } from '@shared/structure/architecture'
-import type { StructureArchitectureView } from '@shared/ipc/canvas'
+import type { ElementStatus, StructureArchitectureView } from '@shared/ipc/canvas'
+import { coveredElements, manualProgress } from '../../domain/structure/status'
 import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
 import type { ElementRepository, ElementRow } from '../../infrastructure/db/repositories/ElementRepository'
 import type { MapLinkRepository } from '../../infrastructure/db/repositories/MapLinkRepository'
@@ -51,6 +52,17 @@ const snapshot = (
   layer: row.layer,
   layerSource: row.layerSource
 })
+
+/** Statut en clair, pour les notifications (spec 030 D2). */
+const STATUS_TEXT: Readonly<Record<ElementStatus, string>> = {
+  idee: 'idée',
+  specifiee: 'spécifiée',
+  en_cours: 'en cours',
+  livree: 'livrée',
+  a_faire: 'à faire',
+  faite: 'faite',
+  bloquee: 'bloquée'
+}
 
 /** Instantané d'architecture (D20) pour l'Historique ; `null` : aucune. */
 const architectureSnapshot = (value: Omit<StructureArchitectureView, 'genesisId'> | null) =>
@@ -243,7 +255,7 @@ export class StructureService {
           row.paths.length === 0 ? null : row.paths.join(', ')
         ].filter((part) => part !== null)
         lines.push(
-          `${'  '.repeat(level)}- [${row.type}] ${row.key} « ${row.title} »${extra.length === 0 ? '' : ` (${extra.join(' · ')})`}`
+          `${'  '.repeat(level)}- [${row.type}] ${row.key} « ${row.title} » id ${row.id}${extra.length === 0 ? '' : ` (${extra.join(' · ')})`}`
         )
         walk(row.id, level + 1)
       }
@@ -253,21 +265,12 @@ export class StructureService {
   }
 
   /**
-   * Avancement d'un élément depuis sa conversation (D21) : l'élément de la conversation par défaut, ou un autre
-   * élément du même projet ; « livree » ou « faite » sans avancement vaut 100 %. Écriture « par Claude », annulable.
+   * Avancement d'un élément (D21) : l'élément de la conversation par défaut, ou un autre élément du même projet, par
+   * identifiant ou par clé (spec 030 D1) ; « livree » ou « faite » sans avancement vaut 100 %. Écriture « par
+   * Claude », annulable.
    */
   advance(input: ElementAvancerInput, caller: McpCaller): ToolResult {
-    const target = input.element ?? caller.neuronId
-    if (target === null) {
-      throw new McpToolError(
-        'ENTREE_INVALIDE',
-        'element requis : cette session n’est pas la conversation d’un élément.'
-      )
-    }
-    const row = this.deps.elements.list().find((entry) => entry.id === target)
-    if (row === undefined) {
-      throw new McpToolError('INTROUVABLE', 'Élément de carte de structure introuvable (retiré, ou pas un élément ?)')
-    }
+    const row = this.element(input, caller)
     const own = caller.neuronId === null ? undefined : this.deps.genesisOf(caller.neuronId)
     if (own !== undefined && own !== row.genesisId) {
       throw new McpToolError('NON_MODIFIABLE', 'Cet élément n’appartient pas au projet de cette conversation.')
@@ -303,6 +306,57 @@ export class StructureService {
       text: `« ${row.title} » : ${parts.join(', ')}${next.note === null ? '' : ` — reste : ${next.note}`} (annulable par mentalyas).`,
       data: { lot: batchId, statut: next.status, avancement: next.progress }
     }
+  }
+
+  /**
+   * Statut changé par mentalyas (spec 030 D2, D3, D5) : un ou plusieurs éléments du même projet, un seul lot « par
+   * toi », annulable ; l'avancement suit le statut (`manualProgress`).
+   */
+  setStatus(elementIds: readonly string[], status: ElementStatus): { readonly batchId: string } {
+    const wanted = new Set(elementIds)
+    const rows = this.deps.elements.list().filter((entry) => wanted.has(entry.id))
+    if (rows.length !== wanted.size) throw new AppError('NOT_FOUND', 'Élément introuvable')
+    if (new Set(rows.map((row) => row.genesisId)).size > 1) {
+      throw new AppError('VALIDATION', 'Ces éléments n’appartiennent pas au même projet')
+    }
+    const batchId = randomUUID()
+    const changes = rows.map((row) => {
+      const before = { status: row.status, progress: row.progress, note: row.progressNote }
+      return { row, before, after: manualProgress(before, status) }
+    })
+    this.deps.elements.transaction(() => {
+      for (const { row, after } of changes) this.deps.elements.setProgress(row.id, after)
+      this.deps.elements.log(
+        batchId,
+        changes.map(({ row, before, after }) => ({
+          kind: 'structure' as const,
+          entity: 'element_progress',
+          entityId: row.id,
+          before,
+          after
+        })),
+        'user'
+      )
+    })
+    const first = rows[0]
+    const summary =
+      rows.length === 1 && first !== undefined
+        ? `Statut de « ${first.title} » : ${STATUS_TEXT[status]}`
+        : `${rows.length} éléments : ${STATUS_TEXT[status]}`
+    this.deps.emit({ batchId, summary, count: rows.length })
+    return { batchId }
+  }
+
+  /** Éléments d'un projet que couvrent des fichiers commités (spec 030 D5) ; lecture seule. */
+  covered(
+    genesisId: string,
+    files: readonly string[]
+  ): readonly { readonly id: string; readonly key: string; readonly title: string }[] {
+    return coveredElements(this.deps.elements.list(genesisId), files).map((row) => ({
+      id: row.id,
+      key: row.key,
+      title: row.title
+    }))
   }
 
   setCollapsed(elementId: string, collapsed: boolean): void {
@@ -363,6 +417,32 @@ export class StructureService {
     })
     this.deps.emit({ batchId, summary: `Couche de « ${row.title} » changée`, count: 1 })
     return { batchId }
+  }
+
+  /**
+   * Élément visé par `element_avancer` (spec 030 D1) : celui de la conversation sans `element` ; sinon un identifiant,
+   * puis une clé cherchée dans le projet visé (`projet` ou celui de la conversation).
+   */
+  private element(input: ElementAvancerInput, caller: McpCaller): ElementRow {
+    const ref = input.element ?? caller.neuronId
+    if (ref === null) {
+      throw new McpToolError(
+        'ENTREE_INVALIDE',
+        'element requis : cette session n’est pas la conversation d’un élément.'
+      )
+    }
+    const rows = this.deps.elements.list()
+    const byId = rows.find((entry) => entry.id === ref)
+    if (byId !== undefined) return byId
+    if (input.element !== undefined && (input.projet !== undefined || caller.neuronId !== null)) {
+      const genesisId = this.target(input.projet, caller)
+      const byKey = rows.find((entry) => entry.genesisId === genesisId && entry.key === ref)
+      if (byKey !== undefined) return byKey
+    }
+    throw new McpToolError(
+      'INTROUVABLE',
+      `Élément « ${ref} » introuvable : donne l’identifiant ou la clé lus dans structure_lire (pas une étape du plan d’attaque).`
+    )
   }
 
   /** Projet visé : celui donné, sinon celui de la conversation ; jamais un autre projet que celui de la conversation. */

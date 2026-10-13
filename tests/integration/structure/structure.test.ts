@@ -214,6 +214,45 @@ describe('carte de structure d’un projet (spec 009)', () => {
       expect(() => ElementAvancerInput.parse({})).toThrow()
     })
 
+    it('should_advance_another_element_of_the_project_by_its_key_and_show_ids_when_reading', () => {
+      draw(map)
+      const own = elementOf('module:main')?.id ?? ''
+      const chat = elementOf('fonctionnalite:chat')?.id ?? ''
+      advance({ element: 'fonctionnalite:chat', statut: 'livree' }, own)
+      expect(elementOf('fonctionnalite:chat')).toMatchObject({ status: 'livree', progress: 100 })
+      expect(structure.read(undefined, { neuronId: projet }).text).toContain(`id ${chat}`)
+      // Session sans neurone : la clé se cherche dans le projet donné ; une clé inconnue est refusée clairement.
+      advance({ element: 'module:renderer', projet, avancement: 30 }, null)
+      expect(elementOf('module:renderer')).toMatchObject({ progress: 30 })
+      expect(() => advance({ element: 'etape-du-plan', avancement: 10 }, own)).toThrow(/pas une étape du plan/)
+      expect(() => advance({ element: 'module:main', projet, avancement: 10 }, autre)).toThrow(/projet/)
+    })
+
+    it('should_set_the_status_by_hand_for_several_elements_in_one_undoable_batch', () => {
+      draw(map)
+      const ids = ['composant:conversation', 'fonctionnalite:chat'].map((key) => elementOf(key)?.id ?? '')
+      structure.setStatus(ids, 'livree')
+      expect(elementOf('fonctionnalite:chat')).toMatchObject({ status: 'livree', progress: 100 })
+      expect(changed.at(-1)).toBe('2 éléments : livrée')
+      expect(history.list().items[0]?.summary).toBe('Statut d’un élément : livree')
+      history.undo(history.list().items[0]?.batchId ?? '')
+      expect(elementOf('fonctionnalite:chat')).toMatchObject({ status: 'en_cours', progress: null })
+      expect(elementOf('composant:conversation')).toMatchObject({ status: null })
+    })
+
+    it('should_refuse_elements_of_two_projects_and_list_the_leaves_covered_by_a_commit', () => {
+      draw(map)
+      draw({ elements: [{ cle: 'x', type: 'module', titre: 'X' }] }, autre)
+      const mine = elementOf('module:renderer')?.id ?? ''
+      const other = elementOf('x')?.id ?? ''
+      expect(() => structure.setStatus([mine, other], 'livree')).toThrow(/même projet/)
+      expect(
+        structure.covered(projet, ['src/main/application/conversation/ConversationService.ts', 'README.md'])
+      ).toEqual([
+        { id: elementOf('composant:conversation')?.id, key: 'composant:conversation', title: 'ConversationService' }
+      ])
+    })
+
     it('should_undo_the_progress_back_to_the_previous_state', () => {
       draw(map)
       const id = elementOf('fonctionnalite:chat')?.id ?? ''
@@ -248,7 +287,7 @@ describe('carte de structure d’un projet (spec 009)', () => {
     draw(map)
     const main = view().elements.find((element) => element.key === 'module:main')
     expect(structure.read(undefined, { neuronId: projet }).text).toMatch(
-      /- \[module\] module:main « Processus principal »\n {2}- \[composant\] composant:conversation/
+      /- \[module\] module:main « Processus principal » id [0-9a-f-]{36}\n {2}- \[composant\] composant:conversation/
     )
     structure.setCollapsed(main?.id ?? '', true)
     expect(view().elements.find((element) => element.key === 'module:main')?.collapsed).toBe(true)
