@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { _electron as electron, type ElectronApplication, type Page } from 'playwright-core'
+import { _electron as electron, type ElectronApplication, type Locator, type Page } from 'playwright-core'
 
 /**
  * Lancement de l'app pour les tests de bout en bout : build de `out/` (fait par `npm run e2e`), profil FICTIF
@@ -91,4 +91,24 @@ export async function launchApp(env: Readonly<Record<string, string>> = {}): Pro
     await app.close().catch(() => undefined)
     throw error
   }
+}
+
+/**
+ * Position d'un élément une fois immobile : la carte fait glisser ses nœuds après une ouverture, une bascule de vue ou
+ * un widget posé. Trois mesures identiques de suite (toutes les 100 ms) avant de mesurer ou de cliquer ; 10 s au plus.
+ */
+export async function settled(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
+  const deadline = Date.now() + 10_000
+  let last = ''
+  let same = 0
+  while (Date.now() < deadline) {
+    const box = await locator.boundingBox()
+    const key =
+      box === null ? '' : `${Math.round(box.x)},${Math.round(box.y)},${Math.round(box.width)},${Math.round(box.height)}`
+    same = key !== '' && key === last ? same + 1 : 0
+    if (box !== null && same >= 2) return box
+    last = key
+    await new Promise((done) => setTimeout(done, 100))
+  }
+  throw new Error('élément toujours en mouvement (ou absent) après 10 s')
 }

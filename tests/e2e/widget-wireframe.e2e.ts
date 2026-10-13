@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { DEMO_PROJECT, freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { DEMO_PROJECT, freshProfile, launchApp, settled, type LaunchedApp } from './support/app'
 
 /**
  * Spec 026 dans l'app réelle : brancher une idée fictive sur un widget, cliquer « 🖼 Wireframe » (Claude simulé : sa
@@ -81,10 +81,11 @@ describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
 
     // Brancher le genesis : tirer son point d'accroche et le lâcher au milieu du widget (tout le widget l'accepte).
     const idea = page.locator('.react-flow__node').filter({ hasText: 'application de notes' }).first()
+    // Le widget posé fait glisser la carte : mesurer seulement une fois tout immobile.
+    await settled(idea)
     await idea.hover()
-    const from = await idea.locator('.neuron-connector').boundingBox()
-    const to = await widget.boundingBox()
-    if (from === null || to === null) throw new Error('points d’accroche introuvables')
+    const from = await settled(idea.locator('.neuron-connector'))
+    const to = await settled(widget)
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
     await page.mouse.down()
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
@@ -152,6 +153,8 @@ describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
     await frame.getByText('Demande de devis · Erreur').waitFor()
     await run.shot('026-04-panneau-reglages')
 
+    // Après « Adapter », le widget grandit et la carte glisse : le bouton peut passer un instant sous la barre d'outils.
+    await settled(widget.getByRole('button', { name: 'Plein écran' }))
     await widget.getByRole('button', { name: 'Plein écran' }).click()
     const dialog = run.page.getByRole('dialog', { name: 'Plein écran : Écrans réglables' })
     await dialog.getByRole('complementary', { name: 'Réglages' }).getByLabel('État').waitFor()

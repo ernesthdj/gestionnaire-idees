@@ -1587,3 +1587,15 @@ pour le lot 4. Vérifié : 2 118 tests, typecheck, lint, Prettier ; e2e joué da
 main (`map:changed`, déjà annulable) : un seul toast, celui du main.
 **Regle apprise :** toute écriture de la carte émise par le main (`emit`) a déjà sa notification annulable ; le renderer
 ne montre que les erreurs.
+
+### [2026-10-13 15:45] TEST — e2e rendus déterministes (seconde condition du gel)
+**Fichiers :** `tests/e2e/support/app.ts` (`settled`), `tests/e2e/widget-wireframe.e2e.ts`,
+`tests/e2e/workflow-task-files.e2e.ts`
+**Resume :** Les trois e2e dits instables (git-sync, widget-wireframe, workflow-task-files) n'ont pas échoué sur
+4 exécutions : 3 passes complètes de la suite (sans le banc de 5 000 fichiers, 39/39 chacune) et 1 passe ciblée. Les
+deux échecs notés le 11/10 avaient la même cause : une mesure ou un clic pendant que la carte glisse. Ajout de
+`settled(locator)` (trois mesures identiques à 100 ms d'intervalle avant de mesurer ou de cliquer, 10 s au plus),
+utilisé avant les deux glisser-déposer vers un widget et avant « Plein écran ». Ensuite, 3 passes ciblées vertes
+(9/9 chacune). git-sync n'avait aucune trace d'échec : inchangé.
+**Regle apprise :** dans un e2e sur la carte, ne jamais lire une position (`boundingBox`) sans attendre que le nœud
+soit immobile ; un `waitForTimeout` fixe ne suffit pas sous charge.

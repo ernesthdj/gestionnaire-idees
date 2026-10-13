@@ -2,7 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { freshProfile, launchApp, settled, type LaunchedApp } from './support/app'
 
 /**
  * Spec 023 D20 à D22 dans l'app réelle : un projet fictif sans Spec Kit, avec un fichier de tâches à trois états ; la
@@ -108,9 +108,8 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
       })
       .toBe('1')
     await run.shot('023-D24-01-poignee-au-survol')
-    const from = await handle.boundingBox()
-    const to = await widget.boundingBox()
-    if (from === null || to === null) throw new Error('points d’accroche introuvables')
+    const from = await settled(handle)
+    const to = await settled(widget)
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
     await page.mouse.down()
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
