@@ -8,12 +8,17 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 1 — Données (main)
 
-- [ ] T010 Domaine pur `src/main/domain/reprise/boxes.ts` : couche d'un module (catégories + point d'entrée), modules et
+- [x] T010 Domaine pur `src/main/domain/reprise/boxes.ts` : couche d'un module (catégories + point d'entrée), modules et
   fichiers à plat (dossier d'origine en sous-titre), profondeur d'appel des fichiers d'un module + tests.
-- [ ] T011 Phrases d'appel (`A.f` appelle `B.g`) et cibles possibles d'un appel deviné, depuis les arêtes de symboles
+- [x] T011 Phrases d'appel (`A.f` appelle `B.g`) et cibles possibles d'un appel deviné, depuis les arêtes de symboles
   (spec 017) + tests.
-- [ ] T012 `ExplorerService.map(genesisId)` + IPC `explorer:map` (Zod, bornes, chemins relatifs, fichiers sensibles
+- [x] T012 `ExplorerService.map(genesisId)` + IPC `explorer:map` (Zod, bornes, chemins relatifs, fichiers sensibles
   exclus) + tests d'intégration sur `tests/fixtures/reprise/cs-app`.
+
+## Lot 1b — Rôle des fichiers (D12a)
+
+- [ ] T013 Colonne `summary` des fichiers (migration + `down`), écrite par Claude dans la passe du guide pour un projet
+  « Claude autorisé » (jamais en « Local uniquement »), lue par `explorer:map` + tests.
 
 ## Lot 2 — Carte d'ensemble
 

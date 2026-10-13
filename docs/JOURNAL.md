@@ -1806,3 +1806,20 @@ glisser-déposer de chaque nœud, fondus enchaînés.
 titre relayé au pixel près, aucune erreur.
 **Règle apprise :** pour une transition, mesurer image par image (positions, échelles, opacités) plutôt que juger à
 l'œil ; deux scènes cadrées dans le même rectangle donnent un zoom commun sans approximation.
+
+### [2026-10-14 01:20] FEAT — spec 031 lot 1 : la carte en boîtes en une réponse (`explorer:map`)
+**Fichiers :** `src/main/domain/reprise/boxes.ts` (nouveau, pur), `src/shared/ipc/reprise.ts` (couches, vues de la carte,
+bornes), `src/main/application/reprise/ExplorerService.ts` (`map`), `src/main/ipc/explorerHandlers.ts` et
+`src/shared/ipc/channels.ts` (`explorer:map`) ; tests `unit/reprise/boxes.test.ts` (nouveau),
+`integration/reprise/explorer-service.test.ts`, `unit/ipc/explorer-handlers.test.ts` ; `specs/031-explorateur-boites/tasks.md`.
+**Quoi :** modules à plat avec leur couche (Démarrage s'il contient un `main`/`cli`, sinon Entrée, Règles, Données et
+outils d'après la catégorie), rôle du guide, colonnes dans le sens des appels ; fichiers avec dossier d'origine,
+fonctions (sans constructeurs), profondeur d'appel dans le module, « relié à un autre module » ; appels de fichier à
+fichier en phrases (`OrdersController.Post` appelle `OrderService.Place`), un lien sans cible retenue étant tracé vers
+chacune de ses cibles possibles (« 4 possibles »). Aucune migration.
+**Erreur corrigée (sonde sur le vrai projet de test) :** les colonnes saturaient au plafond. `SqlOrderRepository`
+implémente une interface du domaine : ce lien remonte et créait une boucle Domain ↔ Infrastructure que la relaxation
+gonflait. Colonnes et profondeurs se calculent maintenant sur les seuls appels, injections et routes, par ordre
+topologique qui rompt une boucle à son nœud le moins appelé.
+**Règle apprise :** tester un calcul de graphe sur des données réelles analysées, pas seulement sur un petit cas propre :
+les liens « implémente » et « importe » vont dans l'autre sens que la lecture.

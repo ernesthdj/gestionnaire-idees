@@ -12,6 +12,7 @@ const FILTERS = { categories: ['domain'], langs: [], hideUncertain: false }
 function setup() {
   const explorer = {
     view: vi.fn(() => ({ level: 1 })),
+    map: vi.fn(() => ({ modules: [] })),
     node: vi.fn(),
     code: vi.fn(() => ({ lines: [] })),
     search: vi.fn(() => ({ results: [] })),
@@ -25,6 +26,15 @@ function setup() {
 }
 
 describe('canaux explorer:* (spec 017 US2)', () => {
+  it('should_give_the_whole_box_map_for_a_valid_project_only', async () => {
+    const { dispatch, explorer } = setup()
+    expect(await dispatch('explorer:map', { genesisId: ID })).toMatchObject({ success: true, data: { modules: [] } })
+    expect(explorer.map).toHaveBeenCalledWith(ID)
+    for (const payload of [{ genesisId: 'pas-un-uuid' }, { genesisId: ID, path: 'C:/Windows' }, {}]) {
+      expect(await dispatch('explorer:map', payload)).toMatchObject({ success: false, error: { code: 'VALIDATION' } })
+    }
+  })
+
   it('should_read_a_project_file_by_its_relative_path_only', async () => {
     const { dispatch, explorer } = setup()
     expect(await dispatch('explorer:file', { genesisId: ID, path: 'Domain/OrderService.cs' })).toMatchObject({

@@ -137,6 +137,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'reprise:guide',
   'reprise:resolve',
   'explorer:view',
+  'explorer:map',
   'explorer:node',
   'explorer:code',
   'explorer:file',

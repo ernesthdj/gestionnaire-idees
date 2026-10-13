@@ -29,10 +29,15 @@ const SymbolId = z.string().regex(/^[0-9a-f]{32}$/)
 export function createExplorerRoutes(
   explorer: Pick<
     ExplorerService,
-    'view' | 'node' | 'code' | 'file' | 'search' | 'locate' | 'savePosition' | 'state' | 'saveState'
+    'view' | 'map' | 'node' | 'code' | 'file' | 'search' | 'locate' | 'savePosition' | 'state' | 'saveState'
   >
 ): IpcRoute[] {
   return [
+    defineRoute({
+      channel: 'explorer:map',
+      input: z.strictObject({ genesisId: z.uuid() }),
+      handler: async ({ genesisId }) => explorer.map(genesisId)
+    }),
     defineRoute({
       channel: 'explorer:view',
       input: z.strictObject({

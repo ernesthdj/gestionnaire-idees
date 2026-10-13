@@ -61,6 +61,33 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     rmSync(root, { recursive: true, force: true })
   })
 
+  it('should_build_the_box_map_of_the_analysed_project_in_one_answer', () => {
+    const map = explorer.map(genesis)
+    expect(map).toMatchObject({ confidentiality: 'claude', folderMissing: false, truncated: false })
+    const module = (title: string) => map.modules.find((m) => m.title === title)
+    // Le point d'entrée nomme la racine ; les couches et la plomberie viennent de l'analyse.
+    expect(module('Démarrage')).toMatchObject({ key: 'm:dir:', layer: 'start', column: 0 })
+    expect(module('Controllers')).toMatchObject({ layer: 'entry', column: 0 })
+    expect(module('Domain')).toMatchObject({ layer: 'rules', column: 1 })
+    expect(module('Infrastructure')).toMatchObject({ layer: 'data', column: 2 })
+    expect(module('Logging')).toMatchObject({ layer: 'data', plumbing: true, column: 2 })
+    const file = (path: string) => map.files.find((f) => f.path === path)
+    // Les constructeurs ne sont pas listés ; Stores est appelé par OrderService dans son module.
+    expect(file('Domain/OrderService.cs')?.functions).toEqual(['Save', 'CalculateDiscount', 'Place', 'Archive'])
+    expect(file('Domain/Stores.cs')).toMatchObject({ depth: 1, external: false })
+    expect(file('Controllers/OrdersController.cs')).toMatchObject({ functions: ['Post'], external: true })
+    const call = (from: string, to: string) => map.calls.find((c) => c.from === `f:${from}` && c.to === `f:${to}`)
+    expect(call('Controllers/OrdersController.cs', 'Domain/OrderService.cs')?.sentences).toEqual([
+      { from: 'OrdersController.Post', to: 'OrderService.Place', kind: 'call', provenance: 'syntax', alternatives: 0 }
+    ])
+    // `store.Save` sans type : un appel deviné vers chaque classe qui a un `Save`.
+    expect(call('Domain/OrderService.cs', 'Logging/AuditLog.cs')).toMatchObject({
+      provenance: 'uncertain',
+      sentences: [expect.objectContaining({ from: 'OrderService.Archive', to: 'AuditLog.Save', alternatives: 4 })]
+    })
+    expect(JSON.stringify(map)).not.toContain(root)
+  })
+
   it('should_show_the_modules_in_columns_then_open_one_down_to_the_methods', () => {
     const top = explorer.view(genesis, { parentKey: '', filters: DEFAULT_FILTERS })
     expect(top).toMatchObject({ level: 1, confidentiality: 'claude', folderMissing: false })

@@ -6,6 +6,7 @@ import type {
   CodeExcerptView,
   ExplorerFiltersView,
   ExplorerLinkView,
+  ExplorerMapView,
   ExplorerNodeDetailView,
   ExplorerPlaceView,
   ExplorerView,
@@ -27,6 +28,7 @@ import {
   type ExplorerIndex,
   type IndexEdge
 } from '../../domain/reprise/aggregate'
+import { buildBoxes } from '../../domain/reprise/boxes'
 import { ANALYZED_FILE_MAX_BYTES, classifyFile } from '../../domain/reprise/fileFilter'
 import { parseSource } from '../../domain/reprise/guideSources'
 import { columnLayout, FOLDER_ROW_HEIGHT, ROW_HEIGHT } from '../../domain/reprise/layout'
@@ -45,7 +47,7 @@ export interface ExplorerDeps {
     RepriseRepository,
     'project' | 'positions' | 'savePosition' | 'explorerState' | 'saveExplorerState'
   >
-  readonly graph: Pick<CodeGraphRepository, 'modules' | 'files' | 'symbols' | 'edges'>
+  readonly graph: Pick<CodeGraphRepository, 'modules' | 'files' | 'symbols' | 'edges' | 'entryPoints'>
   readonly readText?: (path: string) => string
   readonly size?: (path: string) => number
   readonly exists?: (path: string) => boolean
@@ -146,6 +148,34 @@ export class ExplorerService {
       edges: aggregated.edges,
       grouped: aggregated.grouped,
       hidden: aggregated.hidden,
+      confidentiality: project.confidentiality,
+      folderMissing: !(this.deps.exists ?? existsSync)(project.rootDir)
+    }
+  }
+
+  /**
+   * Toute la carte en boîtes (spec 031 FR-001) : modules et fichiers à plat, couches, appels de fichier à fichier en
+   * phrases, colonnes et profondeurs. Chemins relatifs ; seuls les fichiers analysés (jamais un fichier sensible).
+   */
+  map(genesisId: string): ExplorerMapView {
+    const project = this.projectOrThrow(genesisId)
+    const loaded = this.load(genesisId)
+    const moduleKeyById = new Map([...loaded.modules.values()].map((module) => [module.id, module.key] as const))
+    const boxes = buildBoxes({
+      modules: [...loaded.modules.values()],
+      files: [...loaded.files.values()].map((file) => ({
+        path: file.path,
+        lang: file.lang,
+        lines: file.lines,
+        moduleKey: file.moduleId === null ? null : (moduleKeyById.get(file.moduleId) ?? null)
+      })),
+      symbols: [...loaded.symbols.values()],
+      edges: loaded.edges,
+      entries: this.deps.graph.entryPoints(genesisId),
+      categoryOf: (key) => loaded.index.nodes.get(key)?.category ?? 'domain'
+    })
+    return {
+      ...boxes,
       confidentiality: project.confidentiality,
       folderMissing: !(this.deps.exists ?? existsSync)(project.rootDir)
     }

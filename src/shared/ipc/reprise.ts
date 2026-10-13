@@ -31,6 +31,85 @@ export const EXPLORER_LIMITS = {
   fileLines: 20_000
 } as const
 
+// ── Explorateur en boîtes (spec 031) : toute la carte du code en une réponse ─────────────────────────────────────
+
+/** Couche d'un module, nommée pour un lecteur : ce qui lance tout, ce qu'on appelle, ce que fait l'app, ses outils. */
+export const CODE_LAYERS = ['start', 'entry', 'rules', 'data'] as const
+export type CodeLayer = (typeof CODE_LAYERS)[number]
+
+/** Nature d'un lien entre deux symboles (analyse de la spec 017). */
+export const CODE_EDGE_KINDS = ['import', 'call', 'implements', 'route', 'injects'] as const
+export type CodeEdgeKind = (typeof CODE_EDGE_KINDS)[number]
+
+/** Bornes de la carte (spec 031 FR-001) : au-delà, la carte est tronquée et le dit. */
+export const MAP_LIMITS = { files: 5_000, calls: 20_000, functionsPerFile: 20, sentencesPerCall: 6 } as const
+
+export interface MapModuleView {
+  /** `m:<clé du module>`. */
+  readonly key: string
+  readonly title: string
+  readonly layer: CodeLayer
+  /** Tout le module est de la plomberie (masquable). */
+  readonly plumbing: boolean
+  /** Rôle en une phrase (guide de reprise) ; `null` : pas encore écrit. */
+  readonly role: string | null
+  /** Colonne de la carte, de gauche à droite dans le sens des appels (0 : rien ne l'appelle). */
+  readonly column: number
+  readonly files: number
+  readonly lines: number
+}
+
+export interface MapFileView {
+  /** `f:<chemin>`. */
+  readonly key: string
+  readonly path: string
+  readonly moduleKey: string
+  /** Nom du fichier. */
+  readonly title: string
+  /** Dossier d'origine dans le module (`''` : à sa racine), montré en sous-titre. */
+  readonly folder: string
+  readonly lang: CodeLang
+  readonly lines: number
+  /** Rôle en une phrase ; `null` : pas encore écrit (projet « Local uniquement », ou guide pas rédigé). */
+  readonly role: string | null
+  readonly functions: readonly string[]
+  /** Profondeur d'appel dans son module (0 : rien du module ne l'appelle), au plus 3. */
+  readonly depth: number
+  /** Appelle un autre module ou en est appelé. */
+  readonly external: boolean
+  readonly plumbing: boolean
+}
+
+/** Un appel lisible : « `OrdersController.Post` appelle `OrderService.Place` ». */
+export interface MapCallSentence {
+  readonly from: string
+  readonly to: string
+  readonly kind: CodeEdgeKind
+  readonly provenance: LinkProvenance
+  /** Appel deviné : nombre de cibles possibles (0 : sans objet). */
+  readonly alternatives: number
+}
+
+/** Appels d'un fichier vers un autre, regroupés. */
+export interface MapCallView {
+  readonly from: string
+  readonly to: string
+  readonly count: number
+  /** La plus faible des fiabilités regroupées. */
+  readonly provenance: LinkProvenance
+  readonly sentences: readonly MapCallSentence[]
+}
+
+export interface ExplorerMapView {
+  readonly modules: readonly MapModuleView[]
+  readonly files: readonly MapFileView[]
+  readonly calls: readonly MapCallView[]
+  /** Fichiers ou appels au-delà des bornes, non montrés. */
+  readonly truncated: boolean
+  readonly confidentiality: Confidentiality
+  readonly folderMissing: boolean
+}
+
 /** Aperçu d'un dossier avant l'import : rien n'est créé tant que mentalyas n'a pas choisi la confidentialité. */
 export interface ImportPreviewView {
   readonly previewId: string
