@@ -19,5 +19,7 @@ export const GitCommitInput = z.strictObject({
   confirm: z.literal(true)
 })
 export const GitBranchInput = z.strictObject({ genesisId, name: BranchName })
+/** Changer de branche ; `confirm` : oui, même dans le dépôt de l'app qui tourne. */
+export const GitSwitchInput = z.strictObject({ genesisId, name: BranchName, confirm: z.literal(true).optional() })
 export const GitLogInput = z.strictObject({ genesisId, limit: z.number().int().min(1).max(GIT_LIMITS.logLimit) })
 export const GitRevertInput = z.strictObject({ genesisId, hash: Hash, expectedHead: Hash, confirm: z.literal(true) })

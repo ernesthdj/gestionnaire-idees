@@ -148,6 +148,33 @@ describe('volet Dépôt (spec 021 T016, US1)', () => {
     expect(await screen.findByText('f.txt')).toBeDefined()
   })
 
+  it('should_ask_before_switching_branch_in_the_repository_of_the_running_app', async () => {
+    const user = userEvent.setup()
+    const { api } = renderPanel({
+      'git:status': () => status([]),
+      'git:branches': () => ({
+        current: 'main',
+        detached: false,
+        local: [
+          { name: 'main', current: true, upstream: null, ahead: 0, behind: 0 },
+          { name: 'essai', current: false, upstream: null, ahead: 0, behind: 0 }
+        ],
+        remote: []
+      }),
+      'git:switchBranch': (payload) => {
+        if ((payload as { confirm?: true }).confirm !== true) throw new FakeIpcError('APP_REPO')
+        return status([])
+      }
+    })
+    await user.click(await screen.findByRole('tab', { name: 'Branches' }))
+    await user.click(await screen.findByRole('button', { name: 'Passer sur essai' }))
+    await user.click(await screen.findByRole('button', { name: 'Rester ici' }))
+    expect(screen.queryByRole('button', { name: 'Passer quand même sur essai' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Passer sur essai' }))
+    await user.click(await screen.findByRole('button', { name: 'Passer quand même sur essai' }))
+    expect(api.invoke).toHaveBeenCalledWith('git:switchBranch', { genesisId: G, name: 'essai', confirm: true })
+  })
+
   it('should_ask_confirmation_before_reverting_a_commit', async () => {
     const user = userEvent.setup()
     const { api, container } = renderPanel({

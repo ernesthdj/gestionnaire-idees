@@ -1749,3 +1749,15 @@ fixe de 1,5 s et trois clics forcés sur des nœuds qui peuvent glisser après �
 `settled()` avant chaque clic. Trois passes seules vertes.
 **Règle apprise :** une instabilité qui ne se reproduit pas se traite quand même à sa cause probable (attente à l'aveugle),
 avec le même remède que les cas déjà élucidés.
+
+### [2026-10-13 22:45] FIX — spec 021 : changer de branche dans le dépôt de l'app qui tourne demande confirmation
+**Fichiers :** `src/main/application/git/GitService.ts` (`appSourceDir`, `switchBranch(…, confirmed)`, erreur `APP_REPO`),
+`src/main/bootstrap.ts` (`app.getAppPath()` en développement, `null` empaquetée), `src/shared/ipc/git.ts` (`GitSwitchInput`),
+`src/main/ipc/gitHandlers.ts`, `src/renderer/src/git/BranchesTab.tsx` (« Passer quand même » / « Rester ici ») ; tests
+`integration/git/git-service.test.ts`, `renderer/git-panel.test.tsx` ; délai de 60 s pour `git-repos` et `git-service`
+(vrais `git`, dépassaient 5 s quand l'app tourne en même temps).
+**Pourquoi :** en testant le volet sur le dépôt du Brainstormer, mentalyas est passé deux fois sur
+`archive/029-scenes-accueil` : le code de l'app a été remplacé sous elle (interface rechargée à chaud, sans le volet
+Dépôt de la 021), impossible de revenir depuis l'app. Remis sur `main` dans un terminal, rien de perdu.
+**Règle apprise :** une app qui pilote git doit reconnaître son propre dépôt : y changer de branche, c'est se remplacer
+soi-même.

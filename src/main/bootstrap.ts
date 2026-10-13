@@ -572,6 +572,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     authorSecret: () => secrets.getOrCreateRandomKey('git-author-hmac'),
     changed: (genesisId) => broadcast('git:changed', { genesisId }),
     localOnly: (genesisId) => confidentiality.isLocalGenesis(genesisId),
+    appSourceDir: app.isPackaged ? null : app.getAppPath(),
     proposeMessage: async (input, staged) => {
       const result = await runGitMessage(ai.gateway, input)
       return result.ok ? reviewProposal(result.value.data, staged) : null

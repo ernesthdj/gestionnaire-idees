@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import type {
   AuthorView,
   GitBranchView,
@@ -37,6 +37,20 @@ export interface GitServiceDeps {
   /** Tâche `git_message` relue (`null` : indisponible). */
   readonly proposeMessage?: (input: GitMessageInput, staged: readonly string[]) => Promise<GitMessageProposal | null>
   readonly now?: () => Date
+  /**
+   * Dossier du code de l'app qui tourne, en développement (`null` : app empaquetée). Changer de branche dans ce dépôt
+   * remplace l'app en cours par le code de l'autre branche : demandé seulement après confirmation.
+   */
+  readonly appSourceDir?: string | null
+}
+
+/** Même dossier, sans tenir compte de la casse sous Windows. */
+const sameDir = (a: string, b: string): boolean => {
+  const norm = (path: string): string => {
+    const full = resolve(path)
+    return process.platform === 'win32' ? full.toLowerCase() : full
+  }
+  return norm(a) === norm(b)
 }
 
 const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
@@ -334,8 +348,15 @@ export class GitService {
     return this.status(genesisId)
   }
 
-  async switchBranch(genesisId: string, name: string): Promise<GitStatusView> {
+  async switchBranch(genesisId: string, name: string, confirmed = false): Promise<GitStatusView> {
     const repo = await this.writable(genesisId)
+    const self = this.deps.appSourceDir ?? null
+    if (!confirmed && self !== null && sameDir(repo.gitDir, join(self, '.git'))) {
+      throw new AppError(
+        'APP_REPO',
+        'Ce dépôt est celui du Brainstormer qui tourne : changer de branche remplace l’app en cours par le code de l’autre branche (relance nécessaire, et il faudra revenir sur cette branche dans un terminal si l’autre n’a pas ce volet).'
+      )
+    }
     await this.deps.queue.run(genesisId, repo.gitDir, async () => {
       const started = this.now()
       const result = await this.run(repo, args.switchBranchArgs(name), {})

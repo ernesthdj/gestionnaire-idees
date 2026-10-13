@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { buildScenario, git, SCENARIOS } from '../../support/gitRepos'
 
-describe('dépôts git fictifs des tests (spec 021 T002)', () => {
+describe('dépôts git fictifs des tests (spec 021 T002)', { timeout: 60_000 }, () => {
   const root = mkdtempSync(join(tmpdir(), 'gi-git-repos-'))
   afterAll(() => rmSync(root, { recursive: true, force: true }))
 

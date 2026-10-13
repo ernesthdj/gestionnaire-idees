@@ -37,9 +37,15 @@ export function BranchesTab({
     onSettled: () => refresh()
   })
   const switchTo = useMutation({
-    mutationFn: (branch: string) => call('git:switchBranch', { genesisId, name: branch }),
+    mutationFn: ({ branch, confirm }: { readonly branch: string; readonly confirm?: true }) =>
+      call('git:switchBranch', { genesisId, name: branch, ...(confirm === undefined ? {} : { confirm }) }),
     onSettled: () => refresh()
   })
+  // Dépôt de l'app qui tourne : la branche demandée attend une confirmation.
+  const appRepo =
+    switchTo.error instanceof IpcFailure && switchTo.error.code === 'APP_REPO'
+      ? (switchTo.variables?.branch ?? null)
+      : null
   const valid = BranchName.safeParse(name).success
   const error = create.error ?? switchTo.error
   const dirtyFiles =
@@ -66,7 +72,7 @@ export function BranchesTab({
                   type="button"
                   className="card-button card-button-ghost"
                   disabled={readOnly || switchTo.isPending}
-                  onClick={() => switchTo.mutate(branch.name)}
+                  onClick={() => switchTo.mutate({ branch: branch.name })}
                 >
                   Passer sur {branch.name}
                 </button>
@@ -105,7 +111,17 @@ export function BranchesTab({
           Lettres, chiffres, « . _ / - » ; pas de « - » au début ni « analyste/ ».
         </p>
       ) : null}
-      {error === null ? null : (
+      {appRepo !== null ? (
+        <div role="alert" className="flex flex-col gap-2 rounded-md border border-con/40 p-2 text-sm">
+          <p>{switchTo.error?.message}</p>
+          <div className="flex gap-2">
+            <Button disabled={switchTo.isPending} onClick={() => switchTo.mutate({ branch: appRepo, confirm: true })}>
+              Passer quand même sur {appRepo}
+            </Button>
+            <Button onClick={() => switchTo.reset()}>Rester ici</Button>
+          </div>
+        </div>
+      ) : error === null ? null : (
         <div role="alert" className="text-sm text-con">
           <p>{error instanceof IpcFailure ? error.message : 'L’opération a échoué.'}</p>
           {dirtyFiles.length === 0 ? null : (

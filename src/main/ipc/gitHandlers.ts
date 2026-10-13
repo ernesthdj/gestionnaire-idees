@@ -1,5 +1,6 @@
 import {
   GitBranchInput,
+  GitSwitchInput,
   GitCommitInput,
   GitDiffInput,
   GitGenesisInput,
@@ -129,8 +130,8 @@ export function createGitRoutes(
     }),
     defineRoute({
       channel: 'git:switchBranch',
-      input: GitBranchInput,
-      handler: async ({ genesisId, name }) => git.switchBranch(genesisId, name)
+      input: GitSwitchInput,
+      handler: async ({ genesisId, name, confirm }) => git.switchBranch(genesisId, name, confirm === true)
     }),
     defineRoute({
       channel: 'git:log',

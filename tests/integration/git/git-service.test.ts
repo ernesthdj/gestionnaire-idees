@@ -13,7 +13,7 @@ const root = mkdtempSync(join(tmpdir(), 'gi-git-service-'))
 const dataDir = join(root, 'profil')
 mkdirSync(dataDir, { recursive: true })
 
-function harness(dir: string, options: { trusted?: boolean } = {}) {
+function harness(dir: string, options: { trusted?: boolean; appSourceDir?: string } = {}) {
   const operations: GitOperationInput[] = []
   const changed: string[] = []
   const runner = new GitRunner({ emptyHooksDir: join(dataDir, 'git-empty-hooks') })
@@ -30,14 +30,15 @@ function harness(dir: string, options: { trusted?: boolean } = {}) {
       openMergeHead: () => null
     },
     authorSecret: () => 'secret-de-test',
-    changed: (genesisId) => changed.push(genesisId)
+    changed: (genesisId) => changed.push(genesisId),
+    appSourceDir: options.appSourceDir ?? null
   })
   return { service, operations, changed }
 }
 
 const G = 'g'
 
-describe('dépôt local d’un projet (spec 021 US1, T012–T013)', () => {
+describe('dépôt local d’un projet (spec 021 US1, T012–T013)', { timeout: 60_000 }, () => {
   afterAll(() => rmSync(root, { recursive: true, force: true }))
 
   it('should_commit_only_the_two_checked_files_without_co_author_and_keep_the_third_modified', async () => {
@@ -109,6 +110,11 @@ describe('dépôt local d’un projet (spec 021 US1, T012–T013)', () => {
     const branches = await service.branches(G)
     expect(branches.local.map((branch) => branch.name).sort()).toEqual(['essai/volet', 'main'])
     expect(branches.current).toBe('main')
+    // Dépôt du code de l'app qui tourne : refusé sans confirmation, permis avec.
+    const self = harness(repo, { appSourceDir: repo })
+    await expect(self.service.switchBranch(G, 'essai/volet')).rejects.toMatchObject({ code: 'APP_REPO' })
+    expect(git(repo, ['branch', '--show-current']).trim()).toBe('main')
+    await expect(self.service.switchBranch(G, 'essai/volet', true)).resolves.toMatchObject({ branch: 'essai/volet' })
   })
 
   it('should_revert_a_simple_commit_and_refuse_a_merge_commit_or_a_moved_head', async () => {
