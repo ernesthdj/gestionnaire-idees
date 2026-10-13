@@ -35,3 +35,33 @@ export const MergeAuthorsInput = z.strictObject({
 })
 export const UnmergeAuthorInput = z.strictObject({ genesisId, aliasKey: AuthorKey })
 export const StoryInput = z.strictObject({ genesisId, from: Hash, to: Hash })
+
+// Rediffusion sur l'explorateur (spec 021 US5 lot 2, research R13).
+
+/** `lines` : lignes modifiées (dépôt complet) ; `commits` : nombre de commits (clone partiel, D12). */
+export type ReplayWeight = 'lines' | 'commits'
+
+export interface ReplayStepsView {
+  /** Du plus ancien au plus récent (les 5 000 derniers au plus). */
+  readonly commits: readonly { readonly hash: string; readonly date: string; readonly authorKey: string }[]
+  readonly authors: readonly AuthorView[]
+  readonly weight: ReplayWeight
+  /** D'autres commits plus anciens ne sont pas rejoués. */
+  readonly more: boolean
+}
+
+export interface NodeReplayView {
+  readonly key: string
+  readonly main: string
+  readonly last: string
+  readonly shares: readonly { readonly authorKey: string; readonly percent: number }[]
+}
+
+/** Clé de nœud de l'explorateur (spec 017) : `m:`, `d:`, `f:`, `s:`, ou `r:` + clé. */
+const ExplorerKey = z
+  .string()
+  .max(2000)
+  .refine((key) => /^(r:)?[mdfs]:/.test(key), 'clé de nœud')
+export const ReplayStepsInput = z.strictObject({ genesisId })
+export const ReplayInput = z.strictObject({ genesisId, at: Hash, keys: z.array(ExplorerKey).max(500) })
+export const FetchAllInput = z.strictObject({ genesisId, confirm: z.literal(true) })

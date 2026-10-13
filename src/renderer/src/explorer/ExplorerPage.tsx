@@ -11,7 +11,7 @@ import {
   type Viewport
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CodeCategory, CodeLang, ExplorerLinkView, ExplorerPlaceView, ExplorerView } from '@shared/ipc/reprise'
 import { colorSchemeOf } from '@shared/ipc/app'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
@@ -24,6 +24,7 @@ import {
   ExplorerNodeActionsContext,
   FolderNode,
   ModuleNode,
+  ReplayMarksContext,
   type FolderNodeType,
   type ModuleNodeType
 } from './ExplorerNodes'
@@ -31,9 +32,11 @@ import { FilePanel, type OpenFile } from './FilePanel'
 import { GuidePanel } from './GuidePanel'
 import { CATEGORY_LABELS, KIND_LABELS, LEVEL_NAMES, PROVENANCE_LABELS } from './labels'
 import { NodePanel } from './NodePanel'
+import { ReplayBar } from './ReplayBar'
 import { ResolveLinks } from './ResolveLinks'
 import { semanticZoom } from './semanticZoom'
 import { useExplorer } from './useExplorer'
+import { useReplay, type ReplayMark } from './useReplay'
 
 const NODE_TYPES = { module: ModuleNode, folder: FolderNode }
 const ARIA_LABELS = {
@@ -49,7 +52,18 @@ const ARIA_LABELS = {
 
 type CodeNodeType = ModuleNodeType | FolderNodeType
 
-function toFlow(view: ExplorerView, selected: string | null): { nodes: CodeNodeType[]; edges: Edge[] } {
+/** Ce que dit un nœud pendant la rediffusion (lecteur d'écran) ; vide hors rediffusion. */
+const replayText = (marks: ReadonlyMap<string, ReplayMark> | null, key: string): string => {
+  if (marks === null) return ''
+  const mark = marks.get(key)
+  return mark === undefined ? ', jamais touché jusqu’ici' : `, rediffusion : ${mark.author.name}`
+}
+
+function toFlow(
+  view: ExplorerView,
+  selected: string | null,
+  marks: ReadonlyMap<string, ReplayMark> | null
+): { nodes: CodeNodeType[]; edges: Edge[] } {
   return {
     nodes: view.nodes.map((node) => ({
       id: node.key,
@@ -58,7 +72,7 @@ function toFlow(view: ExplorerView, selected: string | null): { nodes: CodeNodeT
       data: { ...node, selected: node.key === selected },
       ariaLabel: `${KIND_LABELS[node.kind].text} ${node.title}, ${CATEGORY_LABELS[node.category].text}${
         node.childCount === 0 ? '' : `, ${node.childCount} éléments à l’intérieur`
-      }${node.files.length === 0 ? '' : `, ${node.files.length} fichiers`}`
+      }${node.files.length === 0 ? '' : `, ${node.files.length} fichiers`}${replayText(marks, node.key)}`
     })) as CodeNodeType[],
     edges: view.edges.map((edge) => ({
       id: `${edge.from}→${edge.to}`,
@@ -100,7 +114,8 @@ function ExplorerMap({
   const settings = useEffectiveSettings()
   const flow = useReactFlow()
   const surface = useRef<HTMLDivElement>(null)
-  const built = useMemo(() => toFlow(view, selected), [view, selected])
+  const marks = useContext(ReplayMarksContext)
+  const built = useMemo(() => toFlow(view, selected, marks), [view, selected, marks])
   const [nodes, setNodes] = useState<CodeNodeType[]>(built.nodes)
   useEffect(() => setNodes(built.nodes), [built.nodes])
   useEffect(() => {
@@ -194,12 +209,19 @@ function ExplorerMap({
  */
 export function ExplorerPage({
   genesisId,
+  replay: replayAtOpen = false,
   onClose
 }: {
   readonly genesisId: string
+  /** Ouvrir directement en rediffusion (« Rejouer sur la carte » de l'onglet Historique, spec 021 US5). */
+  readonly replay?: boolean
   readonly onClose: () => void
 }): React.JSX.Element {
   const explorer = useExplorer(genesisId)
+  const [replaying, setReplaying] = useState(replayAtOpen)
+  const visibleKeys = useMemo(() => (explorer.view?.nodes ?? []).map((node) => node.key), [explorer.view])
+  const replay = useReplay(genesisId, replaying, visibleKeys)
+  const quitReplay = useCallback(() => setReplaying(false), [])
   const ids = { title: useId(), search: useId(), lang: useId() }
   const [list, setList] = useState(false)
   const [query, setQuery] = useState('')
@@ -311,6 +333,9 @@ export function ExplorerPage({
                 disabled={project.analysis.analyzedAt === null || view?.folderMissing === true}
               />
             )}
+            <Button onClick={() => setReplaying((current) => !current)} aria-pressed={replaying}>
+              Rediffusion
+            </Button>
             <Button onClick={() => setList((current) => !current)} aria-pressed={list}>
               {list ? 'Vue carte' : 'Vue liste'}
             </Button>
@@ -467,19 +492,21 @@ export function ExplorerPage({
             />
           ) : (
             <ExplorerNodeActionsContext.Provider value={nodeActions}>
-              <ReactFlowProvider>
-                <ExplorerMap
-                  genesisId={genesisId}
-                  view={view}
-                  parentKey={explorer.parentKey}
-                  selected={explorer.selected}
-                  centerKey={centerKey}
-                  onSelect={select}
-                  onOpen={(key) => explorer.open(key)}
-                  onUp={up}
-                  onCentered={clearCenter}
-                />
-              </ReactFlowProvider>
+              <ReplayMarksContext.Provider value={replaying ? replay.marks : null}>
+                <ReactFlowProvider>
+                  <ExplorerMap
+                    genesisId={genesisId}
+                    view={view}
+                    parentKey={explorer.parentKey}
+                    selected={explorer.selected}
+                    centerKey={centerKey}
+                    onSelect={select}
+                    onOpen={(key) => explorer.open(key)}
+                    onUp={up}
+                    onCentered={clearCenter}
+                  />
+                </ReactFlowProvider>
+              </ReplayMarksContext.Provider>
             </ExplorerNodeActionsContext.Provider>
           )}
         </div>
@@ -553,6 +580,14 @@ export function ExplorerPage({
         </aside>
       </div>
 
+      {replaying ? (
+        <ReplayBar
+          replay={replay}
+          selected={explorer.selected === null ? undefined : (replay.marks.get(explorer.selected) ?? null)}
+          selectedTitle={view?.nodes.find((node) => node.key === explorer.selected)?.title ?? null}
+          onQuit={quitReplay}
+        />
+      ) : null}
       <details className="border-t border-content-muted/20 px-4 py-1 text-xs">
         <summary className="cursor-pointer">Légende</summary>
         <p className="py-1">

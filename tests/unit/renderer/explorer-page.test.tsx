@@ -487,4 +487,68 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
     expect(await within(panel).findByText(/déduit — le champ _repository est typé IOrderRepository/)).toBeTruthy()
   })
+
+  it('should_replay_who_touched_each_module_move_the_cursor_and_quit_with_escape', async () => {
+    const user = userEvent.setup()
+    const alice = {
+      key: 'a'.repeat(16),
+      name: 'Alice Fictive',
+      email: 'a@example.invalid',
+      initials: 'AF',
+      color: '#2563eb'
+    }
+    const bob = {
+      key: 'b'.repeat(16),
+      name: 'Bob Fictif',
+      email: 'b@example.invalid',
+      initials: 'BF',
+      color: '#ea580c'
+    }
+    const [first, second] = ['1'.repeat(40), '2'.repeat(40)]
+    const { api, container } = renderExplorer(project(), detail, {
+      'git:replaySteps': () => ({
+        commits: [
+          { hash: first, date: '2026-10-01T10:00:00Z', authorKey: alice.key },
+          { hash: second, date: '2026-10-02T10:00:00Z', authorKey: bob.key }
+        ],
+        authors: [alice, bob],
+        weight: 'commits',
+        more: false
+      }),
+      'git:replay': (payload) =>
+        (payload as { at: string }).at === second
+          ? {
+              nodes: [
+                {
+                  key: 'm:dir:Domain',
+                  main: alice.key,
+                  last: bob.key,
+                  shares: [
+                    { authorKey: alice.key, percent: 67 },
+                    { authorKey: bob.key, percent: 33 }
+                  ]
+                }
+              ]
+            }
+          : { nodes: [] }
+    })
+    await screen.findByText('Controllers')
+    await user.click(screen.getByRole('button', { name: 'Rediffusion' }))
+    const bar = await screen.findByRole('region', { name: 'Rediffusion' })
+    expect(await within(bar).findByText(/2\/2/)).toBeTruthy()
+    expect(within(bar).getByText('par commits')).toBeTruthy()
+    expect(within(bar).getByRole('button', { name: 'Tout télécharger' })).toBeTruthy()
+    expect(api.invoke).toHaveBeenCalledWith('git:replay', {
+      genesisId: GENESIS,
+      at: second,
+      keys: expect.arrayContaining(['m:dir:Controllers', 'm:dir:Domain'])
+    })
+    await expectNoAxeViolations(container)
+    await user.click(within(bar).getByRole('radio', { name: 'dernier' }))
+    await user.click(within(bar).getByRole('button', { name: 'Premier commit' }))
+    expect(await within(bar).findByText(/1\/2/)).toBeTruthy()
+    expect(api.invoke).toHaveBeenCalledWith('git:replay', expect.objectContaining({ at: first }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('region', { name: 'Rediffusion' })).toBeNull()
+  })
 })

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HistoryView } from '../../../src/shared/git/history'
 import { Timeline, withRealNames, windowOf } from '../../../src/renderer/src/git/Timeline'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -49,6 +49,11 @@ function renderTimeline(handlers: Parameters<typeof installFakeApi>[0]) {
 }
 
 describe('frise des auteurs (spec 021 T043, US5 lot 1)', () => {
+  // jsdom ne dessine pas : la Skyline (canvas) reste sans contexte, son texte et ses commandes restent testables.
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+  })
+
   it('should_show_one_line_per_author_and_move_between_commits_with_the_arrows', async () => {
     const user = userEvent.setup()
     const { container } = renderTimeline({ 'git:history': () => history() })
@@ -117,5 +122,25 @@ describe('frise des auteurs (spec 021 T043, US5 lot 1)', () => {
         authors
       )
     ).toBe('Onze et Un')
+  })
+
+  it('should_show_the_skyline_of_one_author_and_centre_the_timeline_on_a_day', async () => {
+    const user = userEvent.setup()
+    const { container } = renderTimeline({ 'git:history': () => history() })
+    const skyline = await screen.findByRole('region', { name: 'Skyline des contributions' })
+    expect(skyline.textContent).toContain('Tous les auteurs : 4 commits sur un an')
+    await user.click(screen.getByRole('button', { name: 'Skyline de Alice Fictive' }))
+    expect(screen.getByRole('button', { name: 'Skyline de Alice Fictive', pressed: true })).toBeDefined()
+    expect(skyline.textContent).toContain('Alice Fictive : 2 commits sur un an')
+    await user.click(screen.getByRole('button', { name: 'Carte de chaleur' }))
+    expect(screen.getByRole('button', { name: 'Carte de chaleur', pressed: true })).toBeDefined()
+    await expectNoAxeViolations(container)
+    await user.click(screen.getByRole('button', { name: 'Skyline de Alice Fictive' }))
+    expect(skyline.textContent).toContain('Tous les auteurs')
+  })
+
+  it('should_centre_the_window_on_a_chosen_day', () => {
+    const noon = new Date(2026, 9, 1, 12).getTime()
+    expect(windowOf(history().commits, 'semaine', noon).shown.map((entry) => entry.subject)).toEqual(['feat: 1'])
   })
 })

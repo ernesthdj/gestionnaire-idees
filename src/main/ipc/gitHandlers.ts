@@ -14,7 +14,15 @@ import type { GitService } from '../application/git/GitService'
 import type { PublishService } from '../application/git/PublishService'
 import type { ConflictService } from '../application/git/ConflictService'
 import type { GitHistoryService } from '../application/git/GitHistoryService'
-import { HistoryInput, MergeAuthorsInput, StoryInput, UnmergeAuthorInput } from '@shared/git/history'
+import {
+  FetchAllInput,
+  HistoryInput,
+  MergeAuthorsInput,
+  ReplayInput,
+  ReplayStepsInput,
+  StoryInput,
+  UnmergeAuthorInput
+} from '@shared/git/history'
 import {
   ConflictDecideInput,
   ConflictPathInput,
@@ -247,7 +255,10 @@ export function createConflictRoutes(
 
 /** Historique (spec 021 US5) : pages bornées, clés d'auteur, empreintes ; jamais un nom ni un e-mail du renderer. */
 export function createGitHistoryRoutes(
-  history: Pick<GitHistoryService, 'history' | 'mergeAuthors' | 'unmergeAuthor' | 'story'>
+  history: Pick<
+    GitHistoryService,
+    'history' | 'mergeAuthors' | 'unmergeAuthor' | 'story' | 'replaySteps' | 'replay' | 'fetchAll'
+  >
 ): IpcRoute[] {
   return [
     defineRoute({
@@ -269,6 +280,21 @@ export function createGitHistoryRoutes(
       channel: 'git:story',
       input: StoryInput,
       handler: async ({ genesisId, from, to }) => history.story(genesisId, from, to)
+    }),
+    defineRoute({
+      channel: 'git:replaySteps',
+      input: ReplayStepsInput,
+      handler: async ({ genesisId }) => history.replaySteps(genesisId)
+    }),
+    defineRoute({
+      channel: 'git:replay',
+      input: ReplayInput,
+      handler: async ({ genesisId, at, keys }) => history.replay(genesisId, at, keys)
+    }),
+    defineRoute({
+      channel: 'git:fetchAll',
+      input: FetchAllInput,
+      handler: async ({ genesisId }) => history.fetchAll(genesisId)
     })
   ]
 }

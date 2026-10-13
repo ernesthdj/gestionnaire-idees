@@ -5,6 +5,7 @@ import type { AuthorView, GitCommitView } from '@shared/git/model'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys } from './gitQueries'
+import { ContributionSkyline } from './skyline/ContributionSkyline'
 
 type Zoom = 'semaine' | 'mois' | 'annee'
 const SPANS: Readonly<Record<Zoom, number>> = { semaine: 7, mois: 31, annee: 366 }
@@ -58,11 +59,24 @@ function combine(first: HistoryView, extra: readonly HistoryView[]): HistoryView
   )
 }
 
-/** Commits de la fenêtre de temps (la plus récente date en fin de frise). */
+/**
+ * Commits de la fenêtre de temps : la plus récente date en fin de frise, ou la fenêtre centrée sur `centre` (un jour
+ * choisi dans la Skyline, en millisecondes).
+ */
 export function windowOf(
   commits: readonly GitCommitView[],
-  zoom: Zoom
+  zoom: Zoom,
+  centre?: number
 ): { readonly start: number; readonly end: number; readonly shown: readonly GitCommitView[] } {
+  if (centre !== undefined) {
+    const half = (SPANS[zoom] * DAY) / 2
+    const [start, end] = [centre - half, centre + half]
+    return {
+      start,
+      end,
+      shown: commits.filter((commit) => Date.parse(commit.date) >= start && Date.parse(commit.date) <= end)
+    }
+  }
   const times = commits.map((commit) => Date.parse(commit.date))
   const end = Math.max(...times, 0)
   const limit = end - SPANS[zoom] * DAY
@@ -88,6 +102,9 @@ export function Timeline({
   const [zoom, setZoom] = useState<Zoom>('mois')
   const [selected, setSelected] = useState<string | null>(null)
   const [checked, setChecked] = useState<readonly string[]>([])
+  // Skyline (D16) : auteur affiché (`null` : tous) et jour choisi, sur lequel la frise se centre.
+  const [focus, setFocus] = useState<string | null>(null)
+  const [centre, setCentre] = useState<number | undefined>(undefined)
   const points = useRef(new Map<string, HTMLButtonElement>())
   // Première page : relue d'elle-même quand le dépôt change (`git:changed`) ; « Charger plus » ajoute des pages.
   const first = useQuery({
@@ -121,7 +138,14 @@ export function Timeline({
       call<StoryView>('git:story', { genesisId, ...range })
   })
 
-  const view = useMemo(() => (pages === null ? null : windowOf(pages.commits, zoom)), [pages, zoom])
+  const view = useMemo(() => (pages === null ? null : windowOf(pages.commits, zoom, centre)), [pages, zoom, centre])
+  const skylineDates = useMemo(
+    () =>
+      (pages?.commits ?? [])
+        .filter((commit) => focus === null || commit.authorKey === focus)
+        .map((commit) => commit.date),
+    [pages, focus]
+  )
   if (pages === null || view === null) return null
   if (pages.commits.length === 0) return null
   const authors = new Map(pages.authors.map((author) => [author.key, author] as const))
@@ -129,6 +153,18 @@ export function Timeline({
   const ordered = [...view.shown].sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
   const span = Math.max(1, view.end - view.start)
   const current = pages.commits.find((commit) => commit.hash === selected) ?? null
+  const focused = focus === null ? undefined : authors.get(focus)
+  // Un jour de la Skyline (« AAAA-MM-JJ ») : frise d'une semaine centrée sur midi de ce jour, premier commit choisi.
+  const showDay = (date: string): void => {
+    const [year, month, day] = date.split('-').map(Number)
+    const noon = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, 12).getTime()
+    setZoom('semaine')
+    setCentre(noon)
+    const first = pages.commits
+      .filter((commit) => focus === null || commit.authorKey === focus)
+      .find((commit) => Math.abs(Date.parse(commit.date) - noon) <= DAY / 2)
+    setSelected(first?.hash ?? null)
+  }
   const move = (from: string, step: number): void => {
     const index = ordered.findIndex((commit) => commit.hash === from)
     const next = ordered[index + step]
@@ -160,6 +196,13 @@ export function Timeline({
         </div>
       </div>
 
+      <ContributionSkyline
+        dates={skylineDates}
+        color={focused?.color ?? null}
+        title={focused?.name ?? 'Tous les auteurs'}
+        onDayClick={showDay}
+      />
+
       <ul aria-label="Légende des auteurs" className="flex flex-wrap gap-2 text-xs">
         {pages.authors.map((author) => (
           <li key={author.key} className="flex items-center gap-1">
@@ -181,7 +224,15 @@ export function Timeline({
             >
               {author.initials}
             </span>
-            {author.name}
+            <button
+              type="button"
+              aria-pressed={focus === author.key}
+              aria-label={`Skyline de ${author.name}`}
+              className={`rounded px-1 ${focus === author.key ? 'bg-accent/15 font-semibold' : 'hover:bg-surface-raised'}`}
+              onClick={() => setFocus((key) => (key === author.key ? null : author.key))}
+            >
+              {author.name}
+            </button>
           </li>
         ))}
       </ul>
@@ -257,6 +308,14 @@ export function Timeline({
         {view.shown.length} commit(s) du {dateText(new Date(view.start).toISOString())} au{' '}
         {dateText(new Date(view.end).toISOString())}
         {current === null ? '' : ` · sélection : « ${current.subject} » (${dateText(current.date)})`}
+        {centre === undefined ? null : (
+          <>
+            {' · '}
+            <button type="button" className="underline" onClick={() => setCentre(undefined)}>
+              Revenir au plus récent
+            </button>
+          </>
+        )}
       </p>
       <div className="flex flex-wrap gap-2">
         {pages.more ? (

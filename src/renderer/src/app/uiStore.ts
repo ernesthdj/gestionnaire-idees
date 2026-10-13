@@ -71,7 +71,9 @@ interface UiState {
   setStructureView(genesisId: string, view: StructureView): void
   /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
   readonly explorerGenesisId: string | null
-  openExplorer(genesisId: string): void
+  /** L'explorateur s'ouvre en rediffusion git (« Rejouer sur la carte », spec 021 US5). */
+  readonly explorerReplay: boolean
+  openExplorer(genesisId: string, replay?: boolean): void
   closeExplorer(): void
   /** Projet dont l'onglet « ⎇ Dépôt » est ouvert dans le panneau de droite (spec 021 US1, spec 027 D3) ; `null` : aucun. */
   readonly repoGenesisId: string | null
@@ -193,6 +195,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ view: 'ideas' })
   },
   explorerGenesisId: null,
+  explorerReplay: false,
   repoGenesisId: null,
   structureViews: {},
   analysisLinks: false,
@@ -205,7 +208,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   toggleAnalysisLinks: () => set((state) => ({ analysisLinks: !state.analysisLinks })),
   setStructureView: (genesisId, view) =>
     set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
-  openExplorer: (genesisId) => set({ view: 'ideas', explorerGenesisId: genesisId }),
+  openExplorer: (genesisId, replay = false) =>
+    set({ view: 'ideas', explorerGenesisId: genesisId, explorerReplay: replay }),
   closeExplorer: () => set({ explorerGenesisId: null }),
   openRepo: (genesisId) => {
     useSidePanel.getState().openRepo(genesisId)

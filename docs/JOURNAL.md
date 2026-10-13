@@ -1608,3 +1608,29 @@ annulé) et les e2e sont rendus déterministes (`settled`). Prochain chantier : 
 commit, pull et push par Claude depuis le Brainstormer.
 **Regle apprise :** Bike_cycle est un projet fictif qui sert à éprouver le Brainstormer : on conclut sur le code (e2e,
 démo), jamais sur la justesse de ses données.
+
+### [2026-10-13 18:10] FEAT — Spec 021 US5 lot 2 : Skyline des contributions et rediffusion sur l'explorateur
+**Fichiers :** `src/renderer/src/git/skyline/{contributions.ts,ContributionSkyline.tsx}`, `src/renderer/src/git/{Timeline,HistoryTab}.tsx`,
+`src/main/domain/git/{fileToNode,replay,args}.ts`, `src/main/application/git/{GitHistoryService,SyncService}.ts`,
+`src/main/application/reprise/ExplorerService.ts` (`tree`), `src/shared/git/history.ts`, `src/main/ipc/gitHandlers.ts`,
+`src/shared/ipc/channels.ts`, `src/main/bootstrap.ts`, `src/renderer/src/explorer/{useReplay.ts,ReplayBar.tsx,ExplorerNodes.tsx,ExplorerPage.tsx}`,
+`src/renderer/src/app/{uiStore.ts,AppShell.tsx}`, tests (`tests/unit/renderer/skyline.test.ts`, `tests/unit/git/replay.test.ts`,
+`git-timeline.test.tsx`, `explorer-page.test.tsx`, `tests/integration/git/git-history.test.ts`, e2e `git-history.e2e.ts`, `git-replay.e2e.ts`)
+**Resume :** (1) **Skyline** (D16, référence visuelle de mentalyas : composant « Contribution Skyline » de 21st.dev, sans
+licence publiée, principe repris et code réécrit) : commits par jour sur un an, carte de chaleur 2D qui se replie en
+relief 3D (vague, orbite, double-clic), survol et flèches du clavier, légende qui isole un niveau, statistiques (total,
+jour le plus chargé, séries) ; couleur de l'auteur choisi dans la frise (sinon l'accent du thème) ; un clic ou Entrée sur
+un jour centre la frise sur ce jour. Canvas, aucune dépendance, `prefers-reduced-motion` respecté. (2) **Rediffusion**
+(T030, T041, T043) : `git:replaySteps` lit une fois les 5 000 derniers commits avec leurs fichiers (`--numstat`, ou
+`--name-only` dans un clone partiel : jamais de téléchargement caché), en cache par HEAD ; `git:replay` attribue chaque
+fichier au nœud visible de l'explorateur qui le contient (`fileToNode`, arbre de la cartographie de la spec 017) et
+donne auteur principal, dernier auteur et parts ; `git:fetchAll` (« Tout télécharger », confirmé) retire le filtre puis
+`fetch --refetch`. Interface : bouton « Rediffusion » de l'explorateur et « ▶ Rejouer sur la carte » de l'onglet
+Historique ; pastille (couleur + initiales) et bordure par nœud, « — » pour un nœud jamais touché, barre ◀◀ ▶ ▶▶ +
+curseur + légende + principal / dernier + parts du nœud choisi, `Échap` pour quitter. Vérifié : 2 134 tests,
+typecheck, lint, Prettier ; e2e git-history, git-replay, demo-reprise, git-sync (7/7).
+**Erreur corrigée :** « Tout télécharger » lançait d'abord `--refetch` puis retirait le filtre : git aurait retéléchargé
+en partiel ; le filtre est retiré avant (research R13). Sous Windows, ▶ s'affichait en emoji : sélecteur de variation
+texte (U+FE0E).
+**Regle apprise :** pour un journal git avec fichiers, `-z --numstat --format=%x1e…` : un enregistrement par commit
+ouvert par \x1e, l'en-tête finit au premier NUL, puis les fichiers séparés par NUL.

@@ -11,14 +11,27 @@ import { openDatabase } from '../../../src/main/infrastructure/db/client'
 import { GitRepository } from '../../../src/main/infrastructure/db/repositories/GitRepository'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
 import { GitRunner } from '../../../src/main/infrastructure/git/GitRunner'
-import { AUTHORS, buildScenario, git } from '../../support/gitRepos'
+import type { NodeTree } from '../../../src/main/domain/git/fileToNode'
+import { AUTHORS, bareWithClone, buildScenario, commit, git } from '../../support/gitRepos'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
 const root = mkdtempSync(join(tmpdir(), 'gi-git-history-'))
 const dataDir = join(root, 'profil')
 mkdirSync(dataDir, { recursive: true })
 
-function harness(dir: string, localOnly = false) {
+/** Cartographie fictive du scénario `trois-auteurs` : un module `app`, son dossier `src` et ses fichiers. */
+const TREE: NodeTree = (() => {
+  const parents = new Map<string, string>([
+    ['m:app', ''],
+    ['d:src', 'm:app'],
+    ['f:src/a.ts', 'd:src'],
+    ['f:src/b.ts', 'd:src'],
+    ['f:README.md', 'm:app']
+  ])
+  return { has: (key) => parents.has(key), parent: (key) => parents.get(key) ?? null }
+})()
+
+function harness(dir: string, localOnly = false, tree: NodeTree | null = TREE) {
   const handle = openDatabase({
     file: join(root, `${randomUUID()}.db`),
     key: 'c'.repeat(64),
@@ -32,7 +45,7 @@ function harness(dir: string, localOnly = false) {
     nature: 'action',
     natureSource: null
   })
-  const runner = new GitRunner({ emptyHooksDir: join(dataDir, 'git-empty-hooks') })
+  const runner = new GitRunner({ emptyHooksDir: join(dataDir, 'git-empty-hooks'), allowLocalTransportForTests: true })
   const repository = new GitRepository(handle.db)
   const inputs: string[] = []
   const history = new GitHistoryService({
@@ -48,7 +61,8 @@ function harness(dir: string, localOnly = false) {
     story: async (input) => {
       inputs.push(input)
       return 'Auteur A a posé le projet, Auteur B a ajouté a.'
-    }
+    },
+    tree: () => tree
   })
   return { genesisId, history, inputs, close: () => handle.close() }
 }
@@ -131,6 +145,55 @@ describe('qui a fait quoi et quand (spec 021 US5, lot 1)', { timeout: 60_000 }, 
       code: 'LOCAL_ONLY'
     })
     local.close()
+    close()
+  })
+
+  it('should_replay_who_touched_each_visible_node_up_to_a_commit_by_lines', async () => {
+    const repo = buildScenario(join(root, 'rediffusion'), 'trois-auteurs')
+    const { genesisId, history, close } = harness(repo)
+    const steps = await history.replaySteps(genesisId)
+    expect(steps.weight).toBe('lines')
+    expect(steps.more).toBe(false)
+    expect(steps.authors).toHaveLength(3)
+    const [depart, featA, , fixA] = steps.commits
+    const nameOf = (key: string | undefined): string | undefined =>
+      steps.authors.find((author) => author.key === key)?.name
+    expect(nameOf(depart?.authorKey)).toMatch(/Fictive/)
+    // Après « feat: a » : `src` est à Bob, le README posé à la racine du module à Alice.
+    const early = await history.replay(genesisId, featA?.hash ?? '', ['d:src', 'r:m:app'])
+    expect(early.nodes.find((node) => node.key === 'd:src')).toMatchObject({ shares: [{ percent: 100 }] })
+    expect(nameOf(early.nodes.find((node) => node.key === 'd:src')?.main)).toBe('Bob Fictif')
+    expect(nameOf(early.nodes.find((node) => node.key === 'r:m:app')?.main)).toMatch(/Fictive/)
+    // À la fin : Alice a changé 2 lignes de src/a.ts, Bob et Chloé 1 chacun.
+    const end = await history.replay(genesisId, fixA?.hash ?? '', ['m:app'])
+    const app = end.nodes.find((node) => node.key === 'm:app')
+    expect(app?.shares.map((share) => share.percent)).toEqual([60, 20, 20])
+    expect(app?.main).toBe(app?.last)
+    await expect(history.replay(genesisId, 'f'.repeat(40), ['m:app'])).rejects.toMatchObject({ code: 'STALE' })
+    const raw = harness(repo, false, null)
+    await expect(raw.history.replay(raw.genesisId, fixA?.hash ?? '', ['m:app'])).rejects.toMatchObject({
+      code: 'NOT_ANALYZED'
+    })
+    raw.close()
+    close()
+  })
+
+  it('should_count_commits_in_a_partial_clone_until_everything_is_downloaded', async () => {
+    const { work } = bareWithClone(join(root, 'partiel'))
+    commit(work, { 'src/a.ts': 'export const a = 1\nexport const b = 2\n' }, 'feat: a', AUTHORS.bob)
+    git(work, ['push', '-q'])
+    git(work, ['config', 'remote.origin.partialclonefilter', 'blob:none'])
+    const { genesisId, history, close } = harness(work)
+    const partial = await history.replaySteps(genesisId)
+    expect(partial.weight).toBe('commits')
+    const last = partial.commits.at(-1)?.hash ?? ''
+    expect((await history.replay(genesisId, last, ['d:src'])).nodes[0]?.shares).toEqual([
+      { authorKey: partial.commits.at(-1)?.authorKey, percent: 100 }
+    ])
+    expect(await history.fetchAll(genesisId)).toEqual({ weight: 'lines' })
+    expect(git(work, ['config', '--local', '--list'])).not.toMatch(/partialclonefilter/)
+    expect((await history.replaySteps(genesisId)).weight).toBe('lines')
+    await expect(history.fetchAll(genesisId)).rejects.toMatchObject({ code: 'NOT_PARTIAL' })
     close()
   })
 })

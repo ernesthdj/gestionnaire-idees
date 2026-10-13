@@ -137,7 +137,7 @@ lancée, aucun hook ni script ; adresse piégée refusée sans lancement ; clone
   pré-positionné sur `git.lastCloneParent`, cible vide, dossier de données refusé) dans
   `src/main/ipc/repriseHandlers.ts` ; fin → `RepriseService.preview(path, 'git', display)` ; à `reprise:create` :
   `git_repos` (`cloned`, `last_seen_commit`), ni `trusted_projects` ni registre du hub + tests
-- [ ] T030 [P] [US3] (reportée, D13) Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
+- [x] T030 [P] [US3] (livrée le 2026-10-13 avec US5 lot 2 : `fileToNode(path, visibles, arbre)` remonte l'arbre de l'explorateur, dossier connu le plus profond pour un fichier supprimé, nœud « Racine » `r:` ; surlignage de « Depuis ta dernière visite » toujours reporté) Pur : `src/main/domain/git/fileToNode.ts` (préfixe le plus long sur la cartographie de la spec 017,
   repli sur dossiers de premier niveau) + tests
 - [x] T031 [US3] (dans `GitService.updates` / `markSeen` ; `last_seen_commit` avancé seulement par « Marquer comme vu », scénario 7) `UpdatesService` `src/main/application/git/UpdatesService.ts` : `git:updates`
   (`last_seen..@{upstream}`, ≤ 500 commits, nœuds touchés), `git:markSeen` ; `last_seen_commit` avancé aussi par
@@ -177,7 +177,7 @@ nœud ; récit envoyé à Claude sans nom ni e-mail réel.
 - [x] T040 [P] [US5] (palette, alias, pseudonymes ; `replay.ts` reporté au lot 2, D15) Pur : `src/main/domain/git/authors.ts` (clé HMAC, initiales, palette 12 teintes contraste ≥ 3:1
   sur les deux thèmes, alias, pseudonymes) + `replay.ts` (agrégation par nœud jusqu'à un commit, poids lignes ou
   commits) + tests
-- [ ] T041 [US5] (lot 1 livré : `git:history` par pages `skip`, `git:mergeAuthors`, `git:unmergeAuthor` dans `GitHistoryService` ; restent `git:replay`, `git:fetchAll`, poids lignes / commits — lot 2, D15) `HistoryService` `src/main/application/git/HistoryService.ts` : `git:history` (5 000 par lecture,
+- [x] T041 [US5] (lot 1 : `git:history`, `git:mergeAuthors`, `git:unmergeAuthor` ; lot 2 livré le 2026-10-13 dans `GitHistoryService` : `git:replaySteps` (5 000 derniers commits, `--numstat` ou `--name-only` en clone partiel, cache par HEAD), `git:replay` (`at`, clés visibles ; `NOT_ANALYZED`, `STALE`), `git:fetchAll` (filtre retiré puis `fetch --refetch`, `NOT_PARTIAL`, `GIT_TOO_OLD`) ; domaine `replay.ts`) `HistoryService` `src/main/application/git/HistoryService.ts` : `git:history` (5 000 par lecture,
   `before`, `--numstat` si dépôt complet ; clone partiel → nombre de commits, `weight: 'commits'` affiché
   « par commits » — D12, research R13), `git:replay`, `git:fetchAll` (« Tout télécharger » sur clic : retrait du
   filtre partiel puis `fetch --refetch`, `GIT_TOO_OLD`), `git:mergeAuthors` / `git:unmergeAuthor` (`git_author_aliases`, lot `git`
@@ -185,13 +185,13 @@ nœud ; récit envoyé à Claude sans nom ni e-mail réel.
   après `git:fetchAll` : poids `lines`)
 - [x] T042 [P] [US5] Tâche `git_story` sans outil (`GitStoryFrame.ts`, `GitStoryTask.ts`, alias seulement) + `git:story`
   + tests (passerelle simulée : aucun nom ni e-mail fictif réel dans l'entrée — SC-004)
-- [ ] T043 [US5] (lot 1 livré : `Timeline.tsx` dans l'onglet Historique ; rediffusion dans l'explorateur — lot 2, D15) Interface : `Timeline.tsx` dans `HistoryTab.tsx` (une ligne par auteur, légende toujours visible,
+- [x] T043 [US5] (lot 1 : `Timeline.tsx` ; lot 2 livré le 2026-10-13 : bouton « Rediffusion » de l'explorateur et « ▶ Rejouer sur la carte » de l'onglet Historique, `ReplayBar.tsx` (◀◀ ▶ ▶▶, curseur, légende, principal / dernier, « par lignes » / « par commits » + « Tout télécharger » confirmé, parts du nœud choisi, `Échap`), pastille et bordure des nœuds, nom accessible ; Skyline D16 : `skyline/ContributionSkyline.tsx` au-dessus de la frise) Interface : `Timeline.tsx` dans `HistoryTab.tsx` (une ligne par auteur, légende toujours visible,
   zoom semaine / mois / année, flèches = commit précédent / suivant, « Charger plus », fusion d'identités, « Raconter la
   période » avec vrais noms remis à l'affichage), rediffusion dans `src/renderer/src/explorer/` (E6 : couleur +
   initiales, mode principal / dernier, légende « par lignes » ou « par commits » + bouton « Tout télécharger » en clone
   partiel, curseur, ▶, panneau des parts d'auteurs, « Quitter la rediffusion » / `Échap`)
   + tests renderer/axe
-- [ ] T044 [US5] (lot 1 : e2e `tests/e2e/git-history.e2e.ts` + intégration ; mesure SC-008 avec le lot 2) Test guidé (quickstart §5), avec la mesure SC-008 (< 5 s) — attendre le retour
+- [x] T044 [US5] (e2e `git-history.e2e.ts` avec la Skyline, `git-replay.e2e.ts` : projet C# repris à 3 auteurs, auteur principal par module lu dans le nom accessible et la pastille — SC-008 ; intégration git réelle, clone partiel compris) Test guidé (quickstart §5), avec la mesure SC-008 (< 5 s) — attendre le retour
 
 ## Phase 8 — US6 Pull requests, issues et fork (P3)
 **Test indépendant** : `gh` simulé : listes bornées ; création de PR et commentaire seulement sur clic après

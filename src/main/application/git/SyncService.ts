@@ -44,7 +44,8 @@ const PERMISSIONS: Readonly<Record<string, RepoPermission>> = {
 }
 
 /** Erreur réseau de git en mots (jamais la sortie brute, qui peut contenir l'adresse avec identifiant). */
-function networkError(result: ProcessResult): AppError {
+/** Erreur claire d'une commande réseau (fetch, pull, push, refetch). */
+export function networkError(result: ProcessResult): AppError {
   const output = result.stderr
   if (/authentication failed|could not read username|permission denied|403|401/i.test(output)) {
     return new AppError(

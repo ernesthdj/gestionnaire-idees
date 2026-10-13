@@ -13,6 +13,7 @@ import type {
 } from '@shared/ipc/reprise'
 import { EXPLORER_LIMITS } from '@shared/ipc/reprise'
 import { AppError } from '../../domain/errors'
+import type { NodeTree } from '../../domain/git/fileToNode'
 import {
   aggregateView,
   breadcrumbOf,
@@ -81,6 +82,17 @@ export class ExplorerService {
   invalidate(genesisId: string): void {
     this.cache.delete(genesisId)
     this.calls.delete(genesisId)
+  }
+
+  /**
+   * Arbre de la cartographie pour la rediffusion git (spec 021 US5 lot 2) : appartenance des nœuds et parent de chacun ;
+   * `null` tant que le projet n'est pas analysé (aucun nœud).
+   */
+  tree(genesisId: string): NodeTree | null {
+    if (this.deps.reprise.project(genesisId) === undefined) return null
+    const { nodes } = this.load(genesisId).index
+    if (nodes.size === 0) return null
+    return { has: (key) => nodes.has(key), parent: (key) => nodes.get(key)?.parentKey ?? null }
   }
 
   /** Appels résolus entre fichiers du projet (spec 017 US7) ; vide tant que le projet n'est pas analysé. */

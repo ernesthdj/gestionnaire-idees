@@ -1,6 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { AuthorView, GitCommitView } from '@shared/git/model'
+import { useUiStore } from '../app/uiStore'
+import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys, useRefreshGit } from './gitQueries'
 import { Timeline } from './Timeline'
@@ -54,6 +56,7 @@ export function HistoryTab({
   return (
     <div className="flex flex-col gap-2 text-sm">
       <SinceLastVisit genesisId={genesisId} />
+      <ReplayEntry genesisId={genesisId} />
       <Timeline genesisId={genesisId} readOnly={readOnly} />
       <ul aria-label="Derniers commits" className="flex flex-col gap-1">
         {query.data.commits.map((commit) => {
@@ -109,6 +112,25 @@ export function HistoryTab({
         </p>
       )}
     </div>
+  )
+}
+
+/**
+ * « Rejouer sur la carte » (spec 021 US5 lot 2, L4g P5) : ouvre l'explorateur du projet repris en rediffusion. Seulement
+ * pour un projet repris (spec 017) : les autres n'ont pas de cartographie à colorer.
+ */
+function ReplayEntry({ genesisId }: { readonly genesisId: string }): React.JSX.Element | null {
+  const openExplorer = useUiStore((state) => state.openExplorer)
+  const reprise = useQuery({
+    queryKey: ['reprise', genesisId],
+    queryFn: () => call('reprise:get', { genesisId }),
+    retry: false
+  })
+  if (reprise.data === undefined) return null
+  return (
+    <Button className="self-start" onClick={() => openExplorer(genesisId, true)}>
+      ▶ Rejouer sur la carte
+    </Button>
   )
 }
 

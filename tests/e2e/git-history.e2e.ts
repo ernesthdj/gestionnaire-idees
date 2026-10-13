@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildScenario } from '../support/gitRepos'
-import { freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { freshProfile, launchApp, SHOTS, type LaunchedApp } from './support/app'
 
 /**
  * Spec 021 US5 (lot 1) dans l'app réelle (quickstart §5) : le scénario `trois-auteurs` sert de projet de démo ; la
@@ -53,6 +53,27 @@ describe('qui a fait quoi et quand dans l’app (spec 021 US5, e2e)', () => {
     await timeline.getByRole('button', { name: 'Séparer' }).click()
     await timeline.getByRole('button', { name: 'Séparer' }).waitFor({ state: 'detached' })
     expect(await timeline.getByRole('list', { name: 'Légende des auteurs' }).getByRole('listitem').count()).toBe(3)
+  })
+
+  it('should_show_the_skyline_of_all_authors_then_of_one_in_2d_and_3d', async () => {
+    const { page } = run
+    const panel = page.getByRole('region', { name: 'Dépôt' })
+    const skyline = panel.getByRole('region', { name: 'Skyline des contributions' })
+    await skyline.getByText(/Tous les auteurs : \d+ commits? sur un an/).waitFor()
+    // Le relief monte en vague (1,3 s) la première fois qu'il est vu.
+    await page.waitForTimeout(1800)
+    await skyline.screenshot({ path: join(SHOTS, '021-d16-01-skyline-3d.png') })
+    await panel.getByRole('button', { name: 'Skyline de Bob Fictif' }).click()
+    await skyline.getByText(/Bob Fictif : \d+ commits? sur un an/).waitFor()
+    await skyline.getByRole('button', { name: 'Carte de chaleur' }).click()
+    await page.waitForTimeout(1800)
+    await skyline.screenshot({ path: join(SHOTS, '021-d16-02-skyline-2d-auteur.png') })
+    // Entrée sur le jour actif (le dernier) : la frise se centre sur ce jour.
+    await skyline.getByRole('img').focus()
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('Enter')
+    await panel.getByRole('button', { name: 'Revenir au plus récent' }).click()
+    await panel.getByRole('button', { name: 'Skyline de Bob Fictif' }).click()
   })
 
   it('should_offer_to_update_the_project_map_from_its_bar', async () => {

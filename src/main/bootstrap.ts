@@ -876,7 +876,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     story: async (input) => {
       const result = await runGitStory(ai.gateway, input)
       return result.ok ? result.value.data.text : null
-    }
+    },
+    tree: (genesisId) => explorer.tree(genesisId)
   })
   const gitPublish = new PublishService({
     access: gitAccess,

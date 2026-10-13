@@ -2,6 +2,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { createContext, useContext, useState } from 'react'
 import type { ExplorerNodeView } from '@shared/ipc/reprise'
 import { CATEGORY_LABELS } from './labels'
+import type { ReplayMark } from './useReplay'
 
 /** Actions offertes aux nœuds de la carte (D16) : ouvrir un fichier dans le volet, zoomer dans un sous-dossier. */
 export interface ExplorerNodeActions {
@@ -16,6 +17,38 @@ export const ExplorerNodeActionsContext = createContext<ExplorerNodeActions>({
   open: () => undefined,
   openPath: null
 })
+
+/**
+ * Rediffusion (spec 021 US5 lot 2, E6) : marque de chaque nœud touché ; `null` hors rediffusion. Un nœud absent de la
+ * table n'a jamais été touché jusqu'au commit choisi (pastille « — », bordure neutre).
+ */
+export const ReplayMarksContext = createContext<ReadonlyMap<string, ReplayMark> | null>(null)
+
+/** Bordure et pastille d'auteur d'un nœud pendant la rediffusion (couleur ET initiales). */
+function ReplayBadge({ id }: { readonly id: string }): React.JSX.Element | null {
+  const marks = useContext(ReplayMarksContext)
+  if (marks === null) return null
+  const mark = marks.get(id)
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute -top-2 -right-2 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-semibold shadow ${
+        mark === undefined ? 'border border-dashed border-content-muted bg-surface text-content-muted' : 'text-white'
+      }`}
+      style={mark === undefined ? undefined : { background: mark.author.color }}
+    >
+      {mark?.author.initials ?? '—'}
+    </span>
+  )
+}
+
+/** Couleur de bordure d'un nœud en rediffusion (`undefined` : celle de sa catégorie). */
+function useReplayBorder(id: string): React.CSSProperties | undefined {
+  const marks = useContext(ReplayMarksContext)
+  if (marks === null) return undefined
+  const mark = marks.get(id)
+  return { borderColor: mark?.author.color ?? 'var(--color-content-muted)', opacity: mark === undefined ? 0.6 : 1 }
+}
 
 /** Données d'un nœud : un type recopié (React Flow exige un objet indexable, ce qu'une interface n'est pas). */
 export type CodeNodeData = { readonly [K in keyof ExplorerNodeView]: ExplorerNodeView[K] } & {
@@ -37,15 +70,18 @@ function Handles(): React.JSX.Element {
 }
 
 /** Module (niveau 1, D16) : un nœud propre, plus marqué qu'un dossier ; double-clic ou zoom pour voir ses dossiers. */
-export function ModuleNode({ data }: NodeProps<ModuleNodeType>): React.JSX.Element {
+export function ModuleNode({ id, data }: NodeProps<ModuleNodeType>): React.JSX.Element {
   const category = CATEGORY_LABELS[data.category]
+  const border = useReplayBorder(id)
   return (
     <div
-      className={`w-60 rounded-2xl border-[3px] bg-surface-raised px-4 py-3 text-xs shadow-md ${category.tone} ${
+      style={border}
+      className={`relative w-60 rounded-2xl border-[3px] bg-surface-raised px-4 py-3 text-xs shadow-md ${category.tone} ${
         data.selected ? 'ring-2 ring-accent' : ''
       }`}
     >
       <Handles />
+      <ReplayBadge id={id} />
       <p className="text-[10px] uppercase tracking-wide text-content-muted">Module</p>
       <p className="flex items-center gap-1 text-sm font-semibold text-content">
         <span aria-hidden="true">▣</span>
@@ -69,8 +105,9 @@ export function ModuleNode({ data }: NodeProps<ModuleNodeType>): React.JSX.Eleme
  * Dossier (D16) : deux onglets dans le nœud, « Fichiers » (un clic ouvre le code dans le volet) et « Sous-dossiers »
  * (un clic zoome dedans). Les clics dans le nœud ne le sélectionnent pas et ne le déplacent pas.
  */
-export function FolderNode({ data }: NodeProps<FolderNodeType>): React.JSX.Element {
+export function FolderNode({ id, data }: NodeProps<FolderNodeType>): React.JSX.Element {
   const actions = useContext(ExplorerNodeActionsContext)
+  const border = useReplayBorder(id)
   const category = CATEGORY_LABELS[data.category]
   const [tab, setTab] = useState<'files' | 'folders'>(
     data.files.length > 0 || data.folders.length === 0 ? 'files' : 'folders'
@@ -78,12 +115,13 @@ export function FolderNode({ data }: NodeProps<FolderNodeType>): React.JSX.Eleme
   const stop = (event: React.MouseEvent): void => event.stopPropagation()
   return (
     <div
-      style={FOLDER_NODE_SIZE}
-      className={`flex flex-col overflow-hidden rounded-lg border-2 bg-surface text-xs shadow-sm ${category.tone} ${
+      style={{ ...FOLDER_NODE_SIZE, ...border }}
+      className={`relative flex flex-col overflow-visible rounded-lg border-2 bg-surface text-xs shadow-sm ${category.tone} ${
         data.selected ? 'ring-2 ring-accent' : ''
       }`}
     >
       <Handles />
+      <ReplayBadge id={id} />
       <p className="flex items-center gap-1 px-3 pt-2 font-semibold text-content">
         <span aria-hidden="true">▤</span>
         <span className="truncate" title={data.title}>

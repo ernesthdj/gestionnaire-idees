@@ -290,6 +290,41 @@ export const historyArgs = (skip: number, limit: number): string[] => [
   '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s'
 ]
 
+/**
+ * Rediffusion (spec 021 US5 lot 2, R13) : les `limit` derniers commits, du plus ancien au plus récent, avec leurs
+ * fichiers ; `--numstat` (lignes) seulement dans un dépôt complet : dans un clone partiel, il téléchargerait tout le
+ * contenu caché, on se contente des noms (`--name-only`).
+ */
+export const replayArgs = (limit: number, numstat: boolean): string[] => [
+  'log',
+  `-n${Math.max(1, Math.min(5_000, Math.trunc(limit)))}`,
+  '--reverse',
+  '-z',
+  '--no-color',
+  '--no-ext-diff',
+  '--no-textconv',
+  '--no-renames',
+  numstat ? '--numstat' : '--name-only',
+  '--format=%x1e%H%x1f%an%x1f%ae%x1f%aI'
+]
+
+/** « Tout télécharger » (R13) : le filtre du clone partiel est retiré de la configuration locale du dépôt… */
+export const unsetPartialFilterArgs = (remote: string): string[] => [
+  'config',
+  '--local',
+  '--unset',
+  `remote.${safeRef(remote)}.partialclonefilter`
+]
+/** … puis tout l'historique est retéléchargé (git ≥ 2.36), sans étiquettes ni sous-modules. */
+export const refetchArgs = (remote: string): string[] => [
+  'fetch',
+  '--refetch',
+  '--no-tags',
+  '--no-recurse-submodules',
+  '--quiet',
+  safeRef(remote)
+]
+
 /** Commits jusqu'à `to` (inclus), pour le récit d'une période ; l'appelant coupe à `from`. */
 export const storyArgs = (to: string): string[] => {
   if (!/^[0-9a-f]{7,40}$/.test(to)) throw new Error('empreinte refusée')
