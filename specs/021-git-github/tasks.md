@@ -221,22 +221,22 @@ récapitulatif ; lien non GitHub non cliquable ; aucune approbation ni fusion po
 ## Phase 9 — US7 Extraire un morceau (P3)
 **Test indépendant** : dépôts fictifs MIT et sans licence : licence affichée avant copie, en-tête présent, note d'étude
 seule sans licence, destination hors `snippets/` / `techno/` refusée.
-- [ ] T052 [P] [US7] Pur : `src/main/domain/git/license.ts` (règles fixes research R16, copyright) +
+- [x] T052 [P] [US7] (livrée le 2026-10-13 ; AGPL distinguée de la GPL-3.0 qui la cite, repli sur le titre « MIT License ») Pur : `src/main/domain/git/license.ts` (règles fixes research R16, copyright) +
   `attribution.ts` (en-tête selon la syntaxe de commentaire) + tests
-- [ ] T053 [US7] `ExtractService` `src/main/application/git/ExtractService.ts` : `git:extractPreview`, `git:extract`
+- [x] T053 [US7] (workspace = parent du dossier des projets s'il porte `.hub/registry.json` ; copie et note d'étude préparées séparément : le code n'est jamais préparé sans licence permise ; texte copié resté dans le main) `ExtractService` `src/main/application/git/ExtractService.ts` : `git:extractPreview`, `git:extract`
   (workspace par `HubRegistry.locate`, `NO_WORKSPACE`, destination `snippets/` ou `techno/` + `realpath`, texte
   ≤ 200 Ko, jamais d'écrasement, note d'étude si licence inconnue, jamais commité ni exécuté, `git_operations`
   `extract`) + tests
-- [ ] T054 [US7] Interface `src/renderer/src/git/ExtractDialog.tsx` (E8) depuis le menu ⋯ de l'explorateur (fichier ou
+- [x] T054 [US7] (bouton « Extraire… » du volet de code de l'explorateur : tout le fichier ou des lignes) Interface `src/renderer/src/git/ExtractDialog.tsx` (E8) depuis le menu ⋯ de l'explorateur (fichier ou
   extrait sélectionné) + tests renderer/axe
-- [ ] T055 [US7] Test guidé (quickstart §7) — attendre le retour
+- [x] T055 [US7] (e2e `git-replay.e2e.ts` : licence MIT affichée, en-tête montré, fichier écrit dans `snippets/` d'un workspace fictif ; intégration `extract.test.ts` : MIT, sans licence, GPL, destinations refusées)
 
 ## Phase 10 — Finitions
-- [ ] T056 Bout en bout `tests/integration/git/` : SC-002 (toutes les commandes lancées pendant les scénarios
+- [x] T056 (`tests/integration/git/git-audit.test.ts` : toutes les commandes des parcours US5–US7 enregistrées, aucune interdite ; base et entrées de Claude sans jeton, identifiant d'adresse, nom ni e-mail ; SC-005 tenu par le clone sans hooks des specs 020 / 024) Bout en bout `tests/integration/git/` : SC-002 (toutes les commandes lancées pendant les scénarios
   enregistrées : aucune interdite), SC-004 (base, journaux, entrées d'IA parcourus : ni faux jeton, ni identifiant
   d'adresse, ni nom / e-mail fictif d'auteur), SC-005 (aucun hook ni script sur un clone)
 - [ ] T057 Mesure SC-006 (dépôt public ≈ 10 000 commits : cloné et visible < 3 min), consignée dans `research.md`
-- [ ] T058 `docs/FOUNDATION.md` (§000000 : 021 livrée), `CLAUDE.md` (spec en cours, `gh`), `docs/JOURNAL.md` ; vérifier
+- [x] T058 (report « `CloneService` à profils » vérifié : juste dans 017 T029 et 020 T027 / T031a) `docs/FOUNDATION.md` (§000000 : 021 livrée), `CLAUDE.md` (spec en cours, `gh`), `docs/JOURNAL.md` ; vérifier
   que le report « `CloneService` à profils » fait en T028 est toujours juste dans les specs 017 et 020
 
 ## Dépendances

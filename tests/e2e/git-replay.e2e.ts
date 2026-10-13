@@ -1,4 +1,4 @@
-import { readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -9,10 +9,14 @@ import { freshProfile, launchApp, type LaunchedApp } from './support/app'
 /**
  * Spec 021 US5 lot 2 dans l'app réelle (L4g P5, E6) : un projet C# fictif, dépôt git à trois auteurs (chacun sa
  * couche), repris puis rejoué dans son explorateur ; chaque module prend la couleur et les initiales de son auteur
- * principal, le curseur remonte le temps, `Échap` quitte la rediffusion.
+ * principal, le curseur remonte le temps, `Échap` quitte la rediffusion. Puis US7 : un fichier du projet (licence MIT)
+ * est extrait dans `snippets/` d'un workspace ProjectMaster fictif, avec son en-tête d'attribution.
  */
 const WORK = join(tmpdir(), 'gi-e2e-rediffusion')
 const PROJECT = join(WORK, 'cs-app')
+/** Workspace ProjectMaster fictif (`.hub/registry.json`, `projects/`, `snippets/`), passé par `GI_E2E_VAULT`. */
+const VAULT = join(WORK, 'ProjectsMaster')
+const MIT = 'MIT License\n\nCopyright (c) 2026 Auteur Fictif\n'
 const fixture = (path: string): string => readFileSync(join(REPRISE_FIXTURES, 'cs-app', path), 'utf8')
 
 describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => {
@@ -24,7 +28,7 @@ describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => 
       initRepo(PROJECT)
       const files = (...paths: string[]): Record<string, string> =>
         Object.fromEntries(paths.map((path) => [path, fixture(path)]))
-      commit(PROJECT, files('App.csproj', 'Program.cs'), 'chore: départ', AUTHORS.alice)
+      commit(PROJECT, { ...files('App.csproj', 'Program.cs'), LICENSE: MIT }, 'chore: départ', AUTHORS.alice)
       commit(PROJECT, files('Domain/OrderService.cs', 'Domain/Stores.cs'), 'feat: domaine', AUTHORS.bob)
       commit(
         PROJECT,
@@ -33,8 +37,10 @@ describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => 
         AUTHORS.chloe
       )
       commit(PROJECT, files('Controllers/OrdersController.cs', 'Logging/AuditLog.cs'), 'feat: api', AUTHORS.alice)
+      for (const dir of ['.hub', 'projects', 'snippets']) mkdirSync(join(VAULT, dir), { recursive: true })
+      writeFileSync(join(VAULT, '.hub', 'registry.json'), '{"projects":{}}\n')
     })
-    run = await launchApp()
+    run = await launchApp({ GI_E2E_VAULT: join(VAULT, 'projects') })
     await run.app.evaluate(({ dialog }, path) => {
       dialog.showOpenDialog = (async () => ({
         canceled: false,
@@ -86,5 +92,26 @@ describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => 
     await page.keyboard.press('Escape')
     await bar.waitFor({ state: 'detached' })
     expect(await page.getByRole('group', { name: /rediffusion/ }).count()).toBe(0)
+  })
+
+  it('should_extract_a_file_into_the_workspace_with_its_license_and_attribution', async () => {
+    const { page } = run
+    await page.getByLabel('Rechercher un élément').fill('OrderService')
+    await page.getByRole('list', { name: 'Résultats de la recherche' }).getByRole('button').first().click()
+    const code = page.getByRole('region', { name: /^Code de Domain\/OrderService\.cs/ })
+    await code.waitFor()
+    await code.getByRole('button', { name: 'Extraire…' }).click()
+    const dialog = page.getByRole('region', { name: 'Extraire ce fichier' })
+    await dialog.getByText(/MIT/).first().waitFor()
+    await dialog.getByLabel('Dossier').fill('csharp')
+    await run.shot('021-us7-01-extraire')
+    await dialog.getByRole('button', { name: 'Copier dans le workspace' }).click()
+    await dialog.getByText('Écrit dans le workspace : snippets/csharp/OrderService.cs (ni commité ni lancé).').waitFor()
+    const written = join(VAULT, 'snippets', 'csharp', 'OrderService.cs')
+    expect(existsSync(written)).toBe(true)
+    expect(readFileSync(written, 'utf8')).toMatch(
+      /^\/\/ Extrait de .*Domain\/OrderService\.cs\n\/\/ Commit [0-9a-f]{12}/
+    )
+    expect(readFileSync(written, 'utf8')).toContain('// Licence : MIT')
   })
 })

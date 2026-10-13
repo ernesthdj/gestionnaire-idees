@@ -1661,3 +1661,24 @@ transformé `\r\n\t` et `[\\]` en caractères réels dans des expressions régul
 passent désormais par l'outil d'édition ou un script écrit dans un fichier.
 **Regle apprise :** un texte venu de GitHub est une donnée hostile possible : rendu sans HTML ni image, et une adresse
 ne devient cliquable que si le main la revérifie (`https://github.com/`), jamais sur la seule foi du renderer.
+
+### [2026-10-13 18:40] FEAT — Spec 021 US7 : extraire un morceau, et clôture de la spec 021
+**Fichiers :** `src/main/domain/git/{license,attribution}.ts`, `src/main/application/git/ExtractService.ts`,
+`src/shared/git/extract.ts`, `src/main/ipc/gitHandlers.ts` (`createExtractRoutes`), `src/main/bootstrap.ts`,
+`src/shared/ipc/channels.ts`, `src/renderer/src/git/ExtractDialog.tsx`, `src/renderer/src/explorer/FilePanel.tsx`, tests
+(`tests/unit/git/extract.test.ts`, `tests/integration/git/{extract,git-audit}.test.ts`, `tests/unit/renderer/git-extract.test.tsx`,
+e2e `git-replay.e2e.ts`), `specs/021-git-github/{spec,tasks}.md`, `docs/FOUNDATION.md`, `CLAUDE.md`
+**Resume :** « Extraire… » dans le volet de code de l'explorateur : la licence du dépôt est identifiée par règles fixes
+(MIT, Apache-2.0, BSD, ISC, MPL-2.0, Unlicense : copie permise ; GPL, LGPL, AGPL : réciprocité ; sinon inconnue) et
+affichée avant toute copie, avec l'en-tête d'attribution (origine, chemin, lignes, commit, licence, copyright) dans la
+syntaxe de commentaire du fichier. Licence inconnue : seule une note d'étude (sans le code). Écriture dans
+`snippets/` ou `techno/` du workspace ProjectMaster seulement (dossier et nom vérifiés, `realpath`), jamais
+d'écrasement, ni commit ni exécution, journalisée sans contenu. Audit de bout en bout (T056) : aucune commande
+interdite lancée par les parcours US5–US7, rien de sensible en base ni vers Claude. **Spec 021 livrée** ; reste la
+mesure SC-006 (clone d'un dépôt public ≈ 10 000 commits en moins de 3 min), qui demande le réseau. Vérifié : tests,
+typecheck, lint, Prettier ; e2e git-replay (rediffusion + extraction).
+**Erreur corrigée :** la première version préparait le texte copié avant de savoir si la note d'étude était choisie :
+une note demandée sur un dépôt MIT aurait écrit le code. Copie et note sont maintenant deux textes distincts, et le
+code n'est jamais préparé quand la licence ne le permet pas. La règle AGPL attrapait la GPL-3.0, qui la cite.
+**Regle apprise :** quand un mode « sans le contenu » existe, ne jamais dériver son texte de celui « avec contenu » :
+préparer les deux séparément, et ne jamais préparer le contenu interdit.

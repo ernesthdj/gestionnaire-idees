@@ -205,6 +205,8 @@ export const MAIN_WINDOW_CHANNELS = [
   'git:forkPreview',
   'git:fork',
   'git:openExternal',
+  'git:extractPreview',
+  'git:extract',
   'structure:updatePlan',
   'structure:markMapped',
   'run:scripts',

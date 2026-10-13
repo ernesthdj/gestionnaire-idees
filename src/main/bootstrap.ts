@@ -138,10 +138,12 @@ import {
   createConflictRoutes,
   createGitHistoryRoutes,
   createGitHubRoutes,
+  createExtractRoutes,
   createGitRoutes,
   createGitSyncRoutes
 } from './ipc/gitHandlers'
 import { GitHubService } from './application/git/GitHubService'
+import { ExtractService } from './application/git/ExtractService'
 import { runGitIssueText, runGitPrReview, runGitPrText } from './application/ai/GitHubTasks'
 import { GitHistoryService } from './application/git/GitHistoryService'
 import { runGitStory } from './application/ai/GitStoryTask'
@@ -916,6 +918,12 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       return result.ok ? result.value.data : null
     }
   })
+  // Extraire un morceau d'un projet open source (spec 021 US7) : licence d'abord, attribution, workspace seulement.
+  const gitExtract = new ExtractService({
+    access: gitAccess,
+    repository: gitRepository,
+    projectsRoot: () => appSettings.projectsRoot()
+  })
   const gitPublish = new PublishService({
     access: gitAccess,
     queue: gitQueue,
@@ -1269,6 +1277,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ...createConflictRoutes(gitConflicts),
       ...createGitHistoryRoutes(gitHistory),
       ...createGitHubRoutes(gitHub, (url) => electronShell.openExternal(url)),
+      ...createExtractRoutes(gitExtract),
       ...createBrainstormRoutes(brainstorms),
       ...createSavePointRoutes(savePoints),
       ...createExistingProjectRoutes(existingProjects),

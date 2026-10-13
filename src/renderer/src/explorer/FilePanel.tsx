@@ -8,6 +8,7 @@ import type {
   FileCodeView
 } from '@shared/ipc/reprise'
 import { CODE_CATEGORIES } from '@shared/ipc/reprise'
+import { ExtractDialog } from '../git/ExtractDialog'
 import { CodeLines } from '../lib/CodeLines'
 import { call, IpcFailure } from '../lib/ipc'
 import { CATEGORY_LABELS, KIND_LABELS, PROVENANCE_LABELS } from './labels'
@@ -90,6 +91,8 @@ export function FilePanel({
 }): React.JSX.Element {
   const client = useQueryClient()
   const [problem, setProblem] = useState<string | null>(null)
+  /** Extraire ce fichier vers le workspace (spec 021 US7). */
+  const [extracting, setExtracting] = useState(false)
   const query = useQuery({
     queryKey: ['explorer', genesisId, 'file', file.path],
     queryFn: () => call<FileCodeView>('explorer:file', { genesisId, path: file.path })
@@ -151,9 +154,19 @@ export function FilePanel({
   return (
     <section aria-label={`Code de ${view.path}`} className="flex h-full min-h-0 flex-col gap-2 p-3 text-xs">
       <header>
-        <h2 className="truncate text-sm font-semibold" title={view.path}>
-          {view.path.split('/').at(-1)}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-sm font-semibold" title={view.path}>
+            {view.path.split('/').at(-1)}
+          </h2>
+          <button
+            type="button"
+            aria-pressed={extracting}
+            className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised"
+            onClick={() => setExtracting((value) => !value)}
+          >
+            Extraire…
+          </button>
+        </div>
         <p className="truncate text-content-muted">
           {view.path} · {view.lang} · {view.lines.length} lignes · lecture seule · ◀ appel repéré (approché)
         </p>
@@ -165,6 +178,14 @@ export function FilePanel({
           </p>
         )}
       </header>
+      {extracting ? (
+        <ExtractDialog
+          genesisId={genesisId}
+          path={view.path}
+          lineCount={view.lines.length}
+          onClose={() => setExtracting(false)}
+        />
+      ) : null}
       <CodeLines
         lines={view.lines}
         lang={view.lang}

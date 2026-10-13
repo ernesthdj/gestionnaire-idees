@@ -89,6 +89,9 @@ specs › user stories › tâches, lu dans les fichiers du projet (`specs/`, `t
 
 ## 000000. Amendement du 2026-10-07 — Git et GitHub : le git local prolongé jusqu'à GitHub
 
+> **Spec 021 livrée le 2026-10-13** : US1 à US7 et la Skyline des contributions (D16). Commit, pull et push restent
+> sur clic dans le volet Dépôt (Claude propose le message) ; seule la mesure SC-006 (T057) reste à faire.
+
 > Détail complet : `docs/brainstorm/L1i-git-github.md` (vision, décisions D1–D7, hypothèses H1–H18 validées),
 > `L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md` (cas d'usage, règles,
 > critères), `L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md` (contrats IPC, données, séquences, sécurité,

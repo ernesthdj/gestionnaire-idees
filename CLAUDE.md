@@ -140,7 +140,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 - [x] Spec Kit — `.specify/`, skills `.claude/skills/speckit-*` ; une spec par feature (`specs/0NN-*`), le statut de
   chacune dans sa ligne `**Status**` (« Livrée », « En pause », « Abandonnée » : lue par la vue Workflow). Tri du
   2026-10-13 (critique) : livrées 001, 003, 004, 006, 007, 008, 009, 010, 016, 017, 020, 023, 024 (US1–US5), 025, 026,
-  027 ; **en cours : 021 « Git et GitHub »** (reprise le 2026-10-13 : US5 lot 2 + Skyline des contributions, US6, US7 ; commit, pull et push inchangés) ;
+  027 ; **livrée le 2026-10-13 : 021 « Git et GitHub »** (US1–US7, Skyline des contributions, rediffusion sur l'explorateur, PR, issues, fork, extraction ; reste la mesure SC-006) ;
   redevenues des idées (« Abandonnée — à reconsidérer ») : 005, 011, 012, 013, 014, 015, 019, 022 ; abandonnées : 002,
   028 « Le dossier du nœud » (code derrière `FOLDERS_ENABLED`, retiré le 2026-11-12 s'il n'a pas resservi), 029 « Scènes
   animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`) ; **livrée le 2026-10-13 : 030

@@ -15,6 +15,8 @@ import type { PublishService } from '../application/git/PublishService'
 import type { ConflictService } from '../application/git/ConflictService'
 import type { GitHistoryService } from '../application/git/GitHistoryService'
 import type { GitHubService } from '../application/git/GitHubService'
+import type { ExtractService } from '../application/git/ExtractService'
+import { ExtractInput, ExtractPreviewInput } from '@shared/git/extract'
 import {
   ForkInput,
   ForkPreviewInput,
@@ -434,6 +436,37 @@ export function createGitHubRoutes(
         await openExternal(url)
         return { ok: true }
       }
+    })
+  ]
+}
+
+/**
+ * Extraire un morceau (spec 021 US7) : l'aperçu montre la licence avant toute copie ; l'écriture porte `confirm: true`
+ * et ne vise que `snippets/` ou `techno/` du workspace (vérifié dans le main).
+ */
+export function createExtractRoutes(extract: Pick<ExtractService, 'preview' | 'extract'>): IpcRoute[] {
+  return [
+    defineRoute({
+      channel: 'git:extractPreview',
+      input: ExtractPreviewInput,
+      handler: async ({ genesisId, path, lines }) => {
+        // Le texte préparé reste dans le main : l'aperçu ne renvoie que la licence, l'en-tête et les destinations.
+        const preview = await extract.preview(genesisId, path, lines)
+        return {
+          origin: preview.origin,
+          commit: preview.commit,
+          license: preview.license,
+          header: preview.header,
+          destinations: preview.destinations,
+          studyNoteOnly: preview.studyNoteOnly
+        }
+      }
+    }),
+    defineRoute({
+      channel: 'git:extract',
+      input: ExtractInput,
+      handler: async ({ genesisId, path, lines, root, folder, fileName, mode }) =>
+        extract.extract({ genesisId, path, root, folder, fileName, mode, ...(lines === undefined ? {} : { lines }) })
     })
   ]
 }
