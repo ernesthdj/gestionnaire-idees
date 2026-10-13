@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { Locator } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildScenario } from '../support/gitRepos'
-import { DEMO_PROJECT, freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { DEMO_PROJECT, freshProfile, launchApp, settled, type LaunchedApp } from './support/app'
 
 /**
  * Spec 027 lot 1 dans l'app réelle (quickstart 1, 4, 6) : la conversation s'ouvre dans le panneau fixe de droite, qui
@@ -37,7 +37,9 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
   it('should_keep_the_conversation_still_and_readable_when_the_map_is_zoomed_or_recentred', async () => {
     const { page } = run
     await page.getByRole('button', { name: 'Tout afficher' }).click()
-    await page.getByRole('group', { name: new RegExp(`: ${GENESIS},`) }).click({ force: true })
+    const genesis = page.getByRole('group', { name: new RegExp(`: ${GENESIS},`) })
+    await settled(genesis)
+    await genesis.click({ force: true })
     const card = page.getByRole('dialog', { name: `Détails : ${GENESIS}` })
     await card.getByRole('button', { name: 'Discuter' }).click()
     const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
@@ -90,7 +92,9 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
     const { page } = run
     await page.getByRole('button', { name: 'Workflow', exact: true }).click()
     await page.getByRole('button', { name: 'Tout afficher' }).click()
-    await page.getByRole('group', { name: new RegExp(`: ${GENESIS},`) }).click({ force: true })
+    const genesis = page.getByRole('group', { name: new RegExp(`: ${GENESIS},`) })
+    await settled(genesis)
+    await genesis.click({ force: true })
     const card = page.getByRole('dialog', { name: `Détails : ${GENESIS}` })
     await card.getByRole('button', { name: 'Lire la fondation' }).click()
     const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
@@ -123,10 +127,11 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
     const { page, app } = run
     await page.getByRole('button', { name: 'Progression', exact: true }).click()
     await page.getByRole('button', { name: 'Tout afficher' }).click()
-    // Les nœuds glissent vers leur place après la bascule de vue : on attend qu'ils s'arrêtent avant de cliquer.
-    await page.waitForTimeout(1500)
-    // Deuxième conversation : l'élément « Données » de la carte de structure (sa carte, puis « Discuter »).
-    await page.getByRole('group', { name: /module « Données »/ }).click({ force: true })
+    // Deuxième conversation : l'élément « Données » de la carte de structure (sa carte, puis « Discuter »). Les nœuds
+    // glissent vers leur place après la bascule de vue : on attend qu'il s'arrête avant de cliquer.
+    const donnees = page.getByRole('group', { name: /module « Données »/ })
+    await settled(donnees)
+    await donnees.click({ force: true })
     await page.getByRole('dialog', { name: 'Détails : Données' }).getByRole('button', { name: 'Discuter' }).click()
     const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
     await panel.getByRole('tab', { name: /Données/ }).waitFor()
@@ -168,6 +173,7 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
     const { page } = run
     const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
     const node = page.getByRole('group', { name: /module « Données »/ })
+    await settled(node)
     await node.click({ force: true })
     await page.getByRole('dialog', { name: 'Détails : Données' }).getByRole('button', { name: 'Discuter' }).click()
     await panel.getByRole('tab', { name: /Données/ }).waitFor()

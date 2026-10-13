@@ -193,5 +193,9 @@
 
 ## R18 — Mesures
 - SC-001 (commit < 30 s), SC-007 (conflit < 3 min), SC-008 (auteur d'un nœud < 5 s) : chronométrés aux tests guidés.
-- SC-006 (≈ 10 000 commits clonés et visibles < 3 min) : mesure manuelle sur un dépôt public, consignée ici en
-  finitions.
+- SC-006 (≈ 10 000 commits clonés et visibles < 3 min) : **mesuré le 2026-10-13, 7,1 s.** Dépôt public
+  `https://github.com/eslint/eslint.git` (11 063 commits), formulaire « Nouveau brainstorm › Depuis un lien Git » de
+  l'app construite (profil et coffre de test temporaires, « Local uniquement »), connexion domestique ; chronomètre du
+  clic « Cloner dans le coffre et ouvrir » jusqu'au canevas ouvert avec son genesis. Clone partiel par défaut
+  (`blob:none` : l'historique entier, les contenus à la demande) ; l'analyse statique continue ensuite en arrière-plan.
+  Seuil tenu avec une large marge.
