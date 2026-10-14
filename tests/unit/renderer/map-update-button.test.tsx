@@ -12,7 +12,9 @@ import { RAW_ID } from '../../fixtures/ui/canvas'
 import { FakeIpcError, installFakeApi } from './support/fakeApi'
 
 const wrap = (hasMap: boolean) => {
-  const props = { data: { genesisId: RAW_ID, view: 'progression', hasMap, architecture: null } }
+  const props = {
+    data: { genesisId: RAW_ID, view: 'progression', hasMap, architecture: null, strays: { steps: [], elements: [] } }
+  }
   return render(
     <QueryClientProvider client={new QueryClient()}>
       <ReactFlowProvider>

@@ -544,7 +544,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const plan = new PlanService({
     repository: planRepository,
     finals,
-    structureView: structureViewOf
+    structureView: structureViewOf,
+    projectLinked: (genesisId) => projectDirOf(genesisId) !== null
   })
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)

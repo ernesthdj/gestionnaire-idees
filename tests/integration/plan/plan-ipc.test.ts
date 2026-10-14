@@ -75,36 +75,44 @@ describe('plan d’attaque côté interface (spec 011 US1, canaux)', () => {
     expect(after.steps[1]?.waitsFor).toEqual([after.steps[0]?.id])
   })
 
-  it('should_file_a_born_step_in_the_view_shown_and_its_substeps_in_the_same', async () => {
+  it('should_refuse_a_step_in_any_view_of_a_linked_project_and_point_to_the_task_file', async () => {
     let shown: 'workflow' | 'progression' | 'architecture' | null = 'progression'
-    const viewed = new PlanService({ repository: new PlanRepository(t.handle.db), structureView: () => shown })
+    let linked = false
+    const viewed = new PlanService({
+      repository: new PlanRepository(t.handle.db),
+      structureView: () => shown,
+      projectLinked: () => linked
+    })
     const { proposalId } = propose()
     const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
-    viewed.decide({ proposalId, accept: items, reject: [] })
-    const [budget] = (await view()).steps
-    expect(budget?.view).toBe('progression')
-    // Une sous-étape garde la vue de son parent, même si la carte a changé de vue entre-temps.
-    shown = 'workflow'
-    const sub = viewed.propose({ parentId: budget?.id ?? '', steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })
-    const subItems = (await view()).proposals.find((p) => p.id === sub.proposalId)?.items.map((item) => item.id) ?? []
-    viewed.decide({ proposalId: sub.proposalId, accept: subItems, reject: [] })
-    expect((await view()).steps.find((step) => step.title === 'Devis')?.view).toBe('progression')
-  })
-
-  it('should_refuse_a_step_in_the_workflow_view_and_point_to_the_task_file', async () => {
-    let shown: 'workflow' | 'progression' | null = 'progression'
-    const viewed = new PlanService({ repository: new PlanRepository(t.handle.db), structureView: () => shown })
-    const { proposalId } = propose()
-    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
-    shown = 'workflow'
     const refused = { code: 'VALIDATION', message: expect.stringContaining('fichier de tâches') }
+    // Progression et Architecture ne font que refléter le Workflow (D27) : rien n'y naît.
+    for (const next of ['workflow', 'progression', 'architecture'] as const) {
+      shown = next
+      expect(() => viewed.decide({ proposalId, accept: items, reject: [] })).toThrow(expect.objectContaining(refused))
+      expect(() =>
+        viewed.propose({ parentId: genesis, steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })
+      ).toThrow(expect.objectContaining(refused))
+    }
+    // Un projet lié sans vue ni carte : son travail se fait aussi dans le Workflow.
+    shown = null
+    linked = true
     expect(() => viewed.decide({ proposalId, accept: items, reject: [] })).toThrow(expect.objectContaining(refused))
-    expect(() => viewed.propose({ parentId: genesis, steps: [{ key: 'devis', title: 'Devis', why: 'Prix' }] })).toThrow(
-      expect.objectContaining(refused)
-    )
-    // Écarter une proposition reste possible ; les étapes déjà nées hors Workflow se découpent encore.
+    // Écarter une proposition reste possible.
     expect(viewed.decide({ proposalId, accept: [], reject: items }).born).toEqual([])
     expect((await view()).steps).toEqual([])
+  })
+
+  it('should_keep_the_attack_plan_of_an_idea_not_linked_to_a_project', async () => {
+    const free = new PlanService({
+      repository: new PlanRepository(t.handle.db),
+      structureView: () => null,
+      projectLinked: () => false
+    })
+    const { proposalId } = propose()
+    const items = (await view()).proposals[0]?.items.map((item) => item.id) ?? []
+    expect(free.decide({ proposalId, accept: items, reject: [] }).born).toHaveLength(2)
+    expect((await view()).steps.map((step) => step.view ?? null)).toEqual([null, null])
   })
 
   it('should_remove_several_steps_with_their_substeps_in_a_single_batch', async () => {

@@ -111,9 +111,59 @@ describe('une étape n’apparaît que dans la vue où elle est née (spec 023 D
     expect(drawn({ [RAW_ID]: 'workflow' })).toEqual([])
     // Les étapes nées en Workflow sont signalées par la barre de la carte (D23).
     const bar = graph({ [RAW_ID]: 'workflow' }).nodes.find((node) => node.type === 'structureBar')
-    expect(bar?.type === 'structureBar' ? bar.data.workflowSteps.map((entry) => entry.id) : null).toEqual([
+    expect(bar?.type === 'structureBar' ? bar.data.strays.steps.map((entry) => entry.id) : null).toEqual([
       'ancienne',
       'cadrage'
     ])
+  })
+
+  it('should_flag_the_steps_born_in_progression_and_the_tasks_and_decisions_of_the_map', () => {
+    const base = canvasView()
+    const element = (id: string, type: ElementView['type']): ElementView => ({
+      id,
+      genesisId: RAW_ID,
+      parentId: RAW_ID,
+      key: id,
+      type,
+      title: id,
+      status: null,
+      summary: null,
+      paths: [],
+      collapsed: true,
+      childCount: 0,
+      order: null
+    })
+    const step: StepView = {
+      id: 'suivi',
+      genesisId: RAW_ID,
+      parentId: RAW_ID,
+      depth: 1,
+      rank: 1,
+      title: 'Suivi',
+      status: 'a_faire',
+      locked: false,
+      lockProposed: false,
+      waitsFor: [],
+      offset: { x: 0, y: 0 },
+      view: 'progression'
+    }
+    const view: IdeasCanvasView = {
+      ...base,
+      ideas: base.ideas.map((idea) => (idea.id === RAW_ID ? { ...idea, linkedProject: true } : idea)),
+      elements: [element('donnees', 'module'), element('profils', 'tache'), element('file', 'decision')],
+      steps: [step]
+    }
+    const strays = (shown: 'workflow' | 'progression' | 'architecture') => {
+      const bar = buildGraph(view, computeLayout(view), null, new Set(), { [RAW_ID]: shown }).nodes.find(
+        (node) => node.type === 'structureBar'
+      )
+      return bar?.type === 'structureBar'
+        ? { steps: bar.data.strays.steps.map((entry) => entry.id), elements: bar.data.strays.elements.map((e) => e.id) }
+        : null
+    }
+    // En Progression : l'étape née là et les tâches / décisions (un module reste : la carte reflète le code).
+    expect(strays('progression')).toEqual({ steps: ['suivi'], elements: ['profils', 'file'] })
+    // En Workflow : seules les étapes nées en Workflow comptent (aucune ici).
+    expect(strays('workflow')).toEqual({ steps: [], elements: [] })
   })
 })

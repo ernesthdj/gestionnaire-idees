@@ -50,7 +50,7 @@ export function promptFor(item: WorkflowItem): string | null {
   }
 }
 
-/** Étape née dans la vue Workflow avant D22 (spec 023 D23). */
+/** Étape née dans une vue d'un projet lié (spec 023 D23, D28). */
 export interface WorkflowStepRef {
   readonly id: string
   readonly parentId: string
@@ -58,25 +58,101 @@ export interface WorkflowStepRef {
   readonly rank: number
 }
 
-/**
- * Consigne « Les reporter dans les fichiers » (spec 023 D23) : les étapes, dans leur ordre et leur hiérarchie, à
- * ajouter comme tâches dans le fichier de tâches qui convient, sans doublon. Pure.
- */
-export function reportStepsPrompt(genesisId: string, steps: readonly WorkflowStepRef[]): string {
+/** Tâche ou décision posée dans la carte de structure avant D27 (spec 023 D28). */
+export interface StrayElement {
+  readonly id: string
+  readonly parentId: string
+  readonly title: string
+  readonly type: 'tache' | 'decision'
+}
+
+/** Arbre d'éléments en liste Markdown indentée, depuis `rootId` (frères dans l'ordre donné). */
+function treeLines<T extends { readonly id: string; readonly parentId: string }>(
+  items: readonly T[],
+  label: (item: T) => string,
+  isRoot: (item: T) => boolean
+): string[] {
   const lines: string[] = []
-  const walk = (parentId: string, depth: number): void => {
-    for (const step of steps.filter((entry) => entry.parentId === parentId).sort((a, b) => a.rank - b.rank)) {
-      lines.push(`${'  '.repeat(depth)}- ${step.title}`)
-      walk(step.id, depth + 1)
-    }
+  const walk = (item: T, depth: number): void => {
+    lines.push(`${'  '.repeat(depth)}- ${label(item)}`)
+    for (const child of items.filter((entry) => entry.parentId === item.id)) walk(child, depth + 1)
   }
-  walk(genesisId, 0)
+  for (const item of items.filter(isRoot)) walk(item, 0)
+  return lines
+}
+
+/**
+ * Consigne « Les reporter dans les fichiers » (spec 023 D23, D28) : les étapes (dans leur ordre et leur hiérarchie) et
+ * les tâches et décisions posées dans la carte, à reporter dans les fichiers du projet, sans doublon. Pure.
+ */
+export function reportStepsPrompt(
+  genesisId: string,
+  steps: readonly WorkflowStepRef[],
+  elements: readonly StrayElement[] = []
+): string {
+  const ordered = [...steps].sort((a, b) => a.rank - b.rank)
+  const stepIds = new Set(steps.map((step) => step.id))
+  const elementIds = new Set(elements.map((element) => element.id))
+  const lines = [
+    ...treeLines(
+      ordered,
+      (step) => step.title,
+      (step) => step.parentId === genesisId || !stepIds.has(step.parentId)
+    ),
+    ...treeLines(
+      elements,
+      (element) => `${element.type === 'tache' ? 'Tâche' : 'Décision'} : ${element.title}`,
+      (element) => !elementIds.has(element.parentId)
+    )
+  ]
   return [
-    'Ces étapes ont été générées dans la vue Workflow, qui ne se lit plus que dans les fichiers du projet :',
+    'Le travail de ce projet se fait dans la vue Workflow, qui se lit dans ses fichiers. Ceci a été posé sur la carte :',
     ...lines,
     '',
-    'Ajoute-les comme tâches (« - [ ] », hiérarchie gardée par des titres ## et ###) dans le fichier de tâches du ' +
-      'projet qui convient (ou dans le tasks.md de la spec concernée), sans créer de doublon avec une tâche existante. ' +
-      'Dis-moi ensuite dans quel fichier tu les as mises : je retirerai les étapes de la carte.'
+    'Ajoute les étapes et les tâches comme tâches (« - [ ] », hiérarchie gardée par des titres ## et ###) dans le fichier ' +
+      'de tâches du projet qui convient (ou dans le tasks.md de la spec concernée), et les décisions dans sa doc (spec ' +
+      'ou brainstorm concerné), sans créer de doublon. Dis-moi ensuite où tu les as mises : je retirerai ces nœuds de ' +
+      'la carte.'
+  ].join('\n')
+}
+
+/** Ce que signale la barre : étapes masquées en Workflow (D23), posées hors du Workflow ailleurs (D28). */
+export function strayLabel(view: 'workflow' | 'progression' | 'architecture', steps: number, elements: number): string {
+  const plural = (count: number, word: string): string => `${count} ${word}${count > 1 ? 's' : ''}`
+  if (view === 'workflow')
+    return `${plural(steps, 'étape')} générée${steps > 1 ? 's' : ''} masquée${steps > 1 ? 's' : ''}`
+  const parts = [
+    steps === 0 ? null : plural(steps, 'étape'),
+    elements === 0 ? null : `${plural(elements, 'tâche')} ou décision${elements > 1 ? 's' : ''}`
+  ].filter((part) => part !== null)
+  return `${parts.join(' et ')} à reporter dans le Workflow`
+}
+
+/** Longueur d'un sujet de brainstorm (spec 023 D26). */
+export const BRAINSTORM_SUBJECT_MAX = 120
+
+/** Sujet tapé par mentalyas, sur une ligne, sans ce qui casserait la consigne (guillemets, accents graves) ; `null` : vide. */
+export function brainstormSubject(raw: string): string | null {
+  const subject = raw
+    .replace(/[`«»"]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, BRAINSTORM_SUBJECT_MAX)
+    .trim()
+  return subject === '' ? null : subject
+}
+
+/**
+ * Consigne « Nouveau brainstorm » (spec 023 D26) : le brainstorm de départ se fait dans le Workflow ; il aboutit à un
+ * document de niveau 1 et à son fichier de tâches, que la vue relit ; rien dans la carte de structure. Pure.
+ */
+export function newBrainstormPrompt(subject: string): string {
+  return [
+    `Lance /brainstorm sur « ${subject} » pour ce projet : lis d'abord sa fondation et ses documents de brainstorm, ` +
+      'puis pose tes questions une à une.',
+    'À la fin, écris le document de niveau 1 dans docs/brainstorm/ (L1<lettre suivante>-<sujet>.md), puis ses tâches ' +
+      'dans docs/TACHES-<Sujet>.md : un titre #, des lots ##, des cases « - [ ] T001 … ».',
+    'Ne pose rien dans la carte de structure (ni tâche, ni décision, ni étape) : la vue Workflow montre ces fichiers, ' +
+      'Progression et Architecture ne font que refléter la doc et le code.'
   ].join('\n')
 }

@@ -100,6 +100,20 @@ export class StructureService {
         : (input.architecture?.type ?? existingArchitecture?.kind ?? null)
     const resolved = resolveStructure(input, existingParents, effective)
     if (!resolved.ok) throw new McpToolError(resolved.problem.code, resolved.problem.message)
+    // La carte reflète la doc et le code (spec 023 D27) : les tâches et les décisions vivent dans le Workflow.
+    const work = resolved.elements.filter(
+      (element) => !byKey.has(element.key) && (element.type === 'tache' || element.type === 'decision')
+    )
+    if (work.length > 0) {
+      throw new McpToolError(
+        'ENTREE_INVALIDE',
+        `La carte de structure ne reçoit plus de tâches ni de décisions (${work
+          .slice(0, 3)
+          .map((element) => `« ${element.title} »`)
+          .join(', ')}) : écris les tâches dans le fichier de tâches du projet (docs/TACHES-<Sujet>.md, ` +
+          'cases « - [ ] T001 … », ou tasks.md d’une spec) et les décisions dans sa doc ; la vue Workflow les montre.'
+      )
+    }
 
     const batchId = randomUUID()
     const entries: ChangeEntry[] = []
@@ -166,19 +180,8 @@ export class StructureService {
         const kept = new Set(resolved.elements.map((element) => element.key))
         for (const row of current) {
           if (kept.has(row.key)) continue
-          elements.archive(row.id)
+          entries.push(...this.archive(row, 'mcp_write'))
           removed++
-          entries.push({ kind: 'mcp_write', entity: 'element', entityId: row.id, before: snapshot(row), after: null })
-          for (const link of links.touching(row.id)) {
-            links.softDelete(link.id)
-            entries.push({
-              kind: 'mcp_write',
-              entity: 'map_link',
-              entityId: link.id,
-              before: { label: link.label },
-              after: null
-            })
-          }
         }
       }
       if (input.architecture !== undefined && existingArchitecture?.source !== 'user') {
@@ -361,6 +364,44 @@ export class StructureService {
 
   setCollapsed(elementId: string, collapsed: boolean): void {
     this.deps.elements.setCollapsed(elementId, collapsed)
+  }
+
+  /** Archive un élément et ses liens ; les entrées d'Historique qui le rétablissent. */
+  private archive(row: ElementRow, kind: ChangeEntry['kind']): ChangeEntry[] {
+    const { elements, links } = this.deps
+    elements.archive(row.id)
+    const entries: ChangeEntry[] = [{ kind, entity: 'element', entityId: row.id, before: snapshot(row), after: null }]
+    for (const link of links.touching(row.id)) {
+      links.softDelete(link.id)
+      entries.push({ kind, entity: 'map_link', entityId: link.id, before: { label: link.label }, after: null })
+    }
+    return entries
+  }
+
+  /**
+   * Éléments retirés par mentalyas (spec 023 D28 : tâches et décisions posées dans la carte avant D27), avec leurs
+   * descendants et leurs liens, en un seul lot d'Historique annulable. Seulement des éléments de ce genesis.
+   */
+  removeElements(
+    genesisId: string,
+    elementIds: readonly string[]
+  ): { readonly batchId: string; readonly count: number } {
+    const current = this.deps.elements.list(genesisId)
+    const byId = new Map(current.map((row) => [row.id, row] as const))
+    if (elementIds.some((id) => !byId.has(id))) throw new AppError('NOT_FOUND', 'Élément introuvable dans ce projet')
+    const gone = new Set<string>()
+    const collect = (id: string): void => {
+      if (gone.has(id)) return
+      gone.add(id)
+      for (const row of current) if (row.parentId === id) collect(row.id)
+    }
+    for (const id of elementIds) collect(id)
+    const batchId = randomUUID()
+    this.deps.elements.transaction(() => {
+      const entries = [...gone].flatMap((id) => this.archive(byId.get(id) as ElementRow, 'structure'))
+      this.deps.elements.log(batchId, entries, 'user')
+    })
+    return { batchId, count: gone.size }
   }
 
   /** Architecture choisie par mentalyas (D20) : prioritaire sur celle de Claude, annulable ; `aucune` la retire. */

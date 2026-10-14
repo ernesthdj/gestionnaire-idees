@@ -1900,3 +1900,27 @@ fichier et ouvre son code. SC-001 tenu : 2 gestes (Ctrl+K, Entrée).
 qui ne sert plus qu'à l'image du guide ; les appels internes ne sont pas des voisins.
 **Règle apprise :** une liste qui reprend les noms de la carte dans le panneau crée des doublons de texte : dans les
 tests, viser un élément de la carte par son nœud (`within(nœud)`), jamais par `getByText` sur tout l'écran.
+
+### [2026-10-14 11:30] FEAT — spec 023 D26 à D29 : le Workflow est le lieu de travail, Progression et Architecture des lecteurs
+**Fichiers :** `specs/023-carte-workflow/{spec.md, tasks.md}` (amendement, phase 12), `PlanService.ts` +
+`bootstrap.ts` (`projectLinked`), `StructureService.ts` (refus `tache` / `decision`, `removeElements`),
+`structureHandlers.ts` + `channels.ts` (`structure:removeElements`), `shared/mcp/tools.ts` (consignes et descriptions),
+`buildGraph.ts` (`strays`), `StructureBarNode.tsx`, `workflow/prompts.ts` ; tests `integration/plan/plan-ipc`,
+`integration/structure/structure`, `unit/ipc/explorer-handlers`, `unit/renderer/{structure-bar (nouveau),
+report-steps-prompt, step-view, map-update-button, architecture-view, workflow-view}`.
+**Pourquoi :** retour de mentalyas : le brainstorm de départ et les tâches naissent dans le Workflow (là où se font la
+doc et le code) ; Progression et Architecture ne font que montrer comment le projet prévoit de s'articuler (doc) et
+s'articule réellement (code). Ce matin, Claude avait posé 8 tâches et une décision dans la carte de structure.
+**Quoi :** (1) « ✦ Nouveau brainstorm » dans la barre Workflow : sujet nettoyé (120 car.), consigne pré-remplie dans
+la conversation du genesis (L1 dans `docs/brainstorm/`, tâches dans `docs/TACHES-<Sujet>.md`, rien dans la carte).
+(2) Aucune étape de plan ne naît dans une vue d'un projet lié (ni dans un projet lié sans vue) ; une idée non liée
+garde son plan d'attaque. (3) `structure_dessiner` refuse un nouvel élément `tache` ou `decision` (les existants
+restent modifiables) ; consignes MCP réécrites. (4) En Progression et Architecture, la barre signale les étapes nées
+dans la vue et les tâches / décisions de la carte : « Les reporter dans les fichiers » (consigne) ou « Les retirer »
+(lots annulables, descendants et liens compris).
+**Erreur corrigée :** le bandeau élargissait la barre, centrée sur le genesis : son bouton « Workflow » passait sous la
+navigation (7 e2e en échec). Le bandeau est passé sur une seconde ligne.
+**Règle apprise :** un ajout dans la barre d'une carte doit se faire en hauteur, pas en largeur : elle est centrée sur
+le genesis et déborde des deux côtés.
+**Reste :** D29, la refonte du rendu de Progression et d'Architecture (prévu en fantôme / réel), à brainstormer dans
+un artifact.

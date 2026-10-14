@@ -274,6 +274,55 @@ describe('carte de structure d’un projet (spec 009)', () => {
     expect(view().elements).toHaveLength(0)
   })
 
+  it('should_refuse_new_tasks_and_decisions_and_point_to_the_task_file', () => {
+    draw(map)
+    for (const type of ['tache', 'decision']) {
+      expect(() => draw({ elements: [{ cle: `${type}:x`, type, titre: 'Écrire le guide' }] })).toThrow(
+        expect.objectContaining({ code: 'ENTREE_INVALIDE', message: expect.stringContaining('fichier de tâches') })
+      )
+    }
+    // Tout ou rien : rien n'a été créé.
+    expect(view().elements).toHaveLength(4)
+  })
+
+  it('should_remove_the_elements_chosen_by_mentalyas_with_their_children_and_links_in_one_undoable_batch', () => {
+    draw(map)
+    // Une tâche posée avant D27 (écrite directement, comme la démo) sous le module principal.
+    const main = view().elements.find((element) => element.key === 'module:main')
+    const old = '00000000-0000-4000-8000-00000000d270'
+    elements.insert({
+      id: old,
+      genesisId: projet,
+      key: 'tache:guide',
+      parentId: main?.id ?? '',
+      depth: 2,
+      type: 'tache',
+      title: 'Écrire le guide',
+      content: null,
+      status: 'a_faire',
+      paths: [],
+      rank: null,
+      layer: null,
+      layerSource: null
+    })
+    // Une tâche existante reste modifiable par Claude (le refus ne vise que les nouvelles).
+    expect(() =>
+      draw({ elements: [{ cle: 'tache:guide', type: 'tache', titre: 'Guide', parent: 'module:main' }] })
+    ).not.toThrow()
+    const { batchId, count } = structure.removeElements(projet, [main?.id ?? ''])
+    // Le module part avec ses deux enfants (composant et tâche) ; le lien du module part aussi.
+    expect(count).toBe(3)
+    expect(view().elements.map((element) => element.key)).toEqual(['module:renderer', 'fonctionnalite:chat'])
+    expect(view().mapLinks).toHaveLength(0)
+    expect(history.list().items[0]).toMatchObject({ batchId, actor: 'user' })
+    history.undo(batchId)
+    expect(view().elements).toHaveLength(5)
+    expect(view().mapLinks).toHaveLength(1)
+    expect(() => structure.removeElements(autre, [main?.id ?? ''])).toThrow(
+      expect.objectContaining({ code: 'NOT_FOUND' })
+    )
+  })
+
   it('should_refuse_to_draw_in_another_project_than_its_conversation', () => {
     expect(() => draw({ projet: autre, elements: [{ cle: 'a', type: 'module', titre: 'A' }] })).toThrow(McpToolError)
     draw(map)

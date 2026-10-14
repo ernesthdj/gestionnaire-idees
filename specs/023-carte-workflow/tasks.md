@@ -119,6 +119,14 @@ d'appel et blocs offerts ; un clic sur un bloc surligne son code ; le parcours s
 - [x] T084 Sources `element` et `workflow` (`shared/ipc/widgetIo.ts`, schéma), `domain/widgets/structureInputs.ts` (élément et nœud Workflow retrouvé par sa clé, borné), `WidgetIoService` (validation, assemblage, titre), canal `widgetIo:connect` (clé Workflow validée), cadre des widgets v6, traits de la carte ; tests `unit/widgets/structure-inputs`, `integration/widgets/widget-io`, `unit/ipc/widget-io-handlers`
 - [x] T085 Renderer : poignée au survol des éléments et des nœuds Workflow branchables, `connectionIntent`, revue du widget, point d'arrivée détaché du bord, tout le widget accepte un lien en cours ; tests `renderer/canvas-connection`, e2e `workflow-task-files`, `widget-wireframe`
 
+## Phase 12 — Le Workflow est le lieu de travail, Progression et Architecture des lecteurs (D26 à D28) — ajoutée le 2026-10-14
+- [x] T086 `PlanService` : aucune étape ne naît dans une vue d'un projet lié (Workflow, Progression, Architecture) ; un projet lié sans vue ni carte est en vue Workflow (`structureViewOf`) ; tests `integration/plan`
+- [x] T087 `StructureService.draw` refuse un nouvel élément `tache` ou `decision` (consigne : fichier de tâches, doc) ; description de `structure_dessiner` et consignes du pont MCP (le travail dans le Workflow, la carte reflète doc et code) ; tests `integration/structure`, `unit/mcp`
+- [x] T088 `StructureService.removeElements` par mentalyas (un lot d'Historique, descendants et liens, annulable) + canal `structure:removeElements` (Zod, éléments du genesis seulement) ; tests
+- [x] T089 Barre de Progression et d'Architecture : étapes nées dans la vue et éléments `tache` / `decision`, « Les reporter dans les fichiers » (consigne pure, testée) et « Les retirer » ; tests renderer et axe
+- [x] T090 « ✦ Nouveau brainstorm » dans la barre Workflow : sujet borné, consigne pure pré-remplie dans la conversation du genesis ; tests renderer et axe
+- [x] T091 e2e touchés (`workflow-task-files`, `avancement`) ; `CLAUDE.md`, JOURNAL ; vérifications finales
+
 ## Phase 7 — Finitions
 - [x] T038 Proposer à mentalyas la liste des specs du dépôt à marquer « Livrée » (ou « Abandonnée », « En pause » : 013, 014, 015) avec leurs reliquats ; **après son accord seulement**, écrire leur ligne `**Status**` dans `specs/0NN-*/spec.md`
 - [x] T039 [P] Démo : `src/main/infrastructure/db/demo/seedDemo.ts` crée un petit dossier de méthode fictif dans le profil démo (deux specs, un L1 à brainstormer, une fondation) lié à un genesis ; mise à jour de la ligne `seed:demo` de `CLAUDE.md`

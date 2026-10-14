@@ -241,6 +241,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'workflow:chat',
   'workflow:setFolded',
   'structure:setArchitecture',
+  'structure:removeElements',
   'element:setLayer',
   'element:setStatus',
   'structure:covered',

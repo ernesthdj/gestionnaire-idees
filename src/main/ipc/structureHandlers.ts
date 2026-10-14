@@ -10,10 +10,14 @@ import { defineRoute, type IpcRoute } from './registry'
 /**
  * Canaux de la carte de structure (spec 009) : déplier / replier un élément ; fichiers d'un élément et lecture seule
  * de l'un d'eux (spec 017 US7) ; corriger l'architecture d'une carte et la couche d'un élément (D20), annulables ;
- * statut d'éléments à la main et éléments couverts par un commit (spec 030 D2, D5).
+ * statut d'éléments à la main et éléments couverts par un commit (spec 030 D2, D5) ; éléments retirés par mentalyas
+ * (spec 023 D28).
  */
 export function createStructureRoutes(
-  structure: Pick<StructureService, 'setCollapsed' | 'setArchitecture' | 'setLayer' | 'setStatus' | 'covered'>,
+  structure: Pick<
+    StructureService,
+    'setCollapsed' | 'setArchitecture' | 'setLayer' | 'setStatus' | 'covered' | 'removeElements'
+  >,
   files: Pick<ElementFilesService, 'files' | 'file'>
 ): IpcRoute[] {
   return [
@@ -48,6 +52,11 @@ export function createStructureRoutes(
         status: z.enum(ELEMENT_STATUSES)
       }),
       handler: async ({ elementIds, status }) => structure.setStatus(elementIds, status)
+    }),
+    defineRoute({
+      channel: 'structure:removeElements',
+      input: z.strictObject({ genesisId: z.uuid(), elementIds: z.array(z.uuid()).min(1).max(300) }),
+      handler: async ({ genesisId, elementIds }) => structure.removeElements(genesisId, elementIds)
     }),
     defineRoute({
       channel: 'structure:covered',

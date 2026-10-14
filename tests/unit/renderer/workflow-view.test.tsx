@@ -143,7 +143,9 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
   it('should_switch_to_workflow_and_reload_from_the_bar_with_structure_views_disabled_without_a_map', async () => {
     const user = userEvent.setup()
     installFakeApi({})
-    const props = { data: { genesisId: G, view: null, hasMap: false, architecture: null } }
+    const props = {
+      data: { genesisId: G, view: null, hasMap: false, architecture: null, strays: { steps: [], elements: [] } }
+    }
     const { container } = render(
       <QueryClientProvider client={new QueryClient()}>
         <ReactFlowProvider>

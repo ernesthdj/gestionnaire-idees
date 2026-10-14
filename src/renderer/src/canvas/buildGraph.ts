@@ -31,6 +31,7 @@ import type { DocumentView } from '@shared/ipc/documents'
 import { ELEMENT_ICONS, ELEMENT_NODE_STATUS, STATUS_LABELS } from './nodes/ElementNode'
 import { finalStateLabel, STEP_NODE_STATUS, STEP_STATUS_LABELS } from './nodes/PlanNode'
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
+import type { StrayElement, WorkflowStepRef } from './workflow/prompts'
 import { workflowGraph } from './workflow/workflowGraph'
 import { workflowTree, type WorkflowEntry, type WorkflowItem } from './workflow/workflowTree'
 
@@ -115,15 +116,20 @@ export type StructureBarNodeType = Node<
     readonly view: StructureViewKind | null
     readonly hasMap: boolean
     readonly architecture: StructureArchitectureView | null
-    readonly workflowSteps: readonly {
-      readonly id: string
-      readonly parentId: string
-      readonly title: string
-      readonly rank: number
-    }[]
+    /**
+     * Ce qui a été posé dans la vue affichée alors que le travail se fait dans le Workflow (spec 023 D23, D28) : les
+     * étapes nées dans cette vue et, en Progression et en Architecture, les éléments `tache` et `decision` de la carte.
+     */
+    readonly strays: Strays
   },
   'structureBar'
 >
+
+/** Étapes et éléments à reporter dans les fichiers du projet ou à retirer (spec 023 D23, D28). */
+export interface Strays {
+  readonly steps: readonly WorkflowStepRef[]
+  readonly elements: readonly StrayElement[]
+}
 
 /** Nœud de la vue Workflow (spec 023) : branche, spec, user story, socle, tâche, idée à brainstormer ou message. */
 export type WorkflowNodeType = Node<
@@ -793,36 +799,49 @@ export function buildGraph(
   )
   const withMap = new Set(view.elements.map((element) => element.genesisId))
   const linked = new Set(view.ideas.filter((idea) => idea.linkedProject === true).map((idea) => idea.id))
-  const barNodes = [...genesisCenters].flatMap(([id, center]): StructureBarNodeType[] =>
-    withMap.has(id) || linked.has(id)
-      ? [
-          {
-            id: `structure-bar-${id}`,
-            type: 'structureBar',
-            position: { x: center.x + STRUCTURE_BAR_OFFSET.x, y: center.y + STRUCTURE_BAR_OFFSET.y },
-            data: {
-              genesisId: id,
-              view: workflowIds.has(id)
-                ? 'workflow'
-                : !withMap.has(id)
-                  ? null
-                  : switched.includes(id)
-                    ? 'architecture'
-                    : 'progression',
-              hasMap: withMap.has(id),
-              architecture: architectureOf.get(id) ?? null,
-              // Étapes nées dans la vue Workflow avant D22 : masquées, signalées par la barre (D23).
-              workflowSteps: view.steps
-                .filter((step) => step.genesisId === id && bornIn(step, linked.has(id)) === 'workflow')
-                .map((step) => ({ id: step.id, parentId: step.parentId, title: step.title, rank: step.rank }))
-            },
-            draggable: false,
-            selectable: false,
-            deletable: false
+  const barNodes = [...genesisCenters].flatMap(([id, center]): StructureBarNodeType[] => {
+    if (!withMap.has(id) && !linked.has(id)) return []
+    const shownView: StructureViewKind | null = workflowIds.has(id)
+      ? 'workflow'
+      : !withMap.has(id)
+        ? null
+        : switched.includes(id)
+          ? 'architecture'
+          : 'progression'
+    return [
+      {
+        id: `structure-bar-${id}`,
+        type: 'structureBar',
+        position: { x: center.x + STRUCTURE_BAR_OFFSET.x, y: center.y + STRUCTURE_BAR_OFFSET.y },
+        data: {
+          genesisId: id,
+          view: shownView,
+          hasMap: withMap.has(id),
+          architecture: architectureOf.get(id) ?? null,
+          // Étapes nées dans la vue affichée (masquées en Workflow, D23) ; tâches et décisions de la carte (D28).
+          strays: {
+            steps:
+              shownView === null
+                ? []
+                : view.steps
+                    .filter((step) => step.genesisId === id && bornIn(step, linked.has(id)) === shownView)
+                    .map((step) => ({ id: step.id, parentId: step.parentId, title: step.title, rank: step.rank })),
+            elements:
+              shownView === null || shownView === 'workflow'
+                ? []
+                : view.elements.flatMap((element): StrayElement[] =>
+                    element.genesisId === id && (element.type === 'tache' || element.type === 'decision')
+                      ? [{ id: element.id, parentId: element.parentId, title: element.title, type: element.type }]
+                      : []
+                  )
           }
-        ]
-      : []
-  )
+        },
+        draggable: false,
+        selectable: false,
+        deletable: false
+      }
+    ]
+  })
   // Aspect vivant des éléments (spec 022 US3) : couleur de leur module (enfant direct du genesis), taille par niveau.
   const elementVisuals = nodeVisuals([
     ...[...withMapIds(view)].map((id): TreeNodeInput => ({ id, parentId: null, icon: 'project' })),

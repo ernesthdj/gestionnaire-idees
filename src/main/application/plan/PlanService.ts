@@ -48,10 +48,12 @@ export interface PlanDeps {
   readonly finals?: { isFinal(neuronId: string): boolean }
   readonly now?: () => Date
   /**
-   * Vue affichée de la carte d'un genesis (spec 023 D19) : une étape née sous le genesis y est rangée ; `null` : pas
-   * de vue (genesis sans projet lié ni carte).
+   * Vue affichée de la carte d'un genesis (spec 023 D19) ; `null` : pas de vue (genesis sans projet lié ni carte). Toute
+   * vue refuse les étapes (D27).
    */
   readonly structureView?: (genesisId: string) => StructureView | null
+  /** Le genesis est lié à un dossier de projet : son travail se fait dans le Workflow (D27). */
+  readonly projectLinked?: (genesisId: string) => boolean
 }
 
 const PROBLEMS: Readonly<Record<DependencyProblem, string>> = {
@@ -80,7 +82,7 @@ export class PlanService {
         'Cette étape est une action finale : elle ne se découpe plus (mentalyas peut la rétrograder).'
       )
     }
-    this.refuseWorkflow(parent)
+    this.refuseProjectView(parent)
     if (parent.depth + 1 > PLAN_LIMITS.depth) {
       throw new AppError('VALIDATION', `Au plus ${PLAN_LIMITS.depth} niveaux sous le genesis : regroupe plutôt.`)
     }
@@ -144,8 +146,7 @@ export class PlanService {
     const parent = repository.node(proposal.parentId)
     if (parent === undefined) throw new AppError('NOT_FOUND', 'Nœud introuvable')
     const accepted = proposal.items.filter((item) => input.accept.includes(item.id))
-    if (accepted.length > 0) this.refuseWorkflow(parent)
-    const view = this.birthView(parent)
+    if (accepted.length > 0) this.refuseProjectView(parent)
 
     const batchId = randomUUID()
     const born: string[] = []
@@ -172,7 +173,7 @@ export class PlanService {
           rank,
           title: item.title,
           content: item.why,
-          view
+          view: null
         })
         entry('step', id, null, { title: item.title, parentId: parent.id })
         repository.decideItem(item.id, 'valide', id)
@@ -197,23 +198,22 @@ export class PlanService {
     return { batchId: born.length > 0 ? batchId : null, born }
   }
 
-  /** Étape glissée par mentalyas : sa branche suit (décalage relatif à sa place calculée, non historisé). */
-  /** Vue de naissance (spec 023 D19) : celle affichée pour une étape du genesis, celle de son parent sinon. */
-  private birthView(parent: PlanNodeRow): StructureView | null {
-    return parent.kind === 'step'
-      ? (this.deps.repository.children(parent.parentId ?? '').find((step) => step.id === parent.id)?.view ?? null)
-      : (this.deps.structureView?.(parent.genesisId) ?? null)
-  }
-
-  /** La vue Workflow se lit dans les fichiers du projet (spec 023 D22) : aucune étape n'y naît. */
-  private refuseWorkflow(parent: PlanNodeRow): void {
-    if (this.birthView(parent) !== 'workflow') return
+  /**
+   * Aucune étape ne naît dans une vue d'un projet lié (spec 023 D22, D27) : le travail se fait dans le Workflow, qui se
+   * lit dans les fichiers du projet ; Progression et Architecture ne font que le refléter. Seul un genesis sans vue
+   * (idée non liée à un projet) a encore un plan d'attaque.
+   */
+  private refuseProjectView(parent: PlanNodeRow): void {
+    const linked = this.deps.projectLinked?.(parent.genesisId) === true
+    if (!linked && (this.deps.structureView?.(parent.genesisId) ?? null) === null) return
     throw new AppError(
       'VALIDATION',
-      'La vue Workflow se lit dans les fichiers du projet : ajoute ces tâches dans son fichier de tâches ' +
-        '(cases « - [ ] », ou tasks.md d’une spec) au lieu de créer des étapes.'
+      'Le travail de ce projet se fait dans la vue Workflow, qui se lit dans ses fichiers : ajoute ces tâches dans son ' +
+        'fichier de tâches (cases « - [ ] » de docs/TACHES-<Sujet>.md, ou tasks.md d’une spec) au lieu de créer des étapes.'
     )
   }
+
+  /** Étape glissée par mentalyas : sa branche suit (décalage relatif à sa place calculée, non historisé). */
 
   move(stepId: string, x: number, y: number): void {
     if (!this.isStep(stepId)) throw new AppError('NOT_FOUND', 'Étape introuvable')

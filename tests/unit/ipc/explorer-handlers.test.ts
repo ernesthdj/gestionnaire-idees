@@ -142,7 +142,8 @@ describe('canaux de correction de la carte (spec 017 D20)', () => {
     const structure = {
       setCollapsed: vi.fn(),
       setArchitecture: vi.fn(() => ({ batchId: 'b1' })),
-      setLayer: vi.fn(() => ({ batchId: 'b2' }))
+      setLayer: vi.fn(() => ({ batchId: 'b2' })),
+      removeElements: vi.fn(() => ({ batchId: 'b3', count: 1 }))
     }
     const files = { files: vi.fn(), file: vi.fn() }
     return {
@@ -172,5 +173,19 @@ describe('canaux de correction de la carte (spec 017 D20)', () => {
     expect(await dispatch('element:setLayer', { elementId: ELEMENT, layer: 'Domaine; DROP' })).toMatchObject({
       error: { code: 'VALIDATION' }
     })
+  })
+
+  it('should_forward_the_elements_removed_by_mentalyas_and_refuse_a_malformed_list', async () => {
+    const { dispatch, structure } = setup()
+    expect(await dispatch('structure:removeElements', { genesisId: GENESIS, elementIds: [ELEMENT] })).toEqual({
+      success: true,
+      data: { batchId: 'b3', count: 1 }
+    })
+    expect(structure.removeElements).toHaveBeenCalledWith(GENESIS, [ELEMENT])
+    for (const elementIds of [[], ['pas-un-id']]) {
+      expect(await dispatch('structure:removeElements', { genesisId: GENESIS, elementIds })).toMatchObject({
+        error: { code: 'VALIDATION' }
+      })
+    }
   })
 })

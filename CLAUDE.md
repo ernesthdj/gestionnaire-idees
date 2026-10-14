@@ -146,5 +146,10 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
   animées de l'accueil » (code mis de côté sur la branche `archive/029-scenes-accueil`) ; **livrée le 2026-10-13 : 030
   « Avancement fiable »** (réparation du gel : `element_avancer` par clé, statut à la main, statut calculé des parents,
   « livrée » proposée au commit)
+- **Amendement 023 du 2026-10-14 (D26 à D29)** : le travail se fait dans la vue **Workflow** (« ✦ Nouveau brainstorm »
+  → document L1 + `docs/TACHES-<Sujet>.md`) ; **Progression** et **Architecture** ne font que refléter la doc (prévu) et
+  le code (réel) : aucune étape n'y naît, `structure_dessiner` refuse les nouvelles `tache` / `decision`, la barre
+  signale ce qui y avait été posé (reporter ou retirer). Refonte de leur rendu (prévu fantôme / réel) à brainstormer
+  dans un artifact
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`
