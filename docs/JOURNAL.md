@@ -1873,3 +1873,12 @@ même identifiant : le fondu et le masquage du titre visaient la copie (somme de
 la vraie scène. Trouvée par la mesure e2e, invisible à l'œil.
 **Règle apprise :** une copie figée d'une scène doit être exclue de toute recherche d'élément (et des lecteurs d'écran) :
 elle duplique les identifiants.
+
+### [2026-10-14 02:55] SESSION — End
+**Resume :** spec 021 « Git et GitHub » terminée (US5 lot 2 à US7, T030 nouveautés surlignées, SC-006 mesuré : clone
+d'eslint en 7,1 s, US6 vérifiée sur le vrai GitHub) ; confirmation avant de changer de branche dans le dépôt de l'app ;
+spec 017 D23 (« Analyser le code… » d'un projet déjà lié, bouton Explorateur) ; spec 031 « Explorateur en boîtes »
+écrite (D1-D13, maquette validée) puis lots 1 à 3 livrés (carte en une réponse, rôle des fichiers par Claude, carte en
+boîtes, entrer / amorces / Échap, transition mesurée image par image). Reste : lots 4 à 6 de la 031.
+**Branche :** main
+**Commits pushes :** 17 (branche locale `archive/029-scenes-accueil` gardée hors du dépôt distant)
