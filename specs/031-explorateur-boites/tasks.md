@@ -35,8 +35,8 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 4 — Fiche et recherche
 
-- [ ] T040 Fiche à droite (D8) : module en mots ; fichier → fonctions, appels, code (panneau existant).
-- [ ] T041 Recherche Ctrl+K (D9) + tests.
+- [x] T040 Fiche à droite (D8) : module en mots ; fichier → fonctions, appels, code (panneau existant).
+- [x] T041 Recherche Ctrl+K (D9) + tests.
 
 ## Lot 5 — Gestes et positions
 

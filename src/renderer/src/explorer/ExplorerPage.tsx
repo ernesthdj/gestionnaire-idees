@@ -3,11 +3,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CodeLang, ExplorerLinkView, ExplorerPlaceView, MapFileView } from '@shared/ipc/reprise'
 import type { ExplorerMarks } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
-import { call } from '../lib/ipc'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { BoxActionsContext } from './boxes/BoxNodes'
 import { BoxList } from './boxes/BoxList'
 import { BoxMap } from './boxes/BoxMap'
+import { FileSheet, ModuleSheet } from './boxes/BoxSheet'
+import { SearchPalette, type PaletteHit } from './boxes/SearchPalette'
 import { shownBoxes, shownKeys } from './boxes/boxLayout'
 import { useBoxMap } from './boxes/useBoxMap'
 import { MarksKindContext, ReplayMarksContext } from './ExplorerNodes'
@@ -65,12 +66,10 @@ export function ExplorerPage({
   const replay = useReplay(genesisId, replaying, visibleKeys)
   const updates = useUpdatesMarks(genesisId, marksShown === 'updates', visibleKeys)
   const quitMarks = useCallback(() => setMarksShown(null), [])
-  const ids = { title: useId(), search: useId(), lang: useId() }
+  const ids = { title: useId(), lang: useId() }
   const [list, setList] = useState(false)
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<
-    readonly (ExplorerPlaceView & { readonly key: string; readonly title: string; readonly where: string })[]
-  >([])
+  // Recherche Ctrl+K ouverte (spec 031 D9).
+  const [searching, setSearching] = useState(false)
   const project = explorer.project
   const [aside, setAside] = useState<'element' | 'code' | 'guide'>('element')
   const [file, setFile] = useState<OpenFile | null>(null)
@@ -116,6 +115,40 @@ export function ExplorerPage({
     setOpen(new Set())
     explorer.select(null)
   }
+  // Un module nommé dans une fiche : dedans, on y entre ; sur la carte, il s'ouvre sur place.
+  const showModule = (key: string): void => {
+    if (focus !== null) setFocus(key)
+    else setOpen((current) => new Set([...current, key]))
+    select(key)
+  }
+  // Un fichier nommé dans une fiche : montré là où on est (son module ouvert, ou on entre dans son module), code à droite.
+  const showFile = (entry: MapFileView): void => {
+    if (focus !== null) setFocus(entry.moduleKey)
+    else setOpen((current) => new Set([...current, entry.moduleKey]))
+    explorer.select(entry.key)
+    openFile({ path: entry.path, line: null, symbolId: null })
+  }
+  // Un résultat de Ctrl+K : on entre dans son module (filtres levés s'ils le cachent) et son code s'ouvre (D9).
+  const pick = (hit: PaletteHit): void => {
+    setSearching(false)
+    const path = hit.kind === 'map' ? hit.hit.file.path : hit.place.path
+    if (path === null) return
+    const entry = map.data?.files.find((candidate) => candidate.path === path)
+    if (entry !== undefined) {
+      const hidden = shown?.filesOf.get(entry.moduleKey)?.some((candidate) => candidate.key === entry.key) !== true
+      if (hidden) {
+        explorer.setFilters({ ...explorer.filters, categories: [...CODE_CATEGORIES_SHOWN, 'plumbing'], langs: [] })
+      }
+      if (!list) setFocus(entry.moduleKey)
+      explorer.select(entry.key)
+    }
+    openFile({
+      path,
+      line: null,
+      symbolId: hit.kind === 'symbol' ? hit.place.symbolId : null,
+      fn: hit.kind === 'map' ? hit.hit.fn : null
+    })
+  }
   const goTo = (place: ExplorerPlaceView, show = true): void => {
     if (place.path === null) return
     reveal(place.path)
@@ -128,18 +161,14 @@ export function ExplorerPage({
   }
 
   useEffect(() => {
-    const trimmed = query.trim()
-    if (trimmed.length < 2) {
-      setResults([])
-      return
+    const onKey = (event: KeyboardEvent): void => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return
+      event.preventDefault()
+      setSearching(true)
     }
-    const timer = setTimeout(() => {
-      call<{ readonly results: typeof results }>('explorer:search', { genesisId, query: trimmed })
-        .then((found) => setResults(found.results))
-        .catch(() => setResults([]))
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [query, genesisId])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const setHidePlumbing = (hide: boolean): void =>
     explorer.setFilters({
@@ -236,42 +265,14 @@ export function ExplorerPage({
               {map.data?.truncated === true ? ' · carte tronquée (projet très grand)' : ''}
             </p>
           )}
-          <div className="relative ml-auto">
-            <label htmlFor={ids.search} className="sr-only">
-              Rechercher un élément
-            </label>
-            <input
-              id={ids.search}
-              type="search"
-              value={query}
-              maxLength={100}
-              placeholder="Rechercher un fichier, une classe…"
-              onChange={(event) => setQuery(event.target.value)}
-              className="h-7 w-64 rounded-md bg-surface-raised px-2"
-            />
-            {results.length === 0 ? null : (
-              <ul
-                aria-label="Résultats de la recherche"
-                className="absolute right-0 z-10 mt-1 max-h-72 w-96 overflow-y-auto rounded-md bg-surface p-1 shadow-lg"
-              >
-                {results.map((result) => (
-                  <li key={result.key}>
-                    <button
-                      type="button"
-                      className="w-full rounded px-2 py-1 text-left hover:bg-surface-raised"
-                      onClick={() => {
-                        goTo(result)
-                        setQuery('')
-                      }}
-                    >
-                      <span className="font-semibold">{result.title}</span>{' '}
-                      <span className="text-content-muted">{result.where}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setSearching(true)}
+            aria-keyshortcuts="Control+K"
+            className="ml-auto flex h-7 w-64 items-center justify-between rounded-md bg-surface-raised px-2 text-content-muted"
+          >
+            Rechercher un fichier, une fonction… <kbd className="font-mono text-[10px]">Ctrl K</kbd>
+          </button>
         </div>
         {folderMissing ? (
           <p role="alert" className="text-xs text-con">
@@ -335,7 +336,7 @@ export function ExplorerPage({
           {list ? null : (
             <p role="status" className="min-h-9 border-t border-content-muted/20 px-4 py-2 text-xs text-content-muted">
               {caption ??
-                'Clic : ouvrir un module · clic dans le vide : refermer · survol d’un trait : l’appel en mots'}
+                'Clic : ouvrir un module · double-clic : entrer · Ctrl+K : chercher · survol d’un trait : l’appel en mots'}
             </p>
           )}
         </div>
@@ -381,17 +382,55 @@ export function ExplorerPage({
                 onLocate={(place) => goTo(place, false)}
               />
             ) : aside === 'code' && file !== null ? (
-              <FilePanel
-                genesisId={genesisId}
-                file={file}
-                onOpenFile={openFile}
-                onPlaced={(place) => place.path !== null && reveal(place.path)}
-              />
+              <div className="flex h-full min-h-0 flex-col">
+                {map.data === undefined ? null : (
+                  <FileSheet
+                    map={map.data}
+                    path={file.path}
+                    onFile={showFile}
+                    onFunction={(name) => openFile({ path: file.path, line: null, symbolId: null, fn: name })}
+                  />
+                )}
+                <div className="min-h-0 flex-1">
+                  <FilePanel
+                    genesisId={genesisId}
+                    file={file}
+                    onOpenFile={openFile}
+                    onPlaced={(place) => place.path !== null && reveal(place.path)}
+                  />
+                </div>
+              </div>
             ) : explorer.selected === null ? (
               <div className="flex flex-col gap-2 p-4 text-sm text-content-muted">
                 <p>Choisis un module pour voir à quoi il sert, qui l’appelle et ce qu’il appelle.</p>
                 <p>Un clic ouvre le module sur place ; un clic sur un de ses fichiers ouvre son code ici.</p>
               </div>
+            ) : map.data !== undefined && map.data.modules.some((module) => module.key === explorer.selected) ? (
+              <ModuleSheet
+                genesisId={genesisId}
+                map={map.data}
+                moduleKey={explorer.selected}
+                onModule={showModule}
+                onFile={showFile}
+                onEnter={
+                  list
+                    ? undefined
+                    : (key) => {
+                        setFocus(key)
+                        select(key)
+                      }
+                }
+              />
+            ) : map.data !== undefined && map.data.files.some((entry) => entry.key === explorer.selected) ? (
+              <FileSheet
+                map={map.data}
+                path={explorer.selected.slice(2)}
+                onFile={showFile}
+                onFunction={(name) =>
+                  openFile({ path: explorer.selected?.slice(2) ?? '', line: null, symbolId: null, fn: name })
+                }
+                whole
+              />
             ) : (
               <NodePanel
                 genesisId={genesisId}
@@ -404,6 +443,9 @@ export function ExplorerPage({
         </aside>
       </div>
 
+      {searching && map.data !== undefined ? (
+        <SearchPalette genesisId={genesisId} map={map.data} onPick={pick} onClose={() => setSearching(false)} />
+      ) : null}
       {replaying ? (
         <ReplayBar
           replay={replay}

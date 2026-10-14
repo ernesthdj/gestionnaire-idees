@@ -104,4 +104,32 @@ describe('explorateur en boîtes : entrer, passer, ressortir (spec 031 lot 3, e2
     expect(await page.getByRole('group', { name: /^intérieur du module/ }).count()).toBe(0)
     await run.shot('031-lot3-03-sortie')
   })
+
+  it('should_open_a_file_in_two_gestures_with_ctrl_k_and_describe_its_module_in_words', async () => {
+    const { page } = run
+    // SC-001 : Ctrl+K, le nom, Entrée → dans son module, son code et sa fiche à droite.
+    await page.keyboard.press('Control+K')
+    await page.getByRole('combobox', { name: 'Fichier ou fonction' }).fill('sqlorder')
+    await page
+      .getByRole('option', { name: /SqlOrderRepository\.cs/ })
+      .first()
+      .waitFor()
+    await run.shot('031-lot4-01-recherche')
+    await page.keyboard.press('Enter')
+    await page.getByRole('group', { name: /^intérieur du module Infrastructure/ }).waitFor()
+    const pane = page.getByRole('complementary', { name: 'Code du fichier' })
+    await pane.getByRole('region', { name: /^Code de Infrastructure\/SqlOrderRepository\.cs/ }).waitFor()
+    await pane.getByRole('region', { name: 'Qui l’appelle' }).waitFor()
+    await page.locator('.scene-ghost').waitFor({ state: 'detached' })
+    await run.shot('031-lot4-02-fichier-trouve')
+
+    // La fiche d'un module : ce qu'il utilise et qui l'utilise, en mots.
+    await page.keyboard.press('Escape')
+    await page.locator('.scene-ghost').waitFor({ state: 'detached' })
+    await page.getByRole('group', { name: /^module Infrastructure,/ }).click()
+    await page.getByRole('tab', { name: 'Élément' }).click()
+    const element = page.getByRole('complementary', { name: 'Élément choisi' })
+    await element.getByRole('region', { name: 'Utilisé par' }).getByRole('button', { name: 'Domain' }).waitFor()
+    await run.shot('031-lot4-03-fiche-module')
+  })
 })

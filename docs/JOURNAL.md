@@ -1882,3 +1882,21 @@ spec 017 D23 (« Analyser le code… » d'un projet déjà lié, bouton Explorat
 boîtes, entrer / amorces / Échap, transition mesurée image par image). Reste : lots 4 à 6 de la 031.
 **Branche :** main
 **Commits pushes :** 17 (branche locale `archive/029-scenes-accueil` gardée hors du dépôt distant)
+
+### [2026-10-14 09:15] FEAT — spec 031 lot 4 : la fiche à droite et la recherche Ctrl+K
+**Fichiers :** `src/renderer/src/explorer/boxes/{sheet.ts, BoxSheet.tsx, SearchPalette.tsx}` (nouveaux),
+`ExplorerPage.tsx` (fiches, Ctrl+K à la place du champ de recherche), `FilePanel.tsx` (se placer sur une fonction par
+son nom) ; tests `unit/renderer/box-sheet.test.ts` (nouveau), `unit/renderer/explorer-page.test.tsx`, e2e
+`explorer-boxes.e2e.ts` (parcours Ctrl+K), `git-replay.e2e.ts` (extraction trouvée par Ctrl+K).
+**Quoi :** D8 : un module choisi → sa fiche en mots (couche, rôle et image du guide, « Utilise », « Utilisé par » avec
+le nombre d'appels et les phrases, deviné compris, puis son contenu ; « Entrer dans le module ») ; un fichier → sa fiche
+(rôle, fonctions cliquables qui placent le code, ce qu'il appelle et qui l'appelle) au-dessus de son code, repliable.
+Tout est calculé depuis `explorer:map`, sans nouvel IPC (Inter-Process Communication). D9 : Ctrl+K ouvre une palette
+(combobox + listbox, flèches, Entrée, Échap) : fichiers et fonctions de la carte tout de suite (nom exact, début,
+milieu, chemin ; sans casse ni accents), puis les éléments que seule l'analyse connaît (`explorer:search`, classes,
+fonctions au-delà des 20 d'un fichier) ; Entrée entre dans le module (filtres levés s'ils le cachent), choisit le
+fichier et ouvre son code. SC-001 tenu : 2 gestes (Ctrl+K, Entrée).
+**Choix :** la fiche d'un module sort de la carte (appels regroupés par module voisin) et non plus de `explorer:node`,
+qui ne sert plus qu'à l'image du guide ; les appels internes ne sont pas des voisins.
+**Règle apprise :** une liste qui reprend les noms de la carte dans le panneau crée des doublons de texte : dans les
+tests, viser un élément de la carte par son nœud (`within(nœud)`), jamais par `getByText` sur tout l'écran.

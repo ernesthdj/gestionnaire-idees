@@ -339,12 +339,14 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
     const { api, container } = renderExplorer()
     // Nœud déplaçable : un clic simple (sans « mousedown », que le glisser de React Flow lit sur la fenêtre).
     fireEvent.click(await screen.findByText('Domain'))
-    expect(await screen.findByLabelText(/^fichier OrderService\.cs\. Passe la commande\./)).toBeTruthy()
+    const fileNode = await screen.findByLabelText(/^fichier OrderService\.cs\. Passe la commande\./)
     expect(screen.getByLabelText(/^module Domain.*ouvert/)).toBeTruthy()
     // Le trait arrive sur le fichier exact, et se dit en mots au survol.
     expect(screen.getByLabelText('OrdersController.Post appelle OrderService.Place')).toBeTruthy()
     await expectNoAxeViolations(container)
-    fireEvent.click(screen.getByText('OrderService.cs'))
+    // La fiche du module choisi, à droite, dit ce qu'il contient.
+    expect(within(screen.getByRole('region', { name: 'Contenu' })).getByText('OrderService.cs')).toBeTruthy()
+    fireEvent.click(within(fileNode).getByText('OrderService.cs'))
     expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
     expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
     // Le code chargé, le fichier lu est montré sur la carte ; un clic dans le vide referme ensuite tout.
@@ -412,9 +414,23 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
     await expectNoAxeViolations(container)
   })
 
-  it('should_show_the_plumbing_on_demand_and_jump_to_a_search_result', async () => {
+  it('should_show_the_plumbing_on_demand_and_jump_to_an_element_found_by_the_analysis', async () => {
     const user = userEvent.setup()
-    const { api } = renderExplorer()
+    const { api } = renderExplorer(project(), detail, {
+      'explorer:search': () => ({
+        results: [
+          {
+            key: 'r:m:dir:Domain',
+            nodeKey: 'r:m:dir:Domain',
+            parentKey: 'm:dir:Domain',
+            path: 'Domain/OrderService.cs',
+            symbolId: SYMBOL,
+            title: 'OrderRules',
+            where: 'Domain › OrderService.cs'
+          }
+        ]
+      })
+    })
     await screen.findByText('Controllers')
     await user.click(screen.getByText('Filtres'))
     await user.click(screen.getByRole('checkbox', { name: 'Masquer la plomberie' }))
@@ -425,12 +441,52 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
       })
     )
     expect(await screen.findByText('Logging')).toBeTruthy()
-    await user.type(screen.getByLabelText('Rechercher un élément'), 'Pla')
-    await user.click(await screen.findByRole('button', { name: /^Place/ }))
+    await user.click(screen.getByRole('button', { name: /Rechercher un fichier, une fonction/ }))
+    // Une classe que la carte ne nomme pas : l'analyse la trouve.
+    await user.type(screen.getByRole('combobox', { name: 'Fichier ou fonction' }), 'OrderR')
+    const found = await screen.findByRole('option', { name: /OrderRules\s+Domain › OrderService\.cs/ })
+    await user.click(found)
     expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
     expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
-    // Le fichier cherché est montré sur la carte : son module s'ouvre.
-    expect(await screen.findByLabelText(/^fichier OrderService\.cs/)).toBeTruthy()
+    // On est entré dans son module.
+    expect(await screen.findByLabelText(/^intérieur du module Domain/)).toBeTruthy()
+  })
+
+  it('should_find_a_file_with_ctrl_k_enter_its_module_and_open_its_code_in_two_gestures', async () => {
+    const user = userEvent.setup()
+    const { api, container } = renderExplorer()
+    await screen.findByText('Controllers')
+    await user.keyboard('{Control>}k{/Control}')
+    const input = await screen.findByRole('combobox', { name: 'Fichier ou fonction' })
+    await user.type(input, 'stores')
+    expect(screen.getByRole('option', { name: /Stores\.cs/ }).getAttribute('aria-selected')).toBe('true')
+    await expectNoAxeViolations(container)
+    await user.keyboard('{Enter}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/Stores.cs' })
+    expect(await screen.findByLabelText(/^intérieur du module Domain/)).toBeTruthy()
+    // La fiche du fichier, au-dessus de son code : qui l'appelle, en mots.
+    const pane = await screen.findByRole('complementary', { name: 'Code du fichier' })
+    const callers = within(pane).getByRole('region', { name: 'Qui l’appelle' })
+    expect(within(callers).getByText('OrderService.Archive appelle Stores.Resolve')).toBeTruthy()
+  })
+
+  it('should_find_a_function_with_the_arrow_keys_and_close_the_search_with_escape', async () => {
+    const user = userEvent.setup()
+    const { api } = renderExplorer()
+    await screen.findByText('Controllers')
+    await user.keyboard('{Control>}k{/Control}')
+    await user.type(await screen.findByRole('combobox', { name: 'Fichier ou fonction' }), 'o')
+    // « o » : des fichiers et des fonctions ; Échap ferme sans rien ouvrir.
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(1)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(api.invoke).not.toHaveBeenCalledWith('explorer:file', expect.anything())
+    await user.keyboard('{Control>}k{/Control}')
+    await user.type(await screen.findByRole('combobox', { name: 'Fichier ou fonction' }), 'resolve')
+    expect(await screen.findByRole('option', { name: /Resolve\s+Stores\.cs/ })).toBeTruthy()
+    await user.keyboard('{ArrowDown}{ArrowUp}{Enter}')
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/Stores.cs' })
   })
 
   it('should_open_the_guide_and_turn_each_cited_name_of_the_project_into_a_link_to_the_explorer', async () => {
@@ -531,20 +587,9 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
     expect(await screen.findByRole('alert')).toBeTruthy()
   })
 
-  it('should_show_the_reason_of_a_deduced_link_in_the_element_panel', async () => {
+  it('should_describe_a_module_in_words_what_it_uses_who_uses_it_and_its_files', async () => {
     const user = userEvent.setup()
-    renderExplorer(project(), {
-      ...detail,
-      callees: [
-        {
-          key: 's:c',
-          title: 'Shop.Infrastructure.SqlOrderRepository.Save',
-          path: 'Infrastructure/SqlOrderRepository.cs',
-          provenance: 'deduced',
-          reason: 'le champ _repository est typé IOrderRepository'
-        }
-      ]
-    })
+    const { api, container } = renderExplorer()
     await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
     await user.click(
       within(screen.getByRole('region', { name: 'Modules et fichiers' })).getByRole('button', {
@@ -552,7 +597,17 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
       })
     )
     const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
-    expect(await within(panel).findByText(/déduit — le champ _repository est typé IOrderRepository/)).toBeTruthy()
+    expect(within(panel).getByText('Le cœur métier.')).toBeTruthy()
+    const usedBy = within(panel).getByRole('region', { name: 'Utilisé par' })
+    expect(within(usedBy).getByRole('button', { name: 'Controllers' })).toBeTruthy()
+    expect(within(usedBy).getByText('OrdersController.Post appelle OrderService.Place')).toBeTruthy()
+    expect(within(within(panel).getByRole('region', { name: 'Utilise' })).getByText('rien dans le projet')).toBeTruthy()
+    // Les appels internes (OrderService → Stores) ne sont pas des voisins ; le contenu ouvre le code.
+    await expectNoAxeViolations(container)
+    await user.click(
+      within(within(panel).getByRole('region', { name: 'Contenu' })).getByRole('button', { name: /Stores\.cs/ })
+    )
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/Stores.cs' })
   })
 
   it('should_replay_who_touched_each_module_move_the_cursor_and_quit_with_escape', async () => {

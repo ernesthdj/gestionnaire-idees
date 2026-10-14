@@ -96,8 +96,13 @@ describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => 
 
   it('should_extract_a_file_into_the_workspace_with_its_license_and_attribution', async () => {
     const { page } = run
-    await page.getByLabel('Rechercher un élément').fill('OrderService')
-    await page.getByRole('list', { name: 'Résultats de la recherche' }).getByRole('button').first().click()
+    await page.keyboard.press('Control+K')
+    await page.getByRole('combobox', { name: 'Fichier ou fonction' }).fill('OrderService.cs')
+    await page
+      .getByRole('option', { name: /^▤?\s*OrderService\.cs/ })
+      .first()
+      .waitFor()
+    await page.keyboard.press('Enter')
     const code = page.getByRole('region', { name: /^Code de Domain\/OrderService\.cs/ })
     await code.waitFor()
     await code.getByRole('button', { name: 'Extraire…' }).click()

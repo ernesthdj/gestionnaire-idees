@@ -13,11 +13,12 @@ import { CodeLines } from '../lib/CodeLines'
 import { call, IpcFailure } from '../lib/ipc'
 import { CATEGORY_LABELS, KIND_LABELS, PROVENANCE_LABELS } from './labels'
 
-/** Fichier ouvert dans le volet : son chemin, et la ligne ou le bloc où se placer. */
+/** Fichier ouvert dans le volet : son chemin, et la ligne, le bloc ou la fonction (par son nom) où se placer. */
 export interface OpenFile {
   readonly path: string
   readonly line: number | null
   readonly symbolId: string | null
+  readonly fn?: string | null
 }
 
 const VERBS: Readonly<Record<CodeBlockLinkView['kind'], string>> = {
@@ -110,9 +111,12 @@ export function FilePanel({
 
   const target = useMemo(() => {
     if (view === undefined) return null
-    const line = file.line ?? view.blocks.find((block) => block.symbolId === file.symbolId)?.startLine ?? null
+    const block =
+      view.blocks.find((entry) => entry.symbolId === file.symbolId) ??
+      view.blocks.find((entry) => entry.kind !== 'file' && entry.name === (file.fn ?? null))
+    const line = file.line ?? block?.startLine ?? null
     return line === null ? null : { from: line, to: line }
-  }, [view, file.line, file.symbolId])
+  }, [view, file.line, file.symbolId, file.fn])
   const headers = useMemo(() => {
     const byLine = new Map<number, CodeBlockView[]>()
     for (const block of view?.blocks ?? []) byLine.set(block.startLine, [...(byLine.get(block.startLine) ?? []), block])
