@@ -16,30 +16,26 @@ import {
 
 /**
  * Bascule « Workflow | Progression | Architecture » d'une carte de projet lié (spec 023 D3) : sur la barre de la carte
- * et en tête de l'explorateur monté en position Architecture (spec 032 D14). Progression demande une carte de
- * structure dessinée ; l'Architecture est l'explorateur, qui propose d'analyser le code s'il ne l'est pas encore.
+ * et en tête des panneaux Progression et Architecture montés par-dessus la carte (spec 032 D12, D14). Les deux lisent
+ * la doc et l'analyse du code (proposée si elle manque) : aucune ne demande de carte de structure dessinée.
  */
 export function StructureViewSwitch({
   genesisId,
-  view,
-  hasMap
+  view
 }: {
   readonly genesisId: string
   readonly view: StructureView | null
-  readonly hasMap: boolean
 }): React.JSX.Element {
   const setStructureView = useUiStore((state) => state.setStructureView)
-  const segment = (target: StructureView, label: string, disabled = false): React.JSX.Element => (
+  const segment = (target: StructureView, label: string): React.JSX.Element => (
     <button
       type="button"
       aria-pressed={view === target}
-      disabled={disabled}
       onClick={(event) => {
         event.stopPropagation()
         setStructureView(genesisId, target)
       }}
-      title={disabled ? 'Cartographie le projet pour voir sa structure' : undefined}
-      className={`h-7 px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`h-7 px-3 text-xs font-medium ${
         view === target ? 'bg-accent text-surface' : 'text-content hover:bg-surface'
       }`}
     >
@@ -53,7 +49,7 @@ export function StructureViewSwitch({
       className="flex overflow-hidden rounded-md border border-content-muted/40"
     >
       {segment('workflow', 'Workflow')}
-      {segment('progression', 'Progression', !hasMap)}
+      {segment('progression', 'Progression')}
       {segment('architecture', 'Architecture')}
     </div>
   )
@@ -61,7 +57,7 @@ export function StructureViewSwitch({
 
 /**
  * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule des vues (l'architecture se lit et se corrige
- * en tête de l'explorateur, spec 032 D15). Sans carte de structure dessinée, pas de Progression ; en Workflow, « Relire » relit
+ * en tête de l'explorateur, spec 032 D15) ; en Workflow, « Relire » relit
  * les fichiers du projet. Le travail se fait dans le Workflow (D26, D27) : ce qui a été posé ailleurs (étapes nées dans
  * la vue, tâches et décisions de la carte) est signalé, à reporter dans les fichiers ou à retirer (D23, D28).
  */
@@ -157,7 +153,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
     >
       {/* Le bandeau (D23, D28) passe sous la ligne : la barre ne s'élargit pas vers la gauche de la carte. */}
       <div className="flex items-center gap-3">
-        <StructureViewSwitch genesisId={genesisId} view={view} hasMap={hasMap} />
+        <StructureViewSwitch genesisId={genesisId} view={view} />
         {view === 'workflow' ? (
           <button
             type="button"

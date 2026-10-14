@@ -146,7 +146,7 @@ describe('vue Workflow sur la carte (spec 023 US1, spec 032 lot 2)', () => {
     ])
   })
 
-  it('should_switch_to_workflow_and_reload_from_the_bar_with_structure_views_disabled_without_a_map', async () => {
+  it('should_switch_to_workflow_from_the_bar_and_offer_every_view_without_a_map', async () => {
     const user = userEvent.setup()
     installFakeApi({})
     const props = {
@@ -159,7 +159,7 @@ describe('vue Workflow sur la carte (spec 023 US1, spec 032 lot 2)', () => {
         </ReactFlowProvider>
       </QueryClientProvider>
     )
-    expect((screen.getByRole('button', { name: 'Progression' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Progression' }) as HTMLButtonElement).disabled).toBe(false)
     expect(screen.queryByRole('combobox', { name: 'Architecture' })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Workflow' }))
     expect(useUiStore.getState().structureViews[G]).toBe('workflow')

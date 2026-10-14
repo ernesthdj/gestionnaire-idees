@@ -73,6 +73,18 @@ mentalyas dans l'artifact de brainstorm, lots à coder
   `L1l-noeuds-genesis.md` (graine, rien de décidé).
 - **Q2** Une spec livrée est un **rond complet avec ses carrés faits** (plus de repli d'office, 023 D5 remplacée pour
   le Workflow).
+- **Q3 (lot 5)** « Réel » vient de **l'analyse du code** (spec 017 : modules et fichiers, comme l'explorateur), pas de
+  la carte de structure de Claude : sans IA, à jour après « Réanalyser ». Une **partie** est un rond du Workflow qui
+  porte des carrés (user story, socle d'une spec, lot ou groupe d'un fichier de tâches ; un document sans tâches est
+  une partie vide) : réelle si un fichier qu'elle cite existe dans le code (ou si toutes ses cases sont faites),
+  prévue sinon ; son module est celui de la plupart de ses fichiers. Hors plan : fichier du code (hors plomberie)
+  qu'aucune tâche ne cite (un chemin cité couvre un fichier ou un dossier).
+- **Q4 (lot 5)** Les trois lectures s'affichent **en panneau sur la carte**, comme l'Architecture (lisibles quel que
+  soit le zoom, fidèles aux maquettes), avec la bascule des vues en tête.
+- **Q5 (lot 5)** Le panneau **se replie** (« ▾ Voir la carte », « ▴ Rouvrir ») pour montrer la carte dessous : la
+  carte de structure de Claude et ses statuts (spec 030), les blocs de la vue (023 D25) restent accessibles. Un panneau
+  ne s'ouvre que sur un choix de vue (sans choix, la carte s'affiche comme avant) ; « Centrer sur le nœud » d'un
+  élément de la carte replie le panneau.
 - **Écart à valider (lot 2, 2026-10-14)** : sur le dépôt du Brainstormer, l'arbre compte 1 030 carrés ; tout déplier
   rendrait la carte illisible et lente. Un rond **dont tous les carrés sont faits** est donc replié d'office (« ▸ N »),
   dépliable d'un clic, choix mémorisé (023 FR-016). Les autres ronds restent ouverts.

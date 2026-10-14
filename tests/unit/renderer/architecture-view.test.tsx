@@ -93,7 +93,8 @@ describe('position Architecture = l’explorateur dans la carte (spec 032 D14, D
     installFakeApi()
     useUiStore.setState({ structureViews: { other: 'architecture' } })
     const { container } = wrap(<StructureBarNode {...bar(false)} />)
-    expect((screen.getByRole('button', { name: 'Progression' }) as HTMLButtonElement).disabled).toBe(true)
+    // Progression et Architecture lisent la doc et le code : aucune ne demande de carte dessinée (spec 032 Q3).
+    expect((screen.getByRole('button', { name: 'Progression' }) as HTMLButtonElement).disabled).toBe(false)
     await user.click(screen.getByRole('button', { name: 'Architecture' }))
     expect(useUiStore.getState().structureViews).toEqual({ other: 'workflow', [RAW_ID]: 'architecture' })
     // Le choix de l'architecture a quitté la barre : il est en tête de l'explorateur.
@@ -137,7 +138,7 @@ describe('position Architecture = l’explorateur dans la carte (spec 032 D14, D
       },
       'reprise:adopt': () => ({ genesisId: RAW_ID })
     })
-    const { container } = wrap(<ArchitectureView genesisId={RAW_ID} hasMap={false} />)
+    const { container } = wrap(<ArchitectureView genesisId={RAW_ID} />)
     expect(await screen.findByRole('heading', { name: 'Le code de ce projet n’est pas encore analysé' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Workflow' })).toBeTruthy()
     await user.click(screen.getByLabelText('Local uniquement : rien ne part chez Claude'))

@@ -55,8 +55,8 @@ describe('une étape n’apparaît que dans la vue où elle est née (spec 023 D
       }
     }
     expect(graph('workflow')).toEqual({ nodes: ['w-flow', 'w-partout'], edges: [] })
-    // Sans carte de structure, Progression n'est pas affichée : le genesis n'a que Workflow (choisi) ou aucune vue.
-    expect(graph('progression').nodes).toEqual(['w-flow', 'w-partout', 'w-prog'])
+    // Progression ne demande plus de carte dessinée (spec 032 Q3) : ses blocs y sont, ceux du Workflow non.
+    expect(graph('progression')).toEqual({ nodes: ['w-partout', 'w-prog'], edges: ['io-io1'] })
   })
 
   it('should_show_every_step_when_the_map_has_no_view', () => {

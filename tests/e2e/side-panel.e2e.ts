@@ -126,6 +126,8 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
   it('should_flag_a_permission_request_on_the_hidden_tab_and_on_its_node', async () => {
     const { page, app } = run
     await page.getByRole('button', { name: 'Progression', exact: true }).click()
+    // Le panneau Progression (spec 032) se replie pour montrer la carte de structure dessous.
+    await page.getByRole('button', { name: '▾ Voir la carte' }).click()
     await page.getByRole('button', { name: 'Tout afficher' }).click()
     // Deuxième conversation : l'élément « Données » de la carte de structure (sa carte, puis « Discuter »). Les nœuds
     // glissent vers leur place après la bascule de vue : on attend qu'il s'arrête avant de cliquer.
@@ -243,6 +245,8 @@ describe('panneau de conversation fixe (spec 027 lot 1, e2e)', () => {
       .getByRole('button', { name: new RegExp(`(Ouvrir|Reprendre « )${GENESIS}`) })
       .first()
       .click()
+    // La vue gardée est la Progression : son panneau (spec 032) se replie pour montrer la carte.
+    await run.page.getByRole('button', { name: '▾ Voir la carte' }).click()
     await run.page.getByRole('button', { name: 'Tout afficher' }).click()
     await run.page.waitForTimeout(1000)
     if ((await panel().count()) === 0) {

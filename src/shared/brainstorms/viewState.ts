@@ -15,12 +15,21 @@ export const VIEW_STATE_LIMITS = { cards: 20, genesis: 500, bytes: 256 * 1024 } 
 export const STRUCTURE_VIEWS = ['workflow', 'progression', 'architecture'] as const
 export type StructureView = (typeof STRUCTURE_VIEWS)[number]
 
+/** Lectures de la Progression (spec 032 D12) : l'arbre qui pousse, le chantier par étages, les lots du Workflow. */
+export const PROGRESSION_READINGS = ['arbre', 'etages', 'lots'] as const
+export type ProgressionReading = (typeof PROGRESSION_READINGS)[number]
+
 export const ViewStateSchema = z.strictObject({
   version: z.literal(1),
   viewport: z.strictObject({ x: finite, y: finite, zoom: z.number().min(0.05).max(4) }).nullable(),
   structureViews: z
     .record(id, z.enum(STRUCTURE_VIEWS))
     .refine((views) => Object.keys(views).length <= VIEW_STATE_LIMITS.genesis, 'Trop de vues'),
+  /** Lecture de la Progression choisie, par projet (spec 032 D12) ; absente dans un état d'avant la spec 032. */
+  progressionReadings: z
+    .record(id, z.enum(PROGRESSION_READINGS))
+    .refine((readings) => Object.keys(readings).length <= VIEW_STATE_LIMITS.genesis, 'Trop de lectures')
+    .optional(),
   openCards: z
     .array(
       z.strictObject({

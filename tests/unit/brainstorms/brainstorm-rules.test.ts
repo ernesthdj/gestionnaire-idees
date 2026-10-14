@@ -36,6 +36,10 @@ describe('règles du Project Manager (spec 024)', () => {
       pinned: false
     }))
     expect(parseViewState(JSON.stringify({ ...state, openCards: tooMany }))).toBeNull()
+    // Lecture de la Progression par projet (spec 032 D12) : gardée, valeur inconnue refusée.
+    const withReading = { ...state, progressionReadings: { g1: 'lots' } }
+    expect(parseViewState(JSON.stringify(withReading))).toEqual(withReading)
+    expect(parseViewState(JSON.stringify({ ...state, progressionReadings: { g1: 'spirale' } }))).toBeNull()
   })
 
   it('should_validate_the_open_and_scratch_inputs_at_the_boundary', () => {

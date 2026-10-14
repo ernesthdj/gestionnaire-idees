@@ -155,6 +155,8 @@ export interface WorkflowTreeNode {
   readonly status: SpecStatus | null
   /** Fichier d'où vient le nœud ; `null` pour une user story ou un lot. */
   readonly path: string | null
+  /** Carré : chemins cités par sa tâche (spec 023 D9), qui le relient au code (Progression, D13) ; vide pour un rond. */
+  readonly files: readonly string[]
   readonly children: readonly WorkflowTreeNode[]
 }
 

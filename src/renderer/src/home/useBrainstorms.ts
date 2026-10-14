@@ -22,9 +22,15 @@ let pending: number | undefined
 export async function flushViewState(): Promise<void> {
   window.clearTimeout(pending)
   pending = undefined
-  const { brainstorm, structureViews, viewport } = useUiStore.getState()
+  const { brainstorm, structureViews, viewport, progressionReadings } = useUiStore.getState()
   if (brainstorm === null) return
-  const state = viewStateOf(structureViews, useCards.getState().cards, viewport, chatKeys(useSidePanel.getState()))
+  const state = viewStateOf(
+    structureViews,
+    useCards.getState().cards,
+    viewport,
+    chatKeys(useSidePanel.getState()),
+    progressionReadings
+  )
   await call('brainstorms:viewState', { id: brainstorm.id, state }).catch(() => undefined)
 }
 
@@ -41,7 +47,12 @@ export function useViewStateSync(): void {
     }
     const offUi = useUiStore.subscribe((state, before) => {
       if (state.brainstorm !== before.brainstorm) return
-      if (state.structureViews !== before.structureViews || state.viewport !== before.viewport) schedule()
+      if (
+        state.structureViews !== before.structureViews ||
+        state.progressionReadings !== before.progressionReadings ||
+        state.viewport !== before.viewport
+      )
+        schedule()
     })
     const offCards = useCards.subscribe((state, before) => {
       if (state.cards !== before.cards) schedule()

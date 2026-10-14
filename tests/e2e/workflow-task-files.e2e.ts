@@ -75,6 +75,8 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     const widget = page.getByRole('region', { name: 'Widget IA' })
     await widget.waitFor()
     await page.getByRole('button', { name: 'Progression', exact: true }).click()
+    // Le panneau Progression (spec 032) se replie pour montrer la carte de la vue et ses widgets.
+    await page.getByRole('button', { name: '▾ Voir la carte' }).click()
     await expect.poll(() => widget.count()).toBe(0)
     await page.getByRole('button', { name: 'Workflow', exact: true }).click()
     await widget.waitFor()
@@ -83,6 +85,7 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     await page.getByRole('menuitem', { name: /Envoyer vers Progression/ }).click()
     await expect.poll(() => widget.count()).toBe(0)
     await page.getByRole('button', { name: 'Progression', exact: true }).click()
+    await page.getByRole('button', { name: '▾ Voir la carte' }).click()
     await widget.waitFor()
     await run.shot('023-D25-01-widget-dans-sa-vue')
   })

@@ -35,8 +35,8 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 5 — Progression A, B, C
 
-- [ ] T050 Domaine pur : prévu, réel, hors plan (D13) par les chemins des tâches ; tests.
-- [ ] T051 Les trois lectures (D12), sélecteur gardé par projet, bascule Réel · Prévu · Les deux ; tests renderer et
+- [x] T050 Domaine pur : prévu, réel, hors plan (D13) par les chemins des tâches ; tests.
+- [x] T051 Les trois lectures (D12), sélecteur gardé par projet, bascule Réel · Prévu · Les deux ; tests renderer et
   axe ; e2e.
 
 ## Lot 6 — Finitions

@@ -19,7 +19,7 @@ export interface Toast {
 /** Lecture d'une carte de structure (spec 017 D20). */
 /** Lecture d'une carte de projet lié : Workflow (spec 023), Progression ou Architecture (spec 017 D20). */
 export type { StructureView } from '@shared/brainstorms/viewState'
-import type { StructureView } from '@shared/brainstorms/viewState'
+import type { ProgressionReading, StructureView } from '@shared/brainstorms/viewState'
 
 /** Vue affichée : une section de la navigation, ou les réglages (⚙). */
 export type View = Section | 'settings'
@@ -60,6 +60,12 @@ interface UiState {
   openViewer(neuronId: string, path: string): void
   /** Vue de chaque carte de structure (spec 017 D20) : « architecture » une fois basculée, « progression » sinon. */
   readonly structureViews: Readonly<Record<string, StructureView>>
+  /** Lecture de la Progression de chaque projet (spec 032 D12) ; absente : l'arbre qui pousse. */
+  readonly progressionReadings: Readonly<Record<string, ProgressionReading>>
+  setProgressionReading(genesisId: string, reading: ProgressionReading): void
+  /** Panneau Progression ou Architecture replié pour voir la carte dessous (rouvert au prochain choix de vue). */
+  readonly panelFolded: boolean
+  foldPanel(folded: boolean): void
   /** Liens d'analyse des cartes de structure affichés au repos (spec 022 D29) ; masqués par défaut (allège la carte). */
   readonly analysisLinks: boolean
   toggleAnalysisLinks(): void
@@ -140,6 +146,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
           ? null
           : { anomalies: opened.anomalies, journal: opened.journal },
       structureViews: state?.structureViews ?? {},
+      progressionReadings: state?.progressionReadings ?? {},
       viewport: state?.viewport ?? null,
       restoredViewport: state?.viewport ?? null,
       explorerGenesisId: null,
@@ -152,6 +159,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     if (state !== null) useCards.setState(cardsOf(state))
     set((current) => ({
       structureViews: state?.structureViews ?? current.structureViews,
+      progressionReadings: state?.progressionReadings ?? current.progressionReadings,
       viewport: state?.viewport ?? current.viewport,
       restoredViewport: state?.viewport ?? null,
       canvasEpoch: current.canvasEpoch + 1
@@ -204,6 +212,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   explorerMarks: null,
   repoGenesisId: null,
   structureViews: {},
+  progressionReadings: {},
+  panelFolded: false,
+  foldPanel: (folded) => set({ panelFolded: folded }),
+  setProgressionReading: (genesisId, reading) =>
+    set((state) => ({ progressionReadings: { ...state.progressionReadings, [genesisId]: reading } })),
   analysisLinks: false,
   chatDrafts: {},
   seedChatDraft: (neuronId, text) => set((state) => ({ chatDrafts: { ...state.chatDrafts, [neuronId]: text } })),
@@ -212,13 +225,14 @@ export const useUiStore = create<UiState>()((set, get) => ({
       chatDrafts: Object.fromEntries(Object.entries(state.chatDrafts).filter(([id]) => id !== neuronId))
     })),
   toggleAnalysisLinks: () => set((state) => ({ analysisLinks: !state.analysisLinks })),
-  // Une seule carte à la fois en position « Architecture » : son explorateur couvre la carte (spec 032 D14).
+  // Une seule carte à la fois en Progression ou en Architecture : son panneau couvre la carte (spec 032 D12, D14).
   setStructureView: (genesisId, view) =>
     set((state) => ({
+      panelFolded: false,
       structureViews: {
         ...Object.fromEntries(
           Object.entries(state.structureViews).map(([id, current]) =>
-            view === 'architecture' && current === 'architecture' ? [id, 'workflow' as const] : [id, current]
+            view !== 'workflow' && current !== 'workflow' ? [id, 'workflow' as const] : [id, current]
           )
         ),
         [genesisId]: view

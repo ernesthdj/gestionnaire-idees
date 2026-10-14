@@ -435,6 +435,22 @@ export function stepShown(
 }
 
 /** Vue de naissance d'une étape (D19) ; sans vue, celle d'un projet lié est Workflow (rangées avant D19). */
+/**
+ * Vue affichée d'une carte de projet (comme sa barre) : Workflow (projet lié), Progression ou Architecture (montées
+ * par-dessus la carte, spec 032 D12, D14 : la carte dessous ne change pas). Sans choix, une carte de structure dessinée
+ * est en Progression ; un projet lié sans carte n'a pas encore de vue. Pur.
+ */
+export function shownStructureView(
+  choice: StructureViewKind | undefined,
+  linked: boolean,
+  mapped: boolean
+): StructureViewKind | null {
+  if (!linked && !mapped) return null
+  if (choice === 'workflow' && linked) return 'workflow'
+  if (choice === 'architecture' || choice === 'progression') return choice
+  return mapped ? 'progression' : null
+}
+
 export const bornIn = (step: Pick<StepView, 'view'>, linkedProject: boolean): StructureViewKind =>
   step.view ?? (linkedProject ? 'workflow' : 'progression')
 
@@ -469,19 +485,11 @@ export function buildGraph(
       .filter((idea) => idea.linkedProject === true && structureViews[idea.id] === 'workflow')
       .map((idea) => idea.id)
   )
-  // Vue affichée de chaque carte (comme sa barre) : Workflow, Architecture (l'explorateur, monté par-dessus la carte,
-  // spec 032 D14 : la carte dessous garde sa Progression), Progression.
   const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
   const mapped = new Set(view.elements.map((element) => element.genesisId))
   const linkedIds = new Set(view.ideas.filter((idea) => idea.linkedProject === true).map((idea) => idea.id))
   const shownViewOf = (id: string): StructureViewKind | null =>
-    workflowIds.has(id)
-      ? 'workflow'
-      : structureViews[id] === 'architecture' && (mapped.has(id) || linkedIds.has(id))
-        ? 'architecture'
-        : !mapped.has(id)
-          ? null
-          : 'progression'
+    shownStructureView(structureViews[id], linkedIds.has(id), mapped.has(id))
   // Blocs de la vue affichée (spec 023 D25) : chaque vue de la carte a son propre canevas ; un bloc sans vue (canevas
   // sans carte de structure) est partout, et tous restent visibles si aucune carte n'a de vue.
   const shownViews = new Set(

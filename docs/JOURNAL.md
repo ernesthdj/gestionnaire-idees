@@ -2015,3 +2015,27 @@ l'explorateur, l'architecture reconnue, précisée par Claude ou choisie par men
 zoom du canevas et deviendrait illisible ; l'overlay est posé à côté de la surface (pas dedans) pour que le double-clic
 de la carte ne crée pas d'idée dans l'explorateur.
 **Règle apprise :** Playwright ne tient pas compte de `inert` pour `getByRole` : cibler la région de l'explorateur.
+
+### [2026-10-14 19:30] FEAT — spec 032 lot 5 : la Progression en trois lectures (prévu, réel, hors plan)
+**Fichiers :** `src/shared/workflow/progression.ts` (nouveau, domaine pur), `src/renderer/src/canvas/progression/`
+(nouveaux : `ProgressionView.tsx`, `progression.css`), `src/renderer/src/canvas/PanelFold.tsx` (nouveau),
+`IdeasCanvas.tsx`, `ArchitectureView.tsx`, `buildGraph.ts` (`shownStructureView`), `StructureBarNode.tsx`,
+`uiStore.ts`, `shared/brainstorms/viewState.ts` + `home/viewState.ts` + `useBrainstorms.ts` (lecture gardée par
+projet), `shared/ipc/workflow.ts` + `shared/workflow/arbre.ts` (`files` d'un carré) ; spec 032 Q3 à Q5. Tests :
+`unit/workflow-progression.test.ts`, `unit/renderer/progression-view.test.tsx` (nouveaux), `brainstorm-rules`,
+`step-view`, `workflow-view`, `architecture-view` ; e2e `progression-view.e2e.ts` (nouveau), `workflow-task-files`,
+`side-panel`.
+**Quoi :** T050 — une partie = un rond du Workflow qui porte des carrés (socle, user story, lot, groupe ; un document
+sans tâches est une partie vide) ; réelle si un fichier qu'elle cite existe dans le code analysé (un dossier cité
+couvre ses fichiers) ou si toutes ses cases sont faites, prévue sinon ; module = celui de la plupart de ses fichiers ;
+hors plan = fichier de code (hors plomberie, hors `.md`/manifestes) qu'aucune tâche ne cite. T051 — « Progression »
+ouvre un panneau sur la carte : A l'arbre (un module par colonne, anneau = tâches cochées), B les étages (fondations =
+modules les plus appelés en bas, prévu au sommet), C les lots dans l'ordre du Workflow (+ colonne hors plan) ; bascule
+Réel · Prévu · Les deux ; lecture gardée par projet dans l'état de vue ; relu à la fin d'une analyse et d'un tour de
+Claude ; sans analyse, « Analyser le code » proposé et seules les cases cochées disent le bâti. Progression et
+Architecture ne demandent plus de carte de structure dessinée.
+**Choix (mentalyas, 2026-10-14) :** réel = analyse du code (Q3) ; panneau sur la carte (Q4), repliable (Q5) pour garder
+la carte de structure de Claude (statuts de la spec 030) et les blocs de la vue (023 D25) ; « Centrer sur le nœud »
+replie le panneau. Un panneau ne s'ouvre que sur un choix de vue.
+**Hors de ce lot :** `reprise-resolution.e2e.ts` (« Préciser les liens avec l'IA ») échoue déjà au commit du lot 3
+(`ce15eea`) : à examiner à part.

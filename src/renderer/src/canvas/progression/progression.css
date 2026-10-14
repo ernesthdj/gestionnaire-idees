@@ -1,0 +1,32 @@
+/*
+ * Progression (spec 032 D12, D13) : réel plein (bleu), prévu en pointillé hachuré, hors plan en orange. Jamais la
+ * couleur seule : chaque brique dit aussi son état en mots.
+ */
+.progress-brick {
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface);
+}
+.progress-brick[data-kind='prevu'] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-content-muted) 70%, transparent);
+  background: repeating-linear-gradient(135deg, var(--color-surface) 0 8px, var(--color-surface-raised) 8px 16px);
+  color: var(--color-content-muted);
+}
+.progress-brick[data-kind='hors'] {
+  border-color: var(--color-action);
+  color: var(--color-action);
+}
+/* « Prévu » : le réel s'efface pour laisser lire ce qui reste à bâtir. */
+[data-progress-mode='prevu'] .progress-brick[data-kind='reel'] {
+  opacity: 0.4;
+}
+.progress-ring {
+  background: conic-gradient(var(--color-accent) var(--progress), var(--color-surface-raised) 0);
+}
+.progress-bar {
+  background: linear-gradient(
+    to right,
+    var(--color-accent) var(--progress),
+    var(--color-surface-raised) var(--progress)
+  );
+}

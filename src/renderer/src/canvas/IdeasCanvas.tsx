@@ -35,6 +35,7 @@ import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
 import { ArchitectureView } from './ArchitectureView'
+import { ProgressionView } from './progression/ProgressionView'
 import { BlockNode } from './nodes/BlockNode'
 import { ElementNode } from './nodes/ElementNode'
 import { StructureBarNode } from './nodes/StructureBarNode'
@@ -221,6 +222,8 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const structureViews = useUiStore((state) => state.structureViews)
+  const panelFolded = useUiStore((state) => state.panelFolded)
+  const foldPanel = useUiStore((state) => state.foldPanel)
   const analysisLinks = useUiStore((state) => state.analysisLinks)
   // Canevas d'un projet (spec 024) : « Reprendre un projet existant » n'y a pas sa place (audit 2026-10-11).
   const projectFolder = useUiStore((state) => state.brainstorm?.folder ?? null)
@@ -595,13 +598,18 @@ function CanvasInner(): React.JSX.Element {
     if (centerOn(focus.nodeId)) return
     const current = viewRef.current
     const target = current === undefined ? null : focusViewOf(focus.nodeId, current)
-    if (target === null || useUiStore.getState().structureViews[target.genesisId] === target.kind) {
+    const ui = useUiStore.getState()
+    const there = target !== null && ui.structureViews[target.genesisId] === target.kind
+    // Un élément de la carte de structure se montre sous le panneau Progression, replié (spec 032).
+    const covered = there && target.kind !== 'workflow' && !ui.panelFolded
+    if (target === null || (there && !covered)) {
       notShown()
       return
     }
     pendingFocus.current = { nodeId: focus.nodeId, until: Date.now() + FOCUS_WAIT_MS }
-    setStructureView(target.genesisId, target.kind)
-  }, [focus, centerOn, notShown, setStructureView])
+    if (!there) setStructureView(target.genesisId, target.kind)
+    if (target.kind !== 'workflow') foldPanel(true)
+  }, [focus, centerOn, notShown, setStructureView, foldPanel])
   useEffect(() => {
     const pending = pendingFocus.current
     if (pending === null) return
@@ -778,13 +786,18 @@ function CanvasInner(): React.JSX.Element {
   }
 
   const menuNeuron = menu === null ? undefined : view?.ideas.find((neuron) => neuron.id === menu.id)
-  // Carte basculée en position « Architecture » (spec 032 D14) : son explorateur couvre la carte.
-  const architectureId =
-    view?.ideas.find(
-      (idea) =>
-        structureViews[idea.id] === 'architecture' &&
-        (idea.linkedProject === true || view.elements.some((element) => element.genesisId === idea.id))
-    )?.id ?? null
+  // Carte choisie en Progression ou en Architecture (spec 032 D12, D14) : son panneau couvre la carte (une à la fois),
+  // repliable pour voir la carte dessous. Sans choix, la carte s'affiche comme avant.
+  const panelIdea = view?.ideas.find(
+    (idea) =>
+      (structureViews[idea.id] === 'progression' || structureViews[idea.id] === 'architecture') &&
+      (idea.linkedProject === true || view.elements.some((element) => element.genesisId === idea.id))
+  )
+  const panel =
+    panelIdea === undefined
+      ? null
+      : { genesisId: panelIdea.id, shown: structureViews[panelIdea.id] as 'progression' | 'architecture' }
+  const panelShown = panel !== null && !panelFolded
   const empty = view !== undefined && view.ideas.length === 0
 
   return (
@@ -816,8 +829,8 @@ function CanvasInner(): React.JSX.Element {
       <div className="relative flex min-h-0 flex-1">
         <div
           ref={surface}
-          // Couverte par l'explorateur (position Architecture) : hors du clavier et des lecteurs d'écran.
-          inert={architectureId !== null}
+          // Couverte par un panneau (Progression, Architecture) : hors du clavier et des lecteurs d'écran.
+          inert={panelShown}
           className="relative min-h-0 min-w-0 flex-1"
           data-drift={
             reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0 || glide === 'on') ? 'on' : 'paused'
@@ -1053,12 +1066,18 @@ function CanvasInner(): React.JSX.Element {
             />
           )}
         </div>
-        {architectureId === null ? null : (
-          <ArchitectureView
-            key={architectureId}
-            genesisId={architectureId}
-            hasMap={view?.elements.some((element) => element.genesisId === architectureId) === true}
-          />
+        {panel === null ? null : panelFolded ? (
+          <button
+            type="button"
+            onClick={() => foldPanel(false)}
+            className="absolute top-3 right-3 z-20 h-8 rounded-md border border-content-muted/40 bg-surface px-3 text-xs font-medium shadow-sm hover:bg-surface-raised"
+          >
+            ▴ Rouvrir {panel.shown === 'architecture' ? 'l’Architecture' : 'la Progression'}
+          </button>
+        ) : panel.shown === 'architecture' ? (
+          <ArchitectureView key={panel.genesisId} genesisId={panel.genesisId} />
+        ) : (
+          <ProgressionView key={panel.genesisId} genesisId={panel.genesisId} />
         )}
       </div>
       <WidgetReview />
