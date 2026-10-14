@@ -74,6 +74,7 @@ export function buildSpec(input: SpecInput): SpecView {
     total: tasks.length,
     leftovers: status === 'delivered' || status === 'abandoned' ? tasks.filter((task) => !task.done) : [],
     citedDocs: input.spec?.citedDocs ?? [],
+    parentDoc: input.spec?.parentDoc ?? null,
     partial: input.partial || input.spec === null || input.spec.title === null
   }
 }

@@ -14,7 +14,8 @@ const VIEW: WorkflowView = {
   empty: true,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
-  missingFiles: []
+  missingFiles: [],
+  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
 }
 
 function setup(exists = true) {

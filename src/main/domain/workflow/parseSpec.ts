@@ -1,5 +1,6 @@
 import type { SpecMarker } from '@shared/ipc/workflow'
 import { clip, WORKFLOW_LIMITS } from './limits'
+import { docHeader } from './docHeader'
 
 /** Ce qu'une `spec.md` dit d'elle-même (spec 023, research R2). */
 export interface ParsedSpec {
@@ -10,6 +11,8 @@ export interface ParsedSpec {
   readonly decisions: number
   readonly stories: readonly { readonly number: number; readonly title: string; readonly priority: number | null }[]
   readonly citedDocs: readonly string[]
+  /** Document d'origine dit par `**Parent**` dans l'en-tête (spec 032 D9) ; `null` : aucun. */
+  readonly parentDoc: string | null
 }
 
 const STORY = /^###\s+User Story\s+(\d+)\s*[—–-]\s*(.+?)\s*$/
@@ -89,7 +92,8 @@ export function parseSpec(text: string): ParsedSpec {
     createdAt,
     decisions: decisions.size,
     stories: [...stories.values()].sort((a, b) => a.number - b.number),
-    citedDocs
+    citedDocs,
+    parentDoc: docHeader(text).parent
   }
 }
 

@@ -16,6 +16,12 @@ export type SpecStatus = (typeof SPEC_STATUSES)[number]
 export const TASK_STATES = ['todo', 'doing', 'done'] as const
 export type TaskState = (typeof TASK_STATES)[number]
 
+/** Maturité du brainstorm d'un rond (spec 032 D10), écrite par Claude dans l'en-tête du document. */
+export const MATURITIES = ['insuffisant', 'suffisant', 'complet'] as const
+export type Maturity = (typeof MATURITIES)[number]
+/** Anneau de brainstorm d'un rond, en pourcentage. */
+export const MATURITY_PERCENT: Readonly<Record<Maturity, number>> = { insuffisant: 33, suffisant: 66, complet: 100 }
+
 export interface TaskView {
   /** `T032` ; vide pour une tâche d'un fichier de tâches qui n'en porte pas. */
   readonly id: string
@@ -66,6 +72,8 @@ export interface SpecView {
   readonly leftovers: readonly TaskView[]
   /** Documents de brainstorm (`L*.md`) cités par `spec.md`. */
   readonly citedDocs: readonly string[]
+  /** Document d'origine dit par `**Parent**` (spec 032 D9) : prime sur les documents cités ; `null` : aucun. */
+  readonly parentDoc: string | null
   /** Fichier trop gros, illisible ou sans structure reconnue : affiché avec ce qui a pu être lu. */
   readonly partial: boolean
 }
@@ -79,6 +87,12 @@ export interface BrainstormDocView {
   readonly family: string | null
   /** Numéros des specs qui citent ce document. */
   readonly coveredBy: readonly string[]
+  /** En-tête (spec 032 D9, D10) : rond parent (nom du document) ; `null` : niveau 1. */
+  readonly parent: string | null
+  /** `null` : non évalué. */
+  readonly maturity: Maturity | null
+  /** Fichiers de tâches nommés par `**Tâches**`. */
+  readonly taskPaths: readonly string[]
 }
 
 /** Groupe (`###`) ou lot (`##`) d'un fichier de tâches (D20). */
@@ -115,6 +129,44 @@ export interface TaskFileView {
 export const isToBrainstorm = (doc: BrainstormDocView): boolean =>
   doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md'
 
+/** D'où vient un nœud de l'arbre du Workflow (spec 032 D9). */
+export type WorkflowTreeSource = 'doc' | 'spec' | 'story' | 'taskFile' | 'lot' | 'task'
+
+/**
+ * Nœud de l'arbre du Workflow (spec 032) : un rond (on y brainstorme et documente) ou un carré (une case de tâche, on
+ * y implémente). Clé locale au projet (`doc:L1f-reprise-projet`, `spec:017`, `story:017:2`, `task:017:T032`,
+ * `file:<clé>`, `lot:<clé>`, `ftask:<clé>`).
+ */
+export interface WorkflowTreeNode {
+  readonly key: string
+  readonly kind: 'round' | 'square'
+  readonly source: WorkflowTreeSource
+  readonly title: string
+  /** Maturité du brainstorm en % (33, 66, 100) ; `null` : non évalué. Pour un carré, celle de son rond. */
+  readonly maturity: number | null
+  /** Carrés faits et carrés en tout, sous ce nœud (un carré compte pour lui-même). */
+  readonly done: number
+  readonly total: number
+  /** Carré : l'état de sa case ; `null` pour un rond. */
+  readonly state: TaskState | null
+  /** Carré d'un rond dont le brainstorm n'est pas complet : une ébauche, pas encore à implémenter (D5). */
+  readonly sketch: boolean
+  /** Spec ou fichier de tâches : son statut (spec 023 D7) ; `null` sinon. */
+  readonly status: SpecStatus | null
+  /** Fichier d'où vient le nœud ; `null` pour une user story ou un lot. */
+  readonly path: string | null
+  readonly children: readonly WorkflowTreeNode[]
+}
+
+/** Arbre du Workflow (spec 032 D2, D6) : les nœuds de niveau 1 sous le projet, et le carré où bosser. */
+export interface WorkflowTreeView {
+  /** Le projet : maturité de sa fondation, carrés faits et en tout. */
+  readonly project: { readonly maturity: number | null; readonly done: number; readonly total: number }
+  readonly nodes: readonly WorkflowTreeNode[]
+  /** Clé du carré « ▶ Bosser ici » ; `null` : rien à implémenter. */
+  readonly next: string | null
+}
+
 export interface WorkflowView {
   readonly genesisId: string
   readonly foundation: { readonly path: string; readonly summary: string } | null
@@ -122,6 +174,8 @@ export interface WorkflowView {
   readonly brainstorm: readonly BrainstormDocView[]
   /** Fichiers de tâches du projet, hors Spec Kit (D20). */
   readonly taskFiles: readonly TaskFileView[]
+  /** Arbre des ronds et des carrés (spec 032), assemblé depuis les mêmes fichiers. */
+  readonly tree: WorkflowTreeView
   /** Écarts au repli par défaut, par clé de nœud (research R6, R7). */
   readonly folded: Readonly<Record<string, boolean>>
   /** Ni `specs/`, ni `docs/brainstorm/`, ni fichier de tâches. */

@@ -1940,3 +1940,22 @@ cases des fichiers de tâches) et l'app les relit sans IA : même fichiers, mêm
 **Maturité**` (familles de 023 D11 ; « complet » pour toute famille qui a mené à une spec ; `L1l-noeuds-genesis.md`
 « insuffisant », graine sans décision). Q2 → une spec livrée est un rond complet avec ses carrés faits.
 **Prochain :** lot 1 (l'arbre du Workflow côté main, sans IA).
+
+### [2026-10-14 15:00] FEAT — spec 032 lot 1 : l'arbre du Workflow, lu dans les fichiers sans IA
+**Fichiers :** `src/main/domain/workflow/{docHeader.ts, workflowArbre.ts}` (nouveaux), `brainstorm.ts`, `parseSpec.ts`,
+`specStatus.ts` (en-tête), `WorkflowService.ts` (`tree` dans la vue), `src/shared/ipc/workflow.ts` (maturité,
+`WorkflowTreeNode`, `WorkflowTreeView`) ; tests `unit/workflow-arbre.test.ts` (nouveau),
+`integration/workflow/workflow-service.test.ts`, fixtures des tests renderer du Workflow ; `specs/032-trois-vues/`.
+**Quoi :** l'en-tête d'un document (`**Parent**`, `**Maturité**`, `**Tâches**`, sous le titre, 12 lignes au plus) est
+lu comme une donnée (valeur inconnue ou chemin hors du projet ignorés). L'arbre range les documents sous leur parent
+(boucle ou parent absent → niveau 1 ; `L1-fondation.md` = le projet), les specs sous leur `**Parent**` sinon sous le
+document de plus bas niveau qu'elles citent, les fichiers de tâches sous le rond qui les nomme ; specs = ronds complets
+(user stories en ronds, tâches en carrés) ; lots en ronds ; ébauches sous un brainstorm pas complet ; au plus 4
+niveaux (au-delà, les carrés remontent) ; « Bosser ici » = premier carré en cours, sinon premier à faire, hors
+ébauches et specs livrées, abandonnées ou en pause.
+**Mesuré (SC-004) :** 50 ms sur le dépôt du Brainstormer (42 ronds de niveau 1, 1 030 carrés) ; « Bosser ici » =
+`task:032:T010`.
+**Erreur corrigée :** la spec 032 tombait sous `L1l-noeuds-genesis` qu'elle cite en exemple : une spec peut désormais
+écrire son `**Parent**`, qui prime sur les citations (D9 amendée ; la 032 → `L1j-carte-workflow.md`).
+**Règle apprise :** citer un document n'est pas en venir : un rangement déduit d'une citation doit pouvoir être
+corrigé par une déclaration explicite dans le fichier.

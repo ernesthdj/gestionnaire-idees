@@ -53,6 +53,7 @@ const spec = (number: string, status: SpecView['status'], stories: StoryView[], 
     total: all.length,
     leftovers: [],
     citedDocs: [],
+    parentDoc: null,
     partial: false
   }
 }
@@ -61,15 +62,43 @@ const view = (specs: SpecView[], folded: Record<string, boolean> = {}): Workflow
   foundation: null,
   specs,
   brainstorm: [
-    { name: 'L1j-carte.md', level: 1, title: 'Carte', family: null, coveredBy: [] },
-    { name: 'L1f-reprise.md', level: 1, title: 'Reprise', family: null, coveredBy: ['017'] },
-    { name: 'L2-carte-ecran.md', level: 2, title: 'Écran', family: 'L1j-carte.md', coveredBy: [] }
+    {
+      name: 'L1j-carte.md',
+      level: 1,
+      title: 'Carte',
+      family: null,
+      coveredBy: [],
+      parent: null,
+      maturity: null,
+      taskPaths: []
+    },
+    {
+      name: 'L1f-reprise.md',
+      level: 1,
+      title: 'Reprise',
+      family: null,
+      coveredBy: ['017'],
+      parent: null,
+      maturity: null,
+      taskPaths: []
+    },
+    {
+      name: 'L2-carte-ecran.md',
+      level: 2,
+      title: 'Écran',
+      family: 'L1j-carte.md',
+      coveredBy: [],
+      parent: null,
+      maturity: null,
+      taskPaths: []
+    }
   ],
   folded,
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
-  missingFiles: []
+  missingFiles: [],
+  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
 })
 
 const SPECS = [

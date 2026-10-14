@@ -62,6 +62,7 @@ const spec = (number: string, status: SpecView['status'], tasks: TaskView[]): Sp
     total: tasks.length,
     leftovers: [],
     citedDocs: [],
+    parentDoc: null,
     partial: false
   }
 }
@@ -77,7 +78,8 @@ const WORKFLOW: WorkflowView = {
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
-  missingFiles: []
+  missingFiles: [],
+  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
 }
 const element: ElementView = {
   id: 'module-core',

@@ -11,6 +11,7 @@ import { foundationSummary, parseSpec } from '../../domain/workflow/parseSpec'
 import { hasTasks, parseTaskFile } from '../../domain/workflow/parseTaskFile'
 import { parseTasks } from '../../domain/workflow/parseTasks'
 import { buildSpec } from '../../domain/workflow/specStatus'
+import { workflowArbre } from '../../domain/workflow/workflowArbre'
 import type { ConversationNeuron } from '../../infrastructure/db/repositories/ConversationRepository'
 import { readProjectText, readProjectTextAsync } from '../../infrastructure/files/projectFiles'
 
@@ -101,6 +102,7 @@ export class WorkflowService {
     return {
       genesisId,
       ...parts,
+      tree: workflowArbre(parts.brainstorm, parts.specs, parts.taskFiles),
       folded: this.deps.folds.get(genesisId),
       empty: parts.specs.length === 0 && parts.brainstorm.length === 0 && parts.taskFiles.length === 0,
       missingFiles,

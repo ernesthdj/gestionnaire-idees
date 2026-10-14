@@ -9,11 +9,11 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 1 — L'arbre du Workflow (main, sans IA)
 
-- [ ] T010 Lecture des lignes `**Parent**`, `**Maturité**`, `**Tâches**` (D9, D10, FR-002) dans
+- [x] T010 Lecture des lignes `**Parent**`, `**Maturité**`, `**Tâches**` (D9, D10, FR-002) dans
   `src/main/domain/workflow/` + tests (valeurs inconnues, chemins hors du projet).
-- [ ] T011 Domaine pur `workflowArbre` (FR-001) : ronds, carrés, lots, maturité, avancement, ébauches, « Bosser ici »,
+- [x] T011 Domaine pur `workflowArbre` (FR-001) : ronds, carrés, lots, maturité, avancement, ébauches, « Bosser ici »,
   bornes ; tests de déterminisme (SC-001) et cas limites (fichier sans rond, spec sans L1, cycle de `**Parent**`).
-- [ ] T012 `WorkflowService` : l'arbre dans la réponse de lecture du Workflow (Zod) ; mesure SC-004 sur le dépôt.
+- [x] T012 `WorkflowService` : l'arbre dans la réponse de lecture du Workflow (Zod) ; mesure SC-004 sur le dépôt.
 
 ## Lot 2 — Le Workflow sur la carte
 

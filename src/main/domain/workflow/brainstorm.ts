@@ -1,4 +1,5 @@
 import { isToBrainstorm, type BrainstormDocView } from '@shared/ipc/workflow'
+import { docHeader } from './docHeader'
 import { clip, WORKFLOW_LIMITS } from './limits'
 
 const NAME = /^L(\d)([a-z]?)(?:-([a-z0-9-]+))?\.md$/i
@@ -39,7 +40,8 @@ export function brainstormDocs(
         name: entry.name,
         level: Number(match[1]),
         words: wordsOf(match[3]),
-        title: clip(heading === undefined || heading === '' ? entry.name : heading, WORKFLOW_LIMITS.title)
+        title: clip(heading === undefined || heading === '' ? entry.name : heading, WORKFLOW_LIMITS.title),
+        header: docHeader(entry.text)
       }
     ]
   })
@@ -58,7 +60,10 @@ export function brainstormDocs(
       level: doc.level,
       title: doc.title,
       family: doc.level === 1 ? null : familyOf(doc.words),
-      coveredBy: specs.filter((spec) => spec.citedDocs.includes(doc.name)).map((spec) => spec.number)
+      coveredBy: specs.filter((spec) => spec.citedDocs.includes(doc.name)).map((spec) => spec.number),
+      parent: doc.header.parent === doc.name ? null : doc.header.parent,
+      maturity: doc.header.maturity,
+      taskPaths: doc.header.taskPaths
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }

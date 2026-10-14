@@ -60,6 +60,7 @@ const SPEC: SpecView = {
   total: 4,
   leftovers: [],
   citedDocs: ['L1f-reprise-projet.md'],
+  parentDoc: null,
   partial: false
 }
 const VIEW: WorkflowView = {
@@ -67,14 +68,33 @@ const VIEW: WorkflowView = {
   foundation: null,
   specs: [SPEC],
   brainstorm: [
-    { name: 'L1j-carte.md', level: 1, title: 'Carte workflow', family: null, coveredBy: [] },
-    { name: 'L2-carte-ecran.md', level: 2, title: 'Écran', family: 'L1j-carte.md', coveredBy: [] }
+    {
+      name: 'L1j-carte.md',
+      level: 1,
+      title: 'Carte workflow',
+      family: null,
+      coveredBy: [],
+      parent: null,
+      maturity: null,
+      taskPaths: []
+    },
+    {
+      name: 'L2-carte-ecran.md',
+      level: 2,
+      title: 'Écran',
+      family: 'L1j-carte.md',
+      coveredBy: [],
+      parent: null,
+      maturity: null,
+      taskPaths: []
+    }
   ],
   folded: {},
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
-  missingFiles: []
+  missingFiles: [],
+  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
 }
 const CHAT_ID = '00000000-0000-4000-8000-0000000000b9'
 const CHAT: ChatView = {

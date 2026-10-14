@@ -97,6 +97,29 @@ describe('vue Workflow d’un projet lié (spec 023)', () => {
     expect(view).toMatchObject({ empty: false, readAt: '2026-10-09T10:00:00.000Z' })
   })
 
+  it('should_build_the_tree_of_rounds_and_squares_from_the_files_written_by_claude', async () => {
+    write(
+      'docs/brainstorm/L1a-agents.md',
+      '# Agents\n\n**Maturité** : suffisant · **Tâches** : docs/TACHES-AGENTS.md\n'
+    )
+    write('docs/brainstorm/L2-agents-profils.md', '# Profils\n\n**Parent** : L1a-agents.md · **Maturité** : complet\n')
+    write('docs/TACHES-AGENTS.md', '# Tâches — Agents\n\n## Lot 1\n- [ ] T001 Profils\n')
+    write('specs/001-carte-demo/spec.md', SPEC_ACTIVE)
+    write('specs/001-carte-demo/tasks.md', TASKS_ACTIVE)
+
+    const { tree } = await service.read(genesis)
+    expect(tree.nodes.map((node) => [node.key, node.maturity])).toEqual([
+      ['doc:L1a-agents', 66],
+      ['spec:001', 100]
+    ])
+    const agents = tree.nodes[0]
+    expect(agents?.children.map((node) => node.title)).toEqual(['Profils', 'Tâches — Agents'])
+    // Brainstorm « suffisant » : ses tâches restent des ébauches ; on bosse sur la spec.
+    expect(agents?.children[1]?.children[0]?.children[0]).toMatchObject({ kind: 'square', sketch: true })
+    expect(tree.next).toBe('task:001:T003')
+    expect(service.readSync(genesis).tree).toEqual(tree)
+  })
+
   it('should_read_the_task_files_of_a_project_without_spec_kit_in_a_fixed_order', async () => {
     write('README.md', '# Projet\nSans case.\n')
     write('TODO.md', '- [ ] Ranger\n')
