@@ -626,8 +626,8 @@
   opacity: 0.2;
 }
 /* Spec 022 US3 : au repos, les étiquettes des liens agrégés se cachent (elles couvraient les cercles et les titres) ;
-   celles de l'élément survolé ou dont la carte est active s'affichent ; une alerte « sens interdit » reste visible. */
-.map-link-label[data-layer='rest']:not([data-violation='true']) {
+   celles de l'élément survolé ou dont la carte est active s'affichent. */
+.map-link-label[data-layer='rest'] {
   display: none;
 }
 .react-flow__edge .structure-focus {
@@ -635,20 +635,6 @@
 }
 .map-link-label[data-layer='focus'] {
   color: var(--color-content);
-  font-weight: 600;
-}
-
-/*
- * Vue Architecture d'une carte de structure (spec 017 D20) : une dépendance qui sort du cœur vers une couche moins
- * profonde est rouge et épaisse, son libellé commence par « ⚠ sens interdit » (jamais la couleur seule).
- */
-.react-flow__edge .violation {
-  stroke: rgb(220 38 38);
-  stroke-width: 3;
-  stroke-opacity: 1;
-}
-.map-link-label[data-violation='true'] {
-  color: rgb(185 28 28);
   font-weight: 600;
 }
 

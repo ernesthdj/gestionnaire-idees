@@ -138,9 +138,6 @@ export function inferLayer(kind: ArchitectureKind, paths: readonly string[]): st
   return first[0]
 }
 
-/** Relations qui expriment une dépendance (`teste` et `bloque` n'en sont pas). */
-export const DEPENDENCY_RELATIONS: ReadonlySet<string> = new Set(['depend_de', 'appelle', 'lit_ecrit', 'implemente'])
-
 /** Le lien de `fromLayer` vers `toLayer` sort-il du cœur vers l'extérieur ? Inconnu ou non classé : pas de violation. */
 export function isViolation(kind: ArchitectureKind, fromLayer: string | null, toLayer: string | null): boolean {
   const from = layerOf(kind, fromLayer)

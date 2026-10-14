@@ -34,9 +34,9 @@ import { MapLinkEdge, type MapLinkEdgeType } from './edges/MapLinkEdge'
 import { driftActive, type Point } from './forceLayout'
 import { InlinePrompt } from './InlinePrompt'
 import { NeuronMenu } from './NeuronMenu'
+import { ArchitectureView } from './ArchitectureView'
 import { BlockNode } from './nodes/BlockNode'
 import { ElementNode } from './nodes/ElementNode'
-import { LayerBandNode } from './nodes/LayerBandNode'
 import { StructureBarNode } from './nodes/StructureBarNode'
 import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
@@ -82,7 +82,6 @@ const NODE_TYPES: NodeTypes = {
   mapNote: stillNode(MapNoteNode),
   frame: stillNode(FrameNode),
   element: stillNode(ElementNode),
-  layerBand: stillNode(LayerBandNode),
   structureBar: stillNode(StructureBarNode),
   widget: stillNode(WidgetNode),
   result: stillNode(ResultNode),
@@ -331,13 +330,13 @@ function CanvasInner(): React.JSX.Element {
     (activeCardId !== null && view?.elements.some((element) => element.id === activeCardId) === true
       ? activeCardId
       : null)
-  // Liens d'analyse éteints (D29) : aucun, même au survol ; seules les alertes « sens interdit » restent.
+  // Liens d'analyse éteints (D29) : aucun, même au survol.
   const focused = useMemo(
     () =>
       view === undefined
         ? []
         : focusEdges(view.elements, view.mapLinks, view.measuredLinks, focusId)
-            .filter((edge) => analysisLinks || edge.violation === true)
+            .filter(() => analysisLinks)
             .map(structureFlowEdge),
     [view, focusId, analysisLinks]
   )
@@ -779,6 +778,13 @@ function CanvasInner(): React.JSX.Element {
   }
 
   const menuNeuron = menu === null ? undefined : view?.ideas.find((neuron) => neuron.id === menu.id)
+  // Carte basculée en position « Architecture » (spec 032 D14) : son explorateur couvre la carte.
+  const architectureId =
+    view?.ideas.find(
+      (idea) =>
+        structureViews[idea.id] === 'architecture' &&
+        (idea.linkedProject === true || view.elements.some((element) => element.genesisId === idea.id))
+    )?.id ?? null
   const empty = view !== undefined && view.ideas.length === 0
 
   return (
@@ -807,9 +813,11 @@ function CanvasInner(): React.JSX.Element {
           }}
         />
       ) : null}
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <div
           ref={surface}
+          // Couverte par l'explorateur (position Architecture) : hors du clavier et des lecteurs d'écran.
+          inert={architectureId !== null}
           className="relative min-h-0 min-w-0 flex-1"
           data-drift={
             reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0 || glide === 'on') ? 'on' : 'paused'
@@ -1045,6 +1053,13 @@ function CanvasInner(): React.JSX.Element {
             />
           )}
         </div>
+        {architectureId === null ? null : (
+          <ArchitectureView
+            key={architectureId}
+            genesisId={architectureId}
+            hasMap={view?.elements.some((element) => element.genesisId === architectureId) === true}
+          />
+        )}
       </div>
       <WidgetReview />
       {pendingRemoval.length > 0 ? (

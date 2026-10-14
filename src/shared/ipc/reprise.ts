@@ -1,3 +1,5 @@
+import type { ArchitectureKind } from '../structure/architecture'
+
 /** Vues et contrats de la reprise d'un projet existant (spec 017 contracts/interfaces.md). Chemins relatifs. */
 
 export const CONFIDENTIALITY_LEVELS = ['claude', 'local'] as const
@@ -161,6 +163,15 @@ export interface RepriseProjectView {
   readonly guide: { readonly documentId: string | null; readonly running: boolean }
   /** Levée des ambiguïtés (US6) : passe en cours, liens incertains que l'IA peut encore préciser. */
   readonly resolution: { readonly running: boolean; readonly pending: number }
+  /**
+   * Architecture enregistrée (spec 017 D20) : précisée par Claude ou choisie par mentalyas ; elle prime sur celle que
+   * le détecteur reconnaît (spec 032 D15). `null` : aucune, le détecteur fait foi.
+   */
+  readonly architecture: {
+    readonly kind: ArchitectureKind
+    readonly reason: string | null
+    readonly source: 'claude' | 'user'
+  } | null
 }
 
 /** Résultat d'une passe « Préciser les liens avec l'IA » (`reprise:resolve`, spec 017 US6). */

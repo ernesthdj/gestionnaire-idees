@@ -4,19 +4,16 @@ import userEvent from '@testing-library/user-event'
 import { ReactFlowProvider, type NodeProps } from '@xyflow/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
-import {
-  buildGraph,
-  computeLayout,
-  type LayerBandNodeType,
-  type StructureBarNodeType
-} from '../../../src/renderer/src/canvas/buildGraph'
+import { ArchitectureView } from '../../../src/renderer/src/canvas/ArchitectureView'
+import { buildGraph, computeLayout, type StructureBarNodeType } from '../../../src/renderer/src/canvas/buildGraph'
 import { ElementLayerSelect } from '../../../src/renderer/src/canvas/nodes/ElementNode'
-import { LayerBandNode } from '../../../src/renderer/src/canvas/nodes/LayerBandNode'
 import { StructureBarNode } from '../../../src/renderer/src/canvas/nodes/StructureBarNode'
-import type { ElementView, StructureArchitectureView } from '../../../src/shared/ipc/canvas'
+import { ArchitectureDetector } from '../../../src/renderer/src/explorer/ArchitectureDetector'
+import type { ElementView } from '../../../src/shared/ipc/canvas'
+import type { ExplorerMapView, MapFileView } from '../../../src/shared/ipc/reprise'
 import { expectNoAxeViolations } from '../../support/axe'
 import { canvasView, RAW_ID } from '../../fixtures/ui/canvas'
-import { installFakeApi } from './support/fakeApi'
+import { FakeIpcError, installFakeApi } from './support/fakeApi'
 
 const element = (id: string, extra: Partial<ElementView> = {}): ElementView => ({
   id,
@@ -33,7 +30,37 @@ const element = (id: string, extra: Partial<ElementView> = {}): ElementView => (
   order: null,
   ...extra
 })
-const CLEAN: StructureArchitectureView = { genesisId: RAW_ID, kind: 'clean', reason: 'dossiers', source: 'claude' }
+const file = (path: string): MapFileView => ({
+  key: `f:${path}`,
+  path,
+  moduleKey: 'm:dir:',
+  title: path.split('/').at(-1) ?? path,
+  folder: '',
+  lang: 'cs',
+  lines: 10,
+  role: null,
+  functions: [],
+  depth: 0,
+  external: false,
+  plumbing: false
+})
+/** Carte d'un projet Clean dont le domaine appelle l'infrastructure (une violation). */
+const MAP: ExplorerMapView = {
+  modules: [],
+  files: [file('Domain/OrderService.cs'), file('Infrastructure/SqlOrderRepository.cs')],
+  calls: [
+    {
+      from: 'f:Domain/OrderService.cs',
+      to: 'f:Infrastructure/SqlOrderRepository.cs',
+      count: 1,
+      provenance: 'syntax',
+      sentences: []
+    }
+  ],
+  truncated: false,
+  confidentiality: 'local',
+  folderMissing: false
+}
 
 const wrap = (node: React.JSX.Element) =>
   render(
@@ -41,85 +68,81 @@ const wrap = (node: React.JSX.Element) =>
       <ReactFlowProvider>{node}</ReactFlowProvider>
     </QueryClientProvider>
   )
+const bar = (hasMap: boolean) =>
+  ({
+    data: { genesisId: RAW_ID, view: 'workflow', hasMap, strays: { steps: [], elements: [] } }
+  }) as unknown as NodeProps<StructureBarNodeType>
 
-describe('vue Architecture à l’écran (spec 017 D20)', () => {
+describe('position Architecture = l’explorateur dans la carte (spec 032 D14, D15)', () => {
   beforeEach(() => useUiStore.setState({ structureViews: {} }))
 
-  it('should_keep_the_progression_view_until_the_map_is_switched_then_draw_bands_and_red_violations', () => {
+  it('should_draw_no_layer_band_and_keep_the_map_below_when_switched_to_architecture', () => {
     const view = {
       ...canvasView(),
-      elements: [
-        element('core', { layer: 'domaine', layerSource: 'claude' }),
-        element('db', { layer: 'infrastructure' })
-      ],
-      architectures: [CLEAN],
-      measuredLinks: [{ from: 'core', to: 'db', count: 3, provenance: 'syntax' } as const]
+      elements: [element('core', { layer: 'domaine' }), element('db', { layer: 'infrastructure' })],
+      architectures: [{ genesisId: RAW_ID, kind: 'clean', reason: null, source: 'claude' } as const]
     }
-    const before = buildGraph(view, computeLayout(view))
-    expect(before.nodes.some((node) => node.type === 'layerBand')).toBe(false)
-    expect(before.nodes.find((node) => node.type === 'structureBar')?.data).toMatchObject({ view: 'progression' })
-    const after = buildGraph(view, computeLayout(view), null, new Set(), { [RAW_ID]: 'architecture' })
-    expect(after.nodes.filter((node) => node.type === 'layerBand').map((node) => node.ariaLabel)).toEqual([
-      'Couche Présentation : 0 élément',
-      'Couche Infrastructure : 1 élément',
-      'Couche Application : 0 élément',
-      'Couche Domaine : 1 élément'
-    ])
-    const violation = after.mapEdges.find((edge) => edge.source === 'core')
-    expect(violation?.data).toMatchObject({ violation: true, label: expect.stringContaining('⚠ sens interdit') })
-    expect(after.nodes.find((node) => node.id === 'core')?.ariaLabel).toContain('couche Domaine')
+    const graph = buildGraph(view, computeLayout(view), null, new Set(), { [RAW_ID]: 'architecture' })
+    expect(graph.nodes.find((node) => node.type === 'structureBar')?.data).toMatchObject({ view: 'architecture' })
+    // Les bandes de couches (spec 017 D20) sont retirées : la carte dessous garde sa Progression.
+    expect(graph.nodes.filter((node) => node.type === 'element').map((node) => node.id)).toEqual(['core', 'db'])
   })
 
-  it('should_switch_views_and_set_the_architecture_from_the_map_bar', async () => {
+  it('should_offer_architecture_without_a_drawn_map_and_keep_a_single_map_in_that_position', async () => {
     const user = userEvent.setup()
-    const api = installFakeApi({ 'structure:setArchitecture': () => ({ batchId: 'b1' }) })
-    const props = {
-      data: {
-        genesisId: RAW_ID,
-        view: 'progression',
-        hasMap: true,
-        architecture: CLEAN,
-        strays: { steps: [], elements: [] }
-      }
-    }
-    const { container } = wrap(<StructureBarNode {...(props as unknown as NodeProps<StructureBarNodeType>)} />)
+    installFakeApi()
+    useUiStore.setState({ structureViews: { other: 'architecture' } })
+    const { container } = wrap(<StructureBarNode {...bar(false)} />)
+    expect((screen.getByRole('button', { name: 'Progression' }) as HTMLButtonElement).disabled).toBe(true)
     await user.click(screen.getByRole('button', { name: 'Architecture' }))
-    expect(useUiStore.getState().structureViews[RAW_ID]).toBe('architecture')
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Architecture' }), 'mvvm')
-    expect(api.invoke).toHaveBeenCalledWith('structure:setArchitecture', { genesisId: RAW_ID, kind: 'mvvm' })
-    expect(screen.getByText('reconnue par Claude')).toBeTruthy()
+    expect(useUiStore.getState().structureViews).toEqual({ other: 'workflow', [RAW_ID]: 'architecture' })
+    // Le choix de l'architecture a quitté la barre : il est en tête de l'explorateur.
+    expect(screen.queryByRole('combobox', { name: 'Architecture' })).toBeNull()
     await expectNoAxeViolations(container)
   })
 
-  it('should_disable_the_architecture_view_when_no_architecture_is_known', () => {
-    const props = {
-      data: {
-        genesisId: RAW_ID,
-        view: 'progression',
-        hasMap: true,
-        architecture: null,
-        strays: { steps: [], elements: [] }
-      }
-    }
-    wrap(<StructureBarNode {...(props as unknown as NodeProps<StructureBarNodeType>)} />)
-    expect((screen.getByRole('button', { name: 'Architecture' }) as HTMLButtonElement).disabled).toBe(true)
+  it('should_say_the_detected_architecture_and_its_reason_and_let_mentalyas_correct_it', async () => {
+    const user = userEvent.setup()
+    const api = installFakeApi({ 'structure:setArchitecture': () => ({ batchId: 'b1' }) })
+    const { container } = wrap(<ArchitectureDetector genesisId={RAW_ID} map={MAP} stored={null} />)
+    const select = screen.getByRole('combobox', { name: 'Architecture' }) as HTMLSelectElement
+    expect(select.value).toBe('clean')
+    expect(screen.getByText('reconnue par l’app')).toBeTruthy()
+    expect(
+      screen.getByText('· Dossiers « Domain » et « Infrastructure » ; 1 appel sort du cœur vers l’extérieur.')
+    ).toBeTruthy()
+    await user.selectOptions(select, 'hexagonale')
+    expect(api.invoke).toHaveBeenCalledWith('structure:setArchitecture', { genesisId: RAW_ID, kind: 'hexagonale' })
+    await expectNoAxeViolations(container)
   })
 
-  it('should_label_a_band_with_its_layer_and_count', async () => {
-    const band = {
-      id: 'b',
-      genesisId: RAW_ID,
-      layer: null,
-      label: 'Non classés',
-      count: 2,
-      x: 0,
-      y: 0,
-      width: 800,
-      height: 200
-    }
-    const { container } = wrap(<LayerBandNode {...({ data: { band } } as unknown as NodeProps<LayerBandNodeType>)} />)
-    expect(screen.getByText('Non classés')).toBeTruthy()
-    expect(screen.getByText('2 éléments')).toBeTruthy()
+  it('should_put_the_choice_of_mentalyas_first_and_still_say_what_the_app_sees', () => {
+    wrap(
+      <ArchitectureDetector
+        genesisId={RAW_ID}
+        map={MAP}
+        stored={{ kind: 'hexagonale', reason: null, source: 'user' }}
+      />
+    )
+    expect((screen.getByRole('combobox', { name: 'Architecture' }) as HTMLSelectElement).value).toBe('hexagonale')
+    expect(screen.getByText('choisie par toi')).toBeTruthy()
+    expect(screen.getByText(/L’app y voit : Clean Architecture\./)).toBeTruthy()
+  })
+
+  it('should_offer_to_analyse_the_code_when_the_project_has_no_analysis', async () => {
+    const user = userEvent.setup()
+    const api = installFakeApi({
+      'reprise:get': () => {
+        throw new FakeIpcError('NOT_FOUND')
+      },
+      'reprise:adopt': () => ({ genesisId: RAW_ID })
+    })
+    const { container } = wrap(<ArchitectureView genesisId={RAW_ID} hasMap={false} />)
+    expect(await screen.findByRole('heading', { name: 'Le code de ce projet n’est pas encore analysé' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Workflow' })).toBeTruthy()
+    await user.click(screen.getByLabelText('Local uniquement : rien ne part chez Claude'))
+    await user.click(screen.getByRole('button', { name: 'Analyser' }))
+    expect(api.invoke).toHaveBeenCalledWith('reprise:adopt', { genesisId: RAW_ID, confidentiality: 'local' })
     await expectNoAxeViolations(container)
   })
 

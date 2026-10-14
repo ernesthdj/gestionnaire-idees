@@ -1130,6 +1130,10 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       running: resolution.isRunning(genesisId),
       pending: codeGraph.resolvableEdges(genesisId)
     }),
+    architecture: (genesisId) => {
+      const found = elementRepository.architectures([genesisId])[0]
+      return found === undefined ? null : { kind: found.kind, reason: found.reason, source: found.source }
+    },
     // Un projet repris n'est pas catégorisé : son nom de dossier ne part vers aucune IA avant que sa
     // confidentialité soit enregistrée (spec 017 SC-002).
     createGenesis: async (title) => neurons.insert({ text: title }),

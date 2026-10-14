@@ -1,13 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import type { HubAnomaly } from '@shared/ipc/brainstorms'
-import type { Confidentiality } from '@shared/ipc/reprise'
 import { useUiStore } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
 import { flushViewState } from './useBrainstorms'
 import { SavePoints } from '../canvas/SavePoints'
 import { RepoBadge } from '../git/RepoBadge'
-import { call, IpcFailure } from '../lib/ipc'
+import { AnalyzeCodeForm, useCodeAnalysis } from '../reprise/AnalyzeCode'
 
 const since = (iso: string): string => {
   const date = new Date(iso)
@@ -42,29 +40,10 @@ function ExplorerEntry({
   readonly genesisId: string
   readonly hasFolder: boolean
 }): React.JSX.Element | null {
-  const client = useQueryClient()
   const openExplorer = useUiStore((state) => state.openExplorer)
-  const choiceId = useId()
   const [choosing, setChoosing] = useState(false)
-  const [level, setLevel] = useState<Confidentiality | null>(null)
-  const reprise = useQuery({
-    queryKey: ['reprise', genesisId],
-    queryFn: () => call('reprise:get', { genesisId }),
-    retry: false
-  })
-  const adopt = useMutation({
-    mutationFn: (confidentiality: Confidentiality) => call('reprise:adopt', { genesisId, confidentiality }),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ['reprise', genesisId] })
-      setChoosing(false)
-      openExplorer(genesisId)
-    }
-  })
-  const failure = reprise.error instanceof IpcFailure ? reprise.error : null
-  const notAnalyzed = failure?.code === 'NOT_FOUND'
   // Dossier déjà analysé pour un autre nœud (un ancien « Reprendre », D23) : son explorateur sert ce projet.
-  const elsewhere = notAnalyzed ? failure?.details?.['analyzedBy'] : undefined
-  const target = reprise.data !== undefined ? genesisId : typeof elsewhere === 'string' ? elsewhere : null
+  const { target, notAnalyzed } = useCodeAnalysis(genesisId)
   if (target !== null) {
     return (
       <Button
@@ -87,36 +66,14 @@ function ExplorerEntry({
           aria-label="Analyser le code du projet"
           className="absolute top-full right-0 z-30 mt-1 flex w-80 flex-col gap-2 rounded-md border border-content-muted/30 bg-surface p-3 text-xs shadow-lg"
         >
-          <p>
-            L’app lit le dossier du projet et dessine la carte de son code (modules, dossiers, appels). Rien n’est
-            modifié.
-          </p>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="font-semibold">Confidentialité</legend>
-            <label className="flex items-start gap-2">
-              <input type="radio" name={choiceId} checked={level === 'local'} onChange={() => setLevel('local')} />
-              Local uniquement : rien ne part chez Claude
-            </label>
-            <label className="flex items-start gap-2">
-              <input type="radio" name={choiceId} checked={level === 'claude'} onChange={() => setLevel('claude')} />
-              Claude autorisé : il peut lire le code (guide de reprise, liens précisés)
-            </label>
-          </fieldset>
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              disabled={level === null || adopt.isPending}
-              onClick={() => level !== null && adopt.mutate(level)}
-            >
-              {adopt.isPending ? 'Analyse…' : 'Analyser'}
-            </Button>
-            <Button onClick={() => setChoosing(false)}>Annuler</Button>
-          </div>
-          {adopt.error === null ? null : (
-            <p role="alert" className="text-con">
-              {adopt.error instanceof IpcFailure ? adopt.error.message : 'L’analyse n’a pas pu démarrer.'}
-            </p>
-          )}
+          <AnalyzeCodeForm
+            genesisId={genesisId}
+            onAnalyzed={() => {
+              setChoosing(false)
+              openExplorer(genesisId)
+            }}
+            onCancel={() => setChoosing(false)}
+          />
         </section>
       ) : null}
     </div>

@@ -1992,3 +1992,26 @@ Les consignes du pont décrivent l'en-tête et précisent que la maturité d'un 
 document, pas avec `maturite_evaluer` (dont la description le rappelle). Le profil démo montre un rond mûr (sa spec) et
 un rond « insuffisant » dont les deux tâches restent des ébauches. (Les consignes « Discuter » D7 — continuer, évaluer,
 rouvrir — sont du lot 2.)
+
+### [2026-10-14 18:30] FEAT — spec 032 lot 4 : l'Architecture est l'explorateur, avec son détecteur
+**Fichiers :** `src/shared/structure/detect.ts` (nouveau, détecteur pur), `src/renderer/src/explorer/ArchitectureDetector.tsx`
+(nouveau), `src/renderer/src/canvas/ArchitectureView.tsx` (nouveau), `src/renderer/src/reprise/AnalyzeCode.tsx` (nouveau,
+sorti de `home/BrainstormBar.tsx`), `ExplorerPage.tsx` (prop `switcher`, détecteur en tête), `IdeasCanvas.tsx`,
+`StructureBarNode.tsx` (`StructureViewSwitch` exporté), `buildGraph.ts`, `structureGraph.ts`, `uiStore.ts`,
+`shared/ipc/reprise.ts` + `RepriseService.ts` + `bootstrap.ts` (`architecture` dans la vue du projet repris),
+`shared/mcp/tools.ts` ; retirés : `nodes/LayerBandNode.tsx`, `architectureGraph`, `BAND`, `violation` des liens,
+`DEPENDENCY_RELATIONS`, le choix d'architecture de la barre. Tests : `unit/structure/detect.test.ts`,
+`integration/reprise/architecture-detector.test.ts` (SC-005), `unit/renderer/architecture-view.test.tsx` (réécrit),
+e2e `architecture-view.e2e.ts`.
+**Quoi :** T040 — le détecteur reconnaît l'architecture par des règles sur les dossiers (la plus spécifique d'abord :
+`ports`/`adapters` → hexagonale, `viewmodels` → MVVM, 2 rôles parmi domaine/application/infrastructure → Clean,
+2 parmi contrôleurs/modèles/vues → MVC, 2 parmi présentation/métier/données → couches) et compte les appels qui sortent
+du cœur ; raison en une phrase. Sur les jeux de la spec 017 (analyse réelle) : cs-app et ts-app Clean (2 et 1 appels
+du domaine vers l'infrastructure, vrais dans le code), laravel-app MVC, hostile-app aucune. T041 — « Architecture »
+dans la barre monte l'explorateur par-dessus la carte (la bascule remplace « ← Carte », une seule carte à la fois dans
+cette position, la carte dessous `inert`) ; sans analyse, « Analyser le code » (confidentialité d'abord). En tête de
+l'explorateur, l'architecture reconnue, précisée par Claude ou choisie par mentalyas (prioritaire, annulable).
+**Choix :** l'explorateur couvre la carte plutôt que d'être un nœud dans React Flow : une carte imbriquée suivrait le
+zoom du canevas et deviendrait illisible ; l'overlay est posé à côté de la surface (pas dedans) pour que le double-clic
+de la carte ne crée pas d'idée dans l'explorateur.
+**Règle apprise :** Playwright ne tient pas compte de `inert` pour `getByRole` : cibler la région de l'explorateur.

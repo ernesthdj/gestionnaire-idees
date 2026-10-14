@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import type { NodeProps } from '@xyflow/react'
 import { useId, useState } from 'react'
-import { ARCHITECTURE_KINDS, ARCHITECTURES, type ArchitectureKind } from '@shared/structure/architecture'
 import { useUiStore, type StructureView } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { StructureBarNodeType } from '../buildGraph'
@@ -16,17 +15,60 @@ import {
 } from '../workflow/prompts'
 
 /**
- * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule « Workflow | Progression | Architecture » et
- * architecture de la carte, reconnue par Claude ou choisie par mentalyas (sa correction prime, annulable dans
- * l'Historique). Sans carte de structure dessinée, seule la vue Workflow est possible ; en Workflow, « Relire » relit
+ * Bascule « Workflow | Progression | Architecture » d'une carte de projet lié (spec 023 D3) : sur la barre de la carte
+ * et en tête de l'explorateur monté en position Architecture (spec 032 D14). Progression demande une carte de
+ * structure dessinée ; l'Architecture est l'explorateur, qui propose d'analyser le code s'il ne l'est pas encore.
+ */
+export function StructureViewSwitch({
+  genesisId,
+  view,
+  hasMap
+}: {
+  readonly genesisId: string
+  readonly view: StructureView | null
+  readonly hasMap: boolean
+}): React.JSX.Element {
+  const setStructureView = useUiStore((state) => state.setStructureView)
+  const segment = (target: StructureView, label: string, disabled = false): React.JSX.Element => (
+    <button
+      type="button"
+      aria-pressed={view === target}
+      disabled={disabled}
+      onClick={(event) => {
+        event.stopPropagation()
+        setStructureView(genesisId, target)
+      }}
+      title={disabled ? 'Cartographie le projet pour voir sa structure' : undefined}
+      className={`h-7 px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+        view === target ? 'bg-accent text-surface' : 'text-content hover:bg-surface'
+      }`}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <div
+      role="group"
+      aria-label="Vue de la carte"
+      className="flex overflow-hidden rounded-md border border-content-muted/40"
+    >
+      {segment('workflow', 'Workflow')}
+      {segment('progression', 'Progression', !hasMap)}
+      {segment('architecture', 'Architecture')}
+    </div>
+  )
+}
+
+/**
+ * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule des vues (l'architecture se lit et se corrige
+ * en tête de l'explorateur, spec 032 D15). Sans carte de structure dessinée, pas de Progression ; en Workflow, « Relire » relit
  * les fichiers du projet. Le travail se fait dans le Workflow (D26, D27) : ce qui a été posé ailleurs (étapes nées dans
  * la vue, tâches et décisions de la carte) est signalé, à reporter dans les fichiers ou à retirer (D23, D28).
  */
 export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): React.JSX.Element {
-  const { genesisId, view, hasMap, architecture, strays } = data
+  const { genesisId, view, hasMap, strays } = data
   const strayCount = strays.steps.length + strays.elements.length
   const client = useQueryClient()
-  const setStructureView = useUiStore((state) => state.setStructureView)
   const showToast = useUiStore((state) => state.showToast)
   const [busy, setBusy] = useState(false)
   // Sujet du nouveau brainstorm (D26) ; `null` : le champ est fermé.
@@ -107,53 +149,6 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
       setBusy(false)
     }
   }
-  const kind = architecture?.kind ?? 'aucune'
-  const canLayer = kind !== 'aucune'
-
-  const choose = async (next: ArchitectureKind): Promise<void> => {
-    setBusy(true)
-    try {
-      const { batchId } = await call<{ readonly batchId: string }>('structure:setArchitecture', {
-        genesisId,
-        kind: next
-      })
-      showToast(`Architecture : ${ARCHITECTURES[next].label}.`, {
-        batchId,
-        undoneText: 'Architecture remise comme avant.'
-      })
-      if (next === 'aucune') setStructureView(genesisId, 'progression')
-      await client.invalidateQueries({ queryKey: ['canvas'] })
-    } catch (error) {
-      showToast(error instanceof IpcFailure ? error.message : 'L’architecture n’a pas pu être changée.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const segment = (target: StructureView, label: string, disabled = false): React.JSX.Element => (
-    <button
-      type="button"
-      aria-pressed={view === target}
-      disabled={disabled}
-      onClick={(event) => {
-        event.stopPropagation()
-        setStructureView(genesisId, target)
-      }}
-      title={
-        !disabled
-          ? undefined
-          : hasMap
-            ? 'Cartographie le projet ou choisis son architecture pour voir ses couches'
-            : 'Cartographie le projet pour voir sa structure'
-      }
-      className={`h-7 px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
-        view === target ? 'bg-accent text-surface' : 'text-content hover:bg-surface'
-      }`}
-    >
-      {label}
-    </button>
-  )
-
   return (
     <div
       role="group"
@@ -162,11 +157,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
     >
       {/* Le bandeau (D23, D28) passe sous la ligne : la barre ne s'élargit pas vers la gauche de la carte. */}
       <div className="flex items-center gap-3">
-        <div className="flex overflow-hidden rounded-md border border-content-muted/40">
-          {segment('workflow', 'Workflow')}
-          {segment('progression', 'Progression', !hasMap)}
-          {segment('architecture', 'Architecture', !hasMap || !canLayer)}
-        </div>
+        <StructureViewSwitch genesisId={genesisId} view={view} hasMap={hasMap} />
         {view === 'workflow' ? (
           <button
             type="button"
@@ -248,29 +239,6 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
           >
             {mapping ? 'Mise à jour…' : '↻ Mettre à jour'}
           </button>
-        )}
-        {!hasMap ? null : (
-          <label className="flex items-center gap-2 text-xs text-content-muted">
-            Architecture
-            <select
-              value={kind}
-              disabled={busy}
-              onChange={(event) => void choose(event.target.value as ArchitectureKind)}
-              onClick={(event) => event.stopPropagation()}
-              className="h-7 rounded-md border border-content-muted/40 bg-surface px-1 text-xs text-content"
-            >
-              {ARCHITECTURE_KINDS.map((entry) => (
-                <option key={entry} value={entry}>
-                  {ARCHITECTURES[entry].label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {!hasMap || architecture === null ? null : (
-          <span className="text-[11px] text-content-muted" title={architecture.reason ?? undefined}>
-            {architecture.source === 'user' ? 'choisie par toi' : 'reconnue par Claude'}
-          </span>
         )}
       </div>
       {view === null || strayCount === 0 ? null : (

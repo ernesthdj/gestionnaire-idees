@@ -13,8 +13,8 @@ import type { BranchEdgeType } from './edges/BranchEdge'
 import type { MapLinkEdgeType } from './edges/MapLinkEdge'
 import { contentLabel } from './elementContent'
 import { progressOf, statusOf, type ElementDisplayStatus, type ElementProgress } from './progress'
-import { architectureGraph, structureGraph, type LayerBand, type StructureEdge } from './structureGraph'
-import type { StepView, StructureArchitectureView } from '@shared/ipc/canvas'
+import { structureGraph, type StructureEdge } from './structureGraph'
+import type { StepView } from '@shared/ipc/canvas'
 import { layerOf, type ArchitectureKind } from '@shared/structure/architecture'
 import type { FolderBadge } from '@shared/ipc/folders'
 import { FOLDER_NODE_SIZE } from './folder/folderGeometry'
@@ -100,14 +100,12 @@ export type ElementNodeType = Node<
   },
   'element'
 >
-/** Bande d'une couche dans la vue Architecture (spec 017 D20). */
-export type LayerBandNodeType = Node<{ readonly band: LayerBand }, 'layerBand'>
-/** Lecture d'une carte de projet lié : Workflow (spec 023), Progression ou Architecture (spec 017 D20). */
+/** Lecture d'une carte de projet lié : Workflow (spec 023), Progression ou Architecture (l'explorateur, spec 032 D14). */
 export type StructureViewKind = 'workflow' | 'progression' | 'architecture'
 
 /**
- * Barre d'une carte de projet lié (spec 017 D20, spec 023 D3) : bascule Workflow / Progression / Architecture et
- * architecture de la carte ; `hasMap` : une carte de structure est dessinée.
+ * Barre d'une carte de projet lié (spec 023 D3) : bascule Workflow / Progression / Architecture ; `hasMap` : une
+ * carte de structure est dessinée.
  */
 export type StructureBarNodeType = Node<
   {
@@ -115,7 +113,6 @@ export type StructureBarNodeType = Node<
     /** Vue affichée ; `null` : aucune (projet lié sans carte dessinée, Workflow pas encore choisi). */
     readonly view: StructureViewKind | null
     readonly hasMap: boolean
-    readonly architecture: StructureArchitectureView | null
     /**
      * Ce qui a été posé dans la vue affichée alors que le travail se fait dans le Workflow (spec 023 D23, D28) : les
      * étapes nées dans cette vue et, en Progression et en Architecture, les éléments `tache` et `decision` de la carte.
@@ -212,7 +209,6 @@ export type CanvasNode =
   | MapNoteNodeType
   | FrameNodeType
   | ElementNodeType
-  | LayerBandNodeType
   | StructureBarNodeType
   | WorkflowNodeType
   | FolderNodeType
@@ -473,16 +469,18 @@ export function buildGraph(
       .filter((idea) => idea.linkedProject === true && structureViews[idea.id] === 'workflow')
       .map((idea) => idea.id)
   )
-  // Vue affichée de chaque carte (comme sa barre) : Workflow, Architecture si l'architecture est connue, Progression.
+  // Vue affichée de chaque carte (comme sa barre) : Workflow, Architecture (l'explorateur, monté par-dessus la carte,
+  // spec 032 D14 : la carte dessous garde sa Progression), Progression.
   const architectureOf = new Map((view.architectures ?? []).map((entry) => [entry.genesisId, entry] as const))
   const mapped = new Set(view.elements.map((element) => element.genesisId))
+  const linkedIds = new Set(view.ideas.filter((idea) => idea.linkedProject === true).map((idea) => idea.id))
   const shownViewOf = (id: string): StructureViewKind | null =>
     workflowIds.has(id)
       ? 'workflow'
-      : !mapped.has(id)
-        ? null
-        : structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
-          ? 'architecture'
+      : structureViews[id] === 'architecture' && (mapped.has(id) || linkedIds.has(id))
+        ? 'architecture'
+        : !mapped.has(id)
+          ? null
           : 'progression'
   // Blocs de la vue affichée (spec 023 D25) : chaque vue de la carte a son propre canevas ; un bloc sans vue (canevas
   // sans carte de structure) est partout, et tous restent visibles si aucune carte n'a de vue.
@@ -755,59 +753,19 @@ export function buildGraph(
     shown === undefined
       ? ''
       : `, ${STATUS_LABELS[shown.status]}${shown.fromChildren ? ' d’après ses sous-éléments' : ''}`
-  // Vue Architecture (D20) : seulement pour une carte basculée dont l'architecture est connue ; les autres gardent la
-  // vue Progression, inchangée.
   const progress = progressOf(view.elements)
   const statuses = statusOf(view.elements)
-  const switched = [...genesisCenters.keys()].filter(
-    (id) => structureViews[id] === 'architecture' && (architectureOf.get(id)?.kind ?? 'aucune') !== 'aucune'
-  )
-  const progressionGraph = structureGraph(
-    view.elements.filter((element) => !switched.includes(element.genesisId) && !workflowIds.has(element.genesisId)),
+  const structure = structureGraph(
+    view.elements.filter((element) => !workflowIds.has(element.genesisId)),
     genesisCenters,
     view.mapLinks,
     view.measuredLinks,
     transposed
   )
-  const layered = switched.map((id) =>
-    architectureGraph(
-      view.elements,
-      id,
-      genesisCenters.get(id) ?? { x: 0, y: 0 },
-      architectureOf.get(id)?.kind ?? 'aucune',
-      view.mapLinks,
-      view.measuredLinks
-    )
-  )
-  const structure = {
-    placed: [...progressionGraph.placed, ...layered.flatMap((graph) => graph.placed)],
-    edges: [...progressionGraph.edges, ...layered.flatMap((graph) => graph.edges)]
-  }
-  const bandNodes = layered.flatMap((graph) =>
-    graph.bands.map((band): LayerBandNodeType => ({
-      id: band.id,
-      type: 'layerBand',
-      position: { x: band.x, y: band.y },
-      data: { band },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      zIndex: -1,
-      ariaLabel: `Couche ${band.label} : ${band.count} élément${band.count > 1 ? 's' : ''}`,
-      deletable: false
-    }))
-  )
   const withMap = new Set(view.elements.map((element) => element.genesisId))
-  const linked = new Set(view.ideas.filter((idea) => idea.linkedProject === true).map((idea) => idea.id))
   const barNodes = [...genesisCenters].flatMap(([id, center]): StructureBarNodeType[] => {
-    if (!withMap.has(id) && !linked.has(id)) return []
-    const shownView: StructureViewKind | null = workflowIds.has(id)
-      ? 'workflow'
-      : !withMap.has(id)
-        ? null
-        : switched.includes(id)
-          ? 'architecture'
-          : 'progression'
+    if (!withMap.has(id) && !linkedIds.has(id)) return []
+    const shownView = shownViewOf(id)
     return [
       {
         id: `structure-bar-${id}`,
@@ -817,14 +775,13 @@ export function buildGraph(
           genesisId: id,
           view: shownView,
           hasMap: withMap.has(id),
-          architecture: architectureOf.get(id) ?? null,
           // Étapes nées dans la vue affichée (masquées en Workflow, D23) ; tâches et décisions de la carte (D28).
           strays: {
             steps:
               shownView === null
                 ? []
                 : view.steps
-                    .filter((step) => step.genesisId === id && bornIn(step, linked.has(id)) === shownView)
+                    .filter((step) => step.genesisId === id && bornIn(step, linkedIds.has(id)) === shownView)
                     .map((step) => ({ id: step.id, parentId: step.parentId, title: step.title, rank: step.rank })),
             elements:
               shownView === null || shownView === 'workflow'
@@ -874,7 +831,7 @@ export function buildGraph(
     deletable: false
   }))
   const structureEdges = structure.edges
-    .filter((edge) => analysisLinks || edge.kind === 'hierarchy' || edge.violation === true)
+    .filter((edge) => analysisLinks || edge.kind === 'hierarchy')
     .map(structureFlowEdge)
   // Vue Workflow (spec 032) : les ronds et les carrés sous le genesis, en sens alterné.
   const workflowNodes: WorkflowNodeType[] = []
@@ -963,7 +920,6 @@ export function buildGraph(
   const nodes = [
     ...neuronNodes,
     ...blockNodes,
-    ...bandNodes,
     ...elementNodes,
     ...barNodes,
     ...planNodes,
@@ -998,9 +954,6 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
   }
   if (edge.kind === 'hierarchy') return { ...common, type: 'branch', data: { style: 'solid' } }
   const layer = edge.focused ? 'focus' : 'rest'
-  // Vue Architecture (D20) : une dépendance qui sort du cœur est signalée, jamais par la couleur seule.
-  const violation = edge.violation === true ? { violation: true as const } : {}
-  const warn = edge.violation === true ? '⚠ sens interdit · ' : ''
   if (edge.kind === 'measured') {
     const plural = edge.count > 1 ? 's' : ''
     return {
@@ -1008,10 +961,9 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
       type: 'mapLink',
       data: {
         // Étiquette courte (spec 022 US3) : elles se chevauchaient ; la fiabilité se lit au style du trait.
-        label: `${warn}${edge.count} appel${plural}`,
+        label: `${edge.count} appel${plural}`,
         measured: edge.provenance ?? 'uncertain',
-        layer,
-        ...violation
+        layer
       }
     }
   }
@@ -1020,7 +972,6 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
     type: 'mapLink',
     data: {
       label: [
-        edge.violation === true ? '⚠ sens interdit' : null,
         edge.relation === null ? null : RELATION_LABELS[edge.relation],
         edge.label,
         edge.count > 1 ? `×${edge.count}` : null
@@ -1028,8 +979,7 @@ export function structureFlowEdge(edge: StructureEdge): MapLinkEdgeType | Branch
         .filter((part) => part !== null)
         .join(' · '),
       relation: edge.relation,
-      layer,
-      ...violation
+      layer
     }
   }
 }

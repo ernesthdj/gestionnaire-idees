@@ -406,7 +406,8 @@ export const MCP_TOOLS = {
       'presentation, infrastructure, application, domaine ; hexagonale = entrants, sortants, application, domaine ; ' +
       'mvvm = vue, viewmodel, modele ; mvc = vue, controleur, modele ; couches = presentation, metier, donnees. ' +
       'La couche est un attribut : garde la hiérarchie par modules, les statuts et les chemins, ne crée jamais ' +
-      'd’élément par couche (l’app range elle-même les éléments par couche). ' +
+      'd’élément par couche. L’architecture que tu donnes précise celle que l’app reconnaît dans le code (vue ' +
+      'Architecture : l’explorateur) ; celle choisie par mentalyas prime. ' +
       'Tout ou rien ; 300 éléments et 600 ' +
       'liens par appel. ' +
       'Reste lisible : 12 enfants au plus par élément, regroupe sinon. ' +
@@ -510,8 +511,8 @@ export const MCP_INSTRUCTIONS = [
   'Dans la conversation d’un élément de carte de structure, quand tu travailles dessus : `element_avancer` à chaque ' +
     'étape franchie (avancement, reste) et « livree » quand c’est terminé (tests verts, commit).',
   'Cartographier un projet lié (modules, composants, architecture, couches) : TOUJOURS `structure_dessiner`, jamais ' +
-    '`dessiner` ni `cadre` : l’app en tire elle-même la vue Progression et la vue Architecture, et la bascule entre les ' +
-    'deux. La carte reflète ce que la doc prévoit et ce que le code contient, rien d’autre.',
+    '`dessiner` ni `cadre` : l’app en tire elle-même la vue Progression (la vue Architecture est l’explorateur du ' +
+    'code). La carte reflète ce que la doc prévoit et ce que le code contient, rien d’autre.',
   'Un nœud mûr (maturité « complet ») d’une idée non liée : propose son plan d’attaque avec `plan_proposer` ; s’il ' +
     'n’est pas mûr, dis plutôt ce qui manque.',
   'Une étape feuille qui n’a plus besoin d’être découpée : propose-la comme action finale avec `action_proposer` ; ' +

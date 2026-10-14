@@ -20,6 +20,8 @@ export interface RepriseDeps {
   readonly guide?: (genesisId: string) => { readonly documentId: string | null; readonly running: boolean }
   /** État de la levée des ambiguïtés (passe en cours, liens que l'IA peut encore préciser). */
   readonly resolution?: (genesisId: string) => { readonly running: boolean; readonly pending: number }
+  /** Architecture enregistrée du genesis (spec 017 D20, spec 032 D15) ; `null` : aucune. */
+  readonly architecture?: (genesisId: string) => RepriseProjectView['architecture']
   /** Crée le genesis « projet repris » (titre : nom du dossier). */
   readonly createGenesis: (title: string) => Promise<string>
   /** Lie le genesis à son dossier source. */
@@ -194,7 +196,8 @@ export class RepriseService {
       folderMissing: !(this.deps.exists ?? existsSync)(project.rootDir),
       analysis: { state: project.analysisState, progress: null, stats: null, analyzedAt: project.analyzedAt },
       guide: this.deps.guide?.(genesisId) ?? { documentId: null, running: false },
-      resolution: this.deps.resolution?.(genesisId) ?? { running: false, pending: 0 }
+      resolution: this.deps.resolution?.(genesisId) ?? { running: false, pending: 0 },
+      architecture: this.deps.architecture?.(genesisId) ?? null
     }
   }
 

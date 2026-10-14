@@ -32,7 +32,8 @@ const project = (
   folderMissing: false,
   analysis: { state: 'idle', progress: null, stats: null, analyzedAt: '2026-10-07T08:00:00.000Z', ...extra },
   guide,
-  resolution
+  resolution,
+  architecture: null
 })
 const GUIDE = [
   '# Guide de reprise — cs-app',

@@ -29,8 +29,8 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 4 — Architecture = l'explorateur
 
-- [ ] T040 Domaine pur du détecteur d'architecture (D15) + tests sur les jeux de test de la spec 017 (SC-005).
-- [ ] T041 Explorateur monté dans la carte en position « Architecture » (D14), détecteur en tête (correction
+- [x] T040 Domaine pur du détecteur d'architecture (D15) + tests sur les jeux de test de la spec 017 (SC-005).
+- [x] T041 Explorateur monté dans la carte en position « Architecture » (D14), détecteur en tête (correction
   annulable) ; retrait des bandes de couches (017 D20) ; tests renderer, e2e.
 
 ## Lot 5 — Progression A, B, C

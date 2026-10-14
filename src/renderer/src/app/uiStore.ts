@@ -212,8 +212,18 @@ export const useUiStore = create<UiState>()((set, get) => ({
       chatDrafts: Object.fromEntries(Object.entries(state.chatDrafts).filter(([id]) => id !== neuronId))
     })),
   toggleAnalysisLinks: () => set((state) => ({ analysisLinks: !state.analysisLinks })),
+  // Une seule carte à la fois en position « Architecture » : son explorateur couvre la carte (spec 032 D14).
   setStructureView: (genesisId, view) =>
-    set((state) => ({ structureViews: { ...state.structureViews, [genesisId]: view } })),
+    set((state) => ({
+      structureViews: {
+        ...Object.fromEntries(
+          Object.entries(state.structureViews).map(([id, current]) =>
+            view === 'architecture' && current === 'architecture' ? [id, 'workflow' as const] : [id, current]
+          )
+        ),
+        [genesisId]: view
+      }
+    })),
   openExplorer: (genesisId, marks = null) => set({ view: 'ideas', explorerGenesisId: genesisId, explorerMarks: marks }),
   closeExplorer: () => set({ explorerGenesisId: null }),
   openRepo: (genesisId) => {

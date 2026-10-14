@@ -4,6 +4,7 @@ import type { CodeLang, ExplorerLinkView, ExplorerPlaceView, MapFileView } from 
 import type { ExplorerMarks } from '../app/uiStore'
 import { Button } from '../components/atoms/Button'
 import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
+import { ArchitectureDetector } from './ArchitectureDetector'
 import { BoxActionsContext } from './boxes/BoxNodes'
 import { BoxList } from './boxes/BoxList'
 import { BoxMap } from './boxes/BoxMap'
@@ -28,12 +29,14 @@ const CODE_CATEGORIES_SHOWN = ['domain', 'orchestration', 'infrastructure'] as c
 /**
  * Explorateur d'un projet repris (spec 031, qui remplace l'explorateur à paliers de la spec 017 D16) : la carte en
  * boîtes (62 %) et le panneau de droite (38 %) — élément choisi, code du fichier, guide de reprise ; analyse,
- * confidentialité, recherche, filtres (plomberie, langage), vue liste équivalente, rediffusion et nouveautés.
+ * confidentialité, architecture reconnue (spec 032 D15), recherche, filtres (plomberie, langage), vue liste
+ * équivalente, rediffusion et nouveautés. Page à part, ou monté dans la carte en position « Architecture » (D14).
  */
 export function ExplorerPage({
   genesisId,
   marks: marksAtOpen = null,
-  onClose
+  onClose,
+  switcher = null
 }: {
   readonly genesisId: string
   /**
@@ -42,6 +45,11 @@ export function ExplorerPage({
    */
   readonly marks?: ExplorerMarks | null
   readonly onClose: () => void
+  /**
+   * Monté dans la carte en position « Architecture » (spec 032 D14) : la bascule des vues de la carte remplace
+   * « ← Carte ».
+   */
+  readonly switcher?: React.ReactNode
 }): React.JSX.Element {
   const explorer = useExplorer(genesisId)
   const map = useBoxMap(genesisId)
@@ -185,7 +193,7 @@ export function ExplorerPage({
     <section aria-labelledby={ids.title} className="flex h-full flex-col">
       <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-2 text-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={onClose}>← Carte</Button>
+          {switcher ?? <Button onClick={onClose}>← Carte</Button>}
           <h2 id={ids.title} className="text-base font-semibold">
             Explorateur · {project?.name ?? '…'}
           </h2>
@@ -274,6 +282,9 @@ export function ExplorerPage({
             Rechercher un fichier, une fonction… <kbd className="font-mono text-[10px]">Ctrl K</kbd>
           </button>
         </div>
+        {project === undefined || map.data === undefined ? null : (
+          <ArchitectureDetector genesisId={genesisId} map={map.data} stored={project.architecture} />
+        )}
         {folderMissing ? (
           <p role="alert" className="text-xs text-con">
             Le dossier du projet est introuvable (déplacé ou supprimé ?) : la dernière analyse reste lisible.
