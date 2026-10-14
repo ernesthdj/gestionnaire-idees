@@ -876,7 +876,7 @@ export function buildGraph(
   const structureEdges = structure.edges
     .filter((edge) => analysisLinks || edge.kind === 'hierarchy' || edge.violation === true)
     .map(structureFlowEdge)
-  // Vue Workflow (spec 023) : branches, specs, user stories et tâches restantes sous le genesis, en sens alterné.
+  // Vue Workflow (spec 032) : les ronds et les carrés sous le genesis, en sens alterné.
   const workflowNodes: WorkflowNodeType[] = []
   const workflowEdges: BranchEdgeType[] = []
   for (const id of workflowIds) {
@@ -904,7 +904,7 @@ export function buildGraph(
         type: 'branch',
         source: edge.source,
         target: edge.target,
-        data: { style: 'solid', branch: edge.branch },
+        data: { style: edge.sketch ? 'dashed' : 'solid', branch: edge.branch },
         deletable: false,
         selectable: false,
         focusable: false

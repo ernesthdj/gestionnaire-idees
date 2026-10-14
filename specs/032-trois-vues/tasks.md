@@ -17,10 +17,10 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 2 — Le Workflow sur la carte
 
-- [ ] T020 Disposition en sens alterné à 4 niveaux (D2), dessin de l'app pour le genesis et les ronds, deux anneaux
+- [x] T020 Disposition en sens alterné à 4 niveaux (D2), dessin de l'app pour le genesis et les ronds, deux anneaux
   (D3), carrés (D4), ébauches (D5), halo « Bosser ici » (D6) ; tests renderer et axe.
-- [ ] T021 Panneau d'actions (D7) et consignes pures (FR-004) ; tests.
-- [ ] T022 Retrait du rangement par branches (023 D8) ; e2e `workflow-task-files` et parcours « Bosser ici » (SC-002).
+- [x] T021 Panneau d'actions (D7) et consignes pures (FR-004) ; tests.
+- [x] T022 Retrait du rangement par branches (023 D8) ; e2e `workflow-task-files` et parcours « Bosser ici » (SC-002).
 
 ## Lot 3 — Brainstorm et pont MCP
 

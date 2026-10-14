@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { workflowArbre } from '../../../src/shared/workflow/arbre'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards, type OpenCard } from '../../../src/renderer/src/canvas/cards/cardsStore'
-import { promptFor } from '../../../src/renderer/src/canvas/workflow/prompts'
+import { promptFor, secondaryActions } from '../../../src/renderer/src/canvas/workflow/prompts'
 import { SidePanel } from '../../../src/renderer/src/canvas/side/SidePanel'
 import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { discussWorkflow, WorkflowCard } from '../../../src/renderer/src/canvas/workflow/WorkflowCard'
@@ -63,38 +64,41 @@ const SPEC: SpecView = {
   parentDoc: null,
   partial: false
 }
+const DOCS: WorkflowView['brainstorm'] = [
+  {
+    name: 'L1j-carte.md',
+    level: 1,
+    title: 'Carte workflow',
+    family: null,
+    coveredBy: [],
+    parent: null,
+    maturity: null,
+    taskPaths: []
+  },
+  {
+    name: 'L2-carte-ecran.md',
+    level: 2,
+    title: 'Écran',
+    family: 'L1j-carte.md',
+    coveredBy: [],
+    parent: null,
+    maturity: null,
+    taskPaths: []
+  }
+]
+
 const VIEW: WorkflowView = {
   genesisId: G,
   foundation: null,
   specs: [SPEC],
-  brainstorm: [
-    {
-      name: 'L1j-carte.md',
-      level: 1,
-      title: 'Carte workflow',
-      family: null,
-      coveredBy: [],
-      parent: null,
-      maturity: null,
-      taskPaths: []
-    },
-    {
-      name: 'L2-carte-ecran.md',
-      level: 2,
-      title: 'Écran',
-      family: 'L1j-carte.md',
-      coveredBy: [],
-      parent: null,
-      maturity: null,
-      taskPaths: []
-    }
-  ],
+  brainstorm: DOCS,
+
   folded: {},
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
   missingFiles: [],
-  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
+  tree: workflowArbre(DOCS, [SPEC], [])
 }
 const CHAT_ID = '00000000-0000-4000-8000-0000000000b9'
 const CHAT: ChatView = {
@@ -256,17 +260,42 @@ describe('consignes de « Discuter » (spec 023 US2)', () => {
     expect(promptFor(item(workflowKey(G, 'story', '022', '1')))).toContain(
       "Mène les tâches restantes de l'US1 « Carte des idées » de la spec specs/022-noeuds-vivants, dans l'ordre : T011."
     )
-    expect(promptFor(item(workflowKey(G, 'socle', '022')))).toContain('du socle')
-    expect(promptFor(item(workflowKey(G, 'doc', 'L1j-carte')))).toBe(
-      'Lance /brainstorm à partir de docs/brainstorm/L1j-carte.md (idée à brainstormer de ce projet).'
+    // Rond non évalué (spec 032 D7, D10) : Claude évalue d'abord sa maturité.
+    expect(promptFor(item(workflowKey(G, 'doc', 'L1j-carte')))).toContain(
+      'Évalue la maturité du brainstorm de docs/brainstorm/L1j-carte.md'
     )
     expect(promptFor(item(workflowKey(G, 'spec', '022')))).toContain('Parlons de la spec specs/022-noeuds-vivants')
-    expect(promptFor(item(workflowKey(G, 'branch', 'active')))).toBeNull()
-    // Tâche faite (D16) : on la relit, on ne la refait pas ; le groupe « Faites » n'a pas de conversation.
+    // Tâche faite (D16) : on la relit, on ne la refait pas.
     expect(promptFor(item(workflowKey(G, 'task', '022', 'T010')))).toBe(
       "Relis la tâche T010 (faite) de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) : explique ce qu'elle a changé et vérifie qu'elle est complète (fichiers cités, tests)."
     )
-    expect(promptFor(item(workflowKey(G, 'done', '022', '1')))).toBeNull()
+  })
+})
+
+describe('actions d’un rond selon la maturité de son brainstorm (spec 032 D7)', () => {
+  const docItem = (maturity: 'insuffisant' | 'suffisant' | 'complet'): WorkflowItem => {
+    const doc = DOCS[0]
+    if (doc === undefined) throw new Error('document absent')
+    return {
+      ...item(workflowKey(G, 'doc', 'L1j-carte')),
+      subject: { kind: 'doc', doc: { ...doc, maturity }, family: [] }
+    }
+  }
+
+  it('should_continue_an_unfinished_brainstorm_and_ask_for_its_header_and_task_file', () => {
+    const prompt = promptFor(docItem('suffisant'))
+    expect(prompt).toContain('Continue le brainstorm de docs/brainstorm/L1j-carte.md avec /brainstorm')
+    expect(prompt).toContain('« **Tâches** : docs/TACHES-<Sujet>.md »')
+    expect(prompt).toContain('Ne pose rien dans la carte de structure.')
+    expect(secondaryActions(docItem('suffisant')).map((action) => action.label)).toEqual(['Réévaluer la maturité'])
+  })
+
+  it('should_write_the_doc_of_a_mature_round_and_offer_to_reopen_its_brainstorm', () => {
+    expect(promptFor(docItem('complet'))).toContain('rédige ou complète sa doc')
+    expect(secondaryActions(docItem('complet'))).toEqual([
+      { label: 'Rouvrir le brainstorm', prompt: expect.stringContaining('Continue le brainstorm de') }
+    ])
+    expect(secondaryActions(item(workflowKey(G, 'spec', '022')))).toEqual([])
   })
 })
 
@@ -338,27 +367,15 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     await expectNoAxeViolations(container)
   })
 
-  it('should_open_the_done_tasks_group_with_its_tasks_and_their_files', async () => {
-    const user = userEvent.setup()
-    const { container } = renderCard(workflowKey(G, 'done', '022', '1'))
-    expect(screen.getByText('Tâches faites')).toBeDefined()
-    expect(screen.getByText('US1 · Spec 022')).toBeDefined()
-    expect(screen.getByText('Fichiers (1)')).toBeDefined()
-    expect(screen.queryByRole('button', { name: 'Discuter' })).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Détail' }))
-    expect(container.textContent).toContain('T010')
-    await expectNoAxeViolations(container)
-  })
-
   it('should_mark_a_done_task_as_done_in_its_card', () => {
     renderCard(workflowKey(G, 'task', '022', 'T010'))
     expect(screen.getByText('US1 · Spec 022 · faite')).toBeDefined()
   })
 
-  it('should_list_the_family_docs_of_an_idea_to_brainstorm', async () => {
+  it('should_show_a_round_with_its_brainstorm_maturity_and_list_its_family_docs', async () => {
     const user = userEvent.setup()
     renderCard(workflowKey(G, 'doc', 'L1j-carte'))
-    expect(screen.getByText('À brainstormer')).toBeDefined()
+    expect(screen.getByText('Rond · brainstorm non évalué')).toBeDefined()
     await user.click(screen.getByRole('button', { name: 'Détail' }))
     expect(screen.getByRole('button', { name: 'L2-carte-ecran.md' })).toBeDefined()
   })
@@ -419,10 +436,12 @@ describe('carte d’un nœud Workflow (spec 023 US2, US3)', () => {
     expect(screen.queryByRole('button', { name: /Expliquer ce fichier/ })).toBeNull()
   })
 
-  it('should_do_nothing_when_discussing_a_branch', () => {
+  it('should_do_nothing_when_discussing_a_message', () => {
     useCards.setState({ cards: [], activeId: null })
     useSidePanel.getState().reset()
-    expect(discussWorkflow(item(workflowKey(G, 'branch', 'active')), G)).toBe(false)
+    const message = workflowTree({ view: { ...VIEW, empty: true } }, G).items[0]
+    if (message === undefined) throw new Error('message absent')
+    expect(discussWorkflow(message, G)).toBe(false)
     expect(useCards.getState().cards).toEqual([])
     expect(useSidePanel.getState().tabs).toEqual([])
   })

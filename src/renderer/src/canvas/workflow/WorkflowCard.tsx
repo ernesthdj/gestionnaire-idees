@@ -20,7 +20,7 @@ import { useCards, type OpenCard } from '../cards/cardsStore'
 import { DetailCard, type NodeBox } from '../cards/DetailCard'
 import { shownNodeId, useSidePanel, type WorkflowChatTabInput } from '../side/sidePanelStore'
 import { FileExplanation } from './FileExplanation'
-import { promptFor } from './prompts'
+import { promptFor, secondaryActions } from './prompts'
 import { decorateTasks } from './tasksMarkdown'
 import type { WorkflowItem } from './workflowTree'
 
@@ -36,8 +36,12 @@ export function workflowTabOf(item: WorkflowItem, genesisId: string): WorkflowCh
  * dans le champ ; la carte du nœud s'ouvre aussi. Rien n'est envoyé sans geste de mentalyas. Sans consigne (branche,
  * message), rien ne se passe.
  */
-export function discussWorkflow(item: WorkflowItem, genesisId: string): boolean {
-  const prompt = promptFor(item)
+export function discussWorkflow(
+  item: WorkflowItem,
+  genesisId: string,
+  /** Consigne d'une action secondaire (spec 032 D7) ; sinon celle de « Discuter ». */
+  prompt: string | null = promptFor(item)
+): boolean {
   if (prompt === null) return false
   useUiStore.getState().seedChatDraft(item.key, prompt)
   useCards.getState().open(item.key)
@@ -367,14 +371,6 @@ function WorkflowSheet({
         subject.story.tasks.filter((task) => !task.done),
         'Toutes ses tâches sont faites.'
       )
-    case 'socle':
-      return taskList(
-        subject.spec.socle.filter((task) => !task.done),
-        'Toutes les tâches du socle sont faites.'
-      )
-    case 'done':
-    case 'fileDone':
-      return taskList(subject.tasks, '')
     case 'taskGroup': {
       const remaining = [...subject.group.tasks, ...subject.group.groups.flatMap((group) => group.tasks)].filter(
         (task) => !task.done
@@ -410,16 +406,10 @@ export function filesOf(item: WorkflowItem): readonly string[] {
       return subject.task.files
     case 'story':
       return subject.story.files
-    case 'socle':
-      return union(subject.spec.socle)
-    case 'done':
-      return union(subject.tasks)
     case 'spec':
       return union([...subject.spec.socle, ...subject.spec.stories.flatMap((story) => story.tasks)])
     case 'fileTask':
       return subject.task.files
-    case 'fileDone':
-      return union(subject.tasks)
     case 'taskGroup':
       return union([...subject.group.tasks, ...subject.group.groups.flatMap((group) => group.tasks)])
     default:
@@ -523,16 +513,13 @@ function readablesOf(item: WorkflowItem): { path: string; label: string }[] {
         { path: `${subject.spec.dir}/plan.md`, label: 'Lire le plan' }
       ]
     case 'story':
-    case 'socle':
     case 'task':
-    case 'done':
       return [{ path: `${subject.spec.dir}/tasks.md`, label: 'Lire les tâches' }]
     case 'doc':
       return [{ path: `docs/brainstorm/${subject.doc.name}`, label: 'Lire le document' }]
     case 'taskFile':
     case 'taskGroup':
     case 'fileTask':
-    case 'fileDone':
       return [{ path: subject.file.path, label: 'Lire le fichier' }]
     default:
       return []
@@ -584,10 +571,21 @@ export function WorkflowCard({
   const canDiscuss = promptFor(item) !== null
   const head = cardHead({ kind: 'workflow', item, genesisId })
   const readables = readablesOf(item)
-  const sheetKinds = new Set(['spec', 'story', 'socle', 'done', 'doc', 'taskGroup', 'fileDone'])
+  const more = secondaryActions(item)
+  const sheetKinds = new Set(['spec', 'story', 'doc', 'taskGroup'])
   const actions =
-    readables.length === 0 ? undefined : (
+    readables.length === 0 && more.length === 0 ? undefined : (
       <>
+        {more.map((entry) => (
+          <button
+            key={entry.label}
+            type="button"
+            className="rounded-md border border-content-muted/40 px-2 py-1 text-xs hover:bg-surface-raised"
+            onClick={() => discussWorkflow(item, genesisId, entry.prompt)}
+          >
+            {entry.label}
+          </button>
+        ))}
         {readables.map((entry) => (
           <ReadButton key={entry.path} path={entry.path} label={entry.label} onRead={read} />
         ))}

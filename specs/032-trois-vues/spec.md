@@ -73,3 +73,6 @@ mentalyas dans l'artifact de brainstorm, lots à coder
   `L1l-noeuds-genesis.md` (graine, rien de décidé).
 - **Q2** Une spec livrée est un **rond complet avec ses carrés faits** (plus de repli d'office, 023 D5 remplacée pour
   le Workflow).
+- **Écart à valider (lot 2, 2026-10-14)** : sur le dépôt du Brainstormer, l'arbre compte 1 030 carrés ; tout déplier
+  rendrait la carte illisible et lente. Un rond **dont tous les carrés sont faits** est donc replié d'office (« ▸ N »),
+  dépliable d'un clic, choix mémorisé (023 FR-016). Les autres ronds restent ouverts.

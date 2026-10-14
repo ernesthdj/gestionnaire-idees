@@ -17,6 +17,7 @@ import { StructureBarNode } from '../../../src/renderer/src/canvas/nodes/Structu
 import { WorkflowNode } from '../../../src/renderer/src/canvas/workflow/WorkflowNode'
 import { workflowKey } from '../../../src/renderer/src/canvas/workflow/workflowTree'
 import { DEFAULT_APP_SETTINGS } from '../../../src/shared/ipc/app'
+import { workflowArbre } from '../../../src/shared/workflow/arbre'
 import type { ElementView, IdeasCanvasView } from '../../../src/shared/ipc/canvas'
 import type { SpecView, TaskView, WorkflowView } from '../../../src/shared/ipc/workflow'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -66,20 +67,21 @@ const spec = (number: string, status: SpecView['status'], tasks: TaskView[]): Sp
     partial: false
   }
 }
+const SPECS = [
+  spec('001', 'active', [task('T001', true, 1), task('T002', true, 2), task('T003', false, 2)]),
+  spec('002', 'planned', [task('T001', false, 1)])
+]
 const WORKFLOW: WorkflowView = {
   genesisId: G,
   foundation: null,
-  specs: [
-    spec('001', 'active', [task('T001', true, 1), task('T002', true, 2), task('T003', false, 2)]),
-    spec('002', 'planned', [task('T001', false, 1)])
-  ],
+  specs: SPECS,
   brainstorm: [],
   folded: {},
   empty: false,
   readAt: '2026-10-09T10:00:00.000Z',
   taskFiles: [],
   missingFiles: [],
-  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
+  tree: workflowArbre([], SPECS, [])
 }
 const element: ElementView = {
   id: 'module-core',
@@ -104,10 +106,10 @@ const linkedView = (withMap = true): IdeasCanvasView => {
   }
 }
 
-describe('vue Workflow sur la carte (spec 023 US1)', () => {
+describe('vue Workflow sur la carte (spec 023 US1, spec 032 lot 2)', () => {
   beforeEach(() => useUiStore.setState({ structureViews: {} }))
 
-  it('should_replace_the_structure_by_status_branches_when_the_genesis_is_switched_to_workflow', () => {
+  it('should_replace_the_structure_by_rounds_and_squares_when_the_genesis_is_switched_to_workflow', () => {
     const view = linkedView()
     const before = buildGraph(view, computeLayout(view))
     expect(before.nodes.some((node) => node.id === 'module-core')).toBe(true)
@@ -120,17 +122,19 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
     })
     expect(after.nodes.some((node) => node.id === 'module-core')).toBe(false)
     const labels = after.nodes.filter((node) => node.type === 'workflow').map((node) => node.ariaLabel)
+    // Une user story toute faite est repliée ; le carré à faire en premier porte « bosser ici ».
     expect(labels).toEqual([
-      'En cours : 1 spec',
-      'Spec 001 Démo 001, en cours, 2 sur 3 tâches',
-      'User story 1 (P1) Histoire 1, livrée',
-      'User story 2 (P2) Histoire 2, 1 sur 2 tâches',
-      'Tâche T003 à faire : T003',
-      "1 tâche faite de l'US2",
-      'À venir : 1 spec',
-      'Spec 002 Démo 002, planifiée, 0 sur 1 tâches'
+      'Rond 001 · Démo 001, brainstorm 100 %, 2 sur 3 tâches',
+      'Rond US1 — Histoire 1, brainstorm 100 %, 1 sur 1 tâches',
+      'Rond US2 — Histoire 2, brainstorm 100 %, 1 sur 2 tâches',
+      'Carré T002 · T002, faite',
+      'Carré T003 · T003, à faire, bosser ici',
+      'Rond 002 · Démo 002, brainstorm 100 %, 0 sur 1 tâches',
+      'Rond US1 — Histoire 1, brainstorm 100 %, 0 sur 1 tâches',
+      'Carré T001 · T001, à faire',
+      'Rond US2 — Histoire 2, brainstorm 100 %'
     ])
-    expect(after.edges.find((edge) => edge.target === workflowKey(G, 'branch', 'active'))?.source).toBe(G)
+    expect(after.edges.find((edge) => edge.target === workflowKey(G, 'spec', '001'))?.source).toBe(G)
     expect(after.nodes.find((node) => node.type === 'structureBar')?.data).toMatchObject({ view: 'workflow' })
   })
 
@@ -178,7 +182,7 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
       </QueryClientProvider>
     )
     expect(screen.getByText('2/3')).toBeDefined()
-    await user.click(screen.getByRole('button', { name: 'Replier « 001 · Démo 001 » (7 sous-nœuds)' }))
+    await user.click(screen.getByRole('button', { name: 'Replier « 001 · Démo 001 » (5 sous-nœuds)' }))
     expect(api.invoke).toHaveBeenCalledWith('workflow:setFolded', {
       genesisId: G,
       key: workflowKey(G, 'spec', '001'),
@@ -200,7 +204,7 @@ describe('vue Workflow sur la carte (spec 023 US1)', () => {
         </ReactFlowProvider>
       </QueryClientProvider>
     )
-    expect(screen.getByRole('note').textContent).toContain('Brainstorme une idée, puis spécifie-la')
+    expect(screen.getByRole('note').textContent).toContain('Nouveau brainstorm')
   })
 })
 
@@ -248,7 +252,7 @@ describe('vue Workflow dans la carte des idées (spec 023 US1)', () => {
         <IdeasCanvas />
       </QueryClientProvider>
     )
-    expect(await screen.findByRole('group', { name: 'Spec 001 Démo 001, en cours, 2 sur 3 tâches' })).toBeDefined()
+    expect(await screen.findByRole('group', { name: /^Rond 001 · Démo 001/ })).toBeDefined()
     expect(api.invoke).toHaveBeenCalledWith('workflow:read', { genesisId: G })
     expect(screen.queryByRole('group', { name: /Cœur/ })).toBeNull()
     // Fin d'un tour de Claude : la vue est relue (il a pu cocher une case).
@@ -300,10 +304,10 @@ describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)
     const seed = vi.fn()
     useUiStore.setState({ seedChatDraft: seed })
     renderLinked()
-    const spec = await screen.findByRole('group', { name: 'Spec 001 Démo 001, en cours, 2 sur 3 tâches' })
+    const spec = await screen.findByRole('group', { name: /^Rond 001 · Démo 001/ })
     fireEvent.click(spec)
     expect(await screen.findByRole('dialog', { name: 'Détails : Démo 001' })).toBeDefined()
-    fireEvent.doubleClick(screen.getByRole('group', { name: 'Tâche T003 à faire : T003' }))
+    fireEvent.doubleClick(screen.getByRole('group', { name: /^Carré T003/ }))
     const key = workflowKey(G, 'task', '001', 'T003')
     await waitFor(() => expect(seed).toHaveBeenCalledWith(key, expect.stringContaining('Implémente la tâche T003')))
     expect(useCards.getState().cards.some((card) => card.id === key)).toBe(true)
@@ -315,7 +319,7 @@ describe('cartes de la vue Workflow dans la carte des idées (spec 023 US2, US3)
 
   it('should_show_the_foundation_in_the_genesis_card_when_the_workflow_view_is_on', async () => {
     renderLinked()
-    await screen.findByRole('group', { name: 'Spec 001 Démo 001, en cours, 2 sur 3 tâches' })
+    await screen.findByRole('group', { name: /^Rond 001 · Démo 001/ })
     useCards.getState().open(G)
     expect(await screen.findByText('Une app pour noter ses idées.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Lire la fondation' })).toBeDefined()

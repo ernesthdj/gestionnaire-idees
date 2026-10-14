@@ -1,12 +1,31 @@
 import type { WorkflowItem } from './workflowTree'
 
+/** Ce que le brainstorm d'un rond doit écrire (spec 032 D10, D11) : l'app relit ces fichiers, rien dans la carte. */
+const BRAINSTORM_OUTPUT =
+  'Tiens à jour l’en-tête du document, sous son titre : « **Maturité** : insuffisant | suffisant | complet » avec ce qui ' +
+  'manque. Quand il est complet, écris ses tâches dans docs/TACHES-<Sujet>.md (un titre #, des lots ##, des cases ' +
+  '« - [ ] T001 … ») et nomme ce fichier dans l’en-tête par « **Tâches** : docs/TACHES-<Sujet>.md ». Ne pose rien dans ' +
+  'la carte de structure.'
+
+/** Continuer (ou rouvrir) le brainstorm d'un document. */
+const continueBrainstorm = (path: string): string =>
+  `Continue le brainstorm de ${path} avec /brainstorm : relis-le, pose tes questions une à une et complète-le. ${BRAINSTORM_OUTPUT}`
+
 /**
- * Consigne de « Discuter » sur un nœud Workflow (spec 023 D6, contracts/interfaces.md) : pré-remplie dans la
- * conversation du nœud, jamais envoyée sans geste de mentalyas. `null` : le nœud n'a pas de conversation (branche,
- * message). Pure.
+ * Consigne de « Discuter » sur un nœud Workflow (spec 023 D6 ; spec 032 D7) : pré-remplie dans la conversation du
+ * nœud, jamais envoyée sans geste de mentalyas. Un rond non évalué fait évaluer sa maturité, un rond pas mûr continue
+ * son brainstorm, un rond mûr fait rédiger sa doc ; un carré s'implémente ; une ébauche précise sa piste dans le
+ * brainstorm d'où elle vient. `null` : le nœud n'a pas de conversation (message). Pure.
  */
 export function promptFor(item: WorkflowItem): string | null {
   const { subject } = item
+  if (item.sketch === true && (subject.kind === 'task' || subject.kind === 'fileTask')) {
+    const task = `« ${subject.task.text.replace(/`/g, '')} »`
+    return item.origin === null || item.origin === undefined
+      ? null
+      : `La tâche ${task} est une ébauche : le brainstorm de ${item.origin} n’est pas complet. Continue ce brainstorm ` +
+          `en précisant cette piste (la garder, la changer ou l’écarter), sans l’implémenter. ${BRAINSTORM_OUTPUT}`
+  }
   switch (subject.kind) {
     case 'task':
       // Tâche faite (D16) : on la relit, on ne la refait pas.
@@ -19,15 +38,19 @@ export function promptFor(item: WorkflowItem): string | null {
       if (ids.length === 0) return null
       return `Mène les tâches restantes de l'US${subject.story.number} « ${subject.story.title} » de la spec ${subject.spec.dir}, dans l'ordre : ${ids.join(', ')}. Coche chaque case quand elle est faite.`
     }
-    case 'socle': {
-      const ids = subject.spec.socle.filter((task) => !task.done).map((task) => task.id)
-      if (ids.length === 0) return null
-      return `Mène les tâches restantes du socle (sans user story) de la spec ${subject.spec.dir}, dans l'ordre : ${ids.join(', ')}. Coche chaque case quand elle est faite.`
-    }
     case 'spec':
       return `Parlons de la spec ${subject.spec.dir} : lis spec.md, plan.md et tasks.md, puis dis-moi où elle en est et ce qu'il reste à faire.`
-    case 'doc':
-      return `Lance /brainstorm à partir de docs/brainstorm/${subject.doc.name} (idée à brainstormer de ce projet).`
+    case 'doc': {
+      const path = `docs/brainstorm/${subject.doc.name}`
+      if (subject.doc.maturity === null) {
+        return (
+          `Évalue la maturité du brainstorm de ${path} : lis-le, puis écris dans son en-tête, sous le titre, ` +
+          '« **Maturité** : insuffisant | suffisant | complet » avec ce qui manque, et dis-moi la suite.'
+        )
+      }
+      if (subject.doc.maturity !== 'complet') return continueBrainstorm(path)
+      return `Relis ${path} et rédige ou complète sa doc (spec ou fiche) : dis-moi d’abord ce qui manque, puis écris.`
+    }
     case 'fileTask': {
       const where = `${subject.file.path}${subject.group === null ? '' : `, section « ${subject.group.title} »`}`
       const task = `« ${subject.task.text.replace(/`/g, '')} »`
@@ -155,4 +178,25 @@ export function newBrainstormPrompt(subject: string): string {
     'Ne pose rien dans la carte de structure (ni tâche, ni décision, ni étape) : la vue Workflow montre ces fichiers, ' +
       'Progression et Architecture ne font que refléter la doc et le code.'
   ].join('\n')
+}
+
+/** Une action de plus sur un nœud, à côté de « Discuter » (spec 032 D7) : son libellé et sa consigne. */
+export interface WorkflowAction {
+  readonly label: string
+  readonly prompt: string
+}
+
+/** Actions secondaires d'un nœud : rouvrir le brainstorm d'un rond mûr, évaluer à nouveau sa maturité. Pure. */
+export function secondaryActions(item: WorkflowItem): readonly WorkflowAction[] {
+  const { subject } = item
+  if (subject.kind !== 'doc' || subject.doc.maturity === null) return []
+  const path = `docs/brainstorm/${subject.doc.name}`
+  return subject.doc.maturity === 'complet'
+    ? [{ label: 'Rouvrir le brainstorm', prompt: continueBrainstorm(path) }]
+    : [
+        {
+          label: 'Réévaluer la maturité',
+          prompt: `Réévalue la maturité du brainstorm de ${path} et mets à jour « **Maturité** » dans son en-tête, avec ce qui manque.`
+        }
+      ]
 }

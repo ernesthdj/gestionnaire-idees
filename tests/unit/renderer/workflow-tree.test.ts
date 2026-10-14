@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type {
+  BrainstormDocView,
   SpecStatus,
   SpecView,
   StoryView,
@@ -8,16 +9,17 @@ import type {
   TaskView,
   WorkflowView
 } from '@shared/ipc/workflow'
+import { workflowArbre } from '../../../src/shared/workflow/arbre'
 import { workflowGraph } from '../../../src/renderer/src/canvas/workflow/workflowGraph'
 import { promptFor } from '../../../src/renderer/src/canvas/workflow/prompts'
 import { workflowKey, workflowTree } from '../../../src/renderer/src/canvas/workflow/workflowTree'
 
 const G = '00000000-0000-4000-8000-0000000000a1'
 
-const task = (id: string, done: boolean, story: number | null): TaskView => ({
+const task = (id: string, state: TaskView['state'], story: number | null): TaskView => ({
   id,
-  done,
-  state: done ? 'done' : 'todo',
+  done: state === 'done',
+  state,
   story,
   text: `Faire ${id} dans \`src/${id}.ts\``,
   files: []
@@ -28,7 +30,7 @@ const story = (number: number, tasks: TaskView[]): StoryView => {
     number,
     title: `Histoire ${number}`,
     priority: number,
-    described: number !== 9,
+    described: true,
     tasks,
     done,
     total: tasks.length,
@@ -36,7 +38,13 @@ const story = (number: number, tasks: TaskView[]): StoryView => {
     files: []
   }
 }
-const spec = (number: string, status: SpecView['status'], stories: StoryView[], socle: TaskView[] = []): SpecView => {
+const spec = (
+  number: string,
+  status: SpecStatus,
+  stories: StoryView[],
+  socle: TaskView[] = [],
+  citedDocs: string[] = []
+): SpecView => {
   const all = [...socle, ...stories.flatMap((entry) => entry.tasks)]
   return {
     number,
@@ -52,137 +60,100 @@ const spec = (number: string, status: SpecView['status'], stories: StoryView[], 
     done: all.filter((entry) => entry.done).length,
     total: all.length,
     leftovers: [],
-    citedDocs: [],
+    citedDocs,
     parentDoc: null,
     partial: false
   }
 }
-const view = (specs: SpecView[], folded: Record<string, boolean> = {}): WorkflowView => ({
+const doc = (name: string, title: string, extra: Partial<BrainstormDocView> = {}): BrainstormDocView => ({
+  name,
+  level: Number(name[1]),
+  title,
+  family: null,
+  coveredBy: [],
+  parent: null,
+  maturity: 'complet',
+  taskPaths: [],
+  ...extra
+})
+/** Une vue lue comme le main la lit : l'arbre est assemblé par la vraie fonction du main (spec 032 FR-001). */
+const view = (
+  specs: SpecView[],
+  docs: BrainstormDocView[],
+  taskFiles: TaskFileView[] = [],
+  folded: Record<string, boolean> = {}
+): WorkflowView => ({
   genesisId: G,
   foundation: null,
   specs,
-  brainstorm: [
-    {
-      name: 'L1j-carte.md',
-      level: 1,
-      title: 'Carte',
-      family: null,
-      coveredBy: [],
-      parent: null,
-      maturity: null,
-      taskPaths: []
-    },
-    {
-      name: 'L1f-reprise.md',
-      level: 1,
-      title: 'Reprise',
-      family: null,
-      coveredBy: ['017'],
-      parent: null,
-      maturity: null,
-      taskPaths: []
-    },
-    {
-      name: 'L2-carte-ecran.md',
-      level: 2,
-      title: 'Écran',
-      family: 'L1j-carte.md',
-      coveredBy: [],
-      parent: null,
-      maturity: null,
-      taskPaths: []
-    }
-  ],
+  brainstorm: docs,
   folded,
   empty: false,
-  readAt: '2026-10-09T10:00:00.000Z',
-  taskFiles: [],
+  readAt: '2026-10-14T10:00:00.000Z',
+  taskFiles,
   missingFiles: [],
-  tree: { project: { maturity: null, done: 0, total: 0 }, nodes: [], next: null }
+  tree: workflowArbre(docs, specs, taskFiles)
 })
 
 const SPECS = [
   spec(
     '017',
     'active',
-    [story(1, [task('T001', true, 1)]), story(2, [task('T002', true, 2), task('T003', false, 2)])],
-    [task('T000', true, null), task('T010', false, null)]
+    [story(1, [task('T001', 'done', 1)]), story(2, [task('T002', 'done', 2), task('T003', 'doing', 2)])],
+    [task('T000', 'done', null)],
+    ['L1f-reprise.md']
   ),
-  spec('021', 'planned', [story(1, [task('T001', false, 1)])]),
-  spec('020', 'delivered', [story(1, [task('T001', true, 1)])]),
-  spec('022', 'active', [story(9, [task('T040', false, 9)])])
+  spec('020', 'delivered', [story(1, [task('T001', 'done', 1)])])
+]
+const DOCS = [
+  doc('L1f-reprise.md', 'Reprise'),
+  doc('L1j-carte.md', 'Carte', { maturity: 'suffisant' }),
+  doc('L2-carte-ecran.md', 'Écran', { family: 'L1j-carte.md', parent: 'L1j-carte.md', maturity: null })
 ]
 
-describe('workflowTree', () => {
-  it('should_group_specs_under_status_branches_with_counts_when_the_view_is_read', () => {
-    const tree = workflowTree({ view: view(SPECS) }, G)
-    const top = tree.items.filter((item) => item.parentKey === G).map((item) => item.title)
-    expect(top).toEqual(['En cours (2)', 'À venir (1)', 'Livrées (1)', 'À brainstormer (1)'])
-    const active = tree.items.find((item) => item.key === workflowKey(G, 'spec', '017'))
-    expect(active).toMatchObject({ status: 'doing', progress: { done: 3, total: 5 }, collapsed: false })
-    expect(active?.label).toBe('Spec 017 Spec 017, en cours, 3 sur 5 tâches')
-  })
-
-  it('should_show_remaining_tasks_and_fold_done_tasks_delivered_stories_socle_upcoming_and_delivered_by_default', () => {
-    const tree = workflowTree({ view: view(SPECS) }, G)
-    const visible = new Set(tree.visible.map((item) => item.key))
-    expect(visible.has(workflowKey(G, 'task', '017', 'T003'))).toBe(true)
-    // Tâche faite (D16) : sous « ✓ Faites (N) », replié d'office.
-    expect(visible.has(workflowKey(G, 'done', '017', '2'))).toBe(true)
-    expect(visible.has(workflowKey(G, 'task', '017', 'T002'))).toBe(false)
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'done', '017', '2'))).toMatchObject({
-      title: '✓ Faites (1)',
-      status: 'done',
-      collapsed: true,
-      descendants: 1
+describe('workflowTree (spec 032)', () => {
+  it('should_turn_the_tree_into_rounds_and_squares_and_keep_the_keys_of_spec_023', () => {
+    const tree = workflowTree({ view: view(SPECS, DOCS) }, G)
+    const top = tree.items.filter((item) => item.parentKey === G)
+    expect(top.map((item) => [item.title, item.shape])).toEqual([
+      ['Reprise', 'round'],
+      ['Carte', 'round'],
+      ['020 · Spec 020', 'round']
+    ])
+    const reprise = workflowKey(G, 'doc', 'L1f-reprise')
+    expect(tree.items.find((item) => item.parentKey === reprise)?.key).toBe(workflowKey(G, 'spec', '017'))
+    // Les clés de la spec 023 restent : les conversations déjà ouvertes sur une tâche se retrouvent.
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'task', '017', 'T003'))).toMatchObject({
+      shape: 'square',
+      status: 'doing',
+      next: true,
+      title: 'T003 · Faire T003 dans src/T003.ts',
+      label: 'Carré T003 · Faire T003 dans src/T003.ts, en cours, bosser ici',
+      subject: { kind: 'task', story: { number: 2 } }
     })
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'task', '017', 'T002'))).toMatchObject({
-      status: 'done',
-      parentKey: workflowKey(G, 'done', '017', '2'),
-      label: 'Tâche T002 faite : Faire T002 dans src/T002.ts'
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '017'))).toMatchObject({
+      maturity: 100,
+      progress: { done: 3, total: 4 },
+      label: 'Rond 017 · Spec 017, brainstorm 100 %, 3 sur 4 tâches'
     })
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'story', '017', '1'))).toMatchObject({
-      status: 'done',
-      collapsed: true,
-      descendants: 2
-    })
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'socle', '017'))).toMatchObject({
-      collapsed: true,
-      descendants: 3
-    })
-    expect(tree.items.some((item) => item.key === workflowKey(G, 'done', '017', 'socle'))).toBe(true)
-    expect(visible.has(workflowKey(G, 'task', '017', 'T010'))).toBe(false)
-    expect(visible.has(workflowKey(G, 'spec', '021'))).toBe(true)
-    expect(visible.has(workflowKey(G, 'story', '021', '1'))).toBe(false)
-    expect(visible.has(workflowKey(G, 'spec', '020'))).toBe(false)
-  })
-
-  it('should_apply_remembered_folds_when_mentalyas_changed_the_defaults', () => {
-    const tree = workflowTree(
-      {
-        view: view(SPECS, {
-          [workflowKey(G, 'branch', 'delivered')]: false,
-          [workflowKey(G, 'spec', '017')]: true
-        })
-      },
-      G
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'doc', 'L2-carte-ecran'))?.label).toBe(
+      'Rond Écran, brainstorm non évalué'
     )
+  })
+
+  it('should_fold_the_rounds_where_everything_is_done_unless_mentalyas_opened_them', () => {
+    const tree = workflowTree({ view: view(SPECS, DOCS) }, G)
     const visible = new Set(tree.visible.map((item) => item.key))
-    expect(visible.has(workflowKey(G, 'spec', '020'))).toBe(true)
-    expect(visible.has(workflowKey(G, 'story', '017', '2'))).toBe(false)
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '020'))?.collapsed).toBe(true)
+    expect(visible.has(workflowKey(G, 'task', '020', 'T001'))).toBe(false)
+    expect(visible.has(workflowKey(G, 'story', '017', '1'))).toBe(true)
+    expect(visible.has(workflowKey(G, 'task', '017', 'T001'))).toBe(false)
+    const opened = workflowTree({ view: view(SPECS, DOCS, [], { [workflowKey(G, 'spec', '020')]: false }) }, G)
+    // Ouvert par mentalyas : ses ronds apparaissent (eux-mêmes repliés tant qu'il ne les ouvre pas).
+    expect(opened.visible.some((item) => item.key === workflowKey(G, 'story', '020', '1'))).toBe(true)
   })
 
-  it('should_name_an_undescribed_story_and_list_ideas_to_brainstorm_with_their_family', () => {
-    const tree = workflowTree({ view: view(SPECS) }, G)
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'story', '022', '9'))?.title).toBe(
-      'US9 · (user story non décrite)'
-    )
-    const idea = tree.items.find((item) => item.key === workflowKey(G, 'doc', 'L1j-carte'))
-    expect(idea?.subject).toMatchObject({ kind: 'doc', family: [{ name: 'L2-carte-ecran.md' }] })
-    expect(tree.items.some((item) => item.key === workflowKey(G, 'doc', 'L1f-reprise'))).toBe(false)
-  })
-
-  it('should_draw_a_task_file_as_a_fixed_branch_with_lots_groups_and_three_states', () => {
+  it('should_draw_a_task_file_under_its_round_as_sketches_while_the_brainstorm_is_not_complete', () => {
     const fileTask = (key: string, text: string, state: TaskView['state']): TaskView => ({
       id: '',
       key,
@@ -192,65 +163,56 @@ describe('workflowTree', () => {
       text,
       files: []
     })
-    const group = (
-      key: string,
-      title: string,
-      status: SpecStatus,
-      tasks: TaskView[],
-      groups: TaskGroupView[] = []
-    ): TaskGroupView => {
+    const group = (key: string, title: string, tasks: TaskView[], groups: TaskGroupView[] = []): TaskGroupView => {
       const all = [...tasks, ...groups.flatMap((entry) => entry.tasks)]
-      return { key, title, tasks, groups, status, done: all.filter((t) => t.done).length, total: all.length }
+      const done = all.filter((t) => t.done).length
+      return { key, title, tasks, groups, status: 'active', done, total: all.length }
     }
-    const auth = group(
+    const lot = group(
       'fa-l1',
       'Auth',
-      'active',
       [],
-      [
-        group('fa-l1-g1', 'Inscription', 'active', [
-          fileTask('fa-l1-g1-t1', 'Compte créé', 'done'),
-          fileTask('fa-l1-g1-t2', 'Hachage', 'doing'),
-          fileTask('fa-l1-g1-t3', 'Courriel', 'todo')
-        ])
-      ]
+      [group('fa-l1-g1', 'Inscription', [fileTask('fa-l1-g1-t2', 'Hachage', 'doing')])]
     )
-    const vitrine = group('fa-l2', 'Vitrine', 'delivered', [fileTask('fa-l2-t1', 'Portfolio', 'done')])
     const file: TaskFileView = {
       key: 'fa',
-      path: 'docs/USER-STORIES.md',
-      title: 'User Stories',
+      path: 'docs/TACHES-CARTE.md',
+      title: 'Tâches — Carte',
       tasks: [],
-      lots: [auth, vitrine],
-      done: 2,
-      total: 4,
+      lots: [lot],
+      done: 0,
+      total: 1,
       status: 'active',
       partial: false
     }
-    const read = (): ReturnType<typeof workflowTree> =>
-      workflowTree({ view: { ...view([]), brainstorm: [], taskFiles: [file] } }, G)
-    const tree = read()
-    expect(tree.items.map((item) => [item.title, item.status, item.collapsed])).toEqual([
-      ['User Stories', 'doing', false],
-      ['Auth', 'doing', false],
-      ['Inscription', 'doing', false],
-      ['Hachage', 'doing', false],
-      ['Courriel', 'todo', false],
-      ['✓ Faites (1)', 'done', true],
-      ['✓ Compte créé', 'done', false],
-      ['Vitrine', 'done', true],
-      ['✓ Faites (1)', 'done', true],
-      ['✓ Portfolio', 'done', false]
+    const docs = DOCS.map((entry) =>
+      entry.name === 'L1j-carte.md' ? { ...entry, taskPaths: ['docs/TACHES-CARTE.md'] } : entry
+    )
+    const tree = workflowTree({ view: view([], docs, [file]) }, G)
+    const carte = workflowKey(G, 'doc', 'L1j-carte')
+    expect(tree.items.filter((item) => item.parentKey === carte).map((item) => item.key)).toEqual([
+      workflowKey(G, 'doc', 'L2-carte-ecran'),
+      workflowKey(G, 'tfile', 'fa')
     ])
-    expect(tree.visible.map((item) => item.title)).not.toContain('✓ Portfolio')
-    expect(read().items.map((item) => item.key)).toEqual(tree.items.map((item) => item.key))
-    const doing = tree.items.find((item) => item.title === 'Hachage')
-    expect(doing === undefined ? null : promptFor(doing)).toContain('« - [~] »')
+    const hachage = tree.items.find((item) => item.key === workflowKey(G, 'ttask', 'fa-l1-g1-t2'))
+    expect(hachage).toMatchObject({
+      shape: 'square',
+      sketch: true,
+      next: false,
+      parentKey: workflowKey(G, 'tgroup', 'fa-l1-g1'),
+      subject: { kind: 'fileTask', group: { key: 'fa-l1-g1' } }
+    })
+    expect(hachage?.label).toContain('Ébauche')
+    // Une ébauche ne s'implémente pas : sa consigne fait préciser la piste dans le brainstorm d'où elle vient (D7).
+    const prompt = hachage === undefined ? null : promptFor(hachage)
+    expect(prompt).toContain('La tâche « Hachage » est une ébauche : le brainstorm de docs/brainstorm/L1j-carte.md')
+    expect(prompt).not.toContain('« - [~] »')
   })
 
   it('should_show_a_single_message_when_the_project_is_empty_or_unreadable', () => {
-    const empty = workflowTree({ view: { ...view([]), brainstorm: [], empty: true } }, G)
+    const empty = workflowTree({ view: { ...view([], []), empty: true } }, G)
     expect(empty.visible.map((item) => item.subject.kind)).toEqual(['message'])
+    expect(empty.visible[0]?.title).toContain('Nouveau brainstorm')
     const missing = workflowTree({ error: 'Le dossier de ce projet est introuvable.' }, G)
     expect(missing.visible[0]?.subject).toEqual({
       kind: 'message',
@@ -265,29 +227,29 @@ describe('workflowGraph', () => {
     placed.some((a, i) => placed.some((b, j) => j > i && Math.abs(a.x - b.x) < 100 && Math.abs(a.y - b.y) < 80))
 
   it('should_place_visible_nodes_below_the_genesis_without_overlap_and_link_each_to_its_parent', () => {
-    const tree = workflowTree({ view: view(SPECS, { [workflowKey(G, 'branch', 'delivered')]: false }) }, G)
+    const tree = workflowTree({ view: view(SPECS, DOCS) }, G)
     const graph = workflowGraph(tree, G, { x: 0, y: 0 }, 60)
     expect(graph.placed).toHaveLength(tree.visible.length)
     expect(overlaps(graph.placed)).toBe(false)
     expect(Math.min(...graph.placed.map((entry) => entry.y))).toBeGreaterThan(60)
-    expect(graph.edges.find((edge) => edge.target === workflowKey(G, 'branch', 'active'))?.source).toBe(G)
-    const branchColor = graph.placed.find((entry) => entry.item.key === workflowKey(G, 'branch', 'active'))?.visual
-      .branch
+    const reprise = workflowKey(G, 'doc', 'L1f-reprise')
+    expect(graph.edges.find((edge) => edge.target === reprise)?.source).toBe(G)
+    const color = graph.placed.find((entry) => entry.item.key === reprise)?.visual.branch
     expect(graph.placed.find((entry) => entry.item.key === workflowKey(G, 'task', '017', 'T003'))?.visual.branch).toBe(
-      branchColor
+      color
     )
   })
 
   it('should_shrink_the_map_when_a_node_is_folded_and_go_right_when_transposed', () => {
-    const open = workflowGraph(workflowTree({ view: view(SPECS) }, G), G, { x: 0, y: 0 }, 60)
+    const open = workflowGraph(workflowTree({ view: view(SPECS, DOCS) }, G), G, { x: 0, y: 0 }, 60)
     const folded = workflowGraph(
-      workflowTree({ view: view(SPECS, { [workflowKey(G, 'branch', 'active')]: true }) }, G),
+      workflowTree({ view: view(SPECS, DOCS, [], { [workflowKey(G, 'doc', 'L1f-reprise')]: true }) }, G),
       G,
       { x: 0, y: 0 },
       60
     )
     expect(folded.placed.length).toBeLessThan(open.placed.length)
-    const transposed = workflowGraph(workflowTree({ view: view(SPECS) }, G), G, { x: 0, y: 0 }, 60, true)
+    const transposed = workflowGraph(workflowTree({ view: view(SPECS, DOCS) }, G), G, { x: 0, y: 0 }, 60, true)
     expect(Math.min(...transposed.placed.map((entry) => entry.x))).toBeGreaterThan(60)
   })
 })

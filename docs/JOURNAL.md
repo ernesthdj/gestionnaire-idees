@@ -1959,3 +1959,24 @@ niveaux (au-delà, les carrés remontent) ; « Bosser ici » = premier carré en
 écrire son `**Parent**`, qui prime sur les citations (D9 amendée ; la 032 → `L1j-carte-workflow.md`).
 **Règle apprise :** citer un document n'est pas en venir : un rangement déduit d'une citation doit pouvoir être
 corrigé par une déclaration explicite dans le fichier.
+
+### [2026-10-14 17:00] FEAT — spec 032 lot 2 : le Workflow sur la carte, en ronds et en carrés
+**Fichiers :** `src/shared/workflow/arbre.ts` (déplacé depuis `main/domain/workflow/workflowArbre.ts` : pur, lu aussi
+par les tests de l'interface), `src/renderer/src/canvas/workflow/{workflowTree.ts, workflowGraph.ts, WorkflowNode.tsx,
+WorkflowCard.tsx, prompts.ts}`, `canvas/cards/cardContent.ts`, `canvas/living/{LivingNode.tsx, living.css}`,
+`canvas/buildGraph.ts` ; tests `unit/renderer/{workflow-tree, workflow-card, workflow-view}`, e2e
+`workflow-task-files`, `markdown-mermaid` ; `specs/032-trois-vues/`.
+**Quoi :** la vue Workflow lit l'arbre du lot 1 : ronds (nœud vivant de l'app, deux anneaux fins — violet = maturité du
+brainstorm, accent = tâches ; non évalué en pointillé gris), carrés (tâches ; pleins quand faits ; ébauches pâles en
+pointillé violet, traits en pointillé), « ▶ Bosser ici » (halo, fixe si animations réduites). Les clés de la spec 023
+sont gardées (`spec`, `story`, `task`, `doc`, `tfile`, `tgroup`, `ttask`) : conversations et replis retrouvés. Actions
+D7 : « Discuter » pré-remplit la consigne selon le nœud (évaluer la maturité, continuer le brainstorm puis écrire
+l'en-tête et le fichier de tâches, rédiger la doc, implémenter, préciser une ébauche dans son brainstorm d'origine) ;
+« Rouvrir le brainstorm » / « Réévaluer la maturité » en action secondaire. Ancien rangement par branches retiré
+(sujets `branch`, `socle`, `done`, `fileDone`).
+**Choix :** un rond dont tout est fait est replié d'office (1 030 carrés sur le dépôt) : écart à Q2 noté dans la spec,
+à valider par mentalyas.
+**Erreur corrigée :** l'e2e fermait l'onglet de conversation par un bouton introuvable ; l'onglet resté ouvert
+masquait la barre des tests suivants. Le parcours « Bosser ici » passe en dernier et ne ferme plus rien.
+**Règle apprise :** une fonction pure partagée par le main et l'interface vit dans `src/shared/` : les tests de
+l'interface ne peuvent pas importer le main (projet TypeScript séparé).

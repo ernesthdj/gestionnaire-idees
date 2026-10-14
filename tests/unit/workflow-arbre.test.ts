@@ -6,7 +6,7 @@ import { parseSpec } from '../../src/main/domain/workflow/parseSpec'
 import { parseTaskFile } from '../../src/main/domain/workflow/parseTaskFile'
 import { parseTasks } from '../../src/main/domain/workflow/parseTasks'
 import { buildSpec } from '../../src/main/domain/workflow/specStatus'
-import { TREE_DEPTH, workflowArbre } from '../../src/main/domain/workflow/workflowArbre'
+import { TREE_DEPTH, workflowArbre } from '../../src/shared/workflow/arbre'
 
 /** Un petit projet fictif écrit comme Claude l'écrit (spec 032 D9, D10). */
 const DOCS: Record<string, string> = {

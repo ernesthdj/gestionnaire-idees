@@ -8,20 +8,13 @@ import { useRunningChats } from './runningChats'
 import { useWorkflowFold } from './WorkflowCard'
 import './workflow.css'
 
-/** Nœuds Workflow qui se branchent sur un widget (spec 023 D24) : pas une branche, un message ni un groupe « Faites ». */
-const CONNECTABLE: ReadonlySet<string> = new Set([
-  'taskFile',
-  'taskGroup',
-  'fileTask',
-  'spec',
-  'story',
-  'socle',
-  'task'
-])
+/** Nœuds Workflow qui se branchent sur un widget (spec 023 D24) : pas un document ni un message. */
+const CONNECTABLE: ReadonlySet<string> = new Set(['taskFile', 'taskGroup', 'fileTask', 'spec', 'story', 'task'])
 
 /**
- * Nœud de la vue Workflow (spec 023) : petit cercle vivant (couleur de sa branche, pictogramme, pastille de statut),
- * titre et avancement « faites / toutes » dessous, repli « ▸ N » mémorisé par projet. Un message (projet vide, dossier
+ * Nœud de la vue Workflow (spec 023, spec 032) : un rond vivant (couleur de sa branche, pictogramme, pastille de statut)
+ * entouré de ses deux anneaux (brainstorm, tâches), ou un carré pour une tâche (ébauche, « Bosser ici ») ; titre et
+ * avancement « faites / toutes » dessous, repli « ▸ N » mémorisé par projet. Un message (projet vide, dossier
  * introuvable) s'affiche en pastille de texte.
  */
 export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.Element {
@@ -82,6 +75,18 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
         open={open}
         {...(meta === '' ? {} : { meta })}
         {...(chatId === undefined ? {} : { chatId })}
+        {...(item.shape === 'round'
+          ? {
+              rings: {
+                brainstorm: item.maturity ?? null,
+                tasks:
+                  item.progress === undefined || item.progress.total === 0
+                    ? null
+                    : Math.round((item.progress.done / item.progress.total) * 100)
+              }
+            }
+          : {})}
+        {...(item.shape === 'square' ? { square: { sketch: item.sketch === true }, next: item.next === true } : {})}
         {...(item.descendants === 0
           ? {}
           : { fold: { collapsed: item.collapsed, count: item.descendants, onToggle: toggle } })}

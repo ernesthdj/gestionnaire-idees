@@ -3,9 +3,9 @@ import { nodeVisuals, type NodeVisual, type TreeNodeInput } from '../living/node
 import type { WorkflowItem, WorkflowTree } from './workflowTree'
 
 /**
- * Disposition de la vue Workflow (spec 023 D8) : la disposition en sens alterné de la spec 022 sous le genesis (branches
- * en colonne, specs en ligne, user stories en colonne, tâches en ligne), nœuds vivants colorés par branche et de plus
- * en plus petits. Les nœuds repliés ne sont pas placés : la carte les fait glisser dans leur parent. Pure.
+ * Disposition de la vue Workflow (spec 023, spec 032 D2) : la disposition en sens alterné de la spec 022 sous le genesis
+ * (niveau 1 en colonne, niveau 2 en ligne, niveau 3 en colonne, niveau 4 en ligne), nœuds vivants colorés par grande
+ * branche et de plus en plus petits. Les nœuds repliés ne sont pas placés : la carte les fait glisser dans leur parent. Pure.
  */
 
 /** Case d'un nœud selon sa profondeur (cercle + titre dessous) : 1 branche, 2 spec, 3 user story, 4 tâche. */
@@ -33,6 +33,8 @@ export interface WorkflowEdge {
   readonly source: string
   readonly target: string
   readonly branch: number | null
+  /** Vers une ébauche (spec 032 D5) : en pointillé. */
+  readonly sketch: boolean
 }
 
 export interface WorkflowGraph {
@@ -82,7 +84,13 @@ export function workflowGraph(
       placed.push({ item, depth, visual: visuals.get(id) ?? FALLBACK, x: at.x, y: at.y })
       for (const child of children) {
         depthOf.set(child, depth + 1)
-        edges.push({ id: `wf-edge-${child}`, source: id, target: child, branch: visuals.get(child)?.branch ?? null })
+        edges.push({
+          id: `wf-edge-${child}`,
+          source: id,
+          target: child,
+          branch: visuals.get(child)?.branch ?? null,
+          sketch: byKey.get(child)?.sketch === true
+        })
       }
     }
   }
@@ -92,7 +100,8 @@ export function workflowGraph(
       id: `wf-edge-${top.key}`,
       source: genesisId,
       target: top.key,
-      branch: visuals.get(top.key)?.branch ?? null
+      branch: visuals.get(top.key)?.branch ?? null,
+      sketch: top.sketch === true
     })
   }
   // Le genesis n'est pas un nœud Workflow (jamais replié ici) : ses enfants sont les branches.

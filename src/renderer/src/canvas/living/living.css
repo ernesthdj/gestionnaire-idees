@@ -443,3 +443,79 @@
 .living-rank {
   padding: 0 4px;
 }
+
+/* Workflow (spec 032) : deux anneaux fins autour d'un rond — extérieur = maturité du brainstorm (violet de l'orbe),
+   intérieur = avancement des tâches (accent). Non évalué : anneau gris en pointillé. */
+.living-ring {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+.living-ring-brainstorm {
+  inset: -11px;
+  background: conic-gradient(var(--orb-a) 0 var(--ring-brainstorm), var(--color-surface-raised) 0);
+}
+.living-ring-brainstorm[data-unrated='true'] {
+  -webkit-mask: none;
+  mask: none;
+  background: none;
+  border: 1.5px dashed color-mix(in oklab, var(--color-content-muted) 55%, transparent);
+}
+.living-ring-tasks {
+  inset: -6px;
+  background: conic-gradient(var(--color-accent) 0 var(--ring-tasks), var(--color-surface-raised) 0);
+}
+
+/* Carré : une tâche à implémenter ; plein quand elle est faite ; ébauche pâle en pointillé violet. */
+.living-face[data-shape='square'] {
+  border-radius: 8px;
+}
+.living-face[data-shape='square'][data-done='true'] {
+  color: var(--color-surface);
+  background: var(--living-hue, var(--color-accent));
+}
+.living-face[data-sketch='true'] {
+  opacity: 0.55;
+  border: 1.5px dotted var(--orb-a);
+  background: color-mix(in oklab, var(--orb-a) 6%, var(--node-bg));
+  box-shadow: none;
+}
+
+/* « ▶ Bosser ici » (spec 032 D6) : un halo qui pulse ; fixe si les animations sont réduites. */
+@keyframes living-next {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 14px color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+}
+.living-face[data-next='true'] {
+  border-width: 3px;
+  border-color: var(--color-accent);
+  animation: living-next 1.6s ease-out infinite;
+}
+[data-reduced-motion='true'] .living-face[data-next='true'] {
+  animation: none;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-accent) 25%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .living-face[data-next='true'] {
+    animation: none;
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+}
+.living-next-tag {
+  display: block;
+  width: max-content;
+  margin: 4px auto 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: var(--color-accent);
+}

@@ -5,8 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { freshProfile, launchApp, settled, type LaunchedApp } from './support/app'
 
 /**
- * Spec 023 D20 à D22 dans l'app réelle : un projet fictif sans Spec Kit, avec un fichier de tâches à trois états ; la
- * vue Workflow le dessine tel quel (branche, lots, groupes, tâche en cours), deux lectures donnent la même carte.
+ * Spec 023 D20 à D22, spec 032 lot 2 dans l'app réelle : un projet fictif sans Spec Kit, avec un fichier de tâches à
+ * trois états ; la vue Workflow le dessine en ronds (fichier, lots, groupes) et en carrés (tâches), le carré en cours
+ * porte « Bosser ici » ; deux lectures donnent la même carte.
  */
 const DIR = join(tmpdir(), 'gi-e2e-taches')
 
@@ -49,20 +50,21 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
   it('should_draw_the_task_file_as_a_fixed_branch_with_its_task_in_progress', async () => {
     const { page } = run
     await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-    const branch = page.getByLabel(/Fichier de tâches docs\/USER-STORIES\.md, en cours, 2 sur 4/)
+    const branch = page.getByLabel(/^Rond User Stories — Démo, brainstorm 100 %, 2 sur 4 tâches/)
     await branch.waitFor({ timeout: 20_000 })
-    await page.getByLabel(/^Tâche en cours : Mot de passe haché/).waitFor()
-    await page.getByLabel(/^Tâche à faire : Courriel de vérification/).waitFor()
+    await page.getByLabel(/^Carré Mot de passe haché, en cours, bosser ici/).waitFor()
+    await page.getByLabel(/^Carré Courriel de vérification, à faire/).waitFor()
     // « Légende » n'a pas de case : pas de nœud ; fondation et règles ne sont pas des fichiers de tâches.
-    await expect.poll(() => page.getByLabel(/Lot Légende/).count()).toBe(0)
+    await expect.poll(() => page.getByLabel(/Rond Légende/).count()).toBe(0)
     await expect.poll(() => page.getByLabel(/FOUNDATION|CLAUDE/).count()).toBe(0)
     // Relire donne la même carte (mêmes nœuds, mêmes états) : la structure vient du fichier, rien n'est généré.
     await page.getByRole('button', { name: 'Relire', exact: true }).click()
     await branch.waitFor()
-    await page.getByLabel(/^Tâche en cours : Mot de passe haché/).waitFor()
-    await page.getByLabel(/^Tâche à faire : Courriel de vérification/).waitFor()
-    await page.getByLabel(/1 tâche faite de « Inscription »/).waitFor()
-    await run.shot('023-D20-01-fichier-de-taches')
+    await page.getByLabel(/^Carré Mot de passe haché, en cours/).waitFor()
+    await page.getByLabel(/^Carré Courriel de vérification, à faire/).waitFor()
+    await page.getByLabel(/^Carré Compte créé « en attente », faite/).waitFor()
+    await page.getByText('▶ Bosser ici').waitFor()
+    await run.shot('032-lot2-01-ronds-et-carres')
   })
 
   it('should_keep_a_widget_in_the_view_where_it_was_made_and_send_it_to_another', async () => {
@@ -93,7 +95,7 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     const widget = page.getByRole('region', { name: 'Widget IA' })
     await widget.waitFor()
     // Survol de la tâche en cours : sa poignée apparaît ; on la tire jusqu'au widget.
-    const task = page.getByLabel(/^Tâche en cours : Mot de passe/)
+    const task = page.getByLabel(/^Carré Mot de passe haché/)
     // La carte glisse encore après la bascule de vue : on survole de nouveau jusqu'à voir la poignée.
     const handle = task.locator('.neuron-connector')
     await expect
@@ -117,5 +119,17 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     await page.getByText(/Lire « Mot de passe haché » du Workflow/).waitFor()
     await run.shot('023-D24-02-tache-branchee')
     await page.getByRole('button', { name: 'Plus tard' }).click()
+  })
+
+  it('should_open_the_square_to_work_on_with_its_instruction_waiting_in_its_conversation', async () => {
+    const { page } = run
+    // SC-002 : un geste sur « Bosser ici » ouvre sa conversation, la consigne prête (rien n'est envoyé).
+    const next = page.getByLabel(/^Carré Mot de passe haché, en cours, bosser ici/)
+    await settled(next)
+    await next.dblclick({ force: true })
+    const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
+    const field = panel.getByLabel('Message à Claude')
+    await expect.poll(() => field.inputValue(), { timeout: 15_000 }).toContain('Fais la tâche « Mot de passe haché »')
+    await run.shot('032-lot2-02-bosser-ici')
   })
 })

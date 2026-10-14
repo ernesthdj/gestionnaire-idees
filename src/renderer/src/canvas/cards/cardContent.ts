@@ -1,7 +1,7 @@
 import type { CanvasNeuronView, ElementView, ProposalView, StepStatus, StepView } from '@shared/ipc/canvas'
 import type { DocumentView } from '@shared/ipc/documents'
 import type { DeliverableView } from '@shared/ipc/finals'
-import { BRANCH_TITLES, SPEC_STATUS_LABELS, TASK_STATE_LABELS, type WorkflowItem } from '../workflow/workflowTree'
+import { SPEC_STATUS_LABELS, TASK_STATE_LABELS, type WorkflowItem } from '../workflow/workflowTree'
 
 /**
  * Contenu d'une carte de détails (spec 022 D6, D7) selon la sorte de nœud : badge, ligne d'information, titre, résumé et
@@ -154,16 +154,6 @@ const plain = (text: string): string => text.replace(/`/g, '').replace(/\s+/g, '
 function workflowHead(item: WorkflowItem): CardHead {
   const { subject } = item
   switch (subject.kind) {
-    case 'branch': {
-      const count = subject.specs.length
-      return {
-        badge: 'Branche',
-        meta: subject.branch === 'brainstorm' ? null : `${count} spec${count > 1 ? 's' : ''}`,
-        title: BRANCH_TITLES[subject.branch],
-        summary: count === 0 ? null : subject.specs.map((spec) => `${spec.number} ${spec.title}`).join(' · '),
-        gauge: null
-      }
-    }
     case 'spec': {
       const { spec } = subject
       return {
@@ -192,17 +182,6 @@ function workflowHead(item: WorkflowItem): CardHead {
         gauge: progressGauge(story.done, story.total)
       }
     }
-    case 'socle': {
-      const { spec } = subject
-      const done = spec.socle.filter((task) => task.done).length
-      return {
-        badge: 'Socle',
-        meta: `Spec ${spec.number} · ${spec.title}`,
-        title: 'Mise en place, fondations, finitions',
-        summary: 'Tâches de la spec qui n’appartiennent à aucune user story.',
-        gauge: progressGauge(done, spec.socle.length)
-      }
-    }
     case 'task': {
       const { spec, story, task } = subject
       const text = plain(task.text)
@@ -214,20 +193,11 @@ function workflowHead(item: WorkflowItem): CardHead {
         gauge: null
       }
     }
-    case 'done': {
-      const { spec, story, tasks } = subject
-      return {
-        badge: 'Tâches faites',
-        meta: `${story === null ? 'Socle' : `US${story.number}`} · Spec ${spec.number}`,
-        title: `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} faite${tasks.length > 1 ? 's' : ''}`,
-        summary: 'Chacune s’ouvre avec ses fichiers et leur code.',
-        gauge: null
-      }
-    }
     case 'doc': {
       const count = subject.family.length
       return {
-        badge: 'À brainstormer',
+        badge:
+          subject.doc.maturity === null ? 'Rond · brainstorm non évalué' : `Rond · brainstorm ${subject.doc.maturity}`,
         meta: subject.doc.name,
         title: subject.doc.title,
         summary:
@@ -265,16 +235,6 @@ function workflowHead(item: WorkflowItem): CardHead {
         meta: `${group === null ? file.title : group.title} · ${TASK_STATE_LABELS[task.state]}`,
         title: text.length <= 120 ? text : `${text.slice(0, 119)}…`,
         summary: text.length <= 120 ? null : text,
-        gauge: null
-      }
-    }
-    case 'fileDone': {
-      const { file, group, tasks } = subject
-      return {
-        badge: 'Tâches faites',
-        meta: group === null ? file.title : `${group.title} · ${file.title}`,
-        title: `${tasks.length} tâche${tasks.length > 1 ? 's' : ''} faite${tasks.length > 1 ? 's' : ''}`,
-        summary: null,
         gauge: null
       }
     }

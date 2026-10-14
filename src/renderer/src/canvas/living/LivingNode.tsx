@@ -38,6 +38,15 @@ export interface LivingNodeProps {
   readonly meta?: string
   /** Neurone de sa conversation, si ce n'est pas `id` (nœud Workflow) : « attend ton accord » quand Claude attend. */
   readonly chatId?: string
+  /**
+   * Rond du Workflow (spec 032 D3) : deux anneaux fins autour du cercle, l'extérieur pour la maturité du brainstorm,
+   * l'intérieur pour l'avancement des tâches (en %, `null` : non évalué ou rien à faire).
+   */
+  readonly rings?: { readonly brainstorm: number | null; readonly tasks: number | null }
+  /** Carré du Workflow (spec 032 D4, D5) : une tâche, pleine quand elle est faite ; ébauche si le brainstorm n'est pas fini. */
+  readonly square?: { readonly sketch: boolean }
+  /** Le carré « ▶ Bosser ici » (spec 032 D6) : un halo et une étiquette. */
+  readonly next?: boolean
   /** Contenu ajouté dans la couche flottante, posé sur le cercle (poignées React Flow, pastilles…). */
   readonly children?: ReactNode
 }
@@ -61,6 +70,9 @@ export function LivingNode({
   open = false,
   meta,
   chatId = id,
+  rings,
+  square,
+  next = false,
   children
 }: LivingNodeProps): React.JSX.Element {
   const waiting = useWaitingChats((state) => state.waiting.has(chatId))
@@ -69,7 +81,10 @@ export function LivingNode({
   const Icon = NODE_ICONS[orb?.inner ?? visual.icon]
   const faceStyle = {
     '--living-size': `${orb?.size ?? visual.size}px`,
-    ...(visual.branch === null ? {} : { '--living-hue': `var(--color-branch-${visual.branch})` })
+    ...(visual.branch === null ? {} : { '--living-hue': `var(--color-branch-${visual.branch})` }),
+    ...(rings === undefined
+      ? {}
+      : { '--ring-brainstorm': `${rings.brainstorm ?? 0}%`, '--ring-tasks': `${rings.tasks ?? 0}%` })
   } as CSSProperties
   return (
     <div
@@ -84,8 +99,22 @@ export function LivingNode({
             orb === undefined ? `living-face living-sat living-d${Math.min(visual.depth, 4)}` : 'living-face living-orb'
           }
           data-state={orb?.state}
+          data-shape={square === undefined ? undefined : 'square'}
+          data-sketch={square?.sketch === true ? 'true' : undefined}
+          data-done={square !== undefined && visual.status === 'done' ? 'true' : undefined}
+          data-next={next ? 'true' : undefined}
           style={faceStyle}
         >
+          {rings === undefined ? null : (
+            <>
+              <span
+                className="living-ring living-ring-brainstorm"
+                data-unrated={rings.brainstorm === null ? 'true' : undefined}
+                aria-hidden="true"
+              />
+              <span className="living-ring living-ring-tasks" aria-hidden="true" />
+            </>
+          )}
           {orb === undefined ? (
             <Icon className="living-icon" aria-hidden="true" strokeWidth={1.6} />
           ) : (
@@ -140,6 +169,7 @@ export function LivingNode({
         <span className="living-label">
           {title}
           {meta === undefined ? null : <span className="living-meta">{meta}</span>}
+          {next ? <span className="living-next-tag">▶ Bosser ici</span> : null}
           {waiting ? (
             <span
               role="status"

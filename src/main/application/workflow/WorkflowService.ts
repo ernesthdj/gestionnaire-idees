@@ -11,7 +11,7 @@ import { foundationSummary, parseSpec } from '../../domain/workflow/parseSpec'
 import { hasTasks, parseTaskFile } from '../../domain/workflow/parseTaskFile'
 import { parseTasks } from '../../domain/workflow/parseTasks'
 import { buildSpec } from '../../domain/workflow/specStatus'
-import { workflowArbre } from '../../domain/workflow/workflowArbre'
+import { workflowArbre } from '@shared/workflow/arbre'
 import type { ConversationNeuron } from '../../infrastructure/db/repositories/ConversationRepository'
 import { readProjectText, readProjectTextAsync } from '../../infrastructure/files/projectFiles'
 

@@ -54,7 +54,7 @@ describe('fichier .md mis en forme : encadrés et schémas Mermaid (e2e)', () =>
     const { page } = run
     await page.getByRole('button', { name: 'Workflow', exact: true }).click()
     // La vue Workflow est dessinée (le nœud du genesis y est remplacé) avant de cliquer dessus.
-    await page.getByText(/Brainstorme une idée, puis spécifie-la/).waitFor()
+    await page.getByText(/pousseront ici, en ronds et en carrés/).waitFor()
     await page.getByRole('button', { name: 'Tout afficher' }).click()
     // « Tout afficher » anime la vue : un clic pendant l'animation peut tomber à côté du nœud, on le refait.
     const card = page.getByRole('dialog', { name: `Détails : ${GENESIS}` })

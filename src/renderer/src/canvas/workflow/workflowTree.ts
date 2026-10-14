@@ -1,5 +1,4 @@
 import {
-  isToBrainstorm,
   type BrainstormDocView,
   type SpecStatus,
   type SpecView,
@@ -8,36 +7,27 @@ import {
   type TaskGroupView,
   type TaskState,
   type TaskView,
+  type WorkflowTreeNode,
   type WorkflowView
 } from '@shared/ipc/workflow'
 import type { NodeIconKey, NodeStatus } from '../living/nodeVisual'
 
 /**
- * Arbre de la vue Workflow (spec 023 D5, D8, D16) : le genesis du projet, quatre branches (En cours, À venir, Livrées, À
- * brainstormer), puis spec › user stories › tâches restantes, et le socle des tâches sans user story ; sous chaque user
- * story et chaque socle, « ✓ Faites (N) » regroupe ses tâches cochées. Repli par défaut (Livrées, specs à venir, user
- * stories livrées, socle, tâches faites) corrigé par les choix mémorisés de mentalyas. Fonctions pures.
+ * Arbre de la vue Workflow (spec 032 D2 à D6) : l'arbre des ronds (on y brainstorme et documente) et des carrés (on y
+ * implémente) lu par le main dans les fichiers du projet, traduit en nœuds de la carte avec leur sujet (spec, user
+ * story, tâche, document, fichier de tâches, lot) pour la carte de détails. Repli par défaut des ronds dont tout est
+ * fait, corrigé par les choix mémorisés de mentalyas. Fonctions pures.
  */
 
 /** Vue lue, ou message d'erreur (dossier introuvable…). */
 export type WorkflowEntry = { readonly view: WorkflowView } | { readonly error: string }
 
-export type WorkflowBranch = 'active' | 'upcoming' | 'delivered' | 'brainstorm'
-
 export type WorkflowSubject =
-  | { readonly kind: 'branch'; readonly branch: WorkflowBranch; readonly specs: readonly SpecView[] }
   | { readonly kind: 'spec'; readonly spec: SpecView }
   | { readonly kind: 'story'; readonly spec: SpecView; readonly story: StoryView }
-  | { readonly kind: 'socle'; readonly spec: SpecView }
-  | {
-      readonly kind: 'done'
-      readonly spec: SpecView
-      readonly story: StoryView | null
-      readonly tasks: readonly TaskView[]
-    }
   | { readonly kind: 'task'; readonly spec: SpecView; readonly story: StoryView | null; readonly task: TaskView }
   | { readonly kind: 'doc'; readonly doc: BrainstormDocView; readonly family: readonly BrainstormDocView[] }
-  /** Fichier de tâches (D20), son lot ou son groupe, une de ses tâches, ses tâches faites. */
+  /** Fichier de tâches (D20), son lot ou son groupe, une de ses tâches. */
   | { readonly kind: 'taskFile'; readonly file: TaskFileView }
   | { readonly kind: 'taskGroup'; readonly file: TaskFileView; readonly group: TaskGroupView }
   | {
@@ -45,12 +35,6 @@ export type WorkflowSubject =
       readonly file: TaskFileView
       readonly group: TaskGroupView | null
       readonly task: TaskView
-    }
-  | {
-      readonly kind: 'fileDone'
-      readonly file: TaskFileView
-      readonly group: TaskGroupView | null
-      readonly tasks: readonly TaskView[]
     }
   | { readonly kind: 'message'; readonly text: string; readonly missing: boolean }
 
@@ -73,6 +57,16 @@ export interface WorkflowItem {
   /** Nom accessible du nœud. */
   readonly label: string
   readonly subject: WorkflowSubject
+  /** Rond (brainstorm et doc) ou carré (tâche à implémenter) ; `undefined` pour un message. */
+  readonly shape?: 'round' | 'square'
+  /** Rond : maturité de son brainstorm en % (anneau extérieur) ; `null` : non évalué. */
+  readonly maturity?: number | null
+  /** Carré d'un brainstorm pas complet : une ébauche (D5). */
+  readonly sketch?: boolean
+  /** Le carré « ▶ Bosser ici » (D6). */
+  readonly next?: boolean
+  /** Document de brainstorm d'où vient le nœud (le sien pour un rond-document) ; `null` : aucun. */
+  readonly origin?: string | null
 }
 
 export interface WorkflowTree {
@@ -91,29 +85,6 @@ export const SPEC_STATUS_LABELS: Readonly<Record<SpecStatus, string>> = {
   abandoned: 'abandonnée'
 }
 
-export const BRANCH_TITLES: Readonly<Record<WorkflowBranch, string>> = {
-  active: 'En cours',
-  upcoming: 'À venir',
-  delivered: 'Livrées',
-  brainstorm: 'À brainstormer'
-}
-
-const BRANCH_ICONS: Readonly<Record<WorkflowBranch, NodeIconKey>> = {
-  active: 'branchActive',
-  upcoming: 'branchUpcoming',
-  delivered: 'branchDelivered',
-  brainstorm: 'branchBrainstorm'
-}
-
-const SPEC_NODE_STATUS: Readonly<Record<SpecStatus, NodeStatus>> = {
-  specified: 'todo',
-  planned: 'todo',
-  active: 'doing',
-  paused: 'todo',
-  delivered: 'done',
-  abandoned: 'done'
-}
-
 export const TASK_STATE_LABELS: Readonly<Record<TaskState, string>> = {
   todo: 'à faire',
   doing: 'en cours',
@@ -129,24 +100,48 @@ const short = (text: string, max: number): string => {
   return plain.length <= max ? plain : `${plain.slice(0, max - 1)}…`
 }
 
-const branchOf = (status: SpecStatus): WorkflowBranch =>
-  status === 'active' ? 'active' : status === 'delivered' || status === 'abandoned' ? 'delivered' : 'upcoming'
-
-const storyStatus = (story: StoryView): NodeStatus =>
-  story.delivered ? 'done' : story.done > 0 || story.tasks.some((task) => task.state === 'doing') ? 'doing' : 'todo'
-
 interface Draft extends Omit<WorkflowItem, 'collapsed' | 'descendants'> {
   /** Repli par défaut, avant les choix de mentalyas. */
   readonly foldedByDefault: boolean
 }
 
+/** Statut affiché d'un rond : tout fait, commencé, ou rien encore. */
+const roundStatus = (node: WorkflowTreeNode): NodeStatus =>
+  node.total > 0 && node.done === node.total ? 'done' : node.done > 0 || hasDoing(node) ? 'doing' : 'todo'
+const hasDoing = (node: WorkflowTreeNode): boolean =>
+  node.state === 'doing' || node.children.some((child) => hasDoing(child))
+
+const ROUND_ICONS: Readonly<Record<WorkflowTreeNode['source'], NodeIconKey>> = {
+  doc: 'idea',
+  spec: 'spec',
+  story: 'story',
+  taskFile: 'document',
+  lot: 'feature',
+  task: 'task'
+}
+
+/** Le groupe (lot `##` ou groupe `###`) d'un fichier de tâches, par sa clé. */
+function groupOf(file: TaskFileView, key: string): TaskGroupView | null {
+  const walk = (groups: readonly TaskGroupView[]): TaskGroupView | null => {
+    for (const group of groups) {
+      if (group.key === key) return group
+      const inner = walk(group.groups)
+      if (inner !== null) return inner
+    }
+    return null
+  }
+  return walk(file.lots)
+}
+
+const fileTasksOf = (file: TaskFileView): TaskView[] => {
+  const ofGroup = (group: TaskGroupView): TaskView[] => [...group.tasks, ...group.groups.flatMap(ofGroup)]
+  return [...file.tasks, ...file.lots.flatMap(ofGroup)]
+}
+
 export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowTree {
   const drafts: Draft[] = []
-  const add = (draft: Draft): void => {
-    drafts.push(draft)
-  }
-  const message = (text: string, missing: boolean): void =>
-    add({
+  const message = (text: string, missing: boolean): void => {
+    drafts.push({
       key: workflowKey(genesisId, 'message', missing ? 'missing' : 'empty'),
       parentKey: genesisId,
       title: text,
@@ -156,224 +151,162 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
       subject: { kind: 'message', text, missing },
       foldedByDefault: false
     })
+  }
   if ('error' in entry) {
     message(entry.error, true)
     return finish(drafts, {})
   }
   const { view } = entry
-  const ideas = view.brainstorm.filter(isToBrainstorm)
-  if (view.empty || (view.specs.length === 0 && ideas.length === 0 && view.taskFiles.length === 0)) {
-    message(
-      'Brainstorme une idée, puis spécifie-la (ou tiens un fichier de tâches à cases) : la carte se remplira.',
-      false
-    )
+  if (view.empty || view.tree.nodes.length === 0) {
+    message('Lance « ✦ Nouveau brainstorm » : son document et ses tâches pousseront ici, en ronds et en carrés.', false)
     return finish(drafts, view.folded)
   }
-  const groups: Readonly<Record<WorkflowBranch, readonly SpecView[]>> = {
-    active: view.specs.filter((spec) => branchOf(spec.status) === 'active'),
-    upcoming: view.specs.filter((spec) => branchOf(spec.status) === 'upcoming'),
-    delivered: view.specs.filter((spec) => branchOf(spec.status) === 'delivered'),
-    brainstorm: []
+  const specs = new Map(view.specs.map((spec) => [spec.number, spec] as const))
+  const files = new Map(view.taskFiles.map((file) => [file.key, file] as const))
+  const docs = new Map(view.brainstorm.map((doc) => [doc.name.replace(/\.md$/i, ''), doc] as const))
+
+  /** Contexte d'un nœud : la spec, la user story, le fichier et le groupe où il se trouve. */
+  interface Context {
+    readonly spec: SpecView | null
+    readonly story: StoryView | null
+    readonly file: TaskFileView | null
+    readonly group: TaskGroupView | null
+    /** Document de brainstorm le plus proche au-dessus. */
+    readonly doc: string | null
   }
-  const task = (spec: SpecView, story: StoryView | null, item: TaskView, parentKey: string): void =>
-    add({
-      key: workflowKey(genesisId, 'task', spec.number, item.id),
-      parentKey,
-      title: `${item.done ? '✓ ' : ''}${item.id} · ${short(item.text, 56)}`,
-      icon: 'task',
-      status: item.state,
-      partial: false,
-      label: `Tâche ${item.id} ${TASK_STATE_LABELS[item.state]} : ${short(item.text, 200)}`,
-      subject: { kind: 'task', spec, story, task: item },
-      foldedByDefault: false
-    })
-  // Tâches faites d'une user story ou d'un socle (D16) : un nœud replié d'office, qui s'ouvre sur elles.
-  const doneGroup = (spec: SpecView, story: StoryView | null, tasks: readonly TaskView[], parentKey: string): void => {
-    const done = tasks.filter((entry) => entry.done)
-    if (done.length === 0) return
-    const key = workflowKey(genesisId, 'done', spec.number, story === null ? 'socle' : String(story.number))
-    add({
-      key,
-      parentKey,
-      title: `✓ Faites (${done.length})`,
-      icon: 'branchDelivered',
-      status: 'done',
-      partial: false,
-      label: `${done.length} tâche${done.length > 1 ? 's' : ''} faite${done.length > 1 ? 's' : ''} ${story === null ? 'du socle' : `de l'US${story.number}`}`,
-      subject: { kind: 'done', spec, story, tasks: done },
-      foldedByDefault: true
-    })
-    for (const item of done) task(spec, story, item, key)
-  }
-  const specNode = (spec: SpecView, branch: WorkflowBranch, parentKey: string): void => {
-    const key = workflowKey(genesisId, 'spec', spec.number)
-    const closed = branch === 'delivered'
-    add({
-      key,
-      parentKey,
-      title: `${spec.number} · ${spec.title}`,
-      icon: 'spec',
-      status: SPEC_NODE_STATUS[spec.status],
-      ...(spec.total === 0 ? {} : { progress: { done: spec.done, total: spec.total } }),
-      partial: spec.partial,
-      label: `Spec ${spec.number} ${spec.title}, ${SPEC_STATUS_LABELS[spec.status]}${spec.total === 0 ? '' : `, ${spec.done} sur ${spec.total} tâches`}${spec.partial ? ', lecture partielle' : ''}`,
-      subject: { kind: 'spec', spec },
-      foldedByDefault: branch !== 'active'
-    })
-    for (const story of spec.stories) {
-      const storyKey = workflowKey(genesisId, 'story', spec.number, String(story.number))
-      const title = story.described ? story.title : '(user story non décrite)'
-      add({
-        key: storyKey,
-        parentKey: key,
-        title: `US${story.number} · ${title}`,
-        icon: 'story',
-        status: closed && !story.delivered ? 'done' : storyStatus(story),
-        ...(story.total === 0 ? {} : { progress: { done: story.done, total: story.total } }),
-        partial: false,
-        label: `User story ${story.number}${story.priority === null ? '' : ` (P${story.priority})`} ${title}, ${story.delivered ? 'livrée' : `${story.done} sur ${story.total} tâches`}`,
-        subject: { kind: 'story', spec, story },
-        foldedByDefault: story.delivered
-      })
-      // Une spec livrée ou abandonnée ne montre pas ses reliquats en nœuds : ils sont listés dans sa carte (D7).
-      if (!closed) for (const item of story.tasks.filter((entry) => !entry.done)) task(spec, story, item, storyKey)
-      doneGroup(spec, story, story.tasks, storyKey)
+  const none: Context = { spec: null, story: null, file: null, group: null, doc: null }
+
+  /** La clé de la carte (celles de la spec 023, pour garder conversations et replis) et le sujet d'un nœud. */
+  const describe = (
+    node: WorkflowTreeNode,
+    context: Context
+  ): { readonly key: string; readonly subject: WorkflowSubject; readonly context: Context } | null => {
+    const [kind, first = '', second = ''] = node.key.split(':')
+    switch (kind) {
+      case 'doc': {
+        const doc = docs.get(first)
+        if (doc === undefined) return null
+        const family = view.brainstorm.filter((other) => other.family === doc.name)
+        return {
+          key: workflowKey(genesisId, 'doc', first),
+          subject: { kind: 'doc', doc, family },
+          context: { ...none, doc: `docs/brainstorm/${doc.name}` }
+        }
+      }
+      case 'spec': {
+        const spec = specs.get(first)
+        if (spec === undefined) return null
+        return {
+          key: workflowKey(genesisId, 'spec', first),
+          subject: { kind: 'spec', spec },
+          context: { ...none, spec, doc: context.doc }
+        }
+      }
+      case 'story': {
+        const spec = specs.get(first)
+        const story = spec?.stories.find((entry) => String(entry.number) === second)
+        if (spec === undefined || story === undefined) return null
+        return {
+          key: workflowKey(genesisId, 'story', first, second),
+          subject: { kind: 'story', spec, story },
+          context: { ...none, spec, story, doc: context.doc }
+        }
+      }
+      case 'task': {
+        const spec = specs.get(first)
+        const all = spec === undefined ? [] : [...spec.socle, ...spec.stories.flatMap((story) => story.tasks)]
+        const task = all.find((entry) => entry.id === second) ?? all.find((entry) => entry.text === node.title)
+        if (spec === undefined || task === undefined) return null
+        const story = spec.stories.find((entry) => entry.number === task.story) ?? null
+        return {
+          key: workflowKey(genesisId, 'task', first, task.id),
+          subject: { kind: 'task', spec, story, task },
+          context
+        }
+      }
+      case 'file': {
+        const file = files.get(first)
+        if (file === undefined) return null
+        return {
+          key: workflowKey(genesisId, 'tfile', first),
+          subject: { kind: 'taskFile', file },
+          context: { ...none, file, doc: context.doc }
+        }
+      }
+      case 'lot': {
+        const file = context.file
+        const group = file === null ? null : groupOf(file, first)
+        if (file === null || group === null) return null
+        return {
+          key: workflowKey(genesisId, 'tgroup', first),
+          subject: { kind: 'taskGroup', file, group },
+          context: { ...context, group }
+        }
+      }
+      case 'ftask': {
+        const file = context.file
+        const task = file === null ? undefined : fileTasksOf(file).find((entry) => entry.key === first)
+        if (file === null || task === undefined) return null
+        return {
+          key: workflowKey(genesisId, 'ttask', first),
+          subject: { kind: 'fileTask', file, group: context.group, task },
+          context
+        }
+      }
+      default:
+        return null
     }
-    const remaining = closed ? [] : spec.socle.filter((entry) => !entry.done)
-    const socleDone = spec.socle.some((entry) => entry.done)
-    if (remaining.length > 0 || socleDone) {
-      const socleKey = workflowKey(genesisId, 'socle', spec.number)
-      add({
-        key: socleKey,
-        parentKey: key,
-        title: 'Socle',
-        icon: 'socle',
-        status: remaining.length > 0 ? 'doing' : 'done',
-        progress: { done: spec.socle.filter((entry) => entry.done).length, total: spec.socle.length },
+  }
+
+  const add = (node: WorkflowTreeNode, parentKey: string, context: Context): void => {
+    const described = describe(node, context)
+    if (described === null) return
+    const { key, subject } = described
+    if (node.kind === 'square') {
+      const task = subject.kind === 'task' || subject.kind === 'fileTask' ? subject.task : null
+      const id = task === null || task.id === '' ? '' : `${task.id} · `
+      const next = view.tree.next === node.key
+      drafts.push({
+        key,
+        parentKey,
+        title: `${node.state === 'done' ? '✓ ' : ''}${id}${short(node.title, 56)}`,
+        icon: 'task',
+        status: node.state ?? 'todo',
         partial: false,
-        label: `Socle de la spec ${spec.number} (mise en place, fondations, finitions), ${remaining.length} tâches restantes`,
-        subject: { kind: 'socle', spec },
-        foldedByDefault: true
-      })
-      for (const item of remaining) task(spec, null, item, socleKey)
-      doneGroup(spec, null, spec.socle, socleKey)
-    }
-  }
-  for (const branch of ['active', 'upcoming', 'delivered'] as const) {
-    const specs = groups[branch]
-    if (specs.length === 0) continue
-    const key = workflowKey(genesisId, 'branch', branch)
-    add({
-      key,
-      parentKey: genesisId,
-      title: `${BRANCH_TITLES[branch]} (${specs.length})`,
-      icon: BRANCH_ICONS[branch],
-      partial: false,
-      label: `${BRANCH_TITLES[branch]} : ${specs.length} spec${specs.length > 1 ? 's' : ''}`,
-      subject: { kind: 'branch', branch, specs },
-      foldedByDefault: branch === 'delivered'
-    })
-    for (const spec of specs) specNode(spec, branch, key)
-  }
-  // Fichiers de tâches (D20, D21) : une branche par fichier, dans l'ordre lu ; lots, groupes, tâches restantes (en cours
-  // comprises, jamais repliées) et « ✓ Faites (N) » sous chaque titre.
-  const fileTask = (file: TaskFileView, group: TaskGroupView | null, item: TaskView, parentKey: string): void =>
-    add({
-      key: workflowKey(genesisId, 'ttask', item.key ?? item.id),
-      parentKey,
-      title: `${item.state === 'done' ? '✓ ' : ''}${item.id === '' ? '' : `${item.id} · `}${short(item.text, 56)}`,
-      icon: 'task',
-      status: item.state,
-      partial: false,
-      label: `Tâche ${TASK_STATE_LABELS[item.state]} : ${short(item.text, 200)}`,
-      subject: { kind: 'fileTask', file, group, task: item },
-      foldedByDefault: false
-    })
-  const fileTasks = (
-    file: TaskFileView,
-    group: TaskGroupView | null,
-    tasks: readonly TaskView[],
-    ownerKey: string,
-    parentKey: string
-  ): void => {
-    for (const item of tasks.filter((entry) => !entry.done)) fileTask(file, group, item, parentKey)
-    const done = tasks.filter((entry) => entry.done)
-    if (done.length === 0) return
-    const key = workflowKey(genesisId, 'tdone', ownerKey)
-    add({
-      key,
-      parentKey,
-      title: `✓ Faites (${done.length})`,
-      icon: 'branchDelivered',
-      status: 'done',
-      partial: false,
-      label: `${done.length} tâche${done.length > 1 ? 's' : ''} faite${done.length > 1 ? 's' : ''} de « ${group?.title ?? file.title} »`,
-      subject: { kind: 'fileDone', file, group, tasks: done },
-      foldedByDefault: true
-    })
-    for (const item of done) fileTask(file, group, item, key)
-  }
-  const groupNode = (file: TaskFileView, group: TaskGroupView, parentKey: string, lot: boolean): void => {
-    const key = workflowKey(genesisId, 'tgroup', group.key)
-    const doing = [...group.tasks, ...group.groups.flatMap((entry) => entry.tasks)].some((t) => t.state === 'doing')
-    add({
-      key,
-      parentKey,
-      title: group.title,
-      icon: lot ? 'feature' : 'story',
-      status: SPEC_NODE_STATUS[group.status],
-      progress: { done: group.done, total: group.total },
-      partial: false,
-      label: `${lot ? 'Lot' : 'Groupe'} ${group.title}, ${SPEC_STATUS_LABELS[group.status]}, ${group.done} sur ${group.total} tâches`,
-      subject: { kind: 'taskGroup', file, group },
-      foldedByDefault: group.status === 'delivered' && !doing
-    })
-    fileTasks(file, group, group.tasks, group.key, key)
-    for (const child of group.groups) groupNode(file, child, key, false)
-  }
-  for (const file of view.taskFiles) {
-    const key = workflowKey(genesisId, 'tfile', file.key)
-    add({
-      key,
-      parentKey: genesisId,
-      title: file.title,
-      icon: 'document',
-      status: SPEC_NODE_STATUS[file.status],
-      ...(file.total === 0 ? {} : { progress: { done: file.done, total: file.total } }),
-      partial: file.partial,
-      label: `Fichier de tâches ${file.path}, ${SPEC_STATUS_LABELS[file.status]}, ${file.done} sur ${file.total} tâches${file.partial ? ', lecture partielle' : ''}`,
-      subject: { kind: 'taskFile', file },
-      foldedByDefault: file.status === 'delivered'
-    })
-    fileTasks(file, null, file.tasks, file.key, key)
-    for (const lot of file.lots) groupNode(file, lot, key, true)
-  }
-  if (ideas.length > 0) {
-    const key = workflowKey(genesisId, 'branch', 'brainstorm')
-    add({
-      key,
-      parentKey: genesisId,
-      title: `${BRANCH_TITLES.brainstorm} (${ideas.length})`,
-      icon: BRANCH_ICONS.brainstorm,
-      partial: false,
-      label: `${BRANCH_TITLES.brainstorm} : ${ideas.length} idée${ideas.length > 1 ? 's' : ''}`,
-      subject: { kind: 'branch', branch: 'brainstorm', specs: [] },
-      foldedByDefault: false
-    })
-    for (const doc of ideas) {
-      add({
-        key: workflowKey(genesisId, 'doc', doc.name.replace(/\.md$/i, '')),
-        parentKey: key,
-        title: doc.title,
-        icon: 'idea',
-        status: 'todo',
-        partial: false,
-        label: `Idée à brainstormer : ${doc.title}`,
-        subject: { kind: 'doc', doc, family: view.brainstorm.filter((other) => other.family === doc.name) },
+        label: `${node.sketch ? 'Ébauche' : 'Carré'} ${id}${short(node.title, 200)}, ${TASK_STATE_LABELS[node.state ?? 'todo']}${
+          node.sketch ? ', en attente du brainstorm' : ''
+        }${next ? ', bosser ici' : ''}`,
+        subject,
+        shape: 'square',
+        sketch: node.sketch,
+        next,
+        origin: described.context.doc,
         foldedByDefault: false
       })
+      return
     }
+    const title = subject.kind === 'spec' ? `${subject.spec.number} · ${node.title}` : node.title
+    const brainstorm = node.maturity === null ? 'brainstorm non évalué' : `brainstorm ${node.maturity} %`
+    drafts.push({
+      key,
+      parentKey,
+      title,
+      icon: ROUND_ICONS[node.source],
+      status: roundStatus(node),
+      ...(node.total === 0 ? {} : { progress: { done: node.done, total: node.total } }),
+      partial:
+        subject.kind === 'spec' ? subject.spec.partial : subject.kind === 'taskFile' ? subject.file.partial : false,
+      label: `Rond ${title}, ${brainstorm}${node.total === 0 ? '' : `, ${node.done} sur ${node.total} tâches`}`,
+      subject,
+      shape: 'round',
+      maturity: node.maturity,
+      origin: described.context.doc,
+      // Tout est fait : replié d'office (la carte reste lisible) ; mentalyas le déplie, son choix est gardé.
+      foldedByDefault: node.total > 0 && node.done === node.total
+    })
+    for (const child of node.children) add(child, key, described.context)
   }
+  for (const node of view.tree.nodes) add(node, genesisId, none)
   return finish(drafts, view.folded)
 }
 
