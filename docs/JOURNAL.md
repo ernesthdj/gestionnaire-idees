@@ -1980,3 +1980,15 @@ l'en-tête et le fichier de tâches, rédiger la doc, implémenter, préciser un
 masquait la barre des tests suivants. Le parcours « Bosser ici » passe en dernier et ne ferme plus rien.
 **Règle apprise :** une fonction pure partagée par le main et l'interface vit dans `src/shared/` : les tests de
 l'interface ne peuvent pas importer le main (projet TypeScript séparé).
+
+### [2026-10-14 17:40] FEAT — spec 032 lot 3 : le brainstorm et le pont MCP écrivent l'en-tête des ronds
+**Fichiers :** `src/renderer/src/canvas/workflow/prompts.ts` (« Nouveau brainstorm »), `src/shared/mcp/tools.ts`
+(consignes, `maturite_evaluer`), `src/main/infrastructure/db/demo/demoMethod.ts` (en-têtes, `TACHES-PARTAGE.md`) ;
+tests `unit/mcp/instructions.test.ts` (nouveau), `unit/renderer/report-steps-prompt.test.ts`,
+`integration/db/seed-demo.test.ts`.
+**Quoi :** « ✦ Nouveau brainstorm » fait écrire le L1 dès le début avec son en-tête (`**Maturité**` et ce qui manque,
+`**Parent**` s'il prolonge un autre brainstorm), puis, une fois complet, le fichier de tâches nommé par `**Tâches**`.
+Les consignes du pont décrivent l'en-tête et précisent que la maturité d'un brainstorm de projet lié s'écrit dans le
+document, pas avec `maturite_evaluer` (dont la description le rappelle). Le profil démo montre un rond mûr (sa spec) et
+un rond « insuffisant » dont les deux tâches restent des ébauches. (Les consignes « Discuter » D7 — continuer, évaluer,
+rouvrir — sont du lot 2.)

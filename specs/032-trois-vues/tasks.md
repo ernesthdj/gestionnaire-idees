@@ -24,7 +24,7 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 3 — Brainstorm et pont MCP
 
-- [ ] T030 « Nouveau brainstorm » et « Lancer / Continuer le brainstorm » écrivent les lignes du rond (D11) ;
+- [x] T030 « Nouveau brainstorm » et « Lancer / Continuer le brainstorm » écrivent les lignes du rond (D11) ;
   « Évaluer la maturité » (D10) ; consignes et descriptions du pont ; tests.
 
 ## Lot 4 — Architecture = l'explorateur

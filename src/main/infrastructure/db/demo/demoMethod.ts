@@ -3,7 +3,8 @@ import { dirname, join } from 'node:path'
 
 /**
  * Dossier de méthode FICTIF du profil démo (spec 023 T039) : une fondation, deux specs (l'une en cours, l'autre
- * planifiée), un L1 cité par une spec et un L1 à brainstormer, un fichier de tâches à trois états (D20, D21), plus un
+ * planifiée), un L1 cité par une spec (mûr) et un L1 pas mûr dont les tâches restent des ébauches (spec 032), un
+ * fichier de tâches à trois états (D20, D21), plus un
  * petit fichier de code cité par une tâche — de quoi montrer la vue Workflow, ses cartes, le lecteur et « Que fait ce
  * fichier ? ». Aucune donnée réelle.
  */
@@ -17,11 +18,20 @@ Noter vite, retrouver sans chercher longtemps.
 `,
   'docs/brainstorm/L1-notes-recherche.md': `# L1 — Retrouver une note (démo)
 
+**Maturité** : complet
+
 Chercher dans le titre et le texte des notes, résultats classés par date.
 `,
   'docs/brainstorm/L1-notes-partage.md': `# L1 — Partager une note par lien (démo)
 
+**Maturité** : insuffisant — manque : la durée de vie du lien · **Tâches** : docs/TACHES-PARTAGE.md
+
 Idée pas encore travaillée : envoyer une note à quelqu'un sans compte.
+`,
+  'docs/TACHES-PARTAGE.md': `# Tâches — Partage par lien (démo, ébauche)
+
+- [ ] Créer un lien de partage
+- [ ] Ouvrir une note partagée sans compte
 `,
   'specs/001-recherche/spec.md': `# Feature Specification: Recherche dans les notes (démo)
 

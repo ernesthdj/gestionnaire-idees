@@ -26,6 +26,9 @@ describe('consignes de la barre : reporter dans les fichiers, nouveau brainstorm
     expect(prompt).toContain('/brainstorm sur « Agents qui parlent »')
     expect(prompt).toContain('docs/brainstorm/')
     expect(prompt).toContain('Ne pose rien dans la carte de structure')
+    // Spec 032 D11 : l'en-tête du document range le rond dans l'arbre du Workflow.
+    expect(prompt).toContain('« **Maturité** : insuffisant | suffisant | complet »')
+    expect(prompt).toContain('« **Tâches** : docs/TACHES-<Sujet>.md »')
   })
 
   it('should_say_what_was_put_outside_the_workflow', () => {

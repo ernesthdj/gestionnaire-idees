@@ -341,7 +341,8 @@ export const MCP_TOOLS = {
   },
   maturite_evaluer: {
     description:
-      'Évalue la maturité du neurone (insuffisant, suffisant, complet) et ce qui manque encore. Sa taille sur la carte suit.',
+      'Évalue la maturité du neurone (insuffisant, suffisant, complet) et ce qui manque encore. Sa taille sur la carte ' +
+      'suit. Pour un brainstorm de projet lié, écris plutôt « **Maturité** : … » dans l’en-tête de son document.',
     input: MaturiteEvaluerInput,
     writes: true
   },
@@ -492,6 +493,10 @@ export const MCP_INSTRUCTIONS = [
   'Projet lié (dossier de projet) : le travail se fait dans la vue Workflow, qui se lit dans les fichiers du projet. ' +
     'Un brainstorm aboutit à un document dans `docs/brainstorm/` et à ses tâches dans `docs/TACHES-<Sujet>.md` ' +
     '(lots `##`, cases « - [ ] T001 … ») ; avancer une tâche, c’est cocher sa case (« - [~] » en cours, « - [x] » faite). ' +
+    'L’en-tête d’un document de brainstorm, sous son titre, le range dans l’arbre du Workflow : ' +
+    '« **Parent** : <document> · **Maturité** : insuffisant | suffisant | complet · **Tâches** : docs/TACHES-<Sujet>.md ». ' +
+    'La maturité d’un brainstorm de projet lié s’écrit là (avec ce qui manque), pas avec `maturite_evaluer` ; ses ' +
+    'tâches restent des ébauches tant qu’elle n’est pas « complet ». ' +
     'Les vues Progression et Architecture ne font que refléter la doc et le code : jamais de tâche, de décision ni ' +
     'd’étape de plan dedans.',
   'Idée non liée à un projet — étapes à suivre, plan d’action, séquence, découpage d’un nœud ou d’une étape : ' +

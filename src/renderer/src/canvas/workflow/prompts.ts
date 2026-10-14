@@ -166,15 +166,19 @@ export function brainstormSubject(raw: string): string | null {
 }
 
 /**
- * Consigne « Nouveau brainstorm » (spec 023 D26) : le brainstorm de départ se fait dans le Workflow ; il aboutit à un
- * document de niveau 1 et à son fichier de tâches, que la vue relit ; rien dans la carte de structure. Pure.
+ * Consigne « Nouveau brainstorm » (spec 023 D26, spec 032 D11) : le brainstorm de départ se fait dans le Workflow ; il
+ * aboutit à un document de niveau 1 (son en-tête dit sa maturité et son fichier de tâches) et à ses tâches, que la vue
+ * relit ; rien dans la carte de structure. Pure.
  */
 export function newBrainstormPrompt(subject: string): string {
   return [
     `Lance /brainstorm sur « ${subject} » pour ce projet : lis d'abord sa fondation et ses documents de brainstorm, ` +
       'puis pose tes questions une à une.',
-    'À la fin, écris le document de niveau 1 dans docs/brainstorm/ (L1<lettre suivante>-<sujet>.md), puis ses tâches ' +
-      'dans docs/TACHES-<Sujet>.md : un titre #, des lots ##, des cases « - [ ] T001 … ».',
+    'Écris le document de niveau 1 dans docs/brainstorm/ (L1<lettre suivante>-<sujet>.md) dès le début, et tiens à ' +
+      'jour son en-tête, sous le titre : « **Maturité** : insuffisant | suffisant | complet » avec ce qui manque ' +
+      '(« **Parent** : <document> » s’il prolonge un autre brainstorm). Quand il est complet, écris ses tâches dans ' +
+      'docs/TACHES-<Sujet>.md (un titre #, des lots ##, des cases « - [ ] T001 … ») et ajoute « **Tâches** : ' +
+      'docs/TACHES-<Sujet>.md » à l’en-tête.',
     'Ne pose rien dans la carte de structure (ni tâche, ni décision, ni étape) : la vue Workflow montre ces fichiers, ' +
       'Progression et Architecture ne font que refléter la doc et le code.'
   ].join('\n')

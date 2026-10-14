@@ -141,6 +141,15 @@ describe('dossier de méthode du profil démo (spec 023 T039)', () => {
     ])
     expect(view.brainstorm.filter(isToBrainstorm).map((doc) => doc.name)).toEqual(['L1-notes-partage.md'])
     expect(view.foundation?.summary).toContain('Noter vite')
+    // Spec 032 : un rond mûr (sa spec) et un rond « insuffisant » dont les tâches restent des ébauches.
+    expect(view.tree.nodes.map((node) => [node.title, node.maturity])).toEqual(
+      expect.arrayContaining([
+        ['L1 — Retrouver une note (démo)', 100],
+        ['L1 — Partager une note par lien (démo)', 33]
+      ])
+    )
+    const partage = view.tree.nodes.find((node) => node.maturity === 33)
+    expect(partage?.children[0]?.children.map((node) => node.sketch)).toEqual([true, true])
     expect(view.missingFiles).toEqual(['src/notes/export.ts'])
   })
 
