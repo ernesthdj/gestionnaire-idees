@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F15 Neurone conversationnel
+
+**Parent** : L1d-neurone-conversation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1c-pont-claude-code.md (§9), **L1d-neurone-conversation.md**, L2/L3-pont-mcp.md
 > Date : 2026-10-04
 

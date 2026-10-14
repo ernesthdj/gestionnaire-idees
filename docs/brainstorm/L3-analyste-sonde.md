@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : AN-A — Sonde
+
+**Parent** : L2-analyste-sonde.md · **Maturité** : complet
+
 > Basé sur : L1g-analyste-interne.md (A2, A7) + L2-analyste-sonde.md · Date : 2026-10-07
 > Code lu : `infrastructure/logging/logger.ts` (liste blanche, `stdoutSink`), `db/schema.ts` (`ai_calls`),
 > `ipc/registry.ts`, `infrastructure/secrets/SecretStore.ts`

@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Blocs et mini-widgets générés par Claude
+
+**Parent** : L4b-neurones.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L4b-neurones.md (canvas), L1b-brainstormer.md (cadre IA, plan de livraison)
 > Date : 2026-09-28 · Source : idée de mentalyas · Statut : décisions validées (3 arbitrages)
 

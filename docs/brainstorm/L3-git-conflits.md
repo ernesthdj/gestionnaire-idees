@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : GIT-E — Conflits guidés par Claude
+
+**Parent** : L2-git-conflits.md · **Maturité** : complet
+
 > Basé sur : L1i-git-github.md (D2, D4) + L2-git-conflits.md + L3-git-publier.md (`git:merge`) +
 > L3-git-depot-local.md (socle) · Date : 2026-10-07
 

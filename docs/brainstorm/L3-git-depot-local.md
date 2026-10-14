@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : GIT-A — Volet « Dépôt » local (socle git commun)
+
+**Parent** : L2-git-depot-local.md · **Maturité** : complet
+
 > Basé sur : L1i-git-github.md + L2-git-depot-local.md · Réutilise : `GitCli.ts` (spec 016 : `resolveGit`, `runGit`),
 > `projectPath.ts` (`isSecretFileName`), `fileFilter.ts` (fichiers sensibles, spec 017), `trusted_projects` (spec 014),
 > `AIGateway` · Date : 2026-10-07

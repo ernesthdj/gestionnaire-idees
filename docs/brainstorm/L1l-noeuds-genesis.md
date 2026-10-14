@@ -1,5 +1,7 @@
 # L1l — Nœuds genesis (idée à brainstormer, 2026-10-09)
 
+**Maturité** : insuffisant — manque : les idées de mentalyas sur les nœuds genesis, à recueillir au /brainstorm
+
 > Graine de brainstorm posée lors du rangement des specs (spec 023 T038). Rien n'est décidé : ce document attend un
 > `/brainstorm`.
 

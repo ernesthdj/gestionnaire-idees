@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F11 Moteur CLI (`claude -p` remplace l'API Anthropic)
+
+**Parent** : L1-fondation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1-fondation.md, L1b-brainstormer.md, L2/L3-moteur-ia.md,
 > **L1c-pont-claude-code.md** · Date : 2026-10-04
 

@@ -1,5 +1,7 @@
 # L1m — Wireframes et parcours dans les widgets : le bac à sable visuel (idée, 2026-10-10)
 
+**Maturité** : complet
+
 > Brainstorm de niveau 1, mené avec Claude Code dans le terminal à partir d'une synthèse de Gemini apportée par
 > mentalyas. Les points listés en « Décisions » ont été validés par mentalyas. Ce qui reste ouvert est listé à la fin.
 > Aucune spec n'est écrite : elle viendra après la fin de la spec 024 (US4, US5) et de la spec 021.

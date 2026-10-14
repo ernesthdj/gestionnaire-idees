@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-D — Historique : frise par auteur et carte colorisée
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D5, G3), spec 017 (cartographie, explorateur),
 > L2-git-cloner.md · Date : 2026-10-07 · Livraison : **lot D (après le MVP)**
 

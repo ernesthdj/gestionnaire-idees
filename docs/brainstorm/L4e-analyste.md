@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Parcours écran : l'Analyste interne
+
+**Parent** : L1g-analyste-interne.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1g-analyste-interne.md, L2-analyste-*.md (AN-A à AN-D), L3-analyste-*.md
 > Amende : L4-parcours.md · Code lu : `app/AppShell.tsx` (navigation à gauche : Idées · À valider · Historique ;
 > ⚙ Réglages), `pages/settings/` · Date : 2026-10-07 · Règles : `docs/claude/ergonomie-ui.md`

@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-G — Extraire un morceau d'un projet open source
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D7 « extraire »), L2-git-cloner.md, workspace
 > ProjectMaster (`snippets/`, `techno/`) · Date : 2026-10-07 · Livraison : **lot G (après le MVP)**
 

@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R5 — Mesures et diagnostic en couleurs
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A3, A8), L2-reprise-analyse.md, L2-reprise-explorateur.md
 > Date : 2026-10-06 · Livraison : **MVP 2 — Juger**
 

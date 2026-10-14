@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : SK-C — Faire évoluer ses skills avec Claude
+
+**Parent** : L2-skills-evoluer.md · **Maturité** : complet
+
 > Basé sur : L1h-arbre-de-skills.md (A4, A7, A8, A9) + L2-skills-evoluer.md · Date : 2026-10-07
 
 ## 1. Contrat IPC

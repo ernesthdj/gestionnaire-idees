@@ -1924,3 +1924,19 @@ navigation (7 e2e en échec). Le bandeau est passé sur une seconde ligne.
 le genesis et déborde des deux côtés.
 **Reste :** D29, la refonte du rendu de Progression et d'Architecture (prévu en fantôme / réel), à brainstormer dans
 un artifact.
+
+### [2026-10-14 13:30] SPEC — 032 « Les trois vues » écrite (brainstorm visuel dans un artifact)
+**Fichiers :** `specs/032-trois-vues/{spec.md, tasks.md}` (nouveaux), `specs/023-carte-workflow/spec.md` (D29 renvoie
+à la 032), `CLAUDE.md`.
+**Quoi :** brainstorm de la refonte de Progression et Architecture (023 D29) sur un canevas d'artifact, maquettes
+cliquables. Retenu par mentalyas : (1) la planche « arbre en sens alterné » devient la **nouvelle vue Workflow** :
+ronds = brainstorm et doc (dessin de l'app gardé, anneau violet = maturité, bleu = tâches), carrés = tâches à
+implémenter, ébauches tant que le brainstorm n'est pas complet, un seul « ▶ Bosser ici » ; (2) Progression : les trois
+pistes (arbre, étages, lots) derrière un sélecteur, bascule Réel · Prévu · Les deux ; (3) Architecture : l'explorateur
+en boîtes (spec 031) dans la carte, plus un détecteur d'architecture.
+**Choix :** l'arbre du Workflow vient des fichiers écrits par Claude (lignes `**Parent**`, `**Maturité**`, `**Tâches**`,
+cases des fichiers de tâches) et l'app les relit sans IA : même fichiers, même arbre (leçon de 023 D20).
+**Clarifications :** Q1 → passe faite : les 90 documents de `docs/brainstorm/` ont leur en-tête `**Parent** ·
+**Maturité**` (familles de 023 D11 ; « complet » pour toute famille qui a mené à une spec ; `L1l-noeuds-genesis.md`
+« insuffisant », graine sans décision). Q2 → une spec livrée est un rond complet avec ses carrés faits.
+**Prochain :** lot 1 (l'arbre du Workflow côté main, sans IA).

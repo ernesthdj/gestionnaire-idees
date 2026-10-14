@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F9 — Moteur IA hybride & contexte
+
+**Parent** : L2-moteur-ia.md · **Maturité** : complet
+
 > Basé sur : docs/brainstorm/L1-fondation.md + docs/brainstorm/L2-moteur-ia.md
 > Date : 2026-09-28 · Livraison : MVP-1
 

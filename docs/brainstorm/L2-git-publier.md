@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-B — Publier sur GitHub, tirer et pousser
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D2, D3, §6, §7), L2-git-depot-local.md
 > Date : 2026-10-07 · Livraison : **lot B (MVP)**
 

@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — Reprendre un projet existant : cartographie, diagnostic et flux
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Prolonge : L1e-chirurgie-projet.md (carte de structure), L3-carte-structure.md,
 > L1c-pont-claude-code.md · Date : 2026-10-06 · Statut : **niveau 1 validé** (arbitrages A1–A9)
 

@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : SK-A — Voir la toile de skills
+
+**Parent** : L1h-arbre-de-skills.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1h-arbre-de-skills.md (A1, A3, A6, A8)
 > Date : 2026-10-07 · Livraison : **lot A**
 

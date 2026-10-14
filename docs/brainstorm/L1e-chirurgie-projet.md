@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — Le Brainstormer, outil de chirurgie de projet
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L1d-neurone-conversation.md (types de neurones, recettes), L1c (permissions
 > du chat, n°10), spec 008 · Date : 2026-10-04 · Statut : vision et 5 arbitrages validés, plan de livraison validé
 

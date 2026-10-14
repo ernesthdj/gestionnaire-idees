@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : DN-4 — Claude et les actions sur les fichiers
+
+**Parent** : L2-dossier-claude-actions.md · **Maturité** : complet
+
 > Basé sur : L1n-dossier-du-noeud.md + L2-dossier-claude-actions.md · Date : 2026-10-12
 > Code de référence lu le 2026-10-12 : `shared/mcp/tools.ts`, `toolHandler.ts`, `DocumentTools.ts`, `target.ts`
 > (`conversationTarget`), `NeuronTools.context`, `ConfidentialityGuard`, `frame.ts` (consigne de conversation).

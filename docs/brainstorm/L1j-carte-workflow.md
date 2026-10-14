@@ -1,5 +1,7 @@
 # L1j — La carte d'un projet suit notre façon de travailler (idée, 2026-10-09)
 
+**Maturité** : complet
+
 > À brainstormer avant toute spec. Rien n'est décidé. Origine : une note laissée par le Claude de l'app dans
 > `CLAUDE.md` (déplacée ici), puis la demande de mentalyas du 2026-10-09.
 

@@ -1,4 +1,7 @@
 # Niveau 1 — Vision & Cadrage — Gestionnaire_idées
+
+**Maturité** : complet
+
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
 > Statut : Niveau 1 terminé — en attente de validation

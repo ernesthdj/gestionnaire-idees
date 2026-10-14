@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : GIT-C — Cloner par lien et suivre les mises à jour
+
+**Parent** : L2-git-cloner.md · **Maturité** : complet
+
 > Basé sur : L1i-git-github.md + L2-git-cloner.md + L3-reprise-import.md (§1 `reprise:clone`, §3 séquence) +
 > spec 017 US5 (FR-008 à FR-011) + spec 020 research R7 + L3-git-depot-local.md (socle) · Date : 2026-10-07
 

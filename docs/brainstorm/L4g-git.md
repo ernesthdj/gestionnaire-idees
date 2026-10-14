@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Parcours écran : Git et GitHub dans le Brainstormer
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md, L2-git-*.md (GIT-A à GIT-G), L3-git-*.md
 > Amende : L4-parcours.md, L4d-reprise.md (assistant « Reprendre un projet ») · Date : 2026-10-07
 > Règles : `docs/claude/ergonomie-ui.md` (Fitts, Hick, Miller, grille 8 px, 62/38, 1 CTA par écran, WCAG AA)

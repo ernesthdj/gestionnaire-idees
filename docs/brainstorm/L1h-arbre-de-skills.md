@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — L'arbre de skills : la toile de compétences de Claude
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Prolonge : L1c-pont-claude-code.md (Claude Code au cœur de l'app), L1e (carte et nœuds),
 > spec 012 (documents), spec 017 (reprise, clone git) · Date : 2026-10-07 · Statut : **niveaux 1 à 3 validés (A1–A9)**, niveau 4 rédigé (`L4f-skills.md`)
 

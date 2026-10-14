@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : R1 — Import d'un projet et confidentialité
+
+**Parent** : L2-reprise-import.md · **Maturité** : complet
+
 > Basé sur : L1f-reprise-projet.md + L2-reprise-import.md · Réutilise : `GitCli` (spec 016, git par chemin absolu),
 > sélecteur natif (spec 008), `ConversationService` (spec 014) · Date : 2026-10-06
 

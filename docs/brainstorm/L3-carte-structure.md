@@ -1,4 +1,7 @@
 # Niveaux 2-3 — P1 Carte de structure d'un projet
+
+**Parent** : L1e-chirurgie-projet.md · **Maturité** : complet
+
 > Basé sur : L1e-chirurgie-projet.md (arbitrages 20 à 24), spec 007 (pont), spec 008 (neurone conversationnel)
 > Date : 2026-10-04 · Points ouverts L1e §7 tranchés par défaut : un composant peut regrouper plusieurs fichiers ;
 > la carte vit dans l'app (export vers le projet plus tard).

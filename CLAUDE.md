@@ -149,7 +149,10 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 - **Amendement 023 du 2026-10-14 (D26 à D29)** : le travail se fait dans la vue **Workflow** (« ✦ Nouveau brainstorm »
   → document L1 + `docs/TACHES-<Sujet>.md`) ; **Progression** et **Architecture** ne font que refléter la doc (prévu) et
   le code (réel) : aucune étape n'y naît, `structure_dessiner` refuse les nouvelles `tache` / `decision`, la barre
-  signale ce qui y avait été posé (reporter ou retirer). Refonte de leur rendu (prévu fantôme / réel) à brainstormer
-  dans un artifact
+  signale ce qui y avait été posé (reporter ou retirer)
+- **Spec 032 « Les trois vues » écrite le 2026-10-14** (à coder, lots 1 à 6) : Workflow = arbre en sens alterné de
+  ronds (brainstorm et doc, anneaux maturité / tâches) et de carrés (tâches, ébauches, « Bosser ici »), lu dans les
+  fichiers écrits par Claude ; Progression en trois lectures (arbre, étages, lots) ; Architecture = l'explorateur en
+  boîtes dans la carte + détecteur d'architecture
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

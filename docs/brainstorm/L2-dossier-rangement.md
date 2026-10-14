@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : DN-1 — Le rangement (quels fichiers dans quel dossier)
+
+**Parent** : L1n-dossier-du-noeud.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1n-dossier-du-noeud.md (D1, D2, D7, Sécurité)
 > Date : 2026-10-12
 

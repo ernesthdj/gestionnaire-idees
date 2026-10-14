@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : SK-B — Comprendre et noter les skills
+
+**Parent** : L1h-arbre-de-skills.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1h-arbre-de-skills.md (A2, A3, A6), L2-skills-voir.md
 > Date : 2026-10-07 · Livraison : **lot B**
 

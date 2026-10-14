@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : R3 — Explorateur à niveaux
+
+**Parent** : L2-reprise-explorateur.md · **Maturité** : complet
+
 > Basé sur : L1f-reprise-projet.md + L2-reprise-explorateur.md + L3-reprise-analyse.md · Date : 2026-10-06
 
 ## 0. Choix techniques

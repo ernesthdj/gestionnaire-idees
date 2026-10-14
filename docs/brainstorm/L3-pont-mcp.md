@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F10 Pont MCP
+
+**Parent** : L2-pont-mcp.md · **Maturité** : complet
+
 > Basé sur : L1c-pont-claude-code.md + L2-pont-mcp.md (10 points validés le 2026-10-04) · Date : 2026-10-04
 
 ## 0. Décision d'architecture : transport « relais stdio + canal nommé »

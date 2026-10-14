@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : DN-5 — Reprise des documents de la spec 012
+
+**Parent** : L2-dossier-reprise-012.md · **Maturité** : complet
+
 > Basé sur : L1n-dossier-du-noeud.md + L2-dossier-reprise-012.md · Date : 2026-10-12
 > Code de référence lu le 2026-10-12 : table `documents` (`width`, `height`, `offset_x`, `offset_y`, `deleted_at`),
 > `DOCUMENT_DEFAULT_SIZE` (360 × 280), marqueur `migration.legacySheets` (reprise des tables archivées, spec 010).

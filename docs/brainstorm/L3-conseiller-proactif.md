@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F7 — Conseiller proactif
+
+**Parent** : L2-conseiller-proactif.md · **Maturité** : complet
+
 > Basé sur : docs/brainstorm/L1-fondation.md + docs/brainstorm/L2-conseiller-proactif.md + L3-moteur-ia.md
 > Date : 2026-09-28 · Livraison : MVP-2
 

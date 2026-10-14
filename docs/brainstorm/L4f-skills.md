@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Parcours écran : l'arbre de skills
+
+**Parent** : L1h-arbre-de-skills.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1h-arbre-de-skills.md, L2-skills-*.md (SK-A à SK-D), L3-skills-*.md
 > Amende : L4-parcours.md · Navigation existante : `AppShell` (Idées · À valider · Historique · Analyste ; ⚙ Réglages)
 > Date : 2026-10-07 · Règles : `docs/claude/ergonomie-ui.md`

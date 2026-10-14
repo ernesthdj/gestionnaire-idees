@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-A — Volet « Dépôt » local (changements, commit, branches, badge)
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D2, D3, D4, D6), spec 016 (Initialiser git),
 > spec 014 US7 (Commiter l'étape) · Date : 2026-10-07 · Livraison : **lot A (MVP)**
 

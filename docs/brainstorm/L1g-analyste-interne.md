@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — L'Analyste interne : une app qui s'observe, propose et s'améliore
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Prolonge : L1e-chirurgie-projet.md (construire avec validation), L1c-pont-claude-code.md,
 > spec 014 (fichiers et commandes) · Date : 2026-10-07 · Statut : **niveaux 1 à 3 validés (A1–A9)**, niveau 4 rédigé (`L4e-analyste.md`)
 

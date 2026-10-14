@@ -1,5 +1,7 @@
 # L1i — Git et GitHub dans le Brainstormer (brouillon, niveau 1)
 
+**Maturité** : complet
+
 > Brainstorm du 2026-10-07 avec mentalyas. Document construit au fil des réponses ; rien n'est encore décidé.
 > Statut : **niveau 1 validé** ; niveaux 2 à 4 rédigés le 2026-10-07 (§9), **à valider en bloc**.
 

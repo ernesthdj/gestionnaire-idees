@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F1 — Capture rapide
+
+**Parent** : L1-fondation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : docs/brainstorm/L1-fondation.md
 > Date : 2026-09-28 · Livraison : **MVP-1**
 

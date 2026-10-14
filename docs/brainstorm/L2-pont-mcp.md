@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F10 Pont MCP (la carte lue et écrite par Claude Code)
+
+**Parent** : L1c-pont-claude-code.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1-fondation.md, L1b-brainstormer.md, L4b-neurones.md, L4c-widgets.md,
 > **L1c-pont-claude-code.md** · Date : 2026-10-04
 

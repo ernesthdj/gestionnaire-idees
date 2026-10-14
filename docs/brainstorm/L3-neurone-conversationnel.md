@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F15 Neurone conversationnel
+
+**Parent** : L2-neurone-conversationnel.md · **Maturité** : complet
+
 > Basé sur : L1d + L2-neurone-conversationnel.md + L3-pont-mcp.md · Date : 2026-10-04
 > Vérifié sur Claude Code 2.1.289 : flux `stream-json` en entrée et sortie, `apiKeySource: none` (abonnement),
 > `rate_limit_event` (utilisation 5 h / 7 jours), hooks utilisateur coupés par `--setting-sources project`.

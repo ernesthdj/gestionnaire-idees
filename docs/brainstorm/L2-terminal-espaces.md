@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F12 Terminal intégré & espaces (+ F13 skill `brainstormer`)
+
+**Parent** : L1c-pont-claude-code.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1-fondation.md, L1b-brainstormer.md, L4b-neurones.md,
 > **L1c-pont-claude-code.md**, **L2-pont-mcp.md** · Date : 2026-10-04
 

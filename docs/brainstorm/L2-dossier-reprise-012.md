@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : DN-5 — Reprise des documents de la spec 012 dans les dossiers
+
+**Parent** : L1n-dossier-du-noeud.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1n-dossier-du-noeud.md (D4), spec 012 (D3, D4, en pause)
 > Date : 2026-10-12
 

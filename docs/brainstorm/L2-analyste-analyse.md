@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : AN-B — Analyste
+
+**Parent** : L1g-analyste-interne.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1g-analyste-interne.md (A4, A5, A6, A8), L2-analyste-sonde.md,
 > L3-carte-structure.md, spec 017 (analyse statique) · Date : 2026-10-07 · Livraison : **lot B**
 

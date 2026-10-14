@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : GIT-B — Publier sur GitHub, tirer et pousser
+
+**Parent** : L2-git-publier.md · **Maturité** : complet
+
 > Basé sur : L1i-git-github.md (D2, D3, §6, §7) + L2-git-publier.md + L3-git-depot-local.md (socle `GitRunner`,
 > `git_repos`, `git_operations`) · Date : 2026-10-07
 

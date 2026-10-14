@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : AN-D — Rythme automatique
+
+**Parent** : L1g-analyste-interne.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1g-analyste-interne.md (A4), L2-analyste-analyse.md
 > Date : 2026-10-07 · Livraison : **lot D**
 

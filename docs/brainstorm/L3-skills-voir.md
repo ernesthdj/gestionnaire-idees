@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : SK-A — Voir la toile de skills
+
+**Parent** : L2-skills-voir.md · **Maturité** : complet
+
 > Basé sur : L1h-arbre-de-skills.md (A1, A3, A6, A8) + L2-skills-voir.md · Date : 2026-10-07
 
 ## 1. Contrat IPC

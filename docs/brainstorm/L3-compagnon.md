@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F8 — Compagnon tamagotchi & briefing quotidien
+
+**Parent** : L2-compagnon.md · **Maturité** : complet
+
 > Basé sur : docs/brainstorm/L1-fondation.md + docs/brainstorm/L2-compagnon.md
 > Date : 2026-09-28 · Livraison : MVP-2
 

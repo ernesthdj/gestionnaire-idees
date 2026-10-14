@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R1 — Import d'un projet et confidentialité
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A4, A6), L1e-chirurgie-projet.md, spec 016
 > Date : 2026-10-06 · Livraison : **MVP 1 — Voir**
 

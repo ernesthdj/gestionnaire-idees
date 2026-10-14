@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R4 — Guide de reprise
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A7, A8), L2-reprise-analyse.md, spec 012 (documents)
 > Date : 2026-10-06 · Livraison : **MVP 1 — Voir**
 

@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : SK-D — Importer des skills depuis GitHub
+
+**Parent** : L2-skills-importer.md · **Maturité** : complet
+
 > Basé sur : L1h-arbre-de-skills.md (A5) + L2-skills-importer.md + spec 017 US5 (T028–T031, en pause) · Date : 2026-10-07
 
 ## 1. Contrat IPC

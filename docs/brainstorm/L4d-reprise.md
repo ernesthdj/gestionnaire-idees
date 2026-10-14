@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Parcours écran : reprendre un projet existant
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md, L2-reprise-*.md (R1 à R6), L3-reprise-*.md
 > Amende : L4-parcours.md, L4b-neurones.md · Référence visuelle : image conceptuelle Gemini (4 niveaux de zoom),
 > `docs/brainstorm/Assets/Capture d'écran 2026-10-06 185812.png` · Date : 2026-10-06 · Règles : `docs/claude/ergonomie-ui.md`

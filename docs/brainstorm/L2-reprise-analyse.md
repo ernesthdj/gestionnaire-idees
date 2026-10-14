@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R2 — Analyse statique multi-langage
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A1, A2, A4), L2-reprise-import.md
 > Date : 2026-10-06 · Livraison : **MVP 1 — Voir**
 

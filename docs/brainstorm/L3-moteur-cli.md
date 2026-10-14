@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F11 Moteur CLI
+
+**Parent** : L2-moteur-cli.md · **Maturité** : complet
+
 > Basé sur : L1c-pont-claude-code.md + L2-moteur-cli.md · Date : 2026-10-04
 > Vérifié sur la machine de mentalyas : Claude Code **2.1.289**, essai réel `claude -p --json-schema` concluant (§0).
 

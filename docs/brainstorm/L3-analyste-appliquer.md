@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : AN-C — Appliquer une proposition
+
+**Parent** : L2-analyste-appliquer.md · **Maturité** : complet
+
 > Basé sur : L1g-analyste-interne.md (A3, A9) + L2-analyste-appliquer.md + L3-analyste-analyse.md
 > Date : 2026-10-07 · Code lu : `infrastructure/projects/GitCli.ts` (`resolveGit`, `runGit` : git par chemin absolu,
 > `shell: false`), `application/conversation/ConversationService.ts` (modes de permission, outils)

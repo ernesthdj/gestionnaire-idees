@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-F — Pull requests, issues et fork
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D3, D4, D7 « forker et contribuer »),
 > L2-git-publier.md · Date : 2026-10-07 · Livraison : **lot F (après le MVP)**
 

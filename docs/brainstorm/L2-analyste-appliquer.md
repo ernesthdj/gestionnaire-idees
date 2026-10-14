@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : AN-C — Appliquer une proposition
+
+**Parent** : L1g-analyste-interne.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1g-analyste-interne.md (A3, A9), L2-analyste-analyse.md, spec 014
 > (fichiers et commandes) · Date : 2026-10-07 · Livraison : **lot C**
 

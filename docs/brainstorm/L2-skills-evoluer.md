@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : SK-C — Faire évoluer ses skills avec Claude
+
+**Parent** : L1h-arbre-de-skills.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1h-arbre-de-skills.md (A4, A7, A8), L2-skills-comprendre.md
 > Date : 2026-10-07 · Livraison : **lot C**
 

@@ -1,4 +1,7 @@
 # Niveau 4 (amendement) — Mécanique « neurones » : navigation, croissance, fusion
+
+**Parent** : L4-parcours.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L4-parcours.md (E3, E4, E5, E6), L2/L3-structuration-ia, L2-organigramme
 > Date : 2026-09-28 · Source : idée et maquettes de mentalyas (`docs/design/neurones-dispositions-2a-2b-2c.png`)
 > Statut : décisions validées (4 arbitrages) — à répercuter dans FOUNDATION.md et les specs 002/003

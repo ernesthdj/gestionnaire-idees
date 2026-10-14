@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : DN-3 — « Tout voir » : le dossier entier dans le panneau de droite
+
+**Parent** : L1n-dossier-du-noeud.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1n-dossier-du-noeud.md (D3), spec 027 (panneau de droite à onglets)
 > Date : 2026-10-12
 

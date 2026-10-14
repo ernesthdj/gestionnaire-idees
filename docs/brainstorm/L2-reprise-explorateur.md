@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R3 — Explorateur à niveaux
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A5, A8), L2-reprise-analyse.md
 > Date : 2026-10-06 · Livraison : **MVP 1 — Voir**
 

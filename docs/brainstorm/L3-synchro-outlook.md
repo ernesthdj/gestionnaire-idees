@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F6 — Synchro Outlook
+
+**Parent** : L2-synchro-outlook.md · **Maturité** : complet
+
 > Basé sur : docs/brainstorm/L1-fondation.md + docs/brainstorm/L2-synchro-outlook.md
 > Date : 2026-09-28 · Livraison : MVP-2
 

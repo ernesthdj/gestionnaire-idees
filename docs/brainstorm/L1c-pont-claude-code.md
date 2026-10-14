@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — Le Brainstormer, interface visuelle de Claude Code
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L1-fondation.md (§1 vision, §2ter cadre IA, F9 moteur IA), L1b-brainstormer.md
 > (§3 cadre IA, §5 plan de livraison), L4c-widgets.md (§5 génération), constitution (principes II, III, IV)
 > Date : 2026-10-04 · Statut : vision et 6 arbitrages validés par mentalyas — plan de livraison (§7) à valider

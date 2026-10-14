@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : DN-2 — Le dossier de verre sur la carte
+
+**Parent** : L2-dossier-carte.md · **Maturité** : complet
+
 > Basé sur : L1n-dossier-du-noeud.md + L2-dossier-carte.md · Date : 2026-10-12
 > Code de référence lu le 2026-10-12 : `buildGraph.ts` (plans, documents, vues de structure), `planLayout.ts`,
 > `structureGraph.ts`, `IdeasCanvas.tsx`, `MermaidDiagram.tsx` (détection du thème sombre), référence

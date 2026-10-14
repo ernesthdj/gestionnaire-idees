@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : DN-4 — Claude et les actions sur les fichiers
+
+**Parent** : L1n-dossier-du-noeud.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1n-dossier-du-noeud.md (D4, D7)
 > Date : 2026-10-12
 

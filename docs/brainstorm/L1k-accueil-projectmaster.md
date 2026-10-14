@@ -1,5 +1,7 @@
 # L1k — Accueil ProjectMaster : créer ou charger un projet dans l'app (idée, 2026-10-09)
 
+**Maturité** : complet
+
 > Brainstorm de niveau 1, mené dans la conversation du genesis « gestionnaire-idees » du Brainstormer. Les points
 > listés en « Décisions » ont été validés par mentalyas. Ce qui reste ouvert est listé à la fin. Aucune spec n'est écrite :
 > prochaine étape, `/speckit-specify` (spec 024 prévue).

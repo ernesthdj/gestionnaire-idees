@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : R6 — Pont explorateur ↔ carte de structure
+
+**Parent** : L1f-reprise-projet.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1f-reprise-projet.md (A4, A5), L3-carte-structure.md (spec 009),
 > L2-reprise-explorateur.md, L2-reprise-diagnostic.md · Date : 2026-10-06 · Livraison : **MVP 2 — Juger**
 

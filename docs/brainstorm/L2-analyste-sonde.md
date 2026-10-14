@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : AN-A — Sonde
+
+**Parent** : L1g-analyste-interne.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1g-analyste-interne.md (A1, A2, A7, A8)
 > Date : 2026-10-07 · Livraison : **lot A**
 

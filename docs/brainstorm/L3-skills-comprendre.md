@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : SK-B — Comprendre et noter les skills
+
+**Parent** : L2-skills-comprendre.md · **Maturité** : complet
+
 > Basé sur : L1h-arbre-de-skills.md (A2, A3, A6) + L2-skills-comprendre.md + L3-skills-voir.md · Date : 2026-10-07
 
 ## 1. Contrat IPC

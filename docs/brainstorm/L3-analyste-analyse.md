@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : AN-B — Analyste
+
+**Parent** : L2-analyste-analyse.md · **Maturité** : complet
+
 > Basé sur : L1g-analyste-interne.md (A4, A5, A6, A8, A9) + L2-analyste-analyse.md + L3-analyste-sonde.md
 > Date : 2026-10-07 · Code lu : `infrastructure/ai/ClaudeCliProvider.ts` (arguments de `claude -p`),
 > `application/conversation/ConversationService.ts` (`--tools`, `--allowedTools`), `db/schema.ts` (`ai_calls`)

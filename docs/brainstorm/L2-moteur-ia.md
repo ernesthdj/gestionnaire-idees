@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F9 — Moteur IA hybride & contexte
+
+**Parent** : L1-fondation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : docs/brainstorm/L1-fondation.md + tous les L2
 > Date : 2026-09-28 · Livraison : **MVP-1**
 

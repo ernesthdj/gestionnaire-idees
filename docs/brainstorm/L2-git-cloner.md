@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : GIT-C — Cloner par lien et suivre les mises à jour
+
+**Parent** : L1i-git-github.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1i-git-github.md (D6, D7, §6), spec 017 US5 (clone, en pause),
 > L2-reprise-import.md UC-2, spec 020 research R7 · Date : 2026-10-07 · Livraison : **lot C (MVP)**
 

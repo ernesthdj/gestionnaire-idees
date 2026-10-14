@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : F12 Terminal intégré & espaces (+ F13)
+
+**Parent** : L2-terminal-espaces.md · **Maturité** : complet
+
 > Basé sur : L1c-pont-claude-code.md + L2-terminal-espaces.md + L3-pont-mcp.md · Date : 2026-10-04
 
 ## 1. Contrat IPC

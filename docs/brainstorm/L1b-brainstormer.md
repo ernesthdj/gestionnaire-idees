@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — De l'agenda au « Brainstormer »
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L1-fondation.md (§1 vision, §2 fonctionnalités, §2ter cadre IA), L4b-neurones.md
 > Date : 2026-09-28 · Statut : décisions validées par mentalyas (4 arbitrages)
 

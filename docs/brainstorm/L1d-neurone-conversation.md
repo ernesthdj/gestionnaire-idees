@@ -1,4 +1,7 @@
 # Niveau 1 (amendement) — Le neurone devient une conversation Claude Code
+
+**Maturité** : complet
+
 > Projet : Gestionnaire_idées · Amende : L4b-neurones.md (croissance, jauge, fusion, natures), L1b-brainstormer.md
 > (§2 natures Action/Réflexion), L1c-pont-claude-code.md §9 (décisions 9 et 11)
 > Date : 2026-10-04 · Statut : vision et 6 arbitrages validés par mentalyas — à décliner en spec 008

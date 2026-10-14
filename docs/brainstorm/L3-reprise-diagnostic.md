@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : R5 — Mesures et diagnostic en couleurs
+
+**Parent** : L2-reprise-diagnostic.md · **Maturité** : complet
+
 > Basé sur : L1f-reprise-projet.md + L2-reprise-diagnostic.md + L3-reprise-analyse.md · Date : 2026-10-06
 
 ## 0. Calcul des mesures

@@ -1,4 +1,7 @@
 # Niveau 4 — UX / Parcours Utilisateur
+
+**Parent** : L1-fondation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées
 > Basé sur : docs/brainstorm/L1-fondation.md + toutes les fonctionnalités niveau 2 (+ L3 pour les contraintes)
 > Date : 2026-09-28

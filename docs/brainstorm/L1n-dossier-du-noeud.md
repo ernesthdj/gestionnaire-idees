@@ -1,5 +1,7 @@
 # L1n — Le dossier du nœud : un dossier de verre flottant, relié au nœud, pour parcourir ses documents (idée, 2026-10-12)
 
+**Maturité** : complet
+
 > Brainstorm de niveau 1, mené avec Claude Code dans le terminal. Les points listés en « Décisions » sont validés par
 > mentalyas au fil de la session ; ce qui reste ouvert est listé à la fin. Aucune spec n'est écrite.
 > **Suite (2026-10-12) :** niveau 2 validé (`L2-dossier-rangement`, `-carte`, `-tout-voir`, `-claude-actions`,

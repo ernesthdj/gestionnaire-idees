@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : SK-D — Importer des skills depuis GitHub
+
+**Parent** : L1h-arbre-de-skills.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1h-arbre-de-skills.md (A5), L2-skills-evoluer.md, spec 017 US5 (clone)
 > Date : 2026-10-07 · Livraison : **lot D**
 

@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : DN-1 — Le rangement
+
+**Parent** : L2-dossier-rangement.md · **Maturité** : complet
+
 > Basé sur : L1n-dossier-du-noeud.md + L2-dossier-rangement.md · Date : 2026-10-12
 > Code de référence lu le 2026-10-12 : `schemaNeurons.ts` (`documents`, `document_versions`), `DocumentService`,
 > `DocumentTools`, `DeliverableTracker` (hook `ecriture_avant`), `ElementRepository.addPath`, `checkProjectPath`,

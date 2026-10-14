@@ -1,4 +1,7 @@
 # Niveau 3 — Conception Technique : GIT-F — Pull requests, issues et fork
+
+**Parent** : L2-git-pr-issues.md · **Maturité** : complet
+
 > Basé sur : L1i-git-github.md (D3, D4, D7) + L2-git-pr-issues.md + L3-git-publier.md (`GhRunner`, liste blanche) +
 > L3-git-depot-local.md (socle) · Date : 2026-10-07
 

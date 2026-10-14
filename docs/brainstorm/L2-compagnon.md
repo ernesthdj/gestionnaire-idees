@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : F8 — Compagnon tamagotchi & briefing quotidien
+
+**Parent** : L1-fondation.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : docs/brainstorm/L1-fondation.md, L2-capture-rapide.md, L2-conseiller-proactif.md
 > Date : 2026-09-28 · Livraison : **MVP-2**
 

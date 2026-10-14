@@ -1,4 +1,7 @@
 # Niveau 2 — Détail Fonctionnalité : DN-2 — Le dossier de verre sur la carte
+
+**Parent** : L1n-dossier-du-noeud.md · **Maturité** : complet
+
 > Projet : Gestionnaire_idées · Basé sur : L1n-dossier-du-noeud.md (D1, D3, D5, D6), référence « Glass Folder Cards »
 > Date : 2026-10-12
 
