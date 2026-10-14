@@ -1,4 +1,11 @@
-import type { CodeCategory, ExplorerNodeView, LinkProvenance } from '@shared/ipc/reprise'
+import type {
+  CodeCategory,
+  CodeEdgeKind,
+  CodeLayer,
+  ExplorerNodeView,
+  LinkProvenance,
+  MapCallSentence
+} from '@shared/ipc/reprise'
 
 /** Une information n'est jamais portée par la seule couleur (spec 017 FR-024) : icône et libellé toujours. */
 export const CATEGORY_LABELS: Readonly<
@@ -34,3 +41,68 @@ export const PROVENANCE_LABELS: Readonly<
 
 /** Niveaux de la carte de l'explorateur (D16 : le code est dans le volet, plus sur la carte). */
 export const LEVEL_NAMES = ['Modules', 'Dossiers'] as const
+
+/**
+ * Couches de la carte en boîtes (spec 031 D2), nommées pour un lecteur ; chacune a sa couleur du thème, toujours
+ * doublée de son nom (jamais la couleur seule).
+ */
+export const LAYER_LABELS: Readonly<
+  Record<
+    CodeLayer,
+    {
+      readonly text: string
+      readonly hint: string
+      readonly border: string
+      readonly color: string
+      readonly css: string
+    }
+  >
+> = {
+  start: {
+    text: 'Démarrage',
+    hint: 'ce qui lance tout',
+    border: 'border-l-seed',
+    color: 'text-seed',
+    css: '--color-seed'
+  },
+  entry: {
+    text: 'Entrée',
+    hint: 'ce que le site ou l’écran appelle',
+    border: 'border-l-action',
+    color: 'text-action',
+    css: '--color-action'
+  },
+  rules: {
+    text: 'Règles',
+    hint: 'ce que fait l’application',
+    border: 'border-l-accent',
+    color: 'text-accent',
+    css: '--color-accent'
+  },
+  data: {
+    text: 'Données et outils',
+    hint: 'base, fichiers, journaux',
+    border: 'border-l-pro',
+    color: 'text-pro',
+    css: '--color-pro'
+  }
+}
+
+const VERBS: Readonly<Record<CodeEdgeKind, string>> = {
+  call: 'appelle',
+  injects: 'injecte',
+  implements: 'implémente',
+  import: 'importe',
+  route: 'sert la route'
+}
+
+/** Un appel en mots (spec 031 D7) : « OrdersController.Post appelle OrderService.Place », et pourquoi s'il est deviné. */
+export function sentenceText(sentence: MapCallSentence): string {
+  const base = `${sentence.from} ${VERBS[sentence.kind]} ${sentence.to}`
+  if (sentence.provenance === 'uncertain') {
+    return sentence.alternatives > 1
+      ? `${base} (deviné : ${sentence.alternatives} cibles possibles)`
+      : `${base} (deviné)`
+  }
+  return sentence.provenance === 'deduced' ? `${base} (déduit)` : base
+}

@@ -1,13 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExplorerPage } from '../../../src/renderer/src/explorer/ExplorerPage'
 import type { ExplorerMarks } from '../../../src/renderer/src/app/uiStore'
 import type {
+  ExplorerMapView,
   ExplorerNodeDetailView,
   ExplorerView,
   FileCodeView,
+  MapFileView,
   RepriseProjectView
 } from '../../../src/shared/ipc/reprise'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -85,38 +87,84 @@ const top: ExplorerView = {
   confidentiality: 'local',
   folderMissing: false
 }
-const domain: ExplorerView = {
-  ...top,
-  level: 2,
-  breadcrumb: [
-    { key: '', title: 'Projet' },
-    { key: 'm:dir:Domain', title: 'Domain' }
-  ],
-  nodes: [
+const mapFile = (path: string, extra: Partial<MapFileView> = {}): MapFileView => ({
+  key: `f:${path}`,
+  path,
+  moduleKey: `m:dir:${path.split('/')[0] ?? ''}`,
+  title: path.split('/').at(-1) ?? path,
+  folder: '',
+  lang: 'cs',
+  lines: 20,
+  role: null,
+  functions: [],
+  depth: 0,
+  external: false,
+  plumbing: false,
+  ...extra
+})
+/** Carte en boîtes (spec 031) : contrôleur → domaine (deux fichiers qui s'appellent), journal en plomberie. */
+const MAP: ExplorerMapView = {
+  modules: [
     {
-      key: 'r:m:dir:Domain',
-      level: 2,
-      kind: 'folder',
-      title: 'Racine · Domain',
-      category: 'domain',
-      lang: null,
-      childCount: 0,
-      files: [
-        {
-          key: 'f:Domain/OrderService.cs',
-          path: 'Domain/OrderService.cs',
-          title: 'OrderService.cs',
-          lang: 'cs',
-          category: 'domain'
-        }
-      ],
-      hiddenFiles: 0,
-      folders: [],
-      x: 0,
-      y: 0
+      key: 'm:dir:Controllers',
+      title: 'Controllers',
+      layer: 'entry',
+      plumbing: false,
+      role: 'Reçoit les commandes.',
+      column: 0,
+      files: 1,
+      lines: 24
+    },
+    {
+      key: 'm:dir:Domain',
+      title: 'Domain',
+      layer: 'rules',
+      plumbing: false,
+      role: 'Le cœur métier.',
+      column: 1,
+      files: 2,
+      lines: 35
+    },
+    {
+      key: 'm:dir:Logging',
+      title: 'Logging',
+      layer: 'data',
+      plumbing: true,
+      role: null,
+      column: 2,
+      files: 1,
+      lines: 12
     }
   ],
-  edges: []
+  files: [
+    mapFile('Controllers/OrdersController.cs', { functions: ['Post'], external: true }),
+    mapFile('Domain/OrderService.cs', { role: 'Passe la commande.', functions: ['Place'], external: true }),
+    mapFile('Domain/Stores.cs', { functions: ['Resolve'], depth: 1 }),
+    mapFile('Logging/AuditLog.cs', { plumbing: true })
+  ],
+  calls: [
+    {
+      from: 'f:Controllers/OrdersController.cs',
+      to: 'f:Domain/OrderService.cs',
+      count: 3,
+      provenance: 'syntax',
+      sentences: [
+        { from: 'OrdersController.Post', to: 'OrderService.Place', kind: 'call', provenance: 'syntax', alternatives: 0 }
+      ]
+    },
+    {
+      from: 'f:Domain/OrderService.cs',
+      to: 'f:Domain/Stores.cs',
+      count: 1,
+      provenance: 'syntax',
+      sentences: [
+        { from: 'OrderService.Archive', to: 'Stores.Resolve', kind: 'call', provenance: 'syntax', alternatives: 0 }
+      ]
+    }
+  ],
+  truncated: false,
+  confidentiality: 'local',
+  folderMissing: false
 }
 const detail: ExplorerNodeDetailView = {
   key: 'm:dir:Domain',
@@ -237,7 +285,8 @@ function renderExplorer(
       parentKey: '',
       filters: { categories: ['domain', 'orchestration', 'infrastructure'], langs: [], hideUncertain: false }
     }),
-    'explorer:view': (payload) => ((payload as { parentKey: string }).parentKey === '' ? top : domain),
+    'explorer:view': () => top,
+    'explorer:map': () => MAP,
     'explorer:node': () => nodeDetail,
     'explorer:code': () => ({
       path: 'Domain/OrderService.cs',
@@ -272,44 +321,47 @@ function renderExplorer(
   return { api, onClose, ...result }
 }
 
-describe('explorateur d’un projet repris (spec 017 US2)', () => {
+describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 lot 2)', () => {
   beforeAll(() => installReactFlowMocks())
 
-  it('should_show_the_modules_the_level_the_hidden_counts_and_the_confidentiality', async () => {
+  it('should_show_each_module_as_a_box_with_its_layer_and_role_and_hide_the_plumbing', async () => {
     const { container } = renderExplorer()
     expect(await screen.findByText('Controllers')).toBeTruthy()
+    expect(screen.getByText('Reçoit les commandes.')).toBeTruthy()
+    expect(screen.getByLabelText(/^module Domain, Règles\. Le cœur métier\., 2 fichiers, fermé/)).toBeTruthy()
+    expect(screen.queryByText('Logging')).toBeNull()
+    expect(screen.getByText(/2 modules · 3 fichiers/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /Local uniquement/ })).toBeTruthy()
-    expect(screen.getByLabelText('Niveau 1 sur 2').textContent).toContain('1 Modules')
-    expect(await screen.findByText(/1 masqués par les filtres · 4 appels de plomberie masqués/)).toBeTruthy()
     await expectNoAxeViolations(container)
   })
 
-  it('should_open_a_module_from_the_list_view_and_remember_it', async () => {
-    const user = userEvent.setup()
-    const { api } = renderExplorer()
-    await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
-    const list = screen.getByRole('region', { name: 'Éléments de ce niveau' })
-    expect(screen.getByRole('region', { name: 'Appels entre ces éléments' }).textContent).toContain(
-      'Controllers → Domain : 3 appels, sûr'
-    )
-    await user.click(within(list).getByRole('button', { name: 'Ouvrir (2)' }))
-    expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
-    expect(api.invoke).toHaveBeenCalledWith(
-      'explorer:saveState',
-      expect.objectContaining({ parentKey: 'm:dir:Domain' })
-    )
-    expect(await screen.findByRole('button', { name: 'Projet' })).toBeTruthy()
+  it('should_open_a_module_in_place_show_its_files_and_close_it_by_clicking_the_empty_map', async () => {
+    const { api, container } = renderExplorer()
+    // Nœud déplaçable : un clic simple (sans « mousedown », que le glisser de React Flow lit sur la fenêtre).
+    fireEvent.click(await screen.findByText('Domain'))
+    expect(await screen.findByLabelText(/^fichier OrderService\.cs\. Passe la commande\./)).toBeTruthy()
+    expect(screen.getByLabelText(/^module Domain.*ouvert/)).toBeTruthy()
+    // Le trait arrive sur le fichier exact, et se dit en mots au survol.
+    expect(screen.getByLabelText('OrdersController.Post appelle OrderService.Place')).toBeTruthy()
+    await expectNoAxeViolations(container)
+    fireEvent.click(screen.getByText('OrderService.cs'))
+    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
+    expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
+    // Le code chargé, le fichier lu est montré sur la carte ; un clic dans le vide referme ensuite tout.
+    expect(await screen.findByRole('region', { name: /^Code de Domain\/OrderService\.cs/ })).toBeTruthy()
+    const pane = container.querySelector('.react-flow__pane')
+    if (pane === null) throw new Error('fond de carte introuvable')
+    fireEvent.click(pane)
+    expect(screen.queryByLabelText(/^fichier OrderService\.cs/)).toBeNull()
+    expect(screen.getByLabelText(/^module Domain.*fermé/)).toBeTruthy()
   })
 
-  it('should_show_a_file_of_a_folder_with_who_calls_each_block_and_follow_a_call_in_the_same_pane', async () => {
+  it('should_list_modules_and_files_and_show_a_file_with_who_calls_each_block_and_follow_a_call', async () => {
     const user = userEvent.setup()
     const { api, container } = renderExplorer()
     await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
-    await user.click(
-      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: 'Ouvrir (2)' })
-    )
-    const files = await screen.findByRole('list', { name: 'Fichiers de Racine · Domain' })
-    await user.click(within(files).getByRole('button', { name: 'OrderService.cs' }))
+    const list = screen.getByRole('region', { name: 'Modules et fichiers' })
+    await user.click(within(list).getByRole('button', { name: /^Domain\/OrderService\.cs/ }))
 
     const pane = await screen.findByRole('complementary', { name: 'Code du fichier' })
     const block = await within(pane).findByRole('group', { name: 'méthode Place' })
@@ -336,41 +388,25 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     await expectNoAxeViolations(container)
   })
 
-  it('should_open_a_file_from_the_files_tab_of_a_folder_node_on_the_map', async () => {
-    const user = userEvent.setup()
-    const { api, container } = renderExplorer()
-    expect(await screen.findAllByText('Module')).toHaveLength(2)
-    expect(screen.getByText('1 dossier')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Vue liste' }))
-    await user.click(
-      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: 'Ouvrir (2)' })
-    )
-    await user.click(screen.getByRole('button', { name: 'Vue carte' }))
-    const tabs = await screen.findByRole('tablist', { name: 'Contenu de Racine · Domain' })
-    expect(within(tabs).getByRole('tab', { name: 'Fichiers (1)' }).getAttribute('aria-selected')).toBe('true')
-    expect(within(tabs).getByRole('tab', { name: 'Sous-dossiers (0)' })).toHaveProperty('disabled', true)
-    await user.click(screen.getByRole('button', { name: /OrderService\.cs/ }))
-    expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
-    expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
-    await expectNoAxeViolations(container)
-  })
-
-  it('should_filter_categories_and_jump_to_a_search_result', async () => {
+  it('should_show_the_plumbing_on_demand_and_jump_to_a_search_result', async () => {
     const user = userEvent.setup()
     const { api } = renderExplorer()
     await screen.findByText('Controllers')
-    await user.click(screen.getByRole('checkbox', { name: /Plomberie/ }))
+    await user.click(screen.getByText('Filtres'))
+    await user.click(screen.getByRole('checkbox', { name: 'Masquer la plomberie' }))
     expect(api.invoke).toHaveBeenCalledWith(
-      'explorer:view',
+      'explorer:saveState',
       expect.objectContaining({
         filters: expect.objectContaining({ categories: expect.arrayContaining(['plumbing']) })
       })
     )
+    expect(await screen.findByText('Logging')).toBeTruthy()
     await user.type(screen.getByLabelText('Rechercher un élément'), 'Pla')
     await user.click(await screen.findByRole('button', { name: /^Place/ }))
-    expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
     expect(api.invoke).toHaveBeenCalledWith('explorer:file', { genesisId: GENESIS, path: 'Domain/OrderService.cs' })
     expect(await screen.findByRole('complementary', { name: 'Code du fichier' })).toBeTruthy()
+    // Le fichier cherché est montré sur la carte : son module s'ouvre.
+    expect(await screen.findByLabelText(/^fichier OrderService\.cs/)).toBeTruthy()
   })
 
   it('should_open_the_guide_and_turn_each_cited_name_of_the_project_into_a_link_to_the_explorer', async () => {
@@ -387,7 +423,8 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
       genesisId: GENESIS,
       sources: ['npm start', 'Domain/OrderService.cs', 'src/Invente.cs']
     })
-    expect(api.invoke).toHaveBeenCalledWith('explorer:view', expect.objectContaining({ parentKey: 'm:dir:Domain' }))
+    // Le fichier cité s'ouvre sur la carte (son module) et dans l'onglet « Code ».
+    expect(await screen.findByRole('tab', { name: 'Code · OrderService.cs' })).toBeTruthy()
     await user.click(within(guide).getByRole('button', { name: 'Régénérer' }))
     expect(api.invoke).toHaveBeenCalledWith('reprise:guide', { genesisId: GENESIS })
     await expectNoAxeViolations(container)
@@ -408,7 +445,9 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     await user.click(screen.getByRole('tab', { name: 'Élément' }))
     await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
     await user.click(
-      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: /^Domain/ })
+      within(screen.getByRole('region', { name: 'Modules et fichiers' })).getByRole('button', {
+        name: /Règles\s*Domain/
+      })
     )
     const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
     expect(await within(panel).findByText('« La cuisine du restaurant. »')).toBeTruthy()
@@ -484,7 +523,9 @@ describe('explorateur d’un projet repris (spec 017 US2)', () => {
     })
     await user.click(await screen.findByRole('button', { name: 'Vue liste' }))
     await user.click(
-      within(screen.getByRole('region', { name: 'Éléments de ce niveau' })).getByRole('button', { name: /^Domain/ })
+      within(screen.getByRole('region', { name: 'Modules et fichiers' })).getByRole('button', {
+        name: /Règles\s*Domain/
+      })
     )
     const panel = await screen.findByRole('complementary', { name: 'Élément choisi' })
     expect(await within(panel).findByText(/déduit — le champ _repository est typé IOrderRepository/)).toBeTruthy()

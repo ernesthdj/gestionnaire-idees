@@ -1835,3 +1835,22 @@ l'arborescence), `GuideService.ts`, `domain/reprise/boxes.ts` (`fileFunctions` p
 ses fonctions ; gardé seulement pour un projet « Claude autorisé » et un chemin analysé ; montré dans la carte.
 **Piège évité :** le rôle est exclu de l'empreinte qui décide quels fichiers une réanalyse réécrit ; sinon tout fichier
 doté d'un rôle passerait pour modifié et la réanalyse effacerait tous les rôles (vérifié par un test).
+
+### [2026-10-14 02:40] FEAT — spec 031 lot 2 : la carte d'ensemble en boîtes dans l'app
+**Fichiers :** `src/renderer/src/explorer/boxes/{boxLayout.ts, BoxNodes.tsx, BoxMap.tsx, BoxList.tsx, useBoxMap.ts}` (nouveaux),
+`ExplorerPage.tsx` (réécrite autour de la carte), `ExplorerNodes.tsx` (pastille, bordure et poignées réutilisées),
+`labels.ts` (couches, phrases d'appel) ; tests `unit/renderer/box-layout.test.ts` (nouveau),
+`unit/renderer/explorer-page.test.tsx` (réécrit), e2e `demo-reprise` et `reprise-resolution` (nouvelle vue liste).
+**Quoi :** les modules en boîtes de gauche à droite dans le sens des appels (couche, nom, rôle, taille, liseré aux
+couleurs du thème) ; un clic ouvre une boîte sur place — ses fichiers en boîtes, ou une liste filtrable au-delà de 6 —
+et un clic dans le vide les referme ; les traits arrivent sur le fichier exact et disent l'appel en mots (nom
+accessible, bandeau sous la carte au survol) ; filtres réduits à « Masquer la plomberie » et au langage (menu) ; vue
+liste équivalente ; plus de fil d'Ariane ni de paliers. Panneau de droite, guide, code, résolution, rediffusion et
+nouveautés gardés.
+**Erreurs corrigées :** (1) un clic simulé sur un nœud déplaçable fait lire `event.view` à d3-drag, nul dans jsdom :
+`fireEvent.click` pour les nœuds dans les tests ; (2) le libellé de couche en capitales (CSS) change le nom accessible
+calculé par Chromium (« RÈGLES Domain ») : motifs e2e insensibles à la casse ; (3) un script Python a écrit un vrai
+caractère retour arrière à la place de `\b` dans un e2e : remplacé, et vérifié qu'il n'en reste aucun dans le dépôt.
+**Vérifié :** 2 189 tests unitaires, suite e2e complète (43 tests, 15 fichiers).
+**Règle apprise :** écrire les expressions régulières d'un test avec l'outil d'édition, jamais à travers une chaîne
+Python non brute (`\b` y devient un caractère de contrôle invisible).

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { freshProfile, launchApp, type LaunchedApp } from './support/app'
 
 /**
@@ -33,15 +33,19 @@ describe('projet repris de la démo (spec 017 T037, e2e)', () => {
     await page.getByRole('heading', { name: /Explorateur · boutique-demo/ }).waitFor()
     await page.getByText('Local uniquement').first().waitFor()
     await page.getByRole('button', { name: 'Vue liste' }).click()
-    const items = page.getByRole('region', { name: 'Éléments de ce niveau' })
+    // Vue liste (spec 031) : chaque module, précédé de sa couche, puis ses fichiers.
+    const items = page.getByRole('region', { name: 'Modules et fichiers' })
     for (const module of ['api', 'core', 'infra']) {
       await items
-        .getByRole('button', { name: new RegExp(`${module}$`) })
+        .getByRole('button', { name: new RegExp(`^(Démarrage|Entrée|Règles|Données et outils)\\s*${module}\\b`, 'i') })
         .first()
         .waitFor({ timeout: 60_000 })
     }
-    // Liens mesurés par l'analyse : sûrs entre les couches, un appel incertain que l'IA locale peut préciser.
-    await page.getByText('api → core : 4 appels, sûr').waitFor()
+    // Sur la carte, les liens mesurés par l'analyse ; un appel incertain que l'IA locale peut préciser.
+    await page.getByRole('button', { name: 'Vue carte' }).click()
+    await page.getByRole('group', { name: /^module api,/ }).waitFor()
+    await expect.poll(() => page.locator('.react-flow__edge').count()).toBeGreaterThan(0)
+    expect(await page.locator('.react-flow__edge').first().getAttribute('aria-label')).toMatch(/appelle|importe/)
     await page.getByRole('button', { name: /Préciser les liens avec l’IA \(\d+\)/ }).waitFor()
     await run.shot('017-t037-02-explorateur')
   })

@@ -22,7 +22,7 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 2 — Carte d'ensemble
 
-- [ ] T020 Disposition de la carte (colonnes dans le sens des appels) et boîtes (couche, nom, rôle, compte) ; clic =
+- [x] T020 Disposition de la carte (colonnes dans le sens des appels) et boîtes (couche, nom, rôle, compte) ; clic =
   ouverture sur place (liste filtrable au-delà de 6) ; clic dans le vide = fermeture ; traits vers le fichier exact,
   phrase au survol + tests renderer et axe.
 

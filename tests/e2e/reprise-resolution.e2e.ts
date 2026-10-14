@@ -131,9 +131,9 @@ describe('levée des ambiguïtés avec l’IA dans un projet repris (spec 017 US
 
     // La raison est dans le panneau du module appelant, le lien est « déduit ».
     await page.getByRole('button', { name: 'Vue liste' }).click()
-    const modules = page.getByRole('region', { name: 'Éléments de ce niveau' })
+    const modules = page.getByRole('region', { name: 'Modules et fichiers' })
     await modules
-      .getByRole('button', { name: /^Domain/ })
+      .getByRole('button', { name: /^(Démarrage|Entrée|Règles|Données et outils)\s*Domain/i })
       .first()
       .click()
     const panel = page.getByRole('complementary', { name: 'Élément choisi' })

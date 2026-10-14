@@ -29,7 +29,7 @@ export const ReplayMarksContext = createContext<ReadonlyMap<string, ReplayMark> 
 export const MarksKindContext = createContext<ExplorerMarks>('replay')
 
 /** Bordure et pastille d'auteur d'un nœud pendant la rediffusion (couleur ET initiales). */
-function ReplayBadge({ id }: { readonly id: string }): React.JSX.Element | null {
+export function ReplayBadge({ id }: { readonly id: string }): React.JSX.Element | null {
   const marks = useContext(ReplayMarksContext)
   if (marks === null) return null
   const mark = marks.get(id)
@@ -47,7 +47,7 @@ function ReplayBadge({ id }: { readonly id: string }): React.JSX.Element | null 
 }
 
 /** Couleur de bordure d'un nœud en rediffusion (`undefined` : celle de sa catégorie). */
-function useReplayBorder(id: string): React.CSSProperties | undefined {
+export function useReplayBorder(id: string): React.CSSProperties | undefined {
   const marks = useContext(ReplayMarksContext)
   if (marks === null) return undefined
   const mark = marks.get(id)
@@ -64,7 +64,7 @@ export type FolderNodeType = Node<CodeNodeData, 'folder'>
 /** Taille fixe d'un nœud dossier : sa liste défile dedans (la mise en page du main en dépend, `FOLDER_ROW_HEIGHT`). */
 export const FOLDER_NODE_SIZE = { width: 256, height: 248 } as const
 
-function Handles(): React.JSX.Element {
+export function Handles(): React.JSX.Element {
   return (
     <>
       <Handle type="target" position={Position.Left} isConnectable={false} className="neuron-handle" />
