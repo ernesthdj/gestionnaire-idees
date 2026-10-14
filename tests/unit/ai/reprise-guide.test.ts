@@ -53,6 +53,27 @@ describe('Tâche reprise_guide (spec 017 US4, T024)', () => {
     expect(text).toContain('## Arborescence (2 fichiers)')
   })
 
+  it('should_accept_a_guide_with_or_without_file_roles_and_bound_them', () => {
+    expect(GuideOut.safeParse({ ...guide(), files: [{ path: 'src/a.ts', summary: 'Lit la config.' }] }).success).toBe(
+      true
+    )
+    expect(GuideOut.safeParse({ ...guide(), files: [{ path: 'src/a.ts', summary: 'x'.repeat(301) }] }).success).toBe(
+      false
+    )
+    const many = Array.from({ length: 301 }, (_, i) => ({ path: `f${i}.ts`, summary: 'Rôle.' }))
+    expect(GuideOut.safeParse({ ...guide(), files: many }).success).toBe(false)
+  })
+
+  it('should_show_the_main_functions_of_each_file_in_the_tree', () => {
+    const files = project.files
+    const text = buildGuideInput({
+      ...project,
+      functions: { [files[0] ?? '']: ['Run', 'Stop', 'A', 'B', 'C', 'D', 'E'] }
+    })
+    expect(text).toContain(`${files[0]} — Run, Stop, A, B, C, D`)
+    expect(text).not.toContain(', E')
+  })
+
   it('should_say_not_found_when_the_project_has_no_readme', () => {
     expect(buildGuideInput({ ...project, readme: '  ' })).toContain('non trouvé dans le projet')
   })

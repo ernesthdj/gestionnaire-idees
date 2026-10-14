@@ -64,7 +64,9 @@ export const codeFiles = sqliteTable(
     hash: text('hash').notNull(),
     lines: integer('lines').notNull(),
     status: text('status', { enum: ['ok', 'parse_error', 'unsupported', 'too_large'] }).notNull(),
-    error: text('error')
+    error: text('error'),
+    /** Rôle du fichier en une phrase, écrit par Claude avec le guide (spec 031 D12a) ; `null` : pas écrit. */
+    summary: text('summary')
   },
   (t) => [uniqueIndex('code_files_path_idx').on(t.genesisId, t.path), index('code_files_module_idx').on(t.moduleId)]
 )

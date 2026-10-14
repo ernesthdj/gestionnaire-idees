@@ -12,7 +12,8 @@ export type CodeEdgeInput = Omit<CodeEdgeRow, 'candidatesJson'> & { readonly can
 
 /** Un fichier analysé et ce qu'il contient, écrit d'un bloc (ses anciens symboles sont remplacés). */
 export interface AnalyzedFile {
-  readonly file: CodeFileRow
+  /** Sans le rôle écrit avec le guide : l'analyse ne le produit pas. */
+  readonly file: Omit<CodeFileRow, 'summary'> & { readonly summary?: string | null }
   readonly symbols: readonly CodeSymbolRow[]
   readonly entries: readonly CodeEntryPointRow[]
 }
@@ -30,9 +31,11 @@ function fingerprint(value: unknown): string {
   return JSON.stringify(value) ?? 'null'
 }
 
+// Le rôle d'un fichier (écrit avec le guide) n'entre pas dans l'empreinte : sinon une réanalyse croirait tout modifié
+// et l'effacerait.
 const fileFingerprint = (entry: AnalyzedFile): string =>
   fingerprint([
-    entry.file,
+    { ...entry.file, summary: null },
     [...entry.symbols].sort((a, b) => a.id.localeCompare(b.id)),
     [...entry.entries].sort((a, b) => a.symbolId.localeCompare(b.symbolId))
   ])
@@ -88,6 +91,18 @@ export class CodeGraphRepository {
         tx.update(codeModules)
           .set({ summary: entry.summary, analogy: entry.analogy })
           .where(and(eq(codeModules.genesisId, genesisId), eq(codeModules.key, entry.key)))
+          .run()
+      }
+    })
+  }
+
+  /** Rôles des fichiers (spec 031 D12a), écrits avec le guide de reprise ; un chemin inconnu est ignoré. */
+  setFileSummaries(genesisId: string, summaries: readonly { readonly path: string; readonly summary: string }[]): void {
+    this.db.transaction((tx) => {
+      for (const entry of summaries) {
+        tx.update(codeFiles)
+          .set({ summary: entry.summary })
+          .where(and(eq(codeFiles.genesisId, genesisId), eq(codeFiles.path, entry.path)))
           .run()
       }
     })

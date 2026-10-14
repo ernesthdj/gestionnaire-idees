@@ -5,9 +5,10 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { loadEngine, type Engine } from '../../../src/analysis-worker/engine'
 import { processBatch } from '../../../src/analysis-worker/process'
-import type { GuideInput } from '../../../src/main/application/ai/RepriseGuideTask'
+import { buildGuideInput, type GuideInput } from '../../../src/main/application/ai/RepriseGuideTask'
 import { DocumentService } from '../../../src/main/application/documents/DocumentService'
 import { AnalysisService } from '../../../src/main/application/reprise/AnalysisService'
+import { ExplorerService } from '../../../src/main/application/reprise/ExplorerService'
 import { GuideService, type GuideDeps } from '../../../src/main/application/reprise/GuideService'
 import { CodeGraphRepository } from '../../../src/main/infrastructure/db/repositories/CodeGraphRepository'
 import { DocumentRepository } from '../../../src/main/infrastructure/db/repositories/DocumentRepository'
@@ -21,6 +22,8 @@ import { readProjectText } from '../../../src/main/infrastructure/reprise/projec
 import { GUIDE_SECTION_IDS, type GuideOut } from '../../../src/shared/ai/schemas'
 import { createNeuronHarness, type NeuronHarness } from '../../support/neurons'
 import { GRAMMARS_DIR, REPRISE_FIXTURES } from '../../support/reprise'
+
+const buildTree = (input: GuideInput | undefined): string => (input === undefined ? '' : buildGuideInput(input))
 
 const guideOut = (sources: readonly string[], modules: GuideOut['modules'] = []): GuideOut => ({
   sections: GUIDE_SECTION_IDS.map((id) => ({
@@ -66,7 +69,7 @@ describe('guide de reprise (spec 017 US4, T025)', () => {
   async function analyzed(
     fixture: string,
     confidentiality: 'claude' | 'local'
-  ): Promise<{ genesis: string; dir: string; guide: GuideService }> {
+  ): Promise<{ genesis: string; dir: string; guide: GuideService; analysis: AnalysisService }> {
     const dir = join(root, fixture)
     cpSync(join(REPRISE_FIXTURES, fixture), dir, { recursive: true })
     const genesis = (await t.neurons.create({ text: fixture })).id
@@ -111,7 +114,7 @@ describe('guide de reprise (spec 017 US4, T025)', () => {
       emit: () => undefined,
       onWritten: () => undefined
     })
-    return { genesis, dir, guide }
+    return { genesis, dir, guide, analysis }
   }
 
   const content = (documentId: string): string =>
@@ -224,5 +227,48 @@ describe('guide de reprise (spec 017 US4, T025)', () => {
       confidentialityChangedAt: '2026-10-07T08:00:00.000Z'
     })
     await expect(guide.generate(fresh)).rejects.toMatchObject({ code: 'NOT_ANALYZED' })
+  })
+
+  it('should_keep_the_role_of_each_analysed_file_for_a_claude_project_even_after_a_reanalysis', async () => {
+    const { genesis, guide, analysis } = await analyzed('cs-app', 'claude')
+    reply = async () => ({
+      ok: true,
+      value: {
+        data: {
+          ...guideOut([]),
+          files: [
+            { path: 'Domain/OrderService.cs', summary: 'Passe la commande et calcule la remise.' },
+            { path: 'Inventé/Fantome.cs', summary: 'Un fichier qui n’existe pas.' }
+          ]
+        },
+        engine: 'claude',
+        model: 'claude-opus-5-5'
+      }
+    })
+    await guide.generate(genesis)
+    // L'arborescence envoyée dit ce que contient chaque fichier (sans constructeur).
+    expect(buildTree(inputs[0]?.input)).toContain('Domain/OrderService.cs — Save, CalculateDiscount, Place, Archive')
+    const roleOf = (path: string) =>
+      new ExplorerService({ reprise, graph }).map(genesis).files.find((file) => file.path === path)?.role
+    expect(roleOf('Domain/OrderService.cs')).toBe('Passe la commande et calcule la remise.')
+    expect(graph.files(genesis).some((file) => file.path === 'Inventé/Fantome.cs')).toBe(false)
+    // Une réanalyse sans changement ne réécrit pas le fichier : son rôle reste.
+    analysis.analyze(genesis)
+    await analysis.idle()
+    expect(roleOf('Domain/OrderService.cs')).toBe('Passe la commande et calcule la remise.')
+  })
+
+  it('should_never_keep_file_roles_for_a_local_only_project', async () => {
+    const { genesis, guide } = await analyzed('cs-app', 'local')
+    reply = async () => ({
+      ok: true,
+      value: {
+        data: { ...guideOut([]), files: [{ path: 'Domain/OrderService.cs', summary: 'Passe la commande.' }] },
+        engine: 'ollama',
+        model: 'qwen'
+      }
+    })
+    await guide.generate(genesis)
+    expect(graph.files(genesis).every((file) => file.summary === null)).toBe(true)
   })
 })

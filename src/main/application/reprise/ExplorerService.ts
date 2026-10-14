@@ -167,7 +167,8 @@ export class ExplorerService {
         path: file.path,
         lang: file.lang,
         lines: file.lines,
-        moduleKey: file.moduleId === null ? null : (moduleKeyById.get(file.moduleId) ?? null)
+        moduleKey: file.moduleId === null ? null : (moduleKeyById.get(file.moduleId) ?? null),
+        summary: file.summary
       })),
       symbols: [...loaded.symbols.values()],
       edges: loaded.edges,

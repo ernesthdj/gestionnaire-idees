@@ -17,7 +17,7 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 1b — Rôle des fichiers (D12a)
 
-- [ ] T013 Colonne `summary` des fichiers (migration + `down`), écrite par Claude dans la passe du guide pour un projet
+- [x] T013 Colonne `summary` des fichiers (migration + `down`), écrite par Claude dans la passe du guide pour un projet
   « Claude autorisé » (jamais en « Local uniquement »), lue par `explorer:map` + tests.
 
 ## Lot 2 — Carte d'ensemble

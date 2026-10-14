@@ -1,0 +1,1 @@
+ALTER TABLE `code_files` ADD `summary` text;

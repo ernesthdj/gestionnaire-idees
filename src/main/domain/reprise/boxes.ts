@@ -30,6 +30,8 @@ export interface BoxFileInput {
   readonly lang: CodeLang
   readonly lines: number
   readonly moduleKey: string | null
+  /** Rôle écrit avec le guide (spec 031 D12a) ; `null` : pas écrit. */
+  readonly summary?: string | null
 }
 export interface BoxSymbolInput {
   readonly id: string
@@ -126,6 +128,27 @@ export function longestDepths(
 
 /** Liens qui donnent le sens de lecture (qui sollicite qui) : pas « implémente » ni « importe », qui remontent. */
 const ORDERING_KINDS: ReadonlySet<CodeEdgeKind> = new Set(['call', 'injects', 'route'])
+
+/**
+ * Fonctions et méthodes de chaque fichier, dans l'ordre du code, sans les constructeurs (méthode au nom de sa classe),
+ * `max` par fichier.
+ */
+export function fileFunctions(
+  symbols: readonly Pick<BoxSymbolInput, 'id' | 'path' | 'parentId' | 'kind' | 'name' | 'startLine'>[],
+  max: number = MAP_LIMITS.functionsPerFile
+): Map<string, string[]> {
+  const byId = new Map(symbols.map((symbol) => [symbol.id, symbol] as const))
+  const functions = new Map<string, string[]>()
+  for (const symbol of [...symbols].sort((a, b) => a.startLine - b.startLine)) {
+    if (symbol.kind !== 'function' && symbol.kind !== 'method') continue
+    const owner = symbol.parentId === null ? undefined : byId.get(symbol.parentId)
+    if (owner !== undefined && owner.name === symbol.name) continue
+    const list = functions.get(symbol.path) ?? []
+    if (list.length < max && !list.includes(symbol.name)) list.push(symbol.name)
+    functions.set(symbol.path, list)
+  }
+  return functions
+}
 
 /** Liste de symboles d'un JSON de cibles possibles ; vide si illisible. */
 function candidatesOf(json: string | null): string[] {
@@ -225,16 +248,7 @@ export function buildBoxes(input: BoxesInput): Boxes {
     MAX_DEPTH
   )
 
-  // Fonctions d'un fichier, dans l'ordre du code.
-  const functions = new Map<string, string[]>()
-  for (const symbol of [...input.symbols].sort((a, b) => a.startLine - b.startLine)) {
-    if (symbol.kind !== 'function' && symbol.kind !== 'method') continue
-    const owner = symbol.parentId === null ? undefined : symbols.get(symbol.parentId)
-    if (owner !== undefined && owner.name === symbol.name) continue
-    const list = functions.get(symbol.path) ?? []
-    if (list.length < MAP_LIMITS.functionsPerFile && !list.includes(symbol.name)) list.push(symbol.name)
-    functions.set(symbol.path, list)
-  }
+  const functions = fileFunctions(input.symbols)
 
   // Un module qui contient un point d'entrée « main » ou « cli » est le démarrage du projet.
   const starting = new Set<string>()
@@ -289,7 +303,7 @@ export function buildBoxes(input: BoxesInput): Boxes {
       folder: inside.includes('/') ? inside.slice(0, inside.lastIndexOf('/')) : '',
       lang: file.lang,
       lines: file.lines,
-      role: null,
+      role: file.summary ?? null,
       functions: functions.get(file.path) ?? [],
       depth: depths.get(file.path) ?? 0,
       external: external.has(file.path),

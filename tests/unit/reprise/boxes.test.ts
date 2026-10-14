@@ -179,6 +179,15 @@ describe('carte de l’explorateur en boîtes (spec 031 lot 1)', () => {
     expect(column).toMatchObject({ Domain: 2, Infrastructure: 3 })
   })
 
+  it('should_give_each_file_the_role_written_with_the_guide', () => {
+    const files = input().files.map((f) =>
+      f.path === 'Domain/Stores.cs' ? { ...f, summary: 'Trouve le magasin.' } : f
+    )
+    const boxes = buildBoxes(input({ files })).files
+    expect(boxes.find((f) => f.path === 'Domain/Stores.cs')?.role).toBe('Trouve le magasin.')
+    expect(boxes.find((f) => f.path === 'Domain/OrderService.cs')?.role).toBeNull()
+  })
+
   it('should_not_list_a_constructor_among_the_functions', () => {
     const symbols = [...SYMBOLS, sym('d9', 'Domain/OrderService.cs', 'OrderService', 'method', 'd1', 5)]
     expect(

@@ -59,7 +59,12 @@ export const GuideOut = z.object({
         analogy: z.string().trim().min(1).max(400)
       })
     )
-    .max(100)
+    .max(100),
+  /** Rôle de chaque fichier en une phrase (spec 031 D12a) ; facultatif : un guide sans ce champ reste valide. */
+  files: z
+    .array(z.object({ path: z.string().trim().min(1).max(1000), summary: z.string().trim().min(1).max(300) }))
+    .max(300)
+    .optional()
 })
 export type GuideOut = z.infer<typeof GuideOut>
 

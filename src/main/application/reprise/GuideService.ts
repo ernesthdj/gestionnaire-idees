@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { GUIDE_SECTION_IDS, GUIDE_SECTION_TITLES, type GuideOut } from '@shared/ai/schemas'
 import type { AIError, Result } from '../../domain/ai/types'
 import { AppError } from '../../domain/errors'
+import { fileFunctions } from '../../domain/reprise/boxes'
 import { classifyFile } from '../../domain/reprise/fileFilter'
 import { checkSource, knownSources } from '../../domain/reprise/guideSources'
 import { MANIFEST_NAMES } from '../../domain/reprise/manifests'
@@ -18,7 +19,10 @@ const LIMITS = { manifests: 8, docs: 3, fileBytes: 256 * 1024 } as const
 
 export interface GuideDeps {
   readonly reprise: Pick<RepriseRepository, 'project' | 'startRun' | 'endRun' | 'setGuideDocument'>
-  readonly graph: Pick<CodeGraphRepository, 'modules' | 'files' | 'symbols' | 'entryPoints' | 'setModuleSummaries'>
+  readonly graph: Pick<
+    CodeGraphRepository,
+    'modules' | 'files' | 'symbols' | 'entryPoints' | 'setModuleSummaries' | 'setFileSummaries'
+  >
   readonly documents: Pick<DocumentService, 'create' | 'write'>
   /** Document encore présent (ni supprimé ni inconnu) : régénérer y ajoute une version. */
   readonly documentAlive: (documentId: string) => boolean
@@ -105,6 +109,10 @@ export class GuideService {
       const moduleKeys = new Set(modules.map((module) => module.key))
       const summaries = result.value.data.modules.filter((module) => moduleKeys.has(module.key))
       this.deps.graph.setModuleSummaries(genesisId, summaries)
+      // Rôle des fichiers (spec 031 D12a) : seulement d'un projet « Claude autorisé », et d'un chemin analysé.
+      const fileSet = new Set(files)
+      const fileRoles = localOnly ? [] : (result.value.data.files ?? []).filter((entry) => fileSet.has(entry.path))
+      if (fileRoles.length > 0) this.deps.graph.setFileSummaries(genesisId, fileRoles)
 
       const content = this.render(input.name, result.value, sections)
       const { documentId, batchId, created } = this.save(genesisId, project.guideDocumentId, content)
@@ -114,6 +122,7 @@ export class GuideService {
         sources: cited,
         removedSources: removed,
         modules: summaries.length,
+        files: fileRoles.length,
         local: localOnly ? 1 : 0,
         durationMs: Date.now() - started
       })
@@ -138,7 +147,14 @@ export class GuideService {
       readonly kind: string
       readonly rootPath: string
     }[],
-    symbols: readonly { readonly id: string; readonly path: string }[]
+    symbols: readonly {
+      readonly id: string
+      readonly path: string
+      readonly parentId: string | null
+      readonly kind: 'namespace' | 'class' | 'interface' | 'function' | 'method'
+      readonly name: string
+      readonly startLine: number
+    }[]
   ): GuideInput {
     const read = (path: string): string | null =>
       classifyFile(path, 0, () => false).kind === 'sensitive' ? null : this.deps.readText(root, path, LIMITS.fileBytes)
@@ -168,6 +184,7 @@ export class GuideService {
       })),
       entryPoints: [...entryPoints].map(([path, kind]) => ({ path, kind })),
       files,
+      functions: Object.fromEntries(fileFunctions(symbols)),
       readme: (readme === undefined ? null : read(readme)) ?? '',
       configs
     }

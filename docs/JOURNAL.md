@@ -1823,3 +1823,15 @@ gonflait. Colonnes et profondeurs se calculent maintenant sur les seuls appels, 
 topologique qui rompt une boucle à son nœud le moins appelé.
 **Règle apprise :** tester un calcul de graphe sur des données réelles analysées, pas seulement sur un petit cas propre :
 les liens « implémente » et « importe » vont dans l'autre sens que la lecture.
+
+### [2026-10-14 01:50] FEAT — spec 031 lot 1b : le rôle de chaque fichier, écrit par Claude avec le guide
+**Fichiers :** migration `0049_file_summaries.sql` (+ `down`), `schemaReprise.ts` (`code_files.summary`),
+`CodeGraphRepository.ts` (`setFileSummaries`, rôle hors de l'empreinte de réanalyse), `shared/ai/schemas.ts` (`GuideOut.files`
+facultatif), `RepriseGuideFrame.ts` (consigne, version 2), `RepriseGuideTask.ts` (fonctions de chaque fichier dans
+l'arborescence), `GuideService.ts`, `domain/reprise/boxes.ts` (`fileFunctions` partagé, rôle dans la carte),
+`ExplorerService.ts` ; tests `integration/reprise/guide-service.test.ts`, `unit/ai/reprise-guide.test.ts`,
+`unit/reprise/boxes.test.ts` ; `specs/031-explorateur-boites/tasks.md`.
+**Quoi :** dans la même passe que le guide, Claude écrit le rôle de chaque fichier (300 au plus), d'après son chemin et
+ses fonctions ; gardé seulement pour un projet « Claude autorisé » et un chemin analysé ; montré dans la carte.
+**Piège évité :** le rôle est exclu de l'empreinte qui décide quels fichiers une réanalyse réécrit ; sinon tout fichier
+doté d'un rôle passerait pour modifié et la réanalyse effacerait tous les rôles (vérifié par un test).

@@ -344,6 +344,13 @@
       "when": 1791839005752,
       "tag": "0048_folder_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1791936013493,
+      "tag": "0049_file_summaries",
+      "breakpoints": true
     }
   ]
 }

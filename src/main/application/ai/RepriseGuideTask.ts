@@ -14,13 +14,22 @@ export interface GuideInput {
   readonly entryPoints: readonly { readonly path: string; readonly kind: string }[]
   /** Chemins relatifs des fichiers analysés (fichiers sensibles déjà exclus). */
   readonly files: readonly string[]
+  /** Principales fonctions de chaque fichier (aide à écrire son rôle, spec 031 D12a). */
+  readonly functions?: Readonly<Record<string, readonly string[]>>
   readonly readme: string
   readonly configs: readonly { readonly path: string; readonly content: string }[]
 }
 
 /** Taille maximale de l'entrée (spec 017 contracts : ~40 000 caractères). */
 export const GUIDE_INPUT_LIMIT = 40_000
-const LIMITS = { modules: 80, entryPoints: 40, readme: 12_000, config: 4_000, configs: 12_000 } as const
+const LIMITS = {
+  modules: 80,
+  entryPoints: 40,
+  readme: 12_000,
+  config: 4_000,
+  configs: 12_000,
+  functionsPerFile: 6
+} as const
 
 function clip(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max)}\n… (tronqué)`
@@ -61,9 +70,11 @@ export function buildGuideInput(input: GuideInput): string {
   let room = GUIDE_INPUT_LIMIT - top.length - title.length - 40
   const tree: string[] = []
   for (const path of input.files) {
-    if (path.length + 1 > room) break
-    tree.push(path)
-    room -= path.length + 1
+    const names = input.functions?.[path]?.slice(0, LIMITS.functionsPerFile) ?? []
+    const line = names.length === 0 ? path : `${path} — ${names.join(', ')}`
+    if (line.length + 1 > room) break
+    tree.push(line)
+    room -= line.length + 1
   }
   const omitted = input.files.length - tree.length
   const text = `${top}${title}\n${tree.join('\n')}${omitted > 0 ? `\n… ${omitted} chemins omis` : ''}`
