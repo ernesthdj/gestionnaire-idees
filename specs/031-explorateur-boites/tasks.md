@@ -28,10 +28,10 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 3 — Entrer, sortir, passer par une amorce
 
-- [ ] T030 Vue intérieure (D5) : cadre à la taille du contenu, colonnes par profondeur, fonctions, amorces.
-- [ ] T031 Transitions D4 et D6 (copie figée, rectangle commun, fondus calés sur le temps, calque de titres) et Échap
+- [x] T030 Vue intérieure (D5) : cadre à la taille du contenu, colonnes par profondeur, fonctions, amorces.
+- [x] T031 Transitions D4 et D6 (copie figée, rectangle commun, fondus calés sur le temps, calque de titres) et Échap
   (inverse exact, zoom de la carte rendu) ; `prefers-reduced-motion`.
-- [ ] T032 e2e : mesures SC-002 (rapport constant, somme des opacités, relais du titre).
+- [x] T032 e2e : mesures SC-002 (rapport constant, somme des opacités, relais du titre).
 
 ## Lot 4 — Fiche et recherche
 

@@ -1,0 +1,37 @@
+/*
+ * Transitions de l'explorateur en boîtes (spec 031 D4, D6). Pendant une transition, la nouvelle scène apparaît par une
+ * variable (`--scene-files`), sans re-rendu React à chaque image ; la copie figée de l'ancienne scène est dessous.
+ */
+.box-scene {
+  position: relative;
+  /* Le fond de React Flow reste transparent : la copie figée de l'ancienne scène se voit dessous. */
+  --xy-background-color: transparent;
+}
+.box-scene > .react-flow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.box-scene.animating .react-flow__node,
+.box-scene.animating .react-flow__edges {
+  opacity: var(--scene-files, 1);
+}
+.box-scene .scene-ghost {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.box-scene .scene-ghost .react-flow__viewport {
+  transform-origin: 0 0;
+}
+.box-scene .scene-title {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-content);
+}

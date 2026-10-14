@@ -1854,3 +1854,22 @@ caractère retour arrière à la place de `\b` dans un e2e : remplacé, et véri
 **Vérifié :** 2 189 tests unitaires, suite e2e complète (43 tests, 15 fichiers).
 **Règle apprise :** écrire les expressions régulières d'un test avec l'outil d'édition, jamais à travers une chaîne
 Python non brute (`\b` y devient un caractère de contrôle invisible).
+
+### [2026-10-14 03:40] FEAT — spec 031 lot 3 : entrer dans un module, passer par une amorce, ressortir
+**Fichiers :** `src/renderer/src/explorer/boxes/{insideLayout.ts, sceneMath.ts, boxes.css}` (nouveaux), `BoxMap.tsx` (deux
+scènes et leurs transitions), `BoxNodes.tsx` (cadre, amorce, fichier avec ses fonctions), `ExplorerPage.tsx` (`focus`) ;
+tests `unit/renderer/box-inside.test.ts` (nouveau), `unit/renderer/explorer-page.test.tsx`, e2e
+`tests/e2e/explorer-boxes.e2e.ts` (nouveau).
+**Quoi :** double-clic = entrer : l'intérieur seul (cadre à la taille de son contenu, fichiers par profondeur d'appel
+avec leurs fonctions, appels internes en accent, amorces des voisins sur les bords) ; une amorce mène au voisin ;
+Échap ou double-clic dans le vide ressort et rend la carte au zoom d'avant. Transition : une copie figée de la scène
+(le viewport React Flow cloné, `aria-hidden`, `inert`) et la vraie scène (`setViewport`) cadrent leur nœud dans le
+même rectangle à chaque image ; fondus par variables CSS (aucun re-rendu React par image) ; le titre glisse sur un
+calque. Le clic simple sur un module attend 220 ms (un double-clic ne l'ouvre pas puis ne le referme pas).
+**Mesuré (e2e, image par image) :** rapport largeur fichier / cadre constant (0,25701, écart nul) ; somme des opacités
+boîte + cadre égale à 1,0 tout du long ; titre posé à moins de 1,5 px du vrai titre.
+**Erreur corrigée :** le nœud d'arrivée était cherché dans tout le conteneur ; la copie figée, insérée avant, porte le
+même identifiant : le fondu et le masquage du titre visaient la copie (somme des opacités à 0,95). Recherche limitée à
+la vraie scène. Trouvée par la mesure e2e, invisible à l'œil.
+**Règle apprise :** une copie figée d'une scène doit être exclue de toute recherche d'élément (et des lecteurs d'écran) :
+elle duplique les identifiants.

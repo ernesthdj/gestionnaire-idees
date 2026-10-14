@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { ExplorerPage } from '../../../src/renderer/src/explorer/ExplorerPage'
@@ -354,6 +354,30 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
     fireEvent.click(pane)
     expect(screen.queryByLabelText(/^fichier OrderService\.cs/)).toBeNull()
     expect(screen.getByLabelText(/^module Domain.*fermé/)).toBeTruthy()
+  })
+
+  it('should_enter_a_module_by_double_click_show_only_its_inside_go_through_a_stub_and_leave_with_escape', async () => {
+    const user = userEvent.setup()
+    const { container } = renderExplorer()
+    fireEvent.doubleClick(await screen.findByText('Domain'))
+    // Dedans : le cadre, ses fichiers avec leurs fonctions, une amorce vers qui l'appelle ; plus les autres modules.
+    expect(await screen.findByLabelText(/^intérieur du module Domain, Règles\. Le cœur métier\./)).toBeTruthy()
+    expect(screen.getByLabelText(/^fichier OrderService\.cs\. Passe la commande\., fonctions Place/)).toBeTruthy()
+    expect(screen.getByLabelText('appelé par le module Controllers : entrer dedans')).toBeTruthy()
+    await waitFor(() => expect(container.querySelector('.scene-ghost')).toBeNull())
+    expect(screen.queryByLabelText(/^module Controllers,/)).toBeNull()
+    // L'appel interne (OrderService → Stores) relie les deux fichiers ; l'appel entrant part de l'amorce.
+    expect(screen.getByLabelText('OrderService.Archive appelle Stores.Resolve')).toBeTruthy()
+    expect(screen.getByLabelText('OrdersController.Post appelle OrderService.Place')).toBeTruthy()
+    await expectNoAxeViolations(container)
+    // L'amorce mène au voisin : on est dans Controllers, avec une amorce vers Domain.
+    fireEvent.click(screen.getByLabelText('appelé par le module Controllers : entrer dedans'))
+    expect(await screen.findByLabelText(/^intérieur du module Controllers/)).toBeTruthy()
+    expect(screen.getByLabelText('appelle le module Domain : entrer dedans')).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(await screen.findByLabelText(/^module Controllers, Entrée/)).toBeTruthy()
+    await waitFor(() => expect(container.querySelector('.scene-ghost')).toBeNull())
+    expect(screen.queryByLabelText(/^intérieur du module/)).toBeNull()
   })
 
   it('should_list_modules_and_files_and_show_a_file_with_who_calls_each_block_and_follow_a_call', async () => {

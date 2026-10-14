@@ -45,6 +45,8 @@ export function ExplorerPage({
   const explorer = useExplorer(genesisId)
   const map = useBoxMap(genesisId)
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
+  // Module dans lequel on est entré (double-clic, spec 031 D4) ; `null` : la carte d'ensemble.
+  const [focus, setFocus] = useState<string | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
   // Filtres retenus (spec 031 D12c) : la plomberie (masquée par défaut) et un langage.
   const hidePlumbing = !explorer.filters.categories.includes('plumbing')
@@ -55,7 +57,11 @@ export function ExplorerPage({
   )
   const [marksShown, setMarksShown] = useState<ExplorerMarks | null>(marksAtOpen)
   const replaying = marksShown === 'replay'
-  const visibleKeys = useMemo(() => (shown === null ? [] : shownKeys(shown, open)), [shown, open])
+  const visibleKeys = useMemo(() => {
+    if (shown === null) return []
+    if (focus === null) return shownKeys(shown, open)
+    return [focus, ...(shown.filesOf.get(focus) ?? []).map((entry) => entry.key)]
+  }, [shown, open, focus])
   const replay = useReplay(genesisId, replaying, visibleKeys)
   const updates = useUpdatesMarks(genesisId, marksShown === 'updates', visibleKeys)
   const quitMarks = useCallback(() => setMarksShown(null), [])
@@ -307,9 +313,16 @@ export function ExplorerPage({
                         map={map.data}
                         shown={shown}
                         open={open}
+                        focus={focus}
                         selected={explorer.selected}
                         onModule={toggleModule}
                         onFile={pickFile}
+                        onSelect={select}
+                        onEnter={(key) => {
+                          setFocus(key)
+                          select(key)
+                        }}
+                        onLeave={() => setFocus(null)}
                         onCloseAll={closeAll}
                         onCaption={setCaption}
                       />

@@ -21,9 +21,16 @@ export type ModuleBoxData = {
   readonly files: readonly MapFileView[]
   readonly selected: boolean
 }
-export type FileBoxData = { readonly file: MapFileView; readonly selected: boolean }
+/** Boîte d'un fichier ; `inside` : dans un module ouvert en grand (ses fonctions sont montrées). */
+export type FileBoxData = { readonly file: MapFileView; readonly selected: boolean; readonly inside?: boolean }
+/** Cadre d'un module ouvert en grand (spec 031 D5). */
+export type FrameBoxData = { readonly module: MapModuleView; readonly selected: boolean }
+/** Amorce d'un appel vers un module voisin, sur un bord du cadre. */
+export type StubBoxData = { readonly module: MapModuleView; readonly side: 'in' | 'out' }
 export type ModuleBoxNode = Node<ModuleBoxData, 'module'>
 export type FileBoxNode = Node<FileBoxData, 'file'>
+export type FrameBoxNode = Node<FrameBoxData, 'frame'>
+export type StubBoxNode = Node<StubBoxData, 'stub'>
 
 /** Liste compacte et filtrable d'un gros module ouvert (spec 031 D3) : rien n'est caché, un point marque les fichiers reliés. */
 function FileList({
@@ -108,14 +115,14 @@ export function ModuleBox({ id, data }: NodeProps<ModuleBoxNode>): React.JSX.Ele
       <Handles />
       <ReplayBadge id={id} />
       <p
-        className={`flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide ${layer.color}`}
+        className={`box-kind flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide ${layer.color}`}
       >
         <span>{module.plumbing ? `${layer.text} · plomberie` : layer.text}</span>
         <span aria-hidden="true" className="normal-case tracking-normal text-accent">
           {open ? '▾ Fermer' : '▸ Ouvrir'}
         </span>
       </p>
-      <p className="text-base font-semibold leading-tight">{module.title}</p>
+      <p className="box-title self-start text-base font-semibold leading-tight">{module.title}</p>
       <p
         className={`line-clamp-3 text-xs ${module.role === null ? 'italic text-content-muted' : 'text-content-muted'}`}
       >
@@ -133,11 +140,13 @@ export function ModuleBox({ id, data }: NodeProps<ModuleBoxNode>): React.JSX.Ele
 
 /** Boîte d'un fichier dans un module ouvert : son nom, et son rôle (ou son dossier et ses fonctions). */
 export function FileBox({ id, data }: NodeProps<FileBoxNode>): React.JSX.Element {
-  const { file, selected } = data
+  const { file, selected, inside = false } = data
   const actions = useContext(BoxActionsContext)
   const border = useReplayBorder(id)
-  const hint =
-    file.role ?? [file.folder, file.functions.slice(0, 3).join(', ')].filter((part) => part !== '').join(' · ')
+  // Dedans, les fonctions sont en puces : le sous-titre ne dit que le rôle, ou le dossier d'origine.
+  const hint = inside
+    ? (file.role ?? file.folder)
+    : (file.role ?? [file.folder, file.functions.slice(0, 3).join(', ')].filter((part) => part !== '').join(' · '))
   return (
     <div
       style={border}
@@ -152,6 +161,60 @@ export function FileBox({ id, data }: NodeProps<FileBoxNode>): React.JSX.Element
         <span className="truncate">{file.title}</span>
       </p>
       {hint === '' ? null : <p className="truncate text-content-muted">{hint}</p>}
+      {inside && file.functions.length > 0 ? (
+        <p className="mt-0.5 flex gap-1 overflow-hidden">
+          {file.functions.slice(0, 4).map((name) => (
+            <span
+              key={name}
+              className="shrink-0 rounded border border-content-muted/30 px-1 font-mono text-[10px] text-accent"
+            >
+              {name}()
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/** Cadre d'un module ouvert en grand (spec 031 D5) : sa couche, son nom, son rôle ; ses fichiers sont posés dedans. */
+export function FrameBox({ data }: NodeProps<FrameBoxNode>): React.JSX.Element {
+  const { module, selected } = data
+  const layer = LAYER_LABELS[module.layer]
+  return (
+    <div
+      className={`relative flex h-full w-full flex-col gap-1 rounded-2xl border border-l-[5px] border-content-muted/30 bg-surface-raised/60 px-4 py-3 shadow-lg ${layer.border} ${
+        selected ? 'ring-2 ring-focus' : ''
+      }`}
+    >
+      <p
+        className={`box-kind flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide ${layer.color}`}
+      >
+        <span>{layer.text} · à l’intérieur</span>
+        <span className="normal-case tracking-normal text-accent">Échap : ressortir</span>
+      </p>
+      <p className="box-title self-start text-base font-semibold leading-tight">{module.title}</p>
+      <p className="max-w-[60ch] text-xs text-content-muted">
+        {module.role ?? 'Rôle pas encore écrit : le guide de reprise le rédige.'} · {module.files} fichier
+        {module.files > 1 ? 's' : ''} · {module.lines} lignes
+      </p>
+    </div>
+  )
+}
+
+/** Amorce sur un bord du cadre : « ← Controllers » (il l'appelle), « Logging → » (il l'appelle) ; un clic y entre. */
+export function StubBox({ data }: NodeProps<StubBoxNode>): React.JSX.Element {
+  const { module, side } = data
+  const layer = LAYER_LABELS[module.layer]
+  return (
+    <div
+      className={`stub-pill relative flex h-full w-full items-center justify-center rounded-full border border-dashed bg-surface text-xs font-semibold ${layer.color}`}
+      style={{ borderColor: `var(${layer.css})` }}
+    >
+      <Handles />
+      <span className="stub-name truncate text-content">
+        {side === 'in' ? `← ${module.title}` : `${module.title} →`}
+      </span>
     </div>
   )
 }
