@@ -36,6 +36,8 @@ export interface ProgressFamily {
   readonly lots: readonly ProgressLot[]
   /** Terminée (Q7) : chacun de ses lots est livré, abandonné ou a toutes ses cases faites ; rangée dans « ✔ Bâti ». */
   readonly finished: boolean
+  /** Mise de côté, à brainstormer plus tard (Q8) : rangée dans « ✦ Plus tard ». */
+  readonly later: boolean
 }
 
 /** Un dossier du code dont des fichiers ne sont cités par aucune tâche (Q6 : le hors plan par dossier). */
@@ -131,6 +133,7 @@ export function progressionOf(tree: WorkflowTreeView, code: ProgressionCode | nu
       // le brainstorm d'où viennent ses lots.
       const planned = all.some((entry) => entry.source !== 'doc' || entry.total > 0)
       const lots = planned ? all.filter((entry) => entry.source !== 'doc' || entry.total > 0) : all
+      const finished = lots.length > 0 && lots.every(isFinished)
       return {
         key: node.key,
         title: titleOf(node),
@@ -139,7 +142,8 @@ export function progressionOf(tree: WorkflowTreeView, code: ProgressionCode | nu
         done: lots.reduce((sum, entry) => sum + entry.done, 0),
         total: lots.reduce((sum, entry) => sum + entry.total, 0),
         lots,
-        finished: lots.length > 0 && lots.every(isFinished)
+        finished,
+        later: node.later === true && !finished
       }
     })
 
@@ -167,4 +171,17 @@ export function progressionOf(tree: WorkflowTreeView, code: ProgressionCode | nu
     total: families.reduce((sum, family) => sum + family.total, 0),
     analysed: code !== null
   }
+}
+
+/** Les nœuds de l'arbre du Workflow du sommet jusqu'à `key` compris (Q8 : déplier ce qui le cache) ; vide s'il n'y est pas. */
+export function pathTo(tree: WorkflowTreeView, key: string): readonly WorkflowTreeNode[] {
+  const walk = (nodes: readonly WorkflowTreeNode[]): WorkflowTreeNode[] => {
+    for (const node of nodes) {
+      if (node.key === key) return [node]
+      const below = walk(node.children)
+      if (below.length > 0) return [node, ...below]
+    }
+    return []
+  }
+  return walk(tree.nodes)
 }

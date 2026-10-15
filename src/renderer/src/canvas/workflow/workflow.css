@@ -14,3 +14,21 @@
   border-color: color-mix(in oklab, var(--color-con) 55%, transparent);
   color: var(--color-content);
 }
+
+/* Arrivée depuis la Progression (spec 032 Q8) : le rond et ses carrés pulsent trois fois ; contour fixe en
+ * animations réduites. `drop-shadow` suit la forme du nœud (rond ou carré). */
+@keyframes wf-arrived {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--color-accent));
+  }
+}
+.react-flow__node.wf-arrived {
+  animation: wf-arrived 1.4s ease-in-out 3;
+}
+.react-flow__node.wf-arrived-still {
+  filter: drop-shadow(0 0 4px var(--color-accent));
+}

@@ -3,9 +3,10 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
+import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { ProgressionView } from '../../../src/renderer/src/canvas/progression/ProgressionView'
 import type { ExplorerMapView, MapFileView, RepriseProjectView } from '../../../src/shared/ipc/reprise'
-import type { SpecView, TaskView, WorkflowView } from '../../../src/shared/ipc/workflow'
+import type { BrainstormDocView, SpecView, TaskView, WorkflowView } from '../../../src/shared/ipc/workflow'
 import { workflowArbre } from '../../../src/shared/workflow/arbre'
 import { expectNoAxeViolations } from '../../support/axe'
 import { FakeIpcError, installFakeApi } from './support/fakeApi'
@@ -175,6 +176,49 @@ describe('Progression en trois lectures (spec 032 D12, D13, Q6)', () => {
     await user.click(screen.getByRole('button', { name: 'B · Le chantier par étages' }))
     expect(screen.getByRole('listitem', { name: 'Fondations : Bâti' })).toBeTruthy()
     expect(screen.getByRole('listitem', { name: 'Étage 1 : 003 · Données' })).toBeTruthy()
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_go_to_the_workflow_on_a_click_unfolding_what_hides_the_round_and_highlighting_it', async () => {
+    const user = userEvent.setup()
+    const folds: unknown[] = []
+    installFakeApi({
+      'workflow:read': () => ({ ...WORKFLOW, folded: { [`wf:${G}:spec:003`]: true } }),
+      'workflow:setFolded': (payload) => {
+        folds.push(payload)
+        return null
+      },
+      'reprise:get': () => PROJECT,
+      'explorer:map': () => MAP
+    })
+    wrap()
+    await user.click(await screen.findByRole('button', { name: 'Voir « 003 · Données » dans le Workflow' }))
+    expect(folds).toEqual([{ genesisId: G, key: `wf:${G}:spec:003`, folded: false }])
+    expect(useSidePanel.getState().focus?.nodeId).toBe(`wf:${G}:spec:003`)
+    expect(useUiStore.getState().workflowArrival?.key).toBe(`wf:${G}:spec:003`)
+  })
+
+  it('should_gather_families_set_aside_into_later', async () => {
+    const later: BrainstormDocView = {
+      name: 'L1z-capture.md',
+      level: 1,
+      title: 'Capture rapide',
+      family: null,
+      coveredBy: [],
+      parent: null,
+      maturity: 'insuffisant',
+      taskPaths: [],
+      later: true
+    }
+    installFakeApi({
+      'workflow:read': () => ({ ...WORKFLOW, brainstorm: [later], tree: workflowArbre([later], [SPEC], []) }),
+      'reprise:get': () => PROJECT,
+      'explorer:map': () => MAP
+    })
+    const { container } = wrap()
+    const group = await screen.findByRole('listitem', { name: 'Plus tard' })
+    expect(within(group).getByText('1 famille à brainstormer plus tard')).toBeTruthy()
+    expect(screen.queryByRole('listitem', { name: 'Capture rapide' })).toBeNull()
     await expectNoAxeViolations(container)
   })
 })

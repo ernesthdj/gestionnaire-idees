@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BrainstormDocView, SpecView, TaskFileView, TaskView } from '../../src/shared/ipc/workflow'
 import { workflowArbre } from '../../src/shared/workflow/arbre'
-import { progressionOf, type ProgressionCode } from '../../src/shared/workflow/progression'
+import { pathTo, progressionOf, type ProgressionCode } from '../../src/shared/workflow/progression'
 
 const task = (id: string, done: boolean, story: number | null, files: string[]): TaskView => ({
   id,
@@ -174,5 +174,23 @@ describe('progressionOf (spec 032 D12, D13, Q3, Q6)', () => {
       'TACHES-RECHERCHE': false
     })
     expect(view.families[0]?.lots[0]?.maturity).toBe(100)
+  })
+
+  it('should_set_aside_a_family_whose_document_says_later_unless_it_is_finished', () => {
+    const later: BrainstormDocView = { ...doc('L1-synchro.md', 'Synchronisation'), later: true }
+    const view = progressionOf(workflowArbre([later, doc('L1a-application.md', 'Application')], SPECS, [lotFile]), CODE)
+    expect(view.families.map((family) => [family.label, family.later])).toEqual([
+      ['L1', true],
+      ['L1a', false],
+      ['spec 003', false],
+      ['spec 005', false],
+      ['TACHES-RECHERCHE', false]
+    ])
+  })
+
+  it('should_give_the_path_from_the_top_of_the_tree_to_a_round_or_nothing', () => {
+    expect(pathTo(tree, 'spec:004').map((node) => node.key)).toEqual(['doc:L1a-application', 'spec:004'])
+    expect(pathTo(tree, 'spec:003').map((node) => node.key)).toEqual(['spec:003'])
+    expect(pathTo(tree, 'spec:999')).toEqual([])
   })
 })

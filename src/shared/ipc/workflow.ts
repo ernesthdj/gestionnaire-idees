@@ -95,6 +95,8 @@ export interface BrainstormDocView {
   readonly maturity: Maturity | null
   /** Fichiers de tâches nommés par `**Tâches**`. */
   readonly taskPaths: readonly string[]
+  /** À brainstormer plus tard (« … plus tard » après la maturité, spec 032 Q8) ; absent sinon. */
+  readonly later?: true
 }
 
 /** Groupe (`###`) ou lot (`##`) d'un fichier de tâches (D20). */
@@ -161,6 +163,8 @@ export interface WorkflowTreeNode {
   readonly files: readonly string[]
   /** Carré : noms de fichiers cités sans chemin (spec 032 Q6) ; absent s'il n'y en a pas. */
   readonly names?: readonly string[]
+  /** Rond d'un document mis de côté, à brainstormer plus tard (spec 032 Q8) ; absent sinon. */
+  readonly later?: true
   readonly children: readonly WorkflowTreeNode[]
 }
 

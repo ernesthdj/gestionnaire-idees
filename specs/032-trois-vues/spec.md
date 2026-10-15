@@ -102,6 +102,15 @@ validées par mentalyas dans l'artifact de brainstorm
   du projet plus grand, briques et barres plus lisibles, légende et résumé en pied de vue, hors plan replié en une
   ligne (« à décrire dans une spec, ou à retirer »), et un document sans tâches dont la maturité est « complet » est
   « à spécifier », plus « à brainstormer ».
+- **Q8 (2026-10-15, maquettes « Progression en canevas », piste organique choisie)** La Progression n'a plus de barre
+  de défilement : c'est un **canevas** (molette = zoom autour du pointeur, glisser le fond = se déplacer, boutons
+  « + », « − », « Tout afficher » ; chaque lecture s'ouvre cadrée en entier). Matière **organique** : fond pointillé
+  qui suit le déplacement, anneaux à halo, branches en courbes (pleines et bleues vers le bâti, pointillées vers le
+  prévu), briques à ombre douce, prévu en bourgeon hachuré, l'arbre « pousse » à l'ouverture (rien en animations
+  réduites). Les familles **« à brainstormer plus tard »** (en-tête `**Maturité** : … plus tard`) se regroupent en
+  **« ✦ Plus tard »**, replié, comme « ✔ Bâti ». **Un clic** sur une famille, une brique ou une famille d'un groupe
+  ouvre la vue **Workflow** centrée sur son rond : ses ancêtres repliés et lui-même se déplient, le rond et ses
+  carrés sont surlignés quelques secondes (un contour fixe en animations réduites).
 - **Q9 (2026-10-15)** L'Architecture ne reprend que ce qui aide à comprendre le projet : le code et la doc
   informative (README, fondation, brainstorms, specs). L'outillage et la doc **utiles seulement à l'IA** (skills,
   `.specify`, `graphify-out` et ses 2 400 fichiers, consignes `CLAUDE.md`, `docs/claude/`, journal) sortent **dès

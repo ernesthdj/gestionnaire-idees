@@ -45,3 +45,5 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
   JOURNAL ; vérifications finales.
 - [x] T061 Q7 : le terminé replié en « ✔ Bâti » (A, B), finitions vers les maquettes ; tests ; captures sur le dépôt
   du Brainstormer.
+- [x] T062 Q8 : la Progression en canevas (zoom, déplacement, « Tout afficher »), matière organique, groupe
+  « ✦ Plus tard », clic → Workflow centré, déplié et surligné ; tests ; captures sur le dépôt du Brainstormer.

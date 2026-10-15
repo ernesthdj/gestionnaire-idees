@@ -95,6 +95,16 @@ export const TASK_STATE_LABELS: Readonly<Record<TaskState, string>> = {
 export const workflowKey = (genesisId: string, ...parts: readonly string[]): string =>
   ['wf', genesisId, ...parts].join(':')
 
+/** Sorte d'un rond dans l'arbre (`spec:017`) → sorte de sa clé sur la carte (celles de `describe`, plus bas). */
+const ROUND_KINDS: Readonly<Record<string, string>> = { doc: 'doc', spec: 'spec', file: 'tfile', lot: 'tgroup' }
+
+/** Clé sur la carte d'un rond de l'arbre du Workflow (spec 032 Q8 : la Progression y mène) ; `null` hors rond. */
+export function roundNodeKey(genesisId: string, treeKey: string): string | null {
+  const [kind = '', first = ''] = treeKey.split(':')
+  const mapped = ROUND_KINDS[kind]
+  return mapped === undefined || first === '' ? null : workflowKey(genesisId, mapped, first)
+}
+
 const short = (text: string, max: number): string => {
   const plain = text.replace(/`/g, '').replace(/\s+/g, ' ').trim()
   return plain.length <= max ? plain : `${plain.slice(0, max - 1)}…`

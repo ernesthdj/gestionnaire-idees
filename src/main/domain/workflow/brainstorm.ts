@@ -63,7 +63,8 @@ export function brainstormDocs(
       coveredBy: specs.filter((spec) => spec.citedDocs.includes(doc.name)).map((spec) => spec.number),
       parent: doc.header.parent === doc.name ? null : doc.header.parent,
       maturity: doc.header.maturity,
-      taskPaths: doc.header.taskPaths
+      taskPaths: doc.header.taskPaths,
+      ...(doc.header.later === true ? { later: true as const } : {})
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }

@@ -15,6 +15,8 @@ export interface DocHeader {
   readonly maturity: Maturity | null
   /** Fichiers de tâches de ce rond, chemins relatifs au projet. */
   readonly taskPaths: readonly string[]
+  /** Mis de côté : « … plus tard » écrit après la maturité (spec 032 Q8) ; absent sinon. */
+  readonly later?: true
 }
 
 const fieldOf = (header: string, name: string): string | null =>
@@ -29,14 +31,13 @@ export function docHeader(text: string): DocHeader {
   const title = lines.findIndex((line) => line.startsWith('# '))
   const header = lines.slice(title + 1, title + 1 + HEADER_LINES).join('\n')
   const parent = fieldOf(header, 'Parent')
-  const maturityWord =
-    fieldOf(header, 'Maturité')
-      ?.split(/[\s—–-]/)[0]
-      ?.toLowerCase() ?? null
+  const maturityField = fieldOf(header, 'Maturité')
+  const maturityWord = maturityField?.split(/[\s—–-]/)[0]?.toLowerCase() ?? null
   const tasks = fieldOf(header, 'Tâches')
   return {
     parent: parent !== null && DOC_NAME.test(parent) ? parent : null,
     maturity: MATURITIES.find((value) => value === maturityWord) ?? null,
+    ...(maturityField !== null && /plus tard/i.test(maturityField) ? { later: true as const } : {}),
     taskPaths:
       tasks === null
         ? []

@@ -33,6 +33,7 @@ interface Draft {
   /** Un carré qu'on peut implémenter maintenant (ni ébauche, ni dans une spec livrée, abandonnée ou en pause). */
   readonly workable: boolean
   readonly children: Draft[]
+  readonly later?: true
 }
 
 const docKey = (name: string): string => `doc:${name.replace(/\.md$/i, '')}`
@@ -191,6 +192,7 @@ function finish(draft: Draft, depth: number): WorkflowTreeNode {
     path: draft.path,
     files: draft.files,
     ...(draft.names.length > 0 ? { names: draft.names } : {}),
+    ...(draft.later === true ? { later: true as const } : {}),
     ...counts,
     children: done
   }
@@ -243,10 +245,11 @@ export function workflowArbre(
 
   const docDraft = (doc: BrainstormDocView): Draft => {
     const subDocs = docs.filter((other) => parents.get(other.name) === doc.name).map(docDraft)
-    return round(docKey(doc.name), 'doc', doc.title, maturityOf(doc), null, `docs/brainstorm/${doc.name}`, [
+    const draft = round(docKey(doc.name), 'doc', doc.title, maturityOf(doc), null, `docs/brainstorm/${doc.name}`, [
       ...subDocs,
       ...(childrenOf.get(doc.name) ?? [])
     ])
+    return doc.later === true ? { ...draft, later: true } : draft
   }
   const top = [
     ...docs.filter((doc) => doc.name !== FOUNDATION_DOC && parents.get(doc.name) === null).map(docDraft),

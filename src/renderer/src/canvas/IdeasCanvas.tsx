@@ -115,6 +115,24 @@ const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge }
 
 /** Tout objet de la carte : idées, blocs, éléments de structure. */
 type MapNode = CanvasNode
+
+/** Durée de la surbrillance d'arrivée dans le Workflow (spec 032 Q8). */
+const ARRIVAL_MS = 5000
+
+/** Nœuds Workflow du rond `key` et de tout ce qui pend sous lui, marqués `className` (arrivée depuis la Progression). */
+function markArrival(nodes: readonly MapNode[], key: string, className: string): MapNode[] {
+  const parents = new Map<string, string>()
+  for (const node of nodes) if (node.type === 'workflow') parents.set(node.id, node.data.item.parentKey)
+  const arrived = (id: string): boolean => {
+    for (let at: string | undefined = id; at !== undefined; at = parents.get(at)) if (at === key) return true
+    return false
+  }
+  return nodes.map((node) =>
+    node.type === 'workflow' && arrived(node.id)
+      ? { ...node, className: `${node.className ?? ''} ${className}`.trim() }
+      : node
+  )
+}
 type MapEdge = BranchEdgeType | MapLinkEdgeType
 const PAN_STEP = 64
 /** Ajouter une idée à la sélection : Ctrl (ou Cmd) + clic, ou Maj + clic. */
@@ -305,6 +323,7 @@ function CanvasInner(): React.JSX.Element {
     [view, structureViews]
   )
   const workflows = useWorkflows(workflowIds)
+  const arrival = useUiStore((state) => state.workflowArrival)
 
   const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[] } => {
     if (view === undefined || layout === null) return { nodes: [], edges: [] }
@@ -320,8 +339,32 @@ function CanvasInner(): React.JSX.Element {
       analysisLinks,
       workflows
     )
-    return { nodes: built.nodes, edges: [...built.edges, ...built.mapEdges] }
-  }, [view, layout, positions, physics, bornId, openIds, structureViews, transposed, analysisLinks, workflows])
+    const nodes =
+      arrival === null
+        ? built.nodes
+        : markArrival(built.nodes, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
+    return { nodes, edges: [...built.edges, ...built.mapEdges] }
+  }, [
+    view,
+    layout,
+    positions,
+    physics,
+    bornId,
+    openIds,
+    structureViews,
+    transposed,
+    analysisLinks,
+    workflows,
+    arrival,
+    reduced
+  ])
+  // L'arrivée s'efface d'elle-même (une plus récente garde son propre délai).
+  const endArrival = useUiStore((state) => state.endArrival)
+  useEffect(() => {
+    if (arrival === null) return
+    const timer = setTimeout(() => endArrival(arrival.nonce), ARRIVAL_MS)
+    return () => clearTimeout(timer)
+  }, [arrival, endArrival])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
 

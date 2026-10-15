@@ -111,6 +111,14 @@ describe('en-tête d’un document de brainstorm (spec 032 FR-002)', () => {
     expect(docHeader(body).maturity).toBeNull()
     expect(docHeader('sans titre ni champ')).toEqual({ parent: null, maturity: null, taskPaths: [] })
   })
+
+  it('should_mark_a_document_set_aside_when_its_maturity_says_plus_tard', () => {
+    const later = '# T\n\n**Parent** : L1-fondation.md · **Maturité** : insuffisant — à brainstormer plus tard (x)\n'
+    expect(docHeader(later)).toMatchObject({ maturity: 'insuffisant', later: true })
+    expect(docHeader('# T\n\n**Maturité** : insuffisant — manque : X\n').later).toBeUndefined()
+    const docs = brainstormDocs([{ name: 'L1z-capture.md', text: later }], [])
+    expect(workflowArbre(docs, [], []).nodes[0]?.later).toBe(true)
+  })
 })
 
 describe('arbre du Workflow (spec 032 D9, D10, D5, D6)', () => {

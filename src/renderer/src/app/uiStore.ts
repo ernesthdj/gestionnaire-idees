@@ -63,6 +63,14 @@ interface UiState {
   /** Lecture de la Progression de chaque projet (spec 032 D12) ; absente : l'arbre qui pousse. */
   readonly progressionReadings: Readonly<Record<string, ProgressionReading>>
   setProgressionReading(genesisId: string, reading: ProgressionReading): void
+  /**
+   * Arrivée dans le Workflow depuis la Progression (spec 032 Q8) : le rond (clé de la carte) et ses carrés sont surlignés
+   * quelques secondes ; `null` : rien. `nonce` distingue deux arrivées sur le même rond.
+   */
+  readonly workflowArrival: { readonly key: string; readonly nonce: number } | null
+  arriveInWorkflow(key: string): void
+  /** Efface l'arrivée `nonce` (pas une plus récente). */
+  endArrival(nonce: number): void
   /** Panneau Progression ou Architecture replié pour voir la carte dessous (rouvert au prochain choix de vue). */
   readonly panelFolded: boolean
   foldPanel(folded: boolean): void
@@ -213,6 +221,10 @@ export const useUiStore = create<UiState>()((set, get) => ({
   repoGenesisId: null,
   structureViews: {},
   progressionReadings: {},
+  workflowArrival: null,
+  arriveInWorkflow: (key) =>
+    set((state) => ({ workflowArrival: { key, nonce: (state.workflowArrival?.nonce ?? 0) + 1 } })),
+  endArrival: (nonce) => set((state) => (state.workflowArrival?.nonce === nonce ? { workflowArrival: null } : {})),
   panelFolded: false,
   foldPanel: (folded) => set({ panelFolded: folded }),
   setProgressionReading: (genesisId, reading) =>

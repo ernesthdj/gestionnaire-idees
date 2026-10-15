@@ -2103,3 +2103,24 @@ rattacher le document à son L1 garde la spec où elle était.
 ensemble. `docs/academique/` reste (choix de mentalyas).
 **Note :** `explorer-page.test.tsx` (« entrer dans un module par double-clic ») a échoué une fois dans la suite complète,
 puis passé 3 fois sur 3 seul : instable sous charge, sans lien avec ce changement.
+
+### [2026-10-15 14:30] FEAT — spec 032 Q8 : la Progression en canevas organique, un clic mène au Workflow
+**Fichiers :** `src/renderer/src/canvas/progression/ProgressionCanvas.tsx` (nouveau), `ProgressionView.tsx`,
+`progression.css`, `canvas/IdeasCanvas.tsx` (surbrillance d'arrivée), `canvas/workflow/workflowTree.ts`
+(`roundNodeKey`), `workflow.css`, `app/uiStore.ts` (`workflowArrival`), `src/shared/workflow/progression.ts`
+(`later`, `pathTo`), `arbre.ts`, `src/shared/ipc/workflow.ts`, `src/main/domain/workflow/docHeader.ts`,
+`brainstorm.ts` ; spec 032 Q8, T062. Tests : `unit/renderer/progression-canvas.test.ts` (nouveau),
+`progression-view.test.tsx`, `workflow-progression.test.ts`, `workflow-arbre.test.ts`.
+**Quoi :** maquettes « Progression en canevas » (artifact du 2026-10-14), piste organique choisie par mentalyas. Plus
+de barre de défilement : molette = zoom autour du pointeur, glisser le fond = se déplacer, « + », « − », « Tout
+afficher » ; une lecture s'ouvre calée sur la largeur, en haut. Anneaux à halo, courbes du projet vers ses branches
+(vertes vers « Bâti », bleues vers le bâti, pointillées vers le prévu), briques à ombre douce, prévu hachuré, l'arbre
+pousse à l'ouverture (pas en animations réduites). Les documents « … plus tard » (en-tête) forment le groupe
+« ✦ Plus tard ». Un clic sur une famille, une brique ou une famille d'un groupe : ses ancêtres repliés et lui-même se
+déplient, la carte passe en Workflow centrée sur le rond, qui pulse avec ses carrés pendant 5 s (contour fixe en
+animations réduites).
+**Erreur corrigée :** cadrer toute la lecture à l'ouverture rendait B (42 %) et C (20 %) illisibles sur le vrai dépôt :
+l'ouverture se cale sur la largeur, « Tout afficher » cadre tout.
+**Choix :** un canevas maison (transformation CSS) plutôt que React Flow : les trois lectures gardent leur mise en
+page HTML, leurs tests et leur accessibilité ; les fonctions de zoom de la carte (`zoomAround`, `wheelFactor`) sont
+reprises.
