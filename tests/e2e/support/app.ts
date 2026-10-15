@@ -112,3 +112,16 @@ export async function settled(locator: Locator): Promise<{ x: number; y: number;
   }
   throw new Error('élément toujours en mouvement (ou absent) après 10 s')
 }
+
+/** Ouvre le menu du projet de la barre fine (spec 033 D3), s'il ne l'est pas déjà. */
+export async function openProjectMenu(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /^Projet .+ : menu$/ })
+  await toggle.waitFor({ timeout: 60_000 })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+}
+
+/** Retour au Project Manager depuis le canevas d'un projet (menu du projet, spec 033 D3). */
+export async function backToProjects(page: Page): Promise<void> {
+  await openProjectMenu(page)
+  await page.getByRole('button', { name: '← Tous les projets' }).click()
+}

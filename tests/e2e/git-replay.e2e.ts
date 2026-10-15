@@ -55,7 +55,7 @@ describe('rediffusion git sur l’explorateur (spec 021 US5 lot 2, e2e)', () => 
 
   it('should_colour_each_module_by_its_main_author_and_go_back_in_time', async () => {
     const { page } = run
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Idées', { exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: 'Idées' }).click()
     await page.getByText('Idées en vrac', { exact: true }).click()
     await page.locator('.react-flow').waitFor()
     await page.getByRole('button', { name: 'Reprendre un projet existant' }).click()

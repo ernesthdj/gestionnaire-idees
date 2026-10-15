@@ -3,7 +3,7 @@ import { connect, type Socket } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { pipeNameFor, tokenPathFor } from '../../src/main/infrastructure/mcp/endpoint'
 import { FOLDERS_ENABLED } from '../../src/shared/ipc/folders'
-import { DEMO_PROJECT, freshProfile, launchApp, PROFILE, type LaunchedApp } from './support/app'
+import { DEMO_PROJECT, freshProfile, launchApp, PROFILE, type LaunchedApp, backToProjects } from './support/app'
 
 /**
  * Spec 028 lot 1 (quickstart 1) dans l'app réelle : Claude, par le pont MCP comme une session Claude Code, rédige un
@@ -63,7 +63,7 @@ describe.skipIf(!FOLDERS_ENABLED)('dossier d’un nœud (spec 028 lot 1, e2e)', 
   }
   const openCanvas = async (): Promise<void> => {
     const { page } = run
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Idées', { exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: 'Idées' }).click()
     // Lié à un dossier existant, le genesis de la démo a son propre canevas (spec 024).
     await page.getByText('Projet démo : application de notes', { exact: true }).first().click()
     await page.locator('.react-flow').waitFor()
@@ -136,7 +136,7 @@ describe.skipIf(!FOLDERS_ENABLED)('dossier d’un nœud (spec 028 lot 1, e2e)', 
 
   it('should_file_the_document_of_a_plan_step_below_the_step_without_covering_the_plan', async () => {
     const { page } = run
-    await page.getByRole('button', { name: '← Projets' }).click()
+    await backToProjects(page)
     await page.getByText('Idées en vrac', { exact: true }).click()
     await page.locator('.react-flow').waitFor()
     await page.getByRole('button', { name: 'Tout afficher' }).click()

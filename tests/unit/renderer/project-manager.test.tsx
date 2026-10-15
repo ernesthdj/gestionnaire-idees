@@ -7,7 +7,7 @@ import { EMPTY_VIEW_STATE } from '../../../src/shared/brainstorms/viewState'
 import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
 import { ProjectManager } from '../../../src/renderer/src/home/ProjectManager'
-import { BrainstormBar } from '../../../src/renderer/src/home/BrainstormBar'
+import { OpeningSummary } from '../../../src/renderer/src/git/OpeningSummary'
 import { cardsOf, chatTabsOf, viewStateOf } from '../../../src/renderer/src/home/viewState'
 import { useSidePanel } from '../../../src/renderer/src/canvas/side/sidePanelStore'
 import { expectNoAxeViolations } from '../../support/axe'
@@ -61,7 +61,7 @@ function renderManager(handlers: Parameters<typeof installFakeApi>[0]) {
   const result = render(
     <QueryClientProvider client={client}>
       <ProjectManager />
-      <BrainstormBar />
+      <OpeningSummary />
     </QueryClientProvider>
   )
   return { api, ...result }

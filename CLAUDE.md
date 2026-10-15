@@ -155,5 +155,9 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
   fichiers écrits par Claude ; Progression en trois lectures (arbre, étages, lots) ; Architecture = l'explorateur en
   boîtes dans la carte + détecteur d'architecture ; les deux dernières en panneau repliable (« ▾ Voir la carte »).
   Remplacent 023 D8 (branches du Workflow) et 017 D20 (bandes de couches)
+- **Spec 033 « La coque compacte » livrée le 2026-10-15** : rail de 48 px (sections, thème, réglages), barre fine de
+  32 px (fil « section / projet ▾ », pastille git ⚠ vers le Dépôt, jauges Claude), dock d'outils flottant, Bloc libre
+  et liens d'analyse au clic droit ; plus de bouton « Explorateur » (la vue Architecture l'est) ni de bandeau
+  d'ouverture (son contenu est dans le volet Dépôt)
 - [ ] Pipeline agents (`/pipeline`)
 - [x] Graphify projet — seede a la creation, mis a jour a chaque `/hub end`

@@ -1,5 +1,4 @@
 import { MotionConfig } from 'motion/react'
-import type { Section } from '@shared/ipc/app'
 import { AnalystePage } from '../analyste/AnalystePage'
 import { useAnalysteStatus, useProbe } from '../analyste/useAnalysteStatus'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
@@ -8,12 +7,13 @@ import { IdeasPage } from '../pages/IdeasPage'
 import { ProjectManager } from '../home/ProjectManager'
 import { useActiveBrainstormHydration, useViewStateSync } from '../home/useBrainstorms'
 import { useRunEvents } from '../run/runStore'
-import { ExplorerPage } from '../explorer/ExplorerPage'
 import { SectionPlaceholder } from '../pages/SectionPlaceholder'
 import { SettingsPage } from '../pages/SettingsPage'
 import { SkillsPage } from '../skills/SkillsPage'
+import { RepoBadge } from '../git/RepoBadge'
+import { ProjectMenu } from '../home/ProjectMenu'
 import { HeaderUsage } from './HeaderUsage'
-import { ThemeSwitch } from './ThemeSwitch'
+import { Rail, type RailEntry } from './Rail'
 import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
 import { useEffectiveSettings } from './useAppSettings'
@@ -21,13 +21,13 @@ import { useMappingWatch } from '../canvas/mapping/mappingStore'
 import { useApplyTheme } from './useApplyTheme'
 import { useMainEvents } from './useMainEvents'
 
-const NAVIGATION: ReadonlyArray<{ readonly section: Section; readonly label: string }> = [
-  { section: 'home', label: 'Projets' },
-  { section: 'ideas', label: 'Idées' },
-  { section: 'pending', label: 'À valider' },
-  { section: 'history', label: 'Historique' },
-  { section: 'skills', label: 'Skills' },
-  { section: 'analyste', label: 'Analyste' }
+const NAVIGATION: readonly RailEntry[] = [
+  { section: 'home', label: 'Projets', icon: 'projects' },
+  { section: 'ideas', label: 'Idées', icon: 'ideas' },
+  { section: 'pending', label: 'À valider', icon: 'pending' },
+  { section: 'history', label: 'Historique', icon: 'history' },
+  { section: 'skills', label: 'Skills', icon: 'skills' },
+  { section: 'analyste', label: 'Analyste', icon: 'analyste' }
 ]
 
 const TITLES: Readonly<Record<View, string>> = {
@@ -67,18 +67,17 @@ function CurrentView({
 }
 
 /**
- * Coquille de la fenêtre principale (FR-002) : navigation à gauche, réglages ⚙ en haut à droite, thème et
- * préférence d'animations appliqués à toute l'interface.
+ * Coquille de la fenêtre principale (FR-002, spec 033) : le rail de 48 px à gauche (sections, thème, réglages), une
+ * barre fine de 32 px (fil « section / projet ▾ », pastille git, consommation Claude) ; thème et préférence
+ * d'animations appliqués à toute l'interface. Tout le reste est à la carte.
  */
 export function AppShell(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const view = useUiStore((state) => state.view)
   const show = useUiStore((state) => state.show)
-  const explorerGenesisId = useUiStore((state) => state.explorerGenesisId)
-  const closeExplorer = useUiStore((state) => state.closeExplorer)
-  const explorerMarks = useUiStore((state) => state.explorerMarks)
-  const hasBrainstorm = useUiStore((state) => state.brainstorm !== null)
+  const brainstorm = useUiStore((state) => state.brainstorm)
+  const hasBrainstorm = brainstorm !== null
   useApplyTheme(settings.theme)
   useMainEvents()
   useViewStateSync()
@@ -95,53 +94,19 @@ export function AppShell(): React.JSX.Element {
   return (
     <MotionConfig reducedMotion={reduced ? 'always' : 'never'}>
       <div className="flex h-screen bg-surface text-content" data-reduced-motion={reduced}>
-        <nav aria-label="Navigation principale" className="flex w-56 shrink-0 flex-col gap-4 bg-surface-raised p-4">
-          <p className="px-2 text-sm font-semibold text-content-muted">Brainstormer</p>
-          <ul className="flex flex-col gap-1">
-            {navigation.map(({ section, label }) => (
-              <li key={section}>
-                <button
-                  type="button"
-                  aria-current={view === section ? 'page' : undefined}
-                  onClick={() => show(section)}
-                  className={`h-10 w-full rounded-md px-2 text-left text-sm transition-colors duration-150 ${
-                    view === section ? 'bg-surface font-semibold' : 'text-content-muted hover:bg-surface'
-                  }`}
-                >
-                  {label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <Rail entries={navigation} view={view} onShow={show} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-12 shrink-0 items-center justify-between border-b border-content-muted/20 px-4">
-            <h1 className="text-base font-semibold">{TITLES[view]}</h1>
-            <div className="flex items-center gap-2">
-              <HeaderUsage />
-              <ThemeSwitch />
-              <button
-                type="button"
-                aria-label="Réglages"
-                aria-current={view === 'settings' ? 'page' : undefined}
-                onClick={() => show('settings')}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-lg text-content-muted hover:bg-surface-raised"
-              >
-                <span aria-hidden="true">⚙</span>
-              </button>
-            </div>
+          <header className="flex h-8 shrink-0 items-center gap-2 border-b border-content-muted/20 pl-3 pr-2">
+            <h1 className="shrink-0 text-sm font-semibold">{TITLES[view]}</h1>
+            {view === 'ideas' ? <ProjectMenu /> : null}
+            {view === 'ideas' && brainstorm?.genesisId != null && brainstorm.folder !== null ? (
+              <RepoBadge genesisId={brainstorm.genesisId} variant="chip" />
+            ) : null}
+            <span className="flex-1" />
+            <HeaderUsage compact />
           </header>
           <main className="min-h-0 flex-1 overflow-hidden">
-            {explorerGenesisId !== null && view === 'ideas' ? (
-              <ExplorerPage
-                key={`${explorerGenesisId}:${explorerMarks}`}
-                genesisId={explorerGenesisId}
-                marks={explorerMarks}
-                onClose={closeExplorer}
-              />
-            ) : (
-              <CurrentView view={view} hasBrainstorm={hasBrainstorm} />
-            )}
+            <CurrentView view={view} hasBrainstorm={hasBrainstorm} />
           </main>
           <Toast />
         </div>

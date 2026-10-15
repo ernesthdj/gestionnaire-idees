@@ -67,7 +67,7 @@ describe('levée des ambiguïtés avec l’IA dans un projet repris (spec 017 US
 
   it('should_import_the_project_with_claude_allowed_and_open_its_explorer', async () => {
     const { page } = run
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Idées', { exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: 'Idées' }).click()
     await page.getByText('Idées en vrac', { exact: true }).click()
     await page.locator('.react-flow').waitFor()
     await run.shot('017-us6-00-canevas')

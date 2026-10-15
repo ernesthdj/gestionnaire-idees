@@ -67,7 +67,8 @@ describe('boîte à outils de la carte (spec 004)', () => {
     fireEvent.contextMenu(await pane(), { clientX: 300, clientY: 200 })
     const menu = await screen.findByRole('menu', { name: 'Outils de la carte' })
     const items = within(menu).getAllByRole('menuitem')
-    expect(items).toHaveLength(3)
+    // Nouvelle idée, Note, Widget IA, et le bloc libre (spec 033 D8).
+    expect(items).toHaveLength(4)
     for (const name of [/^Nouvelle idée/, /^Note/, /^Widget IA/]) {
       expect(within(menu).getByRole('menuitem', { name })).toBeDefined()
     }
@@ -75,7 +76,7 @@ describe('boîte à outils de la carte (spec 004)', () => {
     await user.keyboard('{ArrowDown}')
     expect(document.activeElement).toBe(items[1])
     await user.keyboard('{ArrowUp}{ArrowUp}')
-    expect(document.activeElement).toBe(items[2])
+    expect(document.activeElement).toBe(items[3])
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('menu')).toBeNull()
   })

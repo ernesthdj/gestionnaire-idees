@@ -93,7 +93,10 @@ describe('fichier .md mis en forme : encadrés et schémas Mermaid (e2e)', () =>
     await run.shot('md-mermaid-01-fondation')
     // Thème sombre (carbone) : le schéma est redessiné aux couleurs sombres de Mermaid.
     await page.getByRole('button', { name: /Réduire/ }).click()
+    // Le thème est dans le rail (spec 033 D1).
+    await page.getByRole('button', { name: 'Thème', exact: true }).click()
     await page.getByRole('button', { name: 'Thème carbone' }).click()
+    await page.keyboard.press('Escape')
     await expect.poll(() => diagram.getAttribute('src')).not.toBe(light)
     await reader.getByRole('button', { name: /Agrandir/ }).click()
     await run.shot('md-mermaid-02-fondation-sombre')

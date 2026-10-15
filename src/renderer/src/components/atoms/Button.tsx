@@ -1,11 +1,13 @@
 import type { ButtonHTMLAttributes, Ref } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'danger'
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent text-surface hover:opacity-90',
   secondary: 'border border-content-muted/40 text-content hover:bg-surface-raised',
-  danger: 'border border-red-500/60 text-red-600 hover:bg-red-500/10 dark:text-red-400'
+  danger: 'border border-red-500/60 text-red-600 hover:bg-red-500/10 dark:text-red-400',
+  /** Entrée de menu (spec 033) : sans bordure, le fond au survol. */
+  ghost: 'text-content hover:bg-surface-raised'
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

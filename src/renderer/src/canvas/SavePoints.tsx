@@ -24,7 +24,14 @@ type Pending = { readonly kind: 'restore' | 'delete' | 'rename'; readonly id: st
  * Points de sauvegarde du brainstorm ouvert (spec 024 US2, D7) : poser un point nommé, revenir à un point (après
  * confirmation ; le retour est annulable), renommer, supprimer (après confirmation).
  */
-export function SavePoints({ brainstormId }: { readonly brainstormId: string }): React.JSX.Element {
+export function SavePoints({
+  brainstormId,
+  asMenuItem = false
+}: {
+  readonly brainstormId: string
+  /** Dans le menu du projet (spec 033 D3) : une entrée de menu, son panneau dessous. */
+  readonly asMenuItem?: boolean
+}): React.JSX.Element {
   const id = useId()
   const client = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -92,13 +99,18 @@ export function SavePoints({ brainstormId }: { readonly brainstormId: string }):
 
   return (
     <div className="relative shrink-0">
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center gap-2${asMenuItem ? ' flex-col-reverse items-stretch' : ''}`}>
         {lastReturn === null ? null : (
           <Button disabled={busy} onClick={() => undo.mutate(lastReturn.undoId)}>
             ↶ Annuler le retour à « {lastReturn.name} »
           </Button>
         )}
-        <Button aria-expanded={open} aria-controls={`${id}-panel`} onClick={() => setOpen((value) => !value)}>
+        <Button
+          {...(asMenuItem ? { variant: 'ghost' as const, className: 'w-full text-left' } : {})}
+          aria-expanded={open}
+          aria-controls={`${id}-panel`}
+          onClick={() => setOpen((value) => !value)}
+        >
           Points de sauvegarde ({list.length})
         </Button>
       </div>
@@ -106,7 +118,7 @@ export function SavePoints({ brainstormId }: { readonly brainstormId: string }):
         <section
           id={`${id}-panel`}
           aria-label="Points de sauvegarde"
-          className="absolute right-0 top-10 z-30 flex w-96 flex-col gap-3 rounded-lg border border-content-muted/30 bg-surface p-4 shadow-lg"
+          className={`${asMenuItem ? 'mt-1' : 'absolute right-0 top-10 z-30 w-96 border border-content-muted/30 shadow-lg'} flex flex-col gap-3 rounded-lg bg-surface p-4`}
           onKeyDown={(event) => {
             if (event.key === 'Escape') setOpen(false)
           }}

@@ -30,10 +30,12 @@ function ageLabel(iso: string, now = Date.now()): string {
 
 function MiniGauge({
   label,
-  window
+  window,
+  compact
 }: {
   readonly label: string
   readonly window: UsageWindowView | null
+  readonly compact: boolean
 }): React.JSX.Element {
   const percent = percentOf(window)
   return (
@@ -48,20 +50,23 @@ function MiniGauge({
         aria-valuetext={
           percent === null ? 'inconnu' : `${percent} %${window === null ? '' : `, ${resetLabel(window.resetsAt)}`}`
         }
-        className="h-1.5 w-12 overflow-hidden rounded-full bg-content-muted/20"
+        className={`${compact ? 'h-1 w-8' : 'h-1.5 w-12'} overflow-hidden rounded-full bg-content-muted/20`}
       >
         <span className={`block h-full ${tone(percent)}`} style={{ width: `${Math.min(100, percent ?? 0)}%` }} />
       </span>
-      <span className="w-8 text-right font-semibold tabular-nums">{percent === null ? '—' : `${percent} %`}</span>
+      {compact ? null : (
+        <span className="w-8 text-right font-semibold tabular-nums">{percent === null ? '—' : `${percent} %`}</span>
+      )}
     </span>
   )
 }
 
 /**
- * Consommation de l'abonnement Claude, visible en permanence dans l'en-tête (à côté du thème) : session de 5 h et
- * semaine, d'après le dernier relevé du CLI ; mise à jour à chaque réponse de Claude, où qu'elle ait lieu.
+ * Consommation de l'abonnement Claude, visible en permanence : session de 5 h et semaine, d'après le dernier relevé du
+ * CLI ; mise à jour à chaque réponse de Claude, où qu'elle ait lieu. `compact` : les mini-jauges de la barre fine
+ * (spec 033 D2), les pourcentages en infobulle et dans la valeur des jauges.
  */
-export function HeaderUsage(): React.JSX.Element {
+export function HeaderUsage({ compact = false }: { readonly compact?: boolean }): React.JSX.Element {
   const client = useQueryClient()
   const query = useQuery({
     queryKey: USAGE_KEY,
@@ -100,11 +105,11 @@ export function HeaderUsage(): React.JSX.Element {
       role="group"
       aria-label="Consommation Claude"
       title={details}
-      className={`flex items-center gap-3 rounded-md bg-surface-raised px-2 py-1 text-[11px]${account?.status === 'rejected' ? ' ring-1 ring-red-500' : ''}`}
+      className={`flex items-center ${compact ? 'gap-2 px-1' : 'gap-3 rounded-md bg-surface-raised px-2 py-1'} text-[11px]${account?.status === 'rejected' ? ' ring-1 ring-red-500' : ''}`}
     >
-      <span className="font-semibold">Claude</span>
-      <MiniGauge label="5 h" window={account?.fiveHour ?? null} />
-      <MiniGauge label="7 j" window={account?.sevenDay ?? null} />
+      {compact ? null : <span className="font-semibold">Claude</span>}
+      <MiniGauge label="5 h" window={account?.fiveHour ?? null} compact={compact} />
+      <MiniGauge label="7 j" window={account?.sevenDay ?? null} compact={compact} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { git } from '../support/gitRepos'
 import { buildVault } from '../support/vault'
-import { freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { freshProfile, launchApp, type LaunchedApp, backToProjects, openProjectMenu } from './support/app'
 
 /**
  * Spec 024 dans l'app réelle, de zéro (quickstart scénarios 1, 2, 5) : profil vide, coffre fictif vide ; le Project
@@ -75,7 +75,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await page.getByLabel('Description').fill('Un carnet de recettes fictif')
     await run.shot('024-02-formulaire')
     await page.getByRole('button', { name: 'Créer et ouvrir le canevas' }).click()
-    await page.getByRole('button', { name: '← Projets' }).waitFor({ timeout: 60_000 })
+    await page.getByRole('button', { name: /^Projet .+ : menu$/ }).waitFor({ timeout: 60_000 })
     await page.locator('.react-flow').waitFor()
 
     // Le projet est dans le coffre, avec la structure ProjectMaster, son dépôt et son entrée au registre.
@@ -102,7 +102,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     // Le cadrage de référence : celui de la carte au moment où on la quitte (stable).
     await run.page.waitForTimeout(1000)
     zoomed = await viewportOf(run)
-    await run.page.getByRole('button', { name: '← Projets' }).click()
+    await backToProjects(run.page)
     await run.page.getByRole('button', { name: /Reprendre « Essai local »/ }).waitFor()
     await run.close()
 
@@ -122,11 +122,14 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     const { page } = run
     const idea = page.locator('.react-flow__node').filter({ hasText: 'Recette du jour' })
     await page.getByRole('button', { name: /Fermer les cartes/ }).click()
+    await openProjectMenu(page)
     await page.getByRole('button', { name: /Points de sauvegarde/ }).click()
     await page.getByLabel('Nom du point').fill('avant refonte')
     await page.getByRole('button', { name: 'Poser', exact: true }).click()
     await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).waitFor()
     await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).click()
+    // Le menu du projet se referme (Échap) pour rendre la carte au double-clic.
+    await page.keyboard.press('Escape')
 
     // Une idée née après le point.
     await page.locator('.react-flow__pane').dblclick({ position: { x: 80, y: 80 } })
@@ -135,6 +138,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await idea.first().waitFor()
     await run.shot('024-06-apres-le-point')
 
+    await openProjectMenu(page)
     await page.getByRole('button', { name: 'Points de sauvegarde (1)' }).click()
     await page.getByRole('button', { name: 'Revenir à avant refonte' }).click()
     await page.getByRole('button', { name: 'Confirmer le retour' }).click()
@@ -159,7 +163,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await pickFolderWith(run, project)
 
     const { page } = run
-    await page.getByRole('button', { name: '← Projets' }).click()
+    await backToProjects(page)
     await page.getByRole('button', { name: /Nouveau brainstorm/ }).click()
     await page.getByRole('button', { name: /Projet en chantier/ }).click()
     await page.getByRole('button', { name: 'Choisir le dossier du projet…' }).click()
@@ -200,7 +204,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
 
   it('should_clone_a_small_public_repository_into_the_vault_and_open_its_canvas', async () => {
     const { page } = run
-    await page.getByRole('button', { name: '← Projets' }).click()
+    await backToProjects(page)
     await page.getByRole('button', { name: /Nouveau brainstorm/ }).click()
     await page.getByRole('button', { name: /Depuis un lien Git/ }).click()
     await page.getByLabel('Lien du dépôt').fill('https://github.com/octocat/Hello-World.git')
@@ -209,7 +213,7 @@ describe('Project Manager de zéro (spec 024, e2e)', () => {
     await page.getByLabel(/Local uniquement/).check()
     await run.shot('024-13-clone-formulaire')
     await page.getByRole('button', { name: 'Cloner dans le coffre et ouvrir' }).click()
-    await page.getByRole('button', { name: '← Projets' }).waitFor({ timeout: 120_000 })
+    await page.getByRole('button', { name: /^Projet .+ : menu$/ }).waitFor({ timeout: 120_000 })
     await page.locator('.react-flow').waitFor()
     await run.shot('024-14-clone-ouvert')
     const dir = join(ROOT, 'hello-world')

@@ -678,21 +678,9 @@ function CanvasInner(): React.JSX.Element {
     void flow.setCenter(node.position.x, node.position.y, { zoom: 1, duration: timingFor('dive', reduced).duration })
   }, [view, flow, reduced, fitAll])
 
-  // Nouveau bloc au centre de la partie visible de la carte.
-  const addBlock = useCallback(async (): Promise<void> => {
-    const box = surface.current?.getBoundingClientRect()
-    if (box === undefined) return
-    const center = flow.screenToFlowPosition({ x: box.left + box.width / 2, y: box.top + box.height / 2 })
-    // La vue affichée est relue par le main : le bloc y naît (spec 023 D25).
-    await flushViewState()
-    await call('canvas:createBlock', { x: Math.round(center.x), y: Math.round(center.y) })
-    await client.invalidateQueries({ queryKey: ['canvas'] })
-  }, [flow, client])
-
   // Gestes stables d'une image à l'autre : la barre d'outils et les cartes (mémoïsées) ne se redessinent pas pendant
   // un glissement (spec 022 D27).
   const reorder = useCallback(() => setTransposed((current) => !current), [])
-  const addBlockSafely = useCallback(() => void addBlock().catch(() => undefined), [addBlock])
   const startImport = useCallback(() => setImporting(true), [])
   const openMenu = useCallback((id: string, at: { x: number; y: number }) => setMenu({ id, at }), [])
 
@@ -724,9 +712,17 @@ function CanvasInner(): React.JSX.Element {
       setDraft({ at: toSurface(position), position })
       return
     }
+    if (tool === 'links') {
+      toggleAnalysisLinks()
+      return
+    }
     try {
       await flushViewState()
-      const block = await call<BlockView>('canvas:createBlock', { kind: tool, x: position.x, y: position.y })
+      // Bloc libre (spec 033 D8, l'ancien « + Bloc ») : sans sorte ; note et widget gardent la leur.
+      const block = await call<BlockView>(
+        'canvas:createBlock',
+        tool === 'block' ? { x: position.x, y: position.y } : { kind: tool, x: position.x, y: position.y }
+      )
       probeAction('block.create', 'block', 'souris', block.id)
       markBorn(block.id)
       await client.invalidateQueries({ queryKey: ['canvas'] })
@@ -859,18 +855,15 @@ function CanvasInner(): React.JSX.Element {
   const empty = view !== undefined && view.ideas.length === 0
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
       <CanvasToolbar
         view={view}
         filter={filter}
         onFilter={setFilter}
         onRecenter={recenter}
         onReorder={reorder}
-        analysisLinks={analysisLinks}
-        onToggleAnalysisLinks={toggleAnalysisLinks}
         openCards={cards.length}
         onCloseCards={cardsApi.closeAll}
-        onAddBlock={addBlockSafely}
         {...(projectFolder === null ? { onImport: startImport } : {})}
       />
       {importing ? (
@@ -1067,7 +1060,12 @@ function CanvasInner(): React.JSX.Element {
             />
           ) : null}
           {tools === null ? null : (
-            <ToolMenu at={tools.at} onPick={(tool) => void pickTool(tool)} onClose={closeTools} />
+            <ToolMenu
+              at={tools.at}
+              analysisLinks={view !== undefined && view.elements.length > 0 ? analysisLinks : null}
+              onPick={(tool) => void pickTool(tool)}
+              onClose={closeTools}
+            />
           )}
           {blockMenu === null ? null : (
             <ContextMenu

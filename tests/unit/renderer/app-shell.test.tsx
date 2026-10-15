@@ -49,13 +49,19 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Historique')
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Skills' }))
-    // Le choix du thème (4 boutons, dont Carbone : spec 022 D21) précède les réglages dans l'en-tête.
+    // En bas du rail (spec 033 D1) : le thème, dont le panneau porte les 4 choix (Carbone : spec 022 D21), puis les
+    // réglages.
+    await user.tab()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Thème' }))
+    await user.keyboard('{Enter}')
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Thème du système' }))
     await user.tab()
     await user.tab()
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Thème carbone' }))
+    await user.keyboard('{Escape}')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Thème' }))
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Réglages' }))
     await user.keyboard(' ')

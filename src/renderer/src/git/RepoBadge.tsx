@@ -1,4 +1,5 @@
 import type { GitStatusView } from '@shared/git/model'
+import { Icon } from '../app/Icon'
 import { useUiStore } from '../app/uiStore'
 import { IpcFailure } from '../lib/ipc'
 import { useGitStatus } from './gitQueries'
@@ -22,14 +23,15 @@ export function repoStateText(status: GitStatusView): string {
 /**
  * Badge du dépôt sur le genesis d'un projet lié (spec 021 T016) : branche et nombre de fichiers modifiés ; un clic ouvre
  * le volet Dépôt. Dossier introuvable ou git absent : dit en clair. `bar` : le même badge dans la barre du projet
- * ouvert, toujours visible (l'entrée du volet ne dépend plus du bandeau d'ouverture, refermable).
+ * ouvert, toujours visible. `chip` : la pastille de la barre fine (spec 033 D5), la branche seule et ⚠ quand des
+ * fichiers attendent un commit ou des commits un push ; l'état complet en infobulle et en nom accessible.
  */
 export function RepoBadge({
   genesisId,
   variant = 'node'
 }: {
   readonly genesisId: string
-  readonly variant?: 'node' | 'bar'
+  readonly variant?: 'node' | 'bar' | 'chip'
 }): React.JSX.Element | null {
   const openRepo = useUiStore((state) => state.openRepo)
   const query = useGitStatus(genesisId)
@@ -42,6 +44,29 @@ export function RepoBadge({
           ? 'git introuvable'
           : null
   if (text === null) return null
+  const status = query.data
+  if (variant === 'chip') {
+    const waiting = status !== undefined && (status.files.length > 0 || status.ahead > 0)
+    const branch =
+      status === undefined || status.state !== 'ok' ? text : status.detached ? 'HEAD détachée' : (status.branch ?? '?')
+    return (
+      <button
+        type="button"
+        className="flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-content-muted/30 px-2 text-xs text-content hover:bg-surface-raised"
+        title={`${text} — ouvrir le volet Dépôt (Ctrl+Maj+G)`}
+        aria-label={`Dépôt du projet : ${text}. Ouvrir le volet Dépôt`}
+        onClick={() => openRepo(genesisId)}
+      >
+        <Icon name="branch" size={13} />
+        {branch}
+        {waiting ? (
+          <span className="text-action">
+            <Icon name="warning" size={13} />
+          </span>
+        ) : null}
+      </button>
+    )
+  }
   return (
     <button
       type="button"

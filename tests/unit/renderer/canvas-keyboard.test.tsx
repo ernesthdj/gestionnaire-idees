@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { useCards } from '../../../src/renderer/src/canvas/cards/cardsStore'
@@ -103,7 +103,9 @@ describe('écran Idées', () => {
   it('should_ask_again_with_the_nature_filter_when_it_is_chosen', async () => {
     const user = userEvent.setup()
     const { api } = renderCanvas()
-    await user.selectOptions(await screen.findByLabelText('Filtrer par nature'), 'action')
+    // Les filtres sont dans le panneau « Filtrer » du dock (spec 033 D7).
+    await user.click(await screen.findByRole('button', { name: 'Filtrer (nature, catégorie)' }))
+    await user.selectOptions(screen.getByLabelText('Filtrer par nature'), 'action')
     await waitFor(() => expect(api.invoke).toHaveBeenCalledWith('canvas:get', { nature: 'action' }))
   })
 
@@ -135,8 +137,13 @@ describe('écran Idées', () => {
       frameId: null,
       origin: 'user' as const
     }
-    const { api } = renderCanvas({ ...canvasView(), blocks: [block] })
-    await user.click(await screen.findByRole('button', { name: '+ Bloc' }))
+    const { api, container } = renderCanvas({ ...canvasView(), blocks: [block] })
+    // Bloc libre : au clic droit dans le vide (spec 033 D8), posé au point du clic.
+    await waitFor(() => idea(/^Idée éclose : Mission mariage/))
+    const pane = container.querySelector('.react-flow__pane')
+    if (pane === null) throw new Error('pas de fond de carte')
+    fireEvent.contextMenu(pane, { clientX: 120, clientY: 80 })
+    await user.click(await screen.findByRole('menuitem', { name: /Bloc libre/ }))
     expect(api.invoke).toHaveBeenCalledWith('canvas:createBlock', expect.objectContaining({ x: expect.any(Number) }))
     await user.click(await screen.findByRole('button', { name: 'Supprimer le bloc' }))
     expect(api.invoke).toHaveBeenCalledWith('canvas:deleteBlock', { id: block.id })

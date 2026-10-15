@@ -2,7 +2,7 @@ import { cpSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { REPRISE_FIXTURES } from '../support/reprise'
-import { DEMO_PROJECT, freshProfile, launchApp, type LaunchedApp } from './support/app'
+import { DEMO_PROJECT, freshProfile, launchApp, type LaunchedApp, openProjectMenu } from './support/app'
 
 /**
  * Spec 031 lot 3 dans l'app réelle : entrer dans un module par double-clic (SC-002, mesuré image par image), passer
@@ -42,6 +42,7 @@ describe('explorateur en boîtes : entrer, passer, ressortir (spec 031 lot 3, e2
     run = await launchApp()
     const { page } = run
     await page.getByRole('button', { name: `Ouvrir ${GENESIS}` }).click()
+    await openProjectMenu(page)
     await page.getByRole('button', { name: 'Analyser le code…' }).click({ timeout: 30_000 })
     const panel = page.getByRole('region', { name: 'Analyser le code du projet' })
     await panel.getByRole('radio', { name: /Local uniquement/ }).check()

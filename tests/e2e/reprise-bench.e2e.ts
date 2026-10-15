@@ -117,7 +117,7 @@ describe('reprise d’un projet de 5 000 fichiers : mesures (spec 017 T036, SC-0
 
   it('should_analyse_5000_files_in_under_two_minutes_while_the_app_stays_responsive', async () => {
     const { page } = run
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Idées', { exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: 'Idées' }).click()
     await page.getByText('Idées en vrac', { exact: true }).click()
     await page.locator('.react-flow').waitFor()
     await page.getByRole('button', { name: 'Reprendre un projet existant' }).click()
@@ -178,15 +178,16 @@ describe('reprise d’un projet de 5 000 fichiers : mesures (spec 017 T036, SC-0
     const opened = Date.now()
     await page.getByRole('button', { name: 'Ouvrir l’explorateur' }).click({ timeout: 60_000 })
     await page.getByRole('heading', { name: /Explorateur · bench-5000/ }).waitFor()
-    await page.locator('.react-flow__node').first().waitFor()
+    const explorer = page.getByRole('region', { name: /Explorateur · bench-5000/ })
+    await explorer.locator('.react-flow__node').first().waitFor()
     const first = Date.now() - opened
     await run.shot('017-t036-02-explorateur')
-    results['explorerNodes'] = await page.locator('.react-flow__node').allInnerTexts()
+    results['explorerNodes'] = await explorer.locator('.react-flow__node').allInnerTexts()
 
     // Modules → dossiers d'un module → retour aux modules : chaque passage jusqu'aux nœuds dessinés.
     const switches: number[] = []
     const crumbs = page.getByRole('navigation', { name: 'Fil d’Ariane' })
-    const moduleNode = page.locator('.react-flow__node').filter({ hasText: 'Bench0' }).first()
+    const moduleNode = explorer.locator('.react-flow__node').filter({ hasText: 'Bench0' }).first()
     // Choisir le module (son détail s'affiche), puis l'ouvrir : chaque geste chronométré jusqu'à l'écran à jour.
     let started = Date.now()
     await moduleNode.click()
@@ -196,13 +197,13 @@ describe('reprise d’un projet de 5 000 fichiers : mesures (spec 017 T036, SC-0
     started = Date.now()
     await moduleNode.dblclick()
     await crumbs.getByText('Bench0').waitFor()
-    await page.locator('.react-flow__node').first().waitFor()
+    await explorer.locator('.react-flow__node').first().waitFor()
     switches.push(Date.now() - started)
     await run.shot('017-t036-03-niveau-2')
     started = Date.now()
     await crumbs.getByRole('button').first().click()
     await crumbs.getByText('Bench0').waitFor({ state: 'detached' })
-    await page.locator('.react-flow__node').first().waitFor()
+    await explorer.locator('.react-flow__node').first().waitFor()
     switches.push(Date.now() - started)
 
     // Déplacement de la carte : glisser le fond pendant une seconde, images mesurées.

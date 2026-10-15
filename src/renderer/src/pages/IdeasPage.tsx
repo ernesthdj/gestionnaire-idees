@@ -3,7 +3,6 @@ import { useUiStore } from '../app/uiStore'
 import { IdeasCanvas } from '../canvas/IdeasCanvas'
 import { useCards } from '../canvas/cards/cardsStore'
 import { SidePanel } from '../canvas/side/SidePanel'
-import { BrainstormBar } from '../home/BrainstormBar'
 import { ConflictView } from '../git/ConflictView'
 import { RunPanel } from '../run/RunPanel'
 import { useRunShortcuts } from '../run/useRunShortcuts'
@@ -39,7 +38,6 @@ export function IdeasPage(): React.JSX.Element {
   useRunShortcuts()
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <BrainstormBar />
       <div className="relative flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           {conflictGenesisId === null ? (

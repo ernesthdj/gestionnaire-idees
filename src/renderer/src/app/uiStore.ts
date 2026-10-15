@@ -86,15 +86,13 @@ interface UiState {
   seedChatDraft(neuronId: string, text: string): void
   takeChatDraft(neuronId: string): void
   setStructureView(genesisId: string, view: StructureView): void
-  /** Projet repris dont l'explorateur est ouvert en plein écran (spec 017 US2) ; `null` : aucun. */
-  readonly explorerGenesisId: string | null
   /**
    * Marques git à l'ouverture de l'explorateur : rediffusion (« Rejouer sur la carte », spec 021 US5) ou nouveautés
-   * depuis la dernière visite (« Voir sur la carte », T030) ; `null` : aucune.
+   * depuis la dernière visite (« Voir sur la carte », T030) ; `null` : aucune. Effacées au prochain choix de vue.
    */
   readonly explorerMarks: ExplorerMarks | null
+  /** L'explorateur d'un projet : sa vue Architecture (spec 033 D4, plus de page plein écran), avec ses marques. */
   openExplorer(genesisId: string, marks?: ExplorerMarks | null): void
-  closeExplorer(): void
   /** Projet dont l'onglet « ⎇ Dépôt » est ouvert dans le panneau de droite (spec 021 US1, spec 027 D3) ; `null` : aucun. */
   readonly repoGenesisId: string | null
   openRepo(genesisId: string): void
@@ -157,7 +155,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
       progressionReadings: state?.progressionReadings ?? {},
       viewport: state?.viewport ?? null,
       restoredViewport: state?.viewport ?? null,
-      explorerGenesisId: null,
+      explorerMarks: null,
       view: 'ideas'
     })
   },
@@ -216,7 +214,6 @@ export const useUiStore = create<UiState>()((set, get) => ({
       )
     set({ view: 'ideas' })
   },
-  explorerGenesisId: null,
   explorerMarks: null,
   repoGenesisId: null,
   structureViews: {},
@@ -241,6 +238,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   setStructureView: (genesisId, view) =>
     set((state) => ({
       panelFolded: false,
+      explorerMarks: null,
       structureViews: {
         ...Object.fromEntries(
           Object.entries(state.structureViews).map(([id, current]) =>
@@ -250,8 +248,10 @@ export const useUiStore = create<UiState>()((set, get) => ({
         [genesisId]: view
       }
     })),
-  openExplorer: (genesisId, marks = null) => set({ view: 'ideas', explorerGenesisId: genesisId, explorerMarks: marks }),
-  closeExplorer: () => set({ explorerGenesisId: null }),
+  openExplorer: (genesisId, marks = null) => {
+    get().setStructureView(genesisId, 'architecture')
+    set({ view: 'ideas', explorerMarks: marks })
+  },
   openRepo: (genesisId) => {
     useSidePanel.getState().openRepo(genesisId)
     set({ view: 'ideas' })

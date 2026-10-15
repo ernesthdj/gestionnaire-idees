@@ -154,3 +154,8 @@ body,
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+/* Marque de l'app en tête du rail (spec 033 D1) : l'orbe du genesis en miniature. */
+.app-mark {
+  background: conic-gradient(var(--color-idea), var(--color-accent), var(--color-seed), var(--color-idea));
+}

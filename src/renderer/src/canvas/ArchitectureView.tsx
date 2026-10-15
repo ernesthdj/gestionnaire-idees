@@ -11,6 +11,8 @@ import { FoldPanelButton } from './PanelFold'
  */
 export function ArchitectureView({ genesisId }: { readonly genesisId: string }): React.JSX.Element {
   const setStructureView = useUiStore((state) => state.setStructureView)
+  // Rediffusion ou nouveautés demandées depuis le volet Dépôt (spec 021, 033 D4).
+  const marks = useUiStore((state) => state.explorerMarks)
   const { target, notAnalyzed, loading } = useCodeAnalysis(genesisId)
   const switcher = (
     <>
@@ -22,8 +24,9 @@ export function ArchitectureView({ genesisId }: { readonly genesisId: string }):
     <div className="absolute inset-0 z-20 flex flex-col bg-surface">
       {target !== null ? (
         <ExplorerPage
-          key={target}
+          key={`${target}:${marks}`}
           genesisId={target}
+          marks={marks}
           switcher={switcher}
           onClose={() => setStructureView(genesisId, 'workflow')}
         />

@@ -45,7 +45,10 @@ export function useProbe(): void {
   const active = useAnalysteStatus()?.active === true
   const view = useUiStore((state) => state.view)
   const chatOpen = useUiStore((state) => state.chatNeuronId !== null)
-  const explorerOpen = useUiStore((state) => state.explorerGenesisId !== null)
+  // L'explorateur est la vue Architecture (spec 033 D4) : ouvert quand une carte l'affiche, panneau déplié.
+  const explorerOpen = useUiStore(
+    (state) => !state.panelFolded && Object.values(state.structureViews).includes('architecture')
+  )
 
   useEffect(() => {
     enableProbe(active)

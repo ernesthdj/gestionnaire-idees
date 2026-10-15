@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type Tool = 'idea' | 'label' | 'widget'
+export type Tool = 'idea' | 'label' | 'widget' | 'block' | 'links'
 
 /** Entrée d'un menu contextuel de la carte. */
 export interface MenuItem<T extends string> {
@@ -13,7 +13,8 @@ export interface MenuItem<T extends string> {
 const TOOLS: readonly MenuItem<Tool>[] = [
   { tool: 'idea', icon: '◆', label: 'Nouvelle idée', hint: 'Une idée à développer' },
   { tool: 'label', icon: 'T', label: 'Note', hint: 'Un texte libre posé sur la carte' },
-  { tool: 'widget', icon: '▣', label: 'Widget IA', hint: 'Un outil que Claude fabrique pour toi' }
+  { tool: 'widget', icon: '▣', label: 'Widget IA', hint: 'Un outil que Claude fabrique pour toi' },
+  { tool: 'block', icon: '□', label: 'Bloc libre', hint: 'Un bloc vide posé ici' }
 ]
 
 interface ToolMenuProps<T extends string> {
@@ -27,8 +28,26 @@ interface ToolMenuProps<T extends string> {
  * Boîte à outils de la carte (spec 004 FR-001) : clic droit dans le vide, l'outil choisi crée son objet à cet
  * endroit.
  */
-export function ToolMenu(props: ToolMenuProps<Tool>): React.JSX.Element {
-  return <ContextMenu {...props} items={TOOLS} label="Outils de la carte" />
+export function ToolMenu({
+  analysisLinks,
+  ...props
+}: ToolMenuProps<Tool> & {
+  /** Liens d'analyse au repos (spec 022 D29, 033 D8) : l'interrupteur, s'il y a des cartes de structure ; `null` sinon. */
+  readonly analysisLinks: boolean | null
+}): React.JSX.Element {
+  const items: readonly MenuItem<Tool>[] =
+    analysisLinks === null
+      ? TOOLS
+      : [
+          ...TOOLS,
+          {
+            tool: 'links',
+            icon: analysisLinks ? '✓' : '⇄',
+            label: analysisLinks ? 'Masquer les liens d’analyse au repos' : 'Montrer les liens d’analyse au repos',
+            hint: 'Appels mesurés entre éléments ; au survol d’un élément, ses liens s’affichent toujours'
+          }
+        ]
+  return <ContextMenu {...props} items={items} label="Outils de la carte" />
 }
 
 /**

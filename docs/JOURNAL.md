@@ -2131,3 +2131,24 @@ reprises.
 **Quoi :** demande de mentalyas : « Recentrer » centre la vue sur le genesis lié au dossier de projet (à défaut le
 premier éclos, sinon le premier), à 100 %, au lieu de cadrer tout le graphe ; « Tout afficher » (boutons de zoom) garde
 le cadrage de tout le graphe. Vérifié en e2e (carte déplacée et dézoomée, puis « Recentrer »).
+
+### [2026-10-15 17:30] FEAT — spec 033 « La coque compacte » : un maximum de canevas
+**Fichiers :** `src/renderer/src/app/AppShell.tsx`, `Rail.tsx`, `Icon.tsx`, `usePopover.ts` (nouveaux), `HeaderUsage.tsx`,
+`uiStore.ts`, `home/ProjectMenu.tsx` (nouveau, remplace `BrainstormBar.tsx`, retiré), `git/RepoBadge.tsx`,
+`git/OpeningSummary.tsx` (nouveau), `git/RepoPanel.tsx`, `canvas/CanvasToolbar.tsx`, `ToolMenu.tsx`, `IdeasCanvas.tsx`,
+`ArchitectureView.tsx`, `SavePoints.tsx`, `components/atoms/Button.tsx` (variante `ghost`), `pages/IdeasPage.tsx`,
+`analyste/useAnalysteStatus.ts`, `styles/tokens.css` ; specs 033 (nouvelle). Tests : `project-menu.test.tsx` (ex
+`brainstorm-bar`), `app-shell`, `canvas-toolbar`, `canvas-keyboard`, `canvas-tools`, `git-sync-panel`,
+`project-manager` ; e2e : aides `openProjectMenu` et `backToProjects`, sélecteurs mis à jour.
+**Quoi :** maquettes « La coque » (artifact, 4 pistes puis la fusion A + B validée par mentalyas). Rail de 48 px à gauche
+(sections en icônes, thème en panneau, réglages) ; une barre fine de 32 px (fil « section / projet ▾ » avec le menu du
+projet : retour aux projets, chemin, points de sauvegarde, « Analyser le code… » ; pastille git « ⎇ branche » et ⚠ quand
+il reste à commiter ou à pousser, qui ouvre le Dépôt ; jauges Claude compactes). Le bandeau d'ouverture est retiré :
+ses points (anomalies `/hub`, JOURNAL) sont en tête du volet Dépôt. Plus de bouton « Explorateur » : les autres portes
+(conversation, « Rejouer sur la carte », « Voir sur la carte ») ouvrent la vue Architecture avec leurs marques. Dock
+d'outils flottant en bas (compteurs, Chercher, Filtrer, Fermer les cartes, Reprendre, Réorganiser, Recentrer) ; « Bloc
+libre » et « Liens d'analyse au repos » au clic droit. La carte passe d'≈ 1 040 × 520 à ≈ 1 216 × 729 px.
+**Erreur corrigée :** les icônes Thème et Réglages se ressemblaient (deux soleils) : roue dentée pour les réglages.
+**Reste :** `reprise-bench.e2e.ts` (« Élément choisi » après un clic de module) et `reprise-resolution.e2e.ts` échouent :
+le premier attend qu'un clic choisisse un module, ce que la spec 031 a changé (le clic l'ouvre sur place) sans mettre le
+test à jour (inchangé depuis le 2026-10-12) ; le second échouait déjà depuis le lot 3 de la spec 032.

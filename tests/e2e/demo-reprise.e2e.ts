@@ -18,7 +18,7 @@ describe('projet repris de la démo (spec 017 T037, e2e)', () => {
 
   it('should_open_the_explorer_of_the_analysed_demo_project_in_local_only_mode', async () => {
     const { page } = run
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Idées', { exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('button', { name: 'Idées' }).click()
     // Un projet lié à un dossier a son propre canevas (spec 024) : on l'ouvre depuis la liste des projets.
     await page.getByText('boutique-demo', { exact: true }).first().click()
     await page.locator('.react-flow').waitFor()

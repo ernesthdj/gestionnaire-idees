@@ -6,6 +6,7 @@ import { BranchesTab } from './BranchesTab'
 import { ChangesTab } from './ChangesTab'
 import { useGitStatus } from './gitQueries'
 import { HistoryTab } from './HistoryTab'
+import { OpeningSummary } from './OpeningSummary'
 import { IssuesTab } from './IssuesTab'
 import { PrTab } from './PrTab'
 import { PublishPanel } from './PublishPanel'
@@ -64,6 +65,7 @@ export function RepoPanel({
           ✕
         </button>
       </div>
+      <OpeningSummary />
       {query.error !== null ? (
         <p role="alert" className="text-sm text-con">
           {query.error instanceof IpcFailure ? query.error.message : 'Le dépôt n’a pas pu être lu.'}

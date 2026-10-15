@@ -252,6 +252,6 @@ describe('publier, tirer, pousser dans le volet (spec 021 T025, US2)', () => {
       })
     })
     await user.click(await screen.findByRole('button', { name: 'Voir sur la carte' }))
-    expect(useUiStore.getState()).toMatchObject({ explorerGenesisId: G, explorerMarks: 'updates' })
+    expect(useUiStore.getState()).toMatchObject({ structureViews: { [G]: 'architecture' }, explorerMarks: 'updates' })
   })
 })
