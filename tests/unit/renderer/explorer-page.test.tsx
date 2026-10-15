@@ -603,6 +603,10 @@ describe('explorateur d’un projet repris, en boîtes (spec 017 US2, spec 031 l
     expect(within(usedBy).getByRole('button', { name: 'Controllers' })).toBeTruthy()
     expect(within(usedBy).getByText('OrdersController.Post appelle OrderService.Place')).toBeTruthy()
     expect(within(within(panel).getByRole('region', { name: 'Utilise' })).getByText('rien dans le projet')).toBeTruthy()
+    // Un lien qui porte une raison (spec 017 US6) la montre, avec sa cible, dans « Liens précisés ».
+    const explained = await within(panel).findByRole('region', { name: 'Liens précisés' })
+    expect(within(explained).getByRole('button', { name: 'Shop.Infrastructure.Stores.Resolve' })).toBeTruthy()
+    expect(within(explained).getByText(/— 4 cibles possibles/)).toBeTruthy()
     // Les appels internes (OrderService → Stores) ne sont pas des voisins ; le contenu ouvre le code.
     await expectNoAxeViolations(container)
     await user.click(

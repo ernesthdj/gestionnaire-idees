@@ -3,6 +3,7 @@ import { useId, useMemo } from 'react'
 import type { ExplorerMapView, ExplorerNodeDetailView, MapFileView } from '@shared/ipc/reprise'
 import { call } from '../../lib/ipc'
 import { LAYER_LABELS, PROVENANCE_LABELS, sentenceText } from '../labels'
+import { Links } from '../NodePanel'
 import { fileSheet, moduleSheet, type SheetLink } from './sheet'
 
 /** Voisins d'une fiche, en mots : « Domain · 3 appels », puis les appels eux-mêmes. */
@@ -76,6 +77,11 @@ export function ModuleSheet({
   if (module === undefined) return null
   const layer = LAYER_LABELS[module.layer]
   const analogy = detail.data?.analogy ?? null
+  // Liens précisés (spec 017 US6) : ceux qui portent une raison (déduits par Claude, ou restés incertains), cible et
+  // raison en clair ; un clic ouvre le fichier de la cible.
+  const explained = [...(detail.data?.callees ?? []), ...(detail.data?.callers ?? [])].filter(
+    (link) => link.reason !== null
+  )
   return (
     <section aria-labelledby={titleId} className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-4 text-sm">
       <header>
@@ -96,6 +102,16 @@ export function ModuleSheet({
       )}
       <Neighbours title="Utilise" links={sheet.uses} onGo={onModule} />
       <Neighbours title="Utilisé par" links={sheet.usedBy} onGo={onModule} />
+      {explained.length === 0 ? null : (
+        <Links
+          title="Liens précisés"
+          links={explained}
+          onGo={(link) => {
+            const file = map.files.find((entry) => entry.path === link.path)
+            if (file !== undefined) onFile(file)
+          }}
+        />
+      )}
       <section aria-label="Contenu">
         <h3 className="text-xs font-semibold text-content-muted">Contenu</h3>
         <ul className="mt-1 flex flex-col gap-0.5">

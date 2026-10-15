@@ -129,7 +129,7 @@ Electron · React + TypeScript (strict) + Tailwind · React Flow · SQLite chiff
 > proxy echoue) ; depuis le 2026-10-12, `lodash-es ^4.18.1` et `mermaid > katex 0.18.8` (dependances de mermaid
 > 12.0.0, schemas des fichiers .md ; a retirer quand mermaid les remonte). Jamais `npm audit fix --force` (il
 > retrograderait drizzle-kit 0.31 → 0.18 et mermaid 12 → 10).
-> Tests e2e (`npm run e2e`) : `reprise-bench.e2e.ts` mesure la reprise d'un projet genere de 5 000 fichiers (2 a 3 min,
+> Tests e2e (`npm run e2e`) ; à part, `npm run e2e:bench` : `reprise-bench.e2e.ts` mesure la reprise d'un projet genere de 5 000 fichiers (2 a 3 min,
 > seuils de la spec 017 SC-004 / SC-005, resultats dans `test-results/e2e/reprise-bench.json`).
 > `npm ci` echoue si l'app ou le relais MCP tourne (`electron.exe` verrouille) : fermer l'app, ou `npm install` puis
 > `node node_modules/electron/install.js`.

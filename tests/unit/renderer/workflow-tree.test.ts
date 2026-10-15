@@ -260,4 +260,3 @@ describe('workflowGraph', () => {
     expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '017'))?.abandoned).toBeUndefined()
   })
 })
-

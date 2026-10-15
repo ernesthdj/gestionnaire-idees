@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "electron-vite build && vitest run --config vitest.e2e.config.ts",
+    "e2e:bench": "electron-vite build && vitest run --config vitest.e2e.config.ts --mode bench",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "bench:local": "tsx scripts/bench-local-model.ts",

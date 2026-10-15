@@ -184,30 +184,33 @@ describe('reprise d’un projet de 5 000 fichiers : mesures (spec 017 T036, SC-0
     await run.shot('017-t036-02-explorateur')
     results['explorerNodes'] = await explorer.locator('.react-flow__node').allInnerTexts()
 
-    // Modules → dossiers d'un module → retour aux modules : chaque passage jusqu'aux nœuds dessinés.
+    // Modules → intérieur d'un module (double-clic) → retour aux modules (Échap), spec 031 : chaque passage jusqu'à la
+    // scène dessinée.
     const switches: number[] = []
-    const crumbs = page.getByRole('navigation', { name: 'Fil d’Ariane' })
+    const inside = explorer.getByLabel(/^intérieur du module Bench1,/)
     const moduleNode = explorer.locator('.react-flow__node').filter({ hasText: 'Bench0' }).first()
     // Choisir le module (son détail s'affiche), puis l'ouvrir : chaque geste chronométré jusqu'à l'écran à jour.
     let started = Date.now()
     await moduleNode.click()
     const panel = page.getByRole('complementary', { name: 'Élément choisi' })
-    await panel.getByText('dotnet/Bench0').waitFor()
+    // La fiche d'un module (spec 031) porte son nom en titre.
+    await panel.getByRole('heading', { name: 'Bench0', exact: true }).waitFor()
     const selectMs = Date.now() - started
     started = Date.now()
-    await moduleNode.dblclick()
-    await crumbs.getByText('Bench0').waitFor()
-    await explorer.locator('.react-flow__node').first().waitFor()
+    // Le module choisi s'est ouvert sur place (un cadre) : on entre dans un autre, encore fermé.
+    await explorer.getByLabel(/^module Bench1,/).dblclick()
+    await inside.waitFor()
     switches.push(Date.now() - started)
     await run.shot('017-t036-03-niveau-2')
     started = Date.now()
-    await crumbs.getByRole('button').first().click()
-    await crumbs.getByText('Bench0').waitFor({ state: 'detached' })
-    await explorer.locator('.react-flow__node').first().waitFor()
+    await page.keyboard.press('Escape')
+    // Le niveau des modules est revenu quand le module quitté y est de nouveau dessiné (le fondu de l'intérieur, après
+    // la transition de 700 ms, n'est pas un changement de niveau).
+    await explorer.getByLabel(/^module Bench1,/).waitFor()
     switches.push(Date.now() - started)
 
     // Déplacement de la carte : glisser le fond pendant une seconde, images mesurées.
-    const pane = page.locator('.react-flow__pane')
+    const pane = explorer.locator('.react-flow__pane')
     const box = await pane.boundingBox()
     if (box === null) throw new Error('carte introuvable')
     await startFrames()

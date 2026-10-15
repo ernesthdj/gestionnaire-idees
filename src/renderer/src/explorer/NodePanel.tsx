@@ -15,7 +15,8 @@ const SOURCES: Readonly<Record<ExplorerNodeDetailView['categorySource'], string>
   user: 'choisie par toi'
 }
 
-function Links({
+/** Liens d'un élément, avec leur fiabilité et, pour un lien déduit ou incertain, sa raison (spec 017 US6). */
+export function Links({
   title,
   links,
   onGo

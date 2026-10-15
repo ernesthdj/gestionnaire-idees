@@ -328,7 +328,7 @@ function CanvasInner(): React.JSX.Element {
   const workflows = useWorkflows(workflowIds)
   const arrival = useUiStore((state) => state.workflowArrival)
 
-  // La barre du genesis du projet monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
+  // La barre des vues monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
   const projectGenesisId = useUiStore((state) => state.brainstorm?.genesisId ?? null)
   const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[]; headerBar: StructureBarData | null } => {
     if (view === undefined || layout === null) return { nodes: [], edges: [], headerBar: null }
@@ -344,8 +344,10 @@ function CanvasInner(): React.JSX.Element {
       analysisLinks,
       workflows
     )
-    const barId = projectGenesisId === null ? null : `structure-bar-${projectGenesisId}`
-    const bar = built.nodes.find((node) => node.id === barId)
+    // Celle du genesis du projet, sinon la première de la carte (un projet repris a son propre genesis) : la navigation
+    // des vues reste toujours en haut dans Idées.
+    const bars = built.nodes.filter((node) => node.type === 'structureBar')
+    const bar = bars.find((node) => node.id === `structure-bar-${projectGenesisId ?? ''}`) ?? bars[0]
     const shown = bar === undefined ? built.nodes : built.nodes.filter((node) => node !== bar)
     const nodes =
       arrival === null ? shown : markArrival(shown, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')

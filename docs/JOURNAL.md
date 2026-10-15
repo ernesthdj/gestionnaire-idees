@@ -2167,3 +2167,20 @@ carte l'y place par un portail et ne la dessine plus au-dessus du genesis du pro
 Progression et dans la carte en boîtes de l'Architecture ; « Tout afficher » glisse ; glisser le canevas de la
 Progression ne sélectionne plus de texte. D12 : spec ou fichier de tâches abandonné cerné de rouge dans le Workflow ;
 étape et briques rouges dans la Progression.
+
+### [2026-10-15 20:00] FIX — barre des vues toujours en haut ; e2e de la reprise à jour ; raisons des liens rendues
+**Fichiers :** `canvas/IdeasCanvas.tsx`, `explorer/boxes/BoxSheet.tsx`, `explorer/NodePanel.tsx` (`Links` exporté) ;
+spec 033 D10 précisée. Tests : `explorer-page.test.tsx` ; e2e `reprise-bench`, `reprise-resolution`.
+**Erreur :** sur le projet de mentalyas, la barre des vues restait sur la carte : elle ne montait que pour le genesis
+du brainstorm, or ce projet est repris (son genesis est un autre). → La barre fine prend celle du genesis du projet,
+sinon la première de la carte.
+**Erreur (spec 031 lot 2, 2026-10-14) :** la fiche de module en boîtes avait remplacé le panneau de la spec 017 sans
+reprendre les raisons des liens précisés par Claude (017 US6) : « Préciser les liens avec l'IA » n'avait plus de
+résultat visible. → Section « Liens précisés » dans la fiche (cible et « déduit — raison », un clic ouvre le fichier).
+**Quoi :** `reprise-bench` suit la spec 031 (fiche titrée par le nom du module ; entrer par double-clic dans un module
+fermé, sortir par Échap ; la sortie se mesure au retour du niveau des modules, pas à la fin du fondu) : 763 / 460 ms,
+sélection 358 ms, déplacement p95 7 ms. `reprise-resolution` repasse.
+**Règle apprise :** quand une vue en remplace une autre, relancer les e2e des fonctions que l'ancienne montrait.
+**Ajout :** le banc de mesure (`reprise-bench.e2e.ts`) sort de `npm run e2e` et se lance par `npm run e2e:bench` (mode
+Vitest `bench`) : enchaîné aux autres, ses images tombaient à une par seconde (fenêtre ralentie par Chromium) ; seul, il
+passe 3 sur 3.

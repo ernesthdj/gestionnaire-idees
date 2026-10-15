@@ -35,3 +35,5 @@ Un commit pour la spec livrée. Chaque lot : tests, typecheck, lint, Prettier, e
 - [x] T052 D11 : zoom amorti dans Progression et Architecture (`useSmoothZoom`, bornes réglables), « Tout afficher »
   qui glisse, glisser sans sélection de texte ; tests.
 - [x] T053 D12 : l'abandonné en rouge dans le Workflow et la Progression ; tests.
+- [x] T054 Barre des vues toujours en haut (genesis du projet, sinon la première de la carte) ; e2e de la reprise
+  remis à jour (spec 031) ; raisons des liens précisés rendues dans la fiche de module (017 US6).
