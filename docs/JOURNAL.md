@@ -2124,3 +2124,10 @@ l'ouverture se cale sur la largeur, « Tout afficher » cadre tout.
 **Choix :** un canevas maison (transformation CSS) plutôt que React Flow : les trois lectures gardent leur mise en
 page HTML, leurs tests et leur accessibilité ; les fonctions de zoom de la carte (`zoomAround`, `wheelFactor`) sont
 reprises.
+
+### [2026-10-15 15:00] FEAT — « Recentrer » ramène sur le genesis du projet (spec 024 D20)
+**Fichiers :** `src/renderer/src/canvas/projectGenesis.ts` (nouveau), `canvas/IdeasCanvas.tsx` ; spec 024 D20. Tests :
+`unit/renderer/project-genesis.test.ts`.
+**Quoi :** demande de mentalyas : « Recentrer » centre la vue sur le genesis lié au dossier de projet (à défaut le
+premier éclos, sinon le premier), à 100 %, au lieu de cadrer tout le graphe ; « Tout afficher » (boutons de zoom) garde
+le cadrage de tout le graphe. Vérifié en e2e (carte déplacée et dézoomée, puis « Recentrer »).

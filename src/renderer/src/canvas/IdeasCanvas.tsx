@@ -25,6 +25,7 @@ import { call, IpcFailure } from '../lib/ipc'
 import { probeAction } from '../analyste/probe'
 import { timingFor } from '../motion/durations'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
+import { projectGenesisOf } from './projectGenesis'
 import { buildGraph, computeLayout, ideaLinks, structureFlowEdge, type CanvasNode } from './buildGraph'
 import { focusEdges } from './structureGraph'
 import { ImportWizard } from '../reprise/ImportWizard'
@@ -663,9 +664,19 @@ function CanvasInner(): React.JSX.Element {
     }
   }, [graph, centerOn, notShown])
 
-  const recenter = useCallback(() => {
+  // « Tout afficher » : tout le graphe ; « Recentrer » : le genesis du projet, à 100 % (spec 024 D20).
+  const fitAll = useCallback(() => {
     if (bounds !== null) void flow.fitBounds(bounds, { padding: 0.05, duration: timingFor('dive', reduced).duration })
   }, [bounds, flow, reduced])
+  const recenter = useCallback(() => {
+    const genesis = projectGenesisOf(view?.ideas ?? [])
+    const node = genesis === null ? undefined : graphRef.current.nodes.find((entry) => entry.id === genesis.id)
+    if (node === undefined) {
+      fitAll()
+      return
+    }
+    void flow.setCenter(node.position.x, node.position.y, { zoom: 1, duration: timingFor('dive', reduced).duration })
+  }, [view, flow, reduced, fitAll])
 
   // Nouveau bloc au centre de la partie visible de la carte.
   const addBlock = useCallback(async (): Promise<void> => {
@@ -1029,7 +1040,7 @@ function CanvasInner(): React.JSX.Element {
                 <ControlButton onClick={() => zoomBy(1 / 1.25)} aria-label="Dézoomer" title="Dézoomer">
                   −
                 </ControlButton>
-                <ControlButton onClick={recenter} aria-label="Tout afficher" title="Tout afficher">
+                <ControlButton onClick={fitAll} aria-label="Tout afficher" title="Tout afficher">
                   ⤢
                 </ControlButton>
               </Controls>
