@@ -28,6 +28,12 @@ Chercher dans le titre et le texte des notes, résultats classés par date.
 
 Idée pas encore travaillée : envoyer une note à quelqu'un sans compte.
 `,
+  'docs/brainstorm/L1-notes-design.md': `# L1 — Le design de l'application (démo)
+
+**Maturité** : complet · **Tâches** : docs/TACHES-DESIGN.md
+
+Une liste de notes triée par date, une recherche toujours visible, lisible au clavier et au lecteur d'écran.
+`,
   'docs/TACHES-PARTAGE.md': `# Tâches — Partage par lien (démo, ébauche)
 
 - [ ] Créer un lien de partage

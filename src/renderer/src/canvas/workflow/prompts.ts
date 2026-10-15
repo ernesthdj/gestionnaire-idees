@@ -7,6 +7,24 @@ const BRAINSTORM_OUTPUT =
   '« - [ ] T001 … ») et nomme ce fichier dans l’en-tête par « **Tâches** : docs/TACHES-<Sujet>.md ». Ne pose rien dans ' +
   'la carte de structure.'
 
+/**
+ * Règles du projet, rappelées à chaque consigne d'implémentation (spec 032 Q10) : le chat ne charge aucun réglage
+ * (`--setting-sources ""`), le CLAUDE.md du projet n'est lu que si on le demande.
+ */
+const PROJECT_RULES =
+  'Avant de commencer, lis le CLAUDE.md du projet et ses règles de travail (docs/claude/ s’il existe) et suis-les. ' +
+  'Vérifie avec les commandes du projet (typecheck, lint, format, tests), consigne le changement dans son journal ' +
+  '(docs/JOURNAL.md s’il en tient un) ; jamais --no-verify, jamais d’ajout global (git add -A) sans revue, aucun ' +
+  'commit sans mon accord.'
+
+/** Un fichier de tâches sans brainstorm (spec 032 Q10) : écrire d'abord sa conception, ses tâches restent des ébauches. */
+const writeBrainstormFor = (file: string): string =>
+  `${file} n’a pas de brainstorm : ses tâches restent des ébauches. Écris d’abord sa conception dans ` +
+  'docs/brainstorm/L1<lettre>-<sujet>.md avec /brainstorm (décisions, choix techniques, ce qui manque), en posant tes ' +
+  `questions une à une, avec sous son titre « **Tâches** : ${file} · **Maturité** : insuffisant | suffisant | ` +
+  'complet ». Puis précise ou complète les tâches du fichier ; rien n’est implémenté tant que la maturité n’est pas ' +
+  '« complet ».'
+
 /** Continuer (ou rouvrir) le brainstorm d'un document. */
 const continueBrainstorm = (path: string): string =>
   `Continue le brainstorm de ${path} avec /brainstorm : relis-le, pose tes questions une à une et complète-le. ${BRAINSTORM_OUTPUT}`
@@ -21,10 +39,13 @@ export function promptFor(item: WorkflowItem): string | null {
   const { subject } = item
   if (item.sketch === true && (subject.kind === 'task' || subject.kind === 'fileTask')) {
     const task = `« ${subject.task.text.replace(/`/g, '')} »`
-    return item.origin === null || item.origin === undefined
-      ? null
-      : `La tâche ${task} est une ébauche : le brainstorm de ${item.origin} n’est pas complet. Continue ce brainstorm ` +
-          `en précisant cette piste (la garder, la changer ou l’écarter), sans l’implémenter. ${BRAINSTORM_OUTPUT}`
+    if (item.origin === null || item.origin === undefined) {
+      return subject.kind === 'fileTask' ? writeBrainstormFor(subject.file.path) : null
+    }
+    return (
+      `La tâche ${task} est une ébauche : le brainstorm de ${item.origin} n’est pas complet. Continue ce brainstorm ` +
+      `en précisant cette piste (la garder, la changer ou l’écarter), sans l’implémenter. ${BRAINSTORM_OUTPUT}`
+    )
   }
   switch (subject.kind) {
     case 'task':
@@ -32,11 +53,11 @@ export function promptFor(item: WorkflowItem): string | null {
       if (subject.task.done) {
         return `Relis la tâche ${subject.task.id} (faite) de la spec ${subject.spec.dir} (${subject.spec.dir}/tasks.md) : explique ce qu'elle a changé et vérifie qu'elle est complète (fichiers cités, tests).`
       }
-      return `Implémente la tâche ${subject.task.id} de la spec ${subject.spec.dir} (${subject.spec.dir}/tasks.md) en suivant /speckit-implement : marque sa case « - [~] » en commençant, lis la spec et le plan, fais la tâche, vérifie (typecheck, lint, tests), puis coche sa case « - [x] ».`
+      return `Implémente la tâche ${subject.task.id} de la spec ${subject.spec.dir} (${subject.spec.dir}/tasks.md) en suivant /speckit-implement : marque sa case « - [~] » en commençant, lis la spec et le plan, fais la tâche, vérifie, puis coche sa case « - [x] ». ${PROJECT_RULES}`
     case 'story': {
       const ids = subject.story.tasks.filter((task) => !task.done).map((task) => task.id)
       if (ids.length === 0) return null
-      return `Mène les tâches restantes de l'US${subject.story.number} « ${subject.story.title} » de la spec ${subject.spec.dir}, dans l'ordre : ${ids.join(', ')}. Coche chaque case quand elle est faite.`
+      return `Mène les tâches restantes de l'US${subject.story.number} « ${subject.story.title} » de la spec ${subject.spec.dir}, dans l'ordre : ${ids.join(', ')}. Coche chaque case quand elle est faite. ${PROJECT_RULES}`
     }
     case 'spec':
       return `Parlons de la spec ${subject.spec.dir} : lis spec.md, plan.md et tasks.md, puis dis-moi où elle en est et ce qu'il reste à faire.`
@@ -57,16 +78,18 @@ export function promptFor(item: WorkflowItem): string | null {
       if (subject.task.done) {
         return `Relis la tâche ${task} (faite) de ${where} : explique ce qu'elle a changé et vérifie qu'elle est complète.`
       }
-      return `Fais la tâche ${task} de ${where}. Avant de commencer, marque sa case « - [~] » dans le fichier ; vérifie ton travail, puis coche-la « - [x] ». Ne change rien d'autre dans le fichier de tâches.`
+      return `Fais la tâche ${task} de ${where}. Avant de commencer, marque sa case « - [~] » dans le fichier ; vérifie ton travail, puis coche-la « - [x] ». Ne change rien d'autre dans le fichier de tâches. ${PROJECT_RULES}`
     }
     case 'taskGroup': {
       const left = [...subject.group.tasks, ...subject.group.groups.flatMap((group) => group.tasks)].filter(
         (task) => !task.done
       )
       if (left.length === 0) return null
-      return `Mène les tâches restantes de « ${subject.group.title} » dans ${subject.file.path}, dans l'ordre. Pour chacune : marque sa case « - [~] » en commençant, coche-la « - [x] » quand elle est faite et vérifiée.`
+      if (item.origin === null || item.origin === undefined) return writeBrainstormFor(subject.file.path)
+      return `Mène les tâches restantes de « ${subject.group.title} » dans ${subject.file.path}, dans l'ordre. Pour chacune : marque sa case « - [~] » en commençant, coche-la « - [x] » quand elle est faite et vérifiée. ${PROJECT_RULES}`
     }
     case 'taskFile':
+      if (item.origin === null || item.origin === undefined) return writeBrainstormFor(subject.file.path)
       return `Parlons de ${subject.file.path} : lis-le, puis dis-moi où en est le projet (tâches faites, en cours, à faire) et quoi faire ensuite.`
     default:
       return null

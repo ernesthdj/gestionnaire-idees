@@ -129,9 +129,9 @@ export interface TaskFileView {
   readonly partial: boolean
 }
 
-/** Idée à brainstormer (D11) : un document de niveau 1 qu'aucune spec ne cite, hors fondation. */
+/** Idée à brainstormer (D11) : un document de niveau 1 qu'aucune spec ne cite, hors fondation, pas encore complet. */
 export const isToBrainstorm = (doc: BrainstormDocView): boolean =>
-  doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md'
+  doc.level === 1 && doc.coveredBy.length === 0 && doc.name !== 'L1-fondation.md' && doc.maturity !== 'complet'
 
 /** D'où vient un nœud de l'arbre du Workflow (spec 032 D9). */
 export type WorkflowTreeSource = 'doc' | 'spec' | 'story' | 'taskFile' | 'lot' | 'task'

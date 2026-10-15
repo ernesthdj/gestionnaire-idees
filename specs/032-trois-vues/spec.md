@@ -111,6 +111,14 @@ validées par mentalyas dans l'artifact de brainstorm
   **« ✦ Plus tard »**, replié, comme « ✔ Bâti ». **Un clic** sur une famille, une brique ou une famille d'un groupe
   ouvre la vue **Workflow** centrée sur son rond : ses ancêtres repliés et lui-même se déplient, le rond et ses
   carrés sont surlignés quelques secondes (un contour fixe en animations réduites).
+- **Q10 (2026-10-15, après les pipelines d'agents)** Un fichier de tâches qu'aucun document ne nomme (`**Tâches**`)
+  comptait d'office comme mûr (100 %) : ses tâches étaient des carrés à implémenter alors que leur conception n'avait
+  jamais été écrite (le brainstorm des pipelines était resté dans une conversation). → Un fichier de tâches **orphelin
+  est « non évalué »** : ses tâches restent des **ébauches** (D5) tant qu'un document de brainstorm complet ne le nomme
+  pas ; « Discuter » sur lui ou sur une de ses ébauches fait écrire ce brainstorm (avec `**Tâches**` et `**Maturité**`).
+  Et toute consigne d'implémentation (tâche, user story, tâche de fichier, lot) rappelle les règles du projet : lire
+  son `CLAUDE.md` et ses règles de travail, vérifier avec ses commandes (typecheck, lint, format, tests), consigner le
+  changement dans son journal, jamais `--no-verify` ni d'ajout global sans revue (le chat ne charge aucun réglage).
 - **Q9 (2026-10-15)** L'Architecture ne reprend que ce qui aide à comprendre le projet : le code et la doc
   informative (README, fondation, brainstorms, specs). L'outillage et la doc **utiles seulement à l'IA** (skills,
   `.specify`, `graphify-out` et ses 2 400 fichiers, consignes `CLAUDE.md`, `docs/claude/`, journal) sortent **dès

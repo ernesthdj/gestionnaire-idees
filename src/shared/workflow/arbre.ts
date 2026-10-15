@@ -239,7 +239,8 @@ export function workflowArbre(
     const ownerDoc = owner === undefined ? undefined : byName.get(owner)
     attach(
       owner === FOUNDATION_DOC ? null : (owner ?? null),
-      fileRound(file, ownerDoc === undefined ? 100 : maturityOf(ownerDoc))
+      // Orphelin (aucun document ne le nomme) : non évalué, ses tâches restent des ébauches (spec 032 Q10).
+      fileRound(file, ownerDoc === undefined ? null : maturityOf(ownerDoc))
     )
   }
 

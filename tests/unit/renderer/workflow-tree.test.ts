@@ -207,6 +207,17 @@ describe('workflowTree (spec 032)', () => {
     const prompt = hachage === undefined ? null : promptFor(hachage)
     expect(prompt).toContain('La tâche « Hachage » est une ébauche : le brainstorm de docs/brainstorm/L1j-carte.md')
     expect(prompt).not.toContain('« - [~] »')
+
+    // Le même fichier, qu'aucun document ne nomme (spec 032 Q10) : ses tâches restent des ébauches et « Discuter »
+    // (sur lui ou sur une tâche) fait d'abord écrire son brainstorm.
+    const orphan = workflowTree({ view: view([], DOCS, [file]) }, G)
+    const sketch = orphan.items.find((item) => item.key === workflowKey(G, 'ttask', 'fa-l1-g1-t2'))
+    expect(sketch).toMatchObject({ sketch: true, next: false })
+    const write = sketch === undefined ? null : promptFor(sketch)
+    expect(write).toContain('docs/TACHES-CARTE.md n’a pas de brainstorm : ses tâches restent des ébauches.')
+    expect(write).toContain('« **Tâches** : docs/TACHES-CARTE.md · **Maturité** :')
+    const round = orphan.items.find((item) => item.key === workflowKey(G, 'tfile', 'fa'))
+    expect(round === undefined ? null : promptFor(round)).toContain('n’a pas de brainstorm')
   })
 
   it('should_show_a_single_message_when_the_project_is_empty_or_unreadable', () => {

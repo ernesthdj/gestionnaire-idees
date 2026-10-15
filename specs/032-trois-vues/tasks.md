@@ -47,3 +47,5 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
   du Brainstormer.
 - [x] T062 Q8 : la Progression en canevas (zoom, déplacement, « Tout afficher »), matière organique, groupe
   « ✦ Plus tard », clic → Workflow centré, déplié et surligné ; tests ; captures sur le dépôt du Brainstormer.
+- [x] T063 Q10 : fichier de tâches orphelin « non évalué » (ébauches, consigne « écrire son brainstorm ») ; règles du
+  projet rappelées dans les consignes d'implémentation ; démo et e2e ; tests.

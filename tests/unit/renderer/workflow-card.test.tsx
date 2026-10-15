@@ -254,9 +254,13 @@ function renderCard(key: string, elements: readonly ElementView[] = [], missingF
 
 describe('consignes de « Discuter » (spec 023 US2)', () => {
   it('should_ask_to_implement_a_task_lead_a_story_or_brainstorm_an_idea_and_nothing_for_a_spec', () => {
-    expect(promptFor(item(workflowKey(G, 'task', '022', 'T011')))).toBe(
-      'Implémente la tâche T011 de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) en suivant /speckit-implement : marque sa case « - [~] » en commençant, lis la spec et le plan, fais la tâche, vérifie (typecheck, lint, tests), puis coche sa case « - [x] ».'
+    const implement = promptFor(item(workflowKey(G, 'task', '022', 'T011')))
+    expect(implement).toContain(
+      'Implémente la tâche T011 de la spec specs/022-noeuds-vivants (specs/022-noeuds-vivants/tasks.md) en suivant /speckit-implement'
     )
+    // Les règles du projet sont rappelées (spec 032 Q10) : le chat ne charge aucun réglage.
+    expect(implement).toContain('lis le CLAUDE.md du projet et ses règles de travail')
+    expect(implement).toContain('jamais --no-verify')
     expect(promptFor(item(workflowKey(G, 'story', '022', '1')))).toContain(
       "Mène les tâches restantes de l'US1 « Carte des idées » de la spec specs/022-noeuds-vivants, dans l'ordre : T011."
     )

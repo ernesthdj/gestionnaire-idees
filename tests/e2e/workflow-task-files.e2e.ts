@@ -36,6 +36,12 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     freshProfile(() => {
       mkdirSync(join(DIR, 'docs'), { recursive: true })
       writeFileSync(join(DIR, 'docs', 'USER-STORIES.md'), USER_STORIES)
+      // Un fichier de tâches s'implémente quand un brainstorm complet le nomme (spec 032 Q10).
+      mkdirSync(join(DIR, 'docs', 'brainstorm'), { recursive: true })
+      writeFileSync(
+        join(DIR, 'docs', 'brainstorm', 'L1-comptes.md'),
+        '# L1 — Comptes et vitrine\n\n**Maturité** : complet · **Tâches** : docs/USER-STORIES.md\n'
+      )
       writeFileSync(join(DIR, 'docs', 'FOUNDATION.md'), '# Fondation\n- [ ] Pas une tâche\n')
       writeFileSync(join(DIR, 'CLAUDE.md'), '- [x] Règle\n')
     })
@@ -60,6 +66,8 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     // Relire donne la même carte (mêmes nœuds, mêmes états) : la structure vient du fichier, rien n'est généré.
     await page.getByRole('button', { name: 'Relire', exact: true }).click()
     await branch.waitFor()
+    // Sous son brainstorm, l'arbre a un niveau de plus : on cadre tout (la carte ne dessine que ce qui est visible).
+    await page.getByRole('button', { name: 'Tout afficher' }).click()
     await page.getByLabel(/^Carré Mot de passe haché, en cours/).waitFor()
     await page.getByLabel(/^Carré Courriel de vérification, à faire/).waitFor()
     await page.getByLabel(/^Carré Compte créé « en attente », faite/).waitFor()

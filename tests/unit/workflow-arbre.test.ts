@@ -149,10 +149,11 @@ describe('arbre du Workflow (spec 032 D9, D10, D5, D6)', () => {
       ['Index', 'square', true],
       ['Filtres', 'square', true]
     ])
-    // Un fichier de tâches sans rond est un plan écrit : ses carrés ne sont pas des ébauches.
-    expect(
-      find(tree.nodes, 'file:' + parseTaskFile('docs/TACHES-AGENTS.md', TACHES_SEUL).key)?.children[0]?.sketch
-    ).toBe(false)
+    // Un fichier de tâches sans document qui le nomme est « non évalué » (spec 032 Q10) : ses carrés sont des ébauches
+    // tant qu'un brainstorm complet ne le rattache pas.
+    const orphan = find(tree.nodes, 'file:' + parseTaskFile('docs/TACHES-AGENTS.md', TACHES_SEUL).key)
+    expect(orphan?.maturity).toBeNull()
+    expect(orphan?.children[0]?.sketch).toBe(true)
   })
 
   it('should_pick_the_square_in_progress_first_then_the_first_to_do_and_skip_delivered_specs', () => {

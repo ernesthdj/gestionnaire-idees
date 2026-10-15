@@ -2184,3 +2184,21 @@ sélection 358 ms, déplacement p95 7 ms. `reprise-resolution` repasse.
 **Ajout :** le banc de mesure (`reprise-bench.e2e.ts`) sort de `npm run e2e` et se lance par `npm run e2e:bench` (mode
 Vitest `bench`) : enchaîné aux autres, ses images tombaient à une par seconde (fenêtre ralentie par Chromium) ; seul, il
 passe 3 sur 3.
+
+### [2026-10-15 21:30] FIX — spec 032 Q10 : un fichier de tâches sans brainstorm n'est plus « prêt » ; consignes avec les règles du projet
+**Fichiers :** `src/shared/workflow/arbre.ts`, `src/renderer/src/canvas/workflow/prompts.ts`, `src/shared/ipc/workflow.ts`
+(`isToBrainstorm`), `src/main/infrastructure/db/demo/demoMethod.ts` ; spec 032 Q10, T063. Tests : `workflow-arbre`,
+`workflow-tree`, `workflow-card`, `seed-demo` ; e2e `workflow-task-files`.
+**Erreur :** les pipelines d'agents (`docs/TACHES-AGENTS.md`) ont été implémentés depuis le Brainstormer avec des
+écarts (validation finale après la fusion, travail dans la copie du projet, `--no-verify`, `git add -A`, pas de
+journal). Causes : le brainstorm était resté dans une conversation (aucun document, des règles contradictoires) ; un
+fichier de tâches qu'aucun document ne nomme comptait d'office comme mûr (100 %), ses tâches étaient donc « à
+implémenter » ; la consigne d'une tâche de fichier ne rappelait aucune règle du projet, et le chat ne charge aucun
+réglage.
+**Quoi :** un fichier de tâches orphelin est « non évalué » : ses tâches restent des ébauches, et « Discuter » sur lui
+ou sur une ébauche fait d'abord écrire son brainstorm (`**Tâches**`, `**Maturité**`). Toute consigne d'implémentation
+(tâche, user story, tâche de fichier, lot) rappelle : lire le CLAUDE.md et les règles de travail du projet, vérifier
+avec ses commandes, consigner au journal, jamais `--no-verify` ni `git add -A` sans revue, aucun commit sans accord.
+`isToBrainstorm` ne compte plus un L1 complet. La démo donne un brainstorm complet à `TACHES-DESIGN.md`.
+**Règle apprise :** un fichier écrit par Python sous Windows en mode texte reçoit des fins de ligne CRLF ; et un `\n`
+dans un heredoc devient un vrai saut de ligne : vérifier avec Prettier après chaque écriture scriptée.
