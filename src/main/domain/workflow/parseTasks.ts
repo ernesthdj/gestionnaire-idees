@@ -24,6 +24,35 @@ export function citedPaths(text: string): string[] {
   return [...found]
 }
 
+/** Nom cité seul entre backticks : `WindowManager`, `arbre.ts`, `progressionOf()`. */
+const NAMED = /`([^`\s/]+)`/g
+const IDENTIFIER = /^[A-Za-z_][\w-]*$/
+
+/**
+ * Noms de fichiers cités sans chemin par un texte de tâche (spec 032 Q6) : entre backticks, un nom avec extension
+ * (`arbre.ts`) ou un identifiant d'au moins 4 caractères qui porte une majuscule (`WindowManager`, `progressionOf`),
+ * rendus sans extension, dédoublonnés, au plus `WORKFLOW_LIMITS.pathsPerTask`. Un mot en minuscules (`kind`) n'est
+ * pas retenu : trop d'homonymes. Pur.
+ */
+export function citedNames(text: string): string[] {
+  const found = new Set<string>()
+  for (const match of text.matchAll(NAMED)) {
+    const token = (match[1] ?? '').replace(/\(\)$/, '')
+    const withExtension = EXTENSION.test(token)
+    const name = token.replace(EXTENSION, '')
+    if (!IDENTIFIER.test(name) || name.length < 4 || (!withExtension && !/[A-Z]/.test(name))) continue
+    found.add(name)
+    if (found.size >= WORKFLOW_LIMITS.pathsPerTask) break
+  }
+  return [...found]
+}
+
+/** Champ `names` d'une tâche, omis s'il est vide. */
+export const namesOf = (text: string): { readonly names?: readonly string[] } => {
+  const names = citedNames(text)
+  return names.length > 0 ? { names } : {}
+}
+
 /** État d'une case (D21) : `x` faite, `~` en cours, sinon à faire. Pur. */
 export function taskState(mark: string): TaskState {
   if (mark === 'x' || mark === 'X') return 'done'
@@ -55,7 +84,8 @@ export function parseTasks(text: string): { readonly tasks: TaskView[]; readonly
       state,
       story,
       text: clip(description, WORKFLOW_LIMITS.taskText),
-      files: citedPaths(description)
+      files: citedPaths(description),
+      ...namesOf(description)
     })
   }
   return { tasks, truncated: false }

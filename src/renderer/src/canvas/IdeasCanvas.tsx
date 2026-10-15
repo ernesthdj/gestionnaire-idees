@@ -796,7 +796,11 @@ function CanvasInner(): React.JSX.Element {
   const panel =
     panelIdea === undefined
       ? null
-      : { genesisId: panelIdea.id, shown: structureViews[panelIdea.id] as 'progression' | 'architecture' }
+      : {
+          genesisId: panelIdea.id,
+          title: panelIdea.title,
+          shown: structureViews[panelIdea.id] as 'progression' | 'architecture'
+        }
   const panelShown = panel !== null && !panelFolded
   const empty = view !== undefined && view.ideas.length === 0
 
@@ -1077,7 +1081,7 @@ function CanvasInner(): React.JSX.Element {
         ) : panel.shown === 'architecture' ? (
           <ArchitectureView key={panel.genesisId} genesisId={panel.genesisId} />
         ) : (
-          <ProgressionView key={panel.genesisId} genesisId={panel.genesisId} />
+          <ProgressionView key={panel.genesisId} genesisId={panel.genesisId} name={panel.title} />
         )}
       </div>
       <WidgetReview />

@@ -3,6 +3,7 @@ import {
   ANALYZED_FILE_MAX_BYTES,
   classifyFile,
   gitignoreMatcher,
+  isExcludedDir,
   langOf
 } from '../../../src/main/domain/reprise/fileFilter'
 
@@ -24,6 +25,32 @@ describe('fichiers retenus, sensibles ou ignorés d’un projet repris (spec 017
     ['src/app.ts', 'retained']
   ])('should_classify_%s_as_%s', (path, kind) => {
     expect(classifyFile(path, 100, none).kind).toBe(kind)
+  })
+
+  it.each([
+    ['graphify-out/graph.json', 'ignored'],
+    ['.claude/skills/journal/SKILL.md', 'ignored'],
+    ['.specify/memory/constitution.md', 'ignored'],
+    ['CLAUDE.md', 'ignored'],
+    ['packages/api/AGENTS.md', 'ignored'],
+    ['docs/claude/regles-dev.md', 'ignored'],
+    ['docs/JOURNAL.md', 'ignored'],
+    ['README.md', 'retained'],
+    ['docs/FOUNDATION.md', 'retained'],
+    ['specs/032-trois-vues/spec.md', 'retained'],
+    ['src/journal/JOURNAL.md', 'retained']
+  ])('should_ignore_ai_only_tooling_and_docs_but_keep_informative_docs_%s_%s', (path, kind) => {
+    expect(classifyFile(path, 100, none).kind).toBe(kind)
+  })
+
+  it('should_never_walk_ai_only_folders_by_name_or_by_path', () => {
+    expect(['graphify-out', 'src/.claude', 'docs/claude', 'Docs/Claude'].map(isExcludedDir)).toEqual([
+      true,
+      true,
+      true,
+      true
+    ])
+    expect(['docs', 'src/claude', 'specs'].map(isExcludedDir)).toEqual([false, false, false])
   })
 
   it('should_flag_a_file_too_large_and_never_read_a_sensitive_one_whatever_its_size', () => {

@@ -1,6 +1,6 @@
 import type { TaskFileView, TaskGroupView, TaskView } from '@shared/ipc/workflow'
 import { clip, WORKFLOW_LIMITS } from './limits'
-import { citedPaths, taskState } from './parseTasks'
+import { citedPaths, namesOf, taskState } from './parseTasks'
 import { specStatus } from './specStatus'
 
 const CHECKBOX = /^\s*[-*+]\s\[( |x|X|~)\]\s+(.+)$/
@@ -82,7 +82,8 @@ export function parseTaskFile(path: string, text: string): TaskFileView {
       state,
       story: null,
       text: clip(description, WORKFLOW_LIMITS.taskText),
-      files: citedPaths(description)
+      files: citedPaths(description),
+      ...namesOf(description)
     })
   }
   const lots = root.groups.map(finish).filter((entry) => entry.total > 0)

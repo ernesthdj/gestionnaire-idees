@@ -35,6 +35,8 @@ export interface TaskView {
   readonly text: string
   /** Chemins de fichiers relatifs cités par la tâche. */
   readonly files: readonly string[]
+  /** Noms de fichiers cités sans chemin (`WindowManager`, `arbre.ts` → `arbre`) ; absent s'il n'y en a pas. */
+  readonly names?: readonly string[]
 }
 
 export interface StoryView {
@@ -157,6 +159,8 @@ export interface WorkflowTreeNode {
   readonly path: string | null
   /** Carré : chemins cités par sa tâche (spec 023 D9), qui le relient au code (Progression, D13) ; vide pour un rond. */
   readonly files: readonly string[]
+  /** Carré : noms de fichiers cités sans chemin (spec 032 Q6) ; absent s'il n'y en a pas. */
+  readonly names?: readonly string[]
   readonly children: readonly WorkflowTreeNode[]
 }
 

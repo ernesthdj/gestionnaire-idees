@@ -41,5 +41,7 @@ Un commit par lot. Chaque lot : tests, typecheck, lint, Prettier, e2e touchés, 
 
 ## Lot 6 — Finitions
 
-- [ ] T060 Spec 023 (D8 remplacée, D29 réalisée), spec 017 (D20 remplacée), `CLAUDE.md`, `docs/FOUNDATION.md`,
+- [x] T060 Spec 023 (D8 remplacée, D29 réalisée), spec 017 (D20 remplacée), `CLAUDE.md`, `docs/FOUNDATION.md`,
   JOURNAL ; vérifications finales.
+- [x] T061 Q7 : le terminé replié en « ✔ Bâti » (A, B), finitions vers les maquettes ; tests ; captures sur le dépôt
+  du Brainstormer.

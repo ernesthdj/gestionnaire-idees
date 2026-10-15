@@ -1,7 +1,7 @@
 # Feature Specification: Les trois vues — Workflow, Progression, Architecture (spec 032)
 
-**Feature Branch**: `main` · **Created**: 2026-10-14 · **Parent** : L1j-carte-workflow.md · **Status**: Écrite (2026-10-14) — maquettes validées par
-mentalyas dans l'artifact de brainstorm, lots à coder
+**Feature Branch**: `main` · **Created**: 2026-10-14 · **Parent** : L1j-carte-workflow.md · **Status**: Livrée (2026-10-14) — lots 1 à 6 ; maquettes
+validées par mentalyas dans l'artifact de brainstorm
 
 > Suite de l'amendement de la spec 023 (D26 à D29 : le travail se fait dans le Workflow, Progression et Architecture
 > le reflètent). Brainstorm visuel du 2026-10-14 dans un artifact (canevas « Progression et Architecture —
@@ -85,6 +85,27 @@ mentalyas dans l'artifact de brainstorm, lots à coder
   carte de structure de Claude et ses statuts (spec 030), les blocs de la vue (023 D25) restent accessibles. Un panneau
   ne s'ouvre que sur un choix de vue (sans choix, la carte s'affiche comme avant) ; « Centrer sur le nœud » d'un
   élément de la carte replie le panneau.
+- **Q6 (2026-10-14, après essai sur le dépôt du Brainstormer)** Le premier rendu rangeait la Progression par dossiers
+  du code (`main`, `renderer`…) : des dizaines de user stories et de « Socle » par colonne, 613 fichiers hors plan un
+  par case, loin des maquettes. → Une colonne (A), un étage (B), une colonne de lots (C) = une **famille du Workflow**
+  (un rond de niveau 1 : un L1, ou une spec ou un fichier de tâches sans L1), ses **lots** dessous (specs, fichiers de
+  tâches ; un document sans tâches seulement si la famille n'a encore rien de spécifié) ; A a le rond du projet en haut
+  (son %) et le tronc ; un lot est bâti si un fichier cité existe, si ses cases sont faites, ou s'il est livré. Le
+  **hors plan se regroupe par dossier, replié** (« src/main/git · 12 fichiers »), dans un bloc orange sous la lecture.
+  Pendant une première analyse (carte du code vide), rien n'est encore réel ni hors plan.
+- **Q7 (2026-10-15, après essai sur le dépôt du Brainstormer)** Les maquettes montraient 4 familles ; le dépôt en a
+  une quarantaine : A débordait (et sa partie gauche était inaccessible), B empilait 41 étages. → Une famille
+  **terminée** (chacun de ses lots livré, abandonné ou toutes cases faites) rejoint un groupe **« ✔ Bâti »** replié :
+  la première branche de A, l'étage des fondations de B, dépliable d'un clic (une brique par famille). Les familles
+  ouvertes gardent leur branche ou leur étage, dans l'ordre du Workflow. C reste complète (une colonne par famille,
+  étape en couleur comme la maquette). Finitions vers les maquettes : titre non répété quand la famille est le lot, rond
+  du projet plus grand, briques et barres plus lisibles, légende et résumé en pied de vue, hors plan replié en une
+  ligne (« à décrire dans une spec, ou à retirer »), et un document sans tâches dont la maturité est « complet » est
+  « à spécifier », plus « à brainstormer ».
+- **Q9 (2026-10-15)** L'Architecture ne reprend que ce qui aide à comprendre le projet : le code et la doc
+  informative (README, fondation, brainstorms, specs). L'outillage et la doc **utiles seulement à l'IA** (skills,
+  `.specify`, `graphify-out` et ses 2 400 fichiers, consignes `CLAUDE.md`, `docs/claude/`, journal) sortent **dès
+  l'analyse** (017 FR-013 amendée) : explorateur, Architecture et hors plan s'allègent ensemble.
 - **Écart à valider (lot 2, 2026-10-14)** : sur le dépôt du Brainstormer, l'arbre compte 1 030 carrés ; tout déplier
   rendrait la carte illisible et lente. Un rond **dont tous les carrés sont faits** est donc replié d'office (« ▸ N »),
   dépliable d'un clic, choix mémorisé (023 FR-016). Les autres ronds restent ouverts.

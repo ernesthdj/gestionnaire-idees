@@ -82,7 +82,12 @@ const MAP: ExplorerMapView = {
   modules: [
     { key: 'm:dir:src/db', title: 'db', layer: 'data', plumbing: false, role: null, column: 1, files: 2, lines: 20 }
   ],
-  files: [file('src/db/base.ts'), file('src/db/theme.ts'), { ...file('src/db/README.md'), lang: 'other' }],
+  files: [
+    file('src/db/base.ts'),
+    file('src/db/theme.ts'),
+    file('src/ui/dark.ts'),
+    { ...file('src/db/README.md'), lang: 'other' }
+  ],
   calls: [],
   truncated: false,
   confidentiality: 'local',
@@ -93,27 +98,28 @@ const PROJECT = { genesisId: G, name: 'demo', architecture: null } as unknown as
 const wrap = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <ProgressionView genesisId={G} />
+      <ProgressionView genesisId={G} name="demo" />
     </QueryClientProvider>
   )
 
-describe('Progression en trois lectures (spec 032 D12, D13)', () => {
+describe('Progression en trois lectures (spec 032 D12, D13, Q6)', () => {
   beforeEach(() => useUiStore.setState({ structureViews: {}, progressionReadings: {} }))
 
-  it('should_show_the_module_tree_with_real_planned_and_off_plan_parts', async () => {
+  it('should_draw_the_project_then_one_branch_per_workflow_family_and_off_plan_by_folder', async () => {
     installFakeApi({
       'workflow:read': () => WORKFLOW,
       'reprise:get': () => PROJECT,
       'explorer:map': () => MAP
     })
     const { container } = wrap()
-    const db = await screen.findByRole('listitem', { name: 'db' })
-    expect(within(db).getByRole('listitem', { name: 'US1 — Base locale : bâtie, 1 / 1 tâche' })).toBeTruthy()
-    expect(within(db).getByRole('listitem', { name: /src\/db\/theme\.ts : hors plan/ })).toBeTruthy()
-    // Le fichier cité n'existe pas encore : la partie est prévue, rangée sous sa spec.
-    const planned = screen.getByRole('listitem', { name: 'Données' })
-    expect(within(planned).getByRole('listitem', { name: 'US2 — Chiffrement : prévue, 0 / 1 tâche' })).toBeTruthy()
-    expect(screen.getByText('1 partie bâtie · 1 prévue · 1 fichier hors plan')).toBeTruthy()
+    // Le code analysé arrive après la doc : le lot devient bâti, le hors plan apparaît.
+    const strays = await screen.findByRole('region', { name: 'Hors plan' })
+    const family = screen.getByRole('listitem', { name: '003 · Données' })
+    expect(within(family).getByRole('listitem', { name: '003 · Données : bâti, 1 / 2 tâches' })).toBeTruthy()
+    expect(screen.getByText('demo')).toBeTruthy()
+    expect(within(strays).getByRole('listitem', { name: 'src/db : 1 fichier hors plan' })).toBeTruthy()
+    expect(within(strays).getByRole('listitem', { name: 'src/ui : 1 fichier hors plan' })).toBeTruthy()
+    expect(screen.getByText('1 lot bâti · 0 prévu · 2 fichiers hors plan')).toBeTruthy()
     await expectNoAxeViolations(container)
   })
 
@@ -125,19 +131,14 @@ describe('Progression en trois lectures (spec 032 D12, D13)', () => {
       'explorer:map': () => MAP
     })
     const { container } = wrap()
-    await screen.findByRole('listitem', { name: 'db' })
+    await screen.findByRole('listitem', { name: '003 · Données' })
     await user.click(screen.getByRole('button', { name: 'C · Les lots du Workflow' }))
     expect(useUiStore.getState().progressionReadings[G]).toBe('lots')
     expect(screen.getByText('▶ En cours')).toBeTruthy()
-    expect(screen.getByRole('listitem', { name: 'Hors plan' })).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Réel' }))
-    expect(screen.queryByRole('listitem', { name: /Chiffrement/ })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Prévu' }))
-    expect(screen.queryByRole('listitem', { name: 'Hors plan' })).toBeNull()
-    expect(screen.getByRole('listitem', { name: /Chiffrement/ })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Hors plan' })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'B · Le chantier par étages' }))
-    expect(screen.getByRole('listitem', { name: 'Fondations : db' })).toBeTruthy()
-    expect(screen.getByRole('listitem', { name: 'Étage 1 : Données' })).toBeTruthy()
+    expect(screen.getByRole('listitem', { name: 'Fondations : 003 · Données' })).toBeTruthy()
     await expectNoAxeViolations(container)
   })
 
@@ -150,6 +151,30 @@ describe('Progression en trois lectures (spec 032 D12, D13)', () => {
     })
     wrap()
     expect(await screen.findByText(/Le code n’est pas analysé/)).toBeTruthy()
-    expect(await screen.findByText('1 partie bâtie · 1 prévue')).toBeTruthy()
+    expect(await screen.findByText('0 lot bâti · 1 prévu')).toBeTruthy()
+  })
+
+  it('should_fold_finished_families_into_built_as_first_branch_and_foundations', async () => {
+    const user = userEvent.setup()
+    const done: SpecView = { ...SPEC, number: '001', dir: 'specs/001-socle', title: 'Socle', status: 'delivered' }
+    const tree = workflowArbre([], [done, SPEC], [])
+    installFakeApi({
+      'workflow:read': () => ({ ...WORKFLOW, specs: [done, SPEC], tree }),
+      'reprise:get': () => PROJECT,
+      'explorer:map': () => MAP
+    })
+    const { container } = wrap()
+    // A : la spec livrée rejoint la branche « Bâti », repliée ; la spec en cours garde sa branche.
+    const built = await screen.findByRole('listitem', { name: 'Bâti' })
+    expect(within(built).getByText('1 famille terminée · 1 / 2 tâches')).toBeTruthy()
+    expect(screen.queryByRole('listitem', { name: '001 · Socle' })).toBeNull()
+    expect(screen.getByRole('listitem', { name: '003 · Données' })).toBeTruthy()
+    await user.click(within(built).getByText('Voir la famille'))
+    expect(within(built).getByRole('listitem', { name: '001 · Socle : ✔ Livrée, 1 / 2 tâches' })).toBeTruthy()
+    // B : le bâti en fondations, la famille ouverte au-dessus.
+    await user.click(screen.getByRole('button', { name: 'B · Le chantier par étages' }))
+    expect(screen.getByRole('listitem', { name: 'Fondations : Bâti' })).toBeTruthy()
+    expect(screen.getByRole('listitem', { name: 'Étage 1 : 003 · Données' })).toBeTruthy()
+    await expectNoAxeViolations(container)
   })
 })

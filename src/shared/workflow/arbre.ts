@@ -29,6 +29,7 @@ interface Draft {
   readonly status: SpecStatus | null
   readonly path: string | null
   readonly files: readonly string[]
+  readonly names: readonly string[]
   /** Un carré qu'on peut implémenter maintenant (ni ébauche, ni dans une spec livrée, abandonnée ou en pause). */
   readonly workable: boolean
   readonly children: Draft[]
@@ -56,6 +57,7 @@ const square = (
     status: null,
     path,
     files: task.files,
+    names: task.names ?? [],
     workable: !sketch && task.state !== 'done' && (status === null || !RESTING.has(status)),
     children: []
   }
@@ -80,6 +82,7 @@ const round = (
   status,
   path,
   files: [],
+  names: [],
   workable: false,
   children
 })
@@ -187,6 +190,7 @@ function finish(draft: Draft, depth: number): WorkflowTreeNode {
     status: draft.status,
     path: draft.path,
     files: draft.files,
+    ...(draft.names.length > 0 ? { names: draft.names } : {}),
     ...counts,
     children: done
   }

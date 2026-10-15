@@ -1,6 +1,6 @@
 # Niveau 3 — Conception Technique : F2 — Structuration IA (+ modèle de données central)
 
-**Parent** : L2-structuration-ia.md · **Maturité** : complet
+**Parent** : L2-structuration-ia.md · **Maturité** : insuffisant — à brainstormer plus tard (besoin d’origine mis de côté le 2026-10-13)
 
 > Basé sur : docs/brainstorm/L1-fondation.md + docs/brainstorm/L2-structuration-ia.md (+ L2-validation, L2-organigramme)
 > Date : 2026-09-28 · Livraison : MVP-1

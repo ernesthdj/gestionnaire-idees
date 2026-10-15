@@ -1,7 +1,7 @@
 # Cahier des Charges — Gestionnaire_idées
 > mentalyas · Full-Stack Dev
 > Date : 2026-09-28
-> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** + **amendement L1j (Vue Workflow, 2026-10-09, §0000000)** + **amendement L1n (Le dossier du nœud, 2026-10-12, §00000000)** — voir « État actuel »
+> Statut : Niveaux 1+2+3+4 + amendements L1b et L4b (2026-09-28) + **amendement L1c (Pont Claude Code, 2026-10-04)** + **bascule spec 010 (2026-10-05)** + **amendement L1f (Reprise de projet, 2026-10-06, §000)** + **amendement L1g (Analyste interne, 2026-10-07, §0000)** + **amendement L1h (Arbre de skills, 2026-10-07, §00000)** + **amendement L1i (Git et GitHub, 2026-10-07, §000000)** + **amendement L1j (Vue Workflow, 2026-10-09, §0000000)** + **amendement L1n (Le dossier du nœud, 2026-10-12, §00000000)** + **spec 032 (Les trois vues, 2026-10-14, §000000000)** — voir « État actuel »
 > Niveaux exécutés : docs/brainstorm/L1-fondation.md · L2-{capture-rapide, structuration-ia, validation, organigramme, moteur-ia, planning, synchro-outlook, conseiller-proactif, compagnon}.md · L3-{structuration-ia, moteur-ia, synchro-outlook, conseiller-proactif, compagnon}.md · L4-parcours.md · **L1c-pont-claude-code.md · L2-{pont-mcp, moteur-cli, terminal-espaces}.md · L3-{pont-mcp, moteur-cli, terminal-espaces}.md** · **L1f-reprise-projet.md · L2-reprise-{import, analyse, explorateur, guide, diagnostic, pont-carte}.md · L3-reprise-{import, analyse, explorateur, diagnostic}.md · L4d-reprise.md** · **L1g-analyste-interne.md · L2-analyste-{sonde, analyse, appliquer, rythme}.md · L3-analyste-{sonde, analyse, appliquer}.md · L4e-analyste.md** · **L1h-arbre-de-skills.md · L2-skills-{voir, comprendre, evoluer, importer}.md · L3-skills-{voir, comprendre, evoluer, importer}.md · L4f-skills.md** · **L1i-git-github.md · L2-git-{depot-local, publier, cloner, historique, conflits, pr-issues, extraire}.md · L3-git-{depot-local, publier, cloner, conflits, pr-issues}.md · L4g-git.md** · **L1j-carte-workflow.md** · **L1n-dossier-du-noeud.md · L2-dossier-{rangement, carte, tout-voir, claude-actions, reprise-012}.md · L3-dossier-{rangement, carte, claude-actions, reprise-012}.md · L4b-neurones.md §7**
 
 ---
@@ -24,6 +24,21 @@
   libres au premier démarrage (annulable).
 - **Prochaine étape** : spec 011 « Plan d'attaque » — couches de sous-nœuds proposées par Claude, ordre et
   dépendances, disposition gauche → droite, verrouillage d'un nœud mûr. Puis F12 (terminal intégré), F13, F14.
+
+---
+
+## 000000000. Amendement du 2026-10-14 — Les trois vues : Workflow, Progression, Architecture
+
+> Détail complet : `specs/032-trois-vues/` (décisions D1–D16, clarifications Q1–Q5) et l'amendement de la spec 023
+> (D26–D29). Ces fichiers priment. **Spec 032 livrée le 2026-10-14.**
+
+| Vue | Rôle | Ce qu'elle montre |
+|-----|------|-------------------|
+| **Workflow** | Le chantier : on y brainstorme, on y documente, on y implémente | Arbre en sens alterné : **ronds** (documents de brainstorm, specs, lots ; anneau violet = maturité, anneau bleu = tâches) et **carrés** (une case d'un fichier de tâches : faite, en cours, prévue) ; ébauches tant que le brainstorm n'est pas complet ; « ▶ Bosser ici » sur le prochain carré. Lu dans les fichiers écrits par Claude (lignes `**Parent**`, `**Maturité**`, `**Tâches**`), sans IA |
+| **Progression** | Où en est la construction | Panneau sur la carte, trois lectures rangées par familles du Workflow (A l'arbre sous le projet, B les étages, C les colonnes de lots) ; **réel** (analyse du code), **prévu** (doc), **hors plan** (code qu'aucune tâche ne cite, par dossier) ; bascule Réel · Prévu · Les deux ; repliable pour voir la carte dessous |
+| **Architecture** | Comment la stack s'assemble | L'explorateur en boîtes (spec 031) dans la carte, avec le détecteur d'architecture (Clean, hexagonale, MVVM, MVC, couches) et sa raison ; remplace les bandes de couches (spec 017 D20) |
+
+Progression et Architecture ne font que **refléter** la doc et le code : aucune étape n'y naît (023 D27).
 
 ---
 
@@ -78,7 +93,7 @@ specs › user stories › tâches, lu dans les fichiers du projet (`specs/`, `t
 | Sujet | Ce qui existe |
 |-------|---------------|
 | Bascule | « Workflow \| Progression \| Architecture » sur tout genesis lié (même sans carte dessinée) |
-| Rangement | Genesis › En cours · À venir · Livrées · À brainstormer ; spec › user stories (priorité) › tâches restantes ; « Socle » des tâches sans user story ; « ✓ Faites (N) » replié (D16) |
+| Rangement | ~~Genesis › En cours · À venir · Livrées · À brainstormer~~ (remplacé le 2026-10-14 par l'arbre de ronds et de carrés, spec 032, §000000000) ; spec › user stories (priorité) › tâches ; « Socle » des tâches sans user story |
 | Statut d'une spec | Calculé depuis `tasks.md`, sauf marqueur de la ligne `**Status**` (« Livrée », « En pause », « Abandonnée ») qui prime ; reliquats d'une spec livrée dans sa carte |
 | Cartes | Chaque nœud ouvre sa carte (statut, avancement, détail, fichiers) ; « Discuter » ouvre la conversation **propre au nœud**, consigne pré-remplie jamais envoyée seule ; une tâche faite se relit, ne se refait pas |
 | Lecteur | Markdown mis en forme (liens inertes), code coloré, raccourcis tree-sitter ; module de la structure qui couvre chaque fichier, sur place |

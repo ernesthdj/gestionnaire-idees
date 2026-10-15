@@ -19,8 +19,22 @@ const EXCLUDED_DIRS = new Set([
   'out',
   'coverage',
   '.vs',
-  '.idea'
+  '.idea',
+  // Outillage et doc utiles seulement à l'IA (spec 032 Q9) : ils chargent l'explorateur sans éclairer l'architecture.
+  '.claude',
+  '.specify',
+  '.kilo',
+  '.cursor',
+  '.obsidian',
+  '.analyste',
+  'graphify-out',
+  'test-results'
 ])
+/** Chemins (depuis la racine, en minuscules) de doc pour l'IA seulement : dossiers, puis fichiers (spec 032 Q9). */
+const AI_ONLY_DIR_PATHS = new Set(['docs/claude'])
+const AI_ONLY_FILE_PATHS = new Set(['docs/journal.md'])
+/** Consignes pour agents, où qu'elles soient. */
+const AI_ONLY_FILE_NAMES = new Set(['claude.md', 'agents.md', 'gemini.md', 'skill.md', '.cursorrules'])
 
 /** Réglages applicatifs qui portent souvent des secrets (chaînes de connexion, mots de passe) : jamais lus. */
 const SENSITIVE_SETTINGS = /^(appsettings\..+\.json|web\.config|secrets\.json|.+\.publishsettings)$/
@@ -51,9 +65,19 @@ export function langOf(path: string): CodeLang {
   return dot <= 0 ? 'other' : (LANGS[name.slice(dot + 1)] ?? 'other')
 }
 
-/** Dossier jamais parcouru (nom seul, en minuscules). */
-export function isExcludedDir(name: string): boolean {
-  return EXCLUDED_DIRS.has(name.toLowerCase())
+/** Dossier jamais parcouru, d'après son chemin relatif (`/`) : par son nom, ou par son chemin pour la doc IA. */
+export function isExcludedDir(path: string): boolean {
+  const lower = path.toLowerCase()
+  return EXCLUDED_DIRS.has(lower.split('/').at(-1) ?? lower) || AI_ONLY_DIR_PATHS.has(lower)
+}
+
+const isAiOnlyFile = (path: string, name: string): boolean => {
+  const lower = path.toLowerCase()
+  return (
+    AI_ONLY_FILE_NAMES.has(name) ||
+    AI_ONLY_FILE_PATHS.has(lower) ||
+    [...AI_ONLY_DIR_PATHS].some((dir) => lower.startsWith(`${dir}/`))
+  )
 }
 
 /**
@@ -64,7 +88,8 @@ export function classifyFile(path: string, size: number, ignored: (path: string)
   const segments = path.split('/')
   const name = segments.at(-1)?.toLowerCase() ?? ''
   if (isSecretFileName(name) || SENSITIVE_SETTINGS.test(name)) return { kind: 'sensitive' }
-  if (segments.slice(0, -1).some(isExcludedDir) || isBinaryFileName(name) || ignored(path)) return { kind: 'ignored' }
+  const excludedDir = segments.slice(0, -1).some((segment) => EXCLUDED_DIRS.has(segment.toLowerCase()))
+  if (excludedDir || isAiOnlyFile(path, name) || isBinaryFileName(name) || ignored(path)) return { kind: 'ignored' }
   if (size > ANALYZED_FILE_MAX_BYTES) return { kind: 'too_large' }
   return { kind: 'retained', lang: langOf(path) }
 }

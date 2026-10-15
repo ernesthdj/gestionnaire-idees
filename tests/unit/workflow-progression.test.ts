@@ -82,65 +82,97 @@ const SPECS = [
       { n: 1, title: 'Sauvegarde', tasks: [task('T002', true, 1, ['src/db/backup.ts']), task('T003', false, 1, [])] },
       { n: 2, title: 'Chiffrement', tasks: [task('T004', false, 2, ['src/db/crypto.ts'])] }
     ]
-  )
+  ),
+  { ...spec('004', [task('T001', false, null, ['src/app/main.ts'])], []), parentDoc: 'L1a-application.md' },
+  { ...spec('005', [task('T001', false, null, ['src/sync/'])], []), status: 'delivered' as const }
 ]
 const CODE: ProgressionCode = {
-  modules: [
-    { key: 'm:ui', title: 'ui', column: 0 },
-    { key: 'm:db', title: 'db', column: 1 }
-  ],
   files: [
-    { path: 'src/db/base.ts', moduleKey: 'm:db', plumbing: false },
-    { path: 'src/db/backup.ts', moduleKey: 'm:db', plumbing: false },
-    { path: 'src/ui/theme.ts', moduleKey: 'm:ui', plumbing: false },
-    { path: 'src/ui/log.ts', moduleKey: 'm:ui', plumbing: true }
+    { path: 'src/db/base.ts', plumbing: false },
+    { path: 'src/db/backup.ts', plumbing: false },
+    { path: 'src/ui/theme.ts', plumbing: false },
+    { path: 'src/ui/dark.ts', plumbing: false },
+    { path: 'src/ui/log.ts', plumbing: true },
+    { path: 'src/net/http.ts', plumbing: false }
   ]
 }
-const tree = workflowArbre([doc('L1-synchro.md', 'Synchronisation')], SPECS, [lotFile])
+const tree = workflowArbre([doc('L1-synchro.md', 'Synchronisation'), doc('L1a-application.md', 'Application')], SPECS, [
+  lotFile
+])
 
-describe('progressionOf (spec 032 D12, D13, Q3)', () => {
-  it('should_cut_the_workflow_into_lots_and_parts_in_tree_order', () => {
+describe('progressionOf (spec 032 D12, D13, Q3, Q6)', () => {
+  it('should_make_one_family_per_level_one_round_with_its_lots_in_tree_order', () => {
     const view = progressionOf(tree, CODE)
-    expect(view.lots.map((lot) => [lot.title, lot.source, lot.parts.map((p) => p.title)])).toEqual([
-      ['Synchronisation', 'doc', []],
-      ['Spec 003', 'spec', ['Socle', 'US1 — Sauvegarde', 'US2 — Chiffrement']],
-      ['Recherche', 'taskFile', ['Index']]
+    expect(view.families.map((family) => [family.title, family.label, family.lots.map((lot) => lot.title)])).toEqual([
+      ['Synchronisation', 'L1', ['Synchronisation']],
+      ['Application', 'L1a', ['004 · Spec 004']],
+      ['003 · Spec 003', 'spec 003', ['003 · Spec 003']],
+      ['005 · Spec 005', 'spec 005', ['005 · Spec 005']],
+      ['Recherche', 'TACHES-RECHERCHE', ['Recherche']]
     ])
+    expect([view.done, view.total]).toEqual([2, 7])
   })
 
-  it('should_call_a_part_real_when_a_cited_file_or_folder_exists_in_the_code', () => {
-    const parts = progressionOf(tree, CODE).lots.flatMap((lot) => lot.parts)
-    const byTitle = (title: string) => parts.find((entry) => entry.title === title)
-    // Un dossier cité couvre ses fichiers.
-    expect(byTitle('Socle')).toMatchObject({
-      kind: 'reel',
-      moduleKey: 'm:db',
-      files: ['src/db/base.ts', 'src/db/backup.ts']
+  it('should_call_a_lot_built_when_a_cited_file_or_folder_exists_or_when_it_is_delivered', () => {
+    const view = progressionOf(tree, CODE)
+    const kinds = Object.fromEntries(view.families.map((family) => [family.label, family.kind]))
+    // Un dossier cité couvre ses fichiers ; une spec livrée est bâtie ; un document sans tâches est prévu.
+    expect(kinds).toEqual({
+      L1: 'prevu',
+      L1a: 'prevu',
+      'spec 003': 'reel',
+      'spec 005': 'reel',
+      'TACHES-RECHERCHE': 'prevu'
     })
-    expect(byTitle('US1 — Sauvegarde')).toMatchObject({ kind: 'reel', done: 1, total: 2 })
-    // Fichier cité absent du code, rien de coché : prévu, sans module.
-    expect(byTitle('US2 — Chiffrement')).toMatchObject({ kind: 'prevu', moduleKey: null, files: [] })
+    expect(view.families[2]?.lots[0]).toMatchObject({ source: 'spec', done: 2, total: 4 })
   })
 
-  it('should_group_parts_by_module_then_planned_lots_and_flag_uncited_files_as_off_plan', () => {
+  it('should_group_off_plan_files_by_folder_largest_first_without_plumbing', () => {
     const view = progressionOf(tree, CODE)
-    expect(view.groups.map((group) => [group.title, group.kind, group.done, group.total])).toEqual([
-      ['ui', 'reel', 0, 0],
-      ['db', 'reel', 2, 3],
-      ['Synchronisation', 'prevu', 0, 0],
-      ['Spec 003', 'prevu', 0, 1],
-      ['Recherche', 'prevu', 0, 1]
+    expect(view.strays).toEqual([
+      { path: 'src/ui', files: ['src/ui/theme.ts', 'src/ui/dark.ts'] },
+      { path: 'src/net', files: ['src/net/http.ts'] }
     ])
-    // La plomberie n'est jamais hors plan.
-    expect(view.groups[0]?.strays).toEqual(['src/ui/theme.ts'])
-    expect(view.strays).toBe(1)
+    expect(view.strayCount).toBe(3)
   })
 
   it('should_only_trust_checked_boxes_when_the_code_is_not_analysed', () => {
     const view = progressionOf(tree, null)
     expect(view.analysed).toBe(false)
-    expect(view.strays).toBe(0)
-    expect(view.lots[1]?.parts.map((entry) => entry.kind)).toEqual(['reel', 'prevu', 'prevu'])
-    expect(view.groups.every((group) => group.column === null)).toBe(true)
+    expect(view.strays).toEqual([])
+    expect(view.families.map((family) => family.kind)).toEqual(['prevu', 'prevu', 'prevu', 'reel', 'prevu'])
+  })
+
+  it('should_cover_a_file_by_its_name_and_never_count_tests_when_a_task_cites_it_without_a_path', () => {
+    const named: TaskView = { ...task('T1', false, null, []), names: ['WindowManager'] }
+    const view = progressionOf(workflowArbre([], [spec('009', [named], [])], []), {
+      files: [
+        { path: 'src/main/shell/WindowManager.ts', plumbing: false },
+        { path: 'src/main/shell/TrayController.ts', plumbing: false },
+        { path: 'tests/unit/shell.test.ts', plumbing: false },
+        { path: 'src/main/shell/tray.spec.ts', plumbing: false }
+      ]
+    })
+    // Le nom cité couvre le fichier et bâtit le lot ; les tests ne sont jamais hors plan.
+    expect(view.families[0]?.kind).toBe('reel')
+    expect(view.strays).toEqual([{ path: 'src/main/shell', files: ['src/main/shell/TrayController.ts'] }])
+  })
+
+  it('should_mark_a_family_finished_when_each_lot_is_delivered_abandoned_or_checked_and_keep_doc_maturity', () => {
+    const mature: BrainstormDocView = { ...doc('L1-synchro.md', 'Synchronisation'), maturity: 'complet' }
+    const view = progressionOf(
+      workflowArbre([mature, doc('L1a-application.md', 'Application')], SPECS, [lotFile]),
+      CODE
+    )
+    const finished = Object.fromEntries(view.families.map((family) => [family.label, family.finished]))
+    // Seule la spec livrée est terminée ; une spec en cours, un fichier de tâches ouvert, un document ne le sont pas.
+    expect(finished).toEqual({
+      L1: false,
+      L1a: false,
+      'spec 003': false,
+      'spec 005': true,
+      'TACHES-RECHERCHE': false
+    })
+    expect(view.families[0]?.lots[0]?.maturity).toBe(100)
   })
 })

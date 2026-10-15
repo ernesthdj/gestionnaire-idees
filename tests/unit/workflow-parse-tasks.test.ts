@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { citedPaths, parseTasks } from '../../src/main/domain/workflow/parseTasks'
+import { citedNames, citedPaths, parseTasks } from '../../src/main/domain/workflow/parseTasks'
 import { WORKFLOW_LIMITS } from '../../src/main/domain/workflow/limits'
 
 // Extraits réels (specs 017 et 022) et variantes.
@@ -52,5 +52,19 @@ describe('citedPaths', () => {
     ])
     const lots = Array.from({ length: 30 }, (_, index) => `src/f${index}.ts`).join(' ')
     expect(citedPaths(lots)).toHaveLength(WORKFLOW_LIMITS.pathsPerTask)
+  })
+})
+
+describe('citedNames (spec 032 Q6)', () => {
+  it('should_keep_file_and_class_names_in_backticks_and_drop_paths_and_lowercase_words', () => {
+    expect(
+      citedNames('`WindowManager`, `TrayController.ts`, `arbre.ts`, `progressionOf()`, `kind`, `src/a.ts`, Plain')
+    ).toEqual(['WindowManager', 'TrayController', 'arbre', 'progressionOf'])
+  })
+
+  it('should_attach_names_to_a_task_only_when_it_cites_some', () => {
+    const { tasks } = parseTasks(['- [ ] T001 `WindowManager` et `TrayController`', '- [ ] T002 rien'].join('\n'))
+    expect(tasks[0]?.names).toEqual(['WindowManager', 'TrayController'])
+    expect(tasks[1]).not.toHaveProperty('names')
   })
 })

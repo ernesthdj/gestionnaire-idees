@@ -30,3 +30,47 @@
     var(--color-surface-raised) var(--progress)
   );
 }
+/* A : le tronc sous le projet, puis une branche horizontale qui relie les familles (de la moitié de la première à la
+ * moitié de la dernière), et un trait vers chacune. */
+.progress-trunk {
+  background: var(--color-content-muted);
+}
+.progress-branches > li {
+  position: relative;
+}
+.progress-branches > li::before,
+.progress-branches > li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 2px;
+  width: 50%;
+  background: var(--color-content-muted);
+}
+.progress-branches > li::before {
+  left: 0;
+}
+.progress-branches > li::after {
+  right: 0;
+}
+.progress-branches > li:first-child::before,
+.progress-branches > li:last-child::after {
+  display: none;
+}
+.progress-branches > li > :first-child::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 1rem;
+  background: var(--color-content-muted);
+}
+.progress-floor {
+  background: var(--color-surface-raised);
+  border-bottom: 3px solid color-mix(in srgb, var(--color-content-muted) 60%, transparent);
+}
+.progress-strays {
+  border: 2px solid var(--color-action);
+  color: var(--color-action);
+}

@@ -2039,3 +2039,67 @@ la carte de structure de Claude (statuts de la spec 030) et les blocs de la vue 
 replie le panneau. Un panneau ne s'ouvre que sur un choix de vue.
 **Hors de ce lot :** `reprise-resolution.e2e.ts` (« Préciser les liens avec l'IA ») échoue déjà au commit du lot 3
 (`ce15eea`) : à examiner à part.
+
+### [2026-10-14 20:15] DOCS — spec 032 lot 6 : finitions, spec livrée
+**Fichiers :** `specs/023-carte-workflow/spec.md` (D5 remplacée pour le Workflow, D8 et FR-008 remplacées, D29
+réalisée), `specs/017-reprise-voir/spec.md` (D20 et FR-041 remplacées), `specs/032-trois-vues/spec.md` (« Livrée »),
+`tasks.md` (T060), `docs/FOUNDATION.md` (§000000000 « Les trois vues », ligne Rangement de §0000000.2 barrée),
+`CLAUDE.md` (spec 032 livrée).
+**Quoi :** T060 — les specs anciennes renvoient à la 032 au lieu d'être réécrites (décisions datées, texte d'origine
+gardé) ; la vue d'ensemble des trois vues est dans la fondation.
+**Reste :** `reprise-resolution.e2e.ts` échoue depuis avant la spec 032 (voir l'entrée du lot 5).
+
+### [2026-10-14 21:30] FIX — spec 032 : la Progression rangée par familles du Workflow (Q6)
+**Fichiers :** `src/shared/workflow/progression.ts` (réécrit), `src/renderer/src/canvas/progression/ProgressionView.tsx`,
+`progression.css`, `IdeasCanvas.tsx` (nom du projet passé au panneau) ; spec 032 Q6, `docs/FOUNDATION.md`. Tests :
+`unit/workflow-progression.test.ts`, `unit/renderer/progression-view.test.tsx`, e2e `progression-view.e2e.ts`.
+**Erreur :** sur le dépôt du Brainstormer, la Progression (lot 5) ne ressemblait pas aux maquettes de l'artifact : une
+colonne par dossier du code, des dizaines de user stories et de « Socle » sans leur spec, 613 fichiers hors plan un par
+case, pas de rond du projet ni de tronc.
+**Quoi :** une colonne, un étage ou une colonne de lots = une famille du Workflow (rond de niveau 1), ses lots dessous
+(specs et fichiers de tâches ; les documents sans tâches seulement si rien n'est encore spécifié) ; A a le rond du
+projet et le tronc ; un lot livré est bâti ; le hors plan est regroupé par dossier, replié, dans un bloc orange ; une
+carte du code vide (analyse en cours) ne rend rien « prévu » à tort. Vérifié sur une copie de `specs/`, `docs/` et
+`src/` : 29 lots bâtis, 14 prévus, 352 fichiers hors plan en ~70 dossiers.
+**Règle apprise :** relire les maquettes validées avant de coder une vue, et l'essayer sur un vrai projet, pas
+seulement sur le projet de démo (trop petit pour montrer le bruit).
+
+### [2026-10-15 12:17] FIX — spec 032 : la Progression peaufinée vers les maquettes, le terminé replié (Q7)
+**Fichiers :** `src/shared/workflow/progression.ts` (`finished` sur la famille, `maturity` sur le lot),
+`src/renderer/src/canvas/progression/ProgressionView.tsx` ; spec 032 Q7, `tasks.md` (T061). Tests :
+`unit/workflow-progression.test.ts`, `unit/renderer/progression-view.test.tsx`.
+**Erreur :** sur le dépôt du Brainstormer (une quarantaine de familles, les maquettes en montraient 4), A débordait et
+sa partie gauche était inaccessible (arbre centré et étiré dans une zone qui défile), B empilait 41 étages ; titres
+répétés quand la famille est le lot ; étapes de C toutes grises ; hors plan de 78 dossiers étalé.
+**Quoi :** une famille terminée (lots livrés, abandonnés ou cochés) rejoint « ✔ Bâti », replié : première branche de A,
+fondations de B, dépliable ; C garde toutes ses colonnes, étape en couleur (jetons `pro`, `accent`, `idea`, `seed`) ;
+le projet reste au centre, seules les branches défilent (`w-max mx-auto`) ; rond du projet plus grand, briques en
+13 px, barres de 6 px ; légende et résumé en pied de vue ; hors plan replié en une ligne (« à décrire dans une spec, ou
+à retirer ») ; un document mûr sans tâches est « à spécifier ». Vérifié par captures sur une copie de `specs/`, `docs/`
+et `src/` (e2e temporaire retiré).
+**Règle apprise :** un conteneur flex en colonne étire ses enfants à sa largeur : un contenu centré plus large déborde
+des deux côtés et sa gauche ne défile plus ; donner `w-max` au contenu qui défile.
+
+### [2026-10-15 12:30] DOCS — F1 à F8 : à brainstormer plus tard
+**Fichiers :** `docs/brainstorm/L2-capture-rapide.md`, `L2-structuration-ia.md`, `L2-validation.md`,
+`L2-organigramme.md`, `L2-planning.md`, `L2-synchro-outlook.md`, `L2-conseiller-proactif.md`, `L2-compagnon.md`.
+**Quoi :** demande de mentalyas : les fonctionnalités du besoin d'origine (mis de côté le 2026-10-13) passent en
+**Maturité : insuffisant — à brainstormer plus tard** ; la Progression et le Workflow les lisent « ✦ à brainstormer » au
+lieu de « à spécifier » ; leurs documents de niveau 3 (`L3-structuration-ia`, `L3-synchro-outlook`,
+`L3-conseiller-proactif`, `L3-compagnon`) aussi. F9 (Moteur IA) et F11 (Moteur CLI), codés, sortaient prévus faute de
+lien : `L2-moteur-ia.md` est rattaché à L1b (son MVP-1, qui porte la spec 001) et `L2-moteur-cli.md` à L1c (qui le
+définit) ; la spec 010 a `**Parent** : L2-moteur-cli.md`. Ils rejoignent « ✔ Bâti » ; B passe de 13 à 11 étages.
+**Erreur évitée :** donner la spec 001 pour enfant à `L2-moteur-ia.md` vidait la famille L1b (redevenue « prévue ») ;
+rattacher le document à son L1 garde la spec où elle était.
+
+### [2026-10-15 13:10] FEAT — l'analyse du code laisse de côté la doc pour l'IA (spec 032 Q9, 017 FR-013)
+**Fichiers :** `src/main/domain/reprise/fileFilter.ts`, `src/main/infrastructure/reprise/ProjectScanner.ts` ; specs 017
+(FR-013 amendée) et 032 (Q9). Tests : `unit/reprise/file-filter.test.ts`.
+**Quoi :** demande de mentalyas : l'Architecture ne reprend que le code et la doc informative. Ne sont plus parcourus :
+`.claude`, `.specify`, `.kilo`, `.cursor`, `.obsidian`, `.analyste`, `graphify-out` (2 443 fichiers sur ce dépôt),
+`test-results`, `docs/claude/` ; ni les fichiers `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `SKILL.md`, `.cursorrules`,
+`docs/JOURNAL.md`. `isExcludedDir` prend désormais le chemin du dossier (nom, ou chemin pour `docs/claude`).
+**Choix :** tri à l'analyse plutôt que dans la seule vue (mentalyas) : explorateur, Architecture et hors plan s'allègent
+ensemble. `docs/academique/` reste (choix de mentalyas).
+**Note :** `explorer-page.test.tsx` (« entrer dans un module par double-clic ») a échoué une fois dans la suite complète,
+puis passé 3 fois sur 3 seul : instable sous charge, sans lien avec ce changement.

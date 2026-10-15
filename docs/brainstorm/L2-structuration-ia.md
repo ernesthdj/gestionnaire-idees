@@ -1,6 +1,6 @@
 # Niveau 2 — Détail Fonctionnalité : F2 — Structuration IA (questionnaire + décomposition)
 
-**Parent** : L1-fondation.md · **Maturité** : complet
+**Parent** : L1-fondation.md · **Maturité** : insuffisant — à brainstormer plus tard (besoin d’origine mis de côté le 2026-10-13)
 
 > Projet : Gestionnaire_idées · Basé sur : docs/brainstorm/L1-fondation.md, L2-capture-rapide.md
 > Date : 2026-09-28 · Livraison : **MVP-1**

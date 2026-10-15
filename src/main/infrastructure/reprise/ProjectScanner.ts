@@ -66,7 +66,7 @@ export function scanProject(root: string, limit = RETAINED_FILES_MAX): ProjectSc
       }
       if (stat.isDirectory()) {
         // Un sous-dossier avec son propre `.git` est un worktree ou un dépôt imbriqué : une autre copie, pas ce projet.
-        if (isExcludedDir(name) || ignoredByGit(path, true) || existsSync(join(root, path, '.git'))) ignored++
+        if (isExcludedDir(path) || ignoredByGit(path, true) || existsSync(join(root, path, '.git'))) ignored++
         else pending.push(path)
         continue
       }
