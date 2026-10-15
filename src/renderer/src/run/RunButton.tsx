@@ -13,7 +13,15 @@ const errorText = (error: unknown): string => (error instanceof IpcFailure ? err
  * Lancer le projet depuis sa barre sur la carte (spec 025) : « ▶ <favori> », le choix du script, « ■ Arrêter » quand il
  * tourne ; un projet non de confiance propose « Faire confiance… » (confirmé, avec ce que ça permet).
  */
-export function RunButton({ genesisId }: { readonly genesisId: string }): React.JSX.Element | null {
+export function RunButton({
+  genesisId,
+  pill = false
+}: {
+  readonly genesisId: string
+  /** Dans la barre fine (spec 033 D10) : en pastilles arrondies. */
+  readonly pill?: boolean
+}): React.JSX.Element | null {
+  const shape = pill ? 'h-6 rounded-full' : 'h-7 rounded-md'
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
   const [trusting, setTrusting] = useState(false)
@@ -57,7 +65,7 @@ export function RunButton({ genesisId }: { readonly genesisId: string }): React.
           onClick={() => setTrusting((value) => !value)}
           aria-expanded={trusting}
           title="Ce projet n’est pas de confiance : ses scripts ne se lancent pas depuis l’app"
-          className="h-7 whitespace-nowrap rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface"
+          className={`${shape} whitespace-nowrap border border-content-muted/40 px-2 text-xs text-content hover:bg-surface`}
         >
           🔒 Lancer…
         </button>
@@ -100,7 +108,7 @@ export function RunButton({ genesisId }: { readonly genesisId: string }): React.
           onClick={() => start.mutate(view.favorite ?? '')}
           aria-label={`Lancer le script ${view.favorite}`}
           title={`npm run ${view.favorite} (F5)`}
-          className="h-7 whitespace-nowrap rounded-md bg-accent px-2 text-xs text-surface hover:opacity-90 disabled:opacity-50"
+          className={`${shape} whitespace-nowrap bg-accent px-2 text-xs text-surface hover:opacity-90 disabled:opacity-50`}
         >
           ▶
         </button>
@@ -111,7 +119,7 @@ export function RunButton({ genesisId }: { readonly genesisId: string }): React.
           onClick={() => stop.mutate(running.runId)}
           aria-label={`Arrêter le script ${view.favorite}`}
           title="Arrêter (Maj+F5)"
-          className="h-7 whitespace-nowrap rounded-md border border-con/60 px-2 text-xs text-con hover:bg-surface"
+          className={`${shape} whitespace-nowrap border border-con/60 px-2 text-xs text-con hover:bg-surface`}
         >
           ■
         </button>
@@ -124,7 +132,7 @@ export function RunButton({ genesisId }: { readonly genesisId: string }): React.
         value={view.favorite}
         onChange={(event) => favorite.mutate(event.target.value)}
         title="Script lancé par ▶ et F5"
-        className="h-7 max-w-28 rounded-md border border-content-muted/40 bg-surface px-1 text-xs text-content"
+        className={`${shape} max-w-28 border border-content-muted/40 bg-surface px-1 text-xs text-content`}
       >
         {view.scripts.map((script) => (
           <option key={script.name} value={script.name} title={script.command}>

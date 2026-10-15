@@ -13,11 +13,23 @@ export const DAMPING = 0.2
 /** Sensibilité de la molette : facteur `exp(-deltaY × WHEEL_RATE)`. */
 export const WHEEL_RATE = 0.0012
 
-const clampZoom = (zoom: number): number => Math.min(ZOOM_BOUNDS.max, Math.max(ZOOM_BOUNDS.min, zoom))
+/** Bornes du zoom d'une surface. */
+export interface ZoomBounds {
+  readonly min: number
+  readonly max: number
+}
+
+const clampZoom = (zoom: number, bounds: ZoomBounds): number => Math.min(bounds.max, Math.max(bounds.min, zoom))
 
 /** Nouvelle cible : zoom multiplié par `factor`, borné, autour du point (px, py) de la surface. */
-export function zoomAround(target: Viewport, factor: number, px: number, py: number): Viewport {
-  const zoom = clampZoom(target.zoom * factor)
+export function zoomAround(
+  target: Viewport,
+  factor: number,
+  px: number,
+  py: number,
+  bounds: ZoomBounds = ZOOM_BOUNDS
+): Viewport {
+  const zoom = clampZoom(target.zoom * factor, bounds)
   return {
     zoom,
     x: px - ((px - target.x) * zoom) / target.zoom,
@@ -47,7 +59,8 @@ const same = (a: Viewport, b: Viewport): boolean =>
 export function useSmoothZoom(
   flow: Pick<ReactFlowInstance, 'getViewport' | 'setViewport'>,
   surface: RefObject<HTMLElement | null>,
-  reduced: boolean
+  reduced: boolean,
+  bounds: ZoomBounds = ZOOM_BOUNDS
 ): { readonly zoomBy: (factor: number) => void } {
   const target = useRef<Viewport | null>(null)
   const lastSet = useRef<Viewport | null>(null)
@@ -80,10 +93,10 @@ export function useSmoothZoom(
   const zoomAt = useCallback(
     (factor: number, px: number, py: number): void => {
       if (target.current === null) lastSet.current = null
-      target.current = zoomAround(target.current ?? flow.getViewport(), factor, px, py)
+      target.current = zoomAround(target.current ?? flow.getViewport(), factor, px, py, bounds)
       run()
     },
-    [flow, run]
+    [flow, run, bounds]
   )
 
   useEffect(() => {

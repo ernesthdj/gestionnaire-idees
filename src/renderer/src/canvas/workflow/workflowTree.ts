@@ -67,6 +67,8 @@ export interface WorkflowItem {
   readonly next?: boolean
   /** Document de brainstorm d'où vient le nœud (le sien pour un rond-document) ; `null` : aucun. */
   readonly origin?: string | null
+  /** Rond d'une spec ou d'un fichier de tâches abandonné : en rouge sur la carte (demande de mentalyas, 2026-10-15). */
+  readonly abandoned?: true
 }
 
 export interface WorkflowTree {
@@ -311,6 +313,7 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
       shape: 'round',
       maturity: node.maturity,
       origin: described.context.doc,
+      ...(node.status === 'abandoned' ? { abandoned: true as const } : {}),
       // Tout est fait : replié d'office (la carte reste lisible) ; mentalyas le déplie, son choix est gardé.
       foldedByDefault: node.total > 0 && node.done === node.total
     })

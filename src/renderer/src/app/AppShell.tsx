@@ -14,6 +14,7 @@ import { RepoBadge } from '../git/RepoBadge'
 import { ProjectMenu } from '../home/ProjectMenu'
 import { HeaderUsage } from './HeaderUsage'
 import { Rail, type RailEntry } from './Rail'
+import { TOPBAR_SLOT_ID } from './topbarSlot'
 import { Toast } from './Toast'
 import { useUiStore, type View } from './uiStore'
 import { useEffectiveSettings } from './useAppSettings'
@@ -102,6 +103,8 @@ export function AppShell(): React.JSX.Element {
             {view === 'ideas' && brainstorm?.genesisId != null && brainstorm.folder !== null ? (
               <RepoBadge genesisId={brainstorm.genesisId} variant="chip" />
             ) : null}
+            {/* La barre des vues du projet, placée là par la carte (spec 033 D10). */}
+            {view === 'ideas' ? <div id={TOPBAR_SLOT_ID} className="flex min-w-0 items-center" /> : null}
             <span className="flex-1" />
             <HeaderUsage compact />
           </header>

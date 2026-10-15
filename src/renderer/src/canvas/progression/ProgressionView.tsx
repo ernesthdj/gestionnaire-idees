@@ -17,7 +17,6 @@ import { useEffectiveSettings } from '../../app/useAppSettings'
 import { call, IpcFailure } from '../../lib/ipc'
 import { useReducedMotionPreference } from '../../motion/useReducedMotionPreference'
 import { AnalyzeCodeForm, useCodeAnalysis } from '../../reprise/AnalyzeCode'
-import { StructureViewSwitch } from '../nodes/StructureBarNode'
 import { FoldPanelButton } from '../PanelFold'
 import { useSidePanel } from '../side/sidePanelStore'
 import { useWorkflowFold } from '../workflow/WorkflowCard'
@@ -76,7 +75,7 @@ function familyStage(family: ProgressFamily): Stage {
       ? { label: '◇ À spécifier', tone: 'text-seed' }
       : { label: '✦ À brainstormer', tone: 'text-idea' }
   }
-  if (lots.every((lot) => lot.status === 'abandoned')) return { label: '✕ Abandonnée', tone: 'text-content-muted' }
+  if (lots.every((lot) => lot.status === 'abandoned')) return { label: '✕ Abandonnée', tone: 'text-con' }
   if (family.finished) return { label: '✔ Livrée', tone: 'text-pro' }
   if (lots.some((lot) => lot.status === 'active' || (lot.done > 0 && lot.done < lot.total))) {
     return { label: '▶ En cours', tone: 'text-accent' }
@@ -103,7 +102,11 @@ function Brick({ lot, mode, bare, goTo }: { lot: ProgressLot; mode: ProgressMode
   if (!shown(mode, lot.kind)) return null
   const state = lot.kind === 'reel' ? 'bâti' : 'prévu'
   return (
-    <li data-kind={lot.kind} aria-label={`${lot.title} : ${state}, ${tasksText(lot.done, lot.total)}`}>
+    <li
+      data-kind={lot.kind}
+      data-abandoned={lot.status === 'abandoned' ? '' : undefined}
+      aria-label={`${lot.title} : ${state}, ${tasksText(lot.done, lot.total)}`}
+    >
       <button
         type="button"
         aria-label={`Voir les tâches de « ${lot.title} » dans le Workflow`}
@@ -254,6 +257,7 @@ function Group({
               <li
                 key={family.key}
                 data-kind={family.kind}
+                data-abandoned={family.lots.every((lot) => lot.status === 'abandoned') ? '' : undefined}
                 aria-label={`${family.title} : ${stage.label}, ${tasksText(family.done, family.total)}`}
               >
                 <button
@@ -598,7 +602,6 @@ export function ProgressionView({
     >
       <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-2 text-xs">
         <div className="flex flex-wrap items-center gap-3">
-          <StructureViewSwitch genesisId={genesisId} view="progression" />
           <FoldPanelButton />
           <div
             role="group"

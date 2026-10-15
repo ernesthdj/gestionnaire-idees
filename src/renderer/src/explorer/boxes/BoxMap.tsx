@@ -1,6 +1,7 @@
 import {
   applyNodeChanges,
   Background,
+  ControlButton,
   Controls,
   MarkerType,
   ReactFlow,
@@ -15,6 +16,8 @@ import { colorSchemeOf } from '@shared/ipc/app'
 import type { ExplorerMapView, LinkProvenance, MapCallSentence, MapFileView, MapModuleView } from '@shared/ipc/reprise'
 import { weakestProvenance } from '@shared/ipc/reprise'
 import { useEffectiveSettings } from '../../app/useAppSettings'
+import { useSmoothZoom } from '../../canvas/useSmoothZoom'
+import { useReducedMotionPreference } from '../../motion/useReducedMotionPreference'
 import { MarksKindContext, ReplayMarksContext } from '../ExplorerNodes'
 import { LAYER_LABELS, PROVENANCE_LABELS, sentenceText } from '../labels'
 import { boxLayout, isBig, type Rect, type ShownBoxes } from './boxLayout'
@@ -46,6 +49,8 @@ const ARIA_LABELS = {
 /** Délai d'un clic simple sur un module : un double-clic (entrer) ne doit pas l'ouvrir puis le refermer. */
 const CLICK_DELAY_MS = 220
 const STUB = 'stub:'
+/** Bornes du zoom de la carte en boîtes (un projet de 5 000 fichiers se voit en entier à 5 %). */
+const BOX_ZOOM = { min: 0.05, max: 3 } as const
 
 type BoxNode = ModuleBoxNode | FileBoxNode | FrameBoxNode | StubBoxNode
 
@@ -180,6 +185,8 @@ export function BoxMap({
   const byKey = useContext(ReplayMarksContext)
   const markKind = useContext(MarksKindContext)
   const root = useRef<HTMLDivElement>(null)
+  // Zoom fluide (spec 033, comme la carte : spec 022 D20) : molette et boutons amortis, mêmes bornes que la scène.
+  const { zoomBy } = useSmoothZoom(flow, root, useReducedMotionPreference(settings.motion), BOX_ZOOM)
   // Scène dessinée (elle rattrape `focus` à la fin d'une transition).
   const [scene, setScene] = useState<string | null>(focus)
   const moduleOf = useMemo(() => {
@@ -515,14 +522,22 @@ export function BoxMap({
         nodesConnectable={false}
         edgesFocusable={false}
         deleteKeyCode={null}
-        minZoom={0.05}
-        maxZoom={3}
+        zoomOnScroll={false}
+        minZoom={BOX_ZOOM.min}
+        maxZoom={BOX_ZOOM.max}
         ariaLabelConfig={ARIA_LABELS}
         colorMode={colorSchemeOf(settings.theme)}
         proOptions={{ hideAttribution: true }}
       >
         <Background />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false} showZoom={false}>
+          <ControlButton onClick={() => zoomBy(1.25)} aria-label="Zoomer" title="Zoomer">
+            +
+          </ControlButton>
+          <ControlButton onClick={() => zoomBy(1 / 1.25)} aria-label="Dézoomer" title="Dézoomer">
+            −
+          </ControlButton>
+        </Controls>
       </ReactFlow>
     </div>
   )

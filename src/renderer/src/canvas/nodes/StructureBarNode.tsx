@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { NodeProps } from '@xyflow/react'
 import { useId, useState } from 'react'
 import { useUiStore, type StructureView } from '../../app/uiStore'
+import { usePopover } from '../../app/usePopover'
 import { call, IpcFailure } from '../../lib/ipc'
 import type { StructureBarNodeType } from '../buildGraph'
 import { useMapping } from '../mapping/mappingStore'
@@ -21,10 +22,13 @@ import {
  */
 export function StructureViewSwitch({
   genesisId,
-  view
+  view,
+  pill = false
 }: {
   readonly genesisId: string
   readonly view: StructureView | null
+  /** Dans la barre fine (spec 033 D10) : arrondie et plus basse, comme la pastille git. */
+  readonly pill?: boolean
 }): React.JSX.Element {
   const setStructureView = useUiStore((state) => state.setStructureView)
   const segment = (target: StructureView, label: string): React.JSX.Element => (
@@ -35,8 +39,8 @@ export function StructureViewSwitch({
         event.stopPropagation()
         setStructureView(genesisId, target)
       }}
-      className={`h-7 px-3 text-xs font-medium ${
-        view === target ? 'bg-accent text-surface' : 'text-content hover:bg-surface'
+      className={`${pill ? 'h-6' : 'h-7'} px-3 text-xs font-medium ${
+        view === target ? 'bg-accent text-surface' : 'text-content hover:bg-surface-raised'
       }`}
     >
       {label}
@@ -46,7 +50,7 @@ export function StructureViewSwitch({
     <div
       role="group"
       aria-label="Vue de la carte"
-      className="flex overflow-hidden rounded-md border border-content-muted/40"
+      className={`flex shrink-0 overflow-hidden border ${pill ? 'rounded-full border-content-muted/30' : 'rounded-md border-content-muted/40'}`}
     >
       {segment('workflow', 'Workflow')}
       {segment('progression', 'Progression')}
@@ -62,7 +66,23 @@ export function StructureViewSwitch({
  * la vue, tâches et décisions de la carte) est signalé, à reporter dans les fichiers ou à retirer (D23, D28).
  */
 export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): React.JSX.Element {
-  const { genesisId, view, hasMap, strays } = data
+  return <StructureBar {...data} inHeader={false} />
+}
+
+/** Données de la barre, calculées par la carte (`buildGraph`). */
+export type StructureBarData = StructureBarNodeType['data']
+
+/**
+ * La barre, sur la carte (au-dessus d'un genesis) ou dans la barre fine (`inHeader`, spec 033 D10) : mêmes actions, en
+ * pastilles arrondies sur une ligne ; ce qui est à reporter y tient dans une pastille ⚠ qui ouvre ses deux actions.
+ */
+export function StructureBar({
+  genesisId,
+  view,
+  hasMap,
+  strays,
+  inHeader
+}: StructureBarData & { readonly inHeader: boolean }): React.JSX.Element {
   const strayCount = strays.steps.length + strays.elements.length
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
@@ -145,15 +165,54 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
       setBusy(false)
     }
   }
+  const strayPopover = usePopover<HTMLDivElement>()
+  // Mêmes boutons, deux habits : pastille arrondie dans la barre fine, bouton de la carte sinon.
+  const action = inHeader
+    ? 'h-6 shrink-0 whitespace-nowrap rounded-full border border-content-muted/30 px-2.5 text-xs text-content hover:bg-surface-raised disabled:opacity-50'
+    : 'h-7 shrink-0 whitespace-nowrap rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface disabled:opacity-50'
+  const strayActions = (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation()
+          report()
+        }}
+        className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
+      >
+        Les reporter dans les fichiers
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation()
+          void removeStrays()
+        }}
+        className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
+      >
+        Les retirer
+      </button>
+    </>
+  )
+  const strayTitle =
+    view === 'workflow'
+      ? 'La vue Workflow ne montre que les fichiers du projet : ces étapes y sont masquées.'
+      : 'Le travail se fait dans le Workflow : cette vue ne fait que refléter la doc et le code.'
   return (
     <div
       role="group"
       aria-label="Lecture de la carte de structure"
-      className="nodrag flex flex-col items-start gap-2 rounded-lg border border-content-muted/30 bg-surface-raised px-3 py-2 shadow-sm"
+      className={
+        inHeader
+          ? 'flex min-w-0 items-center gap-1.5'
+          : 'nodrag flex flex-col items-start gap-2 rounded-lg border border-content-muted/30 bg-surface-raised px-3 py-2 shadow-sm'
+      }
     >
       {/* Le bandeau (D23, D28) passe sous la ligne : la barre ne s'élargit pas vers la gauche de la carte. */}
-      <div className="flex items-center gap-3">
-        <StructureViewSwitch genesisId={genesisId} view={view} />
+      <div className={`flex items-center ${inHeader ? 'gap-1.5' : 'gap-3'}`}>
+        <StructureViewSwitch genesisId={genesisId} view={view} pill={inHeader} />
         {view === 'workflow' ? (
           <button
             type="button"
@@ -162,7 +221,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
               void client.invalidateQueries({ queryKey: ['workflow', genesisId] })
             }}
             title="Relire les specs et les tâches du projet"
-            className="h-7 rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface"
+            className={action}
           >
             Relire
           </button>
@@ -175,7 +234,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
               setSubject('')
             }}
             title="Le brainstorm de départ se fait ici : il aboutit à un document et à ses tâches, que cette vue montre"
-            className="h-7 shrink-0 whitespace-nowrap rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface"
+            className={action}
           >
             ✦ Nouveau brainstorm
           </button>
@@ -220,7 +279,7 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
             </button>
           </form>
         )}
-        <RunButton genesisId={genesisId} />
+        <RunButton genesisId={genesisId} pill={inHeader} />
         {!hasMap ? null : (
           <button
             type="button"
@@ -231,45 +290,44 @@ export function StructureBarNode({ data }: NodeProps<StructureBarNodeType>): Rea
             }}
             aria-label={mapping ? 'Mise à jour de la carte en cours' : 'Mettre à jour la carte'}
             title="Mettre à jour la carte avec les derniers changements du projet (Claude ne touche qu’aux éléments concernés)"
-            className="h-7 shrink-0 whitespace-nowrap rounded-md border border-content-muted/40 px-2 text-xs text-content hover:bg-surface disabled:opacity-50"
+            className={action}
           >
             {mapping ? 'Mise à jour…' : '↻ Mettre à jour'}
           </button>
         )}
       </div>
-      {view === null || strayCount === 0 ? null : (
+      {view === null || strayCount === 0 ? null : inHeader ? (
+        <div ref={strayPopover.ref} className="relative">
+          <button
+            type="button"
+            aria-expanded={strayPopover.open}
+            onClick={strayPopover.toggle}
+            title={strayTitle}
+            className="flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-idea/50 px-2.5 text-xs text-content hover:bg-surface-raised"
+          >
+            <span aria-hidden="true" className="text-idea">
+              ⚠
+            </span>
+            {strayCount} à reporter
+          </button>
+          {strayPopover.open ? (
+            <div
+              role="status"
+              className="absolute left-0 top-full z-40 mt-1 flex w-80 flex-col items-start gap-1 rounded-xl bg-surface p-3 text-xs shadow-lg"
+            >
+              <span>{strayLabel(view, strays.steps.length, strays.elements.length)}</span>
+              <span className="flex gap-2">{strayActions}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : (
         <span
           role="status"
           className="flex items-center gap-2 rounded-md border border-idea/50 px-2 py-1 text-xs text-content"
-          title={
-            view === 'workflow'
-              ? 'La vue Workflow ne montre que les fichiers du projet : ces étapes y sont masquées.'
-              : 'Le travail se fait dans le Workflow : cette vue ne fait que refléter la doc et le code.'
-          }
+          title={strayTitle}
         >
           {strayLabel(view, strays.steps.length, strays.elements.length)}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={(event) => {
-              event.stopPropagation()
-              report()
-            }}
-            className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
-          >
-            Les reporter dans les fichiers
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={(event) => {
-              event.stopPropagation()
-              void removeStrays()
-            }}
-            className="rounded px-1 underline hover:bg-surface disabled:opacity-50"
-          >
-            Les retirer
-          </button>
+          {strayActions}
         </span>
       )}
     </div>

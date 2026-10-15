@@ -16,9 +16,11 @@ import {
   SelectionMode
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CAPTURE_MAX_CHARS, colorSchemeOf } from '@shared/ipc/app'
 import type { BlockView, CanvasFilterInput, IdeasCanvasView } from '@shared/ipc/canvas'
 import type { RootView } from '@shared/ipc/neurons'
+import { useTopbarSlot } from '../app/topbarSlot'
 import { useUiStore } from '../app/uiStore'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { call, IpcFailure } from '../lib/ipc'
@@ -39,7 +41,7 @@ import { ArchitectureView } from './ArchitectureView'
 import { ProgressionView } from './progression/ProgressionView'
 import { BlockNode } from './nodes/BlockNode'
 import { ElementNode } from './nodes/ElementNode'
-import { StructureBarNode } from './nodes/StructureBarNode'
+import { StructureBar, StructureBarNode, type StructureBarData } from './nodes/StructureBarNode'
 import { FrameNode } from './nodes/FrameNode'
 import { LabelNode } from './nodes/LabelNode'
 import { MapNoteNode } from './nodes/MapNoteNode'
@@ -326,8 +328,10 @@ function CanvasInner(): React.JSX.Element {
   const workflows = useWorkflows(workflowIds)
   const arrival = useUiStore((state) => state.workflowArrival)
 
-  const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[] } => {
-    if (view === undefined || layout === null) return { nodes: [], edges: [] }
+  // La barre du genesis du projet monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
+  const projectGenesisId = useUiStore((state) => state.brainstorm?.genesisId ?? null)
+  const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[]; headerBar: StructureBarData | null } => {
+    if (view === undefined || layout === null) return { nodes: [], edges: [], headerBar: null }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
     const live = positions.size === 0 ? positions : physics.positions()
     const built = buildGraph(
@@ -340,11 +344,16 @@ function CanvasInner(): React.JSX.Element {
       analysisLinks,
       workflows
     )
+    const barId = projectGenesisId === null ? null : `structure-bar-${projectGenesisId}`
+    const bar = built.nodes.find((node) => node.id === barId)
+    const shown = bar === undefined ? built.nodes : built.nodes.filter((node) => node !== bar)
     const nodes =
-      arrival === null
-        ? built.nodes
-        : markArrival(built.nodes, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
-    return { nodes, edges: [...built.edges, ...built.mapEdges] }
+      arrival === null ? shown : markArrival(shown, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
+    return {
+      nodes,
+      edges: [...built.edges, ...built.mapEdges],
+      headerBar: bar?.type === 'structureBar' ? bar.data : null
+    }
   }, [
     view,
     layout,
@@ -357,8 +366,10 @@ function CanvasInner(): React.JSX.Element {
     analysisLinks,
     workflows,
     arrival,
-    reduced
+    reduced,
+    projectGenesisId
   ])
+  const topbarSlot = useTopbarSlot()
   // L'arrivée s'efface d'elle-même (une plus récente garde son propre délai).
   const endArrival = useUiStore((state) => state.endArrival)
   useEffect(() => {
@@ -856,6 +867,9 @@ function CanvasInner(): React.JSX.Element {
 
   return (
     <div className="relative flex h-full flex-col">
+      {topbarSlot === null || graph.headerBar === null
+        ? null
+        : createPortal(<StructureBar {...graph.headerBar} inHeader />, topbarSlot)}
       <CanvasToolbar
         view={view}
         filter={filter}

@@ -252,4 +252,12 @@ describe('workflowGraph', () => {
     const transposed = workflowGraph(workflowTree({ view: view(SPECS, DOCS) }, G), G, { x: 0, y: 0 }, 60, true)
     expect(Math.min(...transposed.placed.map((entry) => entry.x))).toBeGreaterThan(60)
   })
+
+  it('should_mark_an_abandoned_spec_round_so_the_map_shows_it_in_red', () => {
+    const abandoned = spec('019', 'abandoned', [story(1, [task('T001', 'todo', 1)])])
+    const tree = workflowTree({ view: view([...SPECS, abandoned], DOCS) }, G)
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '019'))?.abandoned).toBe(true)
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '017'))?.abandoned).toBeUndefined()
+  })
 })
+

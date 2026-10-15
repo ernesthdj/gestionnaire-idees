@@ -856,6 +856,7 @@ export function buildGraph(
         id: placed.item.key,
         type: 'workflow',
         position: { x: placed.x, y: placed.y },
+        ...(placed.item.abandoned === true ? { className: 'wf-abandoned' } : {}),
         ...(message ? {} : { width: placed.visual.size, height: placed.visual.size }),
         data: { item: placed.item, visual: placed.visual, genesisId: id, open: openIds.has(placed.item.key) },
         draggable: false,

@@ -1,6 +1,8 @@
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Viewport } from '@xyflow/react'
-import { wheelFactor, zoomAround, ZOOM_BOUNDS } from '../useSmoothZoom'
+import { useEffectiveSettings } from '../../app/useAppSettings'
+import { useReducedMotionPreference } from '../../motion/useReducedMotionPreference'
+import { useSmoothZoom, ZOOM_BOUNDS } from '../useSmoothZoom'
 
 /** Marge autour du contenu cadré par « Tout afficher » (px d'écran). */
 const FIT_MARGIN = 32
@@ -44,50 +46,63 @@ export function ProgressionCanvas({
 }): React.JSX.Element {
   const viewRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const [viewport, setViewport] = useState<Viewport>({ x: FIT_MARGIN, y: FIT_MARGIN, zoom: 1 })
+  const [viewport, setViewportState] = useState<Viewport>({ x: FIT_MARGIN, y: FIT_MARGIN, zoom: 1 })
+  // La vue lue et posée par le zoom amorti (comme sur la carte, spec 022 D20) : la référence suit chaque pose.
+  const current = useRef(viewport)
+  const setViewport = useCallback((next: Viewport): void => {
+    current.current = next
+    setViewportState(next)
+  }, [])
+  const reduced = useReducedMotionPreference(useEffectiveSettings().motion)
+  const flow = useMemo(
+    () => ({
+      getViewport: () => current.current,
+      setViewport: (next: Viewport) => {
+        setViewport(next)
+        return Promise.resolve(true)
+      }
+    }),
+    [setViewport]
+  )
+  const { zoomBy } = useSmoothZoom(flow, viewRef, reduced)
+  // « Tout afficher » glisse vers son cadre (sauf en animations réduites).
+  const [easing, setEasing] = useState(false)
   const drag = useRef<{ x: number; y: number; from: Viewport; moved: boolean } | null>(null)
   const swallowClick = useRef(false)
   const [grabbing, setGrabbing] = useState(false)
 
-  const fit = useCallback((mode: 'width' | 'all') => {
-    const view = viewRef.current
-    const content = contentRef.current
-    if (view === null || content === null) return
-    setViewport(
-      fitViewport(
-        { width: content.offsetWidth, height: content.offsetHeight },
-        { width: view.clientWidth, height: view.clientHeight },
-        FIT_MARGIN,
-        mode
+  const fit = useCallback(
+    (mode: 'width' | 'all') => {
+      const view = viewRef.current
+      const content = contentRef.current
+      if (view === null || content === null) return
+      setViewport(
+        fitViewport(
+          { width: content.offsetWidth, height: content.offsetHeight },
+          { width: view.clientWidth, height: view.clientHeight },
+          FIT_MARGIN,
+          mode
+        )
       )
-    )
-  }, [])
+    },
+    [setViewport]
+  )
   useLayoutEffect(() => fit('width'), [fit, fitKey])
-
-  const zoomBy = (factor: number): void => {
-    const view = viewRef.current
-    const width = view?.clientWidth ?? 0
-    const height = view?.clientHeight ?? 0
-    setViewport((current) => zoomAround(current, factor, width / 2, height / 2))
-  }
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
       <div
         ref={viewRef}
         data-testid="progression-canvas"
-        className={`progress-canvas absolute inset-0 overflow-hidden ${grabbing ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`progress-canvas absolute inset-0 select-none overflow-hidden ${grabbing ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
           backgroundSize: `${DOT * viewport.zoom}px ${DOT * viewport.zoom}px`,
           backgroundPosition: `${viewport.x}px ${viewport.y}px`
         }}
-        onWheel={(event) => {
-          const box = event.currentTarget.getBoundingClientRect()
-          const factor = wheelFactor(event.deltaY)
-          setViewport((current) => zoomAround(current, factor, event.clientX - box.left, event.clientY - box.top))
-        }}
         onPointerDown={(event) => {
           if (event.button !== 0 || (event.target as Element).closest(INTERACTIVE) !== null) return
+          // Un glisser déplace la vue, il ne sélectionne pas de texte.
+          event.preventDefault()
           drag.current = { x: event.clientX, y: event.clientY, from: viewport, moved: false }
           event.currentTarget.setPointerCapture(event.pointerId)
           setGrabbing(true)
@@ -116,7 +131,11 @@ export function ProgressionCanvas({
         <div
           ref={contentRef}
           className="absolute left-0 top-0 w-max origin-top-left"
-          style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})` }}
+          style={{
+            transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+            ...(easing ? { transition: 'transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1)' } : {})
+          }}
+          onTransitionEnd={() => setEasing(false)}
         >
           {children}
         </div>
@@ -135,7 +154,15 @@ export function ProgressionCanvas({
         <button type="button" aria-label="Dézoomer" onClick={() => zoomBy(0.8)} className="progress-zoom">
           −
         </button>
-        <button type="button" aria-label="Tout afficher" onClick={() => fit('all')} className="progress-zoom">
+        <button
+          type="button"
+          aria-label="Tout afficher"
+          onClick={() => {
+            setEasing(!reduced)
+            fit('all')
+          }}
+          className="progress-zoom"
+        >
           <svg
             aria-hidden="true"
             width="16"

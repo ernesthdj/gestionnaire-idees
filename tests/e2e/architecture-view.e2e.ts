@@ -42,7 +42,8 @@ describe('Architecture = l’explorateur dans la carte (spec 032 D14, D15, e2e)'
     // La bascule remplace « ← Carte » : Workflow rend la carte et sa barre (la carte dessous est inerte).
     const explorer = page.getByRole('region', { name: /Explorateur · / })
     expect(await explorer.getByRole('button', { name: '← Carte' }).count()).toBe(0)
-    await explorer.getByRole('button', { name: 'Workflow' }).click()
+    // La bascule est dans la barre fine (spec 033 D10).
+    await bar.getByRole('button', { name: 'Workflow', exact: true }).click()
     await bar.waitFor()
     expect(await page.getByRole('group', { name: 'Architecture du projet' }).count()).toBe(0)
   })

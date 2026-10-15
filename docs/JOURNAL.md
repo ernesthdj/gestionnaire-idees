@@ -2152,3 +2152,18 @@ libre » et « Liens d'analyse au repos » au clic droit. La carte passe d'≈ 1
 **Reste :** `reprise-bench.e2e.ts` (« Élément choisi » après un clic de module) et `reprise-resolution.e2e.ts` échouent :
 le premier attend qu'un clic choisisse un module, ce que la spec 031 a changé (le clic l'ouvre sur place) sans mettre le
 test à jour (inchangé depuis le 2026-10-12) ; le second échouait déjà depuis le lot 3 de la spec 032.
+
+### [2026-10-15 19:00] FEAT — spec 033 D10 à D12 : barre des vues en haut, zoom fluide, l'abandonné en rouge
+**Fichiers :** `canvas/nodes/StructureBarNode.tsx` (`StructureBar`, variante `inHeader`), `app/topbarSlot.ts` (nouveau),
+`app/AppShell.tsx`, `canvas/IdeasCanvas.tsx` (portail), `run/RunButton.tsx` (`pill`), `canvas/ArchitectureView.tsx`,
+`canvas/progression/ProgressionView.tsx`, `ProgressionCanvas.tsx`, `canvas/useSmoothZoom.ts` (bornes réglables),
+`explorer/boxes/BoxMap.tsx`, `canvas/workflow/workflowTree.ts` (`abandoned`), `buildGraph.ts`, `workflow.css`,
+`progression.css` ; spec 033 D10 à D12. Tests : `architecture-view.test.tsx`, `workflow-tree.test.ts` ; e2e
+`architecture-view`, `explorer-adopt`, `progression-view`.
+**Quoi :** demandes de mentalyas. D10 : la barre des vues (Workflow · Progression · Architecture, Relire, Nouveau
+brainstorm, Lancer…, Mettre à jour) monte dans la barre fine, à droite de la pastille git, en pastilles arrondies ; la
+carte l'y place par un portail et ne la dessine plus au-dessus du genesis du projet ; « à reporter » devient une pastille
+⚠ ; les panneaux Progression et Architecture perdent leur bascule. D11 : zoom amorti (celui de la carte) dans la
+Progression et dans la carte en boîtes de l'Architecture ; « Tout afficher » glisse ; glisser le canevas de la
+Progression ne sélectionne plus de texte. D12 : spec ou fichier de tâches abandonné cerné de rouge dans le Workflow ;
+étape et briques rouges dans la Progression.

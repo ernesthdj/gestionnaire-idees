@@ -134,3 +134,13 @@
     transition: none;
   }
 }
+/* Abandonné (demande de mentalyas, 2026-10-15) : bordure et texte rouges, comme le mot « abandonnée » qu'il porte. */
+[data-abandoned] > .progress-brick {
+  border-color: var(--color-con);
+  border-style: solid;
+  color: var(--color-con);
+  box-shadow: none;
+}
+[data-abandoned] > .progress-brick .progress-bar {
+  background: linear-gradient(to right, var(--color-con) var(--progress), var(--color-surface-raised) var(--progress));
+}

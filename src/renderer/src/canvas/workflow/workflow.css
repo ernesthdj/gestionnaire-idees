@@ -32,3 +32,12 @@
 .react-flow__node.wf-arrived-still {
   filter: drop-shadow(0 0 4px var(--color-accent));
 }
+
+/* Abandonné (spec ou fichier de tâches) : cerné de rouge, son nom aussi. */
+.react-flow__node.wf-abandoned .living-face {
+  outline: 2px solid var(--color-con);
+  outline-offset: 3px;
+}
+.react-flow__node.wf-abandoned .living-label {
+  color: var(--color-con);
+}

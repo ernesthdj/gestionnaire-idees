@@ -61,7 +61,8 @@ describe('Progression en trois lectures (spec 032 D12, D13, e2e)', () => {
     await run.shot('032-d12-03-lots')
     await panel.getByRole('button', { name: 'Prévu' }).click()
     expect(await panel.getByRole('region', { name: 'Hors plan' }).count()).toBe(0)
-    await panel.getByRole('button', { name: 'Workflow', exact: true }).click()
+    // La bascule est dans la barre fine (spec 033 D10).
+    await bar.getByRole('button', { name: 'Workflow', exact: true }).click()
     await bar.waitFor()
     expect(await page.getByRole('region', { name: 'Progression du projet' }).count()).toBe(0)
   })

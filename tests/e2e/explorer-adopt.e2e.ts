@@ -39,7 +39,7 @@ describe('analyser le code d’un projet déjà lié (spec 017 D23, e2e)', () =>
     await run.shot('017-d23-02-explorateur')
     // L'analyse ouvre la vue Architecture du projet ; « Workflow » rend la carte.
     await page
-      .getByRole('region', { name: /Explorateur · / })
+      .getByRole('group', { name: 'Lecture de la carte de structure' })
       .getByRole('button', { name: 'Workflow', exact: true })
       .click()
     // Aucun nœud de plus sur la carte : l'analyse vit sur le genesis existant.

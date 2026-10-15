@@ -1,7 +1,6 @@
 import { ExplorerPage } from '../explorer/ExplorerPage'
 import { useUiStore } from '../app/uiStore'
 import { AnalyzeCodeForm, useCodeAnalysis } from '../reprise/AnalyzeCode'
-import { StructureViewSwitch } from './nodes/StructureBarNode'
 import { FoldPanelButton } from './PanelFold'
 
 /**
@@ -16,7 +15,6 @@ export function ArchitectureView({ genesisId }: { readonly genesisId: string }):
   const { target, notAnalyzed, loading } = useCodeAnalysis(genesisId)
   const switcher = (
     <>
-      <StructureViewSwitch genesisId={genesisId} view="architecture" />
       <FoldPanelButton />
     </>
   )

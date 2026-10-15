@@ -7,7 +7,7 @@ import { useUiStore } from '../../../src/renderer/src/app/uiStore'
 import { ArchitectureView } from '../../../src/renderer/src/canvas/ArchitectureView'
 import { buildGraph, computeLayout, type StructureBarNodeType } from '../../../src/renderer/src/canvas/buildGraph'
 import { ElementLayerSelect } from '../../../src/renderer/src/canvas/nodes/ElementNode'
-import { StructureBarNode } from '../../../src/renderer/src/canvas/nodes/StructureBarNode'
+import { StructureBar, StructureBarNode } from '../../../src/renderer/src/canvas/nodes/StructureBarNode'
 import { ArchitectureDetector } from '../../../src/renderer/src/explorer/ArchitectureDetector'
 import type { ElementView } from '../../../src/shared/ipc/canvas'
 import type { ExplorerMapView, MapFileView } from '../../../src/shared/ipc/reprise'
@@ -140,7 +140,8 @@ describe('position Architecture = l’explorateur dans la carte (spec 032 D14, D
     })
     const { container } = wrap(<ArchitectureView genesisId={RAW_ID} />)
     expect(await screen.findByRole('heading', { name: 'Le code de ce projet n’est pas encore analysé' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Workflow' })).toBeTruthy()
+    // La bascule des vues est dans la barre fine (spec 033 D10), plus dans le panneau.
+    expect(screen.queryByRole('group', { name: 'Vue de la carte' })).toBeNull()
     await user.click(screen.getByLabelText('Local uniquement : rien ne part chez Claude'))
     await user.click(screen.getByRole('button', { name: 'Analyser' }))
     expect(api.invoke).toHaveBeenCalledWith('reprise:adopt', { genesisId: RAW_ID, confidentiality: 'local' })
@@ -159,6 +160,27 @@ describe('position Architecture = l’explorateur dans la carte (spec 032 D14, D
     expect(screen.getByText('déduite')).toBeTruthy()
     await user.selectOptions(screen.getByRole('combobox', { name: 'Couche de « e1 »' }), 'domaine')
     expect(api.invoke).toHaveBeenCalledWith('element:setLayer', { elementId: 'e1', layer: 'domaine' })
+    await expectNoAxeViolations(container)
+  })
+
+  it('should_sit_in_the_thin_bar_as_rounded_pills_with_what_to_report_behind_a_warning_pill', async () => {
+    const user = userEvent.setup()
+    installFakeApi()
+    const { container } = wrap(
+      <StructureBar
+        genesisId={RAW_ID}
+        view="progression"
+        hasMap
+        strays={{ steps: [], elements: [{ id: 'e1', parentId: RAW_ID, title: 'Tâche posée', type: 'tache' }] }}
+        inHeader
+      />
+    )
+    // Barre fine (spec 033 D10) : une ligne de pastilles ; ce qui est à reporter attend derrière une pastille ⚠.
+    expect(screen.getByRole('group', { name: 'Vue de la carte' }).className).toContain('rounded-full')
+    expect(screen.queryByRole('button', { name: 'Les retirer' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /1 à reporter/ }))
+    expect(screen.getByRole('button', { name: 'Les reporter dans les fichiers' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Les retirer' })).toBeTruthy()
     await expectNoAxeViolations(container)
   })
 })

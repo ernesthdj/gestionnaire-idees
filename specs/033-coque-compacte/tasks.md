@@ -30,3 +30,8 @@ Un commit pour la spec livrée. Chaque lot : tests, typecheck, lint, Prettier, e
 
 - [x] T050 Captures (SC-001 : carte ≈ 1 216 × 729 px dans une fenêtre de 1 264 × 761), e2e, `CLAUDE.md`, JOURNAL ;
   statut « Livrée ».
+- [x] T051 D10 : la barre des vues dans la barre fine (portail depuis la carte), pastilles arrondies, « à reporter » en
+  pastille ⚠ ; bascule retirée des panneaux Progression et Architecture ; tests, e2e, captures.
+- [x] T052 D11 : zoom amorti dans Progression et Architecture (`useSmoothZoom`, bornes réglables), « Tout afficher »
+  qui glisse, glisser sans sélection de texte ; tests.
+- [x] T053 D12 : l'abandonné en rouge dans le Workflow et la Progression ; tests.
