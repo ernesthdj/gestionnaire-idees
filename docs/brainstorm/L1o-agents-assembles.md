@@ -213,3 +213,12 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   profil** ; le pipeline lit le même réglage. Plus de mode « de conversation » qui contredit celui du profil.
 - Libre reste confirmé une fois dans la conversation (spec 014 D8) : tant qu'il ne l'est pas, la conversation parle en
   « Écrire sans demander », même si le profil est en Libre (le pipeline, lui, l'applique).
+
+### D20 — Un agent qui n'a pas pu travailler n'est pas « fini » (2026-10-16, premier vrai lancement sur Bike_cycle)
+- **Écritures refusées** : si les outils d'un agent ont été refusés (mode de permission de son profil, personne pour
+  répondre en `claude -p`) et qu'il n'a rien changé, il s'arrête « en erreur » avec le motif (combien de refus, quel
+  mode, quoi changer) ; l'assemblage n'est pas validé.
+- **Copie de travail non commitée** : avant le lancement, l'app signale les fichiers non commités (les agents partent
+  du dernier commit et ne les voient pas), avec « Ouvrir le Dépôt » pour les commiter d'abord.
+- **Rangement** : la mission dit où écrire un brainstorm (`docs/brainstorm/L<niveau><lettre>-<sujet>.md`, avec son
+  en-tête) et ses tâches (`docs/TACHES-<Sujet>.md`), pour qu'ils apparaissent dans le Workflow.

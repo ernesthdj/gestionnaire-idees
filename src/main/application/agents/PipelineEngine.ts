@@ -12,6 +12,7 @@ import {
   permissionWarning,
   sinksOf,
   upstreamOf,
+  UNCOMMITTED_MARK,
   zoneOverlapWarning,
   zoneOverlaps,
   type AgentProgress,
@@ -25,7 +26,7 @@ import {
   type PassNature,
   type ProgressListener
 } from '@shared/agents/pipeline'
-import { AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
+import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
 import { AppError } from '../../domain/errors'
 import type { StreamEvent } from '../../domain/conversation/streamEvents'
@@ -113,6 +114,21 @@ const FILE_LIST_MAX = 3_900
  */
 const zList = (output: string): string[] => output.split('\0').slice(0, -1)
 
+/** Refus du CLI quand le mode de permission interdit l'outil (`claude -p` n'a personne à qui demander). */
+const REFUSAL = /requested permissions|haven.t granted|permission (?:to|denied)|not allowed/i
+
+/** Compte les outils refusés d'une session (L1o D20), une fois par outil. */
+export function refusalsOf(): { see(event: StreamEvent): void; count(): number } {
+  const ids = new Set<string>()
+  return {
+    see: (event) => {
+      if (event.kind === 'permissionDenied') ids.add(event.id)
+      if (event.kind === 'toolResult' && event.isError && REFUSAL.test(event.text)) ids.add(event.id)
+    },
+    count: () => ids.size
+  }
+}
+
 /** Dossier du worktree temporaire de la fusion : `_` n'ouvre jamais un identifiant d'agent. */
 const FUSION_DIR = '_fusion'
 
@@ -161,6 +177,10 @@ const missionFor = (turn: Turn, index: PassIndex): string => {
       : 'Tu travailles dans ton propre dossier (un worktree git), sur ta branche ; d’autres agents peuvent travailler en même temps sur leur part.',
     'Ne fais aucun commit : l’app enregistre ton travail à la fin de ton tour.',
     'Les documents de la tâche sont dans docs/pipeline/ : tu les lis, tu ne modifies jamais spec.md.',
+    // Rangement que la vue Workflow sait lire (L1o D20) : sinon le document n'apparaît pas sur la carte.
+    'Si tu écris un brainstorm : docs/brainstorm/L<niveau><lettre>-<sujet>.md (ex. L1d-code-local.md), avec sous le ' +
+      'titre « **Parent** : <document> · **Maturité** : insuffisant | suffisant | complet · **Tâches** : ' +
+      'docs/TACHES-<Sujet>.md » ; ses tâches dans docs/TACHES-<Sujet>.md (lots ##, cases « - [ ] T001 … »).',
     'Ta réponse finale est ton rapport (Markdown, court) : ce que tu as fait, ce qui reste, les points d’attention.'
   ].join('\n')
 }
@@ -191,6 +211,24 @@ export class PipelineEngine {
     }
     for (const overlap of zoneOverlaps(assembly)) warnings.push(zoneOverlapWarning(overlap))
     return warnings
+  }
+
+  /**
+   * Copie de travail de mentalyas (L1o D20) : les agents partent du dernier commit ; ce qui n'est pas commité, ils ne
+   * le voient pas (documents, tâches, code en cours). Rend l'avertissement, ou `null` si tout est commité.
+   */
+  async uncommittedWarning(): Promise<string | null> {
+    const status = await this.git(['status', '--porcelain', '-z'])
+    if (status.code !== 0) return null
+    const paths = zList(status.output)
+      .filter((entry) => entry.length > 3)
+      .map((entry) => entry.slice(3))
+    if (paths.length === 0) return null
+    const shown = paths.slice(0, 5).join(', ')
+    return (
+      `${UNCOMMITTED_MARK} : ${paths.length} fichier(s) non commité(s) (${shown}${paths.length > 5 ? '…' : ''}). Les ` +
+      'agents partent du dernier commit et ne les verront pas : commite-les d’abord dans le Dépôt.'
+    )
   }
 
   /** Refuse un assemblage invalide ou une branche de base introuvable, sans rien lancer. */
@@ -571,13 +609,18 @@ export class PipelineEngine {
 
     const sessionId = (this.deps.newSessionId ?? randomUUID)()
     turn.work(agent.id, { kind: 'start', pass: index.pass, nature: index.nature, worktree })
+    // Écritures et commandes refusées pendant la session (mode de permission du profil, L1o D20).
+    const refused = refusalsOf()
     const result = await this.deps.runSession({
       profile,
       sessionId,
       cwd: worktree,
       systemPrompt: [missionFor(turn, index), profile.instructions].filter((t) => t.trim() !== '').join('\n\n'),
       prompt: this.promptFor(turn, documents, spec),
-      onEvent: (event) => turn.work(agent.id, { kind: 'stream', event, worktree }),
+      onEvent: (event) => {
+        refused.see(event)
+        turn.work(agent.id, { kind: 'stream', event, worktree })
+      },
       ...(signal === undefined ? {} : { signal })
     })
     turn.work(agent.id, {
@@ -588,6 +631,19 @@ export class PipelineEngine {
     if (aborted()) return fail('cancelled', 'annulé par mentalyas.', sessionId)
     if (!result.ok || result.text.trim() === '') {
       return fail('agent-failed', result.error ?? 'l’agent n’a rendu aucun rapport.', sessionId)
+    }
+    // Écritures refusées et rien de changé : l'agent n'a pas travaillé, il ne compte pas comme fini (L1o D20).
+    if (refused.count() > 0) {
+      const status = await inTree(['status', '--porcelain', '-z'])
+      if (status.code === 0 && zList(status.output).length === 0) {
+        return fail(
+          'permission-denied',
+          `${refused.count()} écriture(s) ou commande(s) refusée(s) par le mode « ${
+            AGENT_PERMISSION_LABELS[profile.permissionMode]
+          } » de son profil, et rien n’a changé : passe-le en « Écrire sans demander » (ou « Libre » pour lancer les tests).`,
+          sessionId
+        )
+      }
     }
     // Le PO signe la spec ; les autres rendent un rapport, dans le worktree : ils voyagent avec la branche.
     if (profile.role === 'po') documents.writeSpec(taskId, 'po', result.text)

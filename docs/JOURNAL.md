@@ -2583,3 +2583,19 @@ le pipeline lit celui du profil : deux réglages de même nom, sans lien.
 volet se relisent) ; Libre se confirme toujours dans la conversation. Un mode déjà choisi dans une ancienne visio est
 ignoré : c'est le profil qui compte (à régler une fois de plus).
 **Vérifié :** typecheck, lint, Prettier, 2 442 tests.
+
+### [2026-10-16 22:26] FIX — premier vrai lancement d'agents : refus d'écriture, copie non commitée, rangement (L1o D20)
+**Fichiers :** `PipelineEngine.ts` (`refusalsOf`, arrêt `permission-denied`, `uncommittedWarning`, consigne de
+rangement dans la mission), `AssemblyService.ts`, `src/shared/agents/pipeline.ts` (`permission-denied`,
+`UNCOMMITTED_MARK`), `AgentsTabContent.tsx` (« Ouvrir le Dépôt ») ; tests d'intégration et unitaires ; e2e
+`agents-map` stabilisé.
+**Constat (Bike_cycle, demandé par mentalyas) :** le PO a écrit une spec correcte mais sans les documents
+d'architecture, non commités (9 fichiers de tâches, des brainstorms et du code en cours) ; Thor, en « Demander avant
+d'écrire », a vu ses 3 écritures refusées et n'a rendu qu'un rapport ; l'app a pourtant dit « validé » (pas de QA, un
+rapport suffisait). Le brainstorm du PO, nommé librement dans docs/brainstorm/, n'apparaît pas dans le Workflow.
+**Quoi :** agent arrêté si ses outils sont refusés et qu'il n'a rien changé ; avertissement des fichiers non commités
+avant le lancement ; règle de rangement dans la mission.
+**Erreur de test corrigée :** l'e2e `agents-map` échouait une fois sur deux : la visio recentre la carte, qui ne dessine
+que les nœuds visibles ; un agent passait sous le panneau de droite. Le test recadre (« Tout afficher ») après chaque
+visio ; 5 passes sur 5.
+**Vérifié :** typecheck, lint, Prettier, 2 445 tests ; e2e `agents-map`.

@@ -133,6 +133,7 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await tab.getByRole('region', { name: 'Agent developpeur' }).waitFor()
     await visio.getByRole('button', { name: 'Raccrocher et fermer le volet' }).click()
     await visio.waitFor({ state: 'detached' })
+    await page.getByRole('button', { name: 'Tout afficher' }).click()
 
     // Lancement : les nœuds s'animent, puis passent au vert quand le QA valide.
     await tab.getByRole('button', { name: 'Lancer', exact: true }).click()
@@ -153,6 +154,8 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await run.shot('t008-05-travail-dans-la-visio')
     await page.keyboard.press('Escape')
     await work.waitFor({ state: 'detached' })
+    // La visio a recentré la carte (elle ne dessine que ce qui est visible) : on recadre sur tous les agents.
+    await page.getByRole('button', { name: 'Tout afficher' }).click()
     await tab.getByText(/3 agents sur 3 ont fini — validé par le QA/).waitFor()
     await tab
       .getByRole('region', { name: 'Agent developpeur' })
@@ -168,6 +171,9 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
 
     // Clic droit sur un agent : le renvoyer le détache du nœud (son profil reste).
     const merged = page.getByRole('button', { name: /^Qualité, fusionné/ })
+    // La visio a recentré la carte : l'agent peut être sous le panneau de droite. On recadre avant le clic droit.
+    await page.getByRole('button', { name: 'Tout afficher' }).click()
+    await settled(merged)
     await merged.click({ button: 'right', force: true })
     await page.getByRole('menuitem', { name: /Renvoyer l’agent/ }).click()
     await merged.waitFor({ state: 'detached' })

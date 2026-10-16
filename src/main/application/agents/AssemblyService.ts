@@ -30,6 +30,8 @@ export interface AssemblyNode {
 export interface AssemblyEngine {
   check(assembly: Assembly): Promise<void>
   warnings(assembly: Assembly): string[]
+  /** Fichiers non commités de la copie de travail (L1o D20) : l'avertissement, ou `null`. */
+  uncommittedWarning?(): Promise<string | null>
   run(
     assembly: Assembly,
     signal?: AbortSignal,
@@ -124,7 +126,8 @@ export class AssemblyService {
   async warnings(request: AssemblyRequest): Promise<string[]> {
     const { assembly, engine } = this.prepare(request)
     await engine.check(assembly)
-    return engine.warnings(assembly)
+    const uncommitted = (await engine.uncommittedWarning?.()) ?? null
+    return [...(uncommitted === null ? [] : [uncommitted]), ...engine.warnings(assembly)]
   }
 
   async start(request: AssemblyRequest): Promise<AssemblyRunView> {

@@ -96,6 +96,33 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
   const filesOf = async (branch: string): Promise<string> =>
     (await git(['ls-tree', '-r', '--name-only', branch])).output
 
+  it('should_stop_an_agent_whose_writes_were_refused_and_who_changed_nothing_instead_of_validating', async () => {
+    // L1o D20 : le profil « Demander avant d'écrire », sans personne pour répondre ; l'agent ne fait que rendre compte.
+    const result = await engineWith(async (request) => {
+      request.onEvent?.({ kind: 'tool', name: 'Write', id: 'w1', input: { file_path: 'src/a.ts' } })
+      request.onEvent?.({
+        kind: 'toolResult',
+        id: 'w1',
+        isError: true,
+        text: 'Claude requested permissions to write to src/a.ts, but you haven’t granted it yet.'
+      })
+      return { ok: true, text: 'Je n’ai rien pu écrire.' }
+    }).run({ taskId: 'T021', brief: 'Écrire a', agents: [{ id: 'back', profileId: 'back' }], links: [] })
+    expect(result.completed).toBe(false)
+    expect(result.agents[0]).toMatchObject({ status: 'failed', stopped: { reason: 'permission-denied' } })
+    expect(result.agents[0]?.stopped?.message).toContain('1 écriture(s) ou commande(s) refusée(s)')
+  })
+
+  it('should_warn_about_uncommitted_files_that_the_agents_will_not_see', async () => {
+    const engine = engineWith(writer)
+    expect(await engine.uncommittedWarning()).toBeNull()
+    writeFileSync(join(project, 'TACHES-NOUVEAU.md'), '- [ ] T001 X\n')
+    writeFileSync(join(project, 'README.md'), 'modifié\n')
+    const warning = await engine.uncommittedWarning()
+    expect(warning).toContain('Copie de travail modifiée : 2 fichier(s) non commité(s)')
+    expect(warning).toContain('TACHES-NOUVEAU.md')
+  })
+
   it('should_run_a_single_agent_without_po_in_its_own_worktree', async () => {
     const seen: AgentSessionRequest[] = []
     const result = await engineWith(async (request) => {

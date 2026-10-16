@@ -274,6 +274,9 @@ export const sinksOf = (assembly: Assembly): string[] =>
 
 export type AgentRunStatus = 'done' | 'failed' | 'blocked' | 'cancelled'
 
+/** Début de l'avertissement « copie de travail non commitée » (L1o D20) : le volet y ajoute un bouton vers le Dépôt. */
+export const UNCOMMITTED_MARK = 'Copie de travail modifiée'
+
 export type AgentStopReason =
   | 'missing-spec'
   | 'agent-failed'
@@ -283,6 +286,8 @@ export type AgentStopReason =
   | 'cancelled'
   | 'qa-no-verdict'
   | 'po-no-designation'
+  /** Ses écritures ont été refusées (mode de permission du profil) et il n'a rien changé (L1o D20). */
+  | 'permission-denied'
 
 export interface AgentRunResult {
   readonly agentId: string

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { PASS_NATURE_LABELS, type AssemblyAgent } from '@shared/agents/pipeline'
+import { PASS_NATURE_LABELS, UNCOMMITTED_MARK, type AssemblyAgent } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
 import { Markdown } from '../../chat/Markdown'
@@ -278,6 +278,9 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
                   <li key={warning}>{warning}</li>
                 ))}
               </ul>
+              {pending.some((warning) => warning.startsWith(UNCOMMITTED_MARK)) ? (
+                <Button onClick={() => useSidePanel.getState().openRepo(tab.genesisId)}>Ouvrir le Dépôt</Button>
+              ) : null}
             </div>
           )}
           <div className="flex flex-wrap gap-2">
