@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { PASS_NATURE_LABELS } from '@shared/agents/pipeline'
 import { AGENT_ROLE_LABELS } from '@shared/agents/profile'
 import { ChatPanel } from '../../chat/ChatPanel'
@@ -42,6 +43,8 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
   const chatId = chat.data?.neuronId ?? null
   const since = useVisio((state) => state.since)
   const [draftOpen, setDraftOpen] = useState<string | null>(null)
+  // Agrandir le volet (demande de mentalyas, 2026-10-17) : un brouillon ou une longue réponse s'y lit en entier.
+  const [wide, setWide] = useState(false)
   const skills = useSkillsOfVisio(chatId, profile, since)
   const running = run?.state === 'running'
   const actions = useAssemblyActions()
@@ -50,14 +53,17 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
     if (await actions.dismiss(sketch, data.agentId)) close()
   }
 
-  // Échap raccroche, où que soit le focus (sauf pendant que Claude répond : Échap l'interrompt d'abord).
+  // Échap raccroche, où que soit le focus (sauf pendant que Claude répond : Échap l'interrompt d'abord) ; agrandi, il
+  // remet d'abord le volet à côté de l'agent.
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && !event.defaultPrevented && !useVisio.getState().talking) close()
+      if (event.key !== 'Escape' || event.defaultPrevented || useVisio.getState().talking) return
+      if (wide) setWide(false)
+      else close()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [close])
+  }, [close, wide])
 
   const hold = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(hold.current), [])
@@ -74,8 +80,11 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
     [speak]
   )
 
-  return (
-    <section className="agent-visio-panel nodrag nowheel" aria-label={`Visio avec ${data.name}`}>
+  const panel = (
+    <section
+      className={`agent-visio-panel nodrag nowheel${wide ? ' agent-visio-panel-wide' : ''}`}
+      aria-label={`Visio avec ${data.name}`}
+    >
       <header className="flex items-start justify-between gap-2 px-4 pt-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold">{data.name}</h3>
@@ -89,6 +98,16 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            aria-pressed={wide}
+            title={wide ? 'Revenir à la taille normale' : 'Agrandir le volet'}
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-surface-raised"
+            onClick={() => setWide((value) => !value)}
+          >
+            <span aria-hidden="true">{wide ? '⤡' : '⤢'}</span>
+            <span className="sr-only">Agrandir le volet</span>
+          </button>
           <button type="button" className="card-button card-button-ghost" onClick={close}>
             Raccrocher
           </button>
@@ -161,4 +180,18 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
       </div>
     </section>
   )
+  // Agrandi : en fenêtre au-dessus de la carte et du panneau de droite (à côté de l'agent, il passerait dessous).
+  return wide
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setWide(false)
+          }}
+        >
+          {panel}
+        </div>,
+        document.body
+      )
+    : panel
 }

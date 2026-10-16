@@ -2713,3 +2713,13 @@ le même tiroir, un clic connecte l'agent. Un agent libre se retire au clic droi
 aurait été pénible.
 **Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-lot` (captures `t030-01-tiroir`,
 `t030-02-agent-libre`) et `agents-map`.
+
+### [2026-10-17 01:00] FIX — visio d'un agent : volet qui défile, agrandi en fenêtre, « Installer » toujours visible
+**Fichiers :** `AgentVisioPanel.tsx` (bouton « Agrandir le volet » : fenêtre centrée au-dessus de tout, Échap la remet
+à côté de l'agent), `agents.css` (zone de conversation qui défile, taille agrandie), `DraftPanel.tsx` (« Jeter /
+Installer » collés en bas), `AgentRevealDialog.tsx` (brouillon qui défile) ; e2e `agents-map`.
+**Quoi :** capture de mentalyas : dans la visio du PO, un brouillon de skill dépassait le volet (coupé, sans
+défilement), le bouton d'installation était hors d'atteinte.
+**Corrigé en route :** agrandi sur place, le volet passait sous le panneau de droite (bouton pour le réduire caché) :
+il s'ouvre en fenêtre au-dessus de la carte.
+**Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map` (capture `t008-04b-visio-agrandie`).

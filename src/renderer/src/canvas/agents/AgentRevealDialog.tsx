@@ -168,7 +168,7 @@ export function AgentRevealDialog({
           {chatting ? (
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-l border-content-muted/20">
               <SkillsCards skills={skills} onOpenDraft={setDraftOpen} />
-              <div className="min-h-0 flex-1">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 {draftOpen !== null ? (
                   <DraftPanel draftId={draftOpen} onDone={() => setDraftOpen(null)} />
                 ) : chat.data !== undefined ? (

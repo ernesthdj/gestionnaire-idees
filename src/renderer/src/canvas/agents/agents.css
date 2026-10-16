@@ -116,9 +116,15 @@
   color: var(--color-content);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
 }
+.agent-visio-panel-wide {
+  width: min(960px, 92vw);
+  height: 86vh;
+  max-height: 86vh;
+}
 .agent-visio-chat {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
   border-top: 1px solid color-mix(in oklab, var(--color-content-muted) 20%, transparent);
 }
 

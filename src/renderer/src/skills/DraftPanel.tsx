@@ -113,7 +113,8 @@ export function DraftPanel({
           {error}
         </p>
       )}
-      <div className="flex gap-2">
+      {/* Toujours à portée, même dans un volet étroit où les différences défilent (visio d'un agent). */}
+      <div className="sticky bottom-0 flex gap-2 bg-surface py-2">
         <Button className="flex-1" disabled={busy} onClick={() => void discard()}>
           Jeter
         </Button>

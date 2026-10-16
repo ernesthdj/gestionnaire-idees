@@ -135,6 +135,12 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await page.locator('.agent-visio-subs').waitFor({ timeout: 15_000 })
     await page.waitForTimeout(1200)
     await run.shot('t008-04-visio-parle')
+    // Le volet s'agrandit (2026-10-17) : un brouillon ou une longue réponse s'y lit en entier, puis il revient.
+    const small = (await visio.boundingBox())?.height ?? 0
+    await visio.getByRole('button', { name: 'Agrandir le volet' }).click()
+    await expect.poll(async () => (await visio.boundingBox())?.height ?? 0).toBeGreaterThan(small)
+    await run.shot('t008-04b-visio-agrandie')
+    await visio.getByRole('button', { name: 'Agrandir le volet' }).click()
     await visio.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })
     await visio.getByText('Mission et rapport').click()
     await visio.getByRole('button', { name: 'Gérer l’assemblage' }).click()
