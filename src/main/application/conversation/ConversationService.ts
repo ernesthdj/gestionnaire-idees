@@ -12,7 +12,7 @@ import type {
   ChatUsageView,
   ChatView
 } from '@shared/ipc/chat'
-import { withContext, type NeuronContext } from '../../domain/conversation/contextBlock'
+import { withContext, withLocalTime, type NeuronContext } from '../../domain/conversation/contextBlock'
 import { hookSettings } from '../../domain/conversation/hookSettings'
 import { conversationDirs, type ConversationDirs } from '../../domain/conversation/workingDirs'
 import { rankLabel } from '@shared/plan/rankLabel'
@@ -387,7 +387,8 @@ export class ConversationService {
         : `${data}
 
 ${text}`
-    const content = live.contextSent ? message : withContext(this.contextOf(neuron, live), message)
+    const dated = withLocalTime(message, this.deps.now?.() ?? new Date())
+    const content = live.contextSent ? dated : withContext(this.contextOf(neuron, live), dated)
     live.contextSent = true
     live.busy = true
     live.stopping = false

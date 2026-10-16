@@ -14,8 +14,9 @@ const BRAINSTORM_OUTPUT =
 const PROJECT_RULES =
   'Avant de commencer, lis le CLAUDE.md du projet et ses règles de travail (docs/claude/ s’il existe) et suis-les. ' +
   'Vérifie avec les commandes du projet (typecheck, lint, format, tests), consigne le changement dans son journal ' +
-  '(docs/JOURNAL.md s’il en tient un) ; jamais --no-verify, jamais d’ajout global (git add -A) sans revue, aucun ' +
-  'commit sans mon accord.'
+  '(docs/JOURNAL.md s’il en tient un) : une entrée ajoutée à la FIN du fichier, datée de l’heure locale jointe à mon ' +
+  'message (<heure_locale>, jamais une heure devinée), et un fichier qui finit par un saut de ligne ; jamais ' +
+  '--no-verify, jamais d’ajout global (git add -A) sans revue, aucun commit sans mon accord.'
 
 /** Un fichier de tâches sans brainstorm (spec 032 Q10) : écrire d'abord sa conception, ses tâches restent des ébauches. */
 const writeBrainstormFor = (file: string): string =>

@@ -261,6 +261,9 @@ describe('consignes de « Discuter » (spec 023 US2)', () => {
     // Les règles du projet sont rappelées (spec 032 Q10) : le chat ne charge aucun réglage.
     expect(implement).toContain('lis le CLAUDE.md du projet et ses règles de travail')
     expect(implement).toContain('jamais --no-verify')
+    // Journal : entrée à la fin, datée de l'heure réelle jointe au message, fichier fini par un saut de ligne.
+    expect(implement).toContain('à la FIN du fichier, datée de l’heure locale jointe à mon message (<heure_locale>')
+    expect(implement).toContain('finit par un saut de ligne')
     expect(promptFor(item(workflowKey(G, 'story', '022', '1')))).toContain(
       "Mène les tâches restantes de l'US1 « Carte des idées » de la spec specs/022-noeuds-vivants, dans l'ordre : T011."
     )

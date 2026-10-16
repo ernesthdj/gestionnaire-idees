@@ -341,5 +341,15 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
       expect(warnings).toHaveLength(4)
       expect(warnings[0]).toContain('ne pourra lancer aucune commande')
     })
+
+    it('should_warn_when_two_parallel_agents_share_a_zone', () => {
+      const base = diamond()
+      const shared: Assembly = {
+        ...base,
+        agents: base.agents.map((a) => (a.id === 'back' || a.id === 'front' ? { ...a, zone: ['src/app'] } : a))
+      }
+      const warnings = engineWith(writer).warnings(shared)
+      expect(warnings.some((w) => w.includes('« back » et « front »') && w.includes('src/app'))).toBe(true)
+    })
   })
 })

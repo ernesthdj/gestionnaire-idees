@@ -127,3 +127,18 @@ export function contextBlock(neuron: NeuronContext): string {
 export function withContext(neuron: NeuronContext, text: string): string {
   return `${contextBlock(neuron)}\n\n${text}`
 }
+
+const pad = (value: number): string => String(value).padStart(2, '0')
+
+/** Heure locale `AAAA-MM-JJ HH:MM` (fuseau du poste). */
+export function localTime(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/**
+ * Chaque message porte l'heure locale réelle : Claude connaît la date, pas l'heure, et devinait celle d'une entrée de
+ * journal (retour de mentalyas du 2026-10-16). Donnée de l'app, après le texte de mentalyas.
+ */
+export function withLocalTime(text: string, date: Date): string {
+  return `${text}\n\n<heure_locale>${localTime(date)}</heure_locale>`
+}

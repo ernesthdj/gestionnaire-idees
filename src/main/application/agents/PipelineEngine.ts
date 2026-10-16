@@ -12,6 +12,8 @@ import {
   permissionWarning,
   sinksOf,
   upstreamOf,
+  zoneOverlapWarning,
+  zoneOverlaps,
   type AgentRunResult,
   type AgentStopReason,
   type ApprovalResult,
@@ -134,6 +136,7 @@ export class PipelineEngine {
       const warning = permissionWarning(profile)
       if (warning !== undefined) warnings.push(warning)
     }
+    for (const overlap of zoneOverlaps(assembly)) warnings.push(zoneOverlapWarning(overlap))
     return warnings
   }
 
@@ -557,6 +560,12 @@ export class PipelineEngine {
       }
     }
     if (own !== '') parts.push('', 'Ta part :', own)
+    if (agent.zone !== undefined && agent.zone.length > 0) {
+      parts.push(
+        '',
+        `Ta zone de travail : ${agent.zone.join(', ')}. Reste dedans : d’autres agents travaillent ailleurs.`
+      )
+    }
     if (profile.role === 'qa') {
       parts.push(
         '',

@@ -469,6 +469,9 @@ describe('permissions et fil fidèle (spec 014 US1, US3)', () => {
     expect(dialog.querySelector('.viewer-diff-removed')?.textContent).toContain('const b = 2')
     expect(dialog.querySelector('.viewer-diff-added')?.textContent).toContain('const b = 3')
     expect(dialog.textContent).toContain('+1 · −1')
+    // La syntaxe est colorée des deux côtés du diff.
+    expect(dialog.querySelector('.viewer-diff-added .hljs-keyword')?.textContent).toBe('const')
+    expect(dialog.querySelector('.viewer-diff-removed .hljs-keyword')?.textContent).toBe('const')
     await expectNoAxeViolations(dialog)
     await userEvent.click(screen.getByRole('tab', { name: 'Fichier' }))
     expect(screen.getByRole('tabpanel', { name: 'Fichier' }).textContent).toContain('const b = 3')

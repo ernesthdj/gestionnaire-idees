@@ -20,7 +20,7 @@
 - [x] T016 Boucle QA → PO → agents concernés : rapport d'erreurs du QA au PO, spec réécrite et versionnée, seuls les agents désignés repartent ; aucun plafond imposé (D8)
 - [x] T017 Passes indexées : numéro et nature (initiale, correction, repasse) dans la mission, les commits et le rapport ; version de spec citée (D9)
 - [x] T018 Un accord unique de fusion pour l'assemblage ; profils en mode « Demander avant d'écrire » signalés à l'assemblage (D11)
-- [ ] T014 Zones de travail : chaque tâche déclare sa zone ; avertissement et proposition de lien si deux agents en parallèle se chevauchent (D4)
+- [x] T014 Zones de travail : chaque tâche déclare sa zone ; avertissement et proposition de lien si deux agents en parallèle se chevauchent (D4)
 - [ ] T005 Connecter un PO à un nœud d'idée, une tâche ou un module, ou un agent seul à une tâche précise sans PO (D12) ; brancher le planificateur au bootstrap et à l'IPC
 - [x] T015 Finitions T001–T004 : JOURNAL, Prettier (fins de ligne), `pipeline-engine.test.ts` sous 5 s
 

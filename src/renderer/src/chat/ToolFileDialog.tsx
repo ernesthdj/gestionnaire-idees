@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ChatToolFileView, ToolPatch } from '@shared/ipc/chat'
+import { highlight, splitHighlightLines, type HighlightNode } from '../lib/highlight'
+import { Highlighted } from '../lib/Highlighted'
 import { call, IpcFailure } from '../lib/ipc'
 import { SourceCode } from '../lib/SourceCode'
 import { Markdown } from './Markdown'
@@ -124,7 +126,7 @@ export function ToolFileDialog({
             </div>
             <div role="tabpanel" aria-label={TAB_LABELS[tab]} className="min-h-0 flex-1 overflow-auto" tabIndex={0}>
               {tab === 'change' && file.change !== null ? (
-                <PatchView patch={file.change} />
+                <PatchView patch={file.change} language={file.language} />
               ) : (
                 <CurrentView file={file} formatted={tab === 'formatted'} />
               )}
@@ -161,22 +163,51 @@ interface PatchRow {
   readonly text: string
   readonly oldNo: number | null
   readonly newNo: number | null
+  /** Ligne colorée ; absente : texte brut (langage inconnu, en-tête, note). */
+  readonly tokens?: readonly HighlightNode[]
 }
 
-/** Lignes du diff numérotées : `oldStart` / `newStart` de chaque bloc, puis une ligne de plus de chaque côté touché. */
-function rowsOf(patch: ToolPatch): PatchRow[] {
+/** Texte d'un côté du bloc coloré en entier puis redécoupé en lignes : une chaîne sur plusieurs lignes reste juste. */
+function coloredSide(lines: readonly string[], language: string | null): HighlightNode[][] | null {
+  const tree = highlight(lines.join('\n'), language)
+  return tree === null ? null : splitHighlightLines(tree)
+}
+
+/**
+ * Lignes du diff numérotées (`oldStart` / `newStart` de chaque bloc) et colorées : une ligne retirée prend la couleur
+ * du côté d'avant (contexte + retirées), une ligne ajoutée ou de contexte celle du côté d'après.
+ */
+function rowsOf(patch: ToolPatch, language: string | null): PatchRow[] {
   const rows: PatchRow[] = []
   for (const hunk of patch.hunks) {
     rows.push({ kind: 'header', text: `@@ −${hunk.oldStart} +${hunk.newStart} @@`, oldNo: null, newNo: null })
+    const body = hunk.lines.filter((line) => !line.startsWith('\\'))
+    const before = coloredSide(
+      body.filter((line) => !line.startsWith('+')).map((line) => line.slice(1)),
+      language
+    )
+    const after = coloredSide(
+      body.filter((line) => !line.startsWith('-')).map((line) => line.slice(1)),
+      language
+    )
     let oldNo = hunk.oldStart
     let newNo = hunk.newStart
+    let a = 0
+    let b = 0
+    const tokensOf = (side: HighlightNode[][] | null, index: number) => {
+      const tokens = side?.[index]
+      return tokens === undefined ? {} : { tokens }
+    }
     for (const line of hunk.lines) {
       const sign = line.charAt(0)
       const text = line.slice(1)
-      if (sign === '+') rows.push({ kind: 'added', text, oldNo: null, newNo: newNo++ })
-      else if (sign === '-') rows.push({ kind: 'removed', text, oldNo: oldNo++, newNo: null })
+      if (sign === '+') rows.push({ kind: 'added', text, oldNo: null, newNo: newNo++, ...tokensOf(after, b++) })
+      else if (sign === '-') rows.push({ kind: 'removed', text, oldNo: oldNo++, newNo: null, ...tokensOf(before, a++) })
       else if (sign === '\\') rows.push({ kind: 'note', text: line, oldNo: null, newNo: null })
-      else rows.push({ kind: 'same', text, oldNo: oldNo++, newNo: newNo++ })
+      else {
+        a++
+        rows.push({ kind: 'same', text, oldNo: oldNo++, newNo: newNo++, ...tokensOf(after, b++) })
+      }
     }
   }
   return rows
@@ -206,8 +237,14 @@ const ROW_READ: Readonly<Record<PatchRow['kind'], string>> = {
   note: ''
 }
 
-function PatchView({ patch }: { readonly patch: ToolPatch }): React.JSX.Element {
-  const rows = useMemo(() => rowsOf(patch), [patch])
+function PatchView({
+  patch,
+  language
+}: {
+  readonly patch: ToolPatch
+  readonly language: string | null
+}): React.JSX.Element {
+  const rows = useMemo(() => rowsOf(patch, language), [patch, language])
   const added = rows.filter((row) => row.kind === 'added').length
   const removed = rows.filter((row) => row.kind === 'removed').length
   return (
@@ -217,7 +254,7 @@ function PatchView({ patch }: { readonly patch: ToolPatch }): React.JSX.Element 
         {patch.created ? ' · fichier créé' : ''}
         {patch.truncated ? ' · modification trop longue, coupée' : ''}
       </p>
-      <pre className="viewer-code py-2 font-mono text-xs">
+      <pre className="viewer-code hljs py-2 font-mono text-xs">
         {rows.map((row, index) => (
           <div key={index} className={`flex ${ROW_CLASS[row.kind]}`}>
             <span aria-hidden="true" className="w-10 shrink-0 pr-2 text-right text-content-muted select-none">
@@ -230,7 +267,9 @@ function PatchView({ patch }: { readonly patch: ToolPatch }): React.JSX.Element 
               {ROW_SIGN[row.kind]}
             </span>
             <span className="sr-only">{ROW_READ[row.kind]}</span>
-            <span className="pr-4">{row.text === '' ? ' ' : row.text}</span>
+            <span className="pr-4">
+              {row.text === '' ? ' ' : row.tokens === undefined ? row.text : <Highlighted nodes={row.tokens} />}
+            </span>
           </div>
         ))}
       </pre>

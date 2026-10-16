@@ -251,14 +251,16 @@ describe('conversations Claude Code des neurones', () => {
   })
 
   it('should_join_the_context_only_to_the_first_message_of_a_process', async () => {
+    // Heure locale du poste : chaque message la porte (Claude ne la connaît pas, il devinait celle du journal).
+    service = build({ now: () => new Date(2026, 9, 16, 19, 5) })
     await service.send(N1, 'Premier')
     const process = processes[0] as FakeProcess
     expect(sent(process)).toContain('<contexte_brainstormer>')
     expect(sent(process)).toContain('Lieu : Liège')
-    expect(sent(process)).toMatch(/Premier$/)
+    expect(sent(process)).toMatch(/Premier\n\n<heure_locale>2026-10-16 19:05<\/heure_locale>$/)
     finish(process, 'Bonjour !')
     await service.send(N1, 'Deuxième')
-    expect(sent(process, 1)).toBe('Deuxième')
+    expect(sent(process, 1)).toBe('Deuxième\n\n<heure_locale>2026-10-16 19:05</heure_locale>')
     expect(messages.filter((message) => message.role === 'user').map((message) => message.text)).toEqual([
       'Premier',
       'Deuxième'

@@ -20,6 +20,8 @@ export interface AssemblyAgent {
   readonly profileId: string
   /** Ce que cet agent doit faire en particulier (facultatif : sinon, sa part de la spec). */
   readonly task?: string
+  /** Zone de travail : dossiers ou fichiers du projet (chemins relatifs) que cet agent touchera (L1o D4). */
+  readonly zone?: readonly string[]
 }
 
 export interface AssemblyLink {
@@ -60,6 +62,9 @@ export function assemblyError(assembly: Assembly, roleOf: (agentId: string) => A
     if (ids.has(agent.id)) return `Deux agents portent l’identifiant « ${agent.id} ».`
     ids.add(agent.id)
     if (roleOf(agent.id) === undefined) return `L’agent « ${agent.id} » n’a pas de profil (page Skills).`
+    const badPath = (agent.zone ?? []).find((path) => normalizeZonePath(path) === undefined)
+    if (badPath !== undefined)
+      return `Zone invalide pour « ${agent.id} » : « ${badPath} » (chemin relatif au projet attendu).`
   }
   const seen = new Set<string>()
   for (const link of links) {
@@ -103,6 +108,73 @@ export function topologicalOrder(assembly: Assembly): string[] | null {
     order.push(next.id)
   }
   return order
+}
+
+/**
+ * Chemin de zone normalisé (`/`, sans `./` ni `/` final) ; `undefined` s'il sort du projet (absolu, `..`, lecteur) ou
+ * est vide. `.` désigne tout le projet.
+ */
+export function normalizeZonePath(path: string): string | undefined {
+  const parts = path
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((part) => part !== '' && part !== '.')
+  const raw = path.trim().replace(/\\/g, '/')
+  if (raw === '' || raw.startsWith('/') || /^[a-z]:/i.test(raw) || parts.includes('..')) return undefined
+  return parts.join('/')
+}
+
+/** Deux chemins normalisés se recouvrent quand l'un est l'autre ou le dossier qui contient l'autre (`''` = tout). */
+const pathsOverlap = (a: string, b: string): boolean => {
+  // Windows ne distingue pas les majuscules : `src/App` et `src/app` sont le même dossier.
+  const x = a.toLowerCase()
+  const y = b.toLowerCase()
+  return x === '' || y === '' || x === y || x.startsWith(`${y}/`) || y.startsWith(`${x}/`)
+}
+
+export interface ZoneOverlap {
+  /** Les deux agents qui travaillent en même temps. */
+  readonly first: string
+  readonly second: string
+  /** Chemins en commun (le plus précis des deux à chaque fois). */
+  readonly paths: readonly string[]
+  /** Lien proposé pour les mettre en séquence : `first` d'abord (dans l'ordre de l'assemblage). */
+  readonly suggestedLink: AssemblyLink
+}
+
+/**
+ * Agents en parallèle (aucun n'attend l'autre, même de loin) dont les zones déclarées se recouvrent (L1o D4). Un agent
+ * sans zone n'est jamais signalé : on ne devine rien. Zones invalides ignorées (`assemblyError` les refuse).
+ */
+export function zoneOverlaps(assembly: Assembly): ZoneOverlap[] {
+  const zones = new Map<string, string[]>()
+  for (const agent of assembly.agents) {
+    const paths = (agent.zone ?? []).map(normalizeZonePath).filter((p): p is string => p !== undefined)
+    if (paths.length > 0) zones.set(agent.id, paths)
+  }
+  const overlaps: ZoneOverlap[] = []
+  const ids = assembly.agents.map((agent) => agent.id)
+  ids.forEach((first, i) => {
+    const after = downstreamOf(assembly, [first])
+    for (const second of ids.slice(i + 1)) {
+      const a = zones.get(first)
+      const b = zones.get(second)
+      if (a === undefined || b === undefined || after.has(second)) continue
+      if (downstreamOf(assembly, [second]).has(first)) continue
+      const shared = new Set<string>()
+      for (const x of a) for (const y of b) if (pathsOverlap(x, y)) shared.add(x.length >= y.length ? x : y)
+      if (shared.size > 0)
+        overlaps.push({ first, second, paths: [...shared], suggestedLink: { from: first, to: second } })
+    }
+  })
+  return overlaps
+}
+
+/** Phrase d'avertissement pour mentalyas : qui se chevauche, où, et le lien proposé. */
+export const zoneOverlapWarning = (overlap: ZoneOverlap): string => {
+  const where = overlap.paths.map((path) => (path === '' ? 'tout le projet' : `« ${path} »`)).join(', ')
+  return `« ${overlap.first} » et « ${overlap.second} » travaillent en même temps sur ${where} : leurs branches risquent de se contredire. Relier ${overlap.first} → ${overlap.second} les mettrait à la suite.`
 }
 
 /** Dernière ligne du rapport du QA : `VERDICT: VALIDE` ou `VERDICT: RENVOI` (boucle QA → PO, L1o D8). */

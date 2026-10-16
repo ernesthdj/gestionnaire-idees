@@ -2294,3 +2294,37 @@ chemin absolu ne quitte le main. Vérifié dans l'app réelle avec le vrai Claud
 nouvelles colonnes de 0051 le cassaient. Le test vise maintenant les colonnes de 0027.
 **Règle apprise :** le CLI joint à chaque message `user` un `tool_use_result` (sonde 2.1.301) ; il décrit l'unique
 résultat du message, donc il n'est rattaché que s'il y a un seul `tool_result`.
+
+### [2026-10-16 19:15] FIX — spec 014 D9 : la syntaxe est colorée dans l'onglet « Modification »
+**Fichiers :** `src/renderer/src/chat/ToolFileDialog.tsx`, test `chat-panel.test.tsx`.
+**Erreur :** l'onglet « Modification » montrait le diff en texte brut ; seul l'onglet « Fichier » était coloré (retour
+de mentalyas).
+**Quoi :** comme la visionneuse des livrables, chaque bloc est coloré par côté, puis redécoupé en lignes. Le côté
+d'avant regroupe le contexte et les lignes retirées, le côté d'après le contexte et les lignes ajoutées. Une ligne
+retirée prend la couleur d'avant, une ligne ajoutée ou de contexte celle d'après : une chaîne ou un commentaire sur
+plusieurs lignes reste juste.
+
+### [2026-10-16 19:00] FEAT — agents assemblés : zones de travail et chevauchement (T014, L1o D4)
+**Fichiers :** `src/shared/agents/pipeline.ts`, `src/main/application/agents/PipelineEngine.ts`,
+`tests/unit/agents/assembly.test.ts`, `tests/integration/agents/pipeline-engine.test.ts`, `docs/TACHES-AGENTS.md`
+**Quoi :** chaque agent d'un assemblage peut déclarer sa zone (`zone` : dossiers ou fichiers relatifs au projet).
+`zoneOverlaps` repère deux agents en parallèle (aucun n'attend l'autre, même de loin) dont les zones se recouvrent
+(égalité ou dossier contenant) et propose le lien qui les mettrait à la suite ; `PipelineEngine.warnings` rend la phrase
+avec les autres avertissements de l'assemblage. Un agent sans zone n'est jamais signalé. `assemblyError` refuse une zone
+absolue, avec lecteur ou qui sort du projet (`..`). La zone est rappelée dans la consigne de l'agent. L'écran qui
+déclare les zones et affiche la proposition viendra avec T005 (IPC) et T006 (canevas).
+**Erreur :** `exactOptionalPropertyTypes` refusait `zone: undefined` dans le test : propriété ajoutée seulement si présente.
+**Règle apprise :** comparer des chemins par segments (`a/b` contient `a/b/c`, pas `a/bc`), jamais par préfixe de texte.
+
+### [2026-10-16 14:41] FIX — les sessions lancées depuis l'app datent bien le journal ; zones comparées sans tenir compte des majuscules
+**Fichiers :** `src/main/domain/conversation/contextBlock.ts` (`withLocalTime`, `localTime`),
+`src/main/application/conversation/ConversationService.ts`, `src/renderer/src/canvas/workflow/prompts.ts`,
+`src/shared/agents/pipeline.ts` ; tests `conversation-service.test.ts`, `workflow-card.test.tsx`, `assembly.test.ts`.
+**Erreur :** la session T014, lancée depuis l'app, a daté son entrée de journal à 19:00 (heure devinée, avant l'entrée
+de 19:15) et laissé `docs/JOURNAL.md` sans saut de ligne final : l'entrée suivante se serait collée à sa dernière ligne.
+Claude connaît la date, pas l'heure. Aussi : `zoneOverlaps` (T014) distinguait `src/App` de `src/app`.
+**Quoi :** chaque message envoyé à Claude finit par `<heure_locale>AAAA-MM-JJ HH:MM</heure_locale>` (heure du poste,
+donnée par l'app). Les consignes d'implémentation du Workflow demandent une entrée ajoutée à la fin du journal, datée de
+cette heure, et un fichier qui finit par un saut de ligne. Les chemins de zone sont comparés en minuscules.
+**Règle apprise :** une donnée que Claude ne peut pas connaître (l'heure, un état de l'app) se joint au message ;
+une consigne seule ne suffit pas.
