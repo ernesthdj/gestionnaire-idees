@@ -2655,3 +2655,10 @@ retirée), L1o D22.
 **Quoi :** capture de mentalyas : la miniature de la chambre gênait aussi dans la visio du Workflow. La visio ne montre
 plus que l'image de la webcam, devant le mur de la visio.
 **Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agents-map` (capture `t008-03-visio`).
+
+### [2026-10-16 23:44] FEAT — la webcam de la visio filme en plan taille (L1o D22)
+**Fichiers :** `RoomScene.ts` (champ de la webcam 46° → 62°).
+**Quoi :** demande de mentalyas : voir le mur décoré derrière l'agent. La webcam est déjà contre le mur du fond (on ne
+peut pas la reculer) : son champ s'élargit, le gros plan devient un plan taille (tableau, étagère, plan au mur visibles ;
+le bord du bureau passe au premier plan, comme une vraie webcam posée sur l'écran).
+**Vérifié :** typecheck, Prettier, 2 450 tests ; e2e `agent-profile-assistant` (capture `t022-04-tete-a-tete`).

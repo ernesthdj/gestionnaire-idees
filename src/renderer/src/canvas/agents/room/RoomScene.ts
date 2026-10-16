@@ -150,7 +150,7 @@ export class RoomScene {
   private readonly camera = new THREE.OrthographicCamera(-30, 30, 30, -30, 1, 400)
   private readonly view: { cx: number; cy: number; hw: number; hh: number }
   /** Webcam de la visio, posée sur l'écran du bureau, à hauteur du visage de l'agent assis. */
-  private readonly webcam = new THREE.PerspectiveCamera(46, 1.12, 0.5, 300)
+  private readonly webcam = new THREE.PerspectiveCamera(62, 1.12, 0.5, 300)
   private readonly screenGlow = new THREE.PointLight(0x6c9cf3, 0, 22)
   private readonly voxel = new THREE.BoxGeometry(1, 1, 1)
   private readonly blob: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>
