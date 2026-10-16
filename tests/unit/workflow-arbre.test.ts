@@ -165,6 +165,20 @@ describe('arbre du Workflow (spec 032 D9, D10, D5, D6)', () => {
     expect(find(noneDoing.nodes, 'task:001:T009')).toMatchObject({ kind: 'square', state: 'todo', sketch: false })
   })
 
+  it('should_point_to_the_most_mature_brainstorm_to_complete_when_no_task_is_workable', () => {
+    // D18 : aucune tâche n'a tout son contexte (rien de complet n'a de tâche à faire) → le brainstorm à compléter.
+    const docs = {
+      'L1a-donnees.md': '# Données\n\n**Maturité** : insuffisant · **Tâches** : docs/TACHES-SAUVEGARDE.md\n',
+      'L1b-recherche.md': '# Recherche\n\n**Maturité** : suffisant · **Tâches** : docs/TACHES-RECHERCHE.md\n'
+    }
+    const tree = build(docs, '- [x] T001 Mise en place\n')
+    expect(tree.next).toBeNull()
+    // « Recherche » (66 %) passe avant « Données » (33 %) : c'est lui qu'il faut compléter.
+    expect(tree.complete).toBe('doc:L1b-recherche')
+    // Une tâche travaillable existe : « Bosser ici », pas de brainstorm à compléter.
+    expect(build().complete).toBeNull()
+  })
+
   it('should_put_a_spec_under_its_written_parent_before_the_documents_it_only_cites', () => {
     const spec = parseSpec(
       '# Vues (spec 032)\n\n**Parent** : L1b-recherche.md · **Status**: Écrite\nExemple : L1a-donnees.md\n'

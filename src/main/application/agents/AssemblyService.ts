@@ -1,4 +1,5 @@
 import { isValidTaskId } from '@shared/agents/documents'
+import type { AgentWorkEvent, AgentWorkListener } from './PipelineEngine'
 import {
   structureError,
   type AgentProgress,
@@ -29,7 +30,12 @@ export interface AssemblyNode {
 export interface AssemblyEngine {
   check(assembly: Assembly): Promise<void>
   warnings(assembly: Assembly): string[]
-  run(assembly: Assembly, signal?: AbortSignal, onProgress?: ProgressListener): Promise<AssemblyRunResult>
+  run(
+    assembly: Assembly,
+    signal?: AbortSignal,
+    onProgress?: ProgressListener,
+    onWork?: AgentWorkListener
+  ): Promise<AssemblyRunResult>
   approve(assembly: Assembly): Promise<ApprovalResult>
 }
 
@@ -43,7 +49,7 @@ export interface SketchStore {
 export interface AssemblyServiceDeps {
   readonly sketches: SketchStore
   readonly node: (nodeId: string) => AssemblyNode | undefined
-  /** Raison pour laquelle on ne lance pas d'agent sur ce projet (repris, « Local uniquement »…), ou `null`. */
+  /** Raison pour laquelle on ne lance pas d'agent sur ce projet (« Local uniquement »…), ou `null`. */
   readonly refusal: (genesisId: string) => string | null
   readonly engineFor: (project: {
     readonly genesisId: string
@@ -51,6 +57,8 @@ export interface AssemblyServiceDeps {
     readonly projectName: string
   }) => AssemblyEngine
   readonly emit: (genesisId: string, taskId: string) => void
+  /** Ce que fait chaque agent au fil de l'eau (L1o D18) : inscrit dans sa conversation de visio. */
+  readonly workLog?: (hostId: string, agentId: string, event: AgentWorkEvent) => void
   /** Travail livré (L1o D13) : crédite les profils des agents d'un assemblage validé, puis fusionné. */
   readonly credit?: (profileIds: readonly string[]) => void
   readonly now?: () => number
@@ -144,10 +152,15 @@ export class AssemblyService {
     }
     this.runs.set(key, run)
     engine
-      .run(assembly, run.controller.signal, (event) => {
-        this.apply(run, event)
-        this.deps.emit(node.genesisId, assembly.taskId)
-      })
+      .run(
+        assembly,
+        run.controller.signal,
+        (event) => {
+          this.apply(run, event)
+          this.deps.emit(node.genesisId, assembly.taskId)
+        },
+        (agentId, event) => this.deps.workLog?.(request.nodeId, agentId, event)
+      )
       .then((result) => {
         run.result = result
         run.state = 'finished'

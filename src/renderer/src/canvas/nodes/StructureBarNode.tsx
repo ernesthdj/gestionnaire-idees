@@ -14,6 +14,10 @@ import {
   reportStepsPrompt,
   strayLabel
 } from '../workflow/prompts'
+import { workflowUpdatePrompt } from '../workflow/updatePrompt'
+import { workflowTree } from '../workflow/workflowTree'
+import { useSidePanel } from '../side/sidePanelStore'
+import type { WorkflowView } from '@shared/ipc/workflow'
 
 /**
  * Bascule « Workflow | Progression | Architecture » d'une carte de projet lié (spec 023 D3) : sur la barre de la carte
@@ -91,6 +95,8 @@ export function StructureBar({
   const [subject, setSubject] = useState<string | null>(null)
   const subjectId = useId()
   const mapping = useMapping((state) => state.phases[genesisId] === 'running')
+  // Mise à jour du Workflow (spec 032 D17) en cours : jusqu'à la fin du tour de Claude.
+  const [updating, setUpdating] = useState(false)
 
   /**
    * « Mettre à jour la carte » (spec 022, 2026-10-10) : l'app liste ce qui a changé depuis la dernière cartographie ;
@@ -115,6 +121,65 @@ export function StructureBar({
     } finally {
       setBusy(false)
     }
+  }
+  /**
+   * « Mettre à jour » dans la vue Workflow (spec 032 D17) : Claude remet les fichiers du projet au format du Workflow ;
+   * à la fin de son tour, l'app relit l'arbre et centre la carte sur « ▶ Bosser ici », en surbrillance.
+   */
+  const updateWorkflow = async (): Promise<void> => {
+    setBusy(true)
+    // Son propre suivi : pas celui de la cartographie, dont la fin ferait avancer le repère des changements de la carte.
+    const stops: (() => void)[] = []
+    const done = (): void => {
+      stops.forEach((stop) => stop())
+      setUpdating(false)
+    }
+    try {
+      const view = await call<WorkflowView>('workflow:read', { genesisId })
+      setUpdating(true)
+      const mine = (payload: unknown): boolean => (payload as { neuronId?: string } | null)?.neuronId === genesisId
+      stops.push(
+        window.api.on('chat:turnEnd', (payload) => {
+          if (!mine(payload)) return
+          done()
+          void showNext()
+        }),
+        window.api.on('chat:error', (payload) => {
+          if (!mine(payload)) return
+          done()
+          showToast('La mise à jour du Workflow s’est arrêtée.')
+        })
+      )
+      await call('chat:send', { neuronId: genesisId, text: workflowUpdatePrompt(view) })
+      showToast('Mise à jour du Workflow lancée : Claude remet les fichiers du projet au format.')
+    } catch (error) {
+      done()
+      showToast(error instanceof IpcFailure ? error.message : 'La mise à jour du Workflow n’a pas pu démarrer.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  /** Relit le Workflow et met en avant la prochaine tâche (« ▶ Bosser ici »). */
+  const showNext = async (): Promise<void> => {
+    await client.invalidateQueries({ queryKey: ['workflow', genesisId] })
+    const view = await client.fetchQuery({
+      queryKey: ['workflow', genesisId],
+      queryFn: () => call<WorkflowView>('workflow:read', { genesisId })
+    })
+    const items = workflowTree({ view }, genesisId).items
+    // Une tâche travaillable (contexte complet), sinon le brainstorm à compléter d'abord (D18).
+    const next = items.find((item) => item.next === true) ?? items.find((item) => item.complete === true)
+    if (next === undefined) {
+      showToast('Workflow à jour : plus rien à faire.')
+      return
+    }
+    useUiStore.getState().arriveInWorkflow(next.key)
+    useSidePanel.getState().requestFocus(next.key)
+    showToast(
+      next.complete === true
+        ? `Aucune tâche n’a tout son contexte : complète d’abord « ${next.title} ».`
+        : `Prochaine tâche : ${next.title}`
+    )
   }
   /** Nouveau brainstorm (D26) : la consigne attend dans le chat du genesis, envoyée par mentalyas. */
   const startBrainstorm = (): void => {
@@ -280,7 +345,21 @@ export function StructureBar({
           </form>
         )}
         <RunButton genesisId={genesisId} pill={inHeader} />
-        {!hasMap ? null : (
+        {view === 'workflow' ? (
+          <button
+            type="button"
+            disabled={busy || updating}
+            onClick={(event) => {
+              event.stopPropagation()
+              void updateWorkflow()
+            }}
+            aria-label={updating ? 'Mise à jour du Workflow en cours' : 'Mettre à jour le Workflow'}
+            title="Remettre les fichiers du projet au format du Workflow (en-têtes, tâches, état réel des cases) et montrer la prochaine tâche"
+            className={action}
+          >
+            {updating ? 'Mise à jour…' : '↻ Mettre à jour'}
+          </button>
+        ) : !hasMap ? null : (
           <button
             type="button"
             disabled={busy || mapping}

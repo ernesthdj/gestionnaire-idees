@@ -60,6 +60,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'assembly:sketchSave',
   'assembly:sketchClear',
   'assembly:chat',
+  'agents:conversation',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',
@@ -317,6 +318,8 @@ export const MAIN_WINDOW_EVENTS = [
   'analyste:update:progress',
   'skills:changed',
   'assembly:changed',
+  'agents:proposal',
+  'agents:skillsProposal',
   'skills:importProgress',
   'skills:analyzeProgress'
 ] as const

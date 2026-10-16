@@ -560,6 +560,34 @@ describe('conversations Claude Code des neurones', () => {
     expect(args[args.indexOf('--append-system-prompt') + 1]).toContain('Tu es « Développeur », agent Backend.')
   })
 
+  it('should_write_the_agent_work_into_its_chat_with_file_pills_moved_to_the_project_when_an_agent_works', () => {
+    const toProject = (path: string): string => path.split('\\').join('/').replace('C:/wt/back', 'C:/projet')
+    service.recordWork(N1, { kind: 'start', pass: 1, nature: 'initiale', worktree: 'C:/wt/back' }, toProject)
+    service.recordWork(
+      N1,
+      {
+        kind: 'stream',
+        worktree: 'C:/wt/back',
+        event: { kind: 'tool', name: 'Write', id: 't1', input: { file_path: 'C:/wt/back/src/tri.ts' } }
+      },
+      toProject
+    )
+    service.recordWork(
+      N1,
+      { kind: 'files', worktree: 'C:/wt/back', files: [{ path: 'src/ancien.ts', status: 'deleted' }] },
+      toProject
+    )
+    service.recordWork(N1, { kind: 'end', ok: true, text: 'Tri ajouté.' }, toProject)
+    expect(messages.map(({ role, text, toolPath }) => ({ role, text, toolPath: toolPath ?? null }))).toEqual([
+      { role: 'tool', text: '▶ Au travail : passe 1 (implémentation initiale)', toolPath: null },
+      { role: 'tool', text: expect.stringContaining('tri.ts'), toolPath: 'C:/projet/src/tri.ts' },
+      { role: 'tool', text: 'Supprimé : src/ancien.ts', toolPath: expect.stringMatching(/projet.src.ancien\.ts$/) },
+      { role: 'assistant', text: '**Rapport de la passe**\n\nTri ajouté.', toolPath: null }
+    ])
+    // Chaque message part tout de suite vers le chat ouvert.
+    expect(events.filter((event) => event.type === 'chat:tool')).toHaveLength(4)
+  })
+
   it('should_open_a_genesis_without_folder_in_the_project_of_its_canvas', async () => {
     neurons.set(N1, neuron(N1, { projectFolder: 'C:/projets/PID' }))
     expect(service.open(N1)).toMatchObject({ folder: null, projectFolder: 'PID' })

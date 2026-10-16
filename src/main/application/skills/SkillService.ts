@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { AGENT_PROFILE_CHAT_PREFIX } from './skillsFrame'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { SkillDraftDiffView, SkillDraftView } from '@shared/ipc/skills'
@@ -62,6 +63,24 @@ export class SkillService {
     const id = this.newId()
     const title = skillId === undefined ? 'Skills' : `Skill ${skillId.split(':').at(-1) ?? skillId}`
     this.deps.repository.insertSkillChat({ id, title, key, dir: workspace })
+    return { neuronId: id }
+  }
+
+  /**
+   * Conversation « Créer avec Claude » d'un profil d'agent (L1o D15) : neuve à chaque création ; celle d'un profil
+   * existant est reprise quand on le retouche avec Claude.
+   */
+  agentConversation(profileId?: string): { neuronId: string } {
+    const key = `${AGENT_PROFILE_CHAT_PREFIX}${profileId ?? `nouveau-${this.newId()}`}`
+    if (profileId !== undefined) {
+      const existing = this.deps.repository.skillChat(key)
+      if (existing !== undefined) return { neuronId: existing }
+    }
+    const workspace = this.deps.workspace
+    if (workspace === undefined) throw new AppError('VALIDATION', 'Dossier de travail des skills indisponible')
+    mkdirSync(workspace, { recursive: true })
+    const id = this.newId()
+    this.deps.repository.insertSkillChat({ id, title: 'Profil d’agent', key, dir: workspace })
     return { neuronId: id }
   }
 

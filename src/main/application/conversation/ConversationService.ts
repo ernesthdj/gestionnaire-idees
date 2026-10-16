@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
 import type {
   ChatDeltaEvent,
   ChatErrorCode,
@@ -21,6 +21,9 @@ import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PermissionService } from './PermissionService'
 import type { AgentPersona } from '../agents/AgentChats'
+import type { AgentWorkEvent } from '../agents/PipelineEngine'
+import { PASS_NATURE_LABELS } from '@shared/agents/pipeline'
+import { isAgentProfileChat } from '../skills/skillsFrame'
 import { LOCAL_ONLY_MESSAGE } from '../reprise/ConfidentialityGuard'
 import { AppError } from '../../domain/errors'
 import { BYPASS_WARNING, type PermissionMode } from '@shared/ipc/chat'
@@ -77,6 +80,8 @@ export interface ConversationDeps {
   readonly frame: string
   /** Cadre des conversations Skills (spec 020 US3). */
   readonly skillsFrame?: string
+  /** Cadre d'une conversation Skills qui crée un profil d'agent avec Claude (L1o D15). */
+  readonly agentProfileFrame?: string
   readonly emit: (event: ChatEvent) => void
   /** Sélecteur de dossier natif (main) ; `undefined` si annulé. Jamais un chemin venu de l'interface. */
   readonly pickFolder?: () => Promise<string | undefined>
@@ -120,7 +125,8 @@ export const PERMISSION_PROMPT_TOOL = 'mcp__brainstormer__permission_demander'
  * ni de commande, quel que soit le mode choisi ailleurs : Claude ne peut que déposer des brouillons.
  */
 export const SKILLS_CHAT_TOOLS = 'Read Glob Grep'
-export const SKILLS_CHAT_ALLOWED = 'mcp__brainstormer__skills_lire mcp__brainstormer__skill_brouillon Read Glob Grep'
+export const SKILLS_CHAT_ALLOWED =
+  'mcp__brainstormer__skills_lire mcp__brainstormer__skill_brouillon mcp__brainstormer__agent_profil_proposer Read Glob Grep'
 
 /** Arguments fixes du CLI (spec 008 research R1) : aucun ne vient de l'interface ni du texte de mentalyas. */
 export function conversationArgs(input: {
@@ -482,6 +488,61 @@ ${text}`
     return this.live.size
   }
 
+  /**
+   * Journal du travail d'un agent (L1o D18), inscrit dans sa conversation de visio comme un tour du chat général : le
+   * début de la passe, chaque outil (fichiers en pastilles), le bilan des fichiers, puis le rapport ou l'erreur.
+   * `pathOf` ramène un chemin du worktree (retiré après la passe) dans le dossier du projet.
+   */
+  recordWork(neuronId: string, event: AgentWorkEvent, pathOf: (path: string) => string): void {
+    const emit = (message: ChatMessageView): void =>
+      this.deps.emit({ type: 'chat:tool', payload: { neuronId, message } })
+    switch (event.kind) {
+      case 'start':
+        emit(this.save(neuronId, 'tool', `▶ Au travail : passe ${event.pass} (${PASS_NATURE_LABELS[event.nature]})`))
+        return
+      case 'stream': {
+        const stream = event.event
+        if (stream.kind === 'tool') {
+          const path = toolPathOf(stream.name, stream.input)
+          emit(
+            this.save(
+              neuronId,
+              'tool',
+              toolTitle(stream.name, stream.input),
+              stream.id === '' ? null : stream.id,
+              path === null ? null : pathOf(path)
+            )
+          )
+        }
+        if (stream.kind === 'toolResult') {
+          const patch = stream.patch === undefined ? null : JSON.stringify(stream.patch)
+          const status = stream.isError ? (isRefusal(stream.text) ? 'denied' : 'error') : 'ok'
+          const row = this.deps.repository.setToolStatus(
+            neuronId,
+            stream.id,
+            status,
+            stream.isError ? stream.text : null,
+            patch
+          )
+          if (row !== undefined) emit(messageView(row))
+        }
+        return
+      }
+      case 'files':
+        for (const file of event.files) {
+          const verb = file.status === 'added' ? 'Ajouté' : file.status === 'deleted' ? 'Supprimé' : 'Modifié'
+          emit(this.save(neuronId, 'tool', `${verb} : ${file.path}`, null, pathOf(join(event.worktree, file.path))))
+        }
+        return
+      case 'end':
+        emit(
+          event.ok
+            ? this.save(neuronId, 'assistant', `**Rapport de la passe**\n\n${event.text.trim()}`)
+            : this.save(neuronId, 'error', `La passe s’est arrêtée : ${event.text}`)
+        )
+    }
+  }
+
   private async start(neuron: ConversationNeuron): Promise<Live | undefined> {
     const command = await this.deps.claudePath()
     if (command === undefined) {
@@ -504,7 +565,12 @@ ${text}`
     const resume = neuron.sessionStarted
     const model = this.modelOf(neuron, settings)
     const persona = this.personaOf(neuron)
-    const frame = neuron.kind === 'skills_chat' ? (this.deps.skillsFrame ?? this.deps.frame) : this.deps.frame
+    const frame =
+      neuron.kind !== 'skills_chat'
+        ? this.deps.frame
+        : isAgentProfileChat(neuron)
+          ? (this.deps.agentProfileFrame ?? this.deps.skillsFrame ?? this.deps.frame)
+          : (this.deps.skillsFrame ?? this.deps.frame)
     const args = conversationArgs({
       sessionId,
       resume,

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { parseStreamLine } from '../../domain/conversation/streamEvents'
 import { cpSync, lstatSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AgentSessionRunner } from '../../application/agents/PipelineEngine'
@@ -51,8 +52,10 @@ export function agentSessionArgs(input: {
 }): string[] {
   return [
     '-p',
+    // Flux continu (L1o D18) : ce que fait l'agent arrive au fil de l'eau ; la dernière ligne est le résultat.
     '--output-format',
-    'json',
+    'stream-json',
+    '--verbose',
     '--session-id',
     input.sessionId,
     '--model',
@@ -107,6 +110,13 @@ export const createAgentSessionRunner =
       cwd: request.cwd,
       stdin: request.prompt,
       timeoutMs: options.timeoutMs ?? SESSION_TIMEOUT_MS,
+      ...(request.onEvent === undefined
+        ? {}
+        : {
+            onStdoutLine: (line: string) => {
+              for (const event of parseStreamLine(line)) request.onEvent?.(event)
+            }
+          }),
       ...(request.signal === undefined ? {} : { signal: request.signal })
     }).finally(() => {
       if (pluginRoot !== undefined) rmSync(pluginRoot, { recursive: true, force: true })

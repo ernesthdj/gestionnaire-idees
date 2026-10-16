@@ -468,6 +468,25 @@
   background: conic-gradient(var(--color-accent) 0 var(--ring-tasks), var(--color-surface-raised) 0);
 }
 
+/* Jauge de contexte d'un carré (spec 032 D18) : l'anneau de maturité épouse le carré arrondi. */
+.living-face[data-shape='square'] .living-ring-brainstorm {
+  inset: -8px;
+  padding: 3px;
+  border-radius: 13px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.living-face[data-shape='square'] .living-ring-brainstorm[data-unrated='true'] {
+  padding: 0;
+  -webkit-mask: none;
+  mask: none;
+}
+
 /* Carré : une tâche à implémenter ; plein quand elle est faite ; ébauche pâle en pointillé violet. */
 .living-face[data-shape='square'] {
   border-radius: 8px;

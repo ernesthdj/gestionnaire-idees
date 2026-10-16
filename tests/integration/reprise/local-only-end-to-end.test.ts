@@ -527,7 +527,10 @@ function argumentsFor(ids: readonly string[], document: string): Record<McpToolN
       projet,
       description: 'Un skill',
       contenu: '# Skill'
-    }))
+    })),
+    // Fiche d'un profil d'agent (L1o D15) : aucun identifiant de projet, et seulement dans « Créer avec Claude ».
+    agent_profil_proposer: [{ nom: 'Agent' }],
+    agent_skills_proposer: [{ ajouter: ['perso:x'], pourquoi: 'test' }]
   }
   return calls as Record<McpToolName, unknown[]>
 }

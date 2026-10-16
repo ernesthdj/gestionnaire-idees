@@ -78,6 +78,8 @@ export type MapToolName = Exclude<
   | 'ecriture_avant'
   | 'skills_lire'
   | 'skill_brouillon'
+  | 'agent_profil_proposer'
+  | 'agent_skills_proposer'
 >
 
 const IDEA_SIZE = 120

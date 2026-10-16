@@ -30,5 +30,7 @@
 
 ## Lot 4 — Extensions
 
+- [~] T019 Créer un profil d’agent avec Claude : conversation et fiche côte à côte, skills choisis par Claude, brouillons des skills manquants sur accord (D15)
+- [~] T020 Peaufiner les skills d’un agent en visio : il propose d’ajouter ou de retirer (Accepter / Refuser dans le volet), brouillons à installer depuis le volet (D16)
 - [ ] T007 Étendre à un module entier : le PO répartit les sous-nœuds dont la doc est prête entre les agents connectés
 - [x] T008 Personnages évolutifs des agents : chambre-cube 3D posée librement sur la carte, personnage tiré du profil, chambre enrichie par le travail livré, clic = visio et conversation avec l’agent (D13)

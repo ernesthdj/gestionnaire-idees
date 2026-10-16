@@ -57,7 +57,8 @@ import { SkillUsageScanner } from './application/skills/SkillUsageScanner'
 import { CloneService } from './application/reprise/CloneService'
 import { launchGit } from './infrastructure/projects/GitProcess'
 import { resolveGit } from './infrastructure/projects/GitCli'
-import { SKILLS_FRAME } from './application/skills/skillsFrame'
+import { AGENT_PROFILE_FRAME, SKILLS_FRAME, isAgentProfileChat } from './application/skills/skillsFrame'
+import { AgentProfileTools } from './application/mcp/AgentProfileTools'
 import { SkillTools } from './application/mcp/SkillTools'
 import { AgentProfileRepository } from './infrastructure/db/repositories/AgentProfileRepository'
 import { AssemblySketchRepository } from './infrastructure/db/repositories/AssemblySketchRepository'
@@ -386,6 +387,18 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const agentProfileRepository = new AgentProfileRepository(database.db)
   // Croquis des agents connectés aux nœuds du Workflow (T006, L1o D14).
   const assemblySketches = new AssemblySketchRepository(database.db)
+  /** Agent d'une conversation de visio (L1o D13) : sa clé, son croquis et son profil ; `undefined` sinon. */
+  const agentOfChat = (
+    neuron: { readonly kind: string; readonly elementKey: string | null; readonly genesisId: string | null } | undefined
+  ) => {
+    if (neuron?.kind !== 'agent_chat' || neuron.elementKey === null || neuron.genesisId === null) return undefined
+    const key = parseAgentChatKey(neuron.elementKey)
+    if (key === null) return undefined
+    const sketch = assemblySketches.list(neuron.genesisId).find((entry) => entry.nodeId === key.hostId)
+    const agent = sketch?.agents.find((entry) => entry.id === key.agentId)
+    const profile = agent === undefined ? undefined : agentProfiles.list().find((p) => p.id === agent.profileId)
+    return sketch === undefined || profile === undefined ? undefined : { key, sketch, profile }
+  }
   const agentProfiles = new AgentProfileService({
     repository: agentProfileRepository,
     skillIds: () => new Set(skillInventory.list().skills.map((skill) => skill.id))
@@ -801,7 +814,22 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           }),
           isSkillsChat: (neuronId) => conversationRepository.neuron(neuronId)?.kind === 'skills_chat'
         },
-        (neuronId, filePath) => updates.guardWrite(neuronId, filePath)
+        (neuronId, filePath) => updates.guardWrite(neuronId, filePath),
+        // Profil d'agent créé avec Claude (L1o D15) : la fiche à côté de la conversation reçoit ses champs.
+        new AgentProfileTools({
+          isProfileChat: (neuronId) => isAgentProfileChat(conversationRepository.neuron(neuronId)),
+          skillIds: () =>
+            new Set(
+              skillInventory
+                .list()
+                .skills.filter((skill) => skill.family !== 'plugin')
+                .map((skill) => skill.id)
+            ),
+          emit: (proposal) => broadcast('agents:proposal', proposal),
+          // Visio (L1o D16) : l'agent propose d'ajouter ou de retirer des skills de son profil.
+          agentOfChat: (neuronId) => agentOfChat(conversationRepository.neuron(neuronId))?.profile,
+          emitSkills: (proposal) => broadcast('agents:skillsProposal', proposal)
+        })
       )
     ),
     logger
@@ -817,12 +845,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     repository: conversationRepository,
     // Visio avec un agent (L1o D13) : persona du profil, contexte de sa tâche, son worktree s'il a déjà travaillé.
     agentPersona: (neuron) => {
-      const key = neuron.elementKey === null ? null : parseAgentChatKey(neuron.elementKey)
-      if (key === null || neuron.genesisId === null) return undefined
-      const sketch = assemblySketches.list(neuron.genesisId).find((entry) => entry.nodeId === key.hostId)
-      const agent = sketch?.agents.find((entry) => entry.id === key.agentId)
-      const profile = agent === undefined ? undefined : agentProfiles.list().find((p) => p.id === agent.profileId)
-      if (sketch === undefined || profile === undefined) return undefined
+      const found = agentOfChat(neuron)
+      if (found === undefined || neuron.genesisId === null) return undefined
+      const { key, sketch, profile } = found
       let host: WorkflowHost | undefined
       try {
         host = workflowHost(workflow.readSync(neuron.genesisId), key.hostId)
@@ -830,8 +855,10 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         host = undefined
       }
       const worktree = join(dataDir, 'agent-worktrees', neuron.genesisId, sketch.taskId, key.agentId)
+      const skillNames = new Map(skillInventory.list().skills.map((skill) => [skill.id, skill.name]))
       return agentPersona({
         profile,
+        skillNames: profile.skills.map((id) => skillNames.get(id) ?? id),
         hostTitle: host?.title ?? 'tâche du Workflow',
         hostContext: host?.content ?? '',
         worktree: existsSync(worktree) ? worktree : null
@@ -850,6 +877,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     }),
     frame: BRAINSTORMER_FRAME,
     skillsFrame: SKILLS_FRAME,
+    agentProfileFrame: `${SKILLS_FRAME}\n\n${AGENT_PROFILE_FRAME}`,
     permissions,
     defaultPermissionMode: () => appSettings.get().chatPermissionMode,
     claudeAllowed: (neuronId) => confidentiality.claudeAllowed(neuronId),
@@ -1236,7 +1264,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   })
   analyste.recover()
   // Agents assemblés (docs/TACHES-AGENTS.md T005) : un PO ou un agent seul connecté à un nœud, planificateur en
-  // arrière-plan. Worktrees et journal du projet hors du dépôt (profil de l'app) ; jamais sur un projet repris.
+  // arrière-plan. Worktrees et journal du projet hors du dépôt (profil de l'app).
   const agentSessions = createAgentSessionRunner({
     // Tests e2e : sessions simulées (même réglage que le Claude simulé des neurones), aucun processus lancé.
     ...(options.e2eClaudeReply === undefined
@@ -1248,6 +1276,16 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         return dir === null ? null : { name: skillId.split(':').at(-1) ?? '', dir }
       },
       workDir: join(dataDir, 'agent-skills')
+    }
+  })
+  // Conversations de visio des agents (L1o D13) : une par agent et par nœud.
+  const agentChats = new AgentChats({
+    repository: workflowChatRepository,
+    sketches: (genesisId) => assemblySketches.list(genesisId),
+    profile: (profileId) => agentProfiles.list().find((profile) => profile.id === profileId),
+    linkedGenesis: (genesisId) => {
+      const genesis = conversationRepository.neuron(genesisId)
+      return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
     }
   })
   const assemblies = new AssemblyService({
@@ -1277,14 +1315,24 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     },
     // Travail livré (L1o D13) : la chambre de l'agent s'enrichit (la carte relit les profils sur `assembly:changed`).
     credit: (profileIds) => agentProfileRepository.addDelivered(profileIds),
-    refusal: (genesisId) => {
-      if (repriseRepository.project(genesisId) !== undefined) {
-        return 'Un projet repris n’est jamais modifié par l’app : les agents n’y travaillent pas.'
-      }
-      return confidentiality.claudeAllowed(genesisId)
-        ? null
-        : 'Ce projet est « Local uniquement » : Claude n’y a pas accès.'
+    // Ce que fait l'agent (L1o D18) : inscrit dans sa conversation de visio ; un fichier de son worktree (retiré après
+    // la passe) est montré à sa place dans le dossier du projet.
+    workLog: (hostId, agentId, event) => {
+      const genesisId = workflowHostGenesis(hostId)
+      const projectDir = genesisId === null ? null : (conversationRepository.neuron(genesisId)?.projectDir ?? null)
+      if (projectDir === null) return
+      const { neuronId } = agentChats.open(hostId, agentId)
+      const worktree = 'worktree' in event ? event.worktree : null
+      conversations.recordWork(neuronId, event, (path) => {
+        if (worktree === null) return path
+        const inside = relative(worktree, path)
+        return inside.startsWith('..') || isAbsolute(inside) ? path : join(projectDir, inside)
+      })
     },
+    // Un projet analysé (repris) accueille aussi des agents (L1o D17) : ils travaillent dans leurs worktrees et ne
+    // fusionnent qu'après l'accord de mentalyas. Seul « Local uniquement » les refuse : Claude n'y a pas accès.
+    refusal: (genesisId) =>
+      confidentiality.claudeAllowed(genesisId) ? null : 'Ce projet est « Local uniquement » : Claude n’y a pas accès.',
     engineFor: ({ genesisId, projectDir, projectName }) =>
       new PipelineEngine({
         profiles: () => agentProfiles.list(),
@@ -1469,18 +1517,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           usage: () => skillUsage.usage(skillInventory.list().skills)
         }
       }),
-      ...createAssemblyRoutes(
-        assemblies,
-        new AgentChats({
-          repository: workflowChatRepository,
-          sketches: (genesisId) => assemblies.sketches(genesisId),
-          profile: (profileId) => agentProfiles.list().find((profile) => profile.id === profileId),
-          linkedGenesis: (genesisId) => {
-            const genesis = conversationRepository.neuron(genesisId)
-            return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
-          }
-        })
-      ),
+      ...createAssemblyRoutes(assemblies, agentChats),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

@@ -11,7 +11,9 @@ import type {
   PlanProposerInput,
   StructureDessinerInput,
   ElementAvancerInput,
-  SkillBrouillonInput
+  SkillBrouillonInput,
+  AgentProfilProposerInput,
+  AgentSkillsProposerInput
 } from '@shared/mcp/tools'
 import type { McpCaller } from '../../domain/mcp/caller'
 import type { MapService } from './MapService'
@@ -24,12 +26,14 @@ import type { PermissionService } from '../conversation/PermissionService'
 import type { DeliverableTracker } from '../finals/DeliverableTracker'
 import type { CodeGraphTools } from '../reprise/CodeGraphTools'
 import type { SkillTools } from './SkillTools'
+import type { AgentProfileTools } from './AgentProfileTools'
 import { McpToolError } from '../../domain/mcp/errors'
 
 /** Outils permis dans une conversation Skills (la permission reste relayée à mentalyas). */
 const SKILLS_CHAT_TOOLS: ReadonlySet<McpToolName> = new Set([
   'skills_lire',
   'skill_brouillon',
+  'agent_profil_proposer',
   'permission_demander',
   'ecriture_avant'
 ])
@@ -51,13 +55,15 @@ export function createToolHandler(
     readonly isSkillsChat: (neuronId: string) => boolean
   },
   /** Garde d'écriture (conversation de codage de l'Analyste) : un message = écriture refusée. */
-  writeGuard?: (neuronId: string, filePath: string) => string | null
+  writeGuard?: (neuronId: string, filePath: string) => string | null,
+  /** Fiche d'un profil d'agent créé avec Claude (L1o D15). */
+  agentProfiles?: Pick<AgentProfileTools, 'propose' | 'proposeSkills'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
     if (caller.neuronId !== null && skills?.isSkillsChat(caller.neuronId) === true && !SKILLS_CHAT_TOOLS.has(tool)) {
       throw new McpToolError(
         'NON_MODIFIABLE',
-        'Dans une conversation Skills, seuls skills_lire et skill_brouillon servent.'
+        'Dans une conversation Skills, seuls skills_lire, skill_brouillon et agent_profil_proposer servent.'
       )
     }
     switch (tool) {
@@ -67,6 +73,12 @@ export function createToolHandler(
       case 'skill_brouillon':
         if (skills === undefined) throw new McpToolError('INTROUVABLE', 'Skills indisponibles.')
         return skills.tools.draft(args as SkillBrouillonInput)
+      case 'agent_profil_proposer':
+        if (agentProfiles === undefined) throw new McpToolError('INTROUVABLE', 'Profils d’agents indisponibles.')
+        return agentProfiles.propose(args as AgentProfilProposerInput, caller.neuronId)
+      case 'agent_skills_proposer':
+        if (agentProfiles === undefined) throw new McpToolError('INTROUVABLE', 'Profils d’agents indisponibles.')
+        return agentProfiles.proposeSkills(args as AgentSkillsProposerInput, caller.neuronId)
       case 'neurone_contexte':
         return neurons.context((args as { id?: string }).id, caller)
       case 'fiche_ecrire':

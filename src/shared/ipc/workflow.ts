@@ -175,6 +175,8 @@ export interface WorkflowTreeView {
   readonly nodes: readonly WorkflowTreeNode[]
   /** Clé du carré « ▶ Bosser ici » ; `null` : rien à implémenter. */
   readonly next: string | null
+  /** Sans « Bosser ici » : clé du rond du brainstorm à compléter d'abord (« ▶ Compléter ici », D18) ; sinon `null`. */
+  readonly complete: string | null
 }
 
 export interface WorkflowView {

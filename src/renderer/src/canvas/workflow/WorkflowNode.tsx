@@ -86,7 +86,15 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeType>): React.JSX.E
               }
             }
           : {})}
-        {...(item.shape === 'square' ? { square: { sketch: item.sketch === true }, next: item.next === true } : {})}
+        {...(item.shape === 'square'
+          ? {
+              square: { sketch: item.sketch === true },
+              next: item.next === true,
+              // Jauge de contexte (D18) : seul un carré à 100 % peut être « Bosser ici ».
+              rings: { brainstorm: item.maturity ?? null }
+            }
+          : {})}
+        {...(item.complete === true ? { complete: true } : {})}
         {...(item.descendants === 0
           ? {}
           : { fold: { collapsed: item.collapsed, count: item.descendants, onToggle: toggle } })}

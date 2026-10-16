@@ -42,11 +42,13 @@ export interface LivingNodeProps {
    * Rond du Workflow (spec 032 D3) : deux anneaux fins autour du cercle, l'extérieur pour la maturité du brainstorm,
    * l'intérieur pour l'avancement des tâches (en %, `null` : non évalué ou rien à faire).
    */
-  readonly rings?: { readonly brainstorm: number | null; readonly tasks: number | null }
+  readonly rings?: { readonly brainstorm: number | null; readonly tasks?: number | null }
   /** Carré du Workflow (spec 032 D4, D5) : une tâche, pleine quand elle est faite ; ébauche si le brainstorm n'est pas fini. */
   readonly square?: { readonly sketch: boolean }
   /** Le carré « ▶ Bosser ici » (spec 032 D6) : un halo et une étiquette. */
   readonly next?: boolean
+  /** Le rond du brainstorm à compléter d'abord (« ▶ Compléter ici », spec 032 D18) : même halo, son étiquette. */
+  readonly complete?: boolean
   /** Contenu ajouté dans la couche flottante, posé sur le cercle (poignées React Flow, pastilles…). */
   readonly children?: ReactNode
 }
@@ -73,6 +75,7 @@ export function LivingNode({
   rings,
   square,
   next = false,
+  complete = false,
   children
 }: LivingNodeProps): React.JSX.Element {
   const waiting = useWaitingChats((state) => state.waiting.has(chatId))
@@ -102,7 +105,7 @@ export function LivingNode({
           data-shape={square === undefined ? undefined : 'square'}
           data-sketch={square?.sketch === true ? 'true' : undefined}
           data-done={square !== undefined && visual.status === 'done' ? 'true' : undefined}
-          data-next={next ? 'true' : undefined}
+          data-next={next || complete ? 'true' : undefined}
           style={faceStyle}
         >
           {rings === undefined ? null : (
@@ -112,7 +115,7 @@ export function LivingNode({
                 data-unrated={rings.brainstorm === null ? 'true' : undefined}
                 aria-hidden="true"
               />
-              <span className="living-ring living-ring-tasks" aria-hidden="true" />
+              {rings.tasks === undefined ? null : <span className="living-ring living-ring-tasks" aria-hidden="true" />}
             </>
           )}
           {orb === undefined ? (
@@ -170,6 +173,7 @@ export function LivingNode({
           {title}
           {meta === undefined ? null : <span className="living-meta">{meta}</span>}
           {next ? <span className="living-next-tag">▶ Bosser ici</span> : null}
+          {complete ? <span className="living-next-tag">▶ Compléter ici</span> : null}
           {waiting ? (
             <span
               role="status"

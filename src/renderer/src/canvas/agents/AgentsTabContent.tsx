@@ -47,7 +47,10 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
   const [busy, setBusy] = useState(false)
 
   const edit = async (change: SketchEdit): Promise<void> => {
-    await actions.save(change(sketch ?? emptySketch(tab.nodeId, tab.genesisId)))
+    const next = change(sketch ?? emptySketch(tab.nodeId, tab.genesisId))
+    // Le dernier agent retiré : le croquis du nœud s'efface (un croquis a toujours au moins un agent).
+    if (next.agents.length === 0) await actions.clear(tab.nodeId)
+    else await actions.save(next)
   }
   const profileOf = (agent: AssemblyAgent): AgentProfileView | undefined =>
     profiles.find((profile) => profile.id === agent.profileId)

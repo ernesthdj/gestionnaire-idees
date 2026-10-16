@@ -131,8 +131,30 @@ describe('skills transmis à la session d’un agent (L1o D6, T010)', () => {
     })
     expect(args).toContain('--allow-dangerously-skip-permissions')
     expect(args).not.toContain('--plugin-dir')
+    // Flux continu (L1o D18) : ce que fait l'agent arrive au fil de l'eau.
+    expect(args[args.indexOf('--output-format') + 1]).toBe('stream-json')
+    expect(args).toContain('--verbose')
     const at = args.indexOf('--setting-sources')
     expect(args.slice(at, at + 2)).toEqual(['--setting-sources', ''])
+  })
+
+  it('should_pass_each_stream_event_while_the_agent_works_and_return_the_final_result', async () => {
+    const events: string[] = []
+    const lines = [
+      { type: 'system', subtype: 'init', session_id: 's', model: 'm', apiKeySource: 'none' },
+      {
+        type: 'assistant',
+        message: { content: [{ type: 'tool_use', id: 't1', name: 'Write', input: { file_path: 'a.ts' } }] }
+      },
+      { type: 'result', subtype: 'success', is_error: false, result: 'Rapport' }
+    ].map((line) => JSON.stringify(line))
+    const run: RunProcess = async ({ onStdoutLine }) => {
+      for (const line of lines) onStdoutLine?.(line)
+      return { code: 0, stdout: `${lines.join('\n')}\n`, stderr: '', timedOut: false }
+    }
+    const result = await runnerWith(run)({ ...request([]), onEvent: (event) => events.push(event.kind) })
+    expect(events).toEqual(['init', 'tool', 'result'])
+    expect(result).toEqual({ ok: true, text: 'Rapport' })
   })
 
   it('should_write_nothing_when_there_is_no_skill', () => {

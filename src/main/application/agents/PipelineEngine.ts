@@ -28,6 +28,7 @@ import {
 import { AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
 import { AppError } from '../../domain/errors'
+import type { StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PipelineDocuments } from './PipelineDocuments'
 
 /** Une session `claude -p` : une mission, un profil, un dossier ; rend le texte final de l'agent. */
@@ -38,7 +39,44 @@ export interface AgentSessionRequest {
   readonly systemPrompt: string
   readonly prompt: string
   readonly signal?: AbortSignal
+  /** Ce que fait l'agent au fil de l'eau (outils, fichiers touchés), lu dans le flux de la session (L1o D18). */
+  readonly onEvent?: (event: StreamEvent) => void
 }
+
+/**
+ * Journal du travail d'un agent (L1o D18) : le début d'une passe, chaque événement de sa session, puis sa fin (rapport
+ * ou erreur). Inscrit dans sa conversation de visio : on voit ce qu'il fait comme dans le chat général.
+ */
+export type AgentWorkEvent =
+  | {
+      readonly kind: 'start'
+      readonly pass: number
+      readonly nature: PassNature
+      readonly worktree: string
+    }
+  | { readonly kind: 'stream'; readonly event: StreamEvent; readonly worktree: string }
+  | { readonly kind: 'end'; readonly ok: boolean; readonly text: string }
+  /** Bilan de la passe, lu dans son commit : chaque fichier ajouté, modifié ou supprimé (chemin relatif au projet). */
+  | { readonly kind: 'files'; readonly files: readonly WorkFile[]; readonly worktree: string }
+
+export interface WorkFile {
+  readonly path: string
+  readonly status: 'added' | 'modified' | 'deleted'
+}
+
+/** Sortie de `git show --name-status -z --format=` : `M\0chemin\0A\0chemin\0…`. Pur. */
+export function workFilesOf(output: string): WorkFile[] {
+  const parts = output.split('\0').filter((part) => part !== '')
+  const files: WorkFile[] = []
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    const code = parts[i]?.charAt(0)
+    const path = parts[i + 1] ?? ''
+    files.push({ path, status: code === 'A' ? 'added' : code === 'D' ? 'deleted' : 'modified' })
+  }
+  return files
+}
+
+export type AgentWorkListener = (agentId: string, event: AgentWorkEvent) => void
 
 export interface AgentSessionResult {
   readonly ok: boolean
@@ -108,6 +146,7 @@ interface Turn {
   readonly nature: PassNature
   readonly feedback?: string
   readonly signal: AbortSignal | undefined
+  readonly work: AgentWorkListener
 }
 
 const missionFor = (turn: Turn, index: PassIndex): string => {
@@ -161,7 +200,12 @@ export class PipelineEngine {
   }
 
   /** `onProgress` reçoit chaque changement d'état d'un agent au fil de l'eau (T006) ; son échec n'arrête jamais le travail. */
-  async run(assembly: Assembly, signal?: AbortSignal, onProgress?: ProgressListener): Promise<AssemblyRunResult> {
+  async run(
+    assembly: Assembly,
+    signal?: AbortSignal,
+    onProgress?: ProgressListener,
+    onWork?: AgentWorkListener
+  ): Promise<AssemblyRunResult> {
     const { taskId } = assembly
     const profileOf = this.checked(assembly)
     const baseBranch = await this.baseOf(assembly)
@@ -181,6 +225,13 @@ export class PipelineEngine {
         // Un suivi défaillant (fenêtre fermée…) ne doit pas faire échouer l'assemblage.
       }
     }
+    const work: AgentWorkListener = (agentId, event) => {
+      try {
+        onWork?.(agentId, event)
+      } catch {
+        // Le journal du travail ne doit jamais faire échouer l'assemblage.
+      }
+    }
     const latest = new Map<string, Outcome>()
     const passes = new Map<string, number>()
     const finish = (completed: boolean, rounds: number): AssemblyRunResult => {
@@ -193,7 +244,7 @@ export class PipelineEngine {
       return { taskId, completed, rounds, agents }
     }
     const runPlan = async (plan: ReadonlyMap<string, PassNature>, feedback?: string): Promise<boolean> => {
-      await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback, progress })
+      await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback, progress, work })
       return [...plan.keys()].every((id) => latest.get(id)?.result.status === 'done')
     }
 
@@ -360,6 +411,7 @@ export class PipelineEngine {
     readonly passes: Map<string, number>
     readonly feedback: string | undefined
     readonly progress: ProgressListener
+    readonly work: AgentWorkListener
   }): Promise<void> {
     const { assembly, plan, profileOf, latest, passes, signal, progress } = input
     const upstream = upstreamOf(assembly)
@@ -422,7 +474,8 @@ export class PipelineEngine {
           pass,
           nature,
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
-          signal
+          signal,
+          work: input.work
         }
         progress({ agentId: agent.id, state: 'running', index: { pass, nature } })
         const task = this.execute(turn).then((outcome) => {
@@ -517,13 +570,20 @@ export class PipelineEngine {
     if (aborted()) return fail('cancelled', 'annulé par mentalyas.')
 
     const sessionId = (this.deps.newSessionId ?? randomUUID)()
+    turn.work(agent.id, { kind: 'start', pass: index.pass, nature: index.nature, worktree })
     const result = await this.deps.runSession({
       profile,
       sessionId,
       cwd: worktree,
       systemPrompt: [missionFor(turn, index), profile.instructions].filter((t) => t.trim() !== '').join('\n\n'),
       prompt: this.promptFor(turn, documents, spec),
+      onEvent: (event) => turn.work(agent.id, { kind: 'stream', event, worktree }),
       ...(signal === undefined ? {} : { signal })
+    })
+    turn.work(agent.id, {
+      kind: 'end',
+      ok: result.ok && result.text.trim() !== '',
+      text: result.ok ? result.text : (result.error ?? 'La session a échoué.')
     })
     if (aborted()) return fail('cancelled', 'annulé par mentalyas.', sessionId)
     if (!result.ok || result.text.trim() === '') {
@@ -548,6 +608,8 @@ export class PipelineEngine {
       const message = `chore(agents): ${taskId} · ${agent.id} · passe ${index.pass} (${index.nature}${spec})`
       const committed = await inTree(['commit', '-m', message])
       if (committed.code !== 0) return fail('git-failed', `commit refusé : ${committed.output}`, sessionId)
+      const touched = await inTree(['show', '--name-status', '--no-renames', '-z', '--format=', 'HEAD'])
+      if (touched.code === 0) turn.work(agent.id, { kind: 'files', files: workFilesOf(touched.output), worktree })
     }
     const left = await inTree(['status', '--porcelain', '-z'])
     if (left.code !== 0 || zList(left.output).length > 0) {

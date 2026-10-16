@@ -56,3 +56,21 @@ export interface AgentProfileView {
 }
 
 export type AgentProfileInput = Omit<AgentProfileView, 'id' | 'updatedAt' | 'delivered'> & { readonly id?: string }
+
+/** Skills qu'un agent propose d'ajouter ou de retirer de son profil, en visio (L1o D16, événement `agents:skillsProposal`). */
+export interface AgentSkillsProposal {
+  /** Conversation de visio d'où vient la proposition. */
+  readonly neuronId: string
+  readonly profileId: string
+  readonly add: readonly string[]
+  readonly remove: readonly string[]
+  readonly why: string
+}
+
+/** Champs de fiche proposés par Claude dans la conversation « Créer avec Claude » (L1o D15, événement `agents:proposal`). */
+export interface AgentProfileProposal {
+  /** Conversation d'où vient la proposition : seule la fiche ouverte à côté d'elle la reçoit. */
+  readonly neuronId: string
+  readonly fields: Partial<Omit<AgentProfileInput, 'id'>>
+  readonly why: string | null
+}

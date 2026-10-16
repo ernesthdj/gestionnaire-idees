@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import type { SpawnConversation } from '../claude/CliConversation'
 import type { RunProcess } from './ClaudeCliProvider'
 
@@ -22,7 +23,24 @@ export function e2eClaudeRun(replyFile: string): RunProcess {
  * n'est lancé.
  */
 export function e2eAgentRun(delayMs = 1500): RunProcess {
-  return async ({ signal }) => {
+  return async ({ signal, cwd, args, onStdoutLine }) => {
+    // Ce que l'agent « fait » (L1o D18) : il écrit un fichier de son worktree, annoncé dans le flux comme un vrai outil.
+    const sessionId = args[args.indexOf('--session-id') + 1] ?? 'e2e'
+    const file = join(cwd, 'agents-e2e', `${sessionId}.md`)
+    const emit = (value: unknown): void => onStdoutLine?.(JSON.stringify(value))
+    emit({ type: 'system', subtype: 'init', session_id: sessionId, model: 'e2e', apiKeySource: 'none' })
+    emit({
+      type: 'assistant',
+      message: {
+        content: [{ type: 'tool_use', id: `w-${sessionId}`, name: 'Write', input: { file_path: file, content: 'x' } }]
+      }
+    })
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, `Travail simulé de la session ${sessionId}.\n`, 'utf8')
+    emit({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: `w-${sessionId}`, content: 'ok' }] }
+    })
     await new Promise<void>((resolve) => {
       const timer = setTimeout(resolve, delayMs)
       signal?.addEventListener(

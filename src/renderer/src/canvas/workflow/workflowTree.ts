@@ -65,6 +65,8 @@ export interface WorkflowItem {
   readonly sketch?: boolean
   /** Le carré « ▶ Bosser ici » (D6). */
   readonly next?: boolean
+  /** Le rond du brainstorm à compléter d'abord, quand aucune tâche n'est travaillable (« ▶ Compléter ici », D18). */
+  readonly complete?: boolean
   /** Document de brainstorm d'où vient le nœud (le sien pour un rond-document) ; `null` : aucun. */
   readonly origin?: string | null
   /** Rond d'une spec ou d'un fichier de tâches abandonné : en rouge sur la carte (demande de mentalyas, 2026-10-15). */
@@ -287,10 +289,12 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
         partial: false,
         label: `${node.sketch ? 'Ébauche' : 'Carré'} ${id}${short(node.title, 200)}, ${TASK_STATE_LABELS[node.state ?? 'todo']}${
           node.sketch ? ', en attente du brainstorm' : ''
-        }${next ? ', bosser ici' : ''}`,
+        }, contexte ${node.maturity === null ? 'non évalué' : `${node.maturity} %`}${next ? ', bosser ici' : ''}`,
         subject,
         shape: 'square',
         sketch: node.sketch,
+        // Jauge de contexte (D18) : la maturité du brainstorm de la tâche.
+        maturity: node.maturity,
         next,
         origin: described.context.doc,
         foldedByDefault: false
@@ -308,10 +312,13 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
       ...(node.total === 0 ? {} : { progress: { done: node.done, total: node.total } }),
       partial:
         subject.kind === 'spec' ? subject.spec.partial : subject.kind === 'taskFile' ? subject.file.partial : false,
-      label: `Rond ${title}, ${brainstorm}${node.total === 0 ? '' : `, ${node.done} sur ${node.total} tâches`}`,
+      label: `Rond ${title}, ${brainstorm}${node.total === 0 ? '' : `, ${node.done} sur ${node.total} tâches`}${
+        view.tree.complete === node.key ? ', compléter ici' : ''
+      }`,
       subject,
       shape: 'round',
       maturity: node.maturity,
+      ...(view.tree.complete === node.key ? { complete: true } : {}),
       origin: described.context.doc,
       ...(node.status === 'abandoned' ? { abandoned: true as const } : {}),
       // Tout est fait : replié d'office (la carte reste lisible) ; mentalyas le déplie, son choix est gardé.

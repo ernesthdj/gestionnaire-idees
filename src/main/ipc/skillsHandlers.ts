@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AppError } from '../domain/errors'
 import { SEMANTIC_LINK_KINDS, type SemanticLinkKind } from '@shared/skills/card'
 import type {
   LibraryRepoView,
@@ -25,6 +26,7 @@ export interface SkillsRoutesDeps {
   readonly skills?: {
     versionsOf(skillId: string): number
     conversation(skillId?: string): { neuronId: string }
+    agentConversation(profileId?: string): { neuronId: string }
     drafts(skillId?: string): SkillDraftView[]
     diff(draftId: string): SkillDraftDiffView
     install(draftId: string, acceptDiskChange?: boolean): { batchId: string; skillId: string }
@@ -141,7 +143,7 @@ export function createSkillsRoutes(deps: SkillsRoutesDeps): IpcRoute[] {
       input: z.object({ skillId: SkillId }).strict(),
       handler: async ({ skillId }) => skills.duplicate(skillId)
     }),
-    ...agentRoutes(deps.agents),
+    ...agentRoutes(deps.agents, deps.skills),
     ...importRoutes(deps.imports),
     ...cardRoutes(deps.cards)
   ]
@@ -246,7 +248,7 @@ function cardRoutes(cards: SkillsRoutesDeps['cards']): IpcRoute[] {
 }
 
 /** Profils d'agents : le renderer ne donne que des valeurs de listes fermées et des identifiants de skills. */
-function agentRoutes(agents: SkillsRoutesDeps['agents']): IpcRoute[] {
+function agentRoutes(agents: SkillsRoutesDeps['agents'], skills: SkillsRoutesDeps['skills']): IpcRoute[] {
   if (agents === undefined) return []
   const Profile = z
     .object({
@@ -262,6 +264,15 @@ function agentRoutes(agents: SkillsRoutesDeps['agents']): IpcRoute[] {
     .strict()
   return [
     defineRoute({ channel: 'agents:list', input: z.object({}).strict(), handler: async () => agents.list() }),
+    // Créer (ou retoucher) un profil avec Claude (L1o D15) : la conversation, à côté de la fiche.
+    defineRoute({
+      channel: 'agents:conversation',
+      input: z.object({ profileId: z.uuid().optional() }).strict(),
+      handler: async ({ profileId }) => {
+        if (skills === undefined) throw new AppError('NOT_FOUND', 'Conversation indisponible.')
+        return skills.agentConversation(profileId)
+      }
+    }),
     defineRoute({
       channel: 'agents:save',
       input: Profile,

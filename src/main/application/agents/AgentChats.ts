@@ -35,6 +35,8 @@ export interface AgentPersona {
 /** Persona de la conversation : qui parle, de quelle tâche, avec quelles consignes. Pur. */
 export function agentPersona(input: {
   readonly profile: AgentProfileView
+  /** Noms des skills que son profil peut consulter. */
+  readonly skillNames?: readonly string[]
   readonly hostTitle: string
   readonly hostContext: string
   readonly worktree: string | null
@@ -48,6 +50,10 @@ export function agentPersona(input: {
       ? 'Tu es dans le dossier du projet : ne modifie rien sans qu’on te le demande.'
       : 'Tu es dans ton worktree, sur ta branche d’agent : c’est là que tu as travaillé.',
     profile.instructions.trim() === '' ? '' : `Tes consignes :\n${profile.instructions.trim()}`,
+    `Tes skills : ${(input.skillNames ?? []).join(', ') || 'aucun pour l’instant'}. Si mentalyas te demande d’en ajouter ` +
+      'ou d’en retirer, lis la toile avec `skills_lire` puis propose le changement avec `agent_skills_proposer` (il ' +
+      'accepte ou refuse dans le volet). Pour améliorer le contenu d’un skill, dépose un brouillon avec ' +
+      '`skill_brouillon` : il le voit et l’installe depuis le volet.',
     input.hostContext.trim() === '' ? '' : `Ce que dit la tâche :\n${input.hostContext.trim()}`
   ]
   return {

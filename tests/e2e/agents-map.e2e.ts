@@ -140,6 +140,19 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await run.shot('t006-02-au-travail')
     await expect.poll(() => page.locator('.agent-validated').count(), { timeout: 60_000 }).toBe(3)
     await run.shot('t006-03-valide')
+    // Ce qu'a fait l'agent est dans sa visio (L1o D18) : sa passe, le fichier écrit (pastille), son rapport.
+    await page.getByRole('button', { name: /^Développeur, validé/ }).click()
+    const work = page.getByRole('region', { name: 'Visio avec Développeur' })
+    await work.getByText(/▶ Au travail : passe 1/).waitFor({ timeout: 15_000 })
+    await work
+      .getByText(/Ajouté : agents-e2e\//)
+      .first()
+      .waitFor()
+    await work.getByText(/Rapport de la passe/).waitFor()
+    await page.waitForTimeout(800)
+    await run.shot('t008-05-travail-dans-la-visio')
+    await page.keyboard.press('Escape')
+    await work.waitFor({ state: 'detached' })
     await tab.getByText(/3 agents sur 3 ont fini — validé par le QA/).waitFor()
     await tab
       .getByRole('region', { name: 'Agent developpeur' })
@@ -152,5 +165,12 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await expect.poll(() => page.locator('.agent-merged').count(), { timeout: 30_000 }).toBe(3)
     await tab.getByText(/Fusionné sur main/).waitFor()
     await run.shot('t006-04-fusionne')
+
+    // Clic droit sur un agent : le renvoyer le détache du nœud (son profil reste).
+    const merged = page.getByRole('button', { name: /^Qualité, fusionné/ })
+    await merged.click({ button: 'right', force: true })
+    await page.getByRole('menuitem', { name: /Renvoyer l’agent/ }).click()
+    await merged.waitFor({ state: 'detached' })
+    await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
   })
 })

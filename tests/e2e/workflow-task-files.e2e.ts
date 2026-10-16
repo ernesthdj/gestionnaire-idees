@@ -45,7 +45,10 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
       writeFileSync(join(DIR, 'docs', 'FOUNDATION.md'), '# Fondation\n- [ ] Pas une tâche\n')
       writeFileSync(join(DIR, 'CLAUDE.md'), '- [x] Règle\n')
     })
-    run = await launchApp({ GI_E2E_PROJECT: DIR })
+    // Conversations simulées (aucun processus claude) : « Mettre à jour » envoie une consigne au genesis.
+    const reply = join(tmpdir(), 'gi-e2e-reponse-workflow.json')
+    writeFileSync(reply, '{}')
+    run = await launchApp({ GI_E2E_PROJECT: DIR, GI_E2E_CLAUDE_REPLY: reply })
     await run.page.getByRole('button', { name: 'Ouvrir Projet démo : application de notes' }).click()
   })
   afterAll(async () => {
@@ -58,7 +61,7 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
     await page.getByRole('button', { name: 'Workflow', exact: true }).click()
     const branch = page.getByLabel(/^Rond User Stories — Démo, brainstorm 100 %, 2 sur 4 tâches/)
     await branch.waitFor({ timeout: 20_000 })
-    await page.getByLabel(/^Carré Mot de passe haché, en cours, bosser ici/).waitFor()
+    await page.getByLabel(/^Carré Mot de passe haché, en cours, contexte 100 %, bosser ici/).waitFor()
     await page.getByLabel(/^Carré Courriel de vérification, à faire/).waitFor()
     // « Légende » n'a pas de case : pas de nœud ; fondation et règles ne sont pas des fichiers de tâches.
     await expect.poll(() => page.getByLabel(/Rond Légende/).count()).toBe(0)
@@ -135,12 +138,22 @@ describe('vue Workflow lue dans les fichiers de tâches (spec 023 D20–D22, e2e
   it('should_open_the_square_to_work_on_with_its_instruction_waiting_in_its_conversation', async () => {
     const { page } = run
     // SC-002 : un geste sur « Bosser ici » ouvre sa conversation, la consigne prête (rien n'est envoyé).
-    const next = page.getByLabel(/^Carré Mot de passe haché, en cours, bosser ici/)
+    const next = page.getByLabel(/^Carré Mot de passe haché, en cours, contexte 100 %, bosser ici/)
     await settled(next)
     await next.dblclick({ force: true })
     const panel = page.getByRole('complementary', { name: 'Panneau de droite' })
     const field = panel.getByLabel('Message à Claude')
     await expect.poll(() => field.inputValue(), { timeout: 15_000 }).toContain('Fais la tâche « Mot de passe haché »')
     await run.shot('032-lot2-02-bosser-ici')
+  })
+
+  it('should_send_the_workflow_update_then_highlight_the_next_task_when_claude_has_answered', async () => {
+    const { page } = run
+    // Spec 032 D17 : « ↻ Mettre à jour » dans le Workflow envoie la remise au format ; sa réponse (simulée) reçue,
+    // la carte se centre sur « Bosser ici », en surbrillance.
+    await page.getByRole('button', { name: 'Mettre à jour le Workflow' }).click()
+    await page.getByText('Prochaine tâche : Mot de passe haché').waitFor({ timeout: 20_000 })
+    await expect.poll(() => page.locator('.react-flow__node.wf-arrived').count()).toBe(1)
+    await run.shot('032-D17-prochaine-tache')
   })
 })

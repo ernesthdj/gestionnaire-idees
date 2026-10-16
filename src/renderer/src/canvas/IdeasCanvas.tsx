@@ -71,8 +71,9 @@ import { agentsTitle, shownAgent, useSidePanel } from './side/sidePanelStore'
 import { AgentEdge } from './agents/AgentEdge'
 import { AgentNode } from './agents/AgentNode'
 import { agentGraph, runOf, wouldCycle } from './agents/agentGraph'
-import { parseAgentNodeId, type AgentEdgeType } from './agents/agentTypes'
+import { parseAgentNodeId, type AgentEdgeType, type AgentNodeData } from './agents/agentTypes'
 import { addAgent, addLink, emptySketch, placeAgent } from './agents/sketchEdit'
+import { useVisio } from './agents/visioStore'
 import { hostsAgents } from './agents/agentsHost'
 import { AGENT_ROLE_LABELS } from '@shared/agents/profile'
 import { useAssemblyActions, useAssemblyData } from './agents/useAssemblies'
@@ -295,6 +296,9 @@ function CanvasInner(): React.JSX.Element {
     at: Point
   } | null>(null)
   const closeAgentsMenu = useCallback(() => setAgentsMenu(null), [])
+  // Clic droit sur un agent : visio, gestion, renvoi.
+  const [agentMenu, setAgentMenu] = useState<{ node: AgentNodeData; nodeId: string; at: Point } | null>(null)
+  const closeAgentMenu = useCallback(() => setAgentMenu(null), [])
   const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
   const clickTimer = useRef(0)
@@ -1061,7 +1065,11 @@ function CanvasInner(): React.JSX.Element {
                 }
               }}
               // Clic dans le vide : les cartes non épinglées se ferment (D28) ; une carte épinglée reste.
-              onPaneClick={() => cardsApi.closeUnpinned()}
+              onPaneClick={() => {
+                cardsApi.closeUnpinned()
+                // Un clic dans le vide raccroche aussi la visio d'un agent (L1o D13).
+                useVisio.getState().close()
+              }}
               // Clic droit dans le vide : la boîte à outils (les objets gardent leur propre menu).
               onPaneContextMenu={(event) => {
                 event.preventDefault()
@@ -1072,6 +1080,12 @@ function CanvasInner(): React.JSX.Element {
                 })
               }}
               onNodeContextMenu={(event, node) => {
+                // Agent (L1o D13) : visio, gestion de l'assemblage, ou le renvoyer (le détacher de son nœud).
+                if (node.type === 'agent') {
+                  event.preventDefault()
+                  setAgentMenu({ node: node.data, nodeId: node.id, at: { x: event.clientX, y: event.clientY } })
+                  return
+                }
                 // Nœud du Workflow (L1o D14) : on y appelle des agents.
                 if (node.type === 'workflow' && hostsAgents(node.data.item)) {
                   event.preventDefault()
@@ -1165,6 +1179,54 @@ function CanvasInner(): React.JSX.Element {
               analysisLinks={view !== undefined && view.elements.length > 0 ? analysisLinks : null}
               onPick={(tool) => void pickTool(tool)}
               onClose={closeTools}
+            />
+          )}
+          {agentMenu === null ? null : (
+            <ContextMenu
+              at={agentMenu.at}
+              label={`Agent ${agentMenu.node.name}`}
+              items={[
+                { tool: 'visio', icon: '▶', label: 'Ouvrir la visio', hint: 'Lui parler en tête-à-tête' },
+                {
+                  tool: 'manage',
+                  icon: '☰',
+                  label: 'Gérer l’assemblage…',
+                  hint: 'Qui attend qui, sa part, lancement, accord de fusion'
+                },
+                ...(agentMenu.node.visual === 'running' || agentMenu.node.visual === 'waiting'
+                  ? []
+                  : [
+                      {
+                        tool: 'dismiss',
+                        icon: '✕',
+                        label: 'Renvoyer l’agent',
+                        hint: 'Il quitte ce nœud (son profil reste)'
+                      } satisfies MenuItem<string>
+                    ])
+              ]}
+              onPick={(choice) => {
+                const { node, nodeId } = agentMenu
+                setAgentMenu(null)
+                if (choice === 'visio') {
+                  useVisio.getState().open(nodeId)
+                  return
+                }
+                if (choice === 'manage') {
+                  useSidePanel.getState().openAgents({
+                    nodeId: node.hostId,
+                    genesisId: node.genesisId,
+                    title: agentsTitle(node.hostTitle),
+                    kindLabel: 'Agents',
+                    agentId: node.agentId
+                  })
+                  return
+                }
+                const sketch = assemblyData.sketches.find((entry) => entry.nodeId === node.hostId)
+                if (sketch === undefined) return
+                if (useVisio.getState().key === nodeId) useVisio.getState().close()
+                void assemblyActions.dismiss(sketch, node.agentId)
+              }}
+              onClose={closeAgentMenu}
             />
           )}
           {agentsMenu === null ? null : (

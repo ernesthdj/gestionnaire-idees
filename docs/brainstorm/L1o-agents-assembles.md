@@ -170,3 +170,40 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 - **Clic droit** sur un nœud du Workflow : « Appeler <profil> » pour chaque profil d'agent (il apparaît sous le nœud),
   et « Gérer les agents… » (volet de droite : qui attend qui, lancement, accord de fusion). « ◇ Agents » reste dans la
   carte de détails du nœud.
+
+### D15 — Créer un profil d'agent avec Claude (2026-10-16)
+- **Où** : Skills › Profils d'agents, « ✦ Créer avec Claude » : la conversation à gauche, la fiche du profil à droite.
+- **Déroulé** : mentalyas décrit librement son agent ; Claude ne pose que les questions utiles (deux ou trois au plus),
+  consulte les skills présents (`skills_lire`), puis **remplit la fiche** (outil `agent_profil_proposer` : nom, rôle,
+  consignes, modèle, effort, mode de permission, skills choisis, et pourquoi). Les champs proposés sont marqués ✦
+  jusqu'à ce que mentalyas les touche ; **rien n'est créé avant « Enregistrer »**.
+- **Skills qui manquent** : Claude dit lesquels créer et pourquoi ; sur l'accord de mentalyas, il en dépose le
+  brouillon (`skill_brouillon`), que mentalyas installe dans la page Skills ; une fois installé, Claude peut le cocher
+  dans la fiche.
+- La fiche reste modifiable à la main à tout moment, pendant et après la conversation.
+
+### D16 — Peaufiner ses skills en visio avec l'agent (2026-10-16)
+- Les skills s'ajoutent surtout à la création (D15) ; ensuite, en tête-à-tête (visio, D13), mentalyas peut demander à
+  l'agent d'ajouter, de retirer ou d'améliorer ses skills.
+- **Ajouter ou retirer** : l'agent lit les skills (`skills_lire`) et **propose** (`agent_skills_proposer` : ajouter,
+  retirer, pourquoi). Une carte « ✦ » apparaît dans le volet de visio avec **Accepter / Refuser** ; rien ne change sans
+  le clic de mentalyas. Seulement des skills personnels ou de projet.
+- **Améliorer un skill** (son SKILL.md) : l'agent dépose un brouillon (`skill_brouillon`) ; le volet de visio liste les
+  brouillons déposés pendant l'appel avec « Voir et installer » (différences, Installer, Jeter), sans quitter la
+  conversation.
+- La persona de l'agent lui dit quels skills son profil peut consulter et comment proposer un changement.
+
+### D17 — Des agents aussi sur un projet analysé (2026-10-16)
+- Un projet qui a une analyse de code (« projet repris », spec 017, y compris un projet du Brainstormer passé par
+  « Analyser le code… », D23) accueille des agents : ils travaillent dans leurs worktrees, sur leurs branches, et rien
+  ne va sur la branche de base sans l'accord de fusion de mentalyas (D11). Seul « Local uniquement » les refuse : Claude
+  n'y a pas accès.
+- Constat de mentalyas : son projet de test, créé par le Brainstormer (donc écrit par Claude), était refusé parce que
+  l'analyse de code l'avait rangé parmi les projets repris.
+
+### D18 — Voir ce que fait l'agent dans sa visio (2026-10-16)
+- Pendant qu'un agent travaille, sa conversation de visio se remplit comme le chat général : « ▶ Au travail : passe N
+  (nature) », chaque outil qu'il utilise (fichiers lus, écrits, modifiés en pastilles cliquables, avec leurs
+  différences), puis le rapport de la passe et le bilan des fichiers ajoutés, modifiés ou supprimés (lu dans son commit).
+- Les sessions d'agents tournent en flux continu (`stream-json`) ; les chemins de son worktree (retiré après la passe)
+  sont montrés dans le dossier du projet : les différences sont visibles tout de suite, le contenu après la fusion.

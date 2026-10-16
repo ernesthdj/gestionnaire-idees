@@ -210,6 +210,25 @@ function nextSquare(drafts: readonly Draft[]): string | null {
 }
 
 /**
+ * Brainstorm à compléter quand aucune tâche n'est travaillable (D18) : parmi les ronds de document pas complets qui ont
+ * encore des carrés à faire, le plus mûr ; à égalité, le premier dans l'ordre de l'arbre (non évalué en dernier).
+ */
+function roundToComplete(drafts: readonly Draft[]): string | null {
+  const pending = (draft: Draft): boolean =>
+    draft.kind === 'square' ? draft.state !== 'done' : draft.children.some(pending)
+  let best: { readonly key: string; readonly maturity: number } | null = null
+  const walk = (draft: Draft): void => {
+    if (draft.kind === 'round' && draft.source === 'doc' && !complete(draft.maturity) && pending(draft)) {
+      const maturity = draft.maturity ?? -1
+      if (best === null || maturity > best.maturity) best = { key: draft.key, maturity }
+    }
+    draft.children.forEach(walk)
+  }
+  drafts.forEach(walk)
+  return (best as { readonly key: string } | null)?.key ?? null
+}
+
+/**
  * Arbre du Workflow (spec 032 FR-001) depuis ce qui a été lu dans les fichiers du projet : documents de brainstorm
  * (ronds, rangés par leur `**Parent**`), specs (rondes complètes, sous le document qu'elles citent), fichiers de tâches
  * (sous le rond qui les nomme, sinon au niveau 1). Mêmes fichiers, même arbre. Pur.
@@ -258,6 +277,7 @@ export function workflowArbre(
   ]
   const nodes = top.map((draft) => finish(draft, 1))
   const foundation = byName.get(FOUNDATION_DOC)
+  const next = nextSquare(top)
   return {
     project: {
       maturity: foundation === undefined ? null : maturityOf(foundation),
@@ -265,6 +285,7 @@ export function workflowArbre(
       total: nodes.reduce((sum, node) => sum + node.total, 0)
     },
     nodes,
-    next: nextSquare(top)
+    next,
+    complete: next === null ? roundToComplete(top) : null
   }
 }

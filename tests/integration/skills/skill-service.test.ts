@@ -143,4 +143,24 @@ describe('faire évoluer ses skills (spec 020 US3, T021–T022b)', () => {
     expect(draft).toMatchObject({ skillId: 'perso:deploy', origin: 'duplicate', isNew: true })
     expect(changes).toBeGreaterThan(0)
   })
+
+  it('should_open_a_new_profile_conversation_each_time_and_resume_the_one_of_a_profile', () => {
+    let next = 0
+    const withWorkspace = new SkillService({
+      repository: new SkillRepository(handle.db),
+      store: new SkillStore(join(root, 'profil', 'skill-versions')),
+      inventory: new SkillInventory({ home, projects: () => [] }),
+      home,
+      projects: () => [],
+      onChanged: () => undefined,
+      workspace: join(root, 'profil', 'skills-workspace'),
+      newId: () => `00000000-0000-4000-8000-${String(++next).padStart(12, '0')}`
+    })
+    const first = withWorkspace.agentConversation()
+    const second = withWorkspace.agentConversation()
+    expect(first.neuronId).not.toBe(second.neuronId)
+    const profile = '11111111-1111-4111-8111-111111111111'
+    expect(withWorkspace.agentConversation(profile)).toEqual(withWorkspace.agentConversation(profile))
+    expect(new SkillRepository(handle.db).skillChat(`agent-profile:${profile}`)).toBeDefined()
+  })
 })

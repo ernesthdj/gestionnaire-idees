@@ -2468,3 +2468,92 @@ spec 014 D8) : « Écrire sans demander » au plus. Les skills du profil ne sont
 quand l'agent était au bord : la carte se recentre sur l'agent à l'appel.
 **Vérifié :** typecheck, lint, Prettier, 2 423 tests ; e2e `agents-map` avec captures `t008-03-visio`,
 `t008-04-visio-parle`.
+
+### [2026-10-16 20:07] FEAT — T019 : créer un profil d'agent avec Claude (L1o D15)
+**Fichiers :** outil MCP `agent_profil_proposer` (`src/shared/mcp/tools.ts`, `AgentProfileTools.ts`, `toolHandler.ts`,
+`MapService.ts`) ; `skillsFrame.ts` (`AGENT_PROFILE_FRAME`, conversation `agent-profile:…`), `SkillService.ts`
+(`agentConversation`), route `agents:conversation`, événement `agents:proposal`, `ConversationService.ts` (cadre et
+outil autorisé), `bootstrap.ts` ; `AgentProfilesPanel.tsx` (conversation et fiche côte à côte, marques ✦),
+`SkillsPage.tsx` (panneau élargi) ; tests unitaires, d'intégration, de garde (« Local uniquement ») et e2e
+`agent-profile-assistant`.
+**Quoi :** choix de mentalyas : « ✦ Créer avec Claude » (ou « ✦ Avec Claude » sur un profil) ouvre la conversation à
+gauche de la fiche ; mentalyas décrit son agent, Claude ne pose que les questions utiles, lit les skills
+(`skills_lire`) et remplit la fiche (champs marqués ✦ jusqu'à ce qu'on les touche, avec le pourquoi). Rien n'est créé
+avant « Enregistrer ». Un skill qui manque : Claude le propose et ne dépose le brouillon (`skill_brouillon`) qu'après
+accord.
+**Choix :** la conversation est une conversation Skills (mêmes garde-fous : lecture et brouillons seulement, mode
+Demander figé) avec une consigne de plus ; l'outil refuse hors de cette conversation et refuse un skill inconnu ou de
+plugin (un profil ne consulte que des skills personnels ou de projet). Une création ouvre une conversation neuve ; celle
+d'un profil existant est reprise.
+**Vérifié :** typecheck, lint, Prettier, 2 428 tests ; e2e (conversation simulée, fiche retouchée, enregistrée).
+**Reste à vérifier à la main :** l'appel réel de `agent_profil_proposer` par Claude (relais MCP reconstruit par
+`npm run dev`).
+
+### [2026-10-16 20:32] FEAT — T020 : peaufiner les skills d'un agent en visio ; renvoyer un agent (L1o D16)
+**Fichiers :** outil MCP `agent_skills_proposer` (`tools.ts`, `AgentProfileTools.proposeSkills`, `toolHandler.ts`,
+`MapService.ts`), événement `agents:skillsProposal`, `bootstrap.ts` (`agentOfChat` partagé par la persona et l'outil),
+`AgentChats.ts` (la persona dit ses skills et comment proposer) ; `VisioSkills.tsx` (cartes Accepter / Refuser,
+brouillons de l'appel), `AgentVisioPanel.tsx` (cartes, `DraftPanel` dans le volet, « Renvoyer l'agent »),
+`IdeasCanvas.tsx` (clic droit sur un agent : visio, gestion, renvoi), `useAssemblies.ts` (`dismiss`),
+`AgentsTabContent.tsx` ; tests unitaires, de garde (« Local uniquement ») et e2e `agents-map`.
+**Quoi :** choix de mentalyas : en visio, l'agent propose d'ajouter ou de retirer des skills de son profil (carte ✦,
+Accepter / Refuser, rien sans le clic) et dépose les brouillons des skills à améliorer, installés depuis le volet
+(différences, Installer, Jeter). Demande de mentalyas : renvoyer un agent (le détacher de son nœud) au clic droit et
+depuis le volet de visio ; pas pendant que l'assemblage travaille.
+**Erreur corrigée :** retirer le dernier agent d'un nœud envoyait un croquis vide, refusé par l'IPC (au moins un
+agent) : le croquis est alors effacé (aussi pour « Retirer » du volet de droite).
+**Limite :** la persona est fixée au démarrage de la conversation : un skill accepté en cours d'appel est connu de
+l'agent au prochain démarrage de sa conversation (il le sait par sa réponse d'outil d'ici là).
+**Vérifié :** typecheck, lint, Prettier, 2 432 tests ; e2e `agents-map` et `agent-profile-assistant`.
+
+### [2026-10-16 20:41] FIX — des agents aussi sur un projet analysé (L1o D17)
+**Fichiers :** `src/main/bootstrap.ts` (refus des agents), `AssemblyService.ts` (commentaire).
+**Erreur :** « Un projet repris n'est jamais modifié par l'app » refusait tout assemblage sur un projet ayant une
+analyse de code, y compris un projet créé par le Brainstormer puis « Analyser le code… » (spec 017 D23) : l'app ne
+distingue pas un projet analysé d'un projet tiers importé. Règle posée à la T005 sans en mesurer la portée.
+**Quoi :** décision de mentalyas : les agents travaillent sur tout projet analysé (worktrees, fusion après accord) ;
+seul « Local uniquement » les refuse.
+**Règle apprise :** un refus qui protège un cas (projet tiers) se pose sur ce qui caractérise ce cas, pas sur une
+donnée partagée par d'autres (la fiche d'analyse).
+**Vérifié :** typecheck, 2 432 tests.
+
+### [2026-10-16 21:00] FEAT — voir ce que fait un agent dans sa visio (L1o D18)
+**Fichiers :** `AgentSession.ts` (`stream-json`, événements au fil de l'eau), `ClaudeCliProvider.ts` (`onStdoutLine`),
+`PipelineEngine.ts` (`AgentWorkEvent` : début, flux, fin, bilan des fichiers du commit ; `workFilesOf`),
+`AssemblyService.ts` (`workLog`), `ConversationService.recordWork`, `bootstrap.ts` (conversation de l'agent créée au
+besoin, chemins du worktree ramenés au projet), `E2eClaude.ts` (session simulée qui écrit un fichier) ; tests
+unitaires, d'intégration et e2e `agents-map`.
+**Quoi :** demande de mentalyas : voir dans le chat de l'agent ce qu'il fait, fichiers écrits, modifiés, supprimés,
+cliquables comme dans le chat général. La suppression passe par une commande (pas d'outil fichier) : le bilan du commit
+la montre.
+**Erreur corrigée en route :** des scripts Python écrits par heredoc ont perdu leurs barres obliques inverses (`\n` et
+`\0` devenus de vrais caractères) ; corrigés avec l'outil d'édition.
+**Vérifié :** typecheck, lint, Prettier, 2 436 tests ; e2e `agents-map` (passe, pastille du fichier écrit, rapport
+dans la visio).
+
+### [2026-10-16 21:09] FEAT — « Mettre à jour » dans le Workflow remet un ancien projet au format (spec 032 D17)
+**Fichiers :** `specs/032-trois-vues/spec.md` (D17), `src/renderer/src/canvas/workflow/updatePrompt.ts` (diagnostic et
+consigne, purs), `StructureBarNode.tsx` (bouton du Workflow, suivi propre, surbrillance de « Bosser ici ») ; tests
+unitaires et e2e `workflow-task-files` (désormais en conversation simulée).
+**Quoi :** retour de mentalyas : ses projets commencés avant la spec 032 n'ont ni en-têtes de brainstorm ni fichiers
+`TACHES-*.md`, donc pas de « Bosser ici ». Dans la vue Workflow, « ↻ Mettre à jour » envoie à Claude ce qui manque
+(brainstorms sans en-tête, tâches en ébauches, aucun fichier de tâches) ; il complète les en-têtes, range les tâches et
+coche leur état réel, sans toucher au code. À la fin de son tour, l'app relit l'arbre et centre la carte sur
+« ▶ Bosser ici », en surbrillance (« Prochaine tâche : … »). Les autres vues gardent la mise à jour de la carte de
+structure (spec 022).
+**Erreur évitée :** le premier essai réutilisait le suivi de la cartographie : sa fin affichait « Cartographie
+terminée » et faisait avancer le repère des changements de la carte. Suivi propre à la mise à jour du Workflow.
+**Vérifié :** typecheck, lint, Prettier, 2 439 tests ; e2e `workflow-task-files` (5 cas, dont la surbrillance).
+
+### [2026-10-16 21:36] FEAT — jauge de contexte sur chaque tâche, « ▶ Compléter ici » (spec 032 D18)
+**Fichiers :** `specs/032-trois-vues/spec.md` (D18), `src/shared/workflow/arbre.ts` (`roundToComplete`, champ
+`complete` de l'arbre), `src/shared/ipc/workflow.ts`, `workflowTree.ts` (maturité des carrés, nom accessible avec le
+contexte), `WorkflowNode.tsx`, `LivingNode.tsx` (anneau sur les carrés, étiquette « ▶ Compléter ici »), `living.css`
+(anneau qui épouse le carré), `StructureBarNode.tsx` (après « Mettre à jour », la carte va sur « Compléter ici » s'il
+n'y a pas de « Bosser ici ») ; tests unitaires et e2e `workflow-context` (nouveau), `workflow-task-files`.
+**Quoi :** retour de mentalyas sur Bike_cycle : après « Mettre à jour », les en-têtes étaient posés et les cases
+cochées, mais aucun « Bosser ici » : tous ses brainstorms sont « suffisant » ou « insuffisant », leurs tâches restent
+des ébauches (D5), c'est voulu (« un nœud sans le contexte au max ne doit pas permettre de travailler »). Ce qui
+manquait : le voir. Chaque carré porte maintenant l'anneau de contexte (maturité de son brainstorm) ; sans tâche
+travaillable, le brainstorm le plus mûr qui a encore des tâches s'allume, « ▶ Compléter ici ».
+**Vérifié :** typecheck, lint, Prettier, 2 440 tests ; e2e `workflow-context` et `workflow-task-files` (6 cas).

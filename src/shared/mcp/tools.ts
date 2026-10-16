@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { AGENT_EFFORTS, AGENT_ROLES, MAX_AGENT_SKILLS, PERMISSION_MODES } from '../agents/profile'
+import { CLAUDE_MODELS } from '../ipc/ai'
 import { FOLDERS_ENABLED } from '../ipc/folders'
 import { ELEMENT_RELATIONS, ELEMENT_STATUSES, ELEMENT_TYPES } from '../ipc/canvas'
 import { INPUT_PARTS } from '../ipc/widgetIo'
@@ -261,6 +263,37 @@ export const SkillBrouillonInput = z.strictObject({
     .optional()
 })
 export type SkillBrouillonInput = z.infer<typeof SkillBrouillonInput>
+/** Fiche d'un profil d'agent remplie par Claude (L1o D15) : chaque champ donné remplace celui de la fiche. */
+export const AgentProfilProposerInput = z
+  .strictObject({
+    nom: z.string().trim().min(1).max(60).optional(),
+    role: z.enum(AGENT_ROLES).optional(),
+    consignes: z.string().max(4000).optional(),
+    modele: z.enum(CLAUDE_MODELS).optional(),
+    effort: z.enum(AGENT_EFFORTS).optional(),
+    permission: z.enum(PERMISSION_MODES).optional(),
+    skills: z.array(z.string().min(3).max(300)).max(MAX_AGENT_SKILLS).optional(),
+    pourquoi: z.string().trim().max(1000).optional()
+  })
+  .refine(
+    (input) =>
+      [input.nom, input.role, input.consignes, input.modele, input.effort, input.permission, input.skills].some(
+        (field) => field !== undefined
+      ),
+    { message: 'donne au moins un champ de la fiche' }
+  )
+export type AgentProfilProposerInput = z.infer<typeof AgentProfilProposerInput>
+/** Skills de son profil qu'un agent propose d'ajouter ou de retirer, en visio (L1o D16). */
+export const AgentSkillsProposerInput = z
+  .strictObject({
+    ajouter: z.array(z.string().min(3).max(300)).max(MAX_AGENT_SKILLS).optional(),
+    retirer: z.array(z.string().min(3).max(300)).max(MAX_AGENT_SKILLS).optional(),
+    pourquoi: z.string().trim().min(1).max(1000)
+  })
+  .refine((input) => (input.ajouter?.length ?? 0) + (input.retirer?.length ?? 0) > 0, {
+    message: 'donne au moins un skill à ajouter ou à retirer'
+  })
+export type AgentSkillsProposerInput = z.infer<typeof AgentSkillsProposerInput>
 
 export interface McpToolDefinition {
   readonly description: string
@@ -456,6 +489,25 @@ export const MCP_TOOLS = {
       'lui seul clique « Supprimer ».',
     input: SkillBrouillonInput,
     writes: true
+  },
+  agent_profil_proposer: {
+    description:
+      'Remplit la fiche du profil d’agent que mentalyas crée avec toi (conversation « Créer avec Claude ») : nom, rôle ' +
+      '(po, architecte, backend, frontend, qa, autre), consignes, modèle, effort, permission (default = demander, ' +
+      'acceptEdits = écrire sans demander, bypassPermissions = libre), skills (identifiants de `skills_lire`, hors ' +
+      'plugins) et pourquoi. Chaque champ donné remplace celui de la fiche ; rien n’est enregistré : mentalyas ' +
+      'retouche et clique « Enregistrer ».',
+    input: AgentProfilProposerInput,
+    writes: false
+  },
+  agent_skills_proposer: {
+    description:
+      'En visio avec mentalyas, propose d’ajouter ou de retirer des skills de TON profil d’agent (identifiants de ' +
+      '`skills_lire`, personnels ou de projet) et dis pourquoi. Rien ne change sans son accord : une carte Accepter / ' +
+      'Refuser apparaît à côté de la conversation. Pour améliorer le contenu d’un skill, dépose plutôt un brouillon ' +
+      'avec `skill_brouillon`.',
+    input: AgentSkillsProposerInput,
+    writes: false
   }
 } as const satisfies Record<string, McpToolDefinition>
 

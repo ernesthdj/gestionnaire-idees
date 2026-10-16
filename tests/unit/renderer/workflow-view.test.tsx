@@ -127,11 +127,11 @@ describe('vue Workflow sur la carte (spec 023 US1, spec 032 lot 2)', () => {
       'Rond 001 · Démo 001, brainstorm 100 %, 2 sur 3 tâches',
       'Rond US1 — Histoire 1, brainstorm 100 %, 1 sur 1 tâches',
       'Rond US2 — Histoire 2, brainstorm 100 %, 1 sur 2 tâches',
-      'Carré T002 · T002, faite',
-      'Carré T003 · T003, à faire, bosser ici',
+      'Carré T002 · T002, faite, contexte 100 %',
+      'Carré T003 · T003, à faire, contexte 100 %, bosser ici',
       'Rond 002 · Démo 002, brainstorm 100 %, 0 sur 1 tâches',
       'Rond US1 — Histoire 1, brainstorm 100 %, 0 sur 1 tâches',
-      'Carré T001 · T001, à faire',
+      'Carré T001 · T001, à faire, contexte 100 %',
       'Rond US2 — Histoire 2, brainstorm 100 %'
     ])
     expect(after.edges.find((edge) => edge.target === workflowKey(G, 'spec', '001'))?.source).toBe(G)

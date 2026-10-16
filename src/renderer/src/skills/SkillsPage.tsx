@@ -331,6 +331,8 @@ function SkillsTree(): React.JSX.Element {
   const [pluginsOpen, setPluginsOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [agentsOpen, setAgentsOpen] = useState(false)
+  // Création accompagnée d’un profil (L1o D15) : la conversation et la fiche côte à côte, le panneau s’élargit.
+  const [assisted, setAssisted] = useState(false)
   const view = query.data
 
   const selectedRepo = library.find((repo) => `${REPO_PREFIX}${repo.repoId}` === selectedId)
@@ -515,9 +517,13 @@ function SkillsTree(): React.JSX.Element {
           )}
         </div>
       </div>
-      <aside className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface">
+      <aside
+        className={`min-w-0 border-l border-content-muted/20 bg-surface ${
+          agentsOpen && assisted ? 'basis-[62%]' : 'basis-[38%]'
+        }`}
+      >
         {agentsOpen && view !== undefined ? (
-          <AgentProfilesPanel view={view} onClose={() => setAgentsOpen(false)} />
+          <AgentProfilesPanel view={view} onClose={() => setAgentsOpen(false)} onAssistant={setAssisted} />
         ) : selectedId !== null && selectedId.startsWith(GHOST_PREFIX) ? (
           <div className="h-full overflow-auto">
             <DraftPanel

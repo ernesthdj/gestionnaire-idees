@@ -128,7 +128,7 @@ describe('workflowTree (spec 032)', () => {
       status: 'doing',
       next: true,
       title: 'T003 · Faire T003 dans src/T003.ts',
-      label: 'Carré T003 · Faire T003 dans src/T003.ts, en cours, bosser ici',
+      label: 'Carré T003 · Faire T003 dans src/T003.ts, en cours, contexte 100 %, bosser ici',
       subject: { kind: 'task', story: { number: 2 } }
     })
     expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '017'))).toMatchObject({

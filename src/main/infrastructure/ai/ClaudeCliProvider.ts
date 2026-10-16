@@ -19,6 +19,8 @@ export type RunProcess = (input: {
   readonly timeoutMs: number
   /** Annulation : le processus est arrêté. */
   readonly signal?: AbortSignal
+  /** Chaque ligne de la sortie standard, dès qu'elle arrive (flux `stream-json`). */
+  readonly onStdoutLine?: (line: string) => void
 }) => Promise<{
   readonly code: number | null
   readonly stdout: string
@@ -88,7 +90,7 @@ const ResultLine = z.object({
   modelUsage: z.record(z.string(), z.unknown()).optional()
 })
 
-export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs, signal }) =>
+export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs, signal, onStdoutLine }) =>
   new Promise((resolve) => {
     const child = spawn(command, [...args], { cwd, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
     let stdout = ''
@@ -103,7 +105,15 @@ export const runProcess: RunProcess = ({ command, args, cwd, stdin, timeoutMs, s
     signal?.addEventListener('abort', abort, { once: true })
     child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
-    child.stdout.on('data', (chunk: string) => (stdout += chunk))
+    let pending = ''
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk
+      if (onStdoutLine === undefined) return
+      pending += chunk
+      const lines = pending.split(/\r?\n/)
+      pending = lines.pop() ?? ''
+      for (const line of lines) if (line.trim() !== '') onStdoutLine(line)
+    })
     child.stderr.on('data', (chunk: string) => (stderr = (stderr + chunk).slice(-4000)))
     child.on('error', () => {
       clearTimeout(timer)
