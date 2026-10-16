@@ -351,6 +351,20 @@
       "when": 1791936013493,
       "tag": "0049_file_summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1792074012420,
+      "tag": "0050_agent_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1792152595035,
+      "tag": "0051_tool_files",
+      "breakpoints": true
     }
   ]
 }

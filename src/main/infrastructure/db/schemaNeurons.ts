@@ -346,6 +346,12 @@ export const neuronMessages = sqliteTable(
     toolUseId: text('tool_use_id'),
     toolStatus: text('tool_status', { enum: ['running', 'ok', 'denied', 'error'] }),
     toolReason: text('tool_reason'),
+    /**
+     * Fichier visé par l'outil (lu, écrit, modifié) et sa modification (blocs de diff en JSON, rendus par le CLI) :
+     * la pastille s'ouvre sur le fichier et ses changements (spec 014 D9). Chemin absolu, jamais transmis au renderer.
+     */
+    toolPath: text('tool_path'),
+    toolPatch: text('tool_patch'),
     createdAt: createdAt()
   },
   (t) => [index('neuron_messages_neuron_idx').on(t.neuronId)]

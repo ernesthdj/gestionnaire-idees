@@ -11,6 +11,9 @@ import type {
   SkillsView,
   SkillUsageView
 } from '@shared/ipc/skills'
+import { AGENT_EFFORTS, AGENT_ROLES, MAX_AGENT_SKILLS, PERMISSION_MODES } from '@shared/agents/profile'
+import type { AgentProfileInput, AgentProfileView } from '@shared/agents/profile'
+import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { defineRoute, type IpcRoute } from './registry'
 
 export interface SkillsRoutesDeps {
@@ -39,6 +42,12 @@ export interface SkillsRoutesDeps {
     link(from: string, to: string, kind: SemanticLinkKind): { batchId: string }
     unlink(linkId: string): { batchId: string }
     usage(): Promise<Record<string, SkillUsageView>>
+  }
+  /** Profils d'agents des pipelines (T001), créés et modifiés depuis la page Skills. */
+  readonly agents?: {
+    list(): AgentProfileView[]
+    save(input: AgentProfileInput): AgentProfileView
+    remove(id: string): void
   }
   readonly imports?: {
     start(url: string): { importId: string }
@@ -132,6 +141,7 @@ export function createSkillsRoutes(deps: SkillsRoutesDeps): IpcRoute[] {
       input: z.object({ skillId: SkillId }).strict(),
       handler: async ({ skillId }) => skills.duplicate(skillId)
     }),
+    ...agentRoutes(deps.agents),
     ...importRoutes(deps.imports),
     ...cardRoutes(deps.cards)
   ]
@@ -232,5 +242,38 @@ function cardRoutes(cards: SkillsRoutesDeps['cards']): IpcRoute[] {
       handler: async ({ linkId }) => cards.unlink(linkId)
     }),
     defineRoute({ channel: 'skills:usage', input: z.object({}).strict(), handler: async () => cards.usage() })
+  ]
+}
+
+/** Profils d'agents : le renderer ne donne que des valeurs de listes fermées et des identifiants de skills. */
+function agentRoutes(agents: SkillsRoutesDeps['agents']): IpcRoute[] {
+  if (agents === undefined) return []
+  const Profile = z
+    .object({
+      id: z.uuid().optional(),
+      name: z.string().trim().min(1).max(60),
+      role: z.enum(AGENT_ROLES),
+      instructions: z.string().max(4000),
+      permissionMode: z.enum(PERMISSION_MODES),
+      model: z.enum(CLAUDE_MODELS),
+      effort: z.enum(AGENT_EFFORTS),
+      skills: z.array(SkillId).max(MAX_AGENT_SKILLS)
+    })
+    .strict()
+  return [
+    defineRoute({ channel: 'agents:list', input: z.object({}).strict(), handler: async () => agents.list() }),
+    defineRoute({
+      channel: 'agents:save',
+      input: Profile,
+      handler: async ({ id, ...rest }) => agents.save({ ...rest, ...(id === undefined ? {} : { id }) })
+    }),
+    defineRoute({
+      channel: 'agents:remove',
+      input: z.object({ id: z.uuid(), confirm: z.literal(true) }).strict(),
+      handler: async ({ id }) => {
+        agents.remove(id)
+        return {}
+      }
+    })
   ]
 }

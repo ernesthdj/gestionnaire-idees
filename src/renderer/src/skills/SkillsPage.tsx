@@ -44,6 +44,7 @@ import {
   type SkillNodeType,
   type TrunkNodeType
 } from './SkillNodes'
+import { AgentProfilesPanel } from './AgentProfilesPanel'
 import { DraftPanel } from './DraftPanel'
 import { ImportDialog } from './ImportDialog'
 import { LibraryRepoPanel, LibrarySkillPanel, repoLabel } from './LibraryPanel'
@@ -329,6 +330,7 @@ function SkillsTree(): React.JSX.Element {
   const [search, setSearch] = useState('')
   const [pluginsOpen, setPluginsOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [agentsOpen, setAgentsOpen] = useState(false)
   const view = query.data
 
   const selectedRepo = library.find((repo) => `${REPO_PREFIX}${repo.repoId}` === selectedId)
@@ -453,6 +455,14 @@ function SkillsTree(): React.JSX.Element {
           </button>
           <button
             type="button"
+            onClick={() => setAgentsOpen((open) => !open)}
+            aria-pressed={agentsOpen}
+            className="h-8 rounded-md border border-content-muted/40 px-3 hover:bg-surface-raised"
+          >
+            Profils d’agents
+          </button>
+          <button
+            type="button"
             onClick={() => setImportUrl('')}
             className="h-8 rounded-md border border-accent px-3 text-accent hover:bg-surface-raised"
           >
@@ -506,7 +516,9 @@ function SkillsTree(): React.JSX.Element {
         </div>
       </div>
       <aside className="min-w-0 basis-[38%] border-l border-content-muted/20 bg-surface">
-        {selectedId !== null && selectedId.startsWith(GHOST_PREFIX) ? (
+        {agentsOpen && view !== undefined ? (
+          <AgentProfilesPanel view={view} onClose={() => setAgentsOpen(false)} />
+        ) : selectedId !== null && selectedId.startsWith(GHOST_PREFIX) ? (
           <div className="h-full overflow-auto">
             <DraftPanel
               key={selectedId}

@@ -17,6 +17,7 @@ import { ConfidentialityBadge } from '../reprise/ConfidentialityBadge'
 import { ElementFileReader, ElementFiles } from './ElementFiles'
 import { Markdown } from './Markdown'
 import { motion } from 'motion/react'
+import { ToolFileDialog } from './ToolFileDialog'
 import { useEffectiveSettings } from '../app/useAppSettings'
 import { useReducedMotionPreference } from '../motion/useReducedMotionPreference'
 import { LiveReply } from './LiveReply'
@@ -142,7 +143,14 @@ const TOOL_STATUS: Readonly<
   error: { label: 'échoué', icon: '✕', tone: 'bg-red-500/10 text-red-700 dark:text-red-400' }
 }
 
-function ToolMessage({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
+function ToolMessage({
+  neuronId,
+  message
+}: {
+  readonly neuronId: string
+  readonly message: ChatMessageView
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false)
   // Ancien fil (avant spec 014) : pas de statut, pastille neutre.
   const status = message.toolStatus === undefined ? null : TOOL_STATUS[message.toolStatus]
   const reason = message.toolReason ?? ''
@@ -150,16 +158,44 @@ function ToolMessage({ message }: { readonly message: ChatMessageView }): React.
     status === null
       ? `Action de Claude : ${message.text}`
       : `Action de Claude : ${message.text} — ${status.label}${reason === '' ? '' : ` : ${reason}`}`
-  return (
-    <p
-      className={`max-w-[85%] self-start rounded-2xl px-3 py-0.5 text-xs ${status?.tone ?? 'bg-accent/10 text-accent'}`}
-      aria-label={label}
-      title={reason === '' ? undefined : reason}
-    >
+  const tone = `max-w-[85%] self-start rounded-2xl px-3 py-0.5 text-left text-xs ${status?.tone ?? 'bg-accent/10 text-accent'}`
+  const content = (
+    <>
       {status === null ? '⚙' : status.icon} {message.text}
       {status === null || message.toolStatus === 'ok' ? null : <span className="font-semibold"> — {status.label}</span>}
       {reason === '' || message.toolStatus === 'ok' ? null : <span className="block opacity-80">{reason}</span>}
-    </p>
+    </>
+  )
+  if (message.toolFile === undefined) {
+    return (
+      <p className={tone} aria-label={label} title={reason === '' ? undefined : reason}>
+        {content}
+      </p>
+    )
+  }
+  // Pastille de fichier (spec 014 D9) : s'ouvre sur le fichier et la modification faite par cet outil.
+  const opens = message.toolFile.changed ? 'voir le fichier et la modification' : 'voir le fichier'
+  return (
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-label={`${label} — ${opens}`}
+        title={reason === '' ? opens : reason}
+        onClick={() => setOpen(true)}
+        className={`${tone} cursor-pointer hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
+      >
+        {content}
+      </button>
+      {open ? (
+        <ToolFileDialog
+          neuronId={neuronId}
+          messageId={message.id}
+          title={message.text}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -284,8 +320,14 @@ function BypassWarning({
   )
 }
 
-function Message({ message }: { readonly message: ChatMessageView }): React.JSX.Element {
-  if (message.role === 'tool') return <ToolMessage message={message} />
+function Message({
+  neuronId,
+  message
+}: {
+  readonly neuronId: string
+  readonly message: ChatMessageView
+}): React.JSX.Element {
+  if (message.role === 'tool') return <ToolMessage neuronId={neuronId} message={message} />
   if (message.role === 'error') {
     return (
       <p role="alert" className="rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-700 dark:text-red-400">
@@ -646,7 +688,7 @@ export function ChatPanel({
         )}
         <div aria-live="polite" className="flex flex-col gap-2">
           {chat.messages.map((message) => (
-            <Message key={message.id} message={message} />
+            <Message key={message.id} neuronId={neuronId} message={message} />
           ))}
           {chat.busy ? (
             <LiveReply

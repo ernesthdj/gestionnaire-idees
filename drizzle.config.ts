@@ -12,7 +12,8 @@ export default defineConfig({
     './src/main/infrastructure/db/schemaSkills.ts',
     './src/main/infrastructure/db/schemaGit.ts',
     './src/main/infrastructure/db/schemaBrainstorms.ts',
-    './src/main/infrastructure/db/schemaFolders.ts'
+    './src/main/infrastructure/db/schemaFolders.ts',
+    './src/main/infrastructure/db/schemaAgents.ts'
   ],
   out: './src/main/infrastructure/db/migrations'
 })

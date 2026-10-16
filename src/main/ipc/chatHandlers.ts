@@ -4,6 +4,7 @@ import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import { PERMISSION_DECISIONS, PERMISSION_MODES } from '@shared/ipc/chat'
 import type { ConversationService } from '../application/conversation/ConversationService'
 import type { PermissionService } from '../application/conversation/PermissionService'
+import type { ToolFileReader } from '../application/conversation/ToolFileReader'
 import { defineRoute, type IpcRoute } from './registry'
 
 const NeuronInput = z.strictObject({ neuronId: z.uuid() })
@@ -11,9 +12,20 @@ const NeuronInput = z.strictObject({ neuronId: z.uuid() })
 /** Canaux du chat d'un neurone (spec 008 contracts/chat.md) ; la réponse de Claude arrive par événements. */
 export function createChatRoutes(
   conversations: ConversationService,
-  permissions?: Pick<PermissionService, 'decide'>
+  permissions?: Pick<PermissionService, 'decide'>,
+  toolFiles?: Pick<ToolFileReader, 'read'>
 ): IpcRoute[] {
   return [
+    ...(toolFiles === undefined
+      ? []
+      : [
+          // Fenêtre d'une pastille de fichier (spec 014 D9) : un identifiant de message, jamais un chemin.
+          defineRoute({
+            channel: 'chat:toolFile',
+            input: z.strictObject({ neuronId: z.uuid(), messageId: z.uuid() }),
+            handler: async ({ neuronId, messageId }) => toolFiles.read(neuronId, messageId)
+          })
+        ]),
     ...(permissions === undefined
       ? []
       : [

@@ -59,6 +59,8 @@ import { launchGit } from './infrastructure/projects/GitProcess'
 import { resolveGit } from './infrastructure/projects/GitCli'
 import { SKILLS_FRAME } from './application/skills/skillsFrame'
 import { SkillTools } from './application/mcp/SkillTools'
+import { AgentProfileRepository } from './infrastructure/db/repositories/AgentProfileRepository'
+import { AgentProfileService } from './application/agents/AgentProfileService'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
 import { SkillStore } from './infrastructure/skills/SkillStore'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
@@ -126,6 +128,7 @@ import { ConversationRepository } from './infrastructure/db/repositories/Convers
 import { resolveClaudePath } from './infrastructure/claude/claudePath'
 import { spawnClaudeConversation } from './infrastructure/claude/CliConversation'
 import { createChatRoutes } from './ipc/chatHandlers'
+import { ToolFileReader } from './application/conversation/ToolFileReader'
 import { createProjectRoutes } from './ipc/projectHandlers'
 import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
@@ -369,6 +372,11 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     home: app.getPath('home'),
     projects: () => neuronRepository.linkedProjects(),
     onChanged: (scannedAt) => broadcast('skills:changed', { scannedAt })
+  })
+  // Profils d'agents des pipelines (docs/TACHES-AGENTS.md T001).
+  const agentProfiles = new AgentProfileService({
+    repository: new AgentProfileRepository(database.db),
+    skillIds: () => new Set(skillInventory.list().skills.map((skill) => skill.id))
   })
   // Brouillons, installation, versions et suppression des skills (spec 020 US3, constitution 4.5.0).
   const skillService = new SkillService({
@@ -1272,7 +1280,15 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       ),
       ...createWidgetRoutes(widgets),
       ...createWidgetIoRoutes(widgetIo),
-      ...createChatRoutes(conversations, permissions),
+      ...createChatRoutes(
+        conversations,
+        permissions,
+        new ToolFileReader({
+          message: (neuronId, messageId) => conversationRepository.toolFile(neuronId, messageId),
+          roots: (neuronId) => conversations.workingDirs(neuronId),
+          files: projectFiles
+        })
+      ),
       ...createProjectRoutes(projects),
       ...createRepriseRoutes(reprise, analysis, guide, resolution),
       ...createExplorerRoutes(explorer),
@@ -1338,6 +1354,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         inventory: skillInventory,
         skills: skillService,
         imports: skillImports,
+        agents: agentProfiles,
         cards: {
           view: () => skillCards.view(),
           analyze: (skillIds) => skillCards.analyze(skillIds),

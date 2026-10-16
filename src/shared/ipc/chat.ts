@@ -13,6 +13,39 @@ export interface ChatMessageView {
   /** Outil : son résultat réel et la raison courte d'un refus ou d'une erreur. */
   readonly toolStatus?: ToolStatus
   readonly toolReason?: string
+  /** Outil sur un fichier (spec 014 D9) : la pastille s'ouvre ; `changed` : une modification est enregistrée. */
+  readonly toolFile?: { readonly changed: boolean }
+}
+
+/** Bloc d'une modification, tel que le rend le CLI : lignes préfixées par ' ' (contexte), '-' (retirée), '+' (ajoutée). */
+export interface ToolPatchHunk {
+  readonly oldStart: number
+  readonly newStart: number
+  readonly lines: readonly string[]
+}
+
+/** Modification faite par un outil (spec 014 D9) ; `created` : le fichier n'existait pas. */
+export interface ToolPatch {
+  readonly hunks: readonly ToolPatchHunk[]
+  readonly created: boolean
+  /** Diff trop long, coupé (lignes ou taille). */
+  readonly truncated: boolean
+}
+
+/** Ce que montre la fenêtre d'une pastille de fichier ; le chemin est relatif au dossier de la conversation. */
+export interface ChatToolFileView {
+  readonly path: string
+  /** Langage pour la coloration ; `null` : texte brut. */
+  readonly language: string | null
+  readonly change: ToolPatch | null
+  /** Contenu actuel ; `null` si le fichier est absent, hors des dossiers de la conversation, trop gros ou binaire. */
+  readonly current: string | null
+  readonly missing: boolean
+  readonly outside: boolean
+  /** Fichier protégé : sensible (`.env`, clé…), binaire connu, ou lien qui sort du projet. */
+  readonly refused: boolean
+  readonly tooBig: boolean
+  readonly binary: boolean
 }
 
 /** Mode de permission d'une conversation (spec 014 D1), comme Maj+Tab dans le terminal. */

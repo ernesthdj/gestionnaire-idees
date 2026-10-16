@@ -2202,3 +2202,95 @@ avec ses commandes, consigner au journal, jamais `--no-verify` ni `git add -A` s
 `isToBrainstorm` ne compte plus un L1 complet. La démo donne un brainstorm complet à `TACHES-DESIGN.md`.
 **Règle apprise :** un fichier écrit par Python sous Windows en mode texte reçoit des fins de ligne CRLF ; et un `\n`
 dans un heredoc devient un vrai saut de ligne : vérifier avec Prettier après chaque écriture scriptée.
+
+### [2026-10-16 13:10] FEAT — agents assemblés : brainstorm L1o, finitions T001–T004 (T015), skills transmis aux sessions (T010)
+**Fichiers :** `docs/brainstorm/L1o-agents-assembles.md` (nouveau), `docs/TACHES-AGENTS.md`,
+`src/main/infrastructure/claude/AgentSession.ts` ; formatage de `bootstrap.ts`, `db/client.ts`, `SkillsPage.tsx`,
+`ipc/channels.ts`, `migrations.test.ts` ; tests `tests/integration/agents/agent-session.test.ts` (nouveau),
+`pipeline-engine.test.ts`.
+**Quoi :** le brainstorm des pipelines d'agents a maintenant son document (maturité complet). mentalyas assemble ses
+agents à la main sur la carte, sans file fixe ni valeur par défaut. Un lien entre deux agents = l'un attend l'autre ;
+sans lien = en parallèle. Le PO ouvre le travail et recommande les agents. Le QA renvoie ses observations au PO, qui
+réécrit la spec. Les passes sont indexées (initiale, correction, repasse). Chaque agent a son worktree, et il y a un
+seul accord de fusion. `PipelineEngine` (T003–T004, file fixe) sera réécrit en planificateur (T011). Code des T001–T004
+(15/10, depuis le Brainstormer) : profils, documents, moteur, `AgentSession`, migration 0050. T015 : Prettier, et
+`{ timeout: 60_000 }` sur le test du moteur, comme les autres tests qui lancent git. T010 : les skills cochés dans le
+profil sont copiés dans un plugin propre à la session (`--plugin-dir`, plugin `agent-skills`, rien d'autre que
+`plugin.json` et les dossiers des skills, liens symboliques ignorés), effacé à la fin de la session.
+**Erreur :** `pipeline-engine.test.ts > should_default_to_three_rounds` dépassait 5 s dans la suite complète (5,8 s,
+vrais appels git) ; 5 fichiers en CRLF.
+**Règle apprise :** sonde du 2026-10-16 (CLI 2.1.301) : `claude -p --setting-sources ""` ne charge que les skills
+intégrés à Claude Code, aucun skill personnel ni de projet ; `--plugin-dir` les ajoute, même avec `--setting-sources ""`.
+Le résolveur des skills (`SkillInventory.dirOf`) sera branché avec le moteur (T005).
+
+### [2026-10-16 14:30] FEAT — agents assemblés : planificateur (T011) et worktree par agent (T012)
+**Fichiers :** `src/shared/agents/pipeline.ts` (réécrit), `src/main/application/agents/PipelineEngine.ts` (réécrit),
+`src/main/application/agents/PipelineDocuments.ts`, `src/shared/agents/documents.ts`, `docs/brainstorm/L1o-agents-assembles.md`
+(§4) ; tests `tests/unit/agents/assembly.test.ts` (nouveau), `pipeline-documents.test.ts`,
+`tests/integration/agents/pipeline-engine.test.ts` (réécrit), `agent-session.test.ts`.
+**Quoi :** un assemblage regroupe des agents (un profil chacun, deux agents peuvent partager un rôle) et des liens « B
+attend A ». Règles (`assemblyError`) : identifiants uniques, aucun cycle ; dès deux agents, un PO et un seul, qui
+n'attend personne, et dont tous les autres dépendent. Le planificateur lance tout agent dont les agents attendus ont
+fini, en parallèle ; il bloque ceux qui attendaient un agent arrêté, et n'en lance plus après une annulation. Chaque agent
+a son worktree (hors du projet) et sa branche `agents/<tâche>/<agent>`, partie de la base, de la branche attendue ou
+de la fusion de plusieurs (un conflit arrête l'agent). Le moteur commite les fichiers par leur nom, sans
+`--no-verify` ; un hook qui refuse arrête l'agent. Le worktree est retiré quand l'agent a fini, et gardé s'il a échoué.
+Rien n'est fusionné sur la base (T018). La spec et les rapports (un par agent) sont commités sur la branche de l'agent ;
+le journal du projet peut sortir du dépôt (`projectJournalFile`). Retirés : `PIPELINE_ORDER`, branches en chaîne, boucle
+QA à plafond, fusion par le QA, `validate`.
+**Erreur :** (1) dans un worktree, git sous Windows (`core.autocrlf`) remet des CRLF, et l'en-tête de la spec n'était
+plus reconnu : les documents sont normalisés à la lecture. (2) `runGit` colle la sortie d'erreur à la sortie normale :
+un avertissement CRLF était pris pour un nom de fichier ; avec `-z`, seuls les noms terminés par `\0` comptent.
+**Règle apprise :** toute sortie de `runGit` lue comme une liste doit être en `-z`, et sans ce qui suit le dernier
+`\0` ; tout fichier relu après un checkout doit accepter les CRLF.
+
+### [2026-10-16 16:00] FEAT — agents assemblés : boucle QA → PO (T016), passes indexées (T017), accord unique (T018)
+**Fichiers :** `src/shared/agents/pipeline.ts`, `src/shared/agents/documents.ts`,
+`src/main/application/agents/PipelineEngine.ts`, `src/main/application/agents/PipelineDocuments.ts`,
+`docs/brainstorm/L1o-agents-assembles.md` (D8, D11) ; tests `pipeline-engine.test.ts`, `pipeline-documents.test.ts`.
+**Quoi :** si un QA finit par `VERDICT: RENVOI`, le PO reprend la spec avec le rapport du QA, la réécrit (version
+suivante) et la termine par `AGENTS: back=correction, front=repasse`. Les agents désignés repartent, avec ceux qui
+dépendent d'eux (en repasse) et le QA, sans plafond, jusqu'à `VERDICT: VALIDE` ou l'annulation. Un agent relancé
+reprend sa branche dans un nouveau worktree et y fusionne les branches qu'il attend (la nouvelle spec arrive ainsi).
+Chaque passe a un numéro, une nature et une version de spec, inscrits dans la mission, le commit (`chore(agents): T010 ·
+back · passe 2 (correction, spec v2)`) et l'en-tête du rapport. `approve` : les branches finales sont fusionnées dans un
+worktree détaché partant de la base, puis la base avance d'un coup (avance rapide si la copie de travail est sur la
+base et propre, sinon `update-ref` contrôlé) ; un conflit ou une copie modifiée refuse sans rien changer. `warnings` :
+les modes de permissions qui bloquent écritures ou commandes.
+**Règle apprise :** sonde `claude -p` du 2026-10-16 : `--permission-mode default` refuse Write et Bash, `acceptEdits`
+refuse Bash ; un agent qui doit lancer des tests a besoin d'un autre mode.
+
+### [2026-10-16 17:30] FEAT — agents assemblés : agents recommandés et suggérés dans la spec du PO (T009)
+**Fichiers :** `src/shared/agents/recommendation.ts` (nouveau), `src/shared/agents/documents.ts`,
+`src/main/application/agents/PipelineDocuments.ts`, `src/main/application/agents/PipelineEngine.ts` ; tests
+`tests/unit/agents/recommendation.test.ts` (nouveau), `tests/integration/agents/pipeline-engine.test.ts`.
+**Quoi :** la mission du PO contient maintenant le catalogue des profils existants (nom, rôle, modèle, effort, skills,
+début des consignes) et le format à suivre. La spec finit par une ligne par agent : `RECOMMANDÉ: <profil> — <raison>`
+(profil existant) ou `SUGGÉRÉ: <nom> | <rôle> | <consignes> | <skills>` (profil à créer, rôle « Autre » si inconnu). La
+spec lue ou écrite porte `agents` (`parseSpecAgents`) ; `matchRecommended` isole les noms de profil qui n'existent pas,
+à signaler à mentalyas. Ce ne sont que des propositions : l'app ne crée ni ne relie aucun agent (L1o D1, D2). Dans une
+réécriture après renvoi du QA, les lignes restent avant la dernière ligne `AGENTS:`.
+**Erreur :** aucune. Reste à faire (T005) : afficher ces propositions à mentalyas et créer le profil suggéré en un clic.
+**Règle apprise :** une ligne mal formée dans la sortie d'un agent est ignorée, jamais une erreur : seule la ligne
+`AGENTS:` du renvoi, dont dépend la suite du travail, arrête le PO.
+
+### [2026-10-16 18:30] FEAT — spec 014 D9 : une pastille de fichier du chat s'ouvre sur le fichier et sa modification
+**Fichiers :** `specs/014-claude-libre/spec.md` (D9), migration `0051_tool_files` (+ `down`), `schemaNeurons.ts`,
+`ConversationRepository.ts`, `ConversationService.ts`, `domain/conversation/toolPatch.ts` (nouveau), `streamEvents.ts`,
+`application/conversation/ToolFileReader.ts` (nouveau), `ipc/chatHandlers.ts`, `shared/ipc/chat.ts`, `channels.ts`,
+`bootstrap.ts`, `renderer/src/chat/ToolFileDialog.tsx` (nouveau), `ChatPanel.tsx`, `lib/SourceCode.tsx` (nouveau, tiré
+de `FileViewer.tsx`) ; tests `tool-patch.test.ts`, `tool-file-reader.test.ts`, `conversation-service.test.ts`,
+`chat-panel.test.tsx`, `migrations.test.ts`.
+**Quoi :** les pastilles « fichier lu / écrit / modifié » deviennent des boutons. Le chemin visé est gardé à l'appel
+(`tool_path`) ; la modification vient du `tool_use_result` du CLI (`structuredPatch` ; tout le contenu en lignes
+ajoutées pour un Write qui crée), bornée à 3 000 lignes et 300 000 caractères, gardée en JSON (`tool_patch`). La fenêtre
+(portail sur `document.body`, Échap ou × ferme) montre trois onglets : « Modification » (retiré en rouge, ajouté en vert,
+signes − / +, numéros de ligne), « Fichier » (contenu actuel coloré) et « Mis en forme » pour un `.md`. Sécurité : le
+renderer n'envoie qu'un identifiant de message ; le main lit le fichier par `ProjectFiles`, seulement s'il est dans un
+dossier de la conversation (fichiers sensibles, binaires connus et liens qui sortent refusés, 1 Mo au plus). Aucun
+chemin absolu ne quitte le main. Vérifié dans l'app réelle avec le vrai Claude (essai ponctuel, non gardé :
+`test-results/e2e/014-D9-*.png`).
+**Erreur :** `migrations.test.ts` vérifiait qu'après le `down` de 0027 aucune colonne `tool_*` ne restait : les deux
+nouvelles colonnes de 0051 le cassaient. Le test vise maintenant les colonnes de 0027.
+**Règle apprise :** le CLI joint à chaque message `user` un `tool_use_result` (sonde 2.1.301) ; il décrit l'unique
+résultat du message, donc il n'est rattaché que s'il y a un seul `tool_result`.

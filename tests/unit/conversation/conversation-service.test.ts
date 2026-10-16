@@ -28,7 +28,8 @@ interface FakeProcess {
 
 describe('conversations Claude Code des neurones', () => {
   let neurons: Map<string, ConversationNeuron>
-  let messages: { neuronId: string; role: MessageRole; text: string }[]
+  let messages: { neuronId: string; role: MessageRole; text: string; toolPath?: string | null }[]
+  let patches: (string | null)[]
   let processes: FakeProcess[]
   let events: ChatEvent[]
   let service: ConversationService
@@ -88,10 +89,12 @@ describe('conversations Claude Code des neurones', () => {
               createdAt: '',
               toolUseId: null,
               toolStatus: null,
-              toolReason: null
+              toolReason: null,
+              toolPath: null,
+              toolPatched: false
             })),
-        addMessage: (neuronId, role, text, toolUseId = null) => {
-          messages.push({ neuronId, role, text })
+        addMessage: (neuronId, role, text, toolUseId = null, toolPath = null) => {
+          messages.push({ neuronId, role, text, toolPath })
           return {
             id: String(messages.length),
             role,
@@ -99,18 +102,25 @@ describe('conversations Claude Code des neurones', () => {
             createdAt: '',
             toolUseId,
             toolStatus: toolUseId === null ? null : 'running',
-            toolReason: null
+            toolReason: null,
+            toolPath,
+            toolPatched: false
           }
         },
-        setToolStatus: (_neuronId, toolUseId, toolStatus, toolReason) => ({
-          id: toolUseId,
-          role: 'tool',
-          text: 'outil',
-          createdAt: '',
-          toolUseId,
-          toolStatus,
-          toolReason
-        }),
+        setToolStatus: (_neuronId, toolUseId, toolStatus, toolReason, patch = null) => {
+          patches.push(patch)
+          return {
+            id: toolUseId,
+            role: 'tool',
+            text: 'outil',
+            createdAt: '',
+            toolUseId,
+            toolStatus,
+            toolReason,
+            toolPath: 'C:\\p\\a.ts',
+            toolPatched: patch !== null
+          }
+        },
         maturity: () => null,
         setProjectDir: (id, projectDir, sessionId) => {
           const current = neurons.get(id)
@@ -201,6 +211,7 @@ describe('conversations Claude Code des neurones', () => {
       [N4, neuron(N4)]
     ])
     messages = []
+    patches = []
     processes = []
     events = []
     claudePath = 'C:\\claude.exe'
@@ -316,6 +327,37 @@ describe('conversations Claude Code des neurones', () => {
     ])
     service.close(N1)
     expect(cancelled).toEqual([N1])
+  })
+
+  it('should_keep_the_file_and_its_change_when_a_file_tool_succeeds', async () => {
+    await service.send(N1, 'Corrige')
+    const process = processes[0] as FakeProcess
+    process.emit({
+      type: 'assistant',
+      message: {
+        content: [{ type: 'tool_use', id: 't1', name: 'Edit', input: { file_path: 'C:\\p\\a.ts' } }]
+      }
+    })
+    process.emit({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 't1', content: 'ok' }] },
+      tool_use_result: {
+        filePath: 'C:\\p\\a.ts',
+        structuredPatch: [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-a', '+b'] }]
+      }
+    })
+    process.emit({
+      type: 'assistant',
+      message: { content: [{ type: 'tool_use', id: 't2', name: 'Bash', input: { command: 'npm test' } }] }
+    })
+    expect(messages.filter((m) => m.role === 'tool').map((m) => m.toolPath)).toEqual(['C:\\p\\a.ts', null])
+    expect(JSON.parse(patches[0] ?? 'null')).toEqual({
+      hunks: [{ oldStart: 1, newStart: 1, lines: ['-a', '+b'] }],
+      created: false,
+      truncated: false
+    })
+    const last = events.filter((event) => event.type === 'chat:tool').at(1)
+    expect(last?.type === 'chat:tool' ? last.payload.message.toolFile : undefined).toEqual({ changed: true })
   })
 
   it('should_relay_deltas_tools_and_save_the_full_answer', async () => {

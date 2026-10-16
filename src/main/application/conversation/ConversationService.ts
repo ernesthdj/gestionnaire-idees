@@ -257,8 +257,19 @@ export function messageView(row: MessageRow): ChatMessageView {
     text: row.text,
     createdAt: row.createdAt,
     ...(row.toolStatus === null ? {} : { toolStatus: row.toolStatus }),
-    ...(row.toolReason === null ? {} : { toolReason: row.toolReason })
+    ...(row.toolReason === null ? {} : { toolReason: row.toolReason }),
+    ...(row.toolPath === null ? {} : { toolFile: { changed: row.toolPatched } })
   }
+}
+
+/** Outils qui visent un fichier : leur pastille s'ouvre sur lui (spec 014 D9). */
+const FILE_TOOLS = new Set(['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
+
+/** Fichier visé par un outil (`file_path`, ou `notebook_path` d'un carnet) ; `null` pour les autres outils. */
+function toolPathOf(name: string, input: Readonly<Record<string, unknown>>): string | null {
+  if (!FILE_TOOLS.has(name)) return null
+  const path = input['file_path'] ?? input['notebook_path']
+  return typeof path === 'string' && path.trim() !== '' ? path : null
 }
 
 /** Refus de permission renvoyé par l'app (PermissionService) ou par Claude Code. */
@@ -558,7 +569,8 @@ ${text}`
           neuronId,
           'tool',
           toolTitle(event.name, event.input),
-          event.id === '' ? null : event.id
+          event.id === '' ? null : event.id,
+          toolPathOf(event.name, event.input)
         )
         this.deps.emit({ type: 'chat:tool', payload: { neuronId, message } })
         return
@@ -569,7 +581,14 @@ ${text}`
       case 'toolResult': {
         // Le fil dit ce qui s’est réellement passé : réussi, refusé (permission) ou échoué (spec 014 R4).
         const status = !event.isError ? 'ok' : live.denied.has(event.id) || isRefusal(event.text) ? 'denied' : 'error'
-        const row = this.deps.repository.setToolStatus(neuronId, event.id, status, event.isError ? event.text : null)
+        const patch = event.patch === undefined ? null : JSON.stringify(event.patch)
+        const row = this.deps.repository.setToolStatus(
+          neuronId,
+          event.id,
+          status,
+          event.isError ? event.text : null,
+          patch
+        )
         if (row !== undefined) this.deps.emit({ type: 'chat:tool', payload: { neuronId, message: messageView(row) } })
         this.deps.onToolResult?.(neuronId, event.id, status === 'ok')
         return
@@ -663,8 +682,14 @@ ${text}`
     this.deps.emit({ type: 'chat:error', payload: { neuronId, code, message, resetsAt } })
   }
 
-  private save(neuronId: string, role: MessageRole, text: string, toolUseId: string | null = null): ChatMessageView {
-    return messageView(this.deps.repository.addMessage(neuronId, role, text, toolUseId))
+  private save(
+    neuronId: string,
+    role: MessageRole,
+    text: string,
+    toolUseId: string | null = null,
+    toolPath: string | null = null
+  ): ChatMessageView {
+    return messageView(this.deps.repository.addMessage(neuronId, role, text, toolUseId, toolPath))
   }
 
   private contextOf(neuron: ConversationNeuron, live: Live): NeuronContext {
@@ -761,6 +786,13 @@ ${text}`
   workingDir(neuronId: string): string {
     const neuron = this.deps.repository.neuron(neuronId)
     return (neuron === undefined ? null : this.dirsOf(neuron).cwd) ?? this.deps.settings().cwd
+  }
+
+  /** Tous les dossiers d'une conversation : celui où elle s'ouvre, puis le dossier ajouté s'il y en a un. */
+  workingDirs(neuronId: string): string[] {
+    const neuron = this.deps.repository.neuron(neuronId)
+    const dirs = neuron === undefined ? { cwd: null, extra: null } : this.dirsOf(neuron)
+    return [dirs.cwd ?? this.deps.settings().cwd, ...(dirs.extra === null ? [] : [dirs.extra])]
   }
 
   /**

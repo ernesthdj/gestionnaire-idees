@@ -7,6 +7,7 @@ import { Markdown } from '../chat/Markdown'
 import { highlight, splitHighlightLines, type HighlightNode } from '../lib/highlight'
 import { Highlighted } from '../lib/Highlighted'
 import { call, IpcFailure } from '../lib/ipc'
+import { SourceCode } from '../lib/SourceCode'
 
 export const viewerKey = (neuronId: string, path: string): readonly string[] => ['deliverable', neuronId, 'file', path]
 
@@ -239,18 +240,6 @@ function FormattedView({ file }: { readonly file: DeliverableFileDetailView }): 
 
 function SourceView({ file }: { readonly file: DeliverableFileDetailView }): React.JSX.Element {
   const note = unreadable(file)
-  const text = file.current ?? ''
-  const tree = useMemo(() => (note === null ? highlight(text, file.language) : null), [note, text, file.language])
   if (note !== null) return <p className="p-4 text-content-muted">{note}</p>
-  const count = text === '' ? 1 : text.replace(/\r\n/g, '\n').split('\n').length
-  return (
-    <div className="viewer-code flex py-2 font-mono text-xs">
-      <pre aria-hidden="true" className="shrink-0 px-3 text-right text-content-muted select-none">
-        {Array.from({ length: count }, (_, index) => index + 1).join('\n')}
-      </pre>
-      <pre className="min-w-0 flex-1 pr-4">
-        <code className="hljs">{tree === null ? text : <Highlighted nodes={tree} />}</code>
-      </pre>
-    </div>
-  )
+  return <SourceCode text={file.current ?? ''} language={file.language} />
 }

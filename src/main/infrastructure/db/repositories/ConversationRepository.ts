@@ -20,7 +20,28 @@ export interface MessageRow {
   readonly toolUseId: string | null
   readonly toolStatus: ToolStatus | null
   readonly toolReason: string | null
+  /** Fichier visé par l'outil (chemin absolu, main seulement) et présence d'une modification enregistrée (spec 014 D9). */
+  readonly toolPath: string | null
+  readonly toolPatched: boolean
 }
+
+/** Colonnes d'un message affiché ; `toolPatched` dit seulement si un diff existe (il n'est lu qu'à l'ouverture). */
+const MESSAGE_COLUMNS = {
+  id: neuronMessages.id,
+  role: neuronMessages.role,
+  text: neuronMessages.text,
+  createdAt: neuronMessages.createdAt,
+  toolUseId: neuronMessages.toolUseId,
+  toolStatus: neuronMessages.toolStatus,
+  toolReason: neuronMessages.toolReason,
+  toolPath: neuronMessages.toolPath,
+  toolPatched: sql<number>`${neuronMessages.toolPatch} IS NOT NULL`
+}
+
+const toMessageRow = (row: Omit<MessageRow, 'toolPatched'> & { readonly toolPatched: number }): MessageRow => ({
+  ...row,
+  toolPatched: row.toolPatched === 1
+})
 
 export interface ConversationNeuron {
   readonly id: string
@@ -279,28 +300,27 @@ export class ConversationRepository {
 
   messages(neuronId: string): MessageRow[] {
     return this.db
-      .select({
-        id: neuronMessages.id,
-        role: neuronMessages.role,
-        text: neuronMessages.text,
-        createdAt: neuronMessages.createdAt,
-        toolUseId: neuronMessages.toolUseId,
-        toolStatus: neuronMessages.toolStatus,
-        toolReason: neuronMessages.toolReason
-      })
+      .select(MESSAGE_COLUMNS)
       .from(neuronMessages)
       .where(eq(neuronMessages.neuronId, neuronId))
       .orderBy(desc(sql`${neuronMessages}.rowid`))
       .limit(HISTORY_LIMIT)
       .all()
       .reverse()
+      .map(toMessageRow)
   }
 
-  addMessage(neuronId: string, role: MessageRole, text: string, toolUseId: string | null = null): MessageRow {
+  addMessage(
+    neuronId: string,
+    role: MessageRole,
+    text: string,
+    toolUseId: string | null = null,
+    toolPath: string | null = null
+  ): MessageRow {
     const id = randomUUID()
     // Un outil commence « en cours » ; son résultat réel arrive ensuite (setToolStatus).
     const toolStatus: ToolStatus | null = toolUseId === null ? null : 'running'
-    this.db.insert(neuronMessages).values({ id, neuronId, role, text, toolUseId, toolStatus }).run()
+    this.db.insert(neuronMessages).values({ id, neuronId, role, text, toolUseId, toolStatus, toolPath }).run()
     const row = this.db
       .select({ createdAt: neuronMessages.createdAt })
       .from(neuronMessages)
@@ -313,31 +333,42 @@ export class ConversationRepository {
       createdAt: row?.createdAt ?? new Date().toISOString(),
       toolUseId,
       toolStatus,
-      toolReason: null
+      toolReason: null,
+      toolPath,
+      toolPatched: false
     }
   }
 
-  /** Résultat réel d'un outil (spec 014 R4) ; renvoie le message mis à jour, `undefined` s'il est inconnu. */
+  /**
+   * Résultat réel d'un outil (spec 014 R4), et sa modification (diff en JSON, spec 014 D9) ; renvoie le message mis à
+   * jour, `undefined` s'il est inconnu.
+   */
   setToolStatus(
     neuronId: string,
     toolUseId: string,
     status: ToolStatus,
-    reason: string | null
+    reason: string | null,
+    patch: string | null = null
   ): MessageRow | undefined {
     const where = and(eq(neuronMessages.neuronId, neuronId), eq(neuronMessages.toolUseId, toolUseId))
-    this.db.update(neuronMessages).set({ toolStatus: status, toolReason: reason }).where(where).run()
-    return this.db
-      .select({
-        id: neuronMessages.id,
-        role: neuronMessages.role,
-        text: neuronMessages.text,
-        createdAt: neuronMessages.createdAt,
-        toolUseId: neuronMessages.toolUseId,
-        toolStatus: neuronMessages.toolStatus,
-        toolReason: neuronMessages.toolReason
-      })
-      .from(neuronMessages)
+    this.db
+      .update(neuronMessages)
+      .set({ toolStatus: status, toolReason: reason, ...(patch === null ? {} : { toolPatch: patch }) })
       .where(where)
+      .run()
+    const row = this.db.select(MESSAGE_COLUMNS).from(neuronMessages).where(where).get()
+    return row === undefined ? undefined : toMessageRow(row)
+  }
+
+  /** Fichier et modification d'une pastille d'outil (spec 014 D9) ; `undefined` si le message n'est pas à ce neurone. */
+  toolFile(
+    neuronId: string,
+    messageId: string
+  ): { readonly path: string | null; readonly patch: string | null } | undefined {
+    return this.db
+      .select({ path: neuronMessages.toolPath, patch: neuronMessages.toolPatch })
+      .from(neuronMessages)
+      .where(and(eq(neuronMessages.neuronId, neuronId), eq(neuronMessages.id, messageId)))
       .get()
   }
 

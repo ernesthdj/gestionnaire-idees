@@ -112,7 +112,9 @@ describe('migrations du modèle de neurones', () => {
     runDown('0027_claude_libre')
     expect(tables().some((name) => added.includes(name))).toBe(false)
     expect(columns('neurons').some((name) => neuronColumns.includes(name))).toBe(false)
-    expect(columns('neuron_messages').some((name) => name.startsWith('tool_'))).toBe(false)
+    expect(
+      columns('neuron_messages').some((name) => ['tool_use_id', 'tool_status', 'tool_reason'].includes(name))
+    ).toBe(false)
     expect(columns('final_actions').some((name) => name.startsWith('committed_'))).toBe(false)
   })
 
@@ -249,6 +251,23 @@ describe('migrations du modèle de neurones', () => {
     runDown('0038_file_summaries')
     expect(tables()).not.toContain('code_file_summaries')
     expect(tables()).toContain('code_projects')
+  })
+
+  it('should_add_the_agent_profiles_table_then_remove_it_with_the_down_migration', () => {
+    expect(columns('agent_profiles')).toEqual(
+      expect.arrayContaining(['id', 'name', 'role', 'instructions', 'permission_mode', 'model', 'effort', 'skills'])
+    )
+    runDown('0050_agent_profiles')
+    expect(tables()).not.toContain('agent_profiles')
+    expect(tables()).toContain('code_file_summaries')
+  })
+
+  it('should_add_the_tool_file_columns_then_remove_them_with_the_down_migration', () => {
+    expect(columns('neuron_messages')).toEqual(expect.arrayContaining(['tool_path', 'tool_patch']))
+    runDown('0051_tool_files')
+    expect(columns('neuron_messages')).not.toContain('tool_path')
+    expect(columns('neuron_messages')).not.toContain('tool_patch')
+    expect(columns('neuron_messages')).toContain('tool_reason')
   })
 
   it('should_add_the_plan_tables_and_columns_then_remove_them_with_the_down_migration', () => {

@@ -416,6 +416,66 @@ describe('permissions et fil fidèle (spec 014 US1, US3)', () => {
     await expectNoAxeViolations(container)
   })
 
+  it('should_open_a_file_pill_on_its_change_in_red_and_green_and_on_the_current_file', async () => {
+    const MESSAGE = '00000000-0000-4000-8000-0000000000e1'
+    const api = installFakeApi({
+      'chat:open': () =>
+        view({
+          messages: [
+            {
+              id: MESSAGE,
+              role: 'tool',
+              text: 'fichier modifié : app.ts',
+              createdAt: '',
+              toolStatus: 'ok',
+              toolFile: { changed: true }
+            },
+            { id: 't2', role: 'tool', text: 'commande : npm test', createdAt: '', toolStatus: 'ok' }
+          ]
+        }),
+      'chat:close': () => ({ ok: true }),
+      'chat:toolFile': () => ({
+        path: 'src/app.ts',
+        language: 'typescript',
+        change: {
+          hunks: [{ oldStart: 4, newStart: 4, lines: [' const a = 1', '-const b = 2', '+const b = 3'] }],
+          created: false,
+          truncated: false
+        },
+        current: 'const a = 1\nconst b = 3\n',
+        missing: false,
+        outside: false,
+        refused: false,
+        tooBig: false,
+        binary: false
+      })
+    })
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ChatPanel neuronId={ID} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    // Une commande n'a pas de fichier : sa pastille reste un simple texte.
+    expect(await screen.findByLabelText('Action de Claude : commande : npm test — fait')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /npm test/ })).toBeNull()
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Action de Claude : fichier modifié : app.ts — fait — voir le fichier et la modification'
+      })
+    )
+    expect(api.invoke).toHaveBeenCalledWith('chat:toolFile', { neuronId: ID, messageId: MESSAGE })
+    const dialog = await screen.findByRole('dialog', { name: 'src/app.ts' })
+    expect(screen.getByRole('tab', { name: 'Modification', selected: true })).toBeTruthy()
+    expect(dialog.querySelector('.viewer-diff-removed')?.textContent).toContain('const b = 2')
+    expect(dialog.querySelector('.viewer-diff-added')?.textContent).toContain('const b = 3')
+    expect(dialog.textContent).toContain('+1 · −1')
+    await expectNoAxeViolations(dialog)
+    await userEvent.click(screen.getByRole('tab', { name: 'Fichier' }))
+    expect(screen.getByRole('tabpanel', { name: 'Fichier' }).textContent).toContain('const b = 3')
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('should_replace_the_running_tool_with_its_result', async () => {
     const { api } = renderChat()
     await screen.findByText('Fiche du neurone')

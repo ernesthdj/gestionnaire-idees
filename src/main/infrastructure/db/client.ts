@@ -10,6 +10,7 @@ import * as skillsSchema from './schemaSkills'
 import * as gitSchema from './schemaGit'
 import * as brainstormSchema from './schemaBrainstorms'
 import * as folderSchema from './schemaFolders'
+import * as agentSchema from './schemaAgents'
 
 const schema = {
   ...aiSchema,
@@ -19,7 +20,8 @@ const schema = {
   ...skillsSchema,
   ...gitSchema,
   ...brainstormSchema,
-  ...folderSchema
+  ...folderSchema,
+  ...agentSchema
 }
 
 export type AppDatabase = BetterSQLite3Database<typeof schema>

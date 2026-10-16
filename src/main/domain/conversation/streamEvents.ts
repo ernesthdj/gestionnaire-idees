@@ -1,3 +1,6 @@
+import type { ToolPatch } from '@shared/ipc/chat'
+import { toolPatchOf } from './toolPatch'
+
 /**
  * Flux `stream-json` du CLI Claude Code (spec 008 research R1, vérifié sur 2.1.289) → événements de conversation.
  * Fonction pure : une ligne de sortie du CLI en entrée ; `null` pour tout ce que l'app ignore (hooks, réflexion…).
@@ -15,8 +18,17 @@ export type StreamEvent =
       readonly id: string
       readonly input: Readonly<Record<string, unknown>>
     }
-  /** Résultat d'un outil : réussi ou en erreur (refus de permission compris), avec un extrait du message. */
-  | { readonly kind: 'toolResult'; readonly id: string; readonly isError: boolean; readonly text: string }
+  /**
+   * Résultat d'un outil : réussi ou en erreur (refus de permission compris), avec un extrait du message, et la
+   * modification faite sur un fichier quand le CLI la rend (spec 014 D9).
+   */
+  | {
+      readonly kind: 'toolResult'
+      readonly id: string
+      readonly isError: boolean
+      readonly text: string
+      readonly patch?: ToolPatch
+    }
   /** Claude Code a refusé l'outil faute de permission (mode, règle, refus de mentalyas). */
   | { readonly kind: 'permissionDenied'; readonly id: string; readonly message: string }
   | {
@@ -107,8 +119,11 @@ export function parseStreamLine(line: string): StreamEvent[] {
       // Résultats des outils, renvoyés à Claude par le CLI (spec 014 R4).
       const message = value['message']
       const content = isObject(message) && Array.isArray(message['content']) ? message['content'] : []
-      return content.flatMap((block): StreamEvent[] => {
-        if (!isObject(block) || block['type'] !== 'tool_result') return []
+      const results = content.filter((block) => isObject(block) && block['type'] === 'tool_result')
+      // `tool_use_result` décrit l'unique résultat du message : à plusieurs, on ne saurait pas lequel.
+      const patch = results.length === 1 ? toolPatchOf(value['tool_use_result']) : null
+      return results.flatMap((block): StreamEvent[] => {
+        if (!isObject(block)) return []
         const id = str(block['tool_use_id'])
         return id === null
           ? []
@@ -117,7 +132,8 @@ export function parseStreamLine(line: string): StreamEvent[] {
                 kind: 'toolResult',
                 id,
                 isError: block['is_error'] === true,
-                text: excerpt(resultText(block['content']))
+                text: excerpt(resultText(block['content'])),
+                ...(patch === null || block['is_error'] === true ? {} : { patch })
               }
             ]
       })
