@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AgentProfilesPanel } from '../../../src/renderer/src/skills/AgentProfilesPanel'
 import type { SkillsView } from '../../../src/shared/ipc/skills'
@@ -27,6 +27,33 @@ const setup = () => {
   )
   return { api, view }
 }
+
+describe('agent minté à la création (L1o D21)', () => {
+  it('should_show_the_minted_agent_and_create_it_with_the_previewed_id', async () => {
+    const saved: unknown[] = []
+    installFakeApi({
+      'agents:list': () => [],
+      'agents:save': (payload) => {
+        saved.push(payload)
+        return payload
+      }
+    })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <AgentProfilesPanel view={VIEW} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau profil' }))
+    const card = screen.getByRole('region', { name: /^Agent minté : sans nom, .+, rang / })
+    expect(card.textContent).toContain('Univers')
+    fireEvent.change(screen.getByRole('textbox', { name: /Nom/ }), { target: { value: 'Thor' } })
+    expect(screen.getByRole('region', { name: /^Agent minté : Thor, / })).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: '✦ Créer l’agent' }))
+    await waitFor(() => expect(saved).toHaveLength(1))
+    expect(saved[0]).toMatchObject({ name: 'Thor', isNew: true, id: expect.stringMatching(/^[0-9a-f-]{36}$/) })
+  })
+})
 
 describe('créer un profil d’agent avec Claude (L1o D15)', () => {
   it('should_fill_the_form_with_marked_fields_when_claude_proposes_then_unmark_a_field_touched_by_hand', async () => {

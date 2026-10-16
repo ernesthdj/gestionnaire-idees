@@ -222,3 +222,11 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   du dernier commit et ne les voient pas), avec « Ouvrir le Dépôt » pour les commiter d'abord.
 - **Rangement** : la mission dit où écrire un brainstorm (`docs/brainstorm/L<niveau><lettre>-<sujet>.md`, avec son
   en-tête) et ses tâches (`docs/TACHES-<Sujet>.md`), pour qu'ils apparaissent dans le Workflow.
+
+### D21 — L'agent se révèle à sa création (2026-10-16)
+- Dès « Nouveau profil » ou « ✦ Créer avec Claude », la fiche montre l'**agent minté** : sa chambre-cube où vit son
+  personnage, chaque calque (univers, silhouette, yeux, coiffe, objet de métier, chambre) avec sa rareté, et son rang.
+  L'objet suit le rôle choisi. La carte se révèle (chambre, puis calques un à un, puis rang).
+- L'identifiant du profil est tiré à l'ouverture de la fiche : le personnage montré est celui qui naît.
+- « ✦ Créer l'agent » joue l'éclat de la naissance (couleur du rang), puis crée le profil. Mouvement réduit : rien
+  d'animé, tout est affiché.

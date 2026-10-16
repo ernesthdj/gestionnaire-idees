@@ -2599,3 +2599,15 @@ avant le lancement ; règle de rangement dans la mission.
 que les nœuds visibles ; un agent passait sous le panneau de droite. Le test recadre (« Tout afficher ») après chaque
 visio ; 5 passes sur 5.
 **Vérifié :** typecheck, lint, Prettier, 2 445 tests ; e2e `agents-map`.
+
+### [2026-10-16 22:45] FEAT — l'agent minté se révèle à sa création (L1o D21) ; branches du Dépôt plus lisibles
+**Fichiers :** `src/renderer/src/canvas/agents/character/MintCard.tsx`, `mint.css` (carte, raretés, révélation,
+naissance), `AgentProfilesPanel.tsx` (identifiant tiré à l'ouverture, « ✦ Créer l'agent »), `AgentProfileService.ts`,
+`skillsHandlers.ts`, `profile.ts` (`isNew` : création avec l'identifiant de l'aperçu) ; `src/renderer/src/git/BranchesTab.tsx`
+(branche courante en tête, « Passer » compact, branches des agents regroupées « agent · tâche ») ; tests unitaires,
+d'intégration, e2e `agent-profile-assistant` et `agents-map`.
+**Quoi :** demandes de mentalyas : un affichage propre et animé à la création d'un agent (l'agent minté, sa rareté, un
+bouton qui lance sa création) ; un onglet Branches plus propre (les noms complets répétés dans les boutons débordaient).
+**Corrigé en route :** la carte débordait dans la colonne étroite (disposition en deux colonnes) : passée en colonne ;
+elle remonte à l'écran au clic, l'éclat restait sinon hors de vue.
+**Vérifié :** typecheck, lint, 2 447 tests ; captures e2e `t019-01`, `t021-02-naissance`, `021-branches-des-agents`.

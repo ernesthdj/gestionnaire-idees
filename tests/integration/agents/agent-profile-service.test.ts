@@ -51,6 +51,17 @@ describe('profils d’agents', () => {
     expect(service.list()).toEqual([])
   })
 
+  it('should_create_with_the_id_chosen_at_preview_once_when_the_profile_is_new', () => {
+    // L1o D21 : le personnage montré avant le clic vient de cet identifiant ; c'est lui qui naît.
+    const id = '5a6b7c8d-1e2f-4a3b-8c4d-5e6f7a8b9c0d'
+    expect(service.save(profile({ id, isNew: true })).id).toBe(id)
+    expect(() => service.save(profile({ id, isNew: true, name: 'Autre' }))).toThrow(/existe déjà/)
+    // Sans `isNew`, un identifiant inconnu reste refusé (profil supprimé entre-temps).
+    expect(() => service.save(profile({ id: '11111111-1111-4111-8111-111111111111', name: 'X' }))).toThrow(
+      /n’existe plus/
+    )
+  })
+
   it('should_refuse_a_duplicate_name_and_an_unknown_skill', () => {
     service.save(profile())
     expect(() => service.save(profile())).toThrow(/s’appelle déjà/)

@@ -58,12 +58,16 @@ export class AgentProfileService {
       skills: JSON.stringify([...new Set(input.skills)]),
       updatedAt: this.now()
     }
-    if (input.id !== undefined) {
+    if (input.id !== undefined && input.isNew !== true) {
       if (repository.get(input.id) === undefined) throw new AppError('NOT_FOUND', 'Ce profil n’existe plus.')
       repository.update(input.id, fields)
       return toView(repository.get(input.id) as AgentProfileRow)
     }
-    const id = randomUUID()
+    // Création : l'identifiant choisi à l'aperçu (L1o D21) donne le personnage montré avant le clic, sinon un neuf.
+    if (input.id !== undefined && repository.get(input.id) !== undefined) {
+      throw new AppError('CONFLICT', 'Ce profil existe déjà.')
+    }
+    const id = input.id ?? randomUUID()
     repository.insert({ id, createdAt: fields.updatedAt, ...fields })
     return toView(repository.get(id) as AgentProfileRow)
   }

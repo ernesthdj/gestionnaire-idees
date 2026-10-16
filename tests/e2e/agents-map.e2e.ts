@@ -177,6 +177,17 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await merged.click({ button: 'right', force: true })
     await page.getByRole('menuitem', { name: /Renvoyer l’agent/ }).click()
     await merged.waitFor({ state: 'detached' })
+
+    // Les branches des agents sont regroupées dans l'onglet Branches du Dépôt, lisibles comme « agent · tâche ».
+    await page
+      .getByRole('button', { name: /^Dépôt du projet : .*Ouvrir le volet Dépôt/ })
+      .first()
+      .click()
+    const repo = page.getByRole('region', { name: 'Dépôt' })
+    await repo.getByRole('tab', { name: 'Branches' }).click()
+    await repo.getByText(/Branches des agents \(3\)/).click()
+    await repo.getByRole('button', { name: /^Passer sur agents\/.*\/qualite$/ }).waitFor()
+    await run.shot('021-branches-des-agents')
     await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
   })
 })

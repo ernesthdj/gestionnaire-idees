@@ -2,9 +2,132 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import type { GitBranchView } from '@shared/git/model'
 import { BranchName } from '@shared/git/model'
+import { AGENT_BRANCH_PREFIX } from '@shared/agents/pipeline'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 import { gitKeys, useRefreshGit } from './gitQueries'
+
+/** Branche d'un agent (`agents/<tâche>/<agent>`, L1o D3) : son agent et sa tâche ; `null` pour une autre branche. */
+function agentOf(name: string): { readonly agent: string; readonly task: string } | null {
+  const [prefix, task, agent, ...rest] = name.split('/')
+  return prefix === AGENT_BRANCH_PREFIX && task !== undefined && agent !== undefined && rest.length === 0
+    ? { agent, task }
+    : null
+}
+
+/** Avance et retard sur la branche suivie, en pastilles. */
+function Sync({ branch }: { readonly branch: GitBranchView }): React.JSX.Element | null {
+  if (branch.ahead === 0 && branch.behind === 0) return null
+  return (
+    <span className="flex shrink-0 gap-1 text-[11px] text-content-muted">
+      {branch.ahead > 0 ? <span title="Commits à pousser">↑{branch.ahead}</span> : null}
+      {branch.behind > 0 ? <span title="Commits à tirer">↓{branch.behind}</span> : null}
+    </span>
+  )
+}
+
+function BranchRow({
+  branch,
+  label,
+  detail,
+  disabled,
+  onSwitch
+}: {
+  readonly branch: GitBranchView
+  readonly label: string
+  readonly detail?: string
+  readonly disabled: boolean
+  readonly onSwitch: (name: string) => void
+}): React.JSX.Element {
+  return (
+    <li className="flex min-h-9 items-center gap-2 rounded-md px-2 hover:bg-surface-raised">
+      <span className="min-w-0 flex-1 truncate" title={branch.name}>
+        <span className="font-mono text-xs">{label}</span>
+        {detail === undefined ? null : <span className="ml-2 text-xs text-content-muted">{detail}</span>}
+      </span>
+      <Sync branch={branch} />
+      <Button
+        className="!h-7 shrink-0 !px-3 text-xs"
+        aria-label={`Passer sur ${branch.name}`}
+        title={`Passer sur ${branch.name}`}
+        disabled={disabled}
+        onClick={() => onSwitch(branch.name)}
+      >
+        Passer
+      </Button>
+    </li>
+  )
+}
+
+/**
+ * Branches locales : la courante en tête, les autres avec « Passer », puis les branches des agents regroupées (repliées
+ * d'office) et lisibles comme « agent · tâche ». Le nom complet reste au survol et pour les lecteurs d'écran.
+ */
+function BranchList({
+  branches,
+  disabled,
+  onSwitch
+}: {
+  readonly branches: readonly GitBranchView[]
+  readonly disabled: boolean
+  readonly onSwitch: (name: string) => void
+}): React.JSX.Element {
+  const current = branches.find((branch) => branch.current)
+  const others = branches.filter((branch) => !branch.current && agentOf(branch.name) === null)
+  const agents = branches.filter((branch) => !branch.current && agentOf(branch.name) !== null)
+  return (
+    <div className="flex flex-col gap-2">
+      {current === undefined ? null : (
+        <div className="flex min-h-9 items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-2">
+          <span aria-hidden="true" className="text-accent">
+            ●
+          </span>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold" title={current.name}>
+            {current.name}
+          </span>
+          <Sync branch={current} />
+          <span className="shrink-0 text-xs text-content-muted">branche courante</span>
+        </div>
+      )}
+      {others.length === 0 ? null : (
+        <ul aria-label="Branches locales" className="flex flex-col">
+          {others.map((branch) => (
+            <BranchRow
+              key={branch.name}
+              branch={branch}
+              label={branch.name}
+              {...(branch.upstream === null ? {} : { detail: `→ ${branch.upstream}` })}
+              disabled={disabled}
+              onSwitch={onSwitch}
+            />
+          ))}
+        </ul>
+      )}
+      {agents.length === 0 ? null : (
+        <details className="rounded-md border border-content-muted/20">
+          <summary className="cursor-pointer px-2 py-1.5 text-xs font-semibold text-content-muted">
+            Branches des agents ({agents.length})
+          </summary>
+          <ul aria-label="Branches des agents" className="flex flex-col pb-1">
+            {agents.map((branch) => {
+              const owner = agentOf(branch.name)
+              return (
+                <BranchRow
+                  key={branch.name}
+                  branch={branch}
+                  label={owner?.agent ?? branch.name}
+                  detail={owner?.task ?? ''}
+                  disabled={disabled}
+                  onSwitch={onSwitch}
+                />
+              )
+            })}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
 
 interface BranchesView {
   readonly current: string | null
@@ -55,31 +178,11 @@ export function BranchesTab({
       {query.data === undefined ? (
         <p className="text-content-muted">Lecture des branches…</p>
       ) : (
-        <ul aria-label="Branches locales" className="flex flex-col gap-1">
-          {query.data.local.map((branch) => (
-            <li key={branch.name} className="flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate font-mono text-xs">
-                {branch.current ? '● ' : ''}
-                {branch.name}
-                {branch.upstream === null ? '' : ` → ${branch.upstream}`}
-                {branch.ahead > 0 ? ` ↑${branch.ahead}` : ''}
-                {branch.behind > 0 ? ` ↓${branch.behind}` : ''}
-              </span>
-              {branch.current ? (
-                <span className="text-xs text-content-muted">branche courante</span>
-              ) : (
-                <button
-                  type="button"
-                  className="card-button card-button-ghost"
-                  disabled={readOnly || switchTo.isPending}
-                  onClick={() => switchTo.mutate({ branch: branch.name })}
-                >
-                  Passer sur {branch.name}
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <BranchList
+          branches={query.data.local}
+          disabled={readOnly || switchTo.isPending}
+          onSwitch={(branch) => switchTo.mutate({ branch })}
+        />
       )}
       <form
         className="flex items-end gap-2"

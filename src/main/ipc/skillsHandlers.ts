@@ -253,6 +253,7 @@ function agentRoutes(agents: SkillsRoutesDeps['agents'], skills: SkillsRoutesDep
   const Profile = z
     .object({
       id: z.uuid().optional(),
+      isNew: z.literal(true).optional(),
       name: z.string().trim().min(1).max(60),
       role: z.enum(AGENT_ROLES),
       instructions: z.string().max(4000),
@@ -276,7 +277,8 @@ function agentRoutes(agents: SkillsRoutesDeps['agents'], skills: SkillsRoutesDep
     defineRoute({
       channel: 'agents:save',
       input: Profile,
-      handler: async ({ id, ...rest }) => agents.save({ ...rest, ...(id === undefined ? {} : { id }) })
+      handler: async ({ id, isNew, ...rest }) =>
+        agents.save({ ...rest, ...(id === undefined ? {} : { id }), ...(isNew === undefined ? {} : { isNew }) })
     }),
     defineRoute({
       channel: 'agents:remove',

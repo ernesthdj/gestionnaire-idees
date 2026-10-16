@@ -1,0 +1,146 @@
+/*
+ * Carte de l'agent minté (L1o D21). Couleurs de rareté : celles des planches (gris, vert, bleu, violet, or) ; le texte
+ * du palier est toujours écrit, jamais la couleur seule.
+ */
+.mint-card {
+  --tier: #9aa3b5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--tier) 55%, transparent);
+  background: color-mix(in oklab, var(--tier) 8%, var(--color-surface));
+}
+.mint-card[data-tier='peu'],
+.mint-traits [data-tier='peu'],
+.mint-rank[data-tier='peu'] {
+  --tier: #3fb970;
+}
+.mint-card[data-tier='rare'],
+.mint-traits [data-tier='rare'],
+.mint-rank[data-tier='rare'] {
+  --tier: #4b8df8;
+}
+.mint-card[data-tier='epique'],
+.mint-traits [data-tier='epique'],
+.mint-rank[data-tier='epique'] {
+  --tier: #a46bff;
+}
+.mint-card[data-tier='legend'],
+.mint-traits [data-tier='legend'],
+.mint-rank[data-tier='legend'] {
+  --tier: #f2b630;
+}
+
+.mint-room {
+  display: block;
+  width: 100%;
+  max-width: 224px;
+  height: 196px;
+}
+.mint-info {
+  width: 100%;
+  min-width: 0;
+}
+.mint-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.mint-rank {
+  --tier: #9aa3b5;
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #14121e;
+  background: var(--tier);
+}
+.mint-traits {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.mint-traits li {
+  --tier: #9aa3b5;
+  padding: 2px 8px 2px 6px;
+  border-left: 3px solid var(--tier);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--color-surface-raised);
+}
+
+/* Révélation : la chambre apparaît, puis chaque calque, puis le rang. */
+@keyframes mint-room-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(8px);
+  }
+}
+@keyframes mint-trait-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes mint-rank-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    transform: scale(1.15);
+  }
+}
+.mint-reveal .mint-room {
+  animation: mint-room-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.mint-reveal .mint-traits li {
+  animation: mint-trait-in 320ms ease-out both;
+  animation-delay: calc(420ms + var(--i, 0) * 110ms);
+}
+.mint-reveal .mint-rank {
+  animation: mint-rank-in 420ms ease-out both;
+  animation-delay: 1150ms;
+}
+
+/* Naissance (clic sur « Créer l'agent ») : un éclat de la couleur de son rang. */
+@keyframes mint-birth {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--tier) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 22px color-mix(in oklab, var(--tier) 0%, transparent);
+  }
+}
+.mint-minting {
+  animation: mint-birth 700ms ease-out 2;
+}
+.mint-minting .mint-room {
+  animation: mint-room-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) reverse both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mint-reveal .mint-room,
+  .mint-reveal .mint-traits li,
+  .mint-reveal .mint-rank,
+  .mint-minting,
+  .mint-minting .mint-room {
+    animation: none;
+  }
+}
+[data-reduced-motion='true'] .mint-reveal .mint-room,
+[data-reduced-motion='true'] .mint-reveal .mint-traits li,
+[data-reduced-motion='true'] .mint-reveal .mint-rank,
+[data-reduced-motion='true'] .mint-minting,
+[data-reduced-motion='true'] .mint-minting .mint-room {
+  animation: none;
+}

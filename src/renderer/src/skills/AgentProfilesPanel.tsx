@@ -15,6 +15,8 @@ import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import type { SkillsView } from '@shared/ipc/skills'
 import { useUiStore } from '../app/uiStore'
 import { ChatPanel } from '../chat/ChatPanel'
+import { MintCard } from '../canvas/agents/character/MintCard'
+import { mintCharacter } from '../canvas/agents/character/mint'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -91,8 +93,16 @@ export function AgentProfilesPanel({
       if (proposal.why !== null) setWhy(proposal.why)
     })
   }, [chatId])
+  // Aperçu du mint (L1o D21) : l'identifiant du futur profil, tiré dès l'ouverture d'un nouveau ; son personnage en vient.
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [minting, setMinting] = useState(false)
+  const startNew = (): void => {
+    setPendingId(crypto.randomUUID())
+    setDraft({ ...BLANK })
+  }
   const startAssistant = (profile?: AgentProfileView): void => {
-    setDraft(profile === undefined ? { ...BLANK } : toInput(profile))
+    if (profile === undefined) startNew()
+    else setDraft(toInput(profile))
     setByClaude(new Set())
     setWhy(null)
     setChatId(null)
@@ -100,6 +110,7 @@ export function AgentProfilesPanel({
   }
   const closeForm = (): void => {
     setDraft(null)
+    setPendingId(null)
     setAssistant(null)
     setChatId(null)
     setByClaude(new Set())
@@ -138,14 +149,27 @@ export function AgentProfilesPanel({
     setBusy(true)
     setError('')
     try {
-      await call<AgentProfileView>('agents:save', draft)
-      showToast(`Profil « ${draft.name.trim()} » enregistré.`)
+      const creating = draft.id === undefined && pendingId !== null
+      if (creating) {
+        // Naissance : l'éclat de la carte, puis la création (rien d'animé si le mouvement est réduit).
+        setMinting(true)
+        document.querySelector('.mint-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        const reduced = typeof matchMedia !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches
+        await new Promise((resolve) => setTimeout(resolve, reduced ? 0 : 900))
+      }
+      await call<AgentProfileView>('agents:save', creating ? { ...draft, id: pendingId, isNew: true } : draft)
+      showToast(
+        creating
+          ? `« ${draft.name.trim()} » est né : ${mintCharacter(pendingId, draft.role).base.name}.`
+          : `Profil « ${draft.name.trim()} » enregistré.`
+      )
       closeForm()
       await refresh()
     } catch (failure) {
       setError(failure instanceof IpcFailure ? failure.message : 'Le profil n’a pas pu être enregistré.')
     } finally {
       setBusy(false)
+      setMinting(false)
     }
   }
   const remove = async (profile: AgentProfileView): Promise<void> => {
@@ -167,7 +191,7 @@ export function AgentProfilesPanel({
         <Button variant="primary" onClick={() => startAssistant()}>
           ✦ Créer avec Claude
         </Button>
-        <Button onClick={() => setDraft({ ...BLANK })}>Nouveau profil</Button>
+        <Button onClick={startNew}>Nouveau profil</Button>
         <button
           type="button"
           onClick={onClose}
@@ -189,6 +213,17 @@ export function AgentProfilesPanel({
         )}
         <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4 text-sm">
           {error === '' ? null : <p role="alert">{error}</p>}
+          {draft === null || (draft.id ?? pendingId) === null ? null : (
+            <MintCard
+              key={draft.id ?? pendingId ?? ''}
+              profileId={draft.id ?? pendingId ?? ''}
+              role={draft.role}
+              name={draft.name}
+              delivered={profiles.find((profile) => profile.id === draft.id)?.delivered ?? 0}
+              reveal={draft.id === undefined}
+              minting={minting}
+            />
+          )}
           {why === null || draft === null ? null : (
             <p className="rounded-md bg-surface-raised p-2 text-content-muted">
               <span className="text-accent" aria-hidden="true">
@@ -361,7 +396,7 @@ export function AgentProfilesPanel({
               </fieldset>
               <div className="flex gap-2">
                 <Button type="submit" variant="primary" disabled={busy || draft.name.trim() === ''}>
-                  Enregistrer
+                  {draft.id === undefined ? (minting ? 'Naissance…' : '✦ Créer l’agent') : 'Enregistrer'}
                 </Button>
                 <Button onClick={closeForm}>Annuler</Button>
               </div>

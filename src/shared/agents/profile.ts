@@ -55,7 +55,11 @@ export interface AgentProfileView {
   readonly delivered: number
 }
 
-export type AgentProfileInput = Omit<AgentProfileView, 'id' | 'updatedAt' | 'delivered'> & { readonly id?: string }
+export type AgentProfileInput = Omit<AgentProfileView, 'id' | 'updatedAt' | 'delivered'> & {
+  readonly id?: string
+  /** Création avec l'identifiant tiré à l'aperçu (L1o D21) : le personnage montré est celui qui naît. */
+  readonly isNew?: true
+}
 
 /** Skills qu'un agent propose d'ajouter ou de retirer de son profil, en visio (L1o D16, événement `agents:skillsProposal`). */
 export interface AgentSkillsProposal {
