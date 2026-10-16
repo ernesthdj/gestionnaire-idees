@@ -2328,3 +2328,39 @@ donnée par l'app). Les consignes d'implémentation du Workflow demandent une en
 cette heure, et un fichier qui finit par un saut de ligne. Les chemins de zone sont comparés en minuscules.
 **Règle apprise :** une donnée que Claude ne peut pas connaître (l'heure, un état de l'app) se joint au message ;
 une consigne seule ne suffit pas.
+
+### [2026-10-16 14:55] FEAT — agents assemblés : un PO ou un agent seul connecté à un nœud, planificateur branché au bootstrap et à l'IPC (T005, L1o D1 et D12)
+**Fichiers :** `src/main/application/agents/AssemblyService.ts`, `src/main/ipc/assemblyHandlers.ts`,
+`src/shared/ipc/assemblies.ts`, `src/main/application/agents/PipelineEngine.ts` (`check`), `src/main/bootstrap.ts`,
+`src/shared/ipc/channels.ts`, `src/renderer/src/app/useMainEvents.ts` ; tests `assembly-service.test.ts`,
+`assembly-handlers.test.ts`, `docs/TACHES-AGENTS.md`
+**Quoi :** `AssemblyService` relie un assemblage à un nœud (idée, tâche, module) : le titre, le contenu et la fiche du
+nœud, plus la tâche demandée, deviennent la mission que lisent le PO ou l'agent seul (D12 : sans PO, l'agent seul lit la
+tâche et le contexte). Le planificateur tourne en arrière-plan ; on suit (`assembly:list`), on arrête (`assembly:cancel`)
+et on donne l'accord unique de fusion (`assembly:approve`, `confirm: true`). `assembly:warnings` rend les avertissements
+de permissions et de zones sans rien lancer. Le bootstrap crée la session `claude -p` (skills du profil compris), un
+moteur par projet (worktrees et journal du projet dans le profil, hors du dépôt, hooks gardés) et l'événement
+`assembly:changed`. Refus : nœud inconnu ou sans dossier lié, projet repris (jamais modifié, spec 017 FR-030), projet
+« Local uniquement », assemblage invalide ou branche de base absente (vérifiés avant tout lancement), tâche déjà en cours.
+Le renderer ne donne que des identifiants, des listes fermées et du texte ; le nom de la branche de base est borné
+(pas de tiret en tête, ni `..`).
+**Limite connue :** les assemblages en cours vivent en mémoire ; après la fermeture de l'app, leurs branches
+`agents/<tâche>/<agent>` restent dans le dépôt mais l'accord de fusion n'est plus proposé. L'écran (nœuds d'agents,
+déclaration des zones) vient avec T006.
+**Erreur :** un script Python a réécrit `channels.ts` en CRLF (Prettier l'a signalé) ; remis en LF.
+**Règle apprise :** modifier un fichier par script en conservant ses fins de ligne, ou repasser Prettier dessus avant
+de vérifier le format.
+
+### [2026-10-16 15:12] FIX — T005 : un seul moteur d'agents par projet ; correction des heures du journal du 2026-10-16
+**Fichiers :** `src/main/application/agents/AssemblyService.ts`, test `assembly-service.test.ts` ;
+`specs/014-claude-libre/spec.md` (D10, D11, D12) ; `docs/design/sprites-commandes/` (planche et choix des sprites).
+**Erreur :** (1) revue de T005 : `AssemblyService` créait un `PipelineEngine` à chaque lancement. C'est le moteur qui
+fait passer les commandes git une à une, donc deux tâches lancées en même temps sur le même dépôt auraient envoyé
+leurs `git worktree add` et leurs commits en parallèle (verrous de références). (2) Les entrées du journal du
+2026-10-16 datées 14:30, 16:00, 17:30, 18:30 et 19:15 ont des **heures inventées par Claude Code** (l'heure réelle
+était entre 12 h et 14 h 45). L'entrée de T014 (19:00) a suivi cette suite fausse : l'entrée de 14:41 la rendait
+responsable à tort.
+**Quoi :** un moteur par (genesis, dossier du projet), gardé par le service. Les décisions D10 (expliquer une
+modification), D11 (sprites des commandes) et D12 (progression estimée des tests) sont écrites dans la spec 014 ;
+les sprites choisis sont gardés dans `docs/design/sprites-commandes/`.
+**Règle apprise :** dater une entrée de journal avec `date`, jamais de tête.

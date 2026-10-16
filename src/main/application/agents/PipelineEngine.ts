@@ -140,6 +140,12 @@ export class PipelineEngine {
     return warnings
   }
 
+  /** Refuse un assemblage invalide ou une branche de base introuvable, sans rien lancer. */
+  async check(assembly: Assembly): Promise<void> {
+    this.checked(assembly)
+    await this.baseOf(assembly)
+  }
+
   async run(assembly: Assembly, signal?: AbortSignal): Promise<AssemblyRunResult> {
     const { taskId } = assembly
     const profileOf = this.checked(assembly)

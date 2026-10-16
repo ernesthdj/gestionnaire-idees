@@ -1,0 +1,352 @@
+<title>Sprites des commandes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Planche de sprites : une carte par famille de commande, deux variantes côte à côte, choix enregistré. */
+  :root {
+    --bg: #eef1f6;
+    --card: #ffffff;
+    --fg: #1d2330;
+    --muted: #5d6679;
+    --line: #d5dbe6;
+    --accent: #2f6fe4;
+    --accent-soft: #e3ecfd;
+    --pick: #1f9d55;
+    --pick-soft: #e2f6ea;
+    --pill: #e6eefc;
+    --pill-fg: #2a5fc4;
+    --checker-a: #f3f5f9;
+    --checker-b: #e7ebf2;
+    --font-display: "Silkscreen", "Courier New", monospace;
+    --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141821; --card: #1c212d; --fg: #e7ebf3; --muted: #9aa4b8; --line: #2e3545;
+      --accent: #6c9cf3; --accent-soft: #23324f; --pick: #4ad087; --pick-soft: #1b3428;
+      --pill: #22304a; --pill-fg: #a9c4f7; --checker-a: #202633; --checker-b: #262d3b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141821; --card: #1c212d; --fg: #e7ebf3; --muted: #9aa4b8; --line: #2e3545;
+    --accent: #6c9cf3; --accent-soft: #23324f; --pick: #4ad087; --pick-soft: #1b3428;
+    --pill: #22304a; --pill-fg: #a9c4f7; --checker-a: #202633; --checker-b: #262d3b;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.5 var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 24px 48px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 24px; }
+  header { display: grid; gap: 8px; }
+  h1 { font: 400 28px/1.15 var(--font-display); margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+  .lead { margin: 0; color: var(--muted); max-width: 68ch; }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .count { font: 600 13px var(--font-mono); background: var(--accent-soft); color: var(--accent); padding: 4px 10px; border-radius: 6px; }
+  .status { font-size: 13px; color: var(--muted); min-height: 20px; }
+  button.toggle {
+    font: 600 13px var(--font-body); color: var(--fg); background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 12px; cursor: pointer;
+  }
+  button.toggle:focus-visible, .variant:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+  .family { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+  .family h2 { font: 400 15px/1.2 var(--font-display); margin: 0; letter-spacing: 0.03em; }
+  .examples { font: 12px var(--font-mono); color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+  .variants { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .variant {
+    position: relative; display: grid; gap: 8px; justify-items: center; padding: 10px 8px;
+    border: 2px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--card);
+  }
+  .variant input { position: absolute; opacity: 0; pointer-events: none; }
+  .variant:has(input:checked) { border-color: var(--pick); background: var(--pick-soft); }
+  .zoom {
+    width: 96px; height: 96px; image-rendering: pixelated;
+    background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 12px 12px;
+    border-radius: 4px;
+  }
+  .label { font: 600 12px var(--font-body); display: flex; gap: 6px; align-items: center; }
+  .label .tick { font: 12px var(--font-mono); color: var(--pick); visibility: hidden; }
+  .variant:has(input:checked) .tick { visibility: visible; }
+  .desc { font-size: 12px; color: var(--muted); text-align: center; margin: 0; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+    background: var(--pill); color: var(--pill-fg); border-radius: 999px; padding: 2px 10px 2px 6px; font-size: 12px;
+  }
+  .pill canvas { width: 16px; height: 16px; image-rendering: pixelated; flex: none; }
+  .pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .none { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  textarea {
+    width: 100%; box-sizing: border-box; min-height: 52px; resize: vertical; font: 13px var(--font-body);
+    color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .note-label { font-size: 12px; color: var(--muted); }
+  @media (max-width: 420px) { .zoom { width: 80px; height: 80px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Sprites des commandes</h1>
+    <p class="lead">Une icône pixel art de 16 × 16 par famille de commande, animée tant que la commande tourne dans le chat
+      du Brainstormer, puis remplacée par ✓, ⛔ ou ✕. Choisis une variante par famille (ou aucune) et laisse une note si
+      un sprite est à retoucher : Claude relit tes choix.</p>
+    <div class="bar">
+      <span class="count" id="count">0 / 12 choisis</span>
+      <button class="toggle" type="button" id="play" aria-pressed="true">Pause</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+  </header>
+  <main class="grid" id="grid"></main>
+</div>
+
+<script>
+// Palette pixel art (indépendante du thème : les sprites vivent dans une pastille teintée).
+const C = {
+  k: '#1f2430', w: '#f4f6fb', p: '#e9e4d4', g: '#a4acbd', d: '#5b6478', b: '#3b7ff0', l: '#9cc2fa',
+  n: '#22b35e', m: '#8be3ad', r: '#e5484d', y: '#f6c945', o: '#e09a2b', t: '#9a6a2f', v: '#8b5cf6', s: '#c9d7f2'
+};
+
+// Primitives de dessin sur une grille 16 × 16.
+function painter(set) {
+  const px = (x, y, c) => { if (x >= 0 && x < 16 && y >= 0 && y < 16) set(x, y, C[c] || c) };
+  const rect = (x, y, w, h, c) => { for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) px(x + i, y + j, c) };
+  const box = (x, y, w, h, fill, line = 'k') => { rect(x, y, w, h, line); rect(x + 1, y + 1, w - 2, h - 2, fill) };
+  const circle = (cx, cy, r, c, part) => {
+    let x = r, y = 0, e = 1 - r;
+    const put = (a, b) => { if (!part || part(a, b)) px(cx + a, cy + b, c) };
+    while (x >= y) {
+      [[x, y], [y, x], [-y, x], [-x, y], [-x, -y], [-y, -x], [y, -x], [x, -y]].forEach(([a, b]) => put(a, b));
+      y++; if (e < 0) e += 2 * y + 1; else { x--; e += 2 * (y - x) + 1 }
+    }
+  };
+  const folder = (x, y, c = 'y') => { rect(x, y, 3, 1, 'k'); box(x, y + 1, 7, 5, c) };
+  const page = (x, y, w, h) => { box(x, y, w, h, 'w') };
+  return { px, rect, box, circle, folder, page };
+}
+
+// Familles et variantes : chaque variante = nombre d'images, durée d'une image, dessin de l'image f.
+const FAMILIES = [
+  { key: 'deplacer', name: 'Se déplacer', ex: 'cd · pushd · Set-Location', pill: 'commande : cd src/main', variants: [
+    { desc: 'Une flèche passe d’un dossier à l’autre', frames: 5, ms: 160, draw(p, f) {
+      p.folder(0, 8); p.folder(9, 8, 'l');
+      const x = 2 + f * 2; p.rect(x, 4, 4, 1, 'b'); p.px(x + 3, 3, 'b'); p.px(x + 3, 5, 'b'); p.px(x + 4, 4, 'b') } },
+    { desc: 'Un petit bonhomme marche vers le dossier', frames: 6, ms: 140, draw(p, f) {
+      p.folder(9, 9, 'l'); const x = 1 + f; p.rect(x, 4, 2, 2, 'o'); p.rect(x, 6, 2, 4, 'b');
+      if (f % 2) { p.px(x, 10, 'k'); p.px(x + 1, 11, 'k') } else { p.px(x + 1, 10, 'k'); p.px(x, 11, 'k') }
+      p.rect(0, 12, 16, 1, 'g') } }
+  ] },
+  { key: 'lister', name: 'Lister', ex: 'ls · dir · Glob', pill: 'fichiers listés', variants: [
+    { desc: 'Les lignes d’une liste apparaissent', frames: 6, ms: 180, draw(p, f) {
+      p.box(1, 1, 14, 14, 'w');
+      for (let i = 0; i < Math.min(f, 4); i++) { p.px(3, 4 + i * 2, 'b'); p.rect(5, 4 + i * 2, 7 - (i % 2) * 2, 1, 'd') } } },
+    { desc: 'Une grille de fichiers se remplit', frames: 10, ms: 120, draw(p, f) {
+      for (let i = 0; i < Math.min(f, 9); i++) { const x = 1 + (i % 3) * 5, y = 1 + Math.floor(i / 3) * 5;
+        p.box(x, y, 4, 4, i % 2 ? 'l' : 'w') } } }
+  ] },
+  { key: 'lire', name: 'Lire', ex: 'cat · type · Get-Content · Read', pill: 'fichier lu : notes.ts', variants: [
+    { desc: 'Une bande de lecture descend la page', frames: 5, ms: 200, draw(p, f) {
+      p.page(3, 1, 10, 14); p.rect(4, 3 + f * 2, 8, 2, 'l');
+      for (let i = 0; i < 5; i++) p.rect(5, 3 + i * 2, 6 - (i % 2) * 2, 1, 'g') } },
+    { desc: 'Les pages d’un livre se tournent', frames: 3, ms: 240, draw(p, f) {
+      p.box(1, 4, 7, 9, 'p'); p.box(8, 4, 7, 9, 'p');
+      for (let i = 0; i < 3; i++) { p.rect(3, 6 + i * 2, 4, 1, 'g'); p.rect(10, 6 + i * 2, 4, 1, 'g') }
+      if (f === 1) p.box(7, 2, 2, 12, 'w'); if (f === 2) p.box(2, 3, 6, 10, 'w') } }
+  ] },
+  { key: 'chercher', name: 'Chercher', ex: 'grep · rg · find · Select-String · Grep', pill: 'recherche dans les fichiers', variants: [
+    { desc: 'Une loupe balaie le texte', frames: 4, ms: 200, draw(p, f) {
+      for (let i = 0; i < 4; i++) p.rect(1, 2 + i * 3, 14, 1, 'g');
+      const x = [4, 7, 10, 7][f]; p.circle(x, 6, 3, 'k'); p.circle(x, 6, 2, 'l');
+      p.px(x, 6, 'w'); p.px(x + 3, 9, 'd'); p.px(x + 4, 10, 'd'); p.px(x + 5, 11, 'd') } },
+    { desc: 'La ligne trouvée s’allume', frames: 2, ms: 300, draw(p, f) {
+      for (let i = 0; i < 4; i++) p.rect(1, 2 + i * 3, 14, 1, i === 2 ? (f ? 'y' : 'g') : 'g');
+      p.circle(6, 7, 3, 'k'); p.px(9, 10, 'd'); p.px(10, 11, 'd'); p.px(11, 12, 'd');
+      if (f) { p.px(14, 6, 'y'); p.px(13, 5, 'y'); p.px(15, 5, 'y'); p.px(14, 4, 'y') } } }
+  ] },
+  { key: 'ecrire', name: 'Écrire, modifier', ex: 'Write · Edit · echo > · Set-Content', pill: 'fichier modifié : app.ts', variants: [
+    { desc: 'Un crayon trace une ligne', frames: 6, ms: 150, draw(p, f) {
+      p.page(1, 1, 14, 14); const len = f * 2; p.rect(3, 10, len, 1, 'b');
+      const x = 3 + len; for (let i = 0; i < 5; i++) p.px(x + i, 9 - i, i === 0 ? 'k' : i < 4 ? 'o' : 'r') } },
+    { desc: 'Des caractères se tapent, le curseur clignote', frames: 7, ms: 160, draw(p, f) {
+      p.box(0, 2, 16, 12, 'w'); const n = Math.min(f, 5);
+      for (let i = 0; i < n; i++) p.rect(2 + i * 2, 6, 1, 3, 'd'); if (f % 2 === 0) p.rect(2 + n * 2, 5, 1, 5, 'b') } }
+  ] },
+  { key: 'supprimer', name: 'Supprimer', ex: 'rm · del · Remove-Item', pill: 'commande : rm dist', variants: [
+    { desc: 'Une feuille tombe dans la corbeille', frames: 4, ms: 220, draw(p, f) {
+      p.box(4, 7, 8, 8, 'g'); p.rect(6, 9, 1, 4, 'd'); p.rect(9, 9, 1, 4, 'd');
+      if (f < 3) { p.rect(3, 5, 10, 1, 'k'); p.rect(6, 4, 4, 1, 'k') }
+      if (f === 3) { p.rect(3, 6, 10, 1, 'k'); p.rect(6, 5, 4, 1, 'k') }
+      if (f < 3) p.box(6, f * 2 - 1, 4, 4, 'w') } },
+    { desc: 'Un fichier s’efface en pixels', frames: 5, ms: 200, draw(p, f) {
+      const gone = new Set([7, 22, 13, 31, 4, 27, 18, 36, 11, 25, 2, 33, 16, 29, 8, 20].slice(0, f * 4));
+      let k = 0; for (let y = 3; y < 13; y++) for (let x = 4; x < 12; x++) {
+        const edge = x === 4 || x === 11 || y === 3 || y === 12; if (!gone.has(k % 40)) p.px(x, y, edge ? 'k' : 'w'); k++ }
+      for (let i = 0; i < f; i++) p.px(13 + (i % 2), 4 + i * 2, 'g') } }
+  ] },
+  { key: 'installer', name: 'Installer', ex: 'npm install · npm ci · pip install', pill: 'commande : npm install', variants: [
+    { desc: 'Des blocs tombent dans une boîte', frames: 6, ms: 170, draw(p, f) {
+      p.rect(2, 9, 12, 1, 't'); p.box(2, 10, 12, 6, 'o'); p.rect(0, 9, 2, 1, 't'); p.rect(14, 9, 2, 1, 't');
+      const lvl = Math.floor(f / 2); for (let i = 0; i < lvl; i++) p.rect(4 + i * 3, 11, 2, 2, 'b');
+      if (f % 2 === 0) p.rect(7, 1 + f, 2, 2, 'b') } },
+    { desc: 'Une flèche descend, la barre se remplit', frames: 5, ms: 200, draw(p, f) {
+      const y = 1 + (f % 3); p.rect(7, y, 2, 5, 'b'); p.rect(5, y + 4, 6, 1, 'b'); p.rect(6, y + 5, 4, 1, 'b'); p.rect(7, y + 6, 2, 1, 'b');
+      p.box(1, 12, 14, 3, 'w'); p.rect(2, 13, f * 3, 1, 'n') } }
+  ] },
+  { key: 'tester', name: 'Tester', ex: 'npm test · vitest · jest · pytest', pill: 'commande : npm test', variants: [
+    { desc: 'Trois cases se cochent l’une après l’autre', frames: 4, ms: 260, draw(p, f) {
+      for (let i = 0; i < 3; i++) { const y = 1 + i * 5; p.box(1, y, 4, 4, i < f ? 'n' : 'w'); p.rect(7, y + 1, 8, 2, 'g');
+        if (i < f) { p.px(2, y + 2, 'w'); p.px(3, y + 1, 'w') } } } },
+    { desc: 'Une éprouvette fait des bulles', frames: 4, ms: 180, draw(p, f) {
+      p.rect(5, 0, 6, 1, 'k'); p.rect(5, 1, 1, 13, 'k'); p.rect(10, 1, 1, 13, 'k'); p.rect(6, 14, 4, 1, 'k');
+      p.rect(6, 7, 4, 7, 'n'); p.rect(6, 7, 4, 1, 'm');
+      const by = [12, 10, 8, 6][f]; p.px(7, by, 'w'); p.px(8, Math.min(13, by + 3), 'm'); if (f > 1) p.px(9, 3 + f, 'm') } }
+  ] },
+  { key: 'construire', name: 'Construire, vérifier', ex: 'npm run build · tsc · eslint · prettier', pill: 'commande : npm run typecheck', variants: [
+    { desc: 'Des briques s’empilent', frames: 6, ms: 180, draw(p, f) {
+      const rows = Math.min(f, 5); for (let r = 0; r < rows; r++) { const y = 13 - r * 3, off = r % 2 ? 2 : 0;
+        for (let x = off; x < 16; x += 5) p.box(x, y, 5, 3, r % 2 ? 'o' : 'r') } } },
+    { desc: 'Un engrenage tourne', frames: 2, ms: 220, draw(p, f) {
+      p.circle(8, 8, 4, 'k'); p.circle(8, 8, 3, 'g'); p.rect(6, 6, 5, 5, 'g'); p.rect(7, 7, 3, 3, 'w');
+      const teeth = f ? [[8, 2], [8, 13], [2, 8], [13, 8]] : [[4, 4], [12, 4], [4, 12], [12, 12]];
+      teeth.forEach(([x, y]) => p.rect(x - 1, y - 1, 2, 2, 'd')) } }
+  ] },
+  { key: 'git', name: 'Git', ex: 'git commit · push · pull · checkout · merge', pill: 'commande : git commit', variants: [
+    { desc: 'Un point suit une branche qui rejoint main', frames: 6, ms: 170, draw(p, f) {
+      p.rect(4, 0, 2, 16, 'd'); const path = [[5, 12], [7, 11], [9, 9], [10, 7], [9, 5], [7, 3]];
+      path.forEach(([x, y]) => p.rect(x, y, 2, 2, 'v')); p.rect(4, 12, 2, 2, 'b'); p.rect(4, 3, 2, 2, 'b');
+      const [x, y] = path[f]; p.rect(x, y, 2, 2, 'y') } },
+    { desc: 'Pousser et tirer : des flèches qui montent et descendent', frames: 4, ms: 200, draw(p, f) {
+      const u = f % 2 ? 0 : 1; p.rect(3, 4 + u, 2, 9, 'n'); p.rect(1, 6 + u, 6, 1, 'n'); p.rect(2, 5 + u, 4, 1, 'n');
+      const d = f % 2 ? 1 : 0; p.rect(11, 2 + d, 2, 9, 'b'); p.rect(9, 9 + d, 6, 1, 'b'); p.rect(10, 10 + d, 4, 1, 'b') } }
+  ] },
+  { key: 'reseau', name: 'Réseau', ex: 'curl · Invoke-WebRequest · WebFetch · WebSearch', pill: 'page web lue', variants: [
+    { desc: 'Des ondes partent d’une antenne', frames: 4, ms: 200, draw(p, f) {
+      p.rect(2, 11, 3, 3, 'd'); p.rect(3, 9, 1, 2, 'd');
+      for (let i = 1; i <= f; i++) p.circle(3, 10, i * 3, 'b', (a, b) => a >= 0 && b <= 0) } },
+    { desc: 'Un satellite tourne autour d’un globe', frames: 8, ms: 130, draw(p, f) {
+      p.circle(8, 8, 4, 'k'); p.circle(8, 8, 3, 'l'); p.rect(5, 7, 7, 1, 'b'); p.rect(7, 5, 1, 7, 'b');
+      const a = f / 8 * Math.PI * 2; p.rect(Math.round(8 + Math.cos(a) * 6.5) - 1, Math.round(8 + Math.sin(a) * 6.5) - 1, 2, 2, 'y') } }
+  ] },
+  { key: 'autre', name: 'Autre commande', ex: 'tout le reste : node script.js, docker…', pill: 'commande : node script.js', variants: [
+    { desc: 'Un terminal et son curseur qui clignote', frames: 2, ms: 400, draw(p, f) {
+      p.box(0, 2, 16, 12, 'k'); p.rect(1, 3, 14, 1, 'd'); p.px(2, 7, 'n'); p.px(3, 8, 'n'); p.px(2, 9, 'n');
+      if (f === 0) p.rect(5, 7, 2, 3, 'w') } },
+    { desc: 'Des lignes défilent dans un terminal', frames: 4, ms: 180, draw(p, f) {
+      p.box(0, 2, 16, 12, 'k'); p.rect(1, 3, 14, 1, 'd');
+      for (let i = 0; i < 4; i++) { const w = [9, 5, 11, 7][(i + f) % 4]; p.rect(2, 5 + i * 2, w, 1, i === 3 ? 'n' : 'g') } } }
+  ] }
+];
+
+// Rendu : un canvas par sprite, net à toute densité d'écran.
+const sprites = [];
+function makeCanvas(cssPx) {
+  const c = document.createElement('canvas'), dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+  const s = Math.max(1, Math.round(cssPx / 16)) * dpr; c.width = c.height = 16 * s; c.setAttribute('aria-hidden', 'true');
+  return { canvas: c, scale: s };
+}
+function render(sprite, frame) {
+  for (const { canvas, scale } of sprite.targets) {
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    sprite.variant.draw(painter((x, y, color) => { ctx.fillStyle = color; ctx.fillRect(x * scale, y * scale, scale, scale) }), frame);
+  }
+}
+
+const grid = document.getElementById('grid');
+const choices = {}; // clé → { variante, note }
+FAMILIES.forEach((fam) => {
+  const card = document.createElement('section'); card.className = 'family'; card.setAttribute('aria-labelledby', 'h-' + fam.key);
+  card.innerHTML = `<h2 id="h-${fam.key}"></h2><p class="examples"></p><div class="variants" role="radiogroup"></div>
+    <label class="none"><input type="radio" name="v-${fam.key}" value="aucune"> Aucune des deux</label>
+    <label class="note-label" for="n-${fam.key}">Note (retouche, autre idée)</label><textarea id="n-${fam.key}"></textarea>`;
+  card.querySelector('h2').textContent = fam.name;
+  card.querySelector('.examples').textContent = fam.ex;
+  card.querySelector('.variants').setAttribute('aria-labelledby', 'h-' + fam.key);
+  fam.variants.forEach((variant, i) => {
+    const letter = 'AB'[i];
+    const label = document.createElement('label'); label.className = 'variant';
+    const input = document.createElement('input'); input.type = 'radio'; input.name = 'v-' + fam.key; input.value = letter; input.id = `v-${fam.key}-${letter}`;
+    const zoom = makeCanvas(96); zoom.canvas.className = 'zoom';
+    const small = makeCanvas(16);
+    const head = document.createElement('span'); head.className = 'label';
+    head.innerHTML = `<span>Variante ${letter}</span><span class="tick">✓</span>`;
+    const desc = document.createElement('p'); desc.className = 'desc'; desc.textContent = variant.desc;
+    const pill = document.createElement('span'); pill.className = 'pill'; pill.append(small.canvas);
+    const text = document.createElement('span'); text.textContent = fam.pill; pill.append(text);
+    label.append(input, zoom.canvas, head, desc, pill);
+    card.querySelector('.variants').append(label);
+    sprites.push({ variant, targets: [zoom, small] });
+  });
+  grid.append(card);
+});
+
+// Animation : une boucle pour tous ; immobile si l'utilisateur préfère moins d'animations.
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing = !reduced;
+const playBtn = document.getElementById('play');
+const syncPlay = () => { playBtn.textContent = playing ? 'Pause' : 'Animer'; playBtn.setAttribute('aria-pressed', String(playing)) };
+syncPlay();
+playBtn.addEventListener('click', () => { playing = !playing; syncPlay() });
+const shown = new Map();
+function tick(t) {
+  for (const sprite of sprites) {
+    const frame = playing ? Math.floor(t / sprite.variant.ms) % sprite.variant.frames : sprite.variant.frames - 1;
+    if (shown.get(sprite) !== frame) { shown.set(sprite, frame); render(sprite, frame) }
+  }
+  requestAnimationFrame(tick);
+}
+sprites.forEach((s) => render(s, s.variant.frames - 1));
+requestAnimationFrame(tick);
+
+// Choix : enregistrés dans la base de la page (Claude les relit) ; sans elle, la page reste utilisable.
+const status = document.getElementById('status');
+const countEl = document.getElementById('count');
+const updateCount = () => {
+  const n = FAMILIES.filter((f) => choices[f.key]?.variante).length; countEl.textContent = `${n} / ${FAMILIES.length} choisis`;
+};
+function applyChoice(key, data) {
+  choices[key] = { variante: data.variante || '', note: data.note || '' };
+  const radio = document.querySelector(`input[name="v-${key}"][value="${CSS.escape(choices[key].variante)}"]`);
+  if (radio) radio.checked = true;
+  const note = document.getElementById('n-' + key);
+  if (note && document.activeElement !== note) note.value = choices[key].note;
+  updateCount();
+}
+
+(async () => {
+  const db = window.claude ? await window.claude.use('db') : null;
+  if (!db) { status.textContent = 'Choix non enregistrés dans cette vue : dis-les à Claude dans le chat.'; }
+  const save = async (key) => {
+    updateCount();
+    if (!db) return;
+    status.textContent = 'Enregistrement…';
+    try {
+      await db.doc('choix/' + key).set({ famille: key, variante: choices[key].variante, note: choices[key].note, maj: new Date().toISOString() });
+      status.textContent = 'Choix enregistré.';
+    } catch (e) {
+      status.textContent = e && e.code === 'invalid_argument'
+        ? 'Tu peux regarder, mais pas enregistrer dans cette page.'
+        : 'Le choix n’a pas été enregistré. Réessaie dans un instant.';
+    }
+  };
+  FAMILIES.forEach((fam) => {
+    choices[fam.key] = choices[fam.key] || { variante: '', note: '' };
+    document.querySelectorAll(`input[name="v-${fam.key}"]`).forEach((radio) =>
+      radio.addEventListener('change', () => { choices[fam.key].variante = radio.value; save(fam.key) }));
+    const note = document.getElementById('n-' + fam.key);
+    note.addEventListener('change', () => { choices[fam.key].note = note.value.trim(); save(fam.key) });
+  });
+  if (db) {
+    db.collection('choix').onSnapshot(
+      (snap) => snap.docs.forEach((doc) => { const data = doc.data(); if (data && FAMILIES.some((f) => f.key === doc.id)) applyChoice(doc.id, data) }),
+      () => { status.textContent = 'Les choix enregistrés ne peuvent plus être relus dans cette vue.' }
+    );
+  }
+})();
+</script>

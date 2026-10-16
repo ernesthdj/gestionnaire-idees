@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { parseViewState, type StructureView } from '@shared/brainstorms/viewState'
-import { readSheet } from './domain/conversation/sheet'
+import { readSheet, sheetMarkdown } from './domain/conversation/sheet'
 import { elementInput, workflowInput } from './domain/widgets/structureInputs'
 import { checkGitUrl } from '@shared/reprise/gitUrl'
 import { isAbsolute, join, relative, sep } from 'node:path'
@@ -61,6 +61,11 @@ import { SKILLS_FRAME } from './application/skills/skillsFrame'
 import { SkillTools } from './application/mcp/SkillTools'
 import { AgentProfileRepository } from './infrastructure/db/repositories/AgentProfileRepository'
 import { AgentProfileService } from './application/agents/AgentProfileService'
+import { AssemblyService } from './application/agents/AssemblyService'
+import { PipelineDocuments } from './application/agents/PipelineDocuments'
+import { PipelineEngine } from './application/agents/PipelineEngine'
+import { createAgentSessionRunner } from './infrastructure/claude/AgentSession'
+import { createAssemblyRoutes } from './ipc/assemblyHandlers'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
 import { SkillStore } from './infrastructure/skills/SkillStore'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
@@ -1200,6 +1205,62 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     emit: (event) => broadcast('analyste:progress', event)
   })
   analyste.recover()
+  // Agents assemblés (docs/TACHES-AGENTS.md T005) : un PO ou un agent seul connecté à un nœud, planificateur en
+  // arrière-plan. Worktrees et journal du projet hors du dépôt (profil de l'app) ; jamais sur un projet repris.
+  const agentSessions = createAgentSessionRunner({
+    claudePath: resolveClaudePath,
+    skills: {
+      resolve: (skillId) => {
+        const dir = skillInventory.dirOf(skillId)
+        return dir === null ? null : { name: skillId.split(':').at(-1) ?? '', dir }
+      },
+      workDir: join(dataDir, 'agent-skills')
+    }
+  })
+  const assemblies = new AssemblyService({
+    node: (nodeId) => {
+      const neuron = conversationRepository.neuron(nodeId)
+      if (neuron === undefined) return undefined
+      const genesisId = neuron.kind === 'root' ? neuron.id : neuron.genesisId
+      if (genesisId === null) return undefined
+      const genesis = conversationRepository.neuron(genesisId)
+      if (genesis === undefined || genesis.state === 'archived') return undefined
+      return {
+        genesisId,
+        kind: neuron.elementType ?? neuron.kind,
+        title: neuron.title,
+        content: neuron.content,
+        sheet: sheetMarkdown(readSheet(neuron.sheetJson)),
+        projectDir: genesis.projectDir,
+        projectName: genesis.title
+      }
+    },
+    refusal: (genesisId) => {
+      if (repriseRepository.project(genesisId) !== undefined) {
+        return 'Un projet repris n’est jamais modifié par l’app : les agents n’y travaillent pas.'
+      }
+      return confidentiality.claudeAllowed(genesisId)
+        ? null
+        : 'Ce projet est « Local uniquement » : Claude n’y a pas accès.'
+    },
+    engineFor: ({ genesisId, projectDir, projectName }) =>
+      new PipelineEngine({
+        profiles: () => agentProfiles.list(),
+        runSession: agentSessions,
+        // Les hooks du projet tournent (jamais `--no-verify`) : une minute de marge pour un commit.
+        git: (args) => runGit(projectDir, args, 120_000),
+        projectDir,
+        worktreeRoot: join(dataDir, 'agent-worktrees', genesisId),
+        documentsFor: (dir) =>
+          new PipelineDocuments({
+            projectDir: dir,
+            projectName,
+            profileDir: dataDir,
+            projectJournalFile: join(dataDir, 'agent-journals', `${genesisId}.md`)
+          })
+      }),
+    emit: (genesisId, taskId) => broadcast('assembly:changed', { genesisId, taskId })
+  })
   const contextRoutes = createContextRoutes({ service: contextService, repository: contextRepository, inboxPath })
   // Seuls les fichiers de l'interface (out/renderer/) peuvent parler au processus principal.
   const rendererFileUrl = pathToFileURL(join(import.meta.dirname, '../renderer/')).href
@@ -1366,6 +1427,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           usage: () => skillUsage.usage(skillInventory.list().skills)
         }
       }),
+      ...createAssemblyRoutes(assemblies),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),
@@ -1393,6 +1455,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     analyzeReprise: (genesisId) => void analysis.analyze(genesisId),
     stop: () => {
       runs.stopAll()
+      assemblies.stopAll()
       stopWatching()
       ai.stop()
       conversations.stopAll()

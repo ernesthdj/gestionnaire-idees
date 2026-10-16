@@ -51,6 +51,11 @@ export const MAIN_WINDOW_CHANNELS = [
   'agents:list',
   'agents:save',
   'agents:remove',
+  'assembly:warnings',
+  'assembly:start',
+  'assembly:cancel',
+  'assembly:approve',
+  'assembly:list',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',
@@ -307,6 +312,7 @@ export const MAIN_WINDOW_EVENTS = [
   'analyste:progress',
   'analyste:update:progress',
   'skills:changed',
+  'assembly:changed',
   'skills:importProgress',
   'skills:analyzeProgress'
 ] as const

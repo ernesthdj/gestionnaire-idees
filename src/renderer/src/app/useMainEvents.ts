@@ -23,6 +23,8 @@ const INVALIDATIONS: ReadonlyArray<readonly [MainWindowEvent, readonly (readonly
   ['folder:changed', [['canvas'], ['history'], ['folder']]],
   // Dossier de skills modifié (spec 020) : l'arbre et la fiche ouverte se relisent.
   ['skills:changed', [['skills'], ['skill'], ['skillDrafts'], ['skillDraftDiff']]],
+  // Assemblage d'agents lancé, fini ou fusionné (T005) : son suivi se relit.
+  ['assembly:changed', [['assembly']]],
   // Écriture git de l'app (spec 021) : état, branches et historique du dépôt se relisent.
   ['git:changed', [['git']]],
   // Fin d'un tour de Claude : il a pu écrire dans le dossier du projet, le badge du dépôt se relit (audit 2026-10-11).
