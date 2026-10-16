@@ -2758,3 +2758,11 @@ lots (repli d'office des ronds tout faits, Q2) : supprimé.
 **Bike_cycle (hors de ce dépôt) :** T005–T007 cochées dans `TACHES-Architecture.md`, doublon supprimé, brainstorm rangé
 dans `docs/brainstormer/` avec son vrai parent (non commité, accord attendu).
 **Vérifié :** typecheck, lint, Prettier, 2 480 tests ; e2e `agents-map`, `agents-lot`, `workflow-task-files`.
+
+### [2026-10-17 01:50] FIX — volet de conversation plus propre (nœud du Workflow surtout)
+**Fichiers :** `ChatPanel.tsx` (`chatHeading` : titre lisible et pastilles sorte / maturité au lieu de « Rond · brainstorm
+insuffisant · … » ; plus de « · conversation Claude Code » ; fiche vide masquée pour un nœud du Workflow ; message
+d'accueil ; champ qui grandit jusqu'à 8 lignes), `UsageMeter.tsx` (jauges en pastille à côté de la fermeture, détail au
+clic, au lieu d'une bande qui doublait la barre du haut) ; test `chat-panel`.
+**Quoi :** capture de mentalyas : « améliore l'aspect de ce volet, c'est pas propre ».
+**Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `workflow-task-files` (capture `032-lot2-02-bosser-ici`).

@@ -18,9 +18,12 @@ export function resetLabel(resetsAt: number | null): string {
 
 function Gauge({
   label,
+  short,
   window
 }: {
   readonly label: string
+  /** Libellé affiché dans la pastille (« 5 h », « 7 j »). */
+  readonly short: string
   readonly window: UsageWindowView | null
 }): React.JSX.Element {
   const percent = window === null ? null : Math.round(window.utilization * 100)
@@ -33,9 +36,9 @@ function Gauge({
           ? 'bg-amber-500'
           : 'bg-accent'
   return (
-    <div className="min-w-0 flex-1" title={window === null ? undefined : resetLabel(window.resetsAt)}>
-      <div className="flex justify-between gap-2 text-[11px]">
-        <span>{label}</span>
+    <div className="w-16" title={window === null ? label : `${label} : ${resetLabel(window.resetsAt)}`}>
+      <div className="flex justify-between gap-1 text-[11px]">
+        <span className="text-content-muted">{short}</span>
         <span className="font-semibold">{percent === null ? '—' : `${percent} %`}</span>
       </div>
       <div
@@ -62,13 +65,15 @@ function Gauge({
 export function UsageMeter({ usage }: { readonly usage: ChatUsageView }): React.JSX.Element {
   const { account, app } = usage
   return (
-    <details className="border-b border-content-muted/20 px-4 py-2 text-xs">
-      <summary className="flex cursor-pointer list-none items-center gap-3">
-        <span className="shrink-0 text-content-muted">Abonnement</span>
-        <Gauge label="Session 5 h" window={account?.fiveHour ?? null} />
-        <Gauge label="Semaine" window={account?.sevenDay ?? null} />
+    <details className="relative text-xs">
+      <summary
+        className="flex h-8 cursor-pointer list-none items-center gap-2 rounded-md px-2 hover:bg-surface-raised"
+        title="Consommation de l’abonnement : clique pour le détail"
+      >
+        <Gauge label="Session 5 h" short="5 h" window={account?.fiveHour ?? null} />
+        <Gauge label="Semaine" short="7 j" window={account?.sevenDay ?? null} />
       </summary>
-      <div className="mt-2 space-y-1 text-content-muted">
+      <div className="absolute right-0 z-20 mt-1 w-64 space-y-1 rounded-md border border-content-muted/30 bg-surface p-3 text-content-muted shadow-lg">
         {account === null ? (
           <p>Pas encore de relevé : il arrive avec la première réponse de Claude.</p>
         ) : (

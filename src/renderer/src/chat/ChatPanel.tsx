@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type {
   ChatMessageView,
   ChatPermissionRequest,
@@ -112,8 +112,36 @@ const SECTIONS: ReadonlyArray<readonly [keyof Omit<ChatSheetView, 'resume'>, str
   ['manques', 'Manques']
 ]
 
+const sheetIsEmpty = (sheet: ChatSheetView): boolean =>
+  sheet.resume === '' && SECTIONS.every(([key]) => sheet[key].length === 0)
+
+/** Titre d'une conversation, lisible : un nœud du Workflow arrive en « Rond · brainstorm insuffisant · Titre ». */
+export function chatHeading(
+  title: string,
+  role: string
+): { readonly kind: string | null; readonly maturity: string | null; readonly name: string } {
+  const plain = title === '' ? 'Conversation' : title
+  if (role !== 'workflow') return { kind: null, maturity: null, name: plain }
+  const parts = plain.split(' · ')
+  if (parts.length < 2 || (parts[0] ?? '').length > 16) return { kind: null, maturity: null, name: plain }
+  const kind = parts[0] ?? null
+  const maturity = parts[1]?.startsWith('brainstorm ') === true ? parts[1].slice('brainstorm '.length) : null
+  const name = parts.slice(maturity === null ? 1 : 2).join(' · ')
+  return { kind, maturity, name: name === '' ? plain : name }
+}
+
+/** Couleur de la maturité d'un brainstorm (jamais seule : le mot est écrit). */
+const maturityTone = (maturity: string): string =>
+  maturity === 'complet'
+    ? 'bg-pro/15 text-pro'
+    : maturity === 'suffisant'
+      ? 'bg-accent/15 text-accent'
+      : maturity === 'insuffisant'
+        ? 'bg-idea/15 text-idea'
+        : 'bg-surface-raised text-content-muted'
+
 export function Sheet({ sheet }: { readonly sheet: ChatSheetView }): React.JSX.Element {
-  const empty = sheet.resume === '' && SECTIONS.every(([key]) => sheet[key].length === 0)
+  const empty = sheetIsEmpty(sheet)
   return (
     <details className="rounded-lg bg-surface-raised px-3 py-2 text-sm" open={!empty}>
       <summary className="cursor-pointer font-semibold">Fiche du neurone</summary>
@@ -397,6 +425,14 @@ export function ChatPanel({
   const localOnly = chat.reprise?.confidentiality === 'local'
   const reduced = useReducedMotionPreference(useEffectiveSettings().motion)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const heading = chatHeading(chat.title, chat.role)
+  // Le champ grandit avec la consigne (jusqu'à 8 lignes, `max-h-48`), puis défile.
+  useLayoutEffect(() => {
+    const field = inputRef.current
+    if (field === null) return
+    field.style.height = 'auto'
+    field.style.height = `${field.scrollHeight}px`
+  }, [draft])
   const formRef = useRef<HTMLFormElement>(null)
   /** Hauteur de la bande de saisie au moment de l'envoi : la bande reste à sa place pendant le tour. */
   const [footerHeight, setFooterHeight] = useState<number | null>(null)
@@ -454,25 +490,40 @@ export function ChatPanel({
         {/* En visio (L1o D13), le volet de l'agent porte déjà son nom et « Raccrocher ». */}
         <div className={`flex items-start gap-2${onActivity === undefined ? '' : ' sr-only'}`}>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
-            <p className="text-xs text-content-muted">
-              {chat.agentProfile === true
-                ? 'Claude remplit la fiche à côté ; tu valides'
-                : chat.role === 'skills'
-                  ? 'Conversation Skills · Claude ne dépose que des brouillons'
-                  : chat.role === 'element'
-                    ? `${chat.elementType ?? 'Élément'} du projet`
-                    : chat.role === 'step'
-                      ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                      : chat.role === 'workflow'
-                        ? 'Nœud du workflow'
+            {heading.kind === null && heading.maturity === null ? null : (
+              <p className="mb-1 flex flex-wrap items-center gap-1 text-xs">
+                {heading.kind === null ? null : (
+                  <span className="rounded-full bg-surface-raised px-2 py-0.5 text-content-muted">{heading.kind}</span>
+                )}
+                {heading.maturity === null ? null : (
+                  <span className={`rounded-full px-2 py-0.5 font-medium ${maturityTone(heading.maturity)}`}>
+                    Brainstorm {heading.maturity}
+                  </span>
+                )}
+              </p>
+            )}
+            <h2 className="line-clamp-2 text-base leading-snug font-semibold" title={chat.title}>
+              {heading.name}
+            </h2>
+            {chat.role === 'workflow' ? null : (
+              <p className="text-xs text-content-muted">
+                {chat.agentProfile === true
+                  ? 'Claude remplit la fiche à côté ; tu valides'
+                  : chat.role === 'skills'
+                    ? 'Conversation Skills · Claude ne dépose que des brouillons'
+                    : chat.role === 'element'
+                      ? `${chat.elementType ?? 'Élément'} du projet`
+                      : chat.role === 'step'
+                        ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
                         : chat.folder === null
                           ? 'Genesis'
-                          : 'Projet'}{' '}
-              · conversation Claude Code
-              {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
-            </p>
+                          : 'Projet'}
+                {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
+              </p>
+            )}
           </div>
+          {/* La consommation, en pastille à côté de la fermeture ; le détail au clic. */}
+          {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
           <button
             type="button"
             aria-label="Fermer la conversation"
@@ -688,11 +739,14 @@ export function ChatPanel({
         </p>
       ) : null}
 
-      {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
-
       <motion.div layoutScroll className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-4">
         {chat.role === 'element' ? <ElementFiles elementId={neuronId} onOpen={setReading} /> : null}
-        {chat.sheet === null || chat.agentProfile === true ? null : <Sheet sheet={chat.sheet} />}
+        {chat.sheet === null ||
+        chat.agentProfile === true ||
+        // Un nœud du Workflow vit dans ses fichiers : sa fiche, vide, ne dirait rien.
+        (chat.role === 'workflow' && sheetIsEmpty(chat.sheet)) ? null : (
+          <Sheet sheet={chat.sheet} />
+        )}
         {chat.problem === null ? null : (
           <p role="alert" className="text-sm text-red-700 dark:text-red-400">
             {chat.problem}
@@ -754,6 +808,12 @@ export function ChatPanel({
               </Button>
             </div>
           </div>
+        ) : !chat.loading && chat.messages.length === 0 && !chat.busy && !localOnly && chat.role === 'workflow' ? (
+          <p className="rounded-lg bg-surface-raised p-3 text-sm text-content-muted">
+            {draft.trim() === ''
+              ? 'Claude lit ce nœud du Workflow : son document, ses tâches et le projet. Dis-lui ce que tu veux en faire.'
+              : 'Claude lit ce nœud du Workflow : son document, ses tâches et le projet. Une consigne est prête dans le champ : relis-la, puis envoie.'}
+          </p>
         ) : !chat.loading &&
           chat.messages.length === 0 &&
           !chat.busy &&
@@ -861,7 +921,7 @@ export function ChatPanel({
                 submit()
               }
             }}
-            className={`min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm outline-none ${morph === null ? '' : 'chat-input-morphing'}`}
+            className={`max-h-48 min-h-10 flex-1 resize-none rounded-md bg-surface-raised px-3 py-2 text-sm leading-6 outline-none ${morph === null ? '' : 'chat-input-morphing'}`}
           />
           <Button
             type="submit"

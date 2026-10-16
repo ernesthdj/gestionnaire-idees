@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import {
   ChatPanel,
+  chatHeading,
   DOC_MESSAGE,
   FINAL_MESSAGE,
   MAP_MESSAGE,
@@ -721,5 +722,26 @@ describe('fichiers d’un élément de carte (spec 017 US7)', () => {
     await expectNoAxeViolations(container)
     await user.click(screen.getByRole('button', { name: '← Conversation' }))
     expect(screen.queryByRole('navigation', { name: 'Symboles du fichier' })).toBeNull()
+  })
+})
+
+describe('titre lisible d’une conversation de nœud du Workflow (2026-10-17)', () => {
+  it('should_split_the_kind_and_maturity_from_the_name_only_for_workflow_nodes', () => {
+    expect(chatHeading('Rond · brainstorm insuffisant · Choix du matériel — Bike', 'workflow')).toEqual({
+      kind: 'Rond',
+      maturity: 'insuffisant',
+      name: 'Choix du matériel — Bike'
+    })
+    expect(chatHeading('Carré · T002 · Trier', 'workflow')).toEqual({
+      kind: 'Carré',
+      maturity: null,
+      name: 'T002 · Trier'
+    })
+    expect(chatHeading('Idée · avec un point', 'genesis')).toEqual({
+      kind: null,
+      maturity: null,
+      name: 'Idée · avec un point'
+    })
+    expect(chatHeading('', 'workflow').name).toBe('Conversation')
   })
 })
