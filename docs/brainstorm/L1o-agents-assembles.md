@@ -244,7 +244,8 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 - La modification d'un profil existant garde sa carte dans la fiche.
 - Amendement du 2026-10-16 (retours de mentalyas) : « Discuter avec lui » passe la fenêtre **en visio** (caméra de
   la webcam, bandeau « En visio avec X » et durée de l'appel, tête qui bouge et sous-titres pendant qu'il répond),
-  **sans** la chambre en incrustation. La fenêtre a une **taille fixe** en discussion : la conversation défile à
+  **sans** la chambre en incrustation (retirée aussi de la visio de la carte, même jour). La fenêtre a une **taille
+  fixe** en discussion : la conversation défile à
   l'intérieur, rien ne grandit. Derrière l'agent, la webcam filme un **mur de la visio** (le côté ouvert de la
   chambre, caché dans la vue chambre) : même papier peint, cadre au motif du thème, étagère et plinthe aux couleurs de
   l'univers ; il sert aussi à la visio de la carte.

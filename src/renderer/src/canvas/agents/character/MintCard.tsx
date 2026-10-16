@@ -66,8 +66,7 @@ export function MintCard({
       .then(({ mountRoom }) => {
         if (!alive) return
         try {
-          // La carte est l'agent en grand : en visio, pas de chambre en incrustation (L1o D22).
-          const mounted = mountRoom(target, character, room, { inset: false })
+          const mounted = mountRoom(target, character, room)
           mounted.setActivity('libre')
           mounted.setVisio(wanted.current.inVisio)
           mounted.setTalking(wanted.current.talking)

@@ -5,8 +5,9 @@ import { buildRoom, C, drawScreen, HALF, type BuiltRoom } from './roomBuild'
 
 /**
  * Scène d'une chambre-cube (T008, L1o D13) : la pièce, la créature voxel qui y vit et ce qu'elle fait. La vue d'en haut
- * est figée (angle choisi le 2026-10-16) ; en visio, une webcam posée sur l'écran du bureau la filme de face et la
- * chambre passe en incrustation. Rendue par le renderer partagé (`roomStage`), jamais par le sien.
+ * est figée (angle choisi le 2026-10-16) ; en visio, une webcam posée sur l'écran du bureau la filme de face, devant le
+ * mur de la visio, sans chambre en incrustation (L1o D22). Rendue par le renderer partagé (`roomStage`), jamais par
+ * le sien.
  */
 
 /** Ce que fait l'agent ; `libre` enchaîne seul les autres. */
@@ -173,9 +174,7 @@ export class RoomScene {
   constructor(
     character: AgentCharacter,
     room: AgentRoom,
-    private readonly reduced: boolean,
-    /** En visio, la chambre en incrustation ; la fenêtre de l'agent s'en passe (L1o D22). */
-    private readonly inset = true
+    private readonly reduced: boolean
   ) {
     this.camera.position.set(52, 64, 52)
     this.camera.lookAt(0, 15, 0)
@@ -349,7 +348,7 @@ export class RoomScene {
     camera.updateProjectionMatrix()
   }
 
-  /** Dessine la scène dans le renderer partagé, sur `w × h` pixels CSS ; en visio, la chambre en incrustation. */
+  /** Dessine la scène dans le renderer partagé, sur `w × h` pixels CSS ; en visio, l'image de la webcam seule (L1o D22). */
   render(renderer: THREE.WebGLRenderer, w: number, h: number): void {
     renderer.shadowMap.needsUpdate = !this.shadowsReady
     this.shadowsReady = true
@@ -368,23 +367,6 @@ export class RoomScene {
     this.webcam.lookAt(-8, face - 1.2, -6)
     this.webcam.updateProjectionMatrix()
     renderer.render(this.scene, this.webcam)
-    if (!this.inset) return
-    const pw = Math.round(w * 0.3)
-    const ph = Math.round(h * 0.3)
-    const px = Math.round(w - pw - w * 0.03)
-    const py = Math.round(h * 0.17)
-    renderer.setScissorTest(true)
-    renderer.setScissor(px - 2, py - 2, pw + 4, ph + 4)
-    renderer.setViewport(px - 2, py - 2, pw + 4, ph + 4)
-    renderer.setClearColor(0xffffff, 0.9)
-    renderer.clear()
-    renderer.setClearColor(0x000000, 0)
-    renderer.setScissor(px, py, pw, ph)
-    renderer.setViewport(px, py, pw, ph)
-    renderer.clear()
-    this.frame(this.camera, pw / ph)
-    renderer.render(this.scene, this.camera)
-    renderer.setScissorTest(false)
   }
 
   dispose(): void {

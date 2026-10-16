@@ -2648,3 +2648,10 @@ derrière l'agent mais un mur décoré selon le thème.
 **Corrigé en route :** le bas du cadre de la webcam (sous le sol) était transparent : fond sombre de vidéo.
 **Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant` (hauteur de la fenêtre identique
 après trois échanges) et `agents-map` ; captures `t022-03-visio-sous-titres`, `t022-04-tete-a-tete`.
+
+### [2026-10-16 23:41] REFACTOR — plus de chambre en incrustation dans aucune visio (L1o D22)
+**Fichiers :** `RoomScene.ts` (rendu de l'incrustation retiré), `roomStage.ts` et `MintCard.tsx` (option `inset`
+retirée), L1o D22.
+**Quoi :** capture de mentalyas : la miniature de la chambre gênait aussi dans la visio du Workflow. La visio ne montre
+plus que l'image de la webcam, devant le mur de la visio.
+**Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agents-map` (capture `t008-03-visio`).
