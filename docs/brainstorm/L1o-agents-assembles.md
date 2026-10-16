@@ -72,7 +72,7 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 | `PipelineEngine` (file fixe, `PIPELINE_ORDER`, fusion par le QA) | **Réécrit** en planificateur d'assemblage (D2, D3) |
 
 ## 5. Hors périmètre ici
-- Vue animée des agents sur la carte (T006) : brainstorm à part, après le planificateur.
+- Vue animée des agents sur la carte : faite (T006, D10).
 - Personnages évolutifs des agents (T008).
 
 ### D8 — Le QA teste, le PO réécrit, les agents concernés repassent
@@ -94,7 +94,26 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 
 ### D10 — Les agents sont des nœuds de la carte
 - Un agent est un **nœud du canevas**, relié au nœud d'idée et aux autres agents (les liens de D2) ; un clic ouvre
-  son **volet** (profil, passe en cours, rapport, conversation). Le design des nœuds reste à définir (T006).
+  son **volet** (profil, passe en cours, rapport, conversation).
+- **Design défini le 2026-10-16 (T006)** :
+  - **Croquis, puis travail** : les agents connectés à un nœud (idée, étape ou module d'un projet lié) forment un
+    **croquis** enregistré (table `assembly_sketches`, un par nœud) ; il se modifie jusqu'au lancement. Un nœud d'agent
+    n'est pas un neurone : il est **dérivé** du croquis et du suivi, et disparaît si le nœud est replié ou hors de la
+    vue. *(Placement et apparence remplacés par D13 : posé librement, glissable, dessiné en chambre-cube.)*
+  - **Entrée** : « ◇ Agents » dans la carte de détails du nœud. Elle ouvre l'onglet « ◇ <nœud> » du panneau de droite :
+    ajouter un agent (profil), choisir qui attend qui (ou **tirer un lien** d'une poignée du bas à une poignée du haut
+    sur la carte), tâche et zone de chaque agent, lancer, arrêter, accord de fusion.
+  - **Liens** : « B attend A » en trait plein ; le nœud vers un agent qui n'attend personne en tirets fins (le contexte).
+    Quand A a fini et que B travaille, les pointillés **avancent** (le résultat passe) ; rouge si l'un des deux est arrêté.
+  - **États** (couleur, pictogramme et texte, jamais la couleur seule) : à lancer (pointillés) · en attente · **au travail**
+    (bordure d'accent qui pulse, barre qui défile, passe indiquée) · terminé · **validé (vert)** quand le QA a validé
+    l'assemblage entier · fusionné (vert cerclé) après l'accord · renvoyé par le QA (orangé) · bloqué (orangé, pointillés) ·
+    **en erreur (rouge)** · annulé. Mouvement réduit : plus d'animation, les états restent lisibles.
+  - **Clic = volet** : profil, état, passe (numéro, nature, version de spec), verdict du QA, motif d'arrêt, puis l'échange
+    **mission → rapport** de l'agent. Pas de conversation reprise en direct avec la session de l'agent : le rapport de sa
+    dernière passe est lu tel quel (limite connue).
+  - **Progression** : barre de chaque nœud (vide en attente, qui défile au travail, pleine à la fin) ; dans le volet,
+    « n agents sur N ont fini ».
 
 ### D11 — Un seul accord, pour l'assemblage entier
 - Pendant le travail, aucun agent ne demande de permission : chacun agit selon le **mode de permissions** de son profil
@@ -108,3 +127,46 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 ### D12 — Un agent seul n'a pas besoin de PO
 - Un agent connecté seul à une tâche précise lit la tâche et le contexte du nœud, sans spec de PO. Le PO reste
   indispensable dès qu'un assemblage a plusieurs agents.
+
+### D13 — L'agent est sa chambre-cube, posée librement sur la carte (2026-10-16, T008)
+- **Apparence** : un agent se dessine sur la carte en **diorama** : une chambre-cube vue en isométrique figée, sans
+  cadre ni fond autour, où vit son personnage (créature voxel tirée de l'un des 4 univers : robots, science-fiction,
+  heroic fantasy, WTF décalé). Planche de référence : `docs/design/agents/dioramas-3d.html`.
+- **Placement libre** : le nœud d'agent se **glisse** où mentalyas veut ; aucune place imposée (une disposition
+  automatique tournerait au chaos). Sa position est enregistrée par rapport à son nœud (il le suit quand le Workflow se
+  réorganise). Un agent jamais déplacé se pose sous son nœud, comme en D10. Le lien vers le nœud reste visible.
+- **Échelle** : assez grand pour que le personnage se voie à l'échelle normale de la carte (environ 256 px de large).
+- **Identité** : tirée une fois pour toutes de l'identifiant du profil (même profil = même personnage, sur toutes les
+  cartes) ; jamais de nouveau tirage. L'objet tenu est l'**objet de métier** du rôle.
+- **Chambre** : tirée au hasard (calques à rareté : papier peint, sol, bureau, lit, coin sport, déco, plan au mur et
+  schéma, ambiance), puis **enrichie** par le travail livré (passes validées par le QA, fusions acceptées) : chaque
+  palier relève la rareté d'un calque.
+- **Vie** : l'activité suit l'état réel (au travail → bureau ; en attente ou à lancer → vie libre ; terminé → sport ;
+  validé ou fusionné → fête ; renvoyé par le QA → réfléchit au tableau ; bloqué ou en erreur → panique au bureau).
+  Le texte de l'état reste écrit sous la chambre (jamais l'image seule). Mouvement réduit : image fixe.
+- **Performance** : un seul contexte WebGL pour toutes les chambres (chacune copiée dans sa propre image), rendu
+  seulement des chambres visibles, 30 images par seconde au plus, ombres calculées une fois, `three` chargé à la
+  demande.
+- **Clic = chat en visio** : un clic sur l'agent ouvre un **volet de chat flottant à côté de lui** (pas dans le
+  panneau de droite) et l'agent **passe en visio** : la vue de sa webcam remplace la chambre (la chambre reste en
+  incrustation), sa bouche bouge quand il répond. Fermer le volet raccroche. Le volet garde ce que montrait D10
+  (profil, état, passe, rapport) au-dessus de la conversation. La conversation est une session `claude -p` avec le
+  profil de l'agent (rôle, consignes, skills, modèle), dans le dossier où il travaille (son worktree s'il existe),
+  reprise d'un clic à l'autre (Libre n'est jamais repris d'office du profil : « Écrire sans demander » au plus). Pendant
+  qu'il répond, l'agent hoche la tête et sa réponse passe en sous-titres sur l'image ; la carte se recentre sur lui (à
+  100 % au moins) en laissant la place du volet. Remplace la limite de D10 « pas de conversation en direct ».
+- Hors de ce lot : la bulle qui parle sur la carte (planche) viendra après.
+
+### D14 — Les agents se connectent aux nœuds du Workflow, et s'appellent au clic droit (2026-10-16)
+- **Où** : seulement sur les nœuds de la vue **Workflow** (tâche, lot, fichier de tâches, spec, user story, document de
+  brainstorm), là où le travail se fait. Progression et Architecture ne font que refléter : plus de « ◇ Agents » sur
+  une idée, une étape ou un élément.
+- **Clé** : le croquis est rangé sous la clé de carte du nœud (`wf:<genesis>:<sorte>:…`) ; la table `assembly_sketches`
+  perd sa clé étrangère vers `neurons` (migration 0054). Un croquis dont le nœud a quitté les fichiers n'est plus
+  dessiné.
+- **Contexte de l'agent** : lu dans les fichiers du projet : la ligne de la tâche (ou les tâches du lot, du fichier, de
+  la spec), les fichiers qu'elle cite et les documents d'où elle vient (fichier de tâches, brainstorm, `spec.md` et
+  `tasks.md`), que l'agent ouvre lui-même ; plus la fiche du genesis.
+- **Clic droit** sur un nœud du Workflow : « Appeler <profil> » pour chaque profil d'agent (il apparaît sous le nœud),
+  et « Gérer les agents… » (volet de droite : qui attend qui, lancement, accord de fusion). « ◇ Agents » reste dans la
+  carte de détails du nœud.

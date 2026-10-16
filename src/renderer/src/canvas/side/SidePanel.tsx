@@ -3,7 +3,8 @@ import { CHAT_PANEL_WIDTH } from '@shared/ipc/app'
 import { RepoPanel } from '../../git/RepoPanel'
 import { ChatTabContent } from './ChatTabContent'
 import { usePanelWidth, useNarrowWindow, widthAfterKey, widthAt } from './panelWidth'
-import { shownTab, useSidePanel } from './sidePanelStore'
+import { AgentsTabContent } from '../agents/AgentsTabContent'
+import { isConversationTab, shownTab, useSidePanel } from './sidePanelStore'
 import { SideTabs, tabId, tabPanelId } from './SideTabs'
 import { WorkflowChatTabContent } from './WorkflowChatTabContent'
 import './side.css'
@@ -82,7 +83,7 @@ export function SidePanel(): React.JSX.Element | null {
       onKeyDown={(event) => {
         if (event.key !== 'Escape' || tab === null) return
         event.stopPropagation()
-        if (tab.kind !== 'repo' && tab.reader !== null) closeReader(tab.key)
+        if (isConversationTab(tab) && tab.reader !== null) closeReader(tab.key)
         else focusCanvas(tab.kind === 'repo' ? null : tab.nodeId)
       }}
     >
@@ -138,6 +139,8 @@ export function SidePanel(): React.JSX.Element | null {
         >
           {tab.kind === 'repo' ? (
             <RepoPanel key={tab.key} genesisId={tab.genesisId} onClose={() => close(tab.key)} />
+          ) : tab.kind === 'agents' ? (
+            <AgentsTabContent key={tab.key} tab={tab} />
           ) : tab.kind === 'workflowChat' ? (
             <WorkflowChatTabContent key={tab.key} tab={tab} />
           ) : (

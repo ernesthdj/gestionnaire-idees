@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
+/** Écart minimal entre le menu et le bord de la fenêtre. */
+const MARGIN = 8
 
 export type Tool = 'idea' | 'label' | 'widget' | 'block' | 'links'
 
@@ -62,6 +65,16 @@ export function ContextMenu<T extends string>({
   label
 }: ToolMenuProps<T> & { readonly items: readonly MenuItem<T>[]; readonly label: string }): React.JSX.Element {
   const menu = useRef<HTMLDivElement>(null)
+  // Posé au pointeur, puis recalé d'après sa vraie taille pour rester dans la fenêtre (menu long, clic près d'un bord).
+  const [place, setPlace] = useState(at)
+  useLayoutEffect(() => {
+    const box = menu.current?.getBoundingClientRect()
+    if (box === undefined) return
+    setPlace({
+      x: Math.max(MARGIN, Math.min(at.x, window.innerWidth - box.width - MARGIN)),
+      y: Math.max(MARGIN, Math.min(at.y, window.innerHeight - box.height - MARGIN))
+    })
+  }, [at, items.length])
 
   useEffect(() => {
     menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
@@ -102,8 +115,8 @@ export function ContextMenu<T extends string>({
       aria-label={label}
       onKeyDown={move}
       onContextMenu={(event) => event.preventDefault()}
-      className="fixed z-50 w-60 rounded-lg border border-content-muted/30 bg-surface p-1 text-sm text-content shadow-lg"
-      style={{ left: Math.min(at.x, window.innerWidth - 248), top: Math.min(at.y, window.innerHeight - 180) }}
+      className="fixed z-50 max-h-[calc(100vh-16px)] w-60 overflow-y-auto rounded-lg border border-content-muted/30 bg-surface p-1 text-sm text-content shadow-lg"
+      style={{ left: place.x, top: place.y }}
     >
       {items.map(({ tool, icon, label: name, hint }) => (
         <button

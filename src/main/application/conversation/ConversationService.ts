@@ -20,6 +20,7 @@ import { currentModel } from '@shared/ipc/ai'
 import { readSheet } from '../../domain/conversation/sheet'
 import { parseStreamLine, toolTitle, type StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PermissionService } from './PermissionService'
+import type { AgentPersona } from '../agents/AgentChats'
 import { LOCAL_ONLY_MESSAGE } from '../reprise/ConfidentialityGuard'
 import { AppError } from '../../domain/errors'
 import { BYPASS_WARNING, type PermissionMode } from '@shared/ipc/chat'
@@ -102,6 +103,8 @@ export interface ConversationDeps {
   readonly finalOf?: (neuronId: string) => { readonly state: string; readonly files: readonly string[] } | undefined
   /** Résultat d'un outil (spec 014 R5) : le livrable d'une action finale relit le fichier écrit. */
   readonly onToolResult?: (neuronId: string, toolUseId: string, ok: boolean) => void
+  /** Conversation avec un agent (L1o D13) : sa persona, son modèle, son mode et son worktree ; `undefined` : plus là. */
+  readonly agentPersona?: (neuron: ConversationNeuron) => AgentPersona | undefined
 }
 
 /**
@@ -306,7 +309,7 @@ export class ConversationService {
             ? 'step'
             : neuron.kind === 'skills_chat'
               ? 'skills'
-              : neuron.kind === 'workflow_chat'
+              : neuron.kind === 'workflow_chat' || neuron.kind === 'agent_chat'
                 ? 'workflow'
                 : 'genesis',
       elementType: neuron.elementType,
@@ -500,11 +503,13 @@ ${text}`
     }
     const resume = neuron.sessionStarted
     const model = this.modelOf(neuron, settings)
+    const persona = this.personaOf(neuron)
+    const frame = neuron.kind === 'skills_chat' ? (this.deps.skillsFrame ?? this.deps.frame) : this.deps.frame
     const args = conversationArgs({
       sessionId,
       resume,
       neuronId: neuron.id,
-      frame: neuron.kind === 'skills_chat' ? (this.deps.skillsFrame ?? this.deps.frame) : this.deps.frame,
+      frame: persona === undefined ? frame : `${frame}\n\n${persona.systemPrompt}`,
       settings: { ...settings, model },
       permissionMode: this.permissionModeOf(neuron),
       extraDir: extra,
@@ -774,12 +779,24 @@ ${text}`
   /** Mode d'une conversation : celui choisi pour elle, sinon le défaut réglé (Demander). */
   private permissionModeOf(neuron: ConversationNeuron): PermissionMode {
     if (neuron.kind === 'skills_chat') return 'default'
-    return neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
+    return (
+      neuron.chatPermissionMode ??
+      this.personaOf(neuron)?.permissionMode ??
+      this.deps.defaultPermissionMode?.() ??
+      'default'
+    )
+  }
+
+  /** Persona d'une conversation d'agent (L1o D13) ; `undefined` pour toute autre conversation. */
+  private personaOf(neuron: ConversationNeuron): AgentPersona | undefined {
+    return neuron.kind === 'agent_chat' ? this.deps.agentPersona?.(neuron) : undefined
   }
 
   /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */
   private modelOf(neuron: ConversationNeuron, settings: ConversationSettings): string {
     if (neuron.chatModel !== null) return currentModel(neuron.chatModel)
+    const persona = this.personaOf(neuron)
+    if (persona !== undefined) return currentModel(persona.model)
     return neuron.genesisId === null ? settings.model : (settings.elementModel ?? settings.model)
   }
 
@@ -801,6 +818,9 @@ ${text}`
    * genesis (élément, étape) s'il est ailleurs.
    */
   private dirsOf(neuron: ConversationNeuron): ConversationDirs {
+    // Un agent parle depuis son worktree, s'il a déjà travaillé (L1o D13).
+    const worktree = this.personaOf(neuron)?.cwd ?? null
+    if (worktree !== null) return { cwd: worktree, extra: null }
     return conversationDirs({ kind: neuron.kind, linked: this.linkedOf(neuron), project: neuron.projectFolder })
   }
 

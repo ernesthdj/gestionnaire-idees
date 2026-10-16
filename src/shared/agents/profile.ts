@@ -48,6 +48,11 @@ export interface AgentProfileView {
   /** Identifiants de skills (`perso:<nom>`…) que l'agent peut consulter. */
   readonly skills: readonly string[]
   readonly updatedAt: number
+  /**
+   * Travail livré par cet agent : un point par assemblage validé par le QA, un autre à la fusion acceptée. Enrichit sa
+   * chambre sur la carte (L1o D13) ; compté par l'app, jamais saisi.
+   */
+  readonly delivered: number
 }
 
-export type AgentProfileInput = Omit<AgentProfileView, 'id' | 'updatedAt'> & { readonly id?: string }
+export type AgentProfileInput = Omit<AgentProfileView, 'id' | 'updatedAt' | 'delivered'> & { readonly id?: string }

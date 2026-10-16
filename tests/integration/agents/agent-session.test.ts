@@ -30,7 +30,8 @@ const profile = (skills: readonly string[]): AgentProfileView => ({
   model: 'claude-sonnet-5-5',
   effort: 'medium',
   skills,
-  updatedAt: 0
+  updatedAt: 0,
+  delivered: 0
 })
 
 const success = JSON.stringify({ type: 'result', subtype: 'success', result: 'Rapport' })

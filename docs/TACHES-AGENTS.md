@@ -26,9 +26,9 @@
 
 ## Lot 3 — Visuel
 
-- [ ] T006 Agents en nœuds du canevas, volet au clic (design à définir, D10) ; vue animée : liens entre eux, progression, couleurs validation/erreur, clic = chat, nœud vert à la validation
+- [x] T006 Agents en nœuds du canevas, volet au clic (design à définir, D10) ; vue animée : liens entre eux, progression, couleurs validation/erreur, clic = chat, nœud vert à la validation ; connectés aux nœuds du Workflow seulement, appelés au clic droit (D14)
 
 ## Lot 4 — Extensions
 
 - [ ] T007 Étendre à un module entier : le PO répartit les sous-nœuds dont la doc est prête entre les agents connectés
-- [ ] T008 Personnages évolutifs des agents (idée à part, sans impact fonctionnel, à faire en dernier)
+- [x] T008 Personnages évolutifs des agents : chambre-cube 3D posée librement sur la carte, personnage tiré du profil, chambre enrichie par le travail livré, clic = visio et conversation avec l’agent (D13)

@@ -68,6 +68,7 @@ describe('conversations Claude Code des neurones', () => {
     chatPermissionMode: null,
     chatExtraDirsJson: null,
     chatBypassConfirmedAt: null,
+    elementKey: null,
     ...extra
   })
 
@@ -533,6 +534,30 @@ describe('conversations Claude Code des neurones', () => {
     expect(process.options.cwd).toBe('C:/projets/brainstormer')
     expect(process.options.args).toContain('--session-id')
     expect(sent(process)).toContain('Dossier de projet lié : « brainstormer »')
+  })
+
+  it('should_speak_as_the_agent_from_its_worktree_with_its_model_when_the_chat_is_an_agent_visio', async () => {
+    neurons.set(N1, neuron(N1, { kind: 'agent_chat', genesisId: N2, elementKey: 'agent:back:wf:x:ttask:t1' }))
+    service = build({
+      agentPersona: () => ({
+        systemPrompt: 'Tu es « Développeur », agent Backend.',
+        model: 'claude-sonnet-5-5',
+        permissionMode: 'acceptEdits',
+        cwd: 'C:/profil/agent-worktrees/g/T-1/back'
+      })
+    })
+    expect(service.open(N1)).toMatchObject({
+      role: 'workflow',
+      model: 'claude-sonnet-5-5',
+      permissionMode: 'acceptEdits'
+    })
+    await service.send(N1, 'Où en es-tu ?')
+    const process = processes[0] as FakeProcess
+    const { args } = process.options
+    expect(process.options.cwd).toBe('C:/profil/agent-worktrees/g/T-1/back')
+    expect(args[args.indexOf('--model') + 1]).toBe('claude-sonnet-5-5')
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('acceptEdits')
+    expect(args[args.indexOf('--append-system-prompt') + 1]).toContain('Tu es « Développeur », agent Backend.')
   })
 
   it('should_open_a_genesis_without_folder_in_the_project_of_its_canvas', async () => {

@@ -1,0 +1,1 @@
+ALTER TABLE `agent_profiles` ADD `delivered` integer DEFAULT 0 NOT NULL;

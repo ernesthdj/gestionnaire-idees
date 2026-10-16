@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 /** Profils d'agents des pipelines (docs/TACHES-AGENTS.md T001, migration 0050). Dates en millisecondes. */
 export const agentProfiles = sqliteTable(
@@ -13,8 +13,32 @@ export const agentProfiles = sqliteTable(
     effort: text('effort', { enum: ['low', 'medium', 'high', 'xhigh', 'max'] }).notNull(),
     /** Identifiants de skills consultables (JSON : string[]). */
     skills: text('skills').notNull().default('[]'),
+    /** Travail livré (assemblages validés, fusions acceptées) : enrichit la chambre de l'agent (L1o D13, migration 0053). */
+    delivered: integer('delivered').notNull().default(0),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull()
   },
   (t) => [uniqueIndex('agent_profiles_name_unique').on(t.name)]
+)
+
+/**
+ * Agents connectés à un nœud de la carte, avant le lancement (docs/TACHES-AGENTS.md T006, migration 0052) : un croquis
+ * par nœud. Les agents et leurs liens sont du JSON validé à la lecture. Depuis la migration 0054 (L1o D14), le nœud est
+ * une tâche ou un document de la vue Workflow (clé `wf:…`, lue dans les fichiers du projet) : plus de clé étrangère
+ * vers `neurons` ; un croquis dont le nœud a disparu n'est plus dessiné.
+ */
+export const assemblySketches = sqliteTable(
+  'assembly_sketches',
+  {
+    nodeId: text('node_id').primaryKey(),
+    genesisId: text('genesis_id').notNull(),
+    taskId: text('task_id').notNull(),
+    task: text('task'),
+    /** Agents du croquis (JSON : AssemblyAgent[]). */
+    agents: text('agents').notNull().default('[]'),
+    /** Liens « B attend A » (JSON : AssemblyLink[]). */
+    links: text('links').notNull().default('[]'),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [index('assembly_sketches_genesis_idx').on(t.genesisId)]
 )

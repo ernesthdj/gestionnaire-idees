@@ -74,6 +74,8 @@ export interface ConversationNeuron {
   /** Dossiers supplémentaires autorisés (JSON) ; `null` : aucun. */
   readonly chatExtraDirsJson: string | null
   readonly chatBypassConfirmedAt: string | null
+  /** Clé du nœud d'une conversation cachée (Workflow, agent) ; `null` sinon. */
+  readonly elementKey: string | null
 }
 
 export interface TurnRecord {
@@ -130,7 +132,8 @@ export class ConversationRepository {
         lockedAt: neurons.lockedAt,
         chatPermissionMode: neurons.chatPermissionMode,
         chatExtraDirsJson: neurons.chatExtraDirsJson,
-        chatBypassConfirmedAt: neurons.chatBypassConfirmedAt
+        chatBypassConfirmedAt: neurons.chatBypassConfirmedAt,
+        elementKey: neurons.elementKey
       })
       .from(neurons)
       .where(eq(neurons.id, id))

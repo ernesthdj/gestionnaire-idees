@@ -357,14 +357,18 @@ function Message({
 export function ChatPanel({
   neuronId,
   onClose,
-  draftKey = neuronId
+  draftKey = neuronId,
+  onActivity
 }: {
   readonly neuronId: string
   readonly onClose: () => void
   /** Clé de la consigne pré-remplie à reprendre (spec 023 : la carte d'un nœud Workflow) ; par défaut, le neurone. */
   readonly draftKey?: string
+  /** Visio d'un agent (L1o D13) : Claude répond-il, et ce qu'il dit déjà (sous-titres, bouche qui bouge). */
+  readonly onActivity?: (busy: boolean, partial: string) => void
 }): React.JSX.Element {
   const chat = useChat(neuronId)
+  useEffect(() => onActivity?.(chat.busy, chat.partial), [onActivity, chat.busy, chat.partial])
   const openExplorer = useUiStore((state) => state.openExplorer)
   const [draft, setDraft] = useState('')
   // Consigne pré-remplie (spec 023) : reprise une fois dans le champ, jamais envoyée sans geste.
@@ -442,7 +446,8 @@ export function ChatPanel({
         </div>
       )}
       <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-3">
-        <div className="flex items-start gap-2">
+        {/* En visio (L1o D13), le volet de l'agent porte déjà son nom et « Raccrocher ». */}
+        <div className={`flex items-start gap-2${onActivity === undefined ? '' : ' sr-only'}`}>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
             <p className="text-xs text-content-muted">

@@ -1,6 +1,15 @@
 import { isValidTaskId } from '@shared/agents/documents'
-import type { ApprovalResult, Assembly, AssemblyAgent, AssemblyLink, AssemblyRunResult } from '@shared/agents/pipeline'
-import type { AssemblyRunView } from '@shared/ipc/assemblies'
+import {
+  structureError,
+  type AgentProgress,
+  type ApprovalResult,
+  type Assembly,
+  type AssemblyAgent,
+  type AssemblyLink,
+  type AssemblyRunResult,
+  type ProgressListener
+} from '@shared/agents/pipeline'
+import { REPORT_MAX, type AgentLiveView, type AssemblyRunView, type AssemblySketchView } from '@shared/ipc/assemblies'
 import { AppError } from '../../domain/errors'
 
 /** Nœud de la carte auquel on connecte des agents : idée, tâche ou module d'un projet lié. */
@@ -20,11 +29,19 @@ export interface AssemblyNode {
 export interface AssemblyEngine {
   check(assembly: Assembly): Promise<void>
   warnings(assembly: Assembly): string[]
-  run(assembly: Assembly, signal?: AbortSignal): Promise<AssemblyRunResult>
+  run(assembly: Assembly, signal?: AbortSignal, onProgress?: ProgressListener): Promise<AssemblyRunResult>
   approve(assembly: Assembly): Promise<ApprovalResult>
 }
 
+/** Croquis gardés (un par nœud) : la base de données en vrai. */
+export interface SketchStore {
+  list(genesisId?: string): AssemblySketchView[]
+  save(sketch: AssemblySketchView): void
+  remove(nodeId: string): void
+}
+
 export interface AssemblyServiceDeps {
+  readonly sketches: SketchStore
   readonly node: (nodeId: string) => AssemblyNode | undefined
   /** Raison pour laquelle on ne lance pas d'agent sur ce projet (repris, « Local uniquement »…), ou `null`. */
   readonly refusal: (genesisId: string) => string | null
@@ -34,6 +51,8 @@ export interface AssemblyServiceDeps {
     readonly projectName: string
   }) => AssemblyEngine
   readonly emit: (genesisId: string, taskId: string) => void
+  /** Travail livré (L1o D13) : crédite les profils des agents d'un assemblage validé, puis fusionné. */
+  readonly credit?: (profileIds: readonly string[]) => void
   readonly now?: () => number
 }
 
@@ -59,6 +78,8 @@ interface Run {
   readonly warnings: readonly string[]
   readonly controller: AbortController
   readonly startedAt: number
+  /** État en direct de chaque agent, dans l'ordre de l'assemblage. */
+  readonly live: Map<string, AgentLiveView>
   state: AssemblyRunView['state']
   finishedAt?: number
   result?: AssemblyRunResult
@@ -115,6 +136,7 @@ export class AssemblyService {
       assembly,
       engine,
       warnings: engine.warnings(assembly),
+      live: new Map(assembly.agents.map((agent) => [agent.id, { agentId: agent.id, state: 'waiting' }])),
       controller: new AbortController(),
       startedAt: this.now(),
       state: 'running',
@@ -122,10 +144,14 @@ export class AssemblyService {
     }
     this.runs.set(key, run)
     engine
-      .run(assembly, run.controller.signal)
+      .run(assembly, run.controller.signal, (event) => {
+        this.apply(run, event)
+        this.deps.emit(node.genesisId, assembly.taskId)
+      })
       .then((result) => {
         run.result = result
         run.state = 'finished'
+        if (result.completed) this.credit(run)
       })
       .catch((error: unknown) => {
         run.state = 'failed'
@@ -137,6 +163,38 @@ export class AssemblyService {
       })
     this.deps.emit(node.genesisId, assembly.taskId)
     return this.view(run)
+  }
+
+  /** Croquis des agents connectés aux nœuds d'un projet (ou de tous) : ce que la carte dessine avant le lancement. */
+  sketches(genesisId?: string): AssemblySketchView[] {
+    return this.deps.sketches.list(genesisId)
+  }
+
+  /** Enregistre le croquis d'un nœud (remplace le précédent) ; forme vérifiée, profils vérifiés au lancement. */
+  saveSketch(request: Omit<AssemblyRequest, 'baseBranch'>): AssemblySketchView {
+    if (!isValidTaskId(request.taskId)) throw new AppError('VALIDATION', 'Identifiant de tâche invalide.')
+    const node = this.deps.node(request.nodeId)
+    if (node === undefined) throw new AppError('NOT_FOUND', 'Nœud introuvable.')
+    if (node.projectDir === null) {
+      throw new AppError('VALIDATION', 'Les agents travaillent dans un projet : lie d’abord un dossier à ce genesis.')
+    }
+    const error = structureError({ taskId: request.taskId, brief: '', agents: request.agents, links: request.links })
+    if (error !== null) throw new AppError('VALIDATION', error)
+    const sketch: AssemblySketchView = {
+      nodeId: request.nodeId,
+      genesisId: node.genesisId,
+      taskId: request.taskId,
+      ...(request.task === undefined || request.task.trim() === '' ? {} : { task: request.task }),
+      agents: request.agents,
+      links: request.links
+    }
+    this.deps.sketches.save(sketch)
+    return sketch
+  }
+
+  /** Retire le croquis d'un nœud : ses agents disparaissent de la carte. */
+  clearSketch(nodeId: string): void {
+    this.deps.sketches.remove(nodeId)
   }
 
   /** Arrête l'assemblage : les sessions en cours sont annulées, aucun agent ne démarre plus. */
@@ -161,11 +219,16 @@ export class AssemblyService {
     try {
       const approval = await run.engine.approve(run.assembly)
       run.approval = approval
+      if (approval.merged) this.credit(run)
       this.deps.emit(genesisId, taskId)
       return approval
     } finally {
       run.approving = false
     }
+  }
+
+  private credit(run: Run): void {
+    this.deps.credit?.(run.assembly.agents.map((agent) => agent.profileId))
   }
 
   list(genesisId?: string): AssemblyRunView[] {
@@ -178,6 +241,29 @@ export class AssemblyService {
   /** Arrête tous les assemblages en cours (fermeture de l'app). */
   stopAll(): void {
     for (const run of this.runs.values()) if (run.state === 'running') run.controller.abort()
+  }
+
+  /**
+   * Retient le changement d'état d'un agent pour que son nœud s'anime : passe, verdict du QA, rapport coupé. Un nouveau
+   * tour efface le verdict et le motif d'arrêt de l'ancien ; le dernier rapport reste jusqu'au suivant.
+   */
+  private apply(run: Run, event: AgentProgress): void {
+    const before = run.live.get(event.agentId)
+    if (before === undefined) return
+    const next: { -readonly [K in keyof AgentLiveView]: AgentLiveView[K] } = { ...before, state: event.state }
+    if (event.state === 'waiting' || event.state === 'running') {
+      delete next.verdict
+      delete next.message
+    }
+    if (event.index !== undefined) {
+      next.pass = event.index.pass
+      next.nature = event.index.nature
+      if (event.index.specVersion !== undefined) next.specVersion = event.index.specVersion
+    }
+    if (event.verdict !== undefined) next.verdict = event.verdict
+    if (event.message !== undefined) next.message = event.message
+    if (event.report !== undefined) next.report = event.report.slice(0, REPORT_MAX)
+    run.live.set(event.agentId, next)
   }
 
   private key(genesisId: string, taskId: string): string {
@@ -225,6 +311,9 @@ export class AssemblyService {
       startedAt: run.startedAt,
       ...(run.finishedAt === undefined ? {} : { finishedAt: run.finishedAt }),
       warnings: run.warnings,
+      agents: run.assembly.agents.map(
+        (agent) => run.live.get(agent.id) ?? { agentId: agent.id, state: 'waiting' as const }
+      ),
       ...(run.result === undefined ? {} : { result: run.result }),
       ...(run.approval === undefined ? {} : { approval: run.approval }),
       ...(run.error === undefined ? {} : { error: run.error })

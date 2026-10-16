@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { neurons } from '../schemaNeurons'
 
+export type HiddenChatKind = 'workflow_chat' | 'agent_chat'
+
 /**
  * Conversations des nœuds de la vue Workflow (spec 023 D6) : un neurone caché par nœud, rattaché à son genesis (dont
  * il prend le dossier et la confidentialité), retrouvé par la clé du nœud.
@@ -9,11 +11,12 @@ import { neurons } from '../schemaNeurons'
 export class WorkflowChatRepository {
   constructor(private readonly db: AppDatabase) {}
 
-  chatOf(genesisId: string, key: string): string | undefined {
+  /** Conversation d'un nœud Workflow, ou d'un agent (`agent_chat`, L1o D13), retrouvée par sa clé. */
+  chatOf(genesisId: string, key: string, kind: HiddenChatKind = 'workflow_chat'): string | undefined {
     return this.db
       .select({ id: neurons.id })
       .from(neurons)
-      .where(and(eq(neurons.kind, 'workflow_chat'), eq(neurons.genesisId, genesisId), eq(neurons.elementKey, key)))
+      .where(and(eq(neurons.kind, kind), eq(neurons.genesisId, genesisId), eq(neurons.elementKey, key)))
       .get()?.id
   }
 
@@ -34,13 +37,14 @@ export class WorkflowChatRepository {
     readonly genesisId: string
     readonly key: string
     readonly title: string
+    readonly kind?: HiddenChatKind
   }): void {
     this.db
       .insert(neurons)
       .values({
         id: input.id,
         rootId: input.id,
-        kind: 'workflow_chat',
+        kind: input.kind ?? 'workflow_chat',
         title: input.title,
         origin: 'user',
         hidden: true,

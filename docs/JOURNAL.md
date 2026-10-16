@@ -2364,3 +2364,107 @@ responsable à tort.
 modification), D11 (sprites des commandes) et D12 (progression estimée des tests) sont écrites dans la spec 014 ;
 les sprites choisis sont gardés dans `docs/design/sprites-commandes/`.
 **Règle apprise :** dater une entrée de journal avec `date`, jamais de tête.
+
+### [2026-10-16 15:52] FEAT — agents en nœuds du canevas : croquis, volet au clic, vue animée (T006, L1o D10)
+**Fichiers :** `src/renderer/src/canvas/agents/` (`agentGraph.ts`, `agentTypes.ts`, `sketchEdit.ts`, `agentsHost.ts`,
+`useAssemblies.ts`, `AgentNode.tsx`, `AgentEdge.tsx`, `AgentsTabContent.tsx`, `agents.css`), `IdeasCanvas.tsx`,
+`cards/IdeaCards.tsx`, `side/sidePanelStore.ts`, `side/SidePanel.tsx`, `edges/useCenter.ts`, `buildGraph.ts` ;
+`src/main/application/agents/PipelineEngine.ts` (suivi en direct), `AssemblyService.ts` (croquis, état de chaque agent),
+`infrastructure/db/schemaAgents.ts` + migration `0052_assembly_sketches` (et son `down`) +
+`repositories/AssemblySketchRepository.ts`, `ipc/assemblyHandlers.ts` (`assembly:sketches`, `sketchSave`, `sketchClear`),
+`shared/agents/pipeline.ts` (`structureError`, `AgentProgress`), `shared/ipc/assemblies.ts`, `infrastructure/ai/E2eClaude.ts`
+(`e2eAgentRun`), `bootstrap.ts` ; tests `agent-graph`, `agent-sketch-edit`, `agents-panel`, `side-panel-store`,
+`assembly-handlers`, `assembly-service`, `migrations`, e2e `agents-map.e2e.ts` ; `docs/brainstorm/L1o-agents-assembles.md` (D10 défini)
+**Quoi :** (1) **Design (D10)** : les agents connectés à un nœud forment un croquis enregistré (un par nœud, table
+`assembly_sketches`) ; leurs nœuds sont dérivés du croquis et du suivi, posés sous leur nœud, non glissables. « ◇ Agents »
+dans la carte de détails d'une idée, d'une étape ou d'un module d'un projet lié ouvre l'onglet « ◇ <nœud> » du panneau de
+droite : ajouter un agent, choisir qui attend qui (liste, ou lien tiré d'une poignée à l'autre sur la carte, boucles
+refusées), tâche et zone, lancer (avertissements d'abord), arrêter, accord unique de fusion. (2) **Vue animée** : le
+planificateur émet l'état de chaque agent au fil de l'eau (en attente, au travail avec sa passe, fini avec son rapport,
+verdict du QA, échec, blocage, annulation) ; le nœud a sa couleur, son pictogramme, son texte et sa barre (qui défile au
+travail) ; le lien s'anime quand le résultat de l'agent attendu passe à celui qui travaille ; **vert à la validation** du
+QA (cerclé après la fusion), rouge en erreur, orangé s'il est renvoyé ou bloqué. (3) **Clic = volet** : profil, état, passe,
+verdict, motif d'arrêt, mission → rapport de l'agent. (4) Sessions d'agents simulées pour l'e2e (`GI_E2E_CLAUDE_REPLY`).
+Vérifié : typecheck, lint, Prettier, 2 395 tests, e2e `agents-map` (croquis → au travail → validé → fusionné, captures
+`t006-0*.png` relues), `side-panel` et `progression-view` toujours verts.
+**Limites connues :** le volet montre le rapport de la dernière passe, pas une conversation reprise en direct avec la
+session de l'agent (pas de neurone ni de session reprise pour un agent) ; les agents se posent sous leur nœud sans éviter
+les voisins (ils peuvent en recouvrir) ; un croquis d'un nœud sans carte dessinée (replié, autre vue) n'a pas de nœuds
+affichés ; un assemblage en cours est suivi en mémoire (limite de T005 inchangée : fermer l'app l'arrête).
+**Erreur :** un test e2e cherchait « 3 agents ont fini » alors que le texte dit « 3 agents sur 3 ont fini » ; un bouton
+« Lancer » se confondait avec les lignes d'agents (`exact: true`). Deux fois, des caractères combinants ont remplacé
+`̀` dans une expression régulière écrite par script (un outil d'édition interprète l'échappement) : écrit avec
+`chr(92)`.
+**Règle apprise :** un nœud d'interface qui montre un état en direct se vérifie dans l'app réelle avec une session
+simulée (captures relues), pas seulement en test de composant ; et une table ajoutée a son `down` et son test de migration.
+
+### [2026-10-16 15:55] FIX — T006 : boucle de rendu de la carte ; retour d'expérience d'une tâche visuelle (L1p)
+**Fichiers :** `src/renderer/src/canvas/agents/useAssemblies.ts` ; `docs/brainstorm/L1p-taches-visuelles.md` (§5, D6
+proposé), `docs/TACHES-VISUEL.md`.
+**Erreur :** pendant T006 (session lancée depuis l'app), `useAssemblyData` rendait un objet neuf à chaque rendu ; la
+carte s'en servait comme dépendance de son graphe et se refaisait sans fin (« Maximum update depth exceeded »). En
+`npm run dev`, le rechargement à chaud a chargé ce code dans l'app ouverte : carte blanche, et la session, en attente
+d'un accord, ne pouvait plus être débloquée. 72 tests d'interface échouaient. Corrigé par Claude Code (terminal), pas
+par la session : objet mémorisé tant que les données ne changent pas.
+**Quoi :** retour d'expérience de T006 dans L1p : design décidé sans options proposées, fenêtre de suivi cassée,
+chevauchements vus sur les captures mais laissés ; D6 proposé (une tâche qui touche l'interface de l'app travaille dans
+un worktree).
+**Règle apprise :** un hook qui rend un objet utilisé comme dépendance le mémorise (`useMemo` sur ses données).
+
+### [2026-10-16 18:34] FEAT — T008 lot A : l'agent est sa chambre-cube 3D, posée librement, visio au clic (L1o D13)
+**Fichiers :** `src/renderer/src/canvas/agents/character/` (tirage, sprites des 4 univers portés de la planche,
+portrait), `src/renderer/src/canvas/agents/room/` (chambre Three.js, scène et visio, renderer partagé, activité selon
+l'état), `AgentNode.tsx`, `AgentVisioPanel.tsx`, `visioStore.ts`, `agents.css`, `agentGraph.ts`, `sketchEdit.ts`
+(`placeAgent`), `IdeasCanvas.tsx` (place enregistrée au lâcher) ; `AssemblyAgent.place` (IPC Zod, dépôt des croquis) ;
+migration 0053 `agent_profiles.delivered` (+ down), crédit à la validation du QA et à la fusion (`AssemblyService`) ;
+dépendance `three@0.150.1` (MIT) + `@types/three` ; L1o D13 et T008 en cours.
+**Quoi :** décisions de mentalyas du 2026-10-16 : l'agent est sa chambre-cube (pas de cadre, pas de fond), glissable
+où il veut, sa place gardée par rapport à son nœud ; personnage tiré de l'identifiant du profil (objet de métier du
+rôle) ; chambre tirée puis enrichie par le travail livré (paliers 1, 3, 6, 10…) ; un clic ouvre le volet à côté de
+l'agent et le fait passer en visio (webcam sur l'écran du bureau, chambre en incrustation). Un seul contexte WebGL pour
+toutes les chambres (copiées chacune dans leur canevas 2D), rendu des seules chambres visibles, 4 par image au plus,
+30 images/s, ombres calculées une fois, `three` chargé à la demande ; sans WebGL, le personnage en pixels.
+**Choix :** `three` 0.150 plutôt que la dernière version : même rendu que la planche (r128) sans gestion des couleurs ni
+lumières physiques à compenser. La place est relative au nœud (l'agent suit le Workflow quand il se réorganise).
+**Vérifié :** typecheck, lint, Prettier, 2 409 tests unitaires et d'intégration ; e2e `agents-map` (chambres,
+glisser, visio, lancement jusqu'à la fusion) avec captures `test-results/e2e/t008-*.png`.
+**Reste :** lot B (conversation `claude -p` avec l'agent dans le volet de visio) ; « ◇ Agents » seulement sur les nœuds
+du Workflow (correctif T006) : ces nœuds sont des fichiers, pas des neurones, alors que `assembly_sketches.node_id` est
+une clé étrangère vers `neurons` ; à décider avant de coder.
+
+### [2026-10-16 19:00] FEAT — agents connectés aux nœuds du Workflow, appelés au clic droit (L1o D14, correctif T006)
+**Fichiers :** `src/main/application/agents/workflowHost.ts` (contexte d'un nœud du Workflow lu dans les fichiers),
+`src/main/bootstrap.ts` (résolution des nœuds `wf:…`), `src/main/ipc/assemblyHandlers.ts` (clé `WORKFLOW_KEY` au lieu
+d'un UUID), migration 0054 `sketch_workflow_hosts` (+ down) : `assembly_sketches` sans clé étrangère vers `neurons` ;
+`agentsHost.ts`, `agentTypes.ts` (identifiant `agent:<agent>:<nœud>`), `sketchEdit.ts` (`defaultTaskId` valide pour une
+clé `wf:…`), `IdeasCanvas.tsx` (hôtes = nœuds du Workflow, menu du clic droit), `ToolMenu.tsx`, `sidePanelStore.ts`,
+`AgentNode.tsx` (côté du volet de visio) ; tests unitaires, d'intégration (migration) et e2e `agents-map`.
+**Quoi :** décision de mentalyas (option A) : on n'appelle des agents que sur une tâche, un lot, un fichier de tâches,
+une spec, une story ou un document du Workflow ; leur mission part de la ligne de la tâche, des fichiers cités et des
+documents d'origine. Clic droit sur le nœud : « Appeler <profil> », « Gérer les agents… ».
+**Erreurs corrigées en route :** l'identifiant de tâche par défaut reprenait les « : » de la clé (« Données
+invalides ») ; `syncWithView` fermait aussitôt le volet d'agents d'un nœud du Workflow (pas un neurone de la vue) ; le
+menu contextuel supposait 180 px de haut et sortait de l'écran avec plusieurs profils (recalé d'après sa vraie taille) ;
+le volet de visio passait sous le panneau de droite (il s'ouvre du côté le plus large, 320 px).
+**Règle apprise :** une clé de nœud qui n'est pas un neurone (`wf:…`) traverse plusieurs couches (IPC, identifiant de
+nœud de carte, onglets du panneau, identifiant de tâche) : vérifier chacune par l'e2e, pas seulement le main.
+**Vérifié :** typecheck, lint, Prettier, 2 416 tests ; e2e `agents-map` (clic droit, lancement, validé, fusionné).
+
+### [2026-10-16 19:19] FEAT — T008 lot B : conversation en visio avec un agent (L1o D13)
+**Fichiers :** `src/main/application/agents/AgentChats.ts` (conversation par agent et par nœud, persona du profil),
+`ConversationService.ts` (persona : consignes et contexte de la tâche ajoutés au cadre, modèle et mode du profil,
+worktree de l'agent comme dossier), `WorkflowChatRepository.ts` + `schemaNeurons.ts` (neurone caché `agent_chat`, sans
+migration : énumération TypeScript seulement), `ConversationRepository.ts` (`elementKey`), route `assembly:chat`,
+`E2eClaude.ts` (conversation simulée mot à mot en e2e) ; `AgentVisioPanel.tsx` (le `ChatPanel` dans le volet de visio),
+`ChatPanel.tsx` (`onActivity`, titre masqué en visio), `visioStore.ts` (sous-titres), `AgentNode.tsx` (tête qui hoche,
+sous-titres, recentrage à 100 %), `agents.css` ; tests unitaires et e2e `agents-map` (on écrit à l'agent, il répond en
+sous-titres).
+**Quoi :** un clic sur l'agent ouvre la visio et, à côté, la conversation avec lui : `claude -p` avec la persona de son
+profil, reprise d'un appel à l'autre, dans son worktree s'il a déjà travaillé.
+**Choix :** le mode « Libre » d'un profil n'est jamais repris d'office par la conversation (il se confirme dans le chat,
+spec 014 D8) : « Écrire sans demander » au plus. Les skills du profil ne sont pas encore transmis à la conversation
+(seulement aux sessions de travail, par plugin).
+**Erreurs corrigées en route :** le volet passait sous la barre d'outils de la carte (z-index), puis sortait de la carte
+quand l'agent était au bord : la carte se recentre sur l'agent à l'appel.
+**Vérifié :** typecheck, lint, Prettier, 2 423 tests ; e2e `agents-map` avec captures `t008-03-visio`,
+`t008-04-visio-parle`.

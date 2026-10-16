@@ -4,12 +4,15 @@ import {
   closeReader,
   closeRepo,
   EMPTY_SIDE_PANEL,
+  openAgents,
   openChat,
   openReader,
   openRepo,
   openWorkflowChat,
   repoGenesisId,
   requestFocus,
+  selectAgent,
+  shownAgent,
   shownChatId,
   shownNodeId,
   show,
@@ -109,9 +112,12 @@ describe('sidePanelStore (spec 027)', () => {
     let state = openChat(openChat(EMPTY_SIDE_PANEL, chat('a')), chat('b'))
     state = openWorkflowChat(state, { nodeId: 'wf:g:x', genesisId: 'g', title: 'T', kindLabel: 'Tâche' })
     state = openRepo(state, 'g')
+    // Agents d'une tâche du Workflow (L1o D14) : le nœud vient des fichiers, son volet reste.
+    state = openAgents(state, { nodeId: 'wf:g:ttask:t1', genesisId: 'g', title: 'T1', kindLabel: 'Agents' })
     const labels = new Map([['a', { title: 'A renommé', kindLabel: 'Étape' }]])
     state = syncWithView(state, labels, new Set(['a']))
-    expect(keys(state)).toEqual(['a', 'wf:g:x', 'repo:g'])
+    expect(keys(state)).toEqual(['a', 'wf:g:x', 'repo:g', state.tabs[3]?.key])
+    expect(state.tabs[3]).toMatchObject({ kind: 'agents', nodeId: 'wf:g:ttask:t1' })
     expect(state.tabs[0]).toMatchObject({ title: 'A renommé', kindLabel: 'Étape' })
   })
 
@@ -125,5 +131,37 @@ describe('sidePanelStore (spec 027)', () => {
     const second = requestFocus(first, 'a')
     expect(second.focus?.nodeId).toBe('a')
     expect(second.focus?.nonce).not.toBe(first.focus?.nonce)
+  })
+
+  it('should_open_one_agents_tab_per_node_and_keep_the_chosen_agent_when_reopened_without_one', () => {
+    const input = { nodeId: 'n', genesisId: 'g', title: '◇ Tri', kindLabel: 'Agents' }
+    let state = openAgents(EMPTY_SIDE_PANEL, { ...input, agentId: 'back' })
+    expect(state.tabs[0]).toMatchObject({ kind: 'agents', key: 'agents:n', agentId: 'back' })
+    expect(shownAgent(state)).toEqual({ hostId: 'n', agentId: 'back' })
+    state = openAgents(openChat(state, chat('x')), input)
+    expect(keys(state)).toEqual(['agents:n', 'x'])
+    expect(state.shownKey).toBe('agents:n')
+    expect(state.tabs[0]).toMatchObject({ agentId: 'back' })
+    state = selectAgent(state, 'n', null)
+    expect(shownAgent(state)).toEqual({ hostId: 'n', agentId: null })
+    expect(shownAgent(show(state, 'x'))).toBeNull()
+  })
+
+  it('should_have_no_conversation_and_no_reader_in_an_agents_tab', () => {
+    let state = openAgents(EMPTY_SIDE_PANEL, { nodeId: 'n', genesisId: 'g', title: '◇ Tri', kindLabel: 'Agents' })
+    expect(shownChatId(state)).toBeNull()
+    expect(shownNodeId(state)).toBeNull()
+    expect(closeReader(state, 'agents:n')).toBe(state)
+    state = openReader(state, chat('n'), { source: 'element', path: 'a.ts', tab: 'file', elementId: 'n' })
+    // Le lecteur s'ouvre dans l'onglet de conversation du nœud, jamais dans celui des agents.
+    expect(keys(state)).toContain('agents:n')
+    expect(state.tabs.find((tab) => tab.key === 'agents:n')).not.toHaveProperty('reader')
+  })
+
+  it('should_follow_the_node_title_and_close_the_agents_tab_when_the_node_disappears', () => {
+    let state = openAgents(EMPTY_SIDE_PANEL, { nodeId: 'n', genesisId: 'g', title: '◇ Ancien', kindLabel: 'Agents' })
+    state = syncWithView(state, new Map([['n', { title: 'Nouveau', kindLabel: 'Module' }]]), new Set(['n']))
+    expect(state.tabs[0]).toMatchObject({ title: '◇ Nouveau', kindLabel: 'Module' })
+    expect(syncWithView(state, new Map(), new Set()).tabs).toEqual([])
   })
 })

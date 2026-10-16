@@ -23,6 +23,7 @@ export type NeuronKind =
   | 'skills_chat'
   | 'analyst_update'
   | 'workflow_chat'
+  | 'agent_chat'
 export type GaugeLevel = 'insufficient' | 'sufficient' | 'complete'
 
 export interface CategoryView {

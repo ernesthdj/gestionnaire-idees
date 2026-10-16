@@ -22,6 +22,13 @@ export interface AssemblyAgent {
   readonly task?: string
   /** Zone de travail : dossiers ou fichiers du projet (chemins relatifs) que cet agent touchera (L1o D4). */
   readonly zone?: readonly string[]
+  /** Place de l'agent sur la carte, par rapport à son nœud (L1o D13) ; absente : posé sous le nœud. Ignorée du moteur. */
+  readonly place?: AgentPlace
+}
+
+export interface AgentPlace {
+  readonly x: number
+  readonly y: number
 }
 
 export interface AssemblyLink {
@@ -49,11 +56,11 @@ export const upstreamOf = (assembly: Assembly): ReadonlyMap<string, readonly str
 }
 
 /**
- * Règles d'un assemblage (L1o D1, D2, D12) ; rend la première erreur, ou `null`. Identifiants uniques, liens entre
- * agents connus, aucun cycle ; dès deux agents, un PO et un seul, qui n'attend personne, et dont tous les autres
- * dépendent (directement ou non) : ils lisent sa spec.
+ * Forme d'un assemblage, complet ou en croquis (T006) ; rend la première erreur, ou `null`. Identifiants valides et
+ * uniques, zones relatives au projet, liens entre agents connus sans doublon ni boucle. Avec `roleOf`, chaque agent doit
+ * aussi avoir un profil.
  */
-export function assemblyError(assembly: Assembly, roleOf: (agentId: string) => AgentRole | undefined): string | null {
+export function structureError(assembly: Assembly, roleOf?: (agentId: string) => AgentRole | undefined): string | null {
   const { agents, links } = assembly
   if (agents.length === 0) return 'L’assemblage n’a aucun agent.'
   const ids = new Set<string>()
@@ -61,7 +68,8 @@ export function assemblyError(assembly: Assembly, roleOf: (agentId: string) => A
     if (!isValidAgentId(agent.id)) return `Identifiant d’agent invalide : « ${agent.id} ».`
     if (ids.has(agent.id)) return `Deux agents portent l’identifiant « ${agent.id} ».`
     ids.add(agent.id)
-    if (roleOf(agent.id) === undefined) return `L’agent « ${agent.id} » n’a pas de profil (page Skills).`
+    if (roleOf !== undefined && roleOf(agent.id) === undefined)
+      return `L’agent « ${agent.id} » n’a pas de profil (page Skills).`
     const badPath = (agent.zone ?? []).find((path) => normalizeZonePath(path) === undefined)
     if (badPath !== undefined)
       return `Zone invalide pour « ${agent.id} » : « ${badPath} » (chemin relatif au projet attendu).`
@@ -74,8 +82,20 @@ export function assemblyError(assembly: Assembly, roleOf: (agentId: string) => A
     if (seen.has(key)) return `Lien en double : ${link.from} → ${link.to}.`
     seen.add(key)
   }
-  const upstream = upstreamOf(assembly)
   if (topologicalOrder(assembly) === null) return 'Les liens forment une boucle : un agent s’attendrait lui-même.'
+  return null
+}
+
+/**
+ * Règles d'un assemblage à lancer (L1o D1, D2, D12) ; rend la première erreur, ou `null`. Forme valide (`structureError`) ;
+ * dès deux agents, un PO et un seul, qui n'attend personne, et dont tous les autres dépendent (directement ou non) :
+ * ils lisent sa spec.
+ */
+export function assemblyError(assembly: Assembly, roleOf: (agentId: string) => AgentRole | undefined): string | null {
+  const shape = structureError(assembly, roleOf)
+  if (shape !== null) return shape
+  const { agents } = assembly
+  const upstream = upstreamOf(assembly)
   if (agents.length === 1) return null
 
   const pos = agents.filter((agent) => roleOf(agent.id) === 'po')
@@ -281,6 +301,28 @@ export interface AgentRunResult {
   readonly verdict?: QaVerdict
   readonly stopped?: { readonly reason: AgentStopReason; readonly message: string }
 }
+
+/**
+ * État d'un agent pendant l'assemblage (T006, L1o D10) : il attend ceux qu'il suit, travaille, a fini, a échoué,
+ * est bloqué (un agent attendu n'a pas abouti) ou a été annulé.
+ */
+export type AgentProgressState = 'waiting' | 'running' | 'done' | 'failed' | 'blocked' | 'cancelled'
+
+/** Changement d'état d'un agent, émis par le planificateur au fil de l'eau (le nœud de l'agent s'anime dessus). */
+export interface AgentProgress {
+  readonly agentId: string
+  readonly state: AgentProgressState
+  /** Passe en cours ou dernière passe de l'agent. */
+  readonly index?: PassIndex
+  /** Verdict du QA, une fois lu : vert (valide) ou renvoi. */
+  readonly verdict?: QaVerdict
+  /** Pourquoi l'agent s'est arrêté. */
+  readonly message?: string
+  /** Rapport de l'agent à sa passe, quand il a fini. */
+  readonly report?: string
+}
+
+export type ProgressListener = (event: AgentProgress) => void
 
 export interface AssemblyRunResult {
   readonly taskId: string

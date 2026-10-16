@@ -1,0 +1,282 @@
+/*
+ * Agents connectés à un nœud (T006, L1o D10). Couleurs du thème : accent (au travail), pro (validé), idea (renvoyé,
+ * bloqué), con (erreur) ; jamais la couleur seule : chaque état a son texte et son pictogramme.
+ */
+
+.agent-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 256px;
+  height: 288px;
+  color: var(--color-content);
+}
+
+/* La chambre-cube seule, sans cadre ni fond (L1o D13) : un clic ouvre la visio. */
+.agent-room {
+  position: relative;
+  display: block;
+  width: 256px;
+  height: 224px;
+  padding: 0;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.agent-room:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.agent-room-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+
+/* Bandeau de la visio, en haut de l'image. */
+.agent-visio-bar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: rgb(14 12 24 / 0.72);
+}
+.agent-visio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-con);
+}
+.agent-visio-clock {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nom, état, passe et avancement : l'état ne se lit jamais par la couleur seule. */
+.agent-caption {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 224px;
+  margin-top: 8px;
+  padding: 4px 16px 8px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in oklab, var(--color-content-muted) 55%, transparent);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  overflow: hidden;
+  transition:
+    border-color 250ms ease,
+    background-color 250ms ease;
+}
+.agent-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agent-state {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--color-content-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Le volet de visio passe au-dessus des outils flottants de la carte. */
+.react-flow__node-toolbar.agent-visio-toolbar {
+  z-index: 30;
+}
+
+/* Volet flottant à côté de l'agent en visio : qui il est, puis la conversation avec lui. */
+.agent-visio-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 384px;
+  height: 520px;
+  max-height: 70vh;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
+  background: var(--color-surface);
+  color: var(--color-content);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.agent-visio-chat {
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid color-mix(in oklab, var(--color-content-muted) 20%, transparent);
+}
+
+/* Sous-titres de la visio : ce que l'agent répond, en bas de l'image. */
+.agent-visio-subs {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #fff;
+  background: rgb(14 12 24 / 0.78);
+}
+
+/* Barre d'avancement au bas du nœud : pleine à la fin, vide à l'attente, qui défile pendant le travail. */
+.agent-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: color-mix(in oklab, var(--color-content-muted) 18%, transparent);
+}
+.agent-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--agent-ink, var(--color-content-muted));
+  transition: width 400ms ease;
+}
+.agent-bar-running {
+  width: 40%;
+  animation: agent-sweep 1.4s ease-in-out infinite;
+}
+@keyframes agent-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* Poignées : visibles à la taille d'un point, pour tirer un lien « attend » d'un agent à l'autre. */
+.agent-handle.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid var(--color-surface);
+  background: var(--color-content-muted);
+}
+
+/* Croquis : pointillés, pas encore lancé. */
+.agent-sketch .agent-caption {
+  border-style: dashed;
+}
+.agent-waiting {
+  opacity: 0.85;
+}
+.agent-running .agent-caption {
+  --agent-ink: var(--color-accent);
+  border-color: var(--color-accent);
+  animation: agent-pulse 1.6s ease-in-out infinite;
+}
+@keyframes agent-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+}
+.agent-done .agent-caption {
+  --agent-ink: var(--color-pro);
+  border-color: color-mix(in oklab, var(--color-pro) 60%, transparent);
+}
+/* Vert à la validation : le QA a validé l'assemblage (puis fusionné après l'accord de mentalyas). */
+.agent-validated .agent-caption,
+.agent-merged .agent-caption {
+  --agent-ink: var(--color-pro);
+  border-color: var(--color-pro);
+  background: color-mix(in oklab, var(--color-pro) 20%, var(--color-surface));
+}
+.agent-merged .agent-caption {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-pro) 35%, transparent);
+}
+.agent-sent-back .agent-caption {
+  --agent-ink: var(--color-idea);
+  border-color: var(--color-idea);
+  background: color-mix(in oklab, var(--color-idea) 14%, var(--color-surface));
+}
+.agent-blocked .agent-caption {
+  --agent-ink: var(--color-idea);
+  border-color: var(--color-idea);
+  border-style: dashed;
+}
+.agent-failed .agent-caption {
+  --agent-ink: var(--color-con);
+  border-color: var(--color-con);
+  background: color-mix(in oklab, var(--color-con) 14%, var(--color-surface));
+}
+.agent-cancelled {
+  opacity: 0.6;
+}
+/* Volet de l'agent affiché (panneau de droite ou visio). */
+.agent-open .agent-caption {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Liens entre agents. */
+.react-flow__edge .agent-link {
+  stroke: var(--color-content-muted);
+  stroke-width: 2;
+}
+.react-flow__edge .agent-link-idle {
+  stroke-dasharray: 2 6;
+  stroke-linecap: round;
+}
+.react-flow__edge .agent-link-context {
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.7;
+}
+.react-flow__edge .agent-link-waiting {
+  opacity: 0.6;
+}
+.react-flow__edge .agent-link-done {
+  stroke: var(--color-pro);
+}
+/* Le résultat de l'agent attendu passe à celui qui travaille : les pointillés avancent. */
+.react-flow__edge .agent-link-flowing {
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+  animation: agent-flow 0.8s linear infinite;
+}
+@keyframes agent-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+.react-flow__edge .agent-link-error {
+  stroke: var(--color-con);
+  stroke-dasharray: 6 4;
+}
+
+/* Mouvement réduit : plus d'animation, les états restent lisibles par leur couleur, leur texte et leur pictogramme. */
+[data-reduced-motion='true'] .agent-running .agent-caption,
+[data-reduced-motion='true'] .agent-bar-running,
+[data-reduced-motion='true'] .agent-link-flowing {
+  animation: none;
+}
+[data-reduced-motion='true'] .agent-bar-running {
+  width: 100%;
+  opacity: 0.6;
+}

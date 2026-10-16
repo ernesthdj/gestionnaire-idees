@@ -67,7 +67,15 @@ import { useRemoveIdea, useRemoveIdeas } from './useRemoveIdea'
 import { useSelectionSync } from './useSelectionSync'
 import { IdeaCards, subjectOf, tabInputOf, tabLabelOf } from './cards/IdeaCards'
 import { cardHead } from './cards/cardContent'
-import { useSidePanel } from './side/sidePanelStore'
+import { agentsTitle, shownAgent, useSidePanel } from './side/sidePanelStore'
+import { AgentEdge } from './agents/AgentEdge'
+import { AgentNode } from './agents/AgentNode'
+import { agentGraph, runOf, wouldCycle } from './agents/agentGraph'
+import { parseAgentNodeId, type AgentEdgeType } from './agents/agentTypes'
+import { addAgent, addLink, emptySketch, placeAgent } from './agents/sketchEdit'
+import { hostsAgents } from './agents/agentsHost'
+import { AGENT_ROLE_LABELS } from '@shared/agents/profile'
+import { useAssemblyActions, useAssemblyData } from './agents/useAssemblies'
 import { focusViewOf, viewNodeIds, viewTitles } from './side/viewNodes'
 import { useCards } from './cards/cardsStore'
 import { useSmoothZoom } from './useSmoothZoom'
@@ -95,7 +103,8 @@ const NODE_TYPES: NodeTypes = {
   document: stillNode(DocumentNode),
   deliverable: stillNode(DeliverableNode),
   workflow: stillNode(WorkflowNode),
-  folder: stillNode(FolderNode)
+  folder: stillNode(FolderNode),
+  agent: stillNode(AgentNode)
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -114,7 +123,7 @@ const BLOCK_TYPES: ReadonlySet<string> = new Set([
   'mapNote',
   'frame'
 ])
-const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge }
+const EDGE_TYPES: EdgeTypes = { branch: BranchEdge, mapLink: MapLinkEdge, agentLink: AgentEdge }
 
 /** Tout objet de la carte : idées, blocs, éléments de structure. */
 type MapNode = CanvasNode
@@ -136,7 +145,7 @@ function markArrival(nodes: readonly MapNode[], key: string, className: string):
       : node
   )
 }
-type MapEdge = BranchEdgeType | MapLinkEdgeType
+type MapEdge = BranchEdgeType | MapLinkEdgeType | AgentEdgeType
 const PAN_STEP = 64
 /** Ajouter une idée à la sélection : Ctrl (ou Cmd) + clic, ou Maj + clic. */
 const MULTI_SELECTION_KEYS = ['Control', 'Meta', 'Shift']
@@ -278,6 +287,14 @@ function CanvasInner(): React.JSX.Element {
   // « Envoyer vers… » d'un bloc (spec 023 D25) : clic droit sur un bloc rangé dans une vue de la carte.
   const [blockMenu, setBlockMenu] = useState<{ id: string; at: Point; view: StructureView } | null>(null)
   const closeBlockMenu = useCallback(() => setBlockMenu(null), [])
+  // Clic droit sur un nœud du Workflow : appeler un agent, ou ouvrir le volet de ses agents (L1o D14).
+  const [agentsMenu, setAgentsMenu] = useState<{
+    hostId: string
+    genesisId: string
+    title: string
+    at: Point
+  } | null>(null)
+  const closeAgentsMenu = useCallback(() => setAgentsMenu(null), [])
   const blockActions = useBlockActions()
   const surface = useRef<HTMLDivElement>(null)
   const clickTimer = useRef(0)
@@ -327,6 +344,11 @@ function CanvasInner(): React.JSX.Element {
   )
   const workflows = useWorkflows(workflowIds)
   const arrival = useUiStore((state) => state.workflowArrival)
+  // Agents connectés aux nœuds (T006) : croquis, assemblages suivis en direct, volet affiché.
+  const assemblyData = useAssemblyData()
+  const assemblyActions = useAssemblyActions()
+  const shownAgentHost = useSidePanel((state) => shownAgent(state)?.hostId ?? null)
+  const shownAgentId = useSidePanel((state) => shownAgent(state)?.agentId ?? null)
 
   // La barre des vues monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
   const projectGenesisId = useUiStore((state) => state.brainstorm?.genesisId ?? null)
@@ -349,11 +371,24 @@ function CanvasInner(): React.JSX.Element {
     const bars = built.nodes.filter((node) => node.type === 'structureBar')
     const bar = bars.find((node) => node.id === `structure-bar-${projectGenesisId ?? ''}`) ?? bars[0]
     const shown = bar === undefined ? built.nodes : built.nodes.filter((node) => node !== bar)
-    const nodes =
+    const marked =
       arrival === null ? shown : markArrival(shown, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
+    // Les agents sont connectés aux nœuds du Workflow (L1o D14) ; un nœud caché (replié, autre vue) les cache.
+    const hosts = new Map<string, { x: number; y: number; title: string }>()
+    for (const node of marked) {
+      if (node.type === 'workflow' && hostsAgents(node.data.item))
+        hosts.set(node.id, { x: node.position.x, y: node.position.y, title: node.data.item.title })
+    }
+    const agents = agentGraph({
+      sketches: assemblyData.sketches,
+      runs: assemblyData.runs,
+      profiles: assemblyData.profiles,
+      hosts,
+      shown: shownAgentHost === null ? null : { hostId: shownAgentHost, agentId: shownAgentId }
+    })
     return {
-      nodes,
-      edges: [...built.edges, ...built.mapEdges],
+      nodes: [...marked, ...agents.nodes],
+      edges: [...built.edges, ...built.mapEdges, ...agents.edges],
       headerBar: bar?.type === 'structureBar' ? bar.data : null
     }
   }, [
@@ -369,7 +404,10 @@ function CanvasInner(): React.JSX.Element {
     workflows,
     arrival,
     reduced,
-    projectGenesisId
+    projectGenesisId,
+    assemblyData,
+    shownAgentHost,
+    shownAgentId
   ])
   const topbarSlot = useTopbarSlot()
   // L'arrivée s'efface d'elle-même (une plus récente garde son propre délai).
@@ -437,6 +475,16 @@ function CanvasInner(): React.JSX.Element {
       await client.invalidateQueries({ queryKey: ['canvas'] })
     },
     [client, showToast]
+  )
+
+  const saveAgentPlace = useCallback(
+    (hostId: string, agentId: string, at: Point): void => {
+      const host = flow.getNode(hostId)
+      const sketch = assemblyData.sketches.find((entry) => entry.nodeId === hostId)
+      if (host === undefined || sketch === undefined) return
+      void assemblyActions.save(placeAgent(agentId, { x: at.x - host.position.x, y: at.y - host.position.y })(sketch))
+    },
+    [flow, assemblyData.sketches, assemblyActions]
   )
 
   // Idée libérée (menu) : elle se replace en direct parmi les autres, qui restent fixes, puis sa place est mémorisée.
@@ -788,10 +836,30 @@ function CanvasInner(): React.JSX.Element {
   }
 
   // Une étape de plan ne se tire que vers un widget (spec 015) : pas de lien libre depuis une étape.
-  const isValidConnection = (connection: Connection | MapEdge): boolean =>
-    connectionIntent(viewRef.current, connection.source, connection.target) !== null
+  const isValidConnection = (connection: Connection | MapEdge): boolean => {
+    if (parseAgentNodeId(connection.source) !== null || parseAgentNodeId(connection.target) !== null)
+      return agentLinkOf(connection.source, connection.target) !== null
+    return connectionIntent(viewRef.current, connection.source, connection.target) !== null
+  }
+
+  // Lien tiré d'un agent à l'autre (T006) : le second attend le premier. Seulement dans un même assemblage, hors boucle
+  // et tant qu'il ne tourne pas.
+  const agentLinkOf = (source: string, target: string) => {
+    const from = parseAgentNodeId(source)
+    const to = parseAgentNodeId(target)
+    if (from === null || to === null || from.hostId !== to.hostId) return null
+    const sketch = assemblyData.sketches.find((entry) => entry.nodeId === from.hostId)
+    if (sketch === undefined || runOf(sketch, assemblyData.runs)?.state === 'running') return null
+    if (sketch.links.some((link) => link.from === from.agentId && link.to === to.agentId)) return null
+    return wouldCycle(sketch.links, from.agentId, to.agentId) ? null : { sketch, from: from.agentId, to: to.agentId }
+  }
 
   const onConnect = (connection: Connection): void => {
+    const agentLink = agentLinkOf(connection.source, connection.target)
+    if (agentLink !== null) {
+      void assemblyActions.save(addLink(agentLink.from, agentLink.to)(agentLink.sketch))
+      return
+    }
     const intent = connectionIntent(viewRef.current, connection.source, connection.target)
     if (intent?.kind === 'input') void connectInput(intent.blockId, intent.sourceId, intent.sourceKind)
     else if (intent?.kind === 'link') void createLink({ aRootId: intent.from, bRootId: intent.to, label: '' })
@@ -1004,6 +1072,17 @@ function CanvasInner(): React.JSX.Element {
                 })
               }}
               onNodeContextMenu={(event, node) => {
+                // Nœud du Workflow (L1o D14) : on y appelle des agents.
+                if (node.type === 'workflow' && hostsAgents(node.data.item)) {
+                  event.preventDefault()
+                  setAgentsMenu({
+                    hostId: node.id,
+                    genesisId: node.data.genesisId,
+                    title: node.data.item.title,
+                    at: { x: event.clientX, y: event.clientY }
+                  })
+                  return
+                }
                 const block = view?.blocks.find((entry) => entry.id === node.id)
                 if (block?.view !== undefined && block.view !== null) {
                   event.preventDefault()
@@ -1023,6 +1102,11 @@ function CanvasInner(): React.JSX.Element {
                 // Les autres objets ne bougent pas pendant un glisser (retour de mentalyas, 2026-10-06).
               }}
               onNodeDragStop={(_event, node) => {
+                // Agent lâché (L1o D13) : sa place est gardée par rapport à son nœud, qu'il suit ensuite.
+                if (node.type === 'agent') {
+                  saveAgentPlace(node.data.hostId, node.data.agentId, node.position)
+                  return
+                }
                 if (PLACED_TYPES.has(node.type ?? '')) {
                   void savePlanDrag(node)
                   return
@@ -1081,6 +1165,45 @@ function CanvasInner(): React.JSX.Element {
               analysisLinks={view !== undefined && view.elements.length > 0 ? analysisLinks : null}
               onPick={(tool) => void pickTool(tool)}
               onClose={closeTools}
+            />
+          )}
+          {agentsMenu === null ? null : (
+            <ContextMenu
+              at={agentsMenu.at}
+              label={`Agents de « ${agentsMenu.title} »`}
+              items={[
+                ...assemblyData.profiles.map((profile): MenuItem<string> => ({
+                  tool: `call:${profile.id}`,
+                  icon: '◇',
+                  label: `Appeler ${profile.name}`,
+                  hint: `${AGENT_ROLE_LABELS[profile.role]} : il apparaît à côté du nœud`
+                })),
+                {
+                  tool: 'panel',
+                  icon: '☰',
+                  label: 'Gérer les agents…',
+                  hint: 'Qui attend qui, lancement, accord de fusion'
+                }
+              ]}
+              onPick={(choice) => {
+                const menuHost = agentsMenu
+                setAgentsMenu(null)
+                const profile = assemblyData.profiles.find((entry) => `call:${entry.id}` === choice)
+                if (profile !== undefined) {
+                  const sketch =
+                    assemblyData.sketches.find((entry) => entry.nodeId === menuHost.hostId) ??
+                    emptySketch(menuHost.hostId, menuHost.genesisId)
+                  void assemblyActions.save(addAgent(profile)(sketch))
+                  return
+                }
+                useSidePanel.getState().openAgents({
+                  nodeId: menuHost.hostId,
+                  genesisId: menuHost.genesisId,
+                  title: agentsTitle(menuHost.title),
+                  kindLabel: 'Agents'
+                })
+              }}
+              onClose={closeAgentsMenu}
             />
           )}
           {blockMenu === null ? null : (

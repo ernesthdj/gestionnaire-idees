@@ -21,7 +21,8 @@ const profile = (id: string, role: AgentRole): AgentProfileView => ({
   model: 'claude-sonnet-5-5',
   effort: 'medium',
   skills: [],
-  updatedAt: 0
+  updatedAt: 0,
+  delivered: 0
 })
 
 const PROFILES = [profile('po', 'po'), profile('back', 'backend'), profile('front', 'frontend'), profile('qa', 'qa')]

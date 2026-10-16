@@ -14,6 +14,7 @@ import {
   upstreamOf,
   zoneOverlapWarning,
   zoneOverlaps,
+  type AgentProgress,
   type AgentRunResult,
   type AgentStopReason,
   type ApprovalResult,
@@ -21,7 +22,8 @@ import {
   type AssemblyAgent,
   type AssemblyRunResult,
   type PassIndex,
-  type PassNature
+  type PassNature,
+  type ProgressListener
 } from '@shared/agents/pipeline'
 import { AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
@@ -80,6 +82,18 @@ const FUSION_DIR = '_fusion'
 interface Outcome {
   readonly result: AgentRunResult
   readonly report?: string
+}
+
+/** Changement d'état que le planificateur annonce à la fin du tour d'un agent. */
+const progressOf = (outcome: Outcome): AgentProgress => {
+  const { result, report } = outcome
+  return {
+    agentId: result.agentId,
+    state: result.status === 'done' ? 'done' : result.status === 'cancelled' ? 'cancelled' : 'failed',
+    ...(result.index === undefined ? {} : { index: result.index }),
+    ...(result.stopped === undefined ? {} : { message: result.stopped.message }),
+    ...(report === undefined ? {} : { report })
+  }
 }
 
 /** Ce qu'il faut pour lancer un tour : l'assemblage, l'agent, sa passe, et les retours du QA pour le PO. */
@@ -146,7 +160,8 @@ export class PipelineEngine {
     await this.baseOf(assembly)
   }
 
-  async run(assembly: Assembly, signal?: AbortSignal): Promise<AssemblyRunResult> {
+  /** `onProgress` reçoit chaque changement d'état d'un agent au fil de l'eau (T006) ; son échec n'arrête jamais le travail. */
+  async run(assembly: Assembly, signal?: AbortSignal, onProgress?: ProgressListener): Promise<AssemblyRunResult> {
     const { taskId } = assembly
     const profileOf = this.checked(assembly)
     const baseBranch = await this.baseOf(assembly)
@@ -159,6 +174,13 @@ export class PipelineEngine {
       })
     journal(`Assemblage lancé depuis ${baseBranch} : ${assembly.agents.length} agent(s).`)
 
+    const progress: ProgressListener = (event) => {
+      try {
+        onProgress?.(event)
+      } catch {
+        // Un suivi défaillant (fenêtre fermée…) ne doit pas faire échouer l'assemblage.
+      }
+    }
     const latest = new Map<string, Outcome>()
     const passes = new Map<string, number>()
     const finish = (completed: boolean, rounds: number): AssemblyRunResult => {
@@ -171,7 +193,7 @@ export class PipelineEngine {
       return { taskId, completed, rounds, agents }
     }
     const runPlan = async (plan: ReadonlyMap<string, PassNature>, feedback?: string): Promise<boolean> => {
-      await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback })
+      await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback, progress })
       return [...plan.keys()].every((id) => latest.get(id)?.result.status === 'done')
     }
 
@@ -194,9 +216,21 @@ export class PipelineEngine {
               'le rapport ne finit pas par « VERDICT: VALIDE » ou « VERDICT: RENVOI ».'
             )
           })
+          progress({
+            agentId: id,
+            state: 'failed',
+            ...(outcome.result.index === undefined ? {} : { index: outcome.result.index }),
+            message: 'le rapport ne finit pas par « VERDICT: VALIDE » ou « VERDICT: RENVOI ».'
+          })
           return finish(false, round)
         }
         latest.set(id, { ...outcome, result: { ...outcome.result, verdict } })
+        progress({
+          agentId: id,
+          state: 'done',
+          verdict,
+          ...(outcome.result.index === undefined ? {} : { index: outcome.result.index })
+        })
         if (verdict === 'renvoi') renvois.push(`### ${id}\n${outcome.report ?? ''}`)
       }
       if (renvois.length === 0) return finish(true, round)
@@ -216,6 +250,12 @@ export class PipelineEngine {
             ? 'la spec réécrite ne finit pas par « AGENTS: <agent>=correction|repasse, … ».'
             : `la spec désigne « ${unknown} », qui n’est pas un agent à relancer.`
         latest.set(po.id, { result: this.stop(outcome.result, 'po-no-designation', message) })
+        progress({
+          agentId: po.id,
+          state: 'failed',
+          ...(outcome.result.index === undefined ? {} : { index: outcome.result.index }),
+          message
+        })
         return finish(false, round + 1)
       }
       plan = new Map(designated)
@@ -319,8 +359,9 @@ export class PipelineEngine {
     readonly latest: Map<string, Outcome>
     readonly passes: Map<string, number>
     readonly feedback: string | undefined
+    readonly progress: ProgressListener
   }): Promise<void> {
-    const { assembly, plan, profileOf, latest, passes, signal } = input
+    const { assembly, plan, profileOf, latest, passes, signal, progress } = input
     const upstream = upstreamOf(assembly)
     const settled = new Set<string>()
     const running = new Map<string, Promise<void>>()
@@ -344,7 +385,15 @@ export class PipelineEngine {
         }
       })
       settled.add(agent.id)
+      progress({
+        agentId: agent.id,
+        state: status,
+        ...(previous?.index === undefined ? {} : { index: previous.index }),
+        message
+      })
     }
+    // Les agents de ce tour attendent, sauf ceux qui démarrent aussitôt.
+    for (const agent of assembly.agents) if (plan.has(agent.id)) progress({ agentId: agent.id, state: 'waiting' })
     const launchReady = (): void => {
       for (const agent of assembly.agents) {
         const nature = plan.get(agent.id)
@@ -375,8 +424,10 @@ export class PipelineEngine {
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
           signal
         }
+        progress({ agentId: agent.id, state: 'running', index: { pass, nature } })
         const task = this.execute(turn).then((outcome) => {
           latest.set(agent.id, outcome)
+          progress(progressOf(outcome))
           settled.add(agent.id)
           running.delete(agent.id)
         })

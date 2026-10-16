@@ -3,8 +3,9 @@ import { AppError } from '../../../src/main/domain/errors'
 import { createAssemblyRoutes } from '../../../src/main/ipc/assemblyHandlers'
 import { createDispatcher } from '../../../src/main/ipc/registry'
 
-const NODE = '11111111-1111-4111-8111-111111111111'
 const GENESIS = '22222222-2222-4222-8222-222222222222'
+/** Tâche d'un fichier de tâches de la vue Workflow (L1o D14). */
+const NODE = `wf:${GENESIS}:ttask:docs-taches-design-t001`
 const PROFILE = '33333333-3333-4333-8333-333333333333'
 
 describe('canaux des agents assemblés (T005)', () => {
@@ -16,7 +17,10 @@ describe('canaux des agents assemblés (T005)', () => {
     approve: vi.fn(async () => {
       throw new AppError('CONFLICT', 'pas validé')
     }),
-    list: vi.fn(() => [view])
+    list: vi.fn(() => [view]),
+    sketches: vi.fn(() => []),
+    saveSketch: vi.fn((request: { nodeId: string }) => ({ ...request, genesisId: GENESIS })),
+    clearSketch: vi.fn()
   }
   const dispatch = createDispatcher(createAssemblyRoutes(deps as never))
   const request = {
@@ -76,5 +80,57 @@ describe('canaux des agents assemblés (T005)', () => {
     expect(await dispatch('assembly:list', {})).toEqual({ success: true, data: [view] })
     expect(deps.list).toHaveBeenCalledWith(undefined)
     expect((await dispatch('assembly:list', { genesisId: 'x' })).success).toBe(false)
+  })
+
+  it('should_save_read_and_clear_a_sketch_without_a_base_branch', async () => {
+    expect(await dispatch('assembly:sketchSave', { ...request, task: 'Trier' })).toMatchObject({ success: true })
+    expect(deps.saveSketch).toHaveBeenCalledWith({
+      nodeId: NODE,
+      taskId: 'T020',
+      task: 'Trier',
+      agents: [{ id: 'back', profileId: PROFILE }],
+      links: []
+    })
+    expect(
+      await dispatch('assembly:sketchSave', {
+        ...request,
+        agents: [{ id: 'back', profileId: PROFILE, place: { x: -320, y: 48 } }]
+      })
+    ).toMatchObject({ success: true })
+    expect(deps.saveSketch).toHaveBeenLastCalledWith(
+      expect.objectContaining({ agents: [{ id: 'back', profileId: PROFILE, place: { x: -320, y: 48 } }] })
+    )
+    expect(await dispatch('assembly:sketches', {})).toEqual({ success: true, data: [] })
+    expect(deps.sketches).toHaveBeenCalledWith(undefined)
+    expect(await dispatch('assembly:sketchClear', { nodeId: NODE })).toEqual({ success: true, data: {} })
+    expect(deps.clearSketch).toHaveBeenCalledWith(NODE)
+  })
+
+  it('should_refuse_a_sketch_with_a_base_branch_a_bad_node_or_a_bad_link', async () => {
+    for (const bad of [
+      { ...request, baseBranch: 'main' },
+      { ...request, nodeId: 'pas-un-uuid' },
+      // Un neurone n'accueille plus d'agents : seulement les nœuds du Workflow.
+      { ...request, nodeId: '11111111-1111-4111-8111-111111111111' },
+      { ...request, agents: [{ id: 'back', profileId: PROFILE, place: { x: 1e9, y: 0 } }] },
+      { ...request, links: [{ from: 'Back', to: 'qa' }] },
+      { ...request, agents: [] }
+    ]) {
+      expect((await dispatch('assembly:sketchSave', bad)).success).toBe(false)
+    }
+    expect((await dispatch('assembly:sketchClear', { nodeId: 'x' })).success).toBe(false)
+    expect(deps.saveSketch).not.toHaveBeenCalled()
+  })
+
+  it('should_open_the_visio_chat_of_an_agent_on_a_workflow_node_only', async () => {
+    const chats = { open: vi.fn(() => ({ neuronId: 'n1' })) }
+    const withChat = createDispatcher(createAssemblyRoutes(deps as never, chats))
+    expect(await withChat('assembly:chat', { nodeId: NODE, agentId: 'back' })).toEqual({
+      success: true,
+      data: { neuronId: 'n1' }
+    })
+    expect(chats.open).toHaveBeenCalledWith(NODE, 'back')
+    expect((await withChat('assembly:chat', { nodeId: GENESIS, agentId: 'back' })).success).toBe(false)
+    expect((await withChat('assembly:chat', { nodeId: NODE, agentId: 'Back!' })).success).toBe(false)
   })
 })

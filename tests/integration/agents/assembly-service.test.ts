@@ -2,7 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { AssemblyService, type AssemblyNode } from '../../../src/main/application/agents/AssemblyService'
+import {
+  AssemblyService,
+  type AssemblyNode,
+  type SketchStore
+} from '../../../src/main/application/agents/AssemblyService'
 import { PipelineDocuments } from '../../../src/main/application/agents/PipelineDocuments'
 import {
   PipelineEngine,
@@ -12,6 +16,7 @@ import {
 import { runGit } from '../../../src/main/infrastructure/projects/GitCli'
 import type { AssemblyRequest } from '../../../src/main/application/agents/AssemblyService'
 import type { AgentProfileView, AgentRole } from '../../../src/shared/agents/profile'
+import type { AssemblySketchView } from '../../../src/shared/ipc/assemblies'
 
 const profile = (id: string, role: AgentRole): AgentProfileView => ({
   id,
@@ -22,7 +27,8 @@ const profile = (id: string, role: AgentRole): AgentProfileView => ({
   model: 'claude-sonnet-5-5',
   effort: 'medium',
   skills: [],
-  updatedAt: 0
+  updatedAt: 0,
+  delivered: 0
 })
 
 const PROFILES = [profile('po', 'po'), profile('back', 'backend'), profile('qa', 'qa')]
@@ -32,7 +38,14 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
   let project: string
   let sessions: AgentSessionRequest[]
   let events: string[]
+  let credited: string[]
   let engines: number
+  let stored: Map<string, AssemblySketchView>
+  const sketchStore: SketchStore = {
+    list: (genesisId) => [...stored.values()].filter((s) => genesisId === undefined || s.genesisId === genesisId),
+    save: (sketch) => void stored.set(sketch.nodeId, sketch),
+    remove: (nodeId) => void stored.delete(nodeId)
+  }
   const git = (args: readonly string[]) => runGit(project, args)
 
   const node = (patch: Partial<AssemblyNode> = {}): AssemblyNode => ({
@@ -62,6 +75,7 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     runSession: AgentSessionRunner = runner
   ): AssemblyService =>
     new AssemblyService({
+      sketches: sketchStore,
       node: (id) => (id === NODE_ID ? found : undefined),
       refusal: () => refusal,
       engineFor: ({ projectDir, projectName }) => {
@@ -81,7 +95,8 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
             })
         })
       },
-      emit: (genesisId, taskId) => events.push(`${genesisId}/${taskId}`)
+      emit: (genesisId, taskId) => events.push(`${genesisId}/${taskId}`),
+      credit: (profileIds) => credited.push(...profileIds)
     })
 
   const NODE_ID = '11111111-1111-4111-8111-111111111111'
@@ -101,7 +116,9 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
   beforeEach(async () => {
     sessions = []
     events = []
+    credited = []
     engines = 0
+    stored = new Map()
     root = mkdtempSync(join(tmpdir(), 'gi-assembly-'))
     project = join(root, 'projet')
     mkdirSync(project)
@@ -134,6 +151,8 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(sessions[0]?.prompt).toContain('Résumé : tri par date')
     expect(sessions[0]?.prompt).toContain('Trier par date décroissante')
     expect(events).toContain('g1/T020')
+    // Travail livré (L1o D13) : un point à la validation du QA…
+    expect(credited).toEqual(['back'])
 
     // Rien sur la base avant l'accord ; après, la branche de l'agent est fusionnée.
     expect((await git(['ls-tree', '-r', '--name-only', 'main'])).output).not.toContain('back.txt')
@@ -141,6 +160,8 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(approval).toMatchObject({ merged: true, baseBranch: 'main' })
     expect((await git(['ls-tree', '-r', '--name-only', 'main'])).output).toContain('back.txt')
     expect(service.list('g1')[0]?.approval?.merged).toBe(true)
+    // … et un autre à la fusion acceptée.
+    expect(credited).toEqual(['back', 'back'])
     await expect(service.approve('g1', 'T020')).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
@@ -229,5 +250,95 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     // Un seul moteur : ses commandes git passent une à une, les deux tâches aboutissent.
     expect(engines).toBe(1)
     expect(service.list().map((run) => run.result?.completed)).toEqual([true, true])
+  })
+
+  it('should_follow_each_agent_live_from_waiting_to_done_with_pass_verdict_and_report', async () => {
+    const seen: string[] = []
+    const watching = (request: AgentSessionRequest) => {
+      // Pendant la session du back, le PO a fini et le QA attend.
+      if (request.profile.id === 'back') {
+        seen.push(
+          service
+            .list()[0]
+            ?.agents.map((a) => `${a.agentId}:${a.state}`)
+            .join(',') ?? ''
+        )
+      }
+      return runner(request)
+    }
+    const service: AssemblyService = serviceWith(node(), null, watching)
+    await service.start({
+      nodeId: NODE_ID,
+      taskId: 'T022',
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'back', profileId: 'back' },
+        { id: 'qa', profileId: 'qa' }
+      ],
+      links: [
+        { from: 'po', to: 'back' },
+        { from: 'back', to: 'qa' }
+      ]
+    })
+    expect(service.list()[0]?.agents.map((a) => a.state)).toEqual(['waiting', 'waiting', 'waiting'])
+    await finished(service, 'T022')
+    expect(seen).toEqual(['po:done,back:running,qa:waiting'])
+    const [po, back, qa] = service.list()[0]?.agents ?? []
+    expect(po).toMatchObject({ state: 'done', pass: 1, nature: 'initiale', specVersion: 1 })
+    expect(back).toMatchObject({ state: 'done', report: 'Rapport back' })
+    expect(qa).toMatchObject({ state: 'done', verdict: 'valide' })
+    expect(events.length).toBeGreaterThan(6)
+  })
+
+  it('should_show_a_failed_agent_with_its_reason_and_block_the_ones_that_wait_for_it', async () => {
+    const failing: AgentSessionRunner = async (request) =>
+      request.profile.id === 'po' ? { ok: false, text: '', error: 'Session coupée.' } : runner(request)
+    const service = serviceWith(node(), null, failing)
+    await service.start({
+      nodeId: NODE_ID,
+      taskId: 'T023',
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'back', profileId: 'back' }
+      ],
+      links: [{ from: 'po', to: 'back' }]
+    })
+    await finished(service, 'T023')
+    const [po, back] = service.list()[0]?.agents ?? []
+    expect(po).toMatchObject({ state: 'failed', message: 'Session coupée.' })
+    expect(back).toMatchObject({ state: 'blocked' })
+  })
+
+  it('should_keep_a_sketch_per_node_replace_it_and_refuse_a_badly_formed_one', () => {
+    const service = serviceWith(node())
+    const sketch = {
+      nodeId: NODE_ID,
+      taskId: 'T030',
+      task: 'Trier',
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'back', profileId: 'back', zone: ['src/liste'] }
+      ],
+      links: [{ from: 'po', to: 'back' }]
+    }
+    expect(service.saveSketch(sketch)).toMatchObject({ genesisId: 'g1', taskId: 'T030', task: 'Trier' })
+    // Un croquis peut être incomplet (pas encore de PO) : il se vérifie au lancement.
+    service.saveSketch({ ...sketch, taskId: 'T031', agents: [{ id: 'back', profileId: 'back' }], links: [] })
+    expect(service.sketches('g1')).toEqual([expect.objectContaining({ taskId: 'T031' })])
+    expect(service.sketches('autre')).toEqual([])
+    expect(() => service.saveSketch({ ...sketch, links: [{ from: 'po', to: 'absent' }] })).toThrowError(/absent/)
+    expect(() =>
+      service.saveSketch({
+        ...sketch,
+        links: [
+          { from: 'po', to: 'back' },
+          { from: 'back', to: 'po' }
+        ]
+      })
+    ).toThrowError(/boucle/)
+    expect(() => service.saveSketch({ ...sketch, taskId: '../x' })).toThrowError(/tâche/)
+    expect(() => serviceWith(undefined).saveSketch(sketch)).toThrowError(/introuvable/)
+    service.clearSketch(NODE_ID)
+    expect(service.sketches()).toEqual([])
   })
 })

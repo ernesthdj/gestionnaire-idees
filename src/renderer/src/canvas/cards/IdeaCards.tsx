@@ -14,7 +14,8 @@ import { ELEMENT_STYLES, ElementLayerSelect, ElementStatusSelect, STATUS_LABELS 
 import { DeliverableFiles } from '../nodes/DeliverableNode'
 import { GhostDecision, StepFinalActions } from '../nodes/PlanNode'
 import { usePlanFold } from '../usePlanFold'
-import { shownNodeId, useSidePanel, type ChatTabInput } from '../side/sidePanelStore'
+import { agentsTitle, shownNodeId, useSidePanel, type ChatTabInput } from '../side/sidePanelStore'
+import { agentsGenesisOf } from '../agents/agentsHost'
 import { canChat, cardHead, type CardHead, type CardSubject } from './cardContent'
 import { useCards, type OpenCard } from './cardsStore'
 import { DetailCard, type NodeBox } from './DetailCard'
@@ -253,6 +254,31 @@ function IdeaCard({
       </button>
     ) : undefined
 
+  // Agents connectés à ce nœud (T006) : un bouton ouvre leur volet, où on les ajoute, les relie et les lance.
+  const agentsGenesis = agentsGenesisOf(subject)
+  const withAgents =
+    agentsGenesis === null ? (
+      actions
+    ) : (
+      <span className="flex flex-wrap items-center gap-2">
+        {actions}
+        <button
+          type="button"
+          className="card-button card-button-ghost"
+          onClick={() =>
+            side.openAgents({
+              nodeId: card.id,
+              genesisId: agentsGenesis,
+              title: agentsTitle(cardHead(subject).title),
+              kindLabel: 'Agents'
+            })
+          }
+        >
+          ◇ Agents
+        </button>
+      </span>
+    )
+
   // Vue Workflow d'un projet lié (spec 023 US3) : la fondation dans la carte du genesis, lue dans le panneau.
   const workflowGenesis =
     subject.kind === 'idea' && subject.neuron.linkedProject === true && structureViews[subject.neuron.id] === 'workflow'
@@ -288,7 +314,7 @@ function IdeaCard({
                 )
               }
             : {})}
-      {...(actions === undefined ? {} : { actions })}
+      {...(withAgents === undefined ? {} : { actions: withAgents })}
       {...(sheet === undefined ? {} : { sheet })}
       {...(subject.kind === 'ghost' ? { sheetLabel: 'Pourquoi' } : {})}
       canChat={canChat(subject)}

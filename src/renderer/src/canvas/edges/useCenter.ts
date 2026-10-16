@@ -16,8 +16,8 @@ function centerOf(node: InternalNode): Point {
   return { x: x + (node.measured.width ?? 0) / 2, y: y + (node.measured.height ?? 0) / 2 }
 }
 
-/** Nœuds rectangulaires (un lien s'arrête à leur bord) : aucun depuis la spec 022, où les éléments sont ronds. */
-const RECTANGLES: ReadonlySet<string> = new Set<string>()
+/** Nœuds rectangulaires (un lien s'arrête à leur bord) : les agents (T006) ; les éléments sont ronds depuis la spec 022. */
+const RECTANGLES: ReadonlySet<string> = new Set<string>(['agent'])
 
 /**
  * Point où le segment du centre d'un rectangle vers `toward` en traverse le bord ; le centre si `toward` est dedans.

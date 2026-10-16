@@ -262,6 +262,37 @@ describe('migrations du modèle de neurones', () => {
     expect(tables()).toContain('code_file_summaries')
   })
 
+  it('should_add_the_assembly_sketches_table_then_remove_it_with_the_down_migration', () => {
+    expect(columns('assembly_sketches')).toEqual(
+      expect.arrayContaining(['node_id', 'genesis_id', 'task_id', 'task', 'agents', 'links', 'updated_at'])
+    )
+    runDown('0052_assembly_sketches')
+    expect(tables()).not.toContain('assembly_sketches')
+    expect(tables()).toContain('agent_profiles')
+  })
+
+  it('should_free_sketches_from_neurons_then_bring_the_foreign_key_back_with_the_down_migration', () => {
+    const keys = (): string[] =>
+      handle.db.all<{ table: string }>(sql.raw('PRAGMA foreign_key_list(assembly_sketches)')).map((row) => row.table)
+    expect(keys()).toEqual([])
+    // Un croquis connecté à une tâche du Workflow (clé `wf:…`) : aucun neurone ne porte cet identifiant.
+    handle.db.run(
+      sql.raw(
+        "INSERT INTO assembly_sketches (node_id, genesis_id, task_id, updated_at) VALUES ('wf:g:ttask:t1', 'g', 'T-1', 0)"
+      )
+    )
+    runDown('0054_sketch_workflow_hosts')
+    expect(keys()).toEqual(['neurons'])
+    expect(handle.db.all(sql.raw('SELECT node_id FROM assembly_sketches'))).toEqual([])
+  })
+
+  it('should_add_the_delivered_column_then_remove_it_with_the_down_migration', () => {
+    expect(columns('agent_profiles')).toContain('delivered')
+    runDown('0053_agent_delivered')
+    expect(columns('agent_profiles')).not.toContain('delivered')
+    expect(columns('agent_profiles')).toContain('skills')
+  })
+
   it('should_add_the_tool_file_columns_then_remove_them_with_the_down_migration', () => {
     expect(columns('neuron_messages')).toEqual(expect.arrayContaining(['tool_path', 'tool_patch']))
     runDown('0051_tool_files')

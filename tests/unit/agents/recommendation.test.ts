@@ -16,6 +16,7 @@ const profile = (over: Partial<AgentProfileView>): AgentProfileView => ({
   effort: 'medium',
   skills: ['perso:tdd'],
   updatedAt: 0,
+  delivered: 0,
   ...over
 })
 

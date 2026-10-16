@@ -60,10 +60,12 @@ import { resolveGit } from './infrastructure/projects/GitCli'
 import { SKILLS_FRAME } from './application/skills/skillsFrame'
 import { SkillTools } from './application/mcp/SkillTools'
 import { AgentProfileRepository } from './infrastructure/db/repositories/AgentProfileRepository'
+import { AssemblySketchRepository } from './infrastructure/db/repositories/AssemblySketchRepository'
 import { AgentProfileService } from './application/agents/AgentProfileService'
 import { AssemblyService } from './application/agents/AssemblyService'
 import { PipelineDocuments } from './application/agents/PipelineDocuments'
 import { PipelineEngine } from './application/agents/PipelineEngine'
+import { e2eAgentRun, e2eConversationSpawn } from './infrastructure/ai/E2eClaude'
 import { createAgentSessionRunner } from './infrastructure/claude/AgentSession'
 import { createAssemblyRoutes } from './ipc/assemblyHandlers'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
@@ -182,6 +184,8 @@ import { GitRunner } from './infrastructure/git/GitRunner'
 import { GitWriteQueue } from './infrastructure/git/GitWriteQueue'
 import { GitRepository } from './infrastructure/db/repositories/GitRepository'
 import { WorkflowService } from './application/workflow/WorkflowService'
+import { workflowHost, workflowHostGenesis, type WorkflowHost } from './application/agents/workflowHost'
+import { AgentChats, agentPersona, parseAgentChatKey } from './application/agents/AgentChats'
 import { WorkflowAnatomy } from './application/workflow/WorkflowAnatomy'
 import { WorkflowChats } from './application/workflow/WorkflowChats'
 import { WorkflowSummaries } from './application/workflow/WorkflowSummaries'
@@ -379,8 +383,11 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     onChanged: (scannedAt) => broadcast('skills:changed', { scannedAt })
   })
   // Profils d'agents des pipelines (docs/TACHES-AGENTS.md T001).
+  const agentProfileRepository = new AgentProfileRepository(database.db)
+  // Croquis des agents connectés aux nœuds du Workflow (T006, L1o D14).
+  const assemblySketches = new AssemblySketchRepository(database.db)
   const agentProfiles = new AgentProfileService({
-    repository: new AgentProfileRepository(database.db),
+    repository: agentProfileRepository,
     skillIds: () => new Set(skillInventory.list().skills.map((skill) => skill.id))
   })
   // Brouillons, installation, versions et suppression des skills (spec 020 US3, constitution 4.5.0).
@@ -808,8 +815,31 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   mkdirSync(workspace, { recursive: true })
   const conversations: ConversationService = new ConversationService({
     repository: conversationRepository,
-    spawn: spawnClaudeConversation,
-    claudePath: resolveClaudePath,
+    // Visio avec un agent (L1o D13) : persona du profil, contexte de sa tâche, son worktree s'il a déjà travaillé.
+    agentPersona: (neuron) => {
+      const key = neuron.elementKey === null ? null : parseAgentChatKey(neuron.elementKey)
+      if (key === null || neuron.genesisId === null) return undefined
+      const sketch = assemblySketches.list(neuron.genesisId).find((entry) => entry.nodeId === key.hostId)
+      const agent = sketch?.agents.find((entry) => entry.id === key.agentId)
+      const profile = agent === undefined ? undefined : agentProfiles.list().find((p) => p.id === agent.profileId)
+      if (sketch === undefined || profile === undefined) return undefined
+      let host: WorkflowHost | undefined
+      try {
+        host = workflowHost(workflow.readSync(neuron.genesisId), key.hostId)
+      } catch {
+        host = undefined
+      }
+      const worktree = join(dataDir, 'agent-worktrees', neuron.genesisId, sketch.taskId, key.agentId)
+      return agentPersona({
+        profile,
+        hostTitle: host?.title ?? 'tâche du Workflow',
+        hostContext: host?.content ?? '',
+        worktree: existsSync(worktree) ? worktree : null
+      })
+    },
+    // Tests e2e : conversation simulée (réponse fixe, mot par mot), aucun processus `claude` lancé.
+    spawn: options.e2eClaudeReply === undefined ? spawnClaudeConversation : e2eConversationSpawn(),
+    claudePath: options.e2eClaudeReply === undefined ? resolveClaudePath : async () => 'claude-e2e',
     settings: () => ({
       cwd: workspace,
       model: ai.config.get().claudeModel,
@@ -1208,7 +1238,10 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   // Agents assemblés (docs/TACHES-AGENTS.md T005) : un PO ou un agent seul connecté à un nœud, planificateur en
   // arrière-plan. Worktrees et journal du projet hors du dépôt (profil de l'app) ; jamais sur un projet repris.
   const agentSessions = createAgentSessionRunner({
-    claudePath: resolveClaudePath,
+    // Tests e2e : sessions simulées (même réglage que le Claude simulé des neurones), aucun processus lancé.
+    ...(options.e2eClaudeReply === undefined
+      ? { claudePath: resolveClaudePath }
+      : { claudePath: async () => 'claude-e2e', run: e2eAgentRun() }),
     skills: {
       resolve: (skillId) => {
         const dir = skillInventory.dirOf(skillId)
@@ -1218,23 +1251,32 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     }
   })
   const assemblies = new AssemblyService({
+    sketches: assemblySketches,
+    // Les agents se connectent aux nœuds de la vue Workflow (L1o D14) : leur contexte se lit dans les fichiers du projet.
     node: (nodeId) => {
-      const neuron = conversationRepository.neuron(nodeId)
-      if (neuron === undefined) return undefined
-      const genesisId = neuron.kind === 'root' ? neuron.id : neuron.genesisId
+      const genesisId = workflowHostGenesis(nodeId)
       if (genesisId === null) return undefined
       const genesis = conversationRepository.neuron(genesisId)
-      if (genesis === undefined || genesis.state === 'archived') return undefined
+      if (genesis === undefined || genesis.state === 'archived' || genesis.projectDir === null) return undefined
+      let host: WorkflowHost | undefined
+      try {
+        host = workflowHost(workflow.readSync(genesisId), nodeId)
+      } catch {
+        host = undefined
+      }
+      if (host === undefined) return undefined
       return {
         genesisId,
-        kind: neuron.elementType ?? neuron.kind,
-        title: neuron.title,
-        content: neuron.content,
-        sheet: sheetMarkdown(readSheet(neuron.sheetJson)),
+        kind: host.kind,
+        title: host.title,
+        content: host.content,
+        sheet: sheetMarkdown(readSheet(genesis.sheetJson)),
         projectDir: genesis.projectDir,
         projectName: genesis.title
       }
     },
+    // Travail livré (L1o D13) : la chambre de l'agent s'enrichit (la carte relit les profils sur `assembly:changed`).
+    credit: (profileIds) => agentProfileRepository.addDelivered(profileIds),
     refusal: (genesisId) => {
       if (repriseRepository.project(genesisId) !== undefined) {
         return 'Un projet repris n’est jamais modifié par l’app : les agents n’y travaillent pas.'
@@ -1427,7 +1469,18 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           usage: () => skillUsage.usage(skillInventory.list().skills)
         }
       }),
-      ...createAssemblyRoutes(assemblies),
+      ...createAssemblyRoutes(
+        assemblies,
+        new AgentChats({
+          repository: workflowChatRepository,
+          sketches: (genesisId) => assemblies.sketches(genesisId),
+          profile: (profileId) => agentProfiles.list().find((profile) => profile.id === profileId),
+          linkedGenesis: (genesisId) => {
+            const genesis = conversationRepository.neuron(genesisId)
+            return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
+          }
+        })
+      ),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

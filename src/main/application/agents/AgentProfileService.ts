@@ -22,7 +22,8 @@ const toView = (row: AgentProfileRow): AgentProfileView => ({
   model: row.model,
   effort: row.effort,
   skills: JSON.parse(row.skills) as string[],
-  updatedAt: row.updatedAt
+  updatedAt: row.updatedAt,
+  delivered: row.delivered
 })
 
 /** Profils d'agents (T001) : créés et modifiés depuis la page Skills ; lus plus tard par le moteur d'enchaînement. */

@@ -51,7 +51,10 @@ export const neurons = sqliteTable(
         'analyst_update',
         // Conversation d'un nœud de la vue Workflow (spec 023 D6) : cachée, rattachée au genesis (`genesis_id`, son dossier
         // et sa confidentialité), clé du nœud dans `element_key`.
-        'workflow_chat'
+        'workflow_chat',
+        // Conversation avec un agent connecté à un nœud du Workflow (L1o D13) : cachée, rattachée au genesis, clé
+        // `agent:<agent>:<nœud>` dans `element_key` ; elle parle avec la persona du profil de l'agent.
+        'agent_chat'
       ]
     }).notNull(),
     title: text('title').notNull(),
