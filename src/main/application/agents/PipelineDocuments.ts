@@ -17,6 +17,7 @@ import {
 } from '@shared/agents/documents'
 import { PASS_NATURES, isValidAgentId, type PassIndex, type PassNature } from '@shared/agents/pipeline'
 import { AGENT_ROLES, type AgentRole } from '@shared/agents/profile'
+import { parseLotPlan } from '@shared/agents/lotPlan'
 import { parseSpecAgents } from '@shared/agents/recommendation'
 import { AppError } from '../../domain/errors'
 
@@ -121,7 +122,15 @@ export class PipelineDocuments {
       `<!-- pipeline:spec signee-par=${role} version=${version} le=${signedAt} -->\n${text}\n`
     )
     this.appendJournal({ at: signedAt, taskId, role, message: `Spec v${version} signée.` })
-    return { taskId, signedBy: role, version, signedAt, content: text, agents: parseSpecAgents(text) }
+    return {
+      taskId,
+      signedBy: role,
+      version,
+      signedAt,
+      content: text,
+      agents: parseSpecAgents(text),
+      plan: parseLotPlan(text)
+    }
   }
 
   readSpec(taskId: string): PipelineSpec | undefined {
@@ -138,7 +147,8 @@ export class PipelineDocuments {
       version: Number(head[2]),
       signedAt: Number(head[3]),
       content,
-      agents: parseSpecAgents(content)
+      agents: parseSpecAgents(content),
+      plan: parseLotPlan(content)
     }
   }
 

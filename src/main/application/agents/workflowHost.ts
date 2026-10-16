@@ -1,3 +1,4 @@
+import type { LotTask } from '@shared/agents/lotPlan'
 import {
   WORKFLOW_KEY,
   type TaskFileView,
@@ -21,6 +22,8 @@ export interface WorkflowHost {
   readonly content: string
   /** Case de la tâche dans son fichier `docs/TACHES-*.md` (nœud tâche seulement) : cochée à la fusion (L1o D23). */
   readonly box?: TaskBox
+  /** Tâches d'un lot ou d'un fichier de tâches, dans l'ordre : le PO les cadre toutes (L1o D25). */
+  readonly lotTasks?: readonly LotTask[]
 }
 
 /** Une tâche d'un fichier de tâches : son chemin dans le projet et sa clé (`parseTaskFile`). */
@@ -53,6 +56,8 @@ function section(title: string, lines: readonly string[]): string[] {
 
 const groupTasks = (group: TaskGroupView): TaskView[] => [...group.tasks, ...group.groups.flatMap(groupTasks)]
 const fileTasks = (file: TaskFileView): TaskView[] => [...file.tasks, ...file.lots.flatMap(groupTasks)]
+const lotOf = (tasks: readonly TaskView[]): LotTask[] =>
+  tasks.map((task) => ({ id: task.id, key: task.key ?? '', text: task.text, done: task.done }))
 
 function findGroup(file: TaskFileView, key: string): TaskGroupView | undefined {
   const walk = (groups: readonly TaskGroupView[]): TaskGroupView | undefined => {
@@ -138,19 +143,28 @@ export function workflowHost(view: WorkflowView, nodeId: string): WorkflowHost |
         const file = view.taskFiles.find((entry) => entry.key === first)
         return file === undefined
           ? undefined
-          : describe('fichier de tâches', file.title, fileTasks(file), [file.path, ...docsOfFile(view, file.path)])
+          : {
+              ...describe('fichier de tâches', file.title, fileTasks(file), [
+                file.path,
+                ...docsOfFile(view, file.path)
+              ]),
+              lotTasks: lotOf(fileTasks(file))
+            }
       }
       case 'tgroup': {
         for (const file of view.taskFiles) {
           const group = findGroup(file, first)
           if (group !== undefined) {
-            return describe(
-              'lot',
-              group.title,
-              groupTasks(group),
-              [file.path, ...docsOfFile(view, file.path)],
-              [`Lot de ${file.path}.`]
-            )
+            return {
+              ...describe(
+                'lot',
+                group.title,
+                groupTasks(group),
+                [file.path, ...docsOfFile(view, file.path)],
+                [`Lot de ${file.path}.`]
+              ),
+              lotTasks: lotOf(groupTasks(group))
+            }
           }
         }
         return undefined

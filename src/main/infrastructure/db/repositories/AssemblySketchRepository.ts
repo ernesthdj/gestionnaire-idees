@@ -15,6 +15,19 @@ const Agents = z.array(
   })
 )
 const Links = z.array(z.object({ from: z.string(), to: z.string() }))
+const Lot = z.object({
+  plan: z.object({
+    steps: z.array(
+      z.object({
+        task: z.string(),
+        agents: z.array(z.string()),
+        waits: z.array(z.object({ agent: z.string(), after: z.string() }))
+      })
+    ),
+    rhythm: z.object({ mode: z.enum(['une-a-une', 'tout']), reason: z.string() }).nullable()
+  }),
+  overrides: z.array(z.object({ task: z.string(), agents: z.array(z.string()), links: Links }))
+})
 
 /**
  * Croquis des agents connectés aux nœuds (T006) : un par nœud, remplacé à chaque enregistrement. Le JSON est relu avec
@@ -32,6 +45,8 @@ export class AssemblySketchRepository implements SketchStore {
       const agents = Agents.safeParse(parse(row.agents))
       const links = Links.safeParse(parse(row.links))
       if (!agents.success || !links.success) return []
+      // Un plan de lot illisible est ignoré : l'équipe reste, sans aiguillage.
+      const lot = row.lot === null ? undefined : Lot.safeParse(parse(row.lot))
       return [
         {
           nodeId: row.nodeId,
@@ -45,7 +60,8 @@ export class AssemblySketchRepository implements SketchStore {
             ...(zone === undefined ? {} : { zone }),
             ...(place === undefined ? {} : { place: { x: place.x, y: place.y } })
           })),
-          links: links.data
+          links: links.data,
+          ...(lot?.success === true ? { lot: lot.data } : {})
         }
       ]
     })
@@ -59,6 +75,7 @@ export class AssemblySketchRepository implements SketchStore {
       task: sketch.task ?? null,
       agents: JSON.stringify(sketch.agents),
       links: JSON.stringify(sketch.links),
+      lot: sketch.lot === undefined ? null : JSON.stringify(sketch.lot),
       updatedAt: Date.now()
     }
     this.db

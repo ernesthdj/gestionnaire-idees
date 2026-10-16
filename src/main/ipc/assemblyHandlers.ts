@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { ApprovalResult, CleanupResult } from '@shared/agents/pipeline'
+import type { ApprovalResult, AssemblyLink, CleanupResult } from '@shared/agents/pipeline'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
 import { WORKFLOW_KEY } from '@shared/ipc/workflow'
 import type { AssemblyRequest } from '../application/agents/AssemblyService'
@@ -16,6 +16,11 @@ export interface AssemblyRoutesDeps {
   saveSketch(request: Omit<AssemblyRequest, 'baseBranch'>): AssemblySketchView
   clearSketch(nodeId: string): void
   moveSketch(fromNodeId: string, toNodeId: string, taskId: string): AssemblySketchView
+  routeTask(
+    nodeId: string,
+    task: string,
+    route: { readonly agents: readonly string[]; readonly links: readonly AssemblyLink[] } | null
+  ): AssemblySketchView
 }
 
 /** Nœud de la vue Workflow auquel les agents sont connectés (L1o D14) : sa clé de carte `wf:<genesis>:<sorte>:…`. */
@@ -119,6 +124,21 @@ export function createAssemblyRoutes(
       channel: 'assembly:approve',
       input: z.strictObject({ genesisId: z.uuid(), taskId: TaskId, confirm: z.literal(true) }),
       handler: async ({ genesisId, taskId }) => deps.approve(genesisId, taskId)
+    }),
+    // Aiguillage d'une tâche du lot retouché à la main, ou rendu au plan du PO (L1o D25, T023).
+    defineRoute({
+      channel: 'assembly:lotRoute',
+      input: z.strictObject({
+        nodeId: HostId,
+        task: z.string().min(1).max(80),
+        route: z
+          .strictObject({
+            agents: z.array(AgentId).min(1).max(20),
+            links: z.array(z.strictObject({ from: AgentId, to: AgentId })).max(100)
+          })
+          .nullable()
+      }),
+      handler: async ({ nodeId, task, route }) => deps.routeTask(nodeId, task, route)
     }),
     // L'équipe passe à une autre tâche du Workflow (L1o D24).
     defineRoute({

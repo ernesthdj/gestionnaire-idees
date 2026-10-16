@@ -17,13 +17,27 @@ export function e2eClaudeRun(replyFile: string): RunProcess {
   }
 }
 
+/** Mission d'un PO connecté à un lot (L1o D25) : elle demande une ligne d'aiguillage par tâche. */
+const LOT_ASKED = /une ligne d’aiguillage : « AIGUILLAGE:/
+const LOT_TASK = /^- (T\d{3,4}[a-z]?|#\d+) · /gm
+
+/** Spec de lot simulée : chaque tâche listée dans la mission, aiguillée vers les profils fictifs des e2e. */
+function e2eLotSpec(prompt: string): string {
+  const tasks = [...prompt.matchAll(LOT_TASK)].map((match) => match[1] as string)
+  return [
+    'Spec du lot simulée (e2e).',
+    ...tasks.map((task) => `AIGUILLAGE: ${task} | Développeur, Qualité | Qualité attend Développeur`),
+    'RYTHME: une à une — tâches simulées'
+  ].join('\n')
+}
+
 /**
  * Sessions d'agents simulées des tests e2e (T006) : le « travail » dure `delayMs` (assez pour voir l'agent au travail
  * sur la carte), s'arrête à l'annulation, puis rend un rapport qui finit par un verdict de QA valide. Aucun processus
  * n'est lancé.
  */
 export function e2eAgentRun(delayMs = 1500): RunProcess {
-  return async ({ signal, cwd, args, onStdoutLine }) => {
+  return async ({ signal, cwd, args, stdin, onStdoutLine }) => {
     // Ce que l'agent « fait » (L1o D18) : il écrit un fichier de son worktree, annoncé dans le flux comme un vrai outil.
     const sessionId = args[args.indexOf('--session-id') + 1] ?? 'e2e'
     const file = join(cwd, 'agents-e2e', `${sessionId}.md`)
@@ -52,7 +66,7 @@ export function e2eAgentRun(delayMs = 1500): RunProcess {
         { once: true }
       )
     })
-    const result = 'Rapport simulé de l’agent (e2e).\n\nVERDICT: VALIDE'
+    const result = LOT_ASKED.test(stdin) ? e2eLotSpec(stdin) : 'Rapport simulé de l’agent (e2e).\n\nVERDICT: VALIDE'
     const line = { type: 'result', subtype: 'success', is_error: false, result }
     return { code: 0, stdout: `${JSON.stringify(line)}\n`, stderr: '', timedOut: false }
   }

@@ -71,11 +71,21 @@ import { agentsTitle, shownAgent, useSidePanel } from './side/sidePanelStore'
 import { AgentEdge } from './agents/AgentEdge'
 import { AgentNode } from './agents/AgentNode'
 import { agentGraph, runOf, wouldCycle } from './agents/agentGraph'
-import { parseAgentNodeId, type AgentEdgeType, type AgentNodeData } from './agents/agentTypes'
+import {
+  benchNodeId,
+  parseAgentNodeId,
+  parseBenchNodeId,
+  type AgentEdgeType,
+  type AgentNodeData,
+  type BenchAgentNodeType
+} from './agents/agentTypes'
+import { AgentTray, AGENT_DRAG_TYPE } from './agents/AgentTray'
+import { BenchAgentNode } from './agents/BenchAgentNode'
+import { useBench } from './agents/useBench'
 import { addAgent, addLink, emptySketch, placeAgent } from './agents/sketchEdit'
 import { useVisio } from './agents/visioStore'
 import { hostsAgents } from './agents/agentsHost'
-import { AGENT_ROLE_LABELS } from '@shared/agents/profile'
+import type { AgentProfileView } from '@shared/agents/profile'
 import { useAssemblyActions, useAssemblyData } from './agents/useAssemblies'
 import { focusViewOf, viewNodeIds, viewTitles } from './side/viewNodes'
 import { useCards } from './cards/cardsStore'
@@ -105,7 +115,8 @@ const NODE_TYPES: NodeTypes = {
   deliverable: stillNode(DeliverableNode),
   workflow: stillNode(WorkflowNode),
   folder: stillNode(FolderNode),
-  agent: stillNode(AgentNode)
+  agent: stillNode(AgentNode),
+  benchAgent: stillNode(BenchAgentNode)
 }
 
 /** Types de nœuds React Flow qui sont des blocs de la carte (place et taille enregistrées côté main). */
@@ -296,6 +307,15 @@ function CanvasInner(): React.JSX.Element {
     at: Point
   } | null>(null)
   const closeAgentsMenu = useCallback(() => setAgentsMenu(null), [])
+  // Tiroir « Appeler un agent » (L1o D26) : dans le vide (poser un agent libre) ou sur un nœud (l'y connecter).
+  const [tray, setTray] = useState<
+    | { mode: 'place'; at: Point; position: Point }
+    | { mode: 'connect'; at: Point; hostId: string; genesisId: string; title: string }
+    | null
+  >(null)
+  const closeTray = useCallback(() => setTray(null), [])
+  const [benchMenu, setBenchMenu] = useState<{ benchId: string; name: string; at: Point } | null>(null)
+  const closeBenchMenu = useCallback(() => setBenchMenu(null), [])
   // Clic droit sur un agent : visio, gestion, renvoi.
   const [agentMenu, setAgentMenu] = useState<{ node: AgentNodeData; nodeId: string; at: Point } | null>(null)
   const closeAgentMenu = useCallback(() => setAgentMenu(null), [])
@@ -351,11 +371,17 @@ function CanvasInner(): React.JSX.Element {
   // Agents connectés aux nœuds (T006) : croquis, assemblages suivis en direct, volet affiché.
   const assemblyData = useAssemblyData()
   const assemblyActions = useAssemblyActions()
+  /** Connecte un agent (profil) à un nœud du Workflow : il rejoint le croquis de ce nœud (L1o D14, D26). */
+  const joinHost = (profile: AgentProfileView, hostId: string, genesisId: string): Promise<boolean> => {
+    const sketch = assemblyData.sketches.find((entry) => entry.nodeId === hostId) ?? emptySketch(hostId, genesisId)
+    return assemblyActions.save(addAgent(profile)(sketch))
+  }
   const shownAgentHost = useSidePanel((state) => shownAgent(state)?.hostId ?? null)
   const shownAgentId = useSidePanel((state) => shownAgent(state)?.agentId ?? null)
 
   // La barre des vues monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
   const projectGenesisId = useUiStore((state) => state.brainstorm?.genesisId ?? null)
+  const bench = useBench(projectGenesisId)
   const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[]; headerBar: StructureBarData | null } => {
     if (view === undefined || layout === null) return { nodes: [], edges: [], headerBar: null }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
@@ -390,8 +416,22 @@ function CanvasInner(): React.JSX.Element {
       hosts,
       shown: shownAgentHost === null ? null : { hostId: shownAgentHost, agentId: shownAgentId }
     })
+    // Agents posés libres (L1o D26) : leur carte d'identité, à leur place ; un profil supprimé ne se dessine plus.
+    const free: BenchAgentNodeType[] = bench.agents.flatMap((entry) => {
+      const profile = assemblyData.profiles.find((candidate) => candidate.id === entry.profileId)
+      return profile === undefined
+        ? []
+        : [
+            {
+              id: benchNodeId(entry.id),
+              type: 'benchAgent' as const,
+              position: { x: entry.x, y: entry.y },
+              data: { benchId: entry.id, genesisId: entry.genesisId, profile }
+            }
+          ]
+    })
     return {
-      nodes: [...marked, ...agents.nodes],
+      nodes: [...marked, ...agents.nodes, ...free],
       edges: [...built.edges, ...built.mapEdges, ...agents.edges],
       headerBar: bar?.type === 'structureBar' ? bar.data : null
     }
@@ -411,7 +451,8 @@ function CanvasInner(): React.JSX.Element {
     projectGenesisId,
     assemblyData,
     shownAgentHost,
-    shownAgentId
+    shownAgentId,
+    bench.agents
   ])
   const topbarSlot = useTopbarSlot()
   // L'arrivée s'efface d'elle-même (une plus récente garde son propre délai).
@@ -781,6 +822,10 @@ function CanvasInner(): React.JSX.Element {
       toggleAnalysisLinks()
       return
     }
+    if (tool === 'agent') {
+      setTray({ mode: 'place', at: tools.at, position })
+      return
+    }
     try {
       await flushViewState()
       // Bloc libre (spec 033 D8, l'ancien « + Bloc ») : sans sorte ; note et widget gardent la leur.
@@ -841,6 +886,7 @@ function CanvasInner(): React.JSX.Element {
 
   // Une étape de plan ne se tire que vers un widget (spec 015) : pas de lien libre depuis une étape.
   const isValidConnection = (connection: Connection | MapEdge): boolean => {
+    if (parseBenchNodeId(connection.source) !== null) return false
     if (parseAgentNodeId(connection.source) !== null || parseAgentNodeId(connection.target) !== null)
       return agentLinkOf(connection.source, connection.target) !== null
     return connectionIntent(viewRef.current, connection.source, connection.target) !== null
@@ -1010,7 +1056,36 @@ function CanvasInner(): React.JSX.Element {
               connectionRadius={64}
               onConnect={onConnect}
               onConnectStart={() => setConnecting(true)}
-              onConnectEnd={() => setConnecting(false)}
+              onConnectEnd={(event, state) => {
+                setConnecting(false)
+                // Lien tiré d'un agent libre (L1o D26) : lâché n'importe où sur une tâche ou un nœud du Workflow, il
+                // l'y connecte et quitte la carte.
+                const benchId = state.fromNode === null ? null : parseBenchNodeId(state.fromNode.id)
+                const entry = bench.agents.find((candidate) => candidate.id === benchId)
+                if (entry === undefined) return
+                const point = 'changedTouches' in event ? event.changedTouches[0] : event
+                const under = point === undefined ? null : document.elementFromPoint(point.clientX, point.clientY)
+                const hostId = under?.closest('.react-flow__node')?.getAttribute('data-id') ?? null
+                const host = hostId === null ? undefined : nodes.find((candidate) => candidate.id === hostId)
+                const profile = assemblyData.profiles.find((candidate) => candidate.id === entry.profileId)
+                if (host?.type !== 'workflow' || !hostsAgents(host.data.item) || profile === undefined) return
+                void joinHost(profile, host.id, host.data.genesisId).then((joined) => {
+                  if (joined) void bench.remove(entry.id)
+                })
+              }}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes(AGENT_DRAG_TYPE)) return
+                event.preventDefault()
+                event.dataTransfer.dropEffect = 'copy'
+              }}
+              onDrop={(event) => {
+                const profileId = event.dataTransfer.getData(AGENT_DRAG_TYPE)
+                if (profileId === '') return
+                event.preventDefault()
+                const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+                void bench.place(profileId, at.x, at.y)
+                setTray(null)
+              }}
               isValidConnection={isValidConnection}
               zoomOnDoubleClick={false}
               // Tab va d'idée en idée.
@@ -1086,6 +1161,16 @@ function CanvasInner(): React.JSX.Element {
                   setAgentMenu({ node: node.data, nodeId: node.id, at: { x: event.clientX, y: event.clientY } })
                   return
                 }
+                // Agent libre (L1o D26) : le retirer de la carte.
+                if (node.type === 'benchAgent') {
+                  event.preventDefault()
+                  setBenchMenu({
+                    benchId: node.data.benchId,
+                    name: node.data.profile.name,
+                    at: { x: event.clientX, y: event.clientY }
+                  })
+                  return
+                }
                 // Nœud du Workflow (L1o D14) : on y appelle des agents.
                 if (node.type === 'workflow' && hostsAgents(node.data.item)) {
                   event.preventDefault()
@@ -1119,6 +1204,10 @@ function CanvasInner(): React.JSX.Element {
                 // Agent lâché (L1o D13) : sa place est gardée par rapport à son nœud, qu'il suit ensuite.
                 if (node.type === 'agent') {
                   saveAgentPlace(node.data.hostId, node.data.agentId, node.position)
+                  return
+                }
+                if (node.type === 'benchAgent') {
+                  void bench.move(node.data.benchId, node.position.x, node.position.y)
                   return
                 }
                 if (PLACED_TYPES.has(node.type ?? '')) {
@@ -1177,6 +1266,7 @@ function CanvasInner(): React.JSX.Element {
             <ToolMenu
               at={tools.at}
               analysisLinks={view !== undefined && view.elements.length > 0 ? analysisLinks : null}
+              agents={projectGenesisId !== null}
               onPick={(tool) => void pickTool(tool)}
               onClose={closeTools}
             />
@@ -1234,12 +1324,12 @@ function CanvasInner(): React.JSX.Element {
               at={agentsMenu.at}
               label={`Agents de « ${agentsMenu.title} »`}
               items={[
-                ...assemblyData.profiles.map((profile): MenuItem<string> => ({
-                  tool: `call:${profile.id}`,
+                {
+                  tool: 'tray',
                   icon: '◇',
-                  label: `Appeler ${profile.name}`,
-                  hint: `${AGENT_ROLE_LABELS[profile.role]} : il apparaît à côté du nœud`
-                })),
+                  label: 'Appeler un agent…',
+                  hint: 'Choisir dans le tiroir : un clic le connecte à ce nœud'
+                },
                 {
                   tool: 'panel',
                   icon: '☰',
@@ -1250,12 +1340,8 @@ function CanvasInner(): React.JSX.Element {
               onPick={(choice) => {
                 const menuHost = agentsMenu
                 setAgentsMenu(null)
-                const profile = assemblyData.profiles.find((entry) => `call:${entry.id}` === choice)
-                if (profile !== undefined) {
-                  const sketch =
-                    assemblyData.sketches.find((entry) => entry.nodeId === menuHost.hostId) ??
-                    emptySketch(menuHost.hostId, menuHost.genesisId)
-                  void assemblyActions.save(addAgent(profile)(sketch))
+                if (choice === 'tray') {
+                  setTray({ mode: 'connect', ...menuHost })
                   return
                 }
                 useSidePanel.getState().openAgents({
@@ -1266,6 +1352,33 @@ function CanvasInner(): React.JSX.Element {
                 })
               }}
               onClose={closeAgentsMenu}
+            />
+          )}
+          {tray === null ? null : (
+            <AgentTray
+              at={tray.at}
+              mode={tray.mode}
+              {...(tray.mode === 'connect' ? { title: tray.title } : {})}
+              profiles={assemblyData.profiles}
+              onPick={(profile) => {
+                setTray(null)
+                if (tray.mode === 'connect') void joinHost(profile, tray.hostId, tray.genesisId)
+                else void bench.place(profile.id, tray.position.x, tray.position.y)
+              }}
+              onClose={closeTray}
+            />
+          )}
+          {benchMenu === null ? null : (
+            <ContextMenu
+              at={benchMenu.at}
+              label={`Agent libre ${benchMenu.name}`}
+              items={[{ tool: 'remove', icon: '✕', label: 'Retirer de la carte', hint: 'Son profil reste' }]}
+              onPick={() => {
+                const { benchId } = benchMenu
+                setBenchMenu(null)
+                void bench.remove(benchId)
+              }}
+              onClose={closeBenchMenu}
             />
           )}
           {blockMenu === null ? null : (

@@ -38,7 +38,28 @@ export const assemblySketches = sqliteTable(
     agents: text('agents').notNull().default('[]'),
     /** Liens « B attend A » (JSON : AssemblyLink[]). */
     links: text('links').notNull().default('[]'),
+    /** Équipe d'un lot (L1o D25) : plan du PO et aiguillages retouchés à la main (JSON : SketchLot) ; `null` sinon. */
+    lot: text('lot'),
     updatedAt: integer('updated_at').notNull()
   },
   (t) => [index('assembly_sketches_genesis_idx').on(t.genesisId)]
+)
+
+/**
+ * Agents posés libres sur la carte d'un projet (L1o D26, migration 0056) : appelés depuis le tiroir, pas encore reliés
+ * à un nœud. Un lien vers une tâche les y connecte et les retire d'ici.
+ */
+export const agentBench = sqliteTable(
+  'agent_bench',
+  {
+    id: text('id').primaryKey(),
+    genesisId: text('genesis_id').notNull(),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => agentProfiles.id, { onDelete: 'cascade' }),
+    x: integer('x').notNull(),
+    y: integer('y').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [index('agent_bench_genesis_idx').on(t.genesisId)]
 )

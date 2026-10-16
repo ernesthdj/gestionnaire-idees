@@ -300,3 +300,15 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   - Le PO **conseille** un rythme selon la complexité des tâches (« enchaîner » ou « une à une, plus minutieux »),
     avec sa raison ; mentalyas décide.
 - Remplace T007 (« étendre à un module entier »).
+
+### D26 — Appeler un agent depuis un tiroir, puis le relier (2026-10-17, remplace en partie D14)
+- Retour de mentalyas : tous les profils dans le clic droit d'un nœud, ça ne tiendra pas quand il y aura beaucoup
+  d'agents.
+- Un **tiroir scrollable** montre une **carte d'identité** par profil (sa tête en pixels, son nom, son rôle, son rang),
+  sans chambre ni visio. Il s'ouvre au clic droit (« Appeler un agent… »), qui remplace la liste des profils :
+  - **dans le vide** de la carte : on **glisse** une carte vers la carte, l'agent y est posé **libre** (sa carte
+    d'identité, « à relier ») à l'endroit du lâcher, sa place est gardée ; puis on **tire un lien** de l'agent libre
+    vers une tâche ou un nœud du Workflow : il y est connecté (D14), devient sa chambre-cube sous le nœud et quitte
+    l'état libre ; un agent libre se retire au clic droit ;
+  - **sur un nœud** : un **clic** sur une carte connecte l'agent à ce nœud, directement.
+- « Gérer les agents… » reste dans le clic droit d'un nœud.

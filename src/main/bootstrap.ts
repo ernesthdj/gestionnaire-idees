@@ -69,6 +69,9 @@ import { PipelineEngine } from './application/agents/PipelineEngine'
 import { e2eAgentRun, e2eConversationSpawn } from './infrastructure/ai/E2eClaude'
 import { createAgentSessionRunner } from './infrastructure/claude/AgentSession'
 import { createAssemblyRoutes } from './ipc/assemblyHandlers'
+import { createBenchRoutes } from './ipc/benchHandlers'
+import { AgentBench } from './application/agents/AgentBench'
+import { AgentBenchRepository } from './infrastructure/db/repositories/AgentBenchRepository'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
 import { SkillStore } from './infrastructure/skills/SkillStore'
 import { SecretStore } from './infrastructure/secrets/SecretStore'
@@ -1305,6 +1308,15 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       workDir: join(dataDir, 'agent-skills')
     }
   })
+  // Agents posés libres sur la carte d'un projet, en attente d'un lien vers un nœud (L1o D26).
+  const agentBench = new AgentBench({
+    repository: new AgentBenchRepository(database.db),
+    profileExists: (profileId) => agentProfiles.list().some((profile) => profile.id === profileId),
+    projectExists: (genesisId) => {
+      const genesis = conversationRepository.neuron(genesisId)
+      return genesis !== undefined && genesis.state !== 'archived' && genesis.projectDir !== null
+    }
+  })
   // Conversations de visio des agents (L1o D13) : une par agent et par nœud.
   const agentChats = new AgentChats({
     repository: workflowChatRepository,
@@ -1339,7 +1351,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         sheet: sheetMarkdown(readSheet(genesis.sheetJson)),
         projectDir: genesis.projectDir,
         projectName: genesis.title,
-        ...(host.box === undefined ? {} : { box: host.box })
+        ...(host.box === undefined ? {} : { box: host.box }),
+        ...(host.lotTasks === undefined ? {} : { lotTasks: host.lotTasks })
       }
     },
     // Travail livré (L1o D13) : la chambre de l'agent s'enrichit (la carte relit les profils sur `assembly:changed`).
@@ -1547,6 +1560,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         }
       }),
       ...createAssemblyRoutes(assemblies, agentChats),
+      ...createBenchRoutes(agentBench),
       ...createMcpRoutes({
         selection,
         status: () => ({ listening: pipe.listening(), clients: pipe.clients(), command }),

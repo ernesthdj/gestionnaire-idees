@@ -200,6 +200,53 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(sessions).toHaveLength(0)
   })
 
+  it('should_keep_the_po_lot_plan_with_the_team_and_let_mentalyas_reroute_a_task', async () => {
+    // L1o D25 (T021, T023) : le PO connecté à un lot cadre ses tâches ; son plan reste avec l'équipe.
+    const lotNode = node({
+      kind: 'lot',
+      lotTasks: [
+        { id: 'T001', key: 'a', text: 'Trier', done: false },
+        { id: 'T002', key: 'b', text: 'Filtrer', done: false }
+      ]
+    })
+    const service = serviceWith(lotNode, null, async () => ({
+      ok: true,
+      text: [
+        '## T001',
+        'AIGUILLAGE: T001 | Agent back, Agent qa | Agent qa attend Agent back',
+        'AIGUILLAGE: T002 | Agent back, Agent designer |',
+        'RYTHME: une à une — T002 est risquée'
+      ].join('\n')
+    }))
+    const team = {
+      ...alone,
+      taskId: 'T060',
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'back', profileId: 'back' },
+        { id: 'qa', profileId: 'qa' }
+      ],
+      links: [{ from: 'po', to: 'back' }]
+    }
+    service.saveSketch(team)
+    // Seul le PO tourne : il cadre le lot.
+    await service.start({ ...team, agents: [{ id: 'po', profileId: 'po' }], links: [] })
+    await finished(service, 'T060')
+    const kept = service.sketches()[0]
+    expect(kept?.agents).toHaveLength(3)
+    expect(kept?.lot?.plan.rhythm).toEqual({ mode: 'une-a-une', reason: 'T002 est risquée' })
+    expect(kept?.lot?.plan.steps.map((step) => step.task)).toEqual(['T001', 'T002'])
+
+    // Retouche : T002 sans le QA ; le croquis enregistré ensuite garde plan et retouche.
+    service.routeTask(NODE_ID, 'T002', { agents: ['back'], links: [] })
+    service.saveSketch({ ...team, task: 'Lot tri' })
+    expect(service.sketches()[0]?.lot?.overrides).toEqual([{ task: 'T002', agents: ['back'], links: [] }])
+    expect(() => service.routeTask(NODE_ID, 'T009', null)).toThrow(/pas dans le plan/)
+    expect(() => service.routeTask(NODE_ID, 'T001', { agents: ['inconnu'], links: [] })).toThrow(/au moins un agent/)
+    service.routeTask(NODE_ID, 'T002', null)
+    expect(service.sketches()[0]?.lot?.overrides).toEqual([])
+  })
+
   it('should_move_the_team_to_another_task_without_what_belonged_to_the_old_one', () => {
     // L1o D24 : agents (profils, places) et liens suivent ; demande, part et zone restent à l'ancienne tâche.
     const service = serviceWith(node())

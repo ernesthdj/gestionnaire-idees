@@ -1,3 +1,4 @@
+import type { SketchLot } from '@shared/agents/lotPlan'
 import type {
   AgentProgressState,
   ApprovalResult,
@@ -45,6 +46,8 @@ export interface AssemblySketchView {
   readonly task?: string
   readonly agents: readonly AssemblyAgent[]
   readonly links: readonly AssemblyLink[]
+  /** Équipe d'un lot (L1o D25) : plan du PO et aiguillages retouchés ; absent hors d'un lot cadré. */
+  readonly lot?: SketchLot
 }
 
 export interface AssemblyRunView {
@@ -66,4 +69,14 @@ export interface AssemblyRunView {
   readonly approval?: ApprovalResult
   /** Erreur inattendue du moteur (état `failed`). */
   readonly error?: string
+}
+
+/** Agent posé libre sur la carte d'un projet (L1o D26) : appelé depuis le tiroir, pas encore relié à un nœud. */
+export interface BenchAgentView {
+  readonly id: string
+  readonly genesisId: string
+  readonly profileId: string
+  /** Place sur la carte, en unités de la carte. */
+  readonly x: number
+  readonly y: number
 }

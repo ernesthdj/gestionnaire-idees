@@ -29,6 +29,7 @@ import {
   type ProgressListener
 } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
+import { lotInstructions, type LotPlan } from '@shared/agents/lotPlan'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
 import { checkTask } from '../../domain/workflow/parseTaskFile'
 import type { TaskBox } from './workflowHost'
@@ -198,6 +199,8 @@ const missionFor = (turn: Turn, index: PassIndex): string => {
  */
 export class PipelineEngine {
   private gitQueue: Promise<unknown> = Promise.resolve()
+  /** Dernière spec de lot signée par le PO, par tâche (L1o D25) : rendue avec le résultat de l'assemblage. */
+  private readonly plans = new Map<string, LotPlan>()
 
   constructor(private readonly deps: PipelineEngineDeps) {}
 
@@ -283,7 +286,8 @@ export class PipelineEngine {
           ? `Assemblage validé en ${rounds} tour(s) : les branches attendent l’accord de fusion de mentalyas.`
           : `Assemblage arrêté au tour ${rounds} : ${agents.filter((a) => a.status !== 'done').length} agent(s) sans résultat.`
       )
-      return { taskId, completed, rounds, agents }
+      const plan = assembly.lot === undefined ? undefined : this.plans.get(taskId)
+      return { taskId, completed, rounds, agents, ...(plan === undefined ? {} : { plan }) }
     }
     const runPlan = async (plan: ReadonlyMap<string, PassNature>, feedback?: string): Promise<boolean> => {
       await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback, progress, work })
@@ -698,7 +702,7 @@ export class PipelineEngine {
       }
     }
     // Le PO signe la spec ; les autres rendent un rapport, dans le worktree : ils voyagent avec la branche.
-    if (profile.role === 'po') documents.writeSpec(taskId, 'po', result.text)
+    if (profile.role === 'po') this.plans.set(taskId, documents.writeSpec(taskId, 'po', result.text).plan)
     else documents.writeReport(taskId, { id: agent.id, role: profile.role }, result.text, index)
 
     // Fichiers ajoutés par leur nom (jamais `git add -A`), hooks gardés (jamais `--no-verify`).
@@ -759,14 +763,18 @@ export class PipelineEngine {
         `Réécris la spec complète : elle remplace la v${spec.version}. Ta réponse EST la spec.`,
         `Termine-la par une dernière ligne « AGENTS: <agent>=correction, <agent>=repasse » qui désigne les agents à relancer (parmi : ${others}).`,
         'correction : l’agent doit reprendre une erreur dans sa partie ; repasse : il n’est pas en faute, mais la spec a changé là où il travaille.',
-        'Garde les lignes « RECOMMANDÉ: » et « SUGGÉRÉ: » de la spec (mises à jour si besoin) juste avant cette dernière ligne.'
+        assembly.lot === undefined
+          ? 'Garde les lignes « RECOMMANDÉ: » et « SUGGÉRÉ: » de la spec (mises à jour si besoin) juste avant cette dernière ligne.'
+          : 'Garde les lignes « RECOMMANDÉ: », « SUGGÉRÉ: », « AIGUILLAGE: » et « RYTHME: » de la spec (mises à jour si besoin) juste avant cette dernière ligne.'
       )
     } else if (profile.role === 'po') {
       parts.push(
         `Tâche ${assembly.taskId} :`,
         assembly.brief.trim(),
         '',
-        'Rédige la spec de cette tâche (objectif, critères d’acceptation, hors périmètre). Ta réponse EST la spec.',
+        assembly.lot === undefined
+          ? 'Rédige la spec de cette tâche (objectif, critères d’acceptation, hors périmètre). Ta réponse EST la spec.'
+          : lotInstructions(assembly.lot),
         '',
         'Profils d’agents existants :',
         profileCatalog(this.deps.profiles()),

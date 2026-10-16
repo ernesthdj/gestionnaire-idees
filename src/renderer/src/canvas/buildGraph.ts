@@ -33,7 +33,7 @@ import { finalStateLabel, STEP_NODE_STATUS, STEP_STATUS_LABELS } from './nodes/P
 import { areaFor, forceLayout, type LayoutNode, type Point, type Rect } from './forceLayout'
 import type { StrayElement, WorkflowStepRef } from './workflow/prompts'
 import { workflowGraph } from './workflow/workflowGraph'
-import type { AgentNodeType } from './agents/agentTypes'
+import type { AgentNodeType, BenchAgentNodeType } from './agents/agentTypes'
 import { workflowTree, type WorkflowEntry, type WorkflowItem } from './workflow/workflowTree'
 
 /**
@@ -214,6 +214,7 @@ export type CanvasNode =
   | WorkflowNodeType
   | FolderNodeType
   | AgentNodeType
+  | BenchAgentNodeType
 
 const BLOCK_NODE_TYPES = {
   empty: 'block',

@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { PassNature } from '@shared/agents/pipeline'
-import type { AgentRole } from '@shared/agents/profile'
+import type { AgentProfileView, AgentRole } from '@shared/agents/profile'
 
 /** Ce que le nœud d'un agent montre de son travail (T006, L1o D10). */
 export type AgentVisual =
@@ -50,3 +50,16 @@ export function parseAgentNodeId(id: string): { readonly hostId: string; readonl
   if (prefix !== 'agent' || agentId === undefined || agentId === '' || hostId === '') return null
   return { hostId, agentId }
 }
+
+/** Agent posé libre sur la carte (L1o D26) : sa carte d'identité, en attente d'un lien vers un nœud. */
+export type BenchAgentNodeData = {
+  readonly benchId: string
+  readonly genesisId: string
+  readonly profile: AgentProfileView
+}
+export type BenchAgentNodeType = Node<BenchAgentNodeData, 'benchAgent'>
+
+/** Identifiant de carte d'un agent libre : `bench:<id>`. */
+export const benchNodeId = (benchId: string): string => `bench:${benchId}`
+export const parseBenchNodeId = (nodeId: string): string | null =>
+  nodeId.startsWith('bench:') ? nodeId.slice('bench:'.length) : null

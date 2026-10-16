@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
+import type { LotRoute } from '@shared/agents/lotPlan'
 import type { ApprovalResult } from '@shared/agents/pipeline'
 import type { AgentProfileView } from '@shared/agents/profile'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
@@ -50,6 +51,7 @@ export function useAssemblyActions(): {
   readonly save: (sketch: AssemblySketchView) => Promise<boolean>
   readonly clear: (nodeId: string) => Promise<boolean>
   readonly move: (fromNodeId: string, toNodeId: string) => Promise<boolean>
+  readonly route: (nodeId: string, task: string, route: Omit<LotRoute, 'task'> | null) => Promise<boolean>
   /** Renvoie un agent (il quitte ce nœud) ; le dernier parti, le croquis du nœud est effacé. */
   readonly dismiss: (sketch: AssemblySketchView, agentId: string) => Promise<boolean>
   readonly warnings: (sketch: AssemblySketchView, baseBranch?: string) => Promise<string[] | null>
@@ -86,6 +88,11 @@ export function useAssemblyActions(): {
         (await attempt(
           () => call('assembly:sketchMove', { from, to, taskId: defaultTaskId(to) }),
           'L’équipe n’a pas pu être déplacée.'
+        )) !== null,
+      route: async (nodeId, task, route) =>
+        (await attempt(
+          () => call('assembly:lotRoute', { nodeId, task, route }),
+          'L’aiguillage n’a pas pu être enregistré.'
         )) !== null,
       dismiss: async (sketch, agentId) => {
         const next = removeAgent(agentId)(sketch)

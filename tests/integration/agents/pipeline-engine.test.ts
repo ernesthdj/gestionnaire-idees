@@ -10,6 +10,7 @@ import {
 } from '../../../src/main/application/agents/PipelineEngine'
 import { runGit } from '../../../src/main/infrastructure/projects/GitCli'
 import { parseTaskFile } from '../../../src/main/domain/workflow/parseTaskFile'
+import { parseLotPlan } from '../../../src/shared/agents/lotPlan'
 import { agentBranch, type Assembly } from '../../../src/shared/agents/pipeline'
 import type { AgentProfileView, AgentRole } from '../../../src/shared/agents/profile'
 
@@ -174,6 +175,38 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     expect(forPo).toContain('RECOMMANDÉ:')
     expect(forPo).toContain('SUGGÉRÉ:')
     expect(prompts.get('back')).not.toContain('Profils d’agents existants')
+  })
+
+  it('should_ask_the_po_for_a_lot_spec_with_routing_and_read_it_back_when_connected_to_a_lot', async () => {
+    // L1o D25 (T021) : le PO cadre toutes les tâches du lot ; sa spec signée porte l'aiguillage et le rythme.
+    const prompts = new Map<string, string>()
+    const lot: Assembly = {
+      taskId: 'T050',
+      brief: 'Lot Tri',
+      agents: [{ id: 'po', profileId: 'po' }],
+      links: [],
+      lot: [
+        { id: 'T001', key: 'a', text: 'Trier par date', done: false },
+        { id: 'T002', key: 'b', text: 'Trier par titre', done: false }
+      ]
+    }
+    await engineWith(async (request) => {
+      prompts.set(request.profile.id, request.prompt)
+      return {
+        ok: true,
+        text: '## T001\n\nAIGUILLAGE: T001 | Agent back | \nRYTHME: tout le lot — deux tris simples'
+      }
+    }).run(lot)
+    const forPo = prompts.get('po') ?? ''
+    expect(forPo).toContain('LOT de 2 tâche(s)')
+    expect(forPo).toContain('- T002 · Trier par titre')
+    expect(forPo).toContain('Profils d’agents existants :')
+    // La spec signée est commitée sur la branche du PO.
+    const signed = (await git(['show', `${agentBranch('T050', 'po')}:docs/pipeline/T050/spec.md`])).output
+    expect(parseLotPlan(signed)).toEqual({
+      steps: [{ task: 'T001', agents: ['Agent back'], waits: [] }],
+      rhythm: { mode: 'tout', reason: 'deux tris simples' }
+    })
   })
 
   it('should_start_from_the_merge_of_every_awaited_agent', async () => {

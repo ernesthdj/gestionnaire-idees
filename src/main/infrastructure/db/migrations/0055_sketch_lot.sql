@@ -1,0 +1,1 @@
+ALTER TABLE `assembly_sketches` ADD `lot` text;

@@ -86,7 +86,12 @@ describe('nœud du Workflow qui accueille des agents (L1o D14)', () => {
   })
 
   it('should_list_every_task_of_a_lot_and_point_to_the_document_when_the_host_is_a_lot_or_a_doc', () => {
-    expect(workflowHost(view, `wf:${G}:tgroup:visuel-lot1`)?.content).toContain('- T002 Forme (à faire)')
+    const lot = workflowHost(view, `wf:${G}:tgroup:visuel-lot1`)
+    expect(lot?.content).toContain('- T002 Forme (à faire)')
+    // L1o D25 : les tâches du lot, dans l'ordre, pour que le PO les cadre toutes ; une tâche seule n'en a pas.
+    expect(lot?.lotTasks?.map((task) => task.id)).toContain('T002')
+    expect(workflowHost(view, `wf:${G}:ttask:visuel-t001`)?.lotTasks).toBeUndefined()
+    expect(workflowHost(view, `wf:${G}:ttask:visuel-t001`)?.box).toMatchObject({ key: 'visuel-t001' })
     const doc = workflowHost(view, `wf:${G}:doc:L1p-taches-visuelles`)
     expect(doc).toMatchObject({ kind: 'brainstorm', title: 'Tâches visuelles' })
     expect(doc?.content).toContain('docs/brainstorm/L1p-taches-visuelles.md')

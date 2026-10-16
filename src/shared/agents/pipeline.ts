@@ -1,3 +1,4 @@
+import type { LotPlan, LotTask } from './lotPlan'
 import type { AgentRole, PermissionMode } from './profile'
 
 /**
@@ -46,6 +47,8 @@ export interface Assembly {
   readonly links: readonly AssemblyLink[]
   /** Branche d'où partent les agents qui n'attendent personne (`main` par défaut). */
   readonly baseBranch?: string
+  /** Connecté à un lot (L1o D25) : ses tâches ; le PO écrit alors la spec du lot entier. */
+  readonly lot?: readonly LotTask[]
 }
 
 /** Agents attendus par chacun (liens entrants), dans l'ordre de l'assemblage. */
@@ -340,6 +343,8 @@ export interface AssemblyRunResult {
   readonly rounds: number
   /** Dans l'ordre de l'assemblage, dernière passe de chacun. */
   readonly agents: readonly AgentRunResult[]
+  /** Spec de lot signée par le PO (L1o D25) : son aiguillage et son conseil de rythme. */
+  readonly plan?: LotPlan
 }
 
 export interface ApprovalResult {

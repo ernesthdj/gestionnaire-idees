@@ -1,3 +1,4 @@
+import type { LotPlan } from './lotPlan'
 import type { PassIndex } from './pipeline'
 import type { AgentRole } from './profile'
 import type { SpecAgents } from './recommendation'
@@ -30,6 +31,8 @@ export interface PipelineSpec {
   readonly content: string
   /** Agents recommandés ou à créer, lus dans la spec (T009, L1o D1) : des propositions, mentalyas décide. */
   readonly agents: SpecAgents
+  /** Aiguillage et conseil de rythme d'une spec de lot (L1o D25) ; vide pour une tâche seule. */
+  readonly plan: LotPlan
 }
 
 export interface PipelineReport {

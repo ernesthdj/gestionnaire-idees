@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 /** Écart minimal entre le menu et le bord de la fenêtre. */
 const MARGIN = 8
 
-export type Tool = 'idea' | 'label' | 'widget' | 'block' | 'links'
+export type Tool = 'idea' | 'label' | 'widget' | 'block' | 'links' | 'agent'
 
 /** Entrée d'un menu contextuel de la carte. */
 export interface MenuItem<T extends string> {
@@ -33,16 +33,30 @@ interface ToolMenuProps<T extends string> {
  */
 export function ToolMenu({
   analysisLinks,
+  agents = false,
   ...props
 }: ToolMenuProps<Tool> & {
   /** Liens d'analyse au repos (spec 022 D29, 033 D8) : l'interrupteur, s'il y a des cartes de structure ; `null` sinon. */
   readonly analysisLinks: boolean | null
+  /** Carte d'un projet : on y appelle des agents depuis le tiroir (L1o D26). */
+  readonly agents?: boolean
 }): React.JSX.Element {
+  const base: readonly MenuItem<Tool>[] = agents
+    ? [
+        ...TOOLS,
+        {
+          tool: 'agent',
+          icon: '◇',
+          label: 'Appeler un agent…',
+          hint: 'Le glisser sur la carte, puis le relier à une tâche'
+        }
+      ]
+    : TOOLS
   const items: readonly MenuItem<Tool>[] =
     analysisLinks === null
-      ? TOOLS
+      ? base
       : [
-          ...TOOLS,
+          ...base,
           {
             tool: 'links',
             icon: analysisLinks ? '✓' : '⇄',

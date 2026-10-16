@@ -1,3 +1,4 @@
+import type { LotPlan, LotTask } from '@shared/agents/lotPlan'
 import { isValidTaskId } from '@shared/agents/documents'
 import type { AgentWorkEvent, AgentWorkListener } from './PipelineEngine'
 import {
@@ -28,6 +29,8 @@ export interface AssemblyNode {
   readonly projectName: string
   /** Case de la tâche (nœud tâche d'un fichier de tâches) : cochée à la fusion (L1o D23). */
   readonly box?: TaskBox
+  /** Tâches d'un lot ou d'un fichier de tâches (L1o D25). */
+  readonly lotTasks?: readonly LotTask[]
 }
 
 /** Le planificateur, vu par le service (`PipelineEngine` en vrai). */
@@ -173,6 +176,7 @@ export class AssemblyService {
         run.result = result
         run.state = 'finished'
         if (result.completed) this.credit(run)
+        if (result.plan !== undefined) this.keepPlan(request.nodeId, result.plan)
       })
       .catch((error: unknown) => {
         run.state = 'failed'
@@ -201,13 +205,16 @@ export class AssemblyService {
     }
     const error = structureError({ taskId: request.taskId, brief: '', agents: request.agents, links: request.links })
     if (error !== null) throw new AppError('VALIDATION', error)
+    // L'équipe d'un lot garde son plan et ses retouches d'aiguillage (L1o D25) : le croquis ne les porte pas.
+    const lot = this.sketchOf(request.nodeId)?.lot
     const sketch: AssemblySketchView = {
       nodeId: request.nodeId,
       genesisId: node.genesisId,
       taskId: request.taskId,
       ...(request.task === undefined || request.task.trim() === '' ? {} : { task: request.task }),
       agents: request.agents,
-      links: request.links
+      links: request.links,
+      ...(lot === undefined ? {} : { lot })
     }
     this.deps.sketches.save(sketch)
     return sketch
@@ -245,6 +252,49 @@ export class AssemblyService {
     })
     this.deps.sketches.remove(fromNodeId)
     return moved
+  }
+
+  /**
+   * Retouche l'aiguillage d'une tâche du lot (L1o D25, T023) : les agents qui y interviennent et qui attend qui ; le
+   * choix de mentalyas prime sur le plan du PO. `null` rend la tâche au plan du PO.
+   */
+  routeTask(
+    nodeId: string,
+    task: string,
+    route: { readonly agents: readonly string[]; readonly links: readonly AssemblyLink[] } | null
+  ): AssemblySketchView {
+    const sketch = this.sketchOf(nodeId)
+    if (sketch?.lot === undefined) throw new AppError('NOT_FOUND', 'Ce nœud n’a pas de plan de lot.')
+    if (!sketch.lot.plan.steps.some((step) => step.task === task)) {
+      throw new AppError('NOT_FOUND', `La tâche ${task} n’est pas dans le plan du PO.`)
+    }
+    const others = sketch.lot.overrides.filter((entry) => entry.task !== task)
+    let overrides = others
+    if (route !== null) {
+      const agents = sketch.agents.filter((agent) => route.agents.includes(agent.id))
+      if (agents.length !== route.agents.length || agents.length === 0) {
+        throw new AppError('VALIDATION', 'Choisis au moins un agent de l’équipe.')
+      }
+      const error = structureError({ taskId: sketch.taskId, brief: '', agents, links: route.links })
+      if (error !== null) throw new AppError('VALIDATION', error)
+      overrides = [...others, { task, agents: agents.map((agent) => agent.id), links: route.links }]
+    }
+    const next: AssemblySketchView = { ...sketch, lot: { plan: sketch.lot.plan, overrides } }
+    this.deps.sketches.save(next)
+    return next
+  }
+
+  /** Plan de lot signé par le PO (L1o D25) : gardé avec l'équipe, retouches des tâches toujours au plan comprises. */
+  private keepPlan(nodeId: string, plan: LotPlan): void {
+    const sketch = this.sketchOf(nodeId)
+    if (sketch === undefined) return
+    const tasks = new Set(plan.steps.map((step) => step.task))
+    const overrides = (sketch.lot?.overrides ?? []).filter((entry) => tasks.has(entry.task))
+    this.deps.sketches.save({ ...sketch, lot: { plan, overrides } })
+  }
+
+  private sketchOf(nodeId: string): AssemblySketchView | undefined {
+    return this.deps.sketches.list().find((sketch) => sketch.nodeId === nodeId)
   }
 
   /** Retire le croquis d'un nœud : ses agents disparaissent de la carte. */
@@ -350,7 +400,8 @@ export class AssemblyService {
       brief: briefFor(node, request.task),
       agents: request.agents,
       links: request.links,
-      ...(request.baseBranch === undefined ? {} : { baseBranch: request.baseBranch })
+      ...(request.baseBranch === undefined ? {} : { baseBranch: request.baseBranch }),
+      ...(node.lotTasks === undefined || node.lotTasks.length === 0 ? {} : { lot: node.lotTasks })
     }
     // Un moteur par projet : c'est lui qui fait passer les commandes git une à une ; deux tâches lancées en même temps
     // sur le même dépôt se disputeraient sinon ses verrous (worktrees, références).

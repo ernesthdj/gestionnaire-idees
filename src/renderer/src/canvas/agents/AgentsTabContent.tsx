@@ -21,6 +21,7 @@ import {
   waitableBy,
   type SketchEdit
 } from './sketchEdit'
+import { LotRouting } from './LotRouting'
 import { useAssemblyActions, useAssemblyData } from './useAssemblies'
 
 const FIELD = 'h-8 w-full rounded-md border border-content-muted/30 bg-surface px-2 text-sm'
@@ -240,6 +241,15 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
             Tu peux aussi tirer un lien d’un agent à l’autre sur la carte (de la poignée du bas vers celle du haut).
           </p>
         </section>
+      )}
+
+      {sketch?.lot === undefined ? null : (
+        <LotRouting
+          sketch={sketch}
+          profiles={profiles}
+          disabled={running}
+          onRoute={(task, route) => void actions.route(sketch.nodeId, task, route)}
+        />
       )}
 
       {sketch === undefined || sketch.agents.length === 0 ? null : (

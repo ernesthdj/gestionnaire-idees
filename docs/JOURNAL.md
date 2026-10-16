@@ -2683,3 +2683,33 @@ d'enchaîner la tâche suivante est notée en piste ouverte (A déplacer l'équi
 projet (la prochaine en tête ; ni faites, ni déjà équipées). Agents, places et liens suivent ; demande, part et zone
 restent à l'ancienne tâche ; nouvel identifiant de tâche, visios neuves.
 **Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map` (captures `t024-01`, `t024-02`).
+
+### [2026-10-17 00:28] FEAT — le PO cadre un lot : spec de lot et aiguillage automatique (L1o D25, T021, T023)
+**Fichiers :** `src/shared/agents/lotPlan.ts` (nouveau : `parseLotPlan`, `lotInstructions`, `routeLot`),
+`workflowHost.ts` (`lotTasks` d'un lot ou d'un fichier de tâches), `pipeline.ts` (`Assembly.lot`, `plan` du résultat),
+`documents.ts` + `PipelineDocuments.ts` (`plan` de la spec), `PipelineEngine.ts` (mission du PO de lot, plan rendu),
+`AssemblyService.ts` (plan gardé avec l'équipe, `routeTask`, croquis qui le préserve), migration `0055_sketch_lot`
+(+ `down`), `AssemblySketchRepository.ts`, route `assembly:lotRoute`, `LotRouting.tsx` (nouveau) dans le volet Agents,
+`E2eClaude.ts` (PO simulé qui rend une spec de lot) ; tests unitaires, d'intégration, renderer et e2e `agents-lot`.
+**Quoi :** un PO connecté à un lot reçoit ses tâches et rend une spec par tâche avec une ligne `AIGUILLAGE:` (profils,
+qui attend qui) et un conseil `RYTHME:`. Le plan reste avec l'équipe du lot ; le volet montre l'aiguillage de chaque
+tâche (✦ plan du PO), les profils qui manquent, et permet de le retoucher (« retouché », « Rendre au PO »).
+**Corrigé en route :** un `;` dans le commentaire du fichier `down` coupait l'instruction SQL ; le test de la migration
+0054 annule d'abord la 0055 (colonne en plus).
+**Vérifié :** typecheck, lint, Prettier, 2 464 tests ; e2e `agents-lot` (captures `t023-01`, `t023-02`) et `agents-map`.
+**Reste du lot 5 :** T022 (cartes du PO dans sa visio), T024 (enchaînement une à une ou tout le lot).
+
+### [2026-10-17 00:51] FEAT — appeler un agent depuis un tiroir, le poser libre, puis le relier (L1o D26, T030)
+**Fichiers :** `AgentIdCard.tsx`, `AgentTray.tsx`, `BenchAgentNode.tsx`, `useBench.ts` (nouveaux), `agents.css`,
+`agentTypes.ts`, `buildGraph.ts`, `ToolMenu.tsx` (« Appeler un agent… » dans le vide), `IdeasCanvas.tsx` (tiroir,
+lâcher sur la carte, lien lâché sur un nœud, menus) ; `AgentBench.ts`, `AgentBenchRepository.ts`, `benchHandlers.ts`
+(`bench:list|place|move|remove`), migration `0056_agent_bench` (+ `down`) ; tests unitaires, renderer, migration, e2e
+`agents-lot` (parcours tiroir → agent libre → lien) et `agents-map` (tiroir sur un nœud).
+**Quoi :** capture de mentalyas : tous les profils dans le clic droit d'un nœud ne tiendront pas. Clic droit dans le
+vide : « Appeler un agent… », un tiroir de cartes d'identité (tête, nom, rôle, rang) qu'on glisse sur la carte (agent
+libre, place gardée) puis qu'on relie à une tâche d'un lien lâché n'importe où sur le nœud ; clic droit sur un nœud :
+le même tiroir, un clic connecte l'agent. Un agent libre se retire au clic droit.
+**Choix :** le lien se fait au lâcher sur le nœud (pas sur une poignée) : viser un petit point sur un nœud du Workflow
+aurait été pénible.
+**Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-lot` (captures `t030-01-tiroir`,
+`t030-02-agent-libre`) et `agents-map`.

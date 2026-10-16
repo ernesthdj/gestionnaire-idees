@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openDatabase, type DatabaseHandle } from '../../../src/main/infrastructure/db/client'
+import { AssemblySketchRepository } from '../../../src/main/infrastructure/db/repositories/AssemblySketchRepository'
 import { categories, neurons, settings } from '../../../src/main/infrastructure/db/schemaNeurons'
 
 const MIGRATIONS = resolve(import.meta.dirname, '../../../src/main/infrastructure/db/migrations')
@@ -281,9 +282,47 @@ describe('migrations du modèle de neurones', () => {
         "INSERT INTO assembly_sketches (node_id, genesis_id, task_id, updated_at) VALUES ('wf:g:ttask:t1', 'g', 'T-1', 0)"
       )
     )
+    runDown('0055_sketch_lot')
     runDown('0054_sketch_workflow_hosts')
     expect(keys()).toEqual(['neurons'])
     expect(handle.db.all(sql.raw('SELECT node_id FROM assembly_sketches'))).toEqual([])
+  })
+
+  it('should_keep_the_lot_plan_of_a_sketch_then_drop_it_with_the_down_migration', () => {
+    // L1o D25 (T023) : le plan du PO et les retouches d'aiguillage, relus tels quels ; illisibles, ils sont ignorés.
+    const repository = new AssemblySketchRepository(handle.db)
+    const lot = {
+      plan: {
+        steps: [{ task: 'T002', agents: ['Développeur'], waits: [] }],
+        rhythm: { mode: 'une-a-une' as const, reason: 'tri partagé' }
+      },
+      overrides: [{ task: 'T002', agents: ['back'], links: [] }]
+    }
+    const sketch = {
+      nodeId: 'wf:g:tgroup:lot1',
+      genesisId: 'g',
+      taskId: 'T-lot1',
+      agents: [{ id: 'back', profileId: 'p1' }],
+      links: [],
+      lot
+    }
+    repository.save(sketch)
+    expect(repository.list('g')).toEqual([sketch])
+    handle.db.run(sql.raw('UPDATE assembly_sketches SET lot = \'{"plan":1}\''))
+    expect(repository.list('g')[0]?.lot).toBeUndefined()
+    runDown('0055_sketch_lot')
+    expect(columns('assembly_sketches')).not.toContain('lot')
+    expect(columns('assembly_sketches')).toContain('links')
+  })
+
+  it('should_add_the_agent_bench_table_then_remove_it_with_the_down_migration', () => {
+    // L1o D26 (T030) : les agents posés libres sur la carte d'un projet.
+    expect(columns('agent_bench')).toEqual(
+      expect.arrayContaining(['id', 'genesis_id', 'profile_id', 'x', 'y', 'updated_at'])
+    )
+    runDown('0056_agent_bench')
+    expect(tables()).not.toContain('agent_bench')
+    expect(tables()).toContain('agent_profiles')
   })
 
   it('should_add_the_delivered_column_then_remove_it_with_the_down_migration', () => {

@@ -80,7 +80,9 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await settled(square)
     const call = async (profile: string): Promise<void> => {
       await square.click({ button: 'right', force: true })
-      await page.getByRole('menuitem', { name: new RegExp(`Appeler ${profile}`) }).click()
+      // L1o D26 : « Appeler un agent… » ouvre le tiroir ; un clic sur sa carte le connecte au nœud.
+      await page.getByRole('menuitem', { name: 'Appeler un agent…' }).click()
+      await page.getByRole('button', { name: `Connecter ${profile}` }).click()
       await page.getByRole('button', { name: new RegExp(`^${profile}, à lancer`) }).waitFor()
     }
     await call('Chef de produit')
