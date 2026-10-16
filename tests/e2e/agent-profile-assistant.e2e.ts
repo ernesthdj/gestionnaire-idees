@@ -29,6 +29,9 @@ describe('créer un profil d’agent avec Claude (T019, e2e)', () => {
     await page.getByRole('button', { name: '✦ Créer avec Claude' }).click()
     const conversation = page.getByRole('region', { name: /^Conversation/ })
     await conversation.waitFor()
+    // Ses propres suggestions (pas celles des Skills), sur plusieurs lignes sans se chevaucher.
+    await conversation.getByRole('button', { name: /^Aide-moi à créer un agent/ }).waitFor()
+    await run.shot('t019-00-suggestions')
     await conversation.getByLabel('Message à Claude').fill('Un agent QA qui relit les tests avant chaque fusion.')
     await conversation.getByRole('button', { name: 'Envoyer' }).click()
     await conversation.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })

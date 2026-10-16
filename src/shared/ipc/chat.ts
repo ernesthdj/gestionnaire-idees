@@ -111,6 +111,8 @@ export interface ChatView {
    * conversation Skills (spec 020) ou nœud de la vue Workflow (spec 023).
    */
   readonly role: 'genesis' | 'element' | 'step' | 'skills' | 'workflow'
+  /** Conversation Skills qui crée ou retouche un profil d'agent (L1o D15) : ses propres textes et suggestions. */
+  readonly agentProfile?: boolean
   readonly elementType: string | null
   /** Rang d'une étape (« ② », « ②.1 ») ; `null` sinon. */
   readonly stepLabel: string | null

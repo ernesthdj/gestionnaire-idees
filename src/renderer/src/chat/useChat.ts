@@ -36,6 +36,7 @@ export interface ChatState {
   /** Le dossier est un dépôt git (spec 016). */
   readonly git: boolean
   readonly role: ChatView['role']
+  readonly agentProfile: boolean
   readonly elementType: string | null
   readonly stepLabel: string | null
   /** Modèle utilisé ; `modelChoice` : celui choisi pour cette conversation (`null` : défaut de son usage). */
@@ -97,6 +98,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
     folder: null,
     projectFolder: null,
     role: 'genesis',
+    agentProfile: false,
     elementType: null,
     stepLabel: null,
     model: '',
@@ -137,6 +139,7 @@ export function useChat(neuronId: string): ChatState & ChatActions {
           folder: view.folder ?? null,
           projectFolder: view.projectFolder ?? null,
           role: view.role ?? 'genesis',
+          agentProfile: view.agentProfile === true,
           elementType: view.elementType ?? null,
           stepLabel: view.stepLabel ?? null,
           model: view.model ?? '',

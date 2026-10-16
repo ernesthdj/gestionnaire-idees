@@ -2627,3 +2627,12 @@ l'en-tête du chat (« Nœud du workflow ») masqué comme en visio ; confettis 
 `<header>` dans un portail = second landmark banner (axe) → `<div>`.
 **Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant` et `agents-map` ; captures
 `t022-01-naissance`, `t022-02-revele`, `t022-03-tete-a-tete`.
+
+### [2026-10-16 23:16] FIX — « Créer avec Claude » : textes et suggestions propres au profil d'agent, suggestions lisibles
+**Fichiers :** `src/shared/ipc/chat.ts` (`agentProfile`), `ConversationService.ts`, `useChat.ts`, `ChatPanel.tsx` ;
+e2e `agent-profile-assistant`.
+**Quoi :** capture de mentalyas : la conversation de création d'un profil affichait le sous-titre et les suggestions des
+Skills (et même celles « sur un skill »), la fiche du neurone, et des suggestions superposées (bouton de 32 px fixe
+pour un texte sur trois lignes). Désormais : sous-titre « Claude remplit la fiche à côté ; tu valides », consigne et
+deux suggestions propres, plus de fiche du neurone ; les suggestions (Skills compris) suivent la hauteur de leur texte.
+**Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant`, capture `t019-00-suggestions`.

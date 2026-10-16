@@ -95,6 +95,11 @@ export const SKILLS_STARTERS: readonly string[] = [
   'Aide-moi à créer un nouveau skill : pose-moi les questions utiles, puis dépose un brouillon.',
   'Regarde ma toile de skills : lesquels se recoupent, lesquels manquent ?'
 ]
+/** Suggestions de départ de « ✦ Créer avec Claude » (L1o D15) : la fiche du profil est à côté. */
+export const AGENT_PROFILE_STARTERS: readonly string[] = [
+  'Aide-moi à créer un agent : pose-moi deux ou trois questions, puis remplis la fiche.',
+  'Regarde mes skills et propose l’agent qui manque à mon équipe.'
+]
 export const SKILL_STARTERS: readonly string[] = [
   'Lis ce skill et dis-moi ce qui pourrait être plus clair (déclencheurs, étapes, garde-fous, exemples).',
   'Améliore ce skill et dépose un brouillon que je pourrai comparer.'
@@ -451,17 +456,19 @@ export function ChatPanel({
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold">{chat.title === '' ? 'Conversation' : chat.title}</h2>
             <p className="text-xs text-content-muted">
-              {chat.role === 'skills'
-                ? 'Conversation Skills · Claude ne dépose que des brouillons'
-                : chat.role === 'element'
-                  ? `${chat.elementType ?? 'Élément'} du projet`
-                  : chat.role === 'step'
-                    ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                    : chat.role === 'workflow'
-                      ? 'Nœud du workflow'
-                      : chat.folder === null
-                        ? 'Genesis'
-                        : 'Projet'}{' '}
+              {chat.agentProfile === true
+                ? 'Claude remplit la fiche à côté ; tu valides'
+                : chat.role === 'skills'
+                  ? 'Conversation Skills · Claude ne dépose que des brouillons'
+                  : chat.role === 'element'
+                    ? `${chat.elementType ?? 'Élément'} du projet`
+                    : chat.role === 'step'
+                      ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
+                      : chat.role === 'workflow'
+                        ? 'Nœud du workflow'
+                        : chat.folder === null
+                          ? 'Genesis'
+                          : 'Projet'}{' '}
               · conversation Claude Code
               {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
             </p>
@@ -685,7 +692,7 @@ export function ChatPanel({
 
       <motion.div layoutScroll className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-4">
         {chat.role === 'element' ? <ElementFiles elementId={neuronId} onOpen={setReading} /> : null}
-        {chat.sheet === null ? null : <Sheet sheet={chat.sheet} />}
+        {chat.sheet === null || chat.agentProfile === true ? null : <Sheet sheet={chat.sheet} />}
         {chat.problem === null ? null : (
           <p role="alert" className="text-sm text-red-700 dark:text-red-400">
             {chat.problem}
@@ -707,15 +714,27 @@ export function ChatPanel({
           ) : null}
         </div>
         {!chat.loading && chat.messages.length === 0 && !chat.busy && chat.role === 'skills' ? (
-          <div className="flex flex-col items-start gap-2 text-sm text-content-muted">
+          <div className="flex flex-col gap-2 text-sm text-content-muted">
             <p>
-              Demande à Claude de créer, améliorer ou faire le tri dans tes skills. Il dépose des brouillons ; tu
-              installes.
+              {chat.agentProfile === true
+                ? 'Décris l’agent que tu veux, librement. Claude pose les questions utiles, puis remplit la fiche (✦) ; tu retouches et tu crées.'
+                : 'Demande à Claude de créer, améliorer ou faire le tri dans tes skills. Il dépose des brouillons ; tu installes.'}
             </p>
-            {(chat.title === 'Skills' ? SKILLS_STARTERS : SKILL_STARTERS).map((starter) => (
-              <Button key={starter} onClick={() => void chat.send(starter)}>
+            {(chat.agentProfile === true
+              ? AGENT_PROFILE_STARTERS
+              : chat.title === 'Skills'
+                ? SKILLS_STARTERS
+                : SKILL_STARTERS
+            ).map((starter) => (
+              // Suggestion sur plusieurs lignes : la hauteur suit le texte (un bouton fixe de 32 px les superposait).
+              <button
+                key={starter}
+                type="button"
+                onClick={() => void chat.send(starter)}
+                className="rounded-lg border border-content-muted/30 px-3 py-2 text-left text-sm text-content transition-colors hover:border-accent hover:bg-surface-raised"
+              >
                 {starter}
-              </Button>
+              </button>
             ))}
           </div>
         ) : null}

@@ -323,6 +323,7 @@ export class ConversationService {
               : neuron.kind === 'workflow_chat' || neuron.kind === 'agent_chat'
                 ? 'workflow'
                 : 'genesis',
+      agentProfile: isAgentProfileChat(neuron),
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
