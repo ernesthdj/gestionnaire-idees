@@ -80,6 +80,11 @@ describe('conversations Claude Code des neurones', () => {
           const current = neurons.get(id)
           if (current !== undefined) neurons.set(id, { ...current, sessionId, sessionStarted: started })
         },
+        restartSession: (id, sessionId) => {
+          messages = messages.filter((message) => message.neuronId !== id)
+          const current = neurons.get(id)
+          if (current !== undefined) neurons.set(id, { ...current, sessionId, sessionStarted: false })
+        },
         messages: (id) =>
           messages
             .filter((message) => message.neuronId === id)
@@ -586,6 +591,23 @@ describe('conversations Claude Code des neurones', () => {
     ])
     // Chaque message part tout de suite vers le chat ouvert.
     expect(events.filter((event) => event.type === 'chat:tool')).toHaveLength(4)
+  })
+
+  it('should_start_a_fresh_session_without_the_old_messages_when_restarting_an_agent_chat', () => {
+    // Demande de mentalyas (2026-10-17) : relancer la conversation avec un agent, sinon elle continue sans fin.
+    neurons.set(
+      N1,
+      neuron(N1, { kind: 'agent_chat', genesisId: N2, sessionId: 'ancienne', sessionStarted: true, elementKey: 'k' })
+    )
+    messages.push({ neuronId: N1, role: 'user', text: 'Bonjour' }, { neuronId: N2, role: 'user', text: 'Autre' })
+    service = build()
+    expect(service.restart(N1).messages).toEqual([])
+    expect(neurons.get(N1)).toMatchObject({ sessionStarted: false })
+    expect(neurons.get(N1)?.sessionId).not.toBe('ancienne')
+    expect(messages).toHaveLength(1)
+    // Une conversation qui n'est pas celle d'un agent ne se relance pas ainsi.
+    neurons.set(N2, neuron(N2))
+    expect(() => service.restart(N2)).toThrow(/agent/)
   })
 
   it('should_write_the_mode_and_model_into_the_agent_profile_when_changed_in_its_visio', () => {

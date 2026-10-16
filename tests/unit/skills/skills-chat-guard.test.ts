@@ -28,7 +28,7 @@ describe('conversations Skills sans écriture (spec 020 analyse H1)', () => {
       })
       expect(valueOf(args, '--tools')).toBe('Read Glob Grep')
       expect(valueOf(args, '--allowedTools')).toBe(
-        'mcp__brainstormer__skills_lire mcp__brainstormer__skill_brouillon mcp__brainstormer__agent_profil_proposer Read Glob Grep'
+        'mcp__brainstormer__skills_lire mcp__brainstormer__agents_lire mcp__brainstormer__skill_brouillon mcp__brainstormer__agent_profil_proposer Read Glob Grep'
       )
       expect(valueOf(args, '--permission-mode')).toBe('default')
       expect(args).not.toContain('--allow-dangerously-skip-permissions')

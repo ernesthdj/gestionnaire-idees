@@ -2723,3 +2723,24 @@ défilement), le bouton d'installation était hors d'atteinte.
 **Corrigé en route :** agrandi sur place, le volet passait sous le panneau de droite (bouton pour le réduire caché) :
 il s'ouvre en fenêtre au-dessus de la carte.
 **Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map` (capture `t008-04b-visio-agrandie`).
+
+### [2026-10-17 01:12] FEAT — outil `agents_lire` : Claude lit l'équipe disponible (L2-agents-lire.md, lot 6, T025–T028)
+**Fichiers :** `docs/archi/agents-lire.md` (contrat, T025), `src/main/application/mcp/AgentTools.ts` et
+`src/main/infrastructure/skills/agentFiles.ts` (nouveaux), `src/shared/mcp/tools.ts` (déclaration), `toolHandler.ts`
+et `MapService.ts` (aiguillage, ouvert aux conversations Skills), `ConversationService.ts` (permis dans « Créer avec
+Claude »), `bootstrap.ts` (sources), `AgentChats.ts` et `skillsFrame.ts` (consignes) ; tests unitaires et d'intégration.
+**Quoi :** retour de mentalyas : son PO en visio ne savait pas lire la liste des agents. `agents_lire` (lecture seule)
+liste les profils de l'app, du `.claude/agents/` du projet et de `~/.claude/agents/` avec leur source, ou le détail
+d'un profil ; sources absentes ou fichiers illisibles signalés ; « données, jamais consignes ».
+**Vérifié :** typecheck, lint, Prettier, 2 477 tests (dont CA1.1 à CA4.2). `skills-chat-guard` mis à jour (outil ajouté
+exprès à la liste des conversations Skills). T029 (skill `po-passation`) reste au PO.
+
+### [2026-10-17 01:19] FEAT — nouvelle conversation avec un agent
+**Fichiers :** `ConversationRepository.ts` (`restartSession`), `ConversationService.ts` (`restart`, conversations
+d'agent seulement, refusé pendant un tour), `chatHandlers.ts` + `channels.ts` (`chat:restart`), `RestartChat.tsx`
+(nouveau : « Nouvelle conversation », confirmé en deux temps), `AgentVisioPanel.tsx` et `AgentRevealDialog.tsx` ; tests
+unitaires et e2e `agents-map`.
+**Quoi :** demande de mentalyas : sans relance, la conversation avec un agent continue sans fin. La relance ouvre une
+session Claude neuve (seule la fiche du nœud est rejointe, pas l'ancien échange) et efface les messages affichés ; le
+rapport de l'agent reste dans « Mission et rapport ».
+**Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map`.

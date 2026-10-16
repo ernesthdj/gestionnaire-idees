@@ -60,6 +60,7 @@ export interface ConversationDeps {
     ConversationRepository,
     | 'neuron'
     | 'setSession'
+    | 'restartSession'
     | 'setProjectDir'
     | 'setChatModel'
     | 'setPermissionMode'
@@ -131,7 +132,7 @@ export const PERMISSION_PROMPT_TOOL = 'mcp__brainstormer__permission_demander'
  */
 export const SKILLS_CHAT_TOOLS = 'Read Glob Grep'
 export const SKILLS_CHAT_ALLOWED =
-  'mcp__brainstormer__skills_lire mcp__brainstormer__skill_brouillon mcp__brainstormer__agent_profil_proposer Read Glob Grep'
+  'mcp__brainstormer__skills_lire mcp__brainstormer__agents_lire mcp__brainstormer__skill_brouillon mcp__brainstormer__agent_profil_proposer Read Glob Grep'
 
 /** Arguments fixes du CLI (spec 008 research R1) : aucun ne vient de l'interface ni du texte de mentalyas. */
 export function conversationArgs(input: {
@@ -456,6 +457,24 @@ ${text}`
     if (live?.busy === true) live.restartAfterTurn = true
     else this.dispose(neuronId)
     return { mode }
+  }
+
+  /**
+   * Nouvelle conversation avec un agent (demande de mentalyas, 2026-10-17) : une session Claude neuve, sans rien de
+   * l'ancienne ; les messages affichés partent. Le rapport de l'agent reste dans son volet. Refusé pendant un tour.
+   */
+  restart(neuronId: string): ChatView {
+    const neuron = this.neuronOrThrow(neuronId)
+    if (neuron.kind !== 'agent_chat') {
+      throw new AppError('VALIDATION', 'Seule une conversation avec un agent se relance de zéro.')
+    }
+    if (this.live.get(neuronId)?.busy === true) {
+      throw new AppError('BUSY', 'L’agent répond encore : arrête-le ou attends la fin du tour.')
+    }
+    this.deps.permissions?.cancel(neuronId)
+    this.dispose(neuronId)
+    this.deps.repository.restartSession(neuronId, this.deps.newSessionId?.() ?? randomUUID())
+    return this.open(neuronId)
   }
 
   /** Interrompt le tour en cours : ce qui a été reçu est gardé ; la session reprendra au message suivant. */

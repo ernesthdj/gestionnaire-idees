@@ -9,6 +9,7 @@ import { VisioClock } from './AgentNode'
 import { mintCharacter, mintRoom } from './character/mint'
 import { rarer } from './character/random'
 import { MintCard } from './character/MintCard'
+import { RestartChat } from './RestartChat'
 import { SkillsCards, useSkillsOfVisio } from './VisioSkills'
 import { subtitleOf } from './visioStore'
 
@@ -44,6 +45,7 @@ export function AgentRevealDialog({
   const [chatting, setChatting] = useState(false)
   const [since] = useState(() => Date.now())
   const [draftOpen, setDraftOpen] = useState<string | null>(null)
+  const [round, setRound] = useState(0)
   const chat = useQuery({
     queryKey: ['agents', 'chat', profile.id],
     queryFn: () => call<{ neuronId: string }>('agents:chat', { profileId: profile.id }),
@@ -167,12 +169,29 @@ export function AgentRevealDialog({
           </div>
           {chatting ? (
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-l border-content-muted/20">
+              {chat.data === undefined ? null : (
+                <div className="border-b border-content-muted/20 px-4 py-2">
+                  <RestartChat
+                    neuronId={chat.data.neuronId}
+                    disabled={voice.talking}
+                    onDone={() => {
+                      setDraftOpen(null)
+                      setRound((value) => value + 1)
+                    }}
+                  />
+                </div>
+              )}
               <SkillsCards skills={skills} onOpenDraft={setDraftOpen} />
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {draftOpen !== null ? (
                   <DraftPanel draftId={draftOpen} onDone={() => setDraftOpen(null)} />
                 ) : chat.data !== undefined ? (
-                  <ChatPanel neuronId={chat.data.neuronId} onClose={() => setChatting(false)} onActivity={onActivity} />
+                  <ChatPanel
+                    key={`${chat.data.neuronId}-${round}`}
+                    neuronId={chat.data.neuronId}
+                    onClose={() => setChatting(false)}
+                    onActivity={onActivity}
+                  />
                 ) : chat.error !== null ? (
                   <p role="alert" className="p-4 text-con">
                     {chat.error instanceof IpcFailure ? chat.error.message : 'La conversation n’a pas pu s’ouvrir.'}

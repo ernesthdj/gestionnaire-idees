@@ -521,6 +521,7 @@ function argumentsFor(ids: readonly string[], document: string): Record<McpToolN
     structure_lire: [{}, ...each((projet) => ({ projet }))],
     code_graphe_lire: [{}, ...each((projet) => ({ projet }))],
     skills_lire: [{}],
+    agents_lire: [{}],
     skill_brouillon: each((projet) => ({
       skill: 'mon-skill',
       famille: 'projet',

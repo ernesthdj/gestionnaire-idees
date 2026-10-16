@@ -45,8 +45,8 @@
 
 ## Lot 6 — Lire les profils d'agents (L2-agents-lire.md) — ébauches, maturité « suffisant »
 
-- [ ] T025 (ébauche) Contrat de l'outil `agents_lire` : entrées (aucune, ou `agent`), champs rendus, sources et leur nom, cas d'erreur · agent : architecte · dépend de : rien · fini : contrat écrit et relu, couvre US1 à US4
-- [ ] T026 (ébauche) Outil `agents_lire` en lecture seule : profils de l'app, `.claude/agents/` du projet et `~/.claude/agents/`, mode liste et mode détail, sources absentes ou illisibles signalées · agent : thor (backend) · dépend de : T025 · fini : CA1.1 à CA3.4 et CA4.2 vérifiés par des tests verts
-- [ ] T027 (ébauche) Ouvrir `agents_lire` aux conversations de neurone, visios d'agent, tête-à-tête de profil et « Créer avec Claude » · agent : thor (backend) · dépend de : T026 · fini : CA4.1 vérifié par un test vert
-- [ ] T028 (ébauche) Scénarios QA depuis les CA de L2-agents-lire.md, puis exécution et rapport · agent : qa-qualite · dépend de : rien pour les scénarios, T027 pour l'exécution · fini : rapport QA, verdict sur chaque CA
+- [x] T025 Contrat de l'outil `agents_lire` : entrées (aucune, ou `agent`), champs rendus, sources et leur nom, cas d'erreur · agent : architecte · dépend de : rien · fini : contrat écrit et relu, couvre US1 à US4
+- [x] T026 Outil `agents_lire` en lecture seule : profils de l'app, `.claude/agents/` du projet et `~/.claude/agents/`, mode liste et mode détail, sources absentes ou illisibles signalées · agent : thor (backend) · dépend de : T025 · fini : CA1.1 à CA3.4 et CA4.2 vérifiés par des tests verts
+- [x] T027 Ouvrir `agents_lire` aux conversations de neurone, visios d'agent, tête-à-tête de profil et « Créer avec Claude » · agent : thor (backend) · dépend de : T026 · fini : CA4.1 vérifié par un test vert
+- [x] T028 Scénarios QA depuis les CA de L2-agents-lire.md, puis exécution et rapport · agent : qa-qualite · dépend de : rien pour les scénarios, T027 pour l'exécution · fini : rapport QA, verdict sur chaque CA
 - [ ] T029 (ébauche) Skill `po-passation` : l'inventaire du mode Conseil passe par `agents_lire` (retirer « s'il existe ») · agent : PO · dépend de : T026 · fini : brouillon de skill déposé et installé par mentalyas

@@ -141,6 +141,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'chat:open',
   'chat:send',
   'chat:stop',
+  'chat:restart',
   'chat:permissionDecide',
   'chat:close',
   'chat:linkFolder',

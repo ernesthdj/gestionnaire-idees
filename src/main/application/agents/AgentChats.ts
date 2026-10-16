@@ -62,6 +62,7 @@ export function agentPersona(input: {
       'ou d’en retirer, lis la toile avec `skills_lire` puis propose le changement avec `agent_skills_proposer` (il ' +
       'accepte ou refuse dans le volet). Pour améliorer le contenu d’un skill, dépose un brouillon avec ' +
       '`skill_brouillon` : il le voit et l’installe depuis le volet.',
+    'Pour connaître l’équipe disponible (tes coéquipiers, les profils à recommander), appelle `agents_lire`.',
     input.hostContext.trim() === '' ? '' : `Ce que dit la tâche :\n${input.hostContext.trim()}`
   ]
   return {

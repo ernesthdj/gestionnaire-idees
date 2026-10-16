@@ -142,6 +142,12 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await run.shot('t008-04b-visio-agrandie')
     await visio.getByRole('button', { name: 'Agrandir le volet' }).click()
     await visio.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })
+    // Nouvelle conversation (2026-10-17) : une session neuve, l'ancien échange disparaît.
+    const restart = visio.getByRole('button', { name: 'Nouvelle conversation' })
+    await expect.poll(() => restart.isEnabled(), { timeout: 15_000 }).toBe(true)
+    await restart.click()
+    await visio.getByRole('button', { name: 'Repartir' }).click()
+    await expect.poll(() => visio.getByText('Où en es-tu ?').count()).toBe(0)
     await visio.getByText('Mission et rapport').click()
     await visio.getByRole('button', { name: 'Gérer l’assemblage' }).click()
     await tab.getByRole('region', { name: 'Agent developpeur' }).waitFor()

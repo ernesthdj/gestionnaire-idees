@@ -55,3 +55,34 @@ describe('outil interne du hook avant écriture (spec 014 R5)', () => {
     expect(guarded('ecriture_avant', input, { neuronId })).toEqual({ text: 'suivi' })
   })
 })
+
+describe('agents_lire ouvert à toutes les conversations (L2-agents-lire.md, CA4.1)', () => {
+  const read = vi.fn(() => ({ text: 'équipe' }))
+  const neuronId = '00000000-0000-4000-8000-0000000000c2'
+  const handlerFor = (isSkillsChat: boolean) =>
+    createToolHandler(
+      ...([
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        undefined,
+        undefined,
+        undefined,
+        { tools: {}, isSkillsChat: () => isSkillsChat },
+        undefined,
+        undefined,
+        { read }
+      ] as unknown as HandlerArgs)
+    )
+
+  it('should_answer_in_a_skills_chat_and_in_any_other_conversation', () => {
+    // « Créer avec Claude » est une conversation Skills : agents_lire y est permis, comme partout ailleurs.
+    expect(handlerFor(true)('agents_lire', {}, { neuronId })).toEqual({ text: 'équipe' })
+    expect(handlerFor(false)('agents_lire', { agent: 'thor' }, { neuronId })).toEqual({ text: 'équipe' })
+    expect(read).toHaveBeenLastCalledWith('thor', neuronId)
+    expect(MCP_PUBLIC_TOOL_NAMES).toContain('agents_lire')
+  })
+})

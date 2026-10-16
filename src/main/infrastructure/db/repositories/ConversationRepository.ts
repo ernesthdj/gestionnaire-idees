@@ -159,6 +159,14 @@ export class ConversationRepository {
     this.db.update(neurons).set({ sessionId, sessionStarted: started }).where(eq(neurons.id, id)).run()
   }
 
+  /** Nouvelle conversation (avec un agent) : les messages affichés partent, une session neuve commence. */
+  restartSession(id: string, sessionId: string): void {
+    this.db.transaction((tx) => {
+      tx.delete(neuronMessages).where(eq(neuronMessages.neuronId, id)).run()
+      tx.update(neurons).set({ sessionId, sessionStarted: false }).where(eq(neurons.id, id)).run()
+    })
+  }
+
   /** Lie (ou délie) un dossier de projet ; la session repart de zéro, le CLI rangeant ses sessions par dossier. */
   setProjectDir(id: string, projectDir: string | null, newSessionId: string): void {
     this.db

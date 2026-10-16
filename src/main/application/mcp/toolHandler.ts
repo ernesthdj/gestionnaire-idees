@@ -27,11 +27,13 @@ import type { DeliverableTracker } from '../finals/DeliverableTracker'
 import type { CodeGraphTools } from '../reprise/CodeGraphTools'
 import type { SkillTools } from './SkillTools'
 import type { AgentProfileTools } from './AgentProfileTools'
+import type { AgentTools } from './AgentTools'
 import { McpToolError } from '../../domain/mcp/errors'
 
 /** Outils permis dans une conversation Skills (la permission reste relayée à mentalyas). */
 const SKILLS_CHAT_TOOLS: ReadonlySet<McpToolName> = new Set([
   'skills_lire',
+  'agents_lire',
   'skill_brouillon',
   'agent_profil_proposer',
   'permission_demander',
@@ -57,19 +59,24 @@ export function createToolHandler(
   /** Garde d'écriture (conversation de codage de l'Analyste) : un message = écriture refusée. */
   writeGuard?: (neuronId: string, filePath: string) => string | null,
   /** Fiche d'un profil d'agent créé avec Claude (L1o D15). */
-  agentProfiles?: Pick<AgentProfileTools, 'propose' | 'proposeSkills'>
+  agentProfiles?: Pick<AgentProfileTools, 'propose' | 'proposeSkills'>,
+  /** Profils d'agents de toutes les sources, en lecture (L2-agents-lire.md). */
+  agents?: Pick<AgentTools, 'read'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
     if (caller.neuronId !== null && skills?.isSkillsChat(caller.neuronId) === true && !SKILLS_CHAT_TOOLS.has(tool)) {
       throw new McpToolError(
         'NON_MODIFIABLE',
-        'Dans une conversation Skills, seuls skills_lire, skill_brouillon et agent_profil_proposer servent.'
+        'Dans une conversation Skills, seuls skills_lire, agents_lire, skill_brouillon et agent_profil_proposer servent.'
       )
     }
     switch (tool) {
       case 'skills_lire':
         if (skills === undefined) throw new McpToolError('INTROUVABLE', 'Skills indisponibles.')
         return skills.tools.read((args as { skill?: string }).skill)
+      case 'agents_lire':
+        if (agents === undefined) throw new McpToolError('INTROUVABLE', 'Profils d’agents indisponibles.')
+        return agents.read((args as { agent?: string }).agent, caller.neuronId)
       case 'skill_brouillon':
         if (skills === undefined) throw new McpToolError('INTROUVABLE', 'Skills indisponibles.')
         return skills.tools.draft(args as SkillBrouillonInput)

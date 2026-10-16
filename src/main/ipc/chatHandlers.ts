@@ -54,6 +54,12 @@ export function createChatRoutes(
         return { ok: true }
       }
     }),
+    // Nouvelle conversation avec un agent : session neuve, messages effacés.
+    defineRoute({
+      channel: 'chat:restart',
+      input: NeuronInput,
+      handler: async ({ neuronId }) => conversations.restart(neuronId)
+    }),
     defineRoute({
       channel: 'chat:stop',
       input: NeuronInput,

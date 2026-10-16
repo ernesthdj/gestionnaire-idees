@@ -12,6 +12,7 @@ import { missionOf } from './AgentsTabContent'
 import type { AgentNodeData } from './agentTypes'
 import { useAssemblyActions, useAssemblyData } from './useAssemblies'
 import { DraftPanel } from '../../skills/DraftPanel'
+import { RestartChat } from './RestartChat'
 import { SkillsCards, useSkillsOfVisio } from './VisioSkills'
 import { subtitleOf, useVisio } from './visioStore'
 
@@ -45,6 +46,9 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
   const [draftOpen, setDraftOpen] = useState<string | null>(null)
   // Agrandir le volet (demande de mentalyas, 2026-10-17) : un brouillon ou une longue réponse s'y lit en entier.
   const [wide, setWide] = useState(false)
+  // Nouvelle conversation : le chat repart d'une vue neuve (sa clé change).
+  const [round, setRound] = useState(0)
+  const talking = useVisio((state) => state.talking)
   const skills = useSkillsOfVisio(chatId, profile, since)
   const running = run?.state === 'running'
   const actions = useAssemblyActions()
@@ -127,6 +131,18 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
           {live.message}
         </p>
       )}
+      {chat.data === undefined ? null : (
+        <div className="px-4">
+          <RestartChat
+            neuronId={chat.data.neuronId}
+            disabled={talking}
+            onDone={() => {
+              setDraftOpen(null)
+              setRound((value) => value + 1)
+            }}
+          />
+        </div>
+      )}
       <details className="px-4 text-sm">
         <summary className="cursor-pointer font-medium">Mission et rapport</summary>
         {agent === undefined || sketch === undefined ? null : (
@@ -169,7 +185,12 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
         {draftOpen !== null ? (
           <DraftPanel draftId={draftOpen} onDone={() => setDraftOpen(null)} />
         ) : chat.data !== undefined ? (
-          <ChatPanel neuronId={chat.data.neuronId} onClose={close} onActivity={onActivity} />
+          <ChatPanel
+            key={`${chat.data.neuronId}-${round}`}
+            neuronId={chat.data.neuronId}
+            onClose={close}
+            onActivity={onActivity}
+          />
         ) : chat.error !== null ? (
           <p role="alert" className="p-4 text-sm text-con">
             {chat.error instanceof IpcFailure ? chat.error.message : 'La visio n’a pas pu commencer.'}

@@ -70,6 +70,8 @@ import { e2eAgentRun, e2eConversationSpawn } from './infrastructure/ai/E2eClaude
 import { createAgentSessionRunner } from './infrastructure/claude/AgentSession'
 import { createAssemblyRoutes } from './ipc/assemblyHandlers'
 import { createBenchRoutes } from './ipc/benchHandlers'
+import { AgentTools } from './application/mcp/AgentTools'
+import { readAgentDir } from './infrastructure/skills/agentFiles'
 import { AgentBench } from './application/agents/AgentBench'
 import { AgentBenchRepository } from './infrastructure/db/repositories/AgentBenchRepository'
 import { SkillRepository } from './infrastructure/db/repositories/SkillRepository'
@@ -841,6 +843,20 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
           // Visio (L1o D16) : l'agent propose d'ajouter ou de retirer des skills de son profil.
           agentOfChat: (neuronId) => agentOfChat(conversationRepository.neuron(neuronId))?.profile,
           emitSkills: (proposal) => broadcast('agents:skillsProposal', proposal)
+        }),
+        // Profils d'agents de toutes les sources, en lecture (L2-agents-lire.md, T026).
+        new AgentTools({
+          profiles: () => agentProfiles.list(),
+          projectAgents: (neuronId) => {
+            const neuron = neuronId === null ? undefined : conversationRepository.neuron(neuronId)
+            const genesis =
+              neuron?.genesisId === null || neuron?.genesisId === undefined
+                ? undefined
+                : conversationRepository.neuron(neuron.genesisId)
+            const projectDir = neuron?.projectDir ?? genesis?.projectDir ?? null
+            return projectDir === null ? 'sans-projet' : readAgentDir(join(projectDir, '.claude', 'agents'))
+          },
+          personalAgents: () => readAgentDir(join(app.getPath('home'), '.claude', 'agents'))
         })
       )
     ),

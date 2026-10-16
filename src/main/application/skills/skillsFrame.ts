@@ -34,6 +34,7 @@ export const AGENT_PROFILE_FRAME = [
   'Ici, mentalyas crée un PROFIL D’AGENT avec toi ; la fiche du profil est affichée à côté de la conversation.',
   'Un agent est une session Claude Code qui travaille sur une tâche du Workflow : rôle (po, architecte, backend, ' +
     'frontend, qa, autre), consignes propres, modèle, effort, mode de permission et skills qu’il peut consulter.',
+  'Avant de proposer, lis l’équipe avec `agents_lire` : ne crée pas un profil qui double un profil existant.',
   'Laisse mentalyas décrire son agent librement. Ne pose que les questions vraiment utiles, deux ou trois au plus, ' +
     'puis remplis la fiche avec `agent_profil_proposer` (tu peux la remplir en plusieurs fois, chaque champ donné ' +
     'remplace le précédent). Les consignes : courtes, impératives, ce que l’agent fait et ne fait pas.',

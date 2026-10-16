@@ -77,6 +77,7 @@ export type MapToolName = Exclude<
   | 'permission_demander'
   | 'ecriture_avant'
   | 'skills_lire'
+  | 'agents_lire'
   | 'skill_brouillon'
   | 'agent_profil_proposer'
   | 'agent_skills_proposer'
