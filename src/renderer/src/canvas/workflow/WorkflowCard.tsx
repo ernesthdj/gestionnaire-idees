@@ -386,7 +386,7 @@ function WorkflowSheet({
       ) : (
         <div className="flex flex-wrap gap-1">
           {subject.family.map((doc) => (
-            <ReadButton key={doc.name} path={`docs/brainstorm/${doc.name}`} label={doc.name} onRead={onRead} />
+            <ReadButton key={doc.name} path={doc.path} label={doc.name} onRead={onRead} />
           ))}
         </div>
       )
@@ -516,7 +516,7 @@ function readablesOf(item: WorkflowItem): { path: string; label: string }[] {
     case 'task':
       return [{ path: `${subject.spec.dir}/tasks.md`, label: 'Lire les tâches' }]
     case 'doc':
-      return [{ path: `docs/brainstorm/${subject.doc.name}`, label: 'Lire le document' }]
+      return [{ path: subject.doc.path, label: 'Lire le document' }]
     case 'taskFile':
     case 'taskGroup':
     case 'fileTask':

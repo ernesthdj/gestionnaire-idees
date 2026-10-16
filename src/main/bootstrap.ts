@@ -844,6 +844,14 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const conversations: ConversationService = new ConversationService({
     repository: conversationRepository,
     // Visio avec un agent (L1o D13) : persona du profil, contexte de sa tâche, son worktree s'il a déjà travaillé.
+    // Mode ou modèle changé dans la visio : il s'écrit dans le profil de l'agent (L1o D19), que le pipeline lit aussi.
+    updateAgent: (neuron, patch) => {
+      const profile = agentOfChat(neuron)?.profile
+      if (profile === undefined) return
+      const { id, name, role, instructions, permissionMode, model, effort, skills } = profile
+      agentProfiles.save({ id, name, role, instructions, permissionMode, model, effort, skills, ...patch })
+      broadcast('assembly:changed', { genesisId: neuron.genesisId, taskId: null })
+    },
     agentPersona: (neuron) => {
       const found = agentOfChat(neuron)
       if (found === undefined || neuron.genesisId === null) return undefined

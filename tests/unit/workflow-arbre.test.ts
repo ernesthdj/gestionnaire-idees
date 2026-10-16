@@ -165,6 +165,44 @@ describe('arbre du Workflow (spec 032 D9, D10, D5, D6)', () => {
     expect(find(noneDoing.nodes, 'task:001:T009')).toMatchObject({ kind: 'square', state: 'todo', sketch: false })
   })
 
+  it('should_read_the_app_documents_with_a_brainstorm_header_as_rounds_whatever_their_name', () => {
+    // D19 : documents écrits dans l'app (docs/brainstormer/), noms libres ; un parent peut être un chemin.
+    const docs = brainstormDocs(
+      [
+        {
+          name: 'schema-des-entites.md',
+          path: 'docs/brainstormer/schema-des-entites.md',
+          app: true,
+          text: '# Schéma\n\n**Maturité** : suffisant — manque : PIN · **Tâches** : docs/TACHES-SAUVEGARDE.md\n'
+        },
+        {
+          name: 'fiche-des-champs.md',
+          path: 'docs/brainstormer/fiche-des-champs.md',
+          app: true,
+          text: '# Fiche\n\n**Parent** : docs/brainstormer/schema-des-entites.md · **Maturité** : complet\n'
+        },
+        {
+          name: 'notes-de-reunion.md',
+          path: 'docs/brainstormer/notes-de-reunion.md',
+          app: true,
+          text: '# Notes\n\nTexte.'
+        }
+      ],
+      []
+    )
+    expect(docs.map((doc) => [doc.name, doc.path, doc.level, doc.parent, doc.maturity])).toEqual([
+      ['fiche-des-champs.md', 'docs/brainstormer/fiche-des-champs.md', 2, 'schema-des-entites.md', 'complet'],
+      ['schema-des-entites.md', 'docs/brainstormer/schema-des-entites.md', 1, null, 'suffisant']
+    ])
+    const tree = workflowArbre(docs, [], [parseTaskFile('docs/TACHES-SAUVEGARDE.md', TACHES_SAUVEGARDE)])
+    const schema = find(tree.nodes, 'doc:schema-des-entites')
+    expect(schema?.maturity).toBe(66)
+    expect(titles(schema?.children ?? [])).toContain('Fiche')
+    // Ses tâches n'ont pas tout leur contexte : le brainstorm est à compléter.
+    expect(tree.next).toBeNull()
+    expect(tree.complete).toBe('doc:schema-des-entites')
+  })
+
   it('should_point_to_the_most_mature_brainstorm_to_complete_when_no_task_is_workable', () => {
     // D18 : aucune tâche n'a tout son contexte (rien de complet n'a de tâche à faire) → le brainstorm à compléter.
     const docs = {

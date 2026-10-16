@@ -204,7 +204,7 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
         return {
           key: workflowKey(genesisId, 'doc', first),
           subject: { kind: 'doc', doc, family },
-          context: { ...none, doc: `docs/brainstorm/${doc.name}` }
+          context: { ...none, doc: doc.path }
         }
       }
       case 'spec': {

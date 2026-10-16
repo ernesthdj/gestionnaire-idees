@@ -60,7 +60,7 @@ function findGroup(file: TaskFileView, key: string): TaskGroupView | undefined {
 
 /** Documents de brainstorm qui nomment ce fichier de tâches (`**Tâches**`). */
 const docsOfFile = (view: WorkflowView, path: string): string[] =>
-  view.brainstorm.filter((doc) => doc.taskPaths.includes(path)).map((doc) => `docs/brainstorm/${doc.name}`)
+  view.brainstorm.filter((doc) => doc.taskPaths.includes(path)).map((doc) => doc.path)
 
 function describe(
   kind: string,
@@ -94,7 +94,7 @@ export function workflowHost(view: WorkflowView, nodeId: string): WorkflowHost |
       case 'doc': {
         const doc = view.brainstorm.find((entry) => entry.name.replace(/\.md$/i, '') === first)
         if (doc === undefined) return undefined
-        const path = `docs/brainstorm/${doc.name}`
+        const path = doc.path
         return describe('brainstorm', doc.title, [], [path, ...doc.taskPaths], [`Document de brainstorm : ${path}.`])
       }
       case 'spec':

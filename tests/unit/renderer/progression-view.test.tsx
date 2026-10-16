@@ -201,6 +201,7 @@ describe('Progression en trois lectures (spec 032 D12, D13, Q6)', () => {
   it('should_gather_families_set_aside_into_later', async () => {
     const later: BrainstormDocView = {
       name: 'L1z-capture.md',
+      path: 'docs/brainstorm/L1z-capture.md',
       level: 1,
       title: 'Capture rapide',
       family: null,

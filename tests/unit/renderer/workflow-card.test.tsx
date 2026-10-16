@@ -67,6 +67,7 @@ const SPEC: SpecView = {
 const DOCS: WorkflowView['brainstorm'] = [
   {
     name: 'L1j-carte.md',
+    path: 'docs/brainstorm/L1j-carte.md',
     level: 1,
     title: 'Carte workflow',
     family: null,
@@ -77,6 +78,7 @@ const DOCS: WorkflowView['brainstorm'] = [
   },
   {
     name: 'L2-carte-ecran.md',
+    path: 'docs/brainstorm/L2-carte-ecran.md',
     level: 2,
     title: 'Écran',
     family: 'L1j-carte.md',

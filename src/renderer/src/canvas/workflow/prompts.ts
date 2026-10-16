@@ -63,7 +63,7 @@ export function promptFor(item: WorkflowItem): string | null {
     case 'spec':
       return `Parlons de la spec ${subject.spec.dir} : lis spec.md, plan.md et tasks.md, puis dis-moi où elle en est et ce qu'il reste à faire.`
     case 'doc': {
-      const path = `docs/brainstorm/${subject.doc.name}`
+      const path = subject.doc.path
       if (subject.doc.maturity === null) {
         return (
           `Évalue la maturité du brainstorm de ${path} : lis-le, puis écris dans son en-tête, sous le titre, ` +
@@ -218,7 +218,7 @@ export interface WorkflowAction {
 export function secondaryActions(item: WorkflowItem): readonly WorkflowAction[] {
   const { subject } = item
   if (subject.kind !== 'doc' || subject.doc.maturity === null) return []
-  const path = `docs/brainstorm/${subject.doc.name}`
+  const path = subject.doc.path
   return subject.doc.maturity === 'complet'
     ? [{ label: 'Rouvrir le brainstorm', prompt: continueBrainstorm(path) }]
     : [

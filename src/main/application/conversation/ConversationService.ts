@@ -110,6 +110,11 @@ export interface ConversationDeps {
   readonly onToolResult?: (neuronId: string, toolUseId: string, ok: boolean) => void
   /** Conversation avec un agent (L1o D13) : sa persona, son modèle, son mode et son worktree ; `undefined` : plus là. */
   readonly agentPersona?: (neuron: ConversationNeuron) => AgentPersona | undefined
+  /** Visio d'un agent (L1o D19) : le mode ou le modèle choisi dans la conversation s'écrit dans son profil. */
+  readonly updateAgent?: (
+    neuron: ConversationNeuron,
+    patch: { readonly permissionMode?: PermissionMode; readonly model?: string }
+  ) => void
 }
 
 /**
@@ -321,7 +326,13 @@ export class ConversationService {
       elementType: neuron.elementType,
       stepLabel: neuron.kind === 'step' ? rankLabel(this.pathOf(neuron).ranks) : null,
       model: this.modelOf(neuron, this.deps.settings()),
-      modelChoice: neuron.chatModel === null ? null : currentModel(neuron.chatModel),
+      // Agent : le sélecteur montre le modèle de son profil, pas « Défaut ».
+      modelChoice:
+        neuron.kind === 'agent_chat' && this.personaOf(neuron) !== undefined
+          ? this.modelOf(neuron, this.deps.settings())
+          : neuron.chatModel === null
+            ? null
+            : currentModel(neuron.chatModel),
       permissionMode: this.permissionModeOf(neuron),
       reprise: this.deps.repriseOf?.(neuronId) ?? null
     }
@@ -414,10 +425,13 @@ ${text}`
    * suivant reprend la même session avec le nouveau modèle.
    */
   setModel(neuronId: string, model: string | null): ChatView {
-    this.neuronOrThrow(neuronId)
+    const neuron = this.neuronOrThrow(neuronId)
     if (this.live.get(neuronId)?.busy === true)
       throw new AppError('BUSY', 'Claude répond encore : attends la fin du tour.')
-    this.deps.repository.setChatModel(neuronId, model)
+    // Visio d'un agent (L1o D19) : un seul réglage, celui de son profil (le pipeline lit le même).
+    if (neuron.kind === 'agent_chat' && this.deps.updateAgent !== undefined) {
+      if (model !== null) this.deps.updateAgent(neuron, { model })
+    } else this.deps.repository.setChatModel(neuronId, model)
     this.dispose(neuronId)
     return this.open(neuronId)
   }
@@ -433,7 +447,9 @@ ${text}`
       if (!confirmBypass) throw new AppError('CONFIRM_REQUIRED', BYPASS_WARNING)
       this.deps.repository.confirmBypass(neuronId, (this.deps.now?.() ?? new Date()).toISOString())
     }
-    this.deps.repository.setPermissionMode(neuronId, mode)
+    if (neuron.kind === 'agent_chat' && this.deps.updateAgent !== undefined) {
+      this.deps.updateAgent(neuron, { permissionMode: mode })
+    } else this.deps.repository.setPermissionMode(neuronId, mode)
     this.deps.permissions?.modeChanged(neuronId, mode)
     const live = this.live.get(neuronId)
     if (live?.busy === true) live.restartAfterTurn = true
@@ -845,12 +861,14 @@ ${text}`
   /** Mode d'une conversation : celui choisi pour elle, sinon le défaut réglé (Demander). */
   private permissionModeOf(neuron: ConversationNeuron): PermissionMode {
     if (neuron.kind === 'skills_chat') return 'default'
-    return (
-      neuron.chatPermissionMode ??
-      this.personaOf(neuron)?.permissionMode ??
-      this.deps.defaultPermissionMode?.() ??
-      'default'
-    )
+    const persona = this.personaOf(neuron)
+    if (persona !== undefined) {
+      // Le mode de l'agent est celui de son profil ; Libre se confirme une fois dans la conversation (spec 014 D8).
+      return persona.permissionMode === 'bypassPermissions' && neuron.chatBypassConfirmedAt === null
+        ? 'acceptEdits'
+        : persona.permissionMode
+    }
+    return neuron.chatPermissionMode ?? this.deps.defaultPermissionMode?.() ?? 'default'
   }
 
   /** Persona d'une conversation d'agent (L1o D13) ; `undefined` pour toute autre conversation. */
@@ -860,9 +878,10 @@ ${text}`
 
   /** Modèle d'une conversation : celui choisi, sinon le défaut de son usage (genesis ou élément). */
   private modelOf(neuron: ConversationNeuron, settings: ConversationSettings): string {
-    if (neuron.chatModel !== null) return currentModel(neuron.chatModel)
+    // Agent : toujours le modèle de son profil (un seul réglage, L1o D19).
     const persona = this.personaOf(neuron)
     if (persona !== undefined) return currentModel(persona.model)
+    if (neuron.chatModel !== null) return currentModel(neuron.chatModel)
     return neuron.genesisId === null ? settings.model : (settings.elementModel ?? settings.model)
   }
 

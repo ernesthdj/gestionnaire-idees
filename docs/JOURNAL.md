@@ -2557,3 +2557,29 @@ des ébauches (D5), c'est voulu (« un nœud sans le contexte au max ne doit pas
 manquait : le voir. Chaque carré porte maintenant l'anneau de contexte (maturité de son brainstorm) ; sans tâche
 travaillable, le brainstorm le plus mûr qui a encore des tâches s'allume, « ▶ Compléter ici ».
 **Vérifié :** typecheck, lint, Prettier, 2 440 tests ; e2e `workflow-context` et `workflow-task-files` (6 cas).
+
+### [2026-10-16 21:53] FIX — le Workflow lit aussi les documents de l'app, docs/brainstormer/ (spec 032 D19)
+**Fichiers :** `specs/032-trois-vues/spec.md` (D19), `WorkflowService.ts` (lecture de `docs/brainstormer/`, fichiers
+lisibles), `brainstorm.ts` (document de l'app retenu s'il a un en-tête ; niveau par son parent), `docHeader.ts` (parent
+donné par un chemin), `BrainstormDocView.path` et son usage (`arbre.ts`, `workflowTree.ts`, `WorkflowCard.tsx`,
+`prompts.ts`, `workflowHost.ts`) ; fixtures de tests, nouveau test.
+**Erreur :** retour de mentalyas sur Bike_cycle : après « Mettre à jour », ni jauge de contexte lisible ni « Compléter
+ici ». Ses brainstorms, écrits par Claude dans l'app (`document_ecrire`, spec 012), sont dans `docs/brainstormer/`
+avec des noms libres ; le Workflow ne lisait que `docs/brainstorm/L*.md` : aucun rond, tâches « non évaluées »
+(pointillé gris peu visible), rien à compléter. Les e2e passaient : leurs projets fictifs utilisaient le bon dossier.
+**Quoi :** les documents de `docs/brainstormer/` qui ont un en-tête de brainstorm deviennent des ronds ; leur niveau vient
+de leur parent ; chaque rond garde son vrai chemin. Vérifié sur le dossier réel de Bike_cycle : 9 brainstorms lus,
+« Compléter ici » sur « Choix de la stack technique » (aucun n'est complet).
+**Règle apprise :** tester une vue sur le projet réel qui a motivé la demande, pas seulement sur un projet fictif.
+**Vérifié :** typecheck, lint, 2 441 tests ; e2e `workflow-context` et `workflow-task-files`.
+
+### [2026-10-16 22:04] FIX — mode et modèle d'un agent : un seul réglage, celui de son profil (L1o D19)
+**Fichiers :** `ConversationService.ts` (`updateAgent` : mode et modèle d'une visio d'agent écrits dans le profil ;
+le profil prime pour l'affichage), `AgentChats.ts` (persona : mode brut du profil), `bootstrap.ts` ; tests.
+**Erreur :** retour de mentalyas : Thor réglé sur « Accepter les modifications » dans sa visio, mais le lancement du
+pipeline le disait « Demander avant d'écrire ». Le sélecteur de la visio changeait le mode de la conversation (spec 014),
+le pipeline lit celui du profil : deux réglages de même nom, sans lien.
+**Quoi :** dans la visio d'un agent, les sélecteurs de mode et de modèle lisent et écrivent son profil (la carte et le
+volet se relisent) ; Libre se confirme toujours dans la conversation. Un mode déjà choisi dans une ancienne visio est
+ignoré : c'est le profil qui compte (à régler une fois de plus).
+**Vérifié :** typecheck, lint, Prettier, 2 442 tests.

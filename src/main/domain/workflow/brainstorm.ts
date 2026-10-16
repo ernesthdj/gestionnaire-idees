@@ -21,6 +21,13 @@ export function brainstormLevel(name: string): number | null {
 export interface BrainstormEntry {
   readonly name: string
   readonly text: string
+  /** Chemin relatif au projet ; par défaut `docs/brainstorm/<nom>`. */
+  readonly path?: string
+  /**
+   * Document de l'app (`docs/brainstormer/`, spec 032 D19) : nom libre, retenu seulement s'il a un en-tête de
+   * brainstorm (maturité ou tâches) ; niveau 1 sans parent, 2 avec.
+   */
+  readonly app?: boolean
 }
 
 /**
@@ -33,15 +40,18 @@ export function brainstormDocs(
 ): BrainstormDocView[] {
   const parsed = entries.flatMap((entry) => {
     const match = NAME.exec(entry.name)
-    if (match === null) return []
+    const header = docHeader(entry.text)
+    const isBrainstorm = header.maturity !== null || header.taskPaths.length > 0
+    if (match === null && !(entry.app === true && isBrainstorm)) return []
     const heading = /^#\s+(.+)$/m.exec(entry.text)?.[1]?.trim()
     return [
       {
         name: entry.name,
-        level: Number(match[1]),
-        words: wordsOf(match[3]),
+        path: entry.path ?? `docs/brainstorm/${entry.name}`,
+        level: match === null ? (header.parent === null ? 1 : 2) : Number(match[1]),
+        words: match === null ? [] : wordsOf(match[3]),
         title: clip(heading === undefined || heading === '' ? entry.name : heading, WORKFLOW_LIMITS.title),
-        header: docHeader(entry.text)
+        header
       }
     ]
   })
@@ -57,6 +67,7 @@ export function brainstormDocs(
   return parsed
     .map((doc): BrainstormDocView => ({
       name: doc.name,
+      path: doc.path,
       level: doc.level,
       title: doc.title,
       family: doc.level === 1 ? null : familyOf(doc.words),

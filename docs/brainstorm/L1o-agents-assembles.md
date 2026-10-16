@@ -207,3 +207,9 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   différences), puis le rapport de la passe et le bilan des fichiers ajoutés, modifiés ou supprimés (lu dans son commit).
 - Les sessions d'agents tournent en flux continu (`stream-json`) ; les chemins de son worktree (retiré après la passe)
   sont montrés dans le dossier du projet : les différences sont visibles tout de suite, le contenu après la fusion.
+
+### D19 — Un seul réglage : celui du profil de l'agent (2026-10-16)
+- Dans la visio d'un agent, le mode de permission et le modèle choisis dans la conversation **s'écrivent dans son
+  profil** ; le pipeline lit le même réglage. Plus de mode « de conversation » qui contredit celui du profil.
+- Libre reste confirmé une fois dans la conversation (spec 014 D8) : tant qu'il ne l'est pas, la conversation parle en
+  « Écrire sans demander », même si le profil est en Libre (le pipeline, lui, l'applique).

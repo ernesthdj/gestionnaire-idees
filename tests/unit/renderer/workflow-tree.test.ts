@@ -67,6 +67,7 @@ const spec = (
 }
 const doc = (name: string, title: string, extra: Partial<BrainstormDocView> = {}): BrainstormDocView => ({
   name,
+  path: `docs/brainstorm/${name}`,
   level: Number(name[1]),
   title,
   family: null,

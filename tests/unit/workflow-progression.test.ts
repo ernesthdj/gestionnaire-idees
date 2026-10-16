@@ -44,6 +44,7 @@ const spec = (number: string, socle: TaskView[], stories: { n: number; title: st
 }
 const doc = (name: string, title: string): BrainstormDocView => ({
   name,
+  path: `docs/brainstorm/${name}`,
   level: 1,
   title,
   family: null,

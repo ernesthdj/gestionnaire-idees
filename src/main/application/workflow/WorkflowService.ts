@@ -23,7 +23,7 @@ export interface WorkflowDeps {
 
 /** Fichiers de méthode lisibles dans une carte Workflow, en plus des chemins cités par les tâches. */
 const METHOD_FILE =
-  /^(specs\/\d{3}[\w.-]*\/(spec|tasks|plan|research|data-model|quickstart)\.md|docs\/brainstorm\/L\d[\w-]*\.md|docs\/FOUNDATION\.md)$/
+  /^(specs\/\d{3}[\w.-]*\/(spec|tasks|plan|research|data-model|quickstart)\.md|docs\/brainstorm\/L\d[\w-]*\.md|docs\/brainstormer\/\w[\w.-]{0,120}\.md|docs\/FOUNDATION\.md)$/
 
 /** Fichiers qui ont des cases sans être des tâches (D20) : règles, historique, fondation (déjà un nœud). */
 const NOT_TASK_FILES = new Set(['claude.md', 'journal.md', 'changelog.md', 'foundation.md'])
@@ -37,8 +37,13 @@ type Kind = 'dir' | 'file'
 interface Listing {
   readonly specDirs: readonly string[]
   readonly docNames: readonly string[]
+  /** Documents de l'app (`docs/brainstormer/`, spec 032 D19). */
+  readonly appDocNames: readonly string[]
   readonly candidates: readonly string[]
 }
+
+/** Dossier des documents écrits par Claude dans l'app (spec 012) : aussi lu comme brainstorm (spec 032 D19). */
+const APP_DOCS = 'docs/brainstormer'
 
 /** Ce que la vue lit dans le projet : ses dossiers listés, puis le texte de chaque fichier utile (par chemin). */
 interface Scan {
@@ -112,13 +117,14 @@ export class WorkflowService {
 
   /** Dossiers listés puis fichiers lus, chacun en parallèle. */
   private async scan(root: string): Promise<Scan> {
-    const [specs, docs, top, docFiles] = await Promise.all([
+    const [specs, docs, top, docFiles, appDocs] = await Promise.all([
       list(root, 'specs', 'dir'),
       list(root, 'docs/brainstorm', 'file'),
       list(root, '.', 'file'),
-      list(root, 'docs', 'file')
+      list(root, 'docs', 'file'),
+      list(root, APP_DOCS, 'file')
     ])
-    const listing = listingOf(specs, docs, top, docFiles)
+    const listing = listingOf(specs, docs, top, docFiles, appDocs)
     const candidates = new Set(listing.candidates)
     const texts = await Promise.all(
       pathsOf(listing).map(async (path) => {
@@ -134,7 +140,8 @@ export class WorkflowService {
       listSync(root, 'specs', 'dir'),
       listSync(root, 'docs/brainstorm', 'file'),
       listSync(root, '.', 'file'),
-      listSync(root, 'docs', 'file')
+      listSync(root, 'docs', 'file'),
+      listSync(root, APP_DOCS, 'file')
     )
     const candidates = new Set(listing.candidates)
     const texts = pathsOf(listing).map((path) => {
@@ -270,8 +277,13 @@ function missingSync(root: string, cited: readonly string[]): string[] {
  * Specs numérotées, documents de brainstorm, puis candidats fichiers de tâches (D20) : Markdown à la racine et
  * directement dans `docs/`, hors règles, historique et fondation ; racine d'abord, puis `docs/`, par ordre alphabétique.
  */
-function listingOf(specs: string[], docs: string[], top: string[], docFiles: string[]): Listing {
+function listingOf(specs: string[], docs: string[], top: string[], docFiles: string[], appDocs: string[]): Listing {
   return {
+    // Documents de l'app (D19) : seuls ceux qui ont un en-tête de brainstorm deviendront des ronds (à l'assemblage).
+    appDocNames: appDocs
+      .filter((name) => name.toLowerCase().endsWith('.md'))
+      .sort()
+      .slice(0, WORKFLOW_LIMITS.brainstormDocs),
     specDirs: specs
       .filter((name) => /^\d{3}/.test(name))
       .sort()
@@ -291,6 +303,7 @@ function pathsOf(listing: Listing): string[] {
   return [
     ...listing.specDirs.flatMap((name) => [`specs/${name}/spec.md`, `specs/${name}/tasks.md`]),
     ...listing.docNames.map((name) => `docs/brainstorm/${name}`),
+    ...listing.appDocNames.map((name) => `${APP_DOCS}/${name}`),
     ...listing.candidates,
     FOUNDATION
   ]
@@ -315,10 +328,20 @@ function assemble({ listing, texts }: Scan): Parts {
     })
   })
   const brainstorm = brainstormDocs(
-    listing.docNames.map((name) => {
-      const read = text(`docs/brainstorm/${name}`)
-      return { name, text: read.kind === 'ok' ? read.text : '' }
-    }),
+    [
+      ...listing.docNames.map((name) => {
+        const read = text(`docs/brainstorm/${name}`)
+        return { name, text: read.kind === 'ok' ? read.text : '' }
+      }),
+      // Un nom déjà présent dans docs/brainstorm/ l'emporte : un rond par nom.
+      ...listing.appDocNames
+        .filter((name) => !listing.docNames.includes(name))
+        .map((name) => {
+          const path = `${APP_DOCS}/${name}`
+          const read = text(path)
+          return { name, path, app: true, text: read.kind === 'ok' ? read.text : '' }
+        })
+    ],
     specs
   )
   const taskFiles = listing.candidates

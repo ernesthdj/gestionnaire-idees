@@ -83,6 +83,8 @@ export interface SpecView {
 export interface BrainstormDocView {
   /** `L1j-carte-workflow.md`. */
   readonly name: string
+  /** Chemin relatif au projet : `docs/brainstorm/<nom>`, ou `docs/brainstormer/<nom>` pour un document de l'app (D19). */
+  readonly path: string
   readonly level: number
   readonly title: string
   /** L1 de rattachement d'un L2–L4 (nom du fichier) ; `null` sans famille (et pour un L1). */

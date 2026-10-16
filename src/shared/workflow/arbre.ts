@@ -265,7 +265,7 @@ export function workflowArbre(
 
   const docDraft = (doc: BrainstormDocView): Draft => {
     const subDocs = docs.filter((other) => parents.get(other.name) === doc.name).map(docDraft)
-    const draft = round(docKey(doc.name), 'doc', doc.title, maturityOf(doc), null, `docs/brainstorm/${doc.name}`, [
+    const draft = round(docKey(doc.name), 'doc', doc.title, maturityOf(doc), null, doc.path, [
       ...subDocs,
       ...(childrenOf.get(doc.name) ?? [])
     ])

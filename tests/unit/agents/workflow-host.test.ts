@@ -20,6 +20,7 @@ const view = {
   brainstorm: [
     {
       name: 'L1p-taches-visuelles.md',
+      path: 'docs/brainstorm/L1p-taches-visuelles.md',
       level: 1,
       title: 'Tâches visuelles',
       family: null,

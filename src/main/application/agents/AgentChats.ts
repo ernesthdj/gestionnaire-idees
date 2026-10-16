@@ -59,8 +59,8 @@ export function agentPersona(input: {
   return {
     systemPrompt: prompt.filter((part) => part !== '').join('\n\n'),
     model: profile.model,
-    // Libre ne s'impose jamais d'office dans une conversation (spec 014 D8) : écrire sans demander au plus.
-    permissionMode: profile.permissionMode === 'bypassPermissions' ? 'acceptEdits' : profile.permissionMode,
+    // Le mode du profil (L1o D19) ; Libre ne vaut dans la conversation qu'une fois confirmé (ConversationService).
+    permissionMode: profile.permissionMode,
     cwd: input.worktree
   }
 }

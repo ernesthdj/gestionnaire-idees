@@ -68,14 +68,15 @@ describe('visio avec un agent (L1o D13)', () => {
     expect(parseAgentChatKey('wf:x')).toBeNull()
   })
 
-  it('should_never_start_in_free_mode_and_carry_instructions_and_task_when_building_the_persona', () => {
+  it('should_keep_the_profile_mode_and_carry_instructions_and_task_when_building_the_persona', () => {
     const persona = agentPersona({
       profile: PROFILE,
       hostTitle: 'T001 · Trier',
       hostContext: '- src/a.ts',
       worktree: null
     })
-    expect(persona.permissionMode).toBe('acceptEdits')
+    // Le mode du profil, tel quel (L1o D19) : la conversation n'applique Libre qu'une fois confirmé.
+    expect(persona.permissionMode).toBe('bypassPermissions')
     expect(persona.model).toBe('claude-sonnet-5-5')
     expect(persona.cwd).toBeNull()
     expect(persona.systemPrompt).toContain('« Développeur », agent Backend')

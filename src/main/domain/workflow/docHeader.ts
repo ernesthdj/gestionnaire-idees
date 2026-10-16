@@ -19,6 +19,21 @@ export interface DocHeader {
   readonly later?: true
 }
 
+/** Nom d'un document de l'app (`docs/brainstormer/`, spec 032 D19) : nom libre, sans dossier. */
+const APP_DOC_NAME = /^[\w][\w.-]{0,120}\.md$/i
+
+/**
+ * Parent écrit dans l'en-tête : un nom (`L1f-reprise.md`) ou un chemin vers l'un des deux dossiers de brainstorm
+ * (`docs/brainstormer/x.md`, D19) ; seul le nom compte. Tout autre valeur est ignorée.
+ */
+function parentName(value: string | null): string | null {
+  if (value === null) return null
+  const clean = value.replace(/^`|`$/g, '').replace(/\\/g, '/')
+  const match = /^(?:docs\/brainstorm(?:er)?\/)?([^/]+)$/i.exec(clean)
+  const name = match?.[1] ?? null
+  return name !== null && (DOC_NAME.test(name) || APP_DOC_NAME.test(name)) && !name.includes('..') ? name : null
+}
+
 const fieldOf = (header: string, name: string): string | null =>
   new RegExp(`\\*\\*${name}\\*\\*\\s*:\\s*([^·\\n\\r]+)`, 'i').exec(header)?.[1]?.trim() ?? null
 
@@ -35,7 +50,7 @@ export function docHeader(text: string): DocHeader {
   const maturityWord = maturityField?.split(/[\s—–-]/)[0]?.toLowerCase() ?? null
   const tasks = fieldOf(header, 'Tâches')
   return {
-    parent: parent !== null && DOC_NAME.test(parent) ? parent : null,
+    parent: parentName(parent),
     maturity: MATURITIES.find((value) => value === maturityWord) ?? null,
     ...(maturityField !== null && /plus tard/i.test(maturityField) ? { later: true as const } : {}),
     taskPaths:

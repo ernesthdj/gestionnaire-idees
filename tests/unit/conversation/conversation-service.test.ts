@@ -588,6 +588,28 @@ describe('conversations Claude Code des neurones', () => {
     expect(events.filter((event) => event.type === 'chat:tool')).toHaveLength(4)
   })
 
+  it('should_write_the_mode_and_model_into_the_agent_profile_when_changed_in_its_visio', () => {
+    neurons.set(N1, neuron(N1, { kind: 'agent_chat', genesisId: N2, elementKey: 'agent:thor:wf:x:ttask:t1' }))
+    const profile = { permissionMode: 'default' as const, model: 'claude-sonnet-5-5' }
+    const updates: unknown[] = []
+    service = build({
+      agentPersona: () => ({ systemPrompt: 'Thor', ...profile, cwd: null }),
+      updateAgent: (_neuron, patch) => {
+        updates.push(patch)
+        Object.assign(profile, patch)
+      }
+    })
+    // Un seul réglage : celui du profil, que le pipeline lit aussi (L1o D19).
+    expect(service.setPermissionMode(N1, 'acceptEdits')).toEqual({ mode: 'acceptEdits' })
+    service.setModel(N1, 'claude-opus-5-5')
+    expect(updates).toEqual([{ permissionMode: 'acceptEdits' }, { model: 'claude-opus-5-5' }])
+    expect(neurons.get(N1)).toMatchObject({ chatPermissionMode: null, chatModel: null })
+    expect(service.open(N1)).toMatchObject({ permissionMode: 'acceptEdits', modelChoice: 'claude-opus-5-5' })
+    // Profil en Libre : la conversation reste en « Écrire sans demander » tant que Libre n'y est pas confirmé.
+    Object.assign(profile, { permissionMode: 'bypassPermissions' })
+    expect(service.open(N1).permissionMode).toBe('acceptEdits')
+  })
+
   it('should_open_a_genesis_without_folder_in_the_project_of_its_canvas', async () => {
     neurons.set(N1, neuron(N1, { projectFolder: 'C:/projets/PID' }))
     expect(service.open(N1)).toMatchObject({ folder: null, projectFolder: 'PID' })
