@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { ApprovalResult } from '@shared/agents/pipeline'
+import type { ApprovalResult, CleanupResult } from '@shared/agents/pipeline'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
 import { WORKFLOW_KEY } from '@shared/ipc/workflow'
 import type { AssemblyRequest } from '../application/agents/AssemblyService'
@@ -10,6 +10,7 @@ export interface AssemblyRoutesDeps {
   start(request: AssemblyRequest): Promise<AssemblyRunView>
   cancel(genesisId: string, taskId: string): void
   approve(genesisId: string, taskId: string): Promise<ApprovalResult>
+  cleanup(genesisId: string, taskId: string): Promise<CleanupResult>
   list(genesisId?: string): AssemblyRunView[]
   sketches(genesisId?: string): AssemblySketchView[]
   saveSketch(request: Omit<AssemblyRequest, 'baseBranch'>): AssemblySketchView
@@ -117,6 +118,12 @@ export function createAssemblyRoutes(
       channel: 'assembly:approve',
       input: z.strictObject({ genesisId: z.uuid(), taskId: TaskId, confirm: z.literal(true) }),
       handler: async ({ genesisId, taskId }) => deps.approve(genesisId, taskId)
+    }),
+    // Après la fusion (L1o D23) : supprime les branches des agents que la base contient.
+    defineRoute({
+      channel: 'assembly:cleanup',
+      input: z.strictObject({ genesisId: z.uuid(), taskId: TaskId }),
+      handler: async ({ genesisId, taskId }) => deps.cleanup(genesisId, taskId)
     }),
     defineRoute({
       channel: 'assembly:sketches',

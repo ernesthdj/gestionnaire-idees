@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasTasks, parseTaskFile } from '../../src/main/domain/workflow/parseTaskFile'
+import { checkTask, hasTasks, parseTaskFile } from '../../src/main/domain/workflow/parseTaskFile'
 import { parseTasks } from '../../src/main/domain/workflow/parseTasks'
 import { WORKFLOW_KEY } from '../../src/shared/ipc/workflow'
 
@@ -86,5 +86,22 @@ describe('fichier de tâches (spec 023 D20, D21)', () => {
       ['T002', 'done', true],
       ['T003', 'todo', false]
     ])
+  })
+})
+
+describe('cocher une tâche à la fusion (L1o D23)', () => {
+  const FILE = '# Tâches\r\n\r\n## Lot 1\r\n\r\n- [ ] T001 Trier\r\n- [~] T002 Filtrer\r\n- [x] T003 Chercher\r\n'
+  const keyOf = (id: string): string =>
+    parseTaskFile('docs/TACHES-X.md', FILE).lots[0]?.tasks.find((task) => task.id === id)?.key ?? ''
+
+  it('should_check_only_the_task_of_that_key_and_keep_line_endings_when_it_is_open_or_in_progress', () => {
+    const first = checkTask('docs/TACHES-X.md', FILE, keyOf('T001'))
+    expect(first).toBe(FILE.replace('- [ ] T001', '- [x] T001'))
+    expect(checkTask('docs/TACHES-X.md', FILE, keyOf('T002'))).toBe(FILE.replace('- [~] T002', '- [x] T002'))
+  })
+
+  it('should_return_null_when_the_task_is_already_checked_or_unknown', () => {
+    expect(checkTask('docs/TACHES-X.md', FILE, keyOf('T003'))).toBeNull()
+    expect(checkTask('docs/TACHES-X.md', FILE, 'inconnue')).toBeNull()
   })
 })

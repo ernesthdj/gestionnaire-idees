@@ -249,3 +249,26 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   l'intérieur, rien ne grandit. Derrière l'agent, la webcam filme un **mur de la visio** (le côté ouvert de la
   chambre, caché dans la vue chambre) : même papier peint, cadre au motif du thème, étagère et plinthe aux couleurs de
   l'univers ; il sert aussi à la visio de la carte.
+
+### D23 — Après l'accord de fusion, la boucle se ferme (2026-10-16)
+- Retour de mentalyas (premier assemblage PO · Backend · QA sur Bike_cycle, validé à la deuxième passe) : « tout est
+  vert, mais ensuite ? qui valide la tâche, qui commite ? ». Rappel : c'est lui qui valide (D11), l'app fusionne.
+- **La tâche se coche à la fusion** : quand l'assemblage est connecté à une tâche d'un `docs/TACHES-*.md`, la fusion
+  coche sa case (`- [x]`) dans un commit de plus (`docs(agents): <tâche> faite (accord de mentalyas)`), fait dans le
+  même worktree de fusion : la base avance d'un seul coup, case comprise. Déjà cochée par un agent : rien de plus. Un
+  lot, un fichier ou un document : rien n'est coché (l'app ne devine pas ce qui est fini).
+- **Ensuite, deux gestes proposés** sous le message « Fusionné » :
+  - « Pousser… » ouvre le volet Dépôt (la poussée reste celle du Dépôt : contrôles, accord) ;
+  - « Ranger les branches des agents » supprime les branches `agents/<tâche>/…` déjà contenues dans la base (et un
+    worktree resté en place) ; une branche non fusionnée est gardée et signalée.
+
+### Piste ouverte — Enchaîner la tâche suivante (2026-10-16, à trancher)
+- Question de mentalyas : une fois la tâche fusionnée, comment l'équipe passe-t-elle à la suivante ? Il hésite entre
+  un choix automatique des agents selon les tâches suggérées, et déplacer lui-même le lien vers une autre tâche
+  (nouveau contexte).
+- Pistes :
+  - **A. Déplacer l'équipe** : glisser l'assemblage (agents et liens) d'une tâche fusionnée vers une autre ; même
+    équipe, contexte de la nouvelle tâche, passes remises à zéro.
+  - **B. Équipe suggérée** : sur une tâche sans agents, l'app propose l'assemblage d'une tâche voisine déjà réussie,
+    ou celui que le PO a recommandé (`RECOMMANDÉ:`), à accepter en un clic.
+  - **C. File du lot** : l'équipe enchaîne les tâches d'un lot une à une, chacune avec son accord de fusion.

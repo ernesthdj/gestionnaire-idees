@@ -19,6 +19,14 @@ export interface WorkflowHost {
   readonly title: string
   /** Ce que l'agent doit savoir du nœud, en Markdown. */
   readonly content: string
+  /** Case de la tâche dans son fichier `docs/TACHES-*.md` (nœud tâche seulement) : cochée à la fusion (L1o D23). */
+  readonly box?: TaskBox
+}
+
+/** Une tâche d'un fichier de tâches : son chemin dans le projet et sa clé (`parseTaskFile`). */
+export interface TaskBox {
+  readonly path: string
+  readonly key: string
 }
 
 /** Clé de carte d'un nœud du Workflow (`WORKFLOW_KEY`) qui désigne bien un nœud (pas un message). */
@@ -151,13 +159,16 @@ export function workflowHost(view: WorkflowView, nodeId: string): WorkflowHost |
         for (const file of view.taskFiles) {
           const task = fileTasks(file).find((entry) => entry.key === first)
           if (task !== undefined) {
-            return describe(
-              'tâche',
-              task.id === '' ? task.text : `${task.id} · ${task.text}`,
-              [task],
-              [file.path, ...docsOfFile(view, file.path)],
-              [`Tâche de ${file.path} : quand elle est faite, coche sa case (« - [x] »).`]
-            )
+            return {
+              ...describe(
+                'tâche',
+                task.id === '' ? task.text : `${task.id} · ${task.text}`,
+                [task],
+                [file.path, ...docsOfFile(view, file.path)],
+                [`Tâche de ${file.path} : quand elle est faite, coche sa case (« - [x] »).`]
+              ),
+              box: { path: file.path, key: first }
+            }
           }
         }
         return undefined

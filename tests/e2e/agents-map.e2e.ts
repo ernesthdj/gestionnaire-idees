@@ -29,11 +29,13 @@ function withTaskFile(repo: string): void {
 
 describe('agents en nœuds du canevas (T006, e2e)', () => {
   let run: LaunchedApp
+  let projectRepo = ''
 
   beforeAll(async () => {
     freshProfile(() => {
       const repo = buildScenario(DEMO_PROJECT, 'trois-auteurs')
       withTaskFile(repo)
+      projectRepo = repo
       return repo
     })
     const reply = join(tmpdir(), 'gi-e2e-reponse-agents.json')
@@ -167,6 +169,12 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await tab.getByRole('button', { name: 'Accorder la fusion' }).click()
     await expect.poll(() => page.locator('.agent-merged').count(), { timeout: 30_000 }).toBe(3)
     await tab.getByText(/Fusionné sur main/).waitFor()
+    // L1o D23 : la fusion a coché la tâche sur main ; la suite est proposée (pousser, ranger les branches).
+    await tab.getByText(/Tâche cochée/).waitFor()
+    expect(execFileSync('git', ['show', 'main:docs/TACHES-TRI.md'], { cwd: projectRepo }).toString()).toContain(
+      `- [x] T001 ${TASK}`
+    )
+    await tab.getByRole('button', { name: 'Pousser…' }).waitFor()
     await run.shot('t006-04-fusionne')
 
     // Clic droit sur un agent : le renvoyer le détache du nœud (son profil reste).

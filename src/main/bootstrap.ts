@@ -1338,7 +1338,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         content: host.content,
         sheet: sheetMarkdown(readSheet(genesis.sheetJson)),
         projectDir: genesis.projectDir,
-        projectName: genesis.title
+        projectName: genesis.title,
+        ...(host.box === undefined ? {} : { box: host.box })
       }
     },
     // Travail livré (L1o D13) : la chambre de l'agent s'enrichit (la carte relit les profils sur `assembly:changed`).

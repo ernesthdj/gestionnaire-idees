@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { join } from 'node:path'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import { isValidTaskId } from '@shared/agents/documents'
 import {
   DEFAULT_BASE_BRANCH,
@@ -22,12 +23,15 @@ import {
   type Assembly,
   type AssemblyAgent,
   type AssemblyRunResult,
+  type CleanupResult,
   type PassIndex,
   type PassNature,
   type ProgressListener
 } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
+import { checkTask } from '../../domain/workflow/parseTaskFile'
+import type { TaskBox } from './workflowHost'
 import { AppError } from '../../domain/errors'
 import type { StreamEvent } from '../../domain/conversation/streamEvents'
 import type { PipelineDocuments } from './PipelineDocuments'
@@ -357,9 +361,10 @@ export class PipelineEngine {
   /**
    * Accord unique de mentalyas (L1o D11) : les branches finales de l'assemblage (celles que personne n'attend) sont
    * fusionnées dans un worktree temporaire partant de la base, puis la base avance d'un seul coup. Un conflit, ou une
-   * copie de travail modifiée sur la base, arrête tout sans rien changer.
+   * copie de travail modifiée sur la base, arrête tout sans rien changer. `box` : la tâche du nœud, cochée dans le même
+   * worktree (L1o D23) ; la base avance d'un seul coup, case comprise.
    */
-  async approve(assembly: Assembly): Promise<ApprovalResult> {
+  async approve(assembly: Assembly, box?: TaskBox): Promise<ApprovalResult> {
     const { taskId } = assembly
     this.checked(assembly)
     const baseBranch = await this.baseOf(assembly)
@@ -395,6 +400,7 @@ export class PipelineEngine {
         return refused(`la fusion de ${branch} est en conflit : ${merged.output}`)
       }
     }
+    const checked = box === undefined ? false : await this.checkBox(fusion, box, taskId)
     const sha = (await this.git(['-C', fusion, 'rev-parse', 'HEAD'])).output.trim()
     await drop()
     // La base avance : par la copie de travail si elle y est (avance rapide seulement), sinon par sa référence.
@@ -408,7 +414,53 @@ export class PipelineEngine {
       role: 'po',
       message: `Fusion acceptée par mentalyas sur ${baseBranch} (${sha.slice(0, 7)}).`
     })
-    return { merged: true, baseBranch, commit: sha }
+    return { merged: true, baseBranch, commit: sha, checked }
+  }
+
+  /**
+   * Coche la case de la tâche dans le worktree de fusion et la commite (L1o D23). Rien si la tâche est introuvable ou
+   * déjà cochée (par un agent) ; un commit refusé (hook) remet le fichier tel quel.
+   */
+  private async checkBox(fusion: string, box: TaskBox, taskId: string): Promise<boolean> {
+    const file = resolve(fusion, box.path)
+    const inside = relative(fusion, file)
+    if (inside === '' || inside.startsWith('..') || isAbsolute(inside) || !existsSync(file)) return false
+    const text = readFileSync(file, 'utf8')
+    const next = checkTask(box.path, text, box.key)
+    if (next === null) return false
+    writeFileSync(file, next)
+    const added = await this.git(['-C', fusion, 'add', '--', inside])
+    const committed =
+      added.code === 0
+        ? await this.git(['-C', fusion, 'commit', '-m', `docs(agents): ${taskId} faite (accord de mentalyas)`])
+        : added
+    if (committed.code === 0) return true
+    await this.git(['-C', fusion, 'reset', '--quiet', '--', inside])
+    await this.git(['-C', fusion, 'checkout', '--', inside])
+    return false
+  }
+
+  /**
+   * Range les branches des agents après la fusion (L1o D23) : celles que la base contient sont supprimées (et leur
+   * worktree s'il est resté), les autres gardées.
+   */
+  async cleanup(assembly: Assembly): Promise<CleanupResult> {
+    const { taskId } = assembly
+    if (!isValidTaskId(taskId)) throw new AppError('VALIDATION', 'Identifiant de tâche invalide.')
+    const baseBranch = await this.baseOf(assembly)
+    const removed: string[] = []
+    const kept: string[] = []
+    for (const agent of assembly.agents) {
+      const branch = agentBranch(taskId, agent.id)
+      const exists = await this.git(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`])
+      if (exists.code !== 0) continue
+      const worktree = join(this.deps.worktreeRoot, taskId, agent.id)
+      if (existsSync(worktree)) await this.git(['worktree', 'remove', '--force', worktree])
+      const merged = await this.git(['merge-base', '--is-ancestor', branch, baseBranch])
+      const deleted = merged.code === 0 ? await this.git(['branch', '-D', branch]) : merged
+      ;(deleted.code === 0 ? removed : kept).push(branch)
+    }
+    return { removed, kept }
   }
 
   /** Assemblage valide et profils trouvés, ou une erreur de validation ; rend le profil de chaque agent. */

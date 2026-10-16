@@ -29,9 +29,10 @@ interface Draft {
  * Fichier Markdown de tâches (spec 023 D20, D21) : son `#` est le titre, ses `##` des lots, ses `###` (et plus) des
  * groupes du lot courant, ses cases `- [ ]`, `- [~]`, `- [x]` des tâches du dernier titre (une case indentée reste dans
  * le groupe de sa case parente). Les cases d'un bloc de code sont ignorées ; un titre sans tâche disparaît. Clés
- * stables et compactes (`WORKFLOW_KEY`) : empreintes du chemin, des titres et du texte, jamais du rang. Pur.
+ * stables et compactes (`WORKFLOW_KEY`) : empreintes du chemin, des titres et du texte, jamais du rang. `onTask` reçoit
+ * la clé et le rang de ligne de chaque tâche. Pur.
  */
-export function parseTaskFile(path: string, text: string): TaskFileView {
+export function parseTaskFile(path: string, text: string, onTask?: (key: string, line: number) => void): TaskFileView {
   const fileKey = `f${fnv(path)}`
   const keys = new Keys()
   const root: Draft = { key: fileKey, title: '', tasks: [], groups: [] }
@@ -41,7 +42,7 @@ export function parseTaskFile(path: string, text: string): TaskFileView {
   let count = 0
   let truncated = false
   let fenced = false
-  for (const line of text.split(/\r?\n/)) {
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
     if (FENCE.test(line)) {
       fenced = !fenced
       continue
@@ -75,9 +76,11 @@ export function parseTaskFile(path: string, text: string): TaskFileView {
     const description = raw.slice(id === '' ? 0 : (TASK_ID.exec(raw)?.[0].length ?? 0)).trim()
     const owner = group ?? lot ?? root
     const state = taskState(box[1] ?? ' ')
+    const key = keys.next(`${owner.key}-`, description)
+    onTask?.(key, index)
     owner.tasks.push({
       id,
-      key: keys.next(`${owner.key}-`, description),
+      key,
       done: state === 'done',
       state,
       story: null,
@@ -99,6 +102,24 @@ export function parseTaskFile(path: string, text: string): TaskFileView {
     status: specStatus(null, tasks),
     partial: truncated
   }
+}
+
+/**
+ * Coche la tâche de clé `key` (L1o D23) : le texte du fichier avec sa case passée à `- [x]`, ou `null` si la tâche est
+ * introuvable ou déjà cochée. Les fins de ligne du fichier sont gardées. Pur.
+ */
+export function checkTask(path: string, text: string, key: string): string | null {
+  let found: number | null = null
+  parseTaskFile(path, text, (taskKey, line) => {
+    if (taskKey === key) found = line
+  })
+  if (found === null) return null
+  const lines = text.split('\n')
+  const line = lines[found] ?? ''
+  const checked = line.replace(/^(\s*[-*+]\s\[)( |~)(\])/, '$1x$3')
+  if (checked === line) return null
+  lines[found] = checked
+  return lines.join('\n')
 }
 
 function finish(draft: Draft): TaskGroupView {

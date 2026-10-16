@@ -8,10 +8,12 @@ import {
   type AssemblyAgent,
   type AssemblyLink,
   type AssemblyRunResult,
+  type CleanupResult,
   type ProgressListener
 } from '@shared/agents/pipeline'
 import { REPORT_MAX, type AgentLiveView, type AssemblyRunView, type AssemblySketchView } from '@shared/ipc/assemblies'
 import { AppError } from '../../domain/errors'
+import type { TaskBox } from './workflowHost'
 
 /** Nœud de la carte auquel on connecte des agents : idée, tâche ou module d'un projet lié. */
 export interface AssemblyNode {
@@ -24,6 +26,8 @@ export interface AssemblyNode {
   /** Dossier du projet lié ; `null` : le nœud n'est pas dans un projet. */
   readonly projectDir: string | null
   readonly projectName: string
+  /** Case de la tâche (nœud tâche d'un fichier de tâches) : cochée à la fusion (L1o D23). */
+  readonly box?: TaskBox
 }
 
 /** Le planificateur, vu par le service (`PipelineEngine` en vrai). */
@@ -38,7 +42,8 @@ export interface AssemblyEngine {
     onProgress?: ProgressListener,
     onWork?: AgentWorkListener
   ): Promise<AssemblyRunResult>
-  approve(assembly: Assembly): Promise<ApprovalResult>
+  approve(assembly: Assembly, box?: TaskBox): Promise<ApprovalResult>
+  cleanup?(assembly: Assembly): Promise<CleanupResult>
 }
 
 /** Croquis gardés (un par nœud) : la base de données en vrai. */
@@ -233,7 +238,7 @@ export class AssemblyService {
     if (run.approving) throw new AppError('CONFLICT', 'La fusion est déjà en cours.')
     run.approving = true
     try {
-      const approval = await run.engine.approve(run.assembly)
+      const approval = await run.engine.approve(run.assembly, run.node.box)
       run.approval = approval
       if (approval.merged) this.credit(run)
       this.deps.emit(genesisId, taskId)
@@ -241,6 +246,16 @@ export class AssemblyService {
     } finally {
       run.approving = false
     }
+  }
+
+  /** Range les branches des agents d'un assemblage fusionné (L1o D23). */
+  async cleanup(genesisId: string, taskId: string): Promise<CleanupResult> {
+    const run = this.runs.get(this.key(genesisId, taskId))
+    if (run === undefined) throw new AppError('NOT_FOUND', `Aucun assemblage pour la tâche ${taskId}.`)
+    if (run.approval?.merged !== true)
+      throw new AppError('CONFLICT', 'L’assemblage n’est pas fusionné : rien à ranger.')
+    if (run.engine.cleanup === undefined) throw new AppError('CONFLICT', 'Rangement indisponible.')
+    return run.engine.cleanup(run.assembly)
   }
 
   private credit(run: Run): void {

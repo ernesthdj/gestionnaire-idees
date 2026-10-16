@@ -347,6 +347,14 @@ export interface ApprovalResult {
   readonly baseBranch: string
   readonly commit?: string
   readonly message?: string
+  /** La fusion a coché la case de la tâche dans son fichier de tâches (L1o D23). */
+  readonly checked?: boolean
+}
+
+/** Rangement après la fusion (L1o D23) : branches d'agents supprimées, et celles gardées (non fusionnées). */
+export interface CleanupResult {
+  readonly removed: readonly string[]
+  readonly kept: readonly string[]
 }
 
 /**

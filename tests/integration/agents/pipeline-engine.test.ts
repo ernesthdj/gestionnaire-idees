@@ -9,7 +9,8 @@ import {
   type AgentSessionRunner
 } from '../../../src/main/application/agents/PipelineEngine'
 import { runGit } from '../../../src/main/infrastructure/projects/GitCli'
-import type { Assembly } from '../../../src/shared/agents/pipeline'
+import { parseTaskFile } from '../../../src/main/domain/workflow/parseTaskFile'
+import { agentBranch, type Assembly } from '../../../src/shared/agents/pipeline'
 import type { AgentProfileView, AgentRole } from '../../../src/shared/agents/profile'
 
 const profile = (id: string, role: AgentRole): AgentProfileView => ({
@@ -347,6 +348,37 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
       const files = await filesOf('main')
       expect(files).toContain('back.txt')
       expect(files).toContain('front.txt')
+    })
+
+    it('should_check_the_task_in_the_same_fusion_then_clean_the_merged_agent_branches', async () => {
+      // L1o D23 : la case de la tâche est cochée dans un commit de plus, la base avance d'un coup.
+      writeFileSync(join(project, 'TACHES-TRI.md'), '# Tri\n\n## Lot\n\n- [ ] T001 Trier\n')
+      await git(['add', 'TACHES-TRI.md'])
+      await git(['commit', '-m', 'docs: tâches'])
+      const key = parseTaskFile('TACHES-TRI.md', '# Tri\n\n## Lot\n\n- [ ] T001 Trier\n').lots[0]?.tasks[0]?.key ?? ''
+      const engine = engineWith(writer)
+      expect((await engine.run(diamond())).completed).toBe(true)
+      const approval = await engine.approve(diamond(), { path: 'TACHES-TRI.md', key })
+      expect(approval).toMatchObject({ merged: true, checked: true })
+      expect((await git(['show', 'main:TACHES-TRI.md'])).output).toContain('- [x] T001 Trier')
+      expect((await git(['log', '-1', '--format=%s', 'main'])).output).toContain('T010 faite')
+      expect((await git(['status', '--porcelain'])).output).toBe('')
+
+      const cleaned = await engine.cleanup(diamond())
+      expect([...cleaned.removed].sort()).toEqual(
+        ['po', 'back', 'front', 'qa'].map((id) => agentBranch('T010', id)).sort()
+      )
+      expect(cleaned.kept).toEqual([])
+      expect((await git(['branch', '--list', 'agents/*'])).output.trim()).toBe('')
+    })
+
+    it('should_keep_an_agent_branch_that_the_base_does_not_contain_when_cleaning', async () => {
+      const engine = engineWith(writer)
+      expect((await engine.run(diamond())).completed).toBe(true)
+      // Pas de fusion : aucune branche n'est contenue dans main, toutes sont gardées.
+      const cleaned = await engine.cleanup(diamond())
+      expect(cleaned.removed).toEqual([])
+      expect(cleaned.kept).toHaveLength(4)
     })
 
     it('should_refuse_the_approval_when_the_working_copy_has_changes', async () => {

@@ -1,9 +1,10 @@
 import { useId, useState } from 'react'
-import { PASS_NATURE_LABELS, UNCOMMITTED_MARK, type AssemblyAgent } from '@shared/agents/pipeline'
+import { PASS_NATURE_LABELS, UNCOMMITTED_MARK, type AssemblyAgent, type CleanupResult } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
 import { Markdown } from '../../chat/Markdown'
 import { Button } from '../../components/atoms/Button'
+import { call, IpcFailure } from '../../lib/ipc'
 import { useSidePanel, type AgentsTab } from '../side/sidePanelStore'
 import { AGENT_VISUAL_LABELS, assemblyProgress, runOf, visualOf } from './agentGraph'
 import {
@@ -45,6 +46,8 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
   const [pending, setPending] = useState<readonly string[] | null>(null)
   const [confirmMerge, setConfirmMerge] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Après la fusion (L1o D23) : le rangement des branches des agents, et son résultat.
+  const [cleaned, setCleaned] = useState<CleanupResult | string | null>(null)
 
   const edit = async (change: SketchEdit): Promise<void> => {
     const next = change(sketch ?? emptySketch(tab.nodeId, tab.genesisId))
@@ -80,6 +83,18 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
     setConfirmMerge(false)
     try {
       await actions.approve(run.genesisId, run.taskId)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const cleanup = async (): Promise<void> => {
+    if (run === undefined || busy) return
+    setBusy(true)
+    try {
+      setCleaned(await call<CleanupResult>('assembly:cleanup', { genesisId: run.genesisId, taskId: run.taskId }))
+    } catch (failure) {
+      setCleaned(failure instanceof IpcFailure ? failure.message : 'Les branches n’ont pas pu être rangées.')
     } finally {
       setBusy(false)
     }
@@ -340,9 +355,34 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
           {run?.approval === undefined ? null : (
             <p role="status" className={run.approval.merged ? 'text-pro' : 'text-con'}>
               {run.approval.merged
-                ? `Fusionné sur ${run.approval.baseBranch}${run.approval.commit === undefined ? '' : ` (${run.approval.commit.slice(0, 7)})`}.`
+                ? `Fusionné sur ${run.approval.baseBranch}${run.approval.commit === undefined ? '' : ` (${run.approval.commit.slice(0, 7)})`}.${run.approval.checked === true ? ' Tâche cochée.' : ''}`
                 : `Fusion refusée : ${run.approval.message ?? 'raison inconnue'}.`}
             </p>
+          )}
+          {run?.approval?.merged !== true ? null : (
+            // La suite (L1o D23) : la fusion reste locale ; pousser se fait dans le Dépôt, puis on range les branches.
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="primary" onClick={() => useSidePanel.getState().openRepo(tab.genesisId)}>
+                  Pousser…
+                </Button>
+                <Button disabled={busy || cleaned !== null} onClick={() => void cleanup()}>
+                  Ranger les branches des agents
+                </Button>
+              </div>
+              {cleaned === null ? null : typeof cleaned === 'string' ? (
+                <p role="alert" className="text-con">
+                  {cleaned}
+                </p>
+              ) : (
+                <p role="status" className="text-content-muted">
+                  {cleaned.removed.length === 0
+                    ? 'Aucune branche à ranger.'
+                    : `${cleaned.removed.length} branche(s) rangée(s).`}
+                  {cleaned.kept.length === 0 ? '' : ` Gardée(s), non fusionnée(s) : ${cleaned.kept.join(', ')}.`}
+                </p>
+              )}
+            </div>
           )}
         </section>
       )}

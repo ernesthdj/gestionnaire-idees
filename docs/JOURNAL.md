@@ -2662,3 +2662,15 @@ plus que l'image de la webcam, devant le mur de la visio.
 peut pas la reculer) : son champ s'élargit, le gros plan devient un plan taille (tableau, étagère, plan au mur visibles ;
 le bord du bureau passe au premier plan, comme une vraie webcam posée sur l'écran).
 **Vérifié :** typecheck, Prettier, 2 450 tests ; e2e `agent-profile-assistant` (capture `t022-04-tete-a-tete`).
+
+### [2026-10-16 23:55] FEAT — après la fusion : tâche cochée, pousser, ranger les branches des agents (L1o D23)
+**Fichiers :** `parseTaskFile.ts` (`onTask`, `checkTask`), `workflowHost.ts` (`box` du nœud tâche),
+`PipelineEngine.ts` (`approve` coche dans le worktree de fusion ; `cleanup`), `AssemblyService.ts`, `bootstrap.ts`,
+`assemblyHandlers.ts` + `channels.ts` (`assembly:cleanup`), `pipeline.ts` (`checked`, `CleanupResult`),
+`AgentsTabContent.tsx` (« Pousser… », « Ranger les branches des agents ») ; tests unitaires, d'intégration, e2e.
+**Quoi :** premier vrai assemblage PO · Backend · QA sur Bike_cycle (validé à la deuxième passe) ; question de
+mentalyas : qui valide, qui commite ensuite ? La fusion (son accord, D11) coche maintenant la tâche dans un commit de
+plus, puis propose de pousser (volet Dépôt) et de ranger les branches des agents déjà fusionnées. Sa question
+d'enchaîner la tâche suivante est notée en piste ouverte (A déplacer l'équipe, B équipe suggérée, C file du lot).
+**Vérifié :** typecheck, lint, Prettier, 2 454 tests ; e2e `agents-map` (`- [x] T001` sur main ; capture
+`t006-04-fusionne`).
