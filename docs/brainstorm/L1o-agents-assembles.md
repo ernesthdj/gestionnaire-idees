@@ -230,3 +230,15 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
 - L'identifiant du profil est tiré à l'ouverture de la fiche : le personnage montré est celui qui naît.
 - « ✦ Créer l'agent » joue l'éclat de la naissance (couleur du rang), puis crée le profil. Mouvement réduit : rien
   d'animé, tout est affiché.
+
+### D22 — La fenêtre de l'agent (2026-10-16, remplace en partie D21)
+- Retour de mentalyas : montrer l'agent avant sa création tue l'effet de surprise. La fiche d'un **nouveau** profil ne
+  montre plus le personnage ; l'identifiant reste tiré à l'ouverture (le personnage qui naît est bien celui du profil).
+- « ✦ Créer l'agent » ouvre la **fenêtre de l'agent** : « Félicitations ! « X » rejoint l'équipe », sa chambre-cube en
+  grand (elle domine, les calques restent discrets), révélée, avec des confettis de la couleur de son rang (rien
+  d'animé en mouvement réduit). Boutons : « Discuter avec lui », « Modifier le profil », « Fermer ».
+- La même fenêtre, sans la fête, s'ouvre au clic sur n'importe quel agent de la gestion des agents.
+- « Discuter avec lui » : un tête-à-tête hors de toute tâche (une conversation par profil, sans genesis, clé
+  `agent-profile-chat:<profil>`), avec la persona de son profil, dans le dossier de travail de l'app ; il peut y
+  proposer des skills comme en visio (D16). La chambre reste à gauche, la conversation à droite.
+- La modification d'un profil existant garde sa carte dans la fiche.

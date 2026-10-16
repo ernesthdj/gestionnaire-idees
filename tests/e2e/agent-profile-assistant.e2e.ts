@@ -33,17 +33,36 @@ describe('créer un profil d’agent avec Claude (T019, e2e)', () => {
     await conversation.getByRole('button', { name: 'Envoyer' }).click()
     await conversation.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })
     await page.getByRole('textbox', { name: /Nom/ }).fill('Chef qualité')
-    // L'agent minté (L1o D21) : sa chambre, ses calques et leur rareté, son rang, avant même sa création.
-    await page.getByRole('region', { name: /^Agent minté : Chef qualité, / }).waitFor()
+    // L'effet de surprise (L1o D22) : rien du personnage avant la création.
+    expect(await page.getByRole('region', { name: /^Agent minté/ }).count()).toBe(0)
     const save = page.getByRole('button', { name: '✦ Créer l’agent' })
     await expect.poll(() => save.isEnabled()).toBe(true)
-    await page.waitForTimeout(1500)
     await run.shot('t019-01-creer-avec-claude')
-    // « Créer l'agent » : l'éclat de la naissance, puis le profil ; la conversation se ferme avec la fiche.
+    // « Créer l'agent » : la fenêtre de l'agent, en grand, avec Félicitations et confettis ; la conversation de
+    // création se ferme avec la fiche.
     await save.click()
-    await page.waitForTimeout(300)
-    await run.shot('t021-02-naissance')
-    await page.getByText('Chef qualité', { exact: true }).waitFor()
+    const reveal = page.getByRole('dialog', { name: '« Chef qualité » rejoint l’équipe' })
+    await reveal.waitFor()
+    await reveal.getByRole('region', { name: /^Agent minté : Chef qualité, / }).waitFor()
     await conversation.waitFor({ state: 'detached' })
+    await page.waitForTimeout(700)
+    await run.shot('t022-01-naissance')
+    await page.waitForTimeout(1500)
+    await run.shot('t022-02-revele')
+    // « Discuter avec lui » : un tête-à-tête hors de toute tâche, avec la persona de son profil.
+    await reveal.getByRole('button', { name: 'Discuter avec lui' }).click()
+    const chat = reveal.getByRole('region', { name: /^Conversation/ })
+    await chat.waitFor()
+    await chat.getByLabel('Message à Claude').fill('Présente-toi.')
+    await chat.getByRole('button', { name: 'Envoyer' }).click()
+    await chat.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })
+    await run.shot('t022-03-tete-a-tete')
+    await reveal.getByRole('button', { name: 'Fermer la fenêtre de Chef qualité' }).click()
+    await reveal.waitFor({ state: 'detached' })
+    // Depuis la liste : la même fenêtre, sans fête.
+    await page.getByRole('button', { name: 'Voir l’agent Chef qualité' }).click()
+    const again = page.getByRole('dialog', { name: 'Chef qualité' })
+    await again.waitFor()
+    expect(await again.getByText('Félicitations !').count()).toBe(0)
   })
 })

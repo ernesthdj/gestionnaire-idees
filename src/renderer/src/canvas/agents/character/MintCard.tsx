@@ -8,8 +8,8 @@ import './mint.css'
 
 /**
  * Carte de l'agent minté (L1o D21) : sa chambre-cube où vit son personnage, chaque calque avec sa rareté, et son rang.
- * À la création, elle se révèle (la chambre apparaît, puis les calques un à un, puis le rang) ; `minting` joue l'éclat
- * de la naissance. Mouvement réduit : tout est affiché d'un coup.
+ * À la création, elle se révèle (la chambre apparaît, puis les calques un à un, puis le rang). Mouvement réduit : tout
+ * est affiché d'un coup.
  */
 export function MintCard({
   profileId,
@@ -17,14 +17,15 @@ export function MintCard({
   name,
   delivered = 0,
   reveal = false,
-  minting = false
+  size = 'normal'
 }: {
   readonly profileId: string
   readonly role: AgentRole | null
   readonly name: string
   readonly delivered?: number
   readonly reveal?: boolean
-  readonly minting?: boolean
+  /** `large` : la fenêtre de l'agent (L1o D22). */
+  readonly size?: 'normal' | 'large'
 }): React.JSX.Element {
   const character = useMemo(() => mintCharacter(profileId, role), [profileId, role])
   const room = useMemo(() => mintRoom(character.seed, delivered), [character, delivered])
@@ -66,7 +67,7 @@ export function MintCard({
       alive = false
       handle?.dispose()
     }
-  }, [character, room])
+  }, [character, room, size])
 
   const layers: readonly (readonly [string, string, Tier])[] = [
     ['Univers', character.universe.name, character.universe.tier],
@@ -79,7 +80,7 @@ export function MintCard({
   return (
     <section
       aria-label={`Agent minté : ${name.trim() === '' ? 'sans nom' : name}, ${character.base.name}, rang ${TIER_LABELS[rank]}`}
-      className={`mint-card${reveal ? ' mint-reveal' : ''}${minting ? ' mint-minting' : ''}`}
+      className={`mint-card${size === 'large' ? ' mint-card-large' : ''}${reveal ? ' mint-reveal' : ''}`}
       data-tier={rank}
     >
       <canvas ref={canvas} className="mint-room" aria-hidden="true" />

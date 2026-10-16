@@ -72,7 +72,10 @@ const toRequest = (input: z.infer<typeof Assembly> | z.infer<typeof Sketch>): As
  */
 export function createAssemblyRoutes(
   deps: AssemblyRoutesDeps,
-  chats?: { open(hostId: string, agentId: string): { readonly neuronId: string } }
+  chats?: {
+    open(hostId: string, agentId: string): { readonly neuronId: string }
+    openProfile(profileId: string): { readonly neuronId: string }
+  }
 ): IpcRoute[] {
   const Target = z.strictObject({ genesisId: z.uuid(), taskId: TaskId })
   return [
@@ -84,6 +87,12 @@ export function createAssemblyRoutes(
             channel: 'assembly:chat',
             input: z.strictObject({ nodeId: HostId, agentId: AgentId }),
             handler: async ({ nodeId, agentId }) => chats.open(nodeId, agentId)
+          }),
+          // Tête-à-tête avec un agent hors de toute tâche (L1o D22), depuis la gestion des agents.
+          defineRoute({
+            channel: 'agents:chat',
+            input: z.strictObject({ profileId: z.uuid() }),
+            handler: async ({ profileId }) => chats.openProfile(profileId)
           })
         ]),
     defineRoute({

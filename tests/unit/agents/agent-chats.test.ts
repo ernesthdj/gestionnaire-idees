@@ -3,7 +3,8 @@ import {
   AgentChats,
   agentChatKey,
   agentPersona,
-  parseAgentChatKey
+  parseAgentChatKey,
+  profileChatKey
 } from '../../../src/main/application/agents/AgentChats'
 import type { AgentProfileView } from '../../../src/shared/agents/profile'
 import type { AssemblySketchView } from '../../../src/shared/ipc/assemblies'
@@ -31,7 +32,7 @@ const SKETCH: AssemblySketchView = {
 }
 
 const setup = () => {
-  const rows: { id: string; genesisId: string; key: string; title: string; kind: string }[] = []
+  const rows: { id: string; genesisId: string | null; key: string; title: string; kind: string }[] = []
   let next = 0
   const chats = new AgentChats({
     repository: {
@@ -40,6 +41,7 @@ const setup = () => {
       insert: (row) => rows.push(row)
     },
     sketches: () => [SKETCH],
+    profileChats: { chatOf: (key) => rows.find((row) => row.genesisId === null && row.key === key)?.id },
     profile: (id) => (id === PROFILE.id ? PROFILE : undefined),
     linkedGenesis: (id) => id === G,
     newId: () => `chat-${++next}`
@@ -61,6 +63,23 @@ describe('visio avec un agent (L1o D13)', () => {
     const { chats } = setup()
     expect(() => chats.open(HOST, 'qa')).toThrow(/plus connecté/)
     expect(() => chats.open(`wf:33333333-3333-4333-8333-333333333333:ttask:x`, 'back')).toThrow(/introuvable/)
+  })
+
+  it('should_open_a_one_to_one_chat_without_genesis_once_when_meeting_an_agent_outside_any_task', () => {
+    // L1o D22 : la fenêtre de l'agent (gestion des agents) discute avec lui hors de toute tâche.
+    const { chats, rows } = setup()
+    expect(chats.openProfile('p-back')).toEqual({ neuronId: 'chat-1' })
+    expect(chats.openProfile('p-back')).toEqual({ neuronId: 'chat-1' })
+    expect(rows).toEqual([
+      { id: 'chat-1', genesisId: null, key: profileChatKey('p-back'), title: 'Développeur', kind: 'agent_chat' }
+    ])
+    expect(() => chats.openProfile('inconnu')).toThrow(/n’existe plus/)
+  })
+
+  it('should_say_they_meet_outside_any_task_when_the_persona_has_no_host', () => {
+    const persona = agentPersona({ profile: PROFILE, hostTitle: null, hostContext: '', worktree: null })
+    expect(persona.systemPrompt).toContain('hors de toute tâche')
+    expect(persona.systemPrompt).not.toContain('Vous parlez de la tâche')
   })
 
   it('should_read_back_the_node_and_the_agent_when_parsing_a_chat_key', () => {

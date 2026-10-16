@@ -61,6 +61,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'assembly:sketchClear',
   'assembly:chat',
   'agents:conversation',
+  'agents:chat',
   'neuron:delete',
   'canvas:get',
   'canvas:savePositions',

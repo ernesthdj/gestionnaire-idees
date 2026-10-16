@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { AppDatabase } from '../client'
 import { neurons } from '../schemaNeurons'
 
@@ -20,6 +20,15 @@ export class WorkflowChatRepository {
       .get()?.id
   }
 
+  /** Conversation en tête-à-tête avec un agent, hors de toute tâche (L1o D22) : sans genesis, retrouvée par sa clé. */
+  profileChatOf(key: string): string | undefined {
+    return this.db
+      .select({ id: neurons.id })
+      .from(neurons)
+      .where(and(eq(neurons.kind, 'agent_chat'), isNull(neurons.genesisId), eq(neurons.elementKey, key)))
+      .get()?.id
+  }
+
   /** Toutes les conversations de nœuds Workflow : où poser le dossier de chacune sur la carte (spec 028). */
   chats(): { readonly id: string; readonly genesisId: string; readonly key: string }[] {
     return this.db
@@ -34,7 +43,8 @@ export class WorkflowChatRepository {
 
   insert(input: {
     readonly id: string
-    readonly genesisId: string
+    /** `null` : conversation d'un agent hors de toute tâche (L1o D22). */
+    readonly genesisId: string | null
     readonly key: string
     readonly title: string
     readonly kind?: HiddenChatKind

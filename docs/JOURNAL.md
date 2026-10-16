@@ -2611,3 +2611,19 @@ bouton qui lance sa création) ; un onglet Branches plus propre (les noms comple
 **Corrigé en route :** la carte débordait dans la colonne étroite (disposition en deux colonnes) : passée en colonne ;
 elle remonte à l'écran au clic, l'éclat restait sinon hors de vue.
 **Vérifié :** typecheck, lint, 2 447 tests ; captures e2e `t019-01`, `t021-02-naissance`, `021-branches-des-agents`.
+
+### [2026-10-16 23:08] FEAT — la fenêtre de l'agent : révélé à sa création, tête-à-tête depuis la gestion (L1o D22)
+**Fichiers :** `src/renderer/src/canvas/agents/AgentRevealDialog.tsx` (nouveau : fenêtre modale, Félicitations,
+confettis, « Discuter avec lui »), `MintCard.tsx` et `mint.css` (taille `large`, confettis ; éclat de naissance retiré),
+`AgentProfilesPanel.tsx` (plus d'aperçu à la création, fenêtre après « Créer l'agent » et au clic sur un agent) ;
+`AgentChats.ts` (`openProfile`, persona sans tâche), `WorkflowChatRepository.ts` (`profileChatOf`, genesis nul),
+`bootstrap.ts` (`agentOfChat` reconnaît le tête-à-tête), `assemblyHandlers.ts` + `channels.ts` (route `agents:chat`) ;
+tests unitaires, renderer et e2e `agent-profile-assistant`.
+**Quoi :** demande de mentalyas : l'agent visible avant sa création gâchait la surprise ; une grande fenêtre à la
+création (Félicitations, discuter avec lui), la même au clic sur un agent de la gestion.
+**Corrigé en route :** au premier rendu la chambre était trop petite et les calques trop présents (retour de
+mentalyas) : chambre à ~54 % de la hauteur d'écran, calques compacts, deux colonnes égales pendant la discussion ;
+l'en-tête du chat (« Nœud du workflow ») masqué comme en visio ; confettis dispersés (ils tombaient en diagonale) ;
+`<header>` dans un portail = second landmark banner (axe) → `<div>`.
+**Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant` et `agents-map` ; captures
+`t022-01-naissance`, `t022-02-revele`, `t022-03-tete-a-tete`.

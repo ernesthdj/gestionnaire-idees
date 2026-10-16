@@ -123,7 +123,7 @@ describe('canaux des agents assemblés (T005)', () => {
   })
 
   it('should_open_the_visio_chat_of_an_agent_on_a_workflow_node_only', async () => {
-    const chats = { open: vi.fn(() => ({ neuronId: 'n1' })) }
+    const chats = { open: vi.fn(() => ({ neuronId: 'n1' })), openProfile: vi.fn(() => ({ neuronId: 'n2' })) }
     const withChat = createDispatcher(createAssemblyRoutes(deps as never, chats))
     expect(await withChat('assembly:chat', { nodeId: NODE, agentId: 'back' })).toEqual({
       success: true,
@@ -132,5 +132,10 @@ describe('canaux des agents assemblés (T005)', () => {
     expect(chats.open).toHaveBeenCalledWith(NODE, 'back')
     expect((await withChat('assembly:chat', { nodeId: GENESIS, agentId: 'back' })).success).toBe(false)
     expect((await withChat('assembly:chat', { nodeId: NODE, agentId: 'Back!' })).success).toBe(false)
+    // Tête-à-tête hors de toute tâche (L1o D22) : un profil par son identifiant seulement.
+    const profileId = '5a6b7c8d-1e2f-4a3b-8c4d-5e6f7a8b9c0d'
+    expect(await withChat('agents:chat', { profileId })).toEqual({ success: true, data: { neuronId: 'n2' } })
+    expect(chats.openProfile).toHaveBeenCalledWith(profileId)
+    expect((await withChat('agents:chat', { profileId: 'x' })).success).toBe(false)
   })
 })

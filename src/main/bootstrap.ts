@@ -186,7 +186,7 @@ import { GitWriteQueue } from './infrastructure/git/GitWriteQueue'
 import { GitRepository } from './infrastructure/db/repositories/GitRepository'
 import { WorkflowService } from './application/workflow/WorkflowService'
 import { workflowHost, workflowHostGenesis, type WorkflowHost } from './application/agents/workflowHost'
-import { AgentChats, agentPersona, parseAgentChatKey } from './application/agents/AgentChats'
+import { AgentChats, PROFILE_CHAT_PREFIX, agentPersona, parseAgentChatKey } from './application/agents/AgentChats'
 import { WorkflowAnatomy } from './application/workflow/WorkflowAnatomy'
 import { WorkflowChats } from './application/workflow/WorkflowChats'
 import { WorkflowSummaries } from './application/workflow/WorkflowSummaries'
@@ -387,11 +387,20 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const agentProfileRepository = new AgentProfileRepository(database.db)
   // Croquis des agents connectés aux nœuds du Workflow (T006, L1o D14).
   const assemblySketches = new AssemblySketchRepository(database.db)
-  /** Agent d'une conversation de visio (L1o D13) : sa clé, son croquis et son profil ; `undefined` sinon. */
+  /**
+   * Agent d'une conversation de visio (L1o D13) : sa clé, son croquis et son profil ; en tête-à-tête hors de toute tâche
+   * (L1o D22), son profil seul ; `undefined` sinon.
+   */
   const agentOfChat = (
     neuron: { readonly kind: string; readonly elementKey: string | null; readonly genesisId: string | null } | undefined
   ) => {
-    if (neuron?.kind !== 'agent_chat' || neuron.elementKey === null || neuron.genesisId === null) return undefined
+    if (neuron?.kind !== 'agent_chat' || neuron.elementKey === null) return undefined
+    if (neuron.genesisId === null) {
+      if (!neuron.elementKey.startsWith(PROFILE_CHAT_PREFIX)) return undefined
+      const profileId = neuron.elementKey.slice(PROFILE_CHAT_PREFIX.length)
+      const profile = agentProfiles.list().find((p) => p.id === profileId)
+      return profile === undefined ? undefined : { key: null, sketch: null, profile }
+    }
     const key = parseAgentChatKey(neuron.elementKey)
     if (key === null) return undefined
     const sketch = assemblySketches.list(neuron.genesisId).find((entry) => entry.nodeId === key.hostId)
@@ -854,7 +863,18 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     },
     agentPersona: (neuron) => {
       const found = agentOfChat(neuron)
-      if (found === undefined || neuron.genesisId === null) return undefined
+      if (found === undefined) return undefined
+      const skillNames = new Map(skillInventory.list().skills.map((skill) => [skill.id, skill.name]))
+      const names = found.profile.skills.map((id) => skillNames.get(id) ?? id)
+      // Tête-à-tête hors de toute tâche (L1o D22) : dans le dossier de travail de l'app.
+      if (found.key === null || neuron.genesisId === null)
+        return agentPersona({
+          profile: found.profile,
+          skillNames: names,
+          hostTitle: null,
+          hostContext: '',
+          worktree: null
+        })
       const { key, sketch, profile } = found
       let host: WorkflowHost | undefined
       try {
@@ -863,10 +883,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         host = undefined
       }
       const worktree = join(dataDir, 'agent-worktrees', neuron.genesisId, sketch.taskId, key.agentId)
-      const skillNames = new Map(skillInventory.list().skills.map((skill) => [skill.id, skill.name]))
       return agentPersona({
         profile,
-        skillNames: profile.skills.map((id) => skillNames.get(id) ?? id),
+        skillNames: names,
         hostTitle: host?.title ?? 'tâche du Workflow',
         hostContext: host?.content ?? '',
         worktree: existsSync(worktree) ? worktree : null
@@ -1290,6 +1309,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   const agentChats = new AgentChats({
     repository: workflowChatRepository,
     sketches: (genesisId) => assemblySketches.list(genesisId),
+    profileChats: { chatOf: (key) => workflowChatRepository.profileChatOf(key) },
     profile: (profileId) => agentProfiles.list().find((profile) => profile.id === profileId),
     linkedGenesis: (genesisId) => {
       const genesis = conversationRepository.neuron(genesisId)

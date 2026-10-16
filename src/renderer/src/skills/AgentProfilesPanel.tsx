@@ -15,8 +15,8 @@ import { CLAUDE_MODELS } from '@shared/ipc/ai'
 import type { SkillsView } from '@shared/ipc/skills'
 import { useUiStore } from '../app/uiStore'
 import { ChatPanel } from '../chat/ChatPanel'
+import { AgentRevealDialog } from '../canvas/agents/AgentRevealDialog'
 import { MintCard } from '../canvas/agents/character/MintCard'
-import { mintCharacter } from '../canvas/agents/character/mint'
 import { Button } from '../components/atoms/Button'
 import { call, IpcFailure } from '../lib/ipc'
 
@@ -93,9 +93,10 @@ export function AgentProfilesPanel({
       if (proposal.why !== null) setWhy(proposal.why)
     })
   }, [chatId])
-  // Aperçu du mint (L1o D21) : l'identifiant du futur profil, tiré dès l'ouverture d'un nouveau ; son personnage en vient.
+  // Identifiant du futur profil, tiré dès l'ouverture d'un nouveau (L1o D21) : son personnage en vient, et il ne se
+  // montre qu'une fois créé, dans la fenêtre de l'agent (L1o D22). Celle-ci s'ouvre aussi au clic sur un agent.
   const [pendingId, setPendingId] = useState<string | null>(null)
-  const [minting, setMinting] = useState(false)
+  const [shown, setShown] = useState<{ readonly profile: AgentProfileView; readonly celebrate: boolean } | null>(null)
   const startNew = (): void => {
     setPendingId(crypto.randomUUID())
     setDraft({ ...BLANK })
@@ -150,26 +151,18 @@ export function AgentProfilesPanel({
     setError('')
     try {
       const creating = draft.id === undefined && pendingId !== null
-      if (creating) {
-        // Naissance : l'éclat de la carte, puis la création (rien d'animé si le mouvement est réduit).
-        setMinting(true)
-        document.querySelector('.mint-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-        const reduced = typeof matchMedia !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches
-        await new Promise((resolve) => setTimeout(resolve, reduced ? 0 : 900))
-      }
-      await call<AgentProfileView>('agents:save', creating ? { ...draft, id: pendingId, isNew: true } : draft)
-      showToast(
-        creating
-          ? `« ${draft.name.trim()} » est né : ${mintCharacter(pendingId, draft.role).base.name}.`
-          : `Profil « ${draft.name.trim()} » enregistré.`
+      const saved = await call<AgentProfileView>(
+        'agents:save',
+        creating ? { ...draft, id: pendingId, isNew: true } : draft
       )
+      if (creating) setShown({ profile: saved, celebrate: true })
+      else showToast(`Profil « ${draft.name.trim()} » enregistré.`)
       closeForm()
       await refresh()
     } catch (failure) {
       setError(failure instanceof IpcFailure ? failure.message : 'Le profil n’a pas pu être enregistré.')
     } finally {
       setBusy(false)
-      setMinting(false)
     }
   }
   const remove = async (profile: AgentProfileView): Promise<void> => {
@@ -186,6 +179,19 @@ export function AgentProfilesPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col" aria-label="Profils d’agents">
+      {shown === null ? null : (
+        <AgentRevealDialog
+          key={shown.profile.id}
+          profile={profiles.find((profile) => profile.id === shown.profile.id) ?? shown.profile}
+          celebrate={shown.celebrate}
+          onEdit={() => {
+            const profile = profiles.find((entry) => entry.id === shown.profile.id) ?? shown.profile
+            setShown(null)
+            setDraft(toInput(profile))
+          }}
+          onClose={() => setShown(null)}
+        />
+      )}
       <header className="flex items-center gap-2 border-b border-content-muted/20 px-4 py-2">
         <h2 className="flex-1 text-sm font-semibold">Profils d’agents</h2>
         <Button variant="primary" onClick={() => startAssistant()}>
@@ -213,15 +219,13 @@ export function AgentProfilesPanel({
         )}
         <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4 text-sm">
           {error === '' ? null : <p role="alert">{error}</p>}
-          {draft === null || (draft.id ?? pendingId) === null ? null : (
+          {draft?.id === undefined ? null : (
             <MintCard
-              key={draft.id ?? pendingId ?? ''}
-              profileId={draft.id ?? pendingId ?? ''}
+              key={draft.id}
+              profileId={draft.id}
               role={draft.role}
               name={draft.name}
               delivered={profiles.find((profile) => profile.id === draft.id)?.delivered ?? 0}
-              reveal={draft.id === undefined}
-              minting={minting}
             />
           )}
           {why === null || draft === null ? null : (
@@ -243,7 +247,14 @@ export function AgentProfilesPanel({
                 {profiles.map((profile) => (
                   <li key={profile.id} className="rounded-md border border-content-muted/30 p-3">
                     <div className="flex items-center gap-2">
-                      <strong className="flex-1">{profile.name}</strong>
+                      <button
+                        type="button"
+                        className="flex-1 truncate text-left font-semibold hover:text-accent hover:underline"
+                        aria-label={`Voir l’agent ${profile.name}`}
+                        onClick={() => setShown({ profile, celebrate: false })}
+                      >
+                        {profile.name}
+                      </button>
                       <Button onClick={() => setDraft(toInput(profile))}>Modifier</Button>
                       <Button onClick={() => startAssistant(profile)}>✦ Avec Claude</Button>
                       <Button variant="danger" onClick={() => void remove(profile)}>
@@ -396,7 +407,7 @@ export function AgentProfilesPanel({
               </fieldset>
               <div className="flex gap-2">
                 <Button type="submit" variant="primary" disabled={busy || draft.name.trim() === ''}>
-                  {draft.id === undefined ? (minting ? 'Naissance…' : '✦ Créer l’agent') : 'Enregistrer'}
+                  {draft.id === undefined ? '✦ Créer l’agent' : 'Enregistrer'}
                 </Button>
                 <Button onClick={closeForm}>Annuler</Button>
               </div>

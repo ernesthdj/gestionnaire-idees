@@ -28,15 +28,16 @@ const setup = () => {
   return { api, view }
 }
 
-describe('agent minté à la création (L1o D21)', () => {
-  it('should_show_the_minted_agent_and_create_it_with_the_previewed_id', async () => {
+describe('fenêtre de l’agent (L1o D21, D22)', () => {
+  it('should_hide_the_agent_until_created_then_reveal_it_in_a_window_and_chat_with_it', async () => {
     const saved: unknown[] = []
-    installFakeApi({
-      'agents:list': () => [],
+    const api = installFakeApi({
+      'agents:list': () => saved.map((entry) => ({ ...(entry as object), updatedAt: 0, delivered: 0 })),
       'agents:save': (payload) => {
         saved.push(payload)
-        return payload
-      }
+        return { ...(payload as object), updatedAt: 0, delivered: 0 }
+      },
+      'agents:chat': () => ({ neuronId: 'tete-a-tete' })
     })
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
@@ -45,13 +46,49 @@ describe('agent minté à la création (L1o D21)', () => {
       </QueryClientProvider>
     )
     fireEvent.click(screen.getByRole('button', { name: 'Nouveau profil' }))
-    const card = screen.getByRole('region', { name: /^Agent minté : sans nom, .+, rang / })
-    expect(card.textContent).toContain('Univers')
+    // L'effet de surprise : rien du personnage avant le clic.
+    expect(screen.queryByRole('region', { name: /^Agent minté/ })).toBeNull()
     fireEvent.change(screen.getByRole('textbox', { name: /Nom/ }), { target: { value: 'Thor' } })
-    expect(screen.getByRole('region', { name: /^Agent minté : Thor, / })).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: '✦ Créer l’agent' }))
-    await waitFor(() => expect(saved).toHaveLength(1))
+    const dialog = await screen.findByRole('dialog', { name: '« Thor » rejoint l’équipe' })
     expect(saved[0]).toMatchObject({ name: 'Thor', isNew: true, id: expect.stringMatching(/^[0-9a-f-]{36}$/) })
+    expect(within(dialog).getByText('Félicitations !')).toBeDefined()
+    expect(within(dialog).getByRole('region', { name: /^Agent minté : Thor, / })).toBeDefined()
+    await expectNoAxeViolations(dialog)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Discuter avec lui' }))
+    await waitFor(() =>
+      expect(api.invoke).toHaveBeenCalledWith('agents:chat', { profileId: (saved[0] as { id: string }).id })
+    )
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('should_open_the_same_window_without_celebration_when_clicking_an_agent_of_the_list', async () => {
+    const thor = {
+      id: '5a6b7c8d-1e2f-4a3b-8c4d-5e6f7a8b9c0d',
+      name: 'Thor',
+      role: 'backend',
+      instructions: '',
+      permissionMode: 'default',
+      model: 'claude-sonnet-5-5',
+      effort: 'medium',
+      skills: [],
+      updatedAt: 0,
+      delivered: 0
+    }
+    installFakeApi({ 'agents:list': () => [thor] })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <AgentProfilesPanel view={VIEW} onClose={() => undefined} />
+      </QueryClientProvider>
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir l’agent Thor' }))
+    const dialog = screen.getByRole('dialog', { name: 'Thor' })
+    expect(within(dialog).queryByText('Félicitations !')).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Modifier le profil' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect((screen.getByRole('textbox', { name: /Nom/ }) as HTMLInputElement).value).toBe('Thor')
   })
 })
 

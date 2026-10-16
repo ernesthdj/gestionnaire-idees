@@ -14,6 +14,10 @@ import { workflowHostGenesis } from './workflowHost'
 /** Clé de la conversation d'un agent : celle de son nœud sur la carte (`agent:<agent>:<nœud du Workflow>`). */
 export const agentChatKey = (hostId: string, agentId: string): string => `agent:${agentId}:${hostId}`
 
+/** Clé de la conversation en tête-à-tête avec un agent, hors de toute tâche (L1o D22). */
+export const PROFILE_CHAT_PREFIX = 'agent-profile-chat:'
+export const profileChatKey = (profileId: string): string => `${PROFILE_CHAT_PREFIX}${profileId}`
+
 export function parseAgentChatKey(key: string): { readonly hostId: string; readonly agentId: string } | null {
   const [prefix, agentId, ...rest] = key.split(':')
   const hostId = rest.join(':')
@@ -37,14 +41,18 @@ export function agentPersona(input: {
   readonly profile: AgentProfileView
   /** Noms des skills que son profil peut consulter. */
   readonly skillNames?: readonly string[]
-  readonly hostTitle: string
+  /** `null` : tête-à-tête hors de toute tâche (L1o D22). */
+  readonly hostTitle: string | null
   readonly hostContext: string
   readonly worktree: string | null
 }): AgentPersona {
   const { profile } = input
   const prompt = [
     `Tu es « ${profile.name} », agent ${AGENT_ROLE_LABELS[profile.role]}, en visio avec mentalyas dans le Brainstormer.`,
-    `Vous parlez de la tâche « ${input.hostTitle} », à laquelle tu es connecté.`,
+    input.hostTitle === null
+      ? 'Vous faites connaissance, hors de toute tâche : dis qui tu es, ce que tu sais faire et comment tu travailles ; ' +
+        'il peut ajuster ta façon de faire et tes skills.'
+      : `Vous parlez de la tâche « ${input.hostTitle} », à laquelle tu es connecté.`,
     'Réponds à l’oral, en phrases courtes : tes réponses s’affichent en sous-titres de la visio.',
     input.worktree === null
       ? 'Tu es dans le dossier du projet : ne modifie rien sans qu’on te le demande.'
@@ -68,9 +76,13 @@ export function agentPersona(input: {
 export interface AgentChatsDeps {
   readonly repository: {
     chatOf(genesisId: string, key: string, kind: HiddenChatKind): string | undefined
-    insert(input: { id: string; genesisId: string; key: string; title: string; kind: HiddenChatKind }): void
+    insert(input: { id: string; genesisId: string | null; key: string; title: string; kind: HiddenChatKind }): void
   }
   readonly sketches: (genesisId: string) => readonly AssemblySketchView[]
+  /** Conversations sans genesis (tête-à-tête, L1o D22) ; absent : pas de tête-à-tête. */
+  readonly profileChats?: {
+    chatOf(key: string): string | undefined
+  }
   readonly profile: (profileId: string) => AgentProfileView | undefined
   /** Genesis lié à un dossier de projet (vivant) ; sinon pas de conversation. */
   readonly linkedGenesis: (genesisId: string) => boolean
@@ -97,6 +109,19 @@ export class AgentChats {
     if (existing !== undefined) return { neuronId: existing }
     const neuronId = (this.deps.newId ?? randomUUID)()
     this.deps.repository.insert({ id: neuronId, genesisId, key, title: profile.name, kind: 'agent_chat' })
+    return { neuronId }
+  }
+
+  /** Tête-à-tête avec un agent hors de toute tâche (L1o D22) : retrouvé, ou créé au premier appel. */
+  openProfile(profileId: string): { readonly neuronId: string } {
+    const profile = this.deps.profile(profileId)
+    if (profile === undefined) throw new AppError('NOT_FOUND', 'Ce profil d’agent n’existe plus.')
+    if (this.deps.profileChats === undefined) throw new AppError('NOT_FOUND', 'Conversation indisponible.')
+    const key = profileChatKey(profileId)
+    const existing = this.deps.profileChats.chatOf(key)
+    if (existing !== undefined) return { neuronId: existing }
+    const neuronId = (this.deps.newId ?? randomUUID)()
+    this.deps.repository.insert({ id: neuronId, genesisId: null, key, title: profile.name, kind: 'agent_chat' })
     return { neuronId }
   }
 }
