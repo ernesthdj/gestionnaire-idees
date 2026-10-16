@@ -84,6 +84,8 @@ export interface BuiltRoom {
   readonly jump: number
   /** Animations des meubles (aquarium, néons, bougies…), appelées à chaque image. */
   readonly animated: readonly ((t: number) => void)[]
+  /** Mur que seule la webcam de la visio voit (L1o D22). */
+  readonly visioWall: THREE.Group
   /** Le punching-ball bouge plus fort quand l'agent fait du sport. */
   sporting: boolean
 }
@@ -524,6 +526,38 @@ export function buildRoom(room: AgentRoom, theme: UniverseKey, seed: number, lig
   left.position.set(-HALF - 0.4, C / 2, 0)
   left.receiveShadow = true
   g.add(left)
+  // Mur de la visio (L1o D22) : le côté ouvert que la webcam filme derrière l'agent. Caché dans la vue chambre ; même
+  // papier peint, un cadre au motif du thème, une étagère et une plinthe aux couleurs de l'univers.
+  const visioWall = new THREE.Group()
+  visioWall.visible = false
+  const front = new THREE.Mesh(new THREE.BoxGeometry(C + 0.8, C, 0.8), wm)
+  front.position.set(0, C / 2, HALF + 0.4)
+  front.receiveShadow = true
+  visioWall.add(front)
+  boxM(C, 1.6, 0.6, st.wood, 0, 0.8, HALF - 0.3, visioWall)
+  // La webcam (x = -8) regarde vers +z : l'agent occupe le centre de l'image (x de -13 à -3), le bord gauche de
+  // l'image est du côté +x. Le décor se tient sur les bords, pour rester visible autour de lui.
+  boxM(9.4, 11.4, 0.5, st.wood, 3.5, 13, HALF - 0.25, visioWall)
+  const poster = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 10),
+    new THREE.MeshLambertMaterial({ map: texOf(wallCanvas(st, seed + 21)) })
+  )
+  poster.rotation.y = Math.PI
+  poster.position.set(3.5, 13, HALF - 0.55)
+  visioWall.add(poster)
+  boxM(10, 0.8, 2.4, st.wood, 2.5, 23, HALF - 1.2, visioWall)
+  ;(
+    [
+      [-1.5, 1.6, 3.2, st.accent],
+      [0, 1.2, 2.6, st.blanket],
+      [1.3, 1.4, 3.6, st.rug],
+      [4.5, 2.6, 2.2, st.metal],
+      [6.5, 1.4, 1.8, st.bed]
+    ] as const
+  ).forEach(([x, w, h, color]) => boxM(w, h, 1.8, color, x, 23.4 + h / 2, HALF - 1.3, visioWall))
+  boxM(4, 4.4, 0.4, st.accent, -16, 22, HALF - 0.2, visioWall)
+  boxM(3.2, 3.6, 0.2, st.blanket, -16, 22, HALF - 0.45, visioWall)
+  g.add(visioWall)
   const rug = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 0.3, 32), mat(st.rug))
   rug.position.set(1, 0.15, 2)
   rug.receiveShadow = true
@@ -966,6 +1000,6 @@ export function buildRoom(room: AgentRoom, theme: UniverseKey, seed: number, lig
       hemi.color.setHSL((t / 12000) % 1, 0.6, 0.75)
     })
 
-  const built: BuiltRoom = { group: g, screen, screenTexture, lieY, jump, animated, sporting: false }
+  const built: BuiltRoom = { group: g, screen, screenTexture, lieY, jump, animated, visioWall, sporting: false }
   return built
 }

@@ -31,7 +31,7 @@ const CLICK_SLOP = 4
 const pad = (n: number): string => String(n).padStart(2, '0')
 
 /** Durée de l'appel, mise à jour chaque seconde. */
-function VisioClock({ since }: { readonly since: number }): React.JSX.Element {
+export function VisioClock({ since }: { readonly since: number }): React.JSX.Element {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)

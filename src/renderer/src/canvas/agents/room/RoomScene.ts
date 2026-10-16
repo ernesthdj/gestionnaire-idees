@@ -173,7 +173,9 @@ export class RoomScene {
   constructor(
     character: AgentCharacter,
     room: AgentRoom,
-    private readonly reduced: boolean
+    private readonly reduced: boolean,
+    /** En visio, la chambre en incrustation ; la fenêtre de l'agent s'en passe (L1o D22). */
+    private readonly inset = true
   ) {
     this.camera.position.set(52, 64, 52)
     this.camera.lookAt(0, 15, 0)
@@ -216,6 +218,7 @@ export class RoomScene {
   setVisio(on: boolean, t: number): void {
     if (on === this.visio) return
     this.visio = on
+    this.room.visioWall.visible = on
     this.screenGlow.intensity = on ? 0.9 : 0
     this.screenGlow.color.set(this.wanted === 'erreur' ? 0xff4d4d : 0x6c9cf3)
     this.goTo(this.effective(), t)
@@ -365,6 +368,7 @@ export class RoomScene {
     this.webcam.lookAt(-8, face - 1.2, -6)
     this.webcam.updateProjectionMatrix()
     renderer.render(this.scene, this.webcam)
+    if (!this.inset) return
     const pw = Math.round(w * 0.3)
     const ph = Math.round(h * 0.3)
     const px = Math.round(w - pw - w * 0.03)

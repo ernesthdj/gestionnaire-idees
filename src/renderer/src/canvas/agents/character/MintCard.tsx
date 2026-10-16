@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import type { AgentRole } from '@shared/agents/profile'
 import type { RoomHandle } from '../room/roomStage'
 import { mintCharacter, mintRoom } from './mint'
@@ -17,7 +17,9 @@ export function MintCard({
   name,
   delivered = 0,
   reveal = false,
-  size = 'normal'
+  size = 'normal',
+  visio = null,
+  overlay = null
 }: {
   readonly profileId: string
   readonly role: AgentRole | null
@@ -26,11 +28,20 @@ export function MintCard({
   readonly reveal?: boolean
   /** `large` : la fenêtre de l'agent (L1o D22). */
   readonly size?: 'normal' | 'large'
+  /** En visio (L1o D22) : la caméra de la webcam, et la tête qui bouge pendant qu'il parle. */
+  readonly visio?: { readonly talking: boolean } | null
+  /** Posé sur l'image (bandeau et sous-titres de la visio). */
+  readonly overlay?: ReactNode
 }): React.JSX.Element {
   const character = useMemo(() => mintCharacter(profileId, role), [profileId, role])
   const room = useMemo(() => mintRoom(character.seed, delivered), [character, delivered])
   const rank = rarer(character.rank, room.rank)
   const canvas = useRef<HTMLCanvasElement>(null)
+  const handle = useRef<RoomHandle | null>(null)
+  const inVisio = visio !== null
+  const talking = visio?.talking === true
+  const wanted = useRef({ inVisio, talking })
+  wanted.current = { inVisio, talking }
 
   useEffect(() => {
     const target = canvas.current
@@ -51,23 +62,29 @@ export function MintCard({
       )
     }
     let alive = true
-    let handle: RoomHandle | null = null
     void import('../room/roomStage')
       .then(({ mountRoom }) => {
         if (!alive) return
         try {
-          handle = mountRoom(target, character, room)
-          handle.setActivity('libre')
+          // La carte est l'agent en grand : en visio, pas de chambre en incrustation (L1o D22).
+          const mounted = mountRoom(target, character, room, { inset: false })
+          mounted.setActivity('libre')
+          mounted.setVisio(wanted.current.inVisio)
+          mounted.setTalking(wanted.current.talking)
+          handle.current = mounted
         } catch {
-          handle = null
+          handle.current = null
         }
       })
       .catch(() => undefined)
     return () => {
       alive = false
-      handle?.dispose()
+      handle.current?.dispose()
+      handle.current = null
     }
   }, [character, room, size])
+  useEffect(() => handle.current?.setVisio(inVisio), [inVisio])
+  useEffect(() => handle.current?.setTalking(talking), [talking])
 
   const layers: readonly (readonly [string, string, Tier])[] = [
     ['Univers', character.universe.name, character.universe.tier],
@@ -83,7 +100,10 @@ export function MintCard({
       className={`mint-card${size === 'large' ? ' mint-card-large' : ''}${reveal ? ' mint-reveal' : ''}`}
       data-tier={rank}
     >
-      <canvas ref={canvas} className="mint-room" aria-hidden="true" />
+      <div className={`mint-stage${inVisio ? ' mint-stage-visio' : ''}`}>
+        <canvas ref={canvas} className="mint-room" aria-hidden="true" />
+        {overlay}
+      </div>
       <div className="mint-info">
         <p className="mint-title">
           <span className="truncate">{name.trim() === '' ? 'Nouvel agent' : name}</span>

@@ -1,20 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { ChatPanel } from '../../chat/ChatPanel'
 import { call, IpcFailure } from '../../lib/ipc'
 import { DraftPanel } from '../../skills/DraftPanel'
+import { VisioClock } from './AgentNode'
 import { mintCharacter, mintRoom } from './character/mint'
 import { rarer } from './character/random'
 import { MintCard } from './character/MintCard'
 import { SkillsCards, useSkillsOfVisio } from './VisioSkills'
+import { subtitleOf } from './visioStore'
 
 /** Confettis de la naissance : assez pour la fête, peu pour rester léger. */
 const CONFETTI = 28
 
-/** Le chat suit la fenêtre comme en visio : son en-tête (nom, rôle) est déjà celui de la fenêtre. */
-const quiet = (): void => undefined
+/** Après sa réponse, le dernier sous-titre reste un instant à l'écran (comme la visio de la carte). */
+const SUBTITLE_HOLD_MS = 4000
 
 /** Place et départ d’un confetti, dispersés sans hasard (même pluie à chaque naissance). */
 const confetto = (index: number): React.CSSProperties =>
@@ -50,6 +52,24 @@ export function AgentRevealDialog({
   })
   const chatId = chat.data?.neuronId ?? null
   const skills = useSkillsOfVisio(chatId, profile, since)
+  // La discussion est une visio (L1o D22) : sa tête bouge pendant qu'il répond, sa réponse passe en sous-titres.
+  const [callSince, setCallSince] = useState(0)
+  const [voice, setVoice] = useState({ talking: false, subtitle: '' })
+  const hold = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(hold.current), [])
+  const onActivity = useCallback((busy: boolean, partial: string) => {
+    window.clearTimeout(hold.current)
+    if (busy) {
+      setVoice({ talking: true, subtitle: subtitleOf(partial) })
+      return
+    }
+    setVoice((current) => ({ talking: false, subtitle: current.subtitle }))
+    hold.current = window.setTimeout(() => setVoice({ talking: false, subtitle: '' }), SUBTITLE_HOLD_MS)
+  }, [])
+  const startCall = (): void => {
+    setCallSince(Date.now())
+    setChatting(true)
+  }
   const character = mintCharacter(profile.id, profile.role)
   const rank = rarer(character.rank, mintRoom(character.seed, profile.delivered).rank)
 
@@ -72,7 +92,8 @@ export function AgentRevealDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`agent-reveal relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-surface text-sm text-content shadow-xl ${chatting ? 'max-w-6xl' : 'max-w-2xl'}`}
+        // En discussion, une taille fixée d'avance : la conversation défile à l'intérieur, la fenêtre ne grandit pas.
+        className={`agent-reveal relative flex flex-col overflow-hidden rounded-xl bg-surface text-sm text-content shadow-xl ${chatting ? 'h-[min(88vh,760px)] w-[min(1120px,100%)]' : 'max-h-[90vh] w-full max-w-2xl'}`}
       >
         {celebrate && !chatting ? (
           <div className="mint-confetti" data-tier={rank} aria-hidden="true">
@@ -102,7 +123,7 @@ export function AgentRevealDialog({
             ×
           </button>
         </div>
-        <div className={chatting ? 'grid min-h-0 flex-1 grid-cols-2' : 'contents'}>
+        <div className={chatting ? 'grid min-h-0 flex-1 grid-cols-2 overflow-hidden' : 'contents'}>
           <div className="min-h-0 overflow-auto p-4">
             <MintCard
               profileId={profile.id}
@@ -112,15 +133,27 @@ export function AgentRevealDialog({
               key={chatting ? 'discussion' : 'carte'}
               reveal={celebrate && !chatting}
               size="large"
+              visio={chatting ? { talking: voice.talking } : null}
+              overlay={
+                chatting ? (
+                  <>
+                    <span className="agent-visio-bar" aria-hidden="true">
+                      <span className="agent-visio-dot" />
+                      En visio avec {profile.name}
+                      <VisioClock since={callSince} />
+                    </span>
+                    {voice.subtitle === '' ? null : (
+                      <span className="agent-visio-subs mint-visio-subs" aria-hidden="true">
+                        {voice.subtitle}
+                      </span>
+                    )}
+                  </>
+                ) : null
+              }
             />
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {chatting ? null : (
-                <button
-                  ref={primary}
-                  type="button"
-                  className="card-button card-button-primary"
-                  onClick={() => setChatting(true)}
-                >
+                <button ref={primary} type="button" className="card-button card-button-primary" onClick={startCall}>
                   Discuter avec lui
                 </button>
               )}
@@ -133,13 +166,13 @@ export function AgentRevealDialog({
             </div>
           </div>
           {chatting ? (
-            <div className="flex min-h-[60vh] min-w-0 flex-col border-l border-content-muted/20">
+            <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-l border-content-muted/20">
               <SkillsCards skills={skills} onOpenDraft={setDraftOpen} />
               <div className="min-h-0 flex-1">
                 {draftOpen !== null ? (
                   <DraftPanel draftId={draftOpen} onDone={() => setDraftOpen(null)} />
                 ) : chat.data !== undefined ? (
-                  <ChatPanel neuronId={chat.data.neuronId} onClose={() => setChatting(false)} onActivity={quiet} />
+                  <ChatPanel neuronId={chat.data.neuronId} onClose={() => setChatting(false)} onActivity={onActivity} />
                 ) : chat.error !== null ? (
                   <p role="alert" className="p-4 text-con">
                     {chat.error instanceof IpcFailure ? chat.error.message : 'La conversation n’a pas pu s’ouvrir.'}

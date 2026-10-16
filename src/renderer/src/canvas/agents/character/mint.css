@@ -39,6 +39,14 @@
   --tier: #f2b630;
 }
 
+.mint-stage {
+  position: relative;
+  width: 100%;
+  max-width: 224px;
+}
+.mint-card-large .mint-stage {
+  max-width: none;
+}
 .mint-room {
   display: block;
   width: 100%;
@@ -184,4 +192,18 @@
 [data-reduced-motion='true'] .mint-reveal .mint-traits li,
 [data-reduced-motion='true'] .mint-reveal .mint-rank {
   animation: none;
+}
+
+/* Visio dans la fenêtre de l'agent (L1o D22) : l'image est grande, les sous-titres aussi. */
+.mint-card-large .agent-visio-bar {
+  font-size: 13px;
+}
+.mint-visio-subs {
+  font-size: 14px;
+  line-height: 1.4;
+}
+/* L'image d'une webcam : fond sombre, coins arrondis (le bas de son cadre, sous le sol, est transparent). */
+.mint-stage-visio .mint-room {
+  border-radius: 10px;
+  background: #0e0c18;
 }

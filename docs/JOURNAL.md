@@ -2636,3 +2636,15 @@ Skills (et même celles « sur un skill »), la fiche du neurone, et des suggest
 pour un texte sur trois lignes). Désormais : sous-titre « Claude remplit la fiche à côté ; tu valides », consigne et
 deux suggestions propres, plus de fiche du neurone ; les suggestions (Skills compris) suivent la hauteur de leur texte.
 **Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant`, capture `t019-00-suggestions`.
+
+### [2026-10-16 23:31] FEAT — tête-à-tête en visio, fenêtre de taille fixe, mur de la visio (L1o D22, amendement)
+**Fichiers :** `AgentRevealDialog.tsx` (visio : bandeau, horloge, sous-titres, tête qui bouge ; taille fixe
+`min(88vh, 760px)` en discussion), `MintCard.tsx` et `mint.css` (props `visio` et `overlay`, fond sombre de webcam,
+sous-titres plus grands), `AgentNode.tsx` (`VisioClock` exportée), `roomStage.ts` et `RoomScene.ts` (option `inset`,
+mur de la visio montré seulement en visio), `roomBuild.ts` (`visioWall`) ; e2e `agent-profile-assistant`.
+**Quoi :** captures de mentalyas : en discussion, l'agent doit être en visio ; la fenêtre grandissait avec la
+conversation (« agrandissement dynamique ») ; pas de miniature de la chambre dans cette fenêtre ; pas de fond noir
+derrière l'agent mais un mur décoré selon le thème.
+**Corrigé en route :** le bas du cadre de la webcam (sous le sol) était transparent : fond sombre de vidéo.
+**Vérifié :** typecheck, lint, Prettier, 2 450 tests ; e2e `agent-profile-assistant` (hauteur de la fenêtre identique
+après trois échanges) et `agents-map` ; captures `t022-03-visio-sous-titres`, `t022-04-tete-a-tete`.

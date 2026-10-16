@@ -115,12 +115,17 @@ function ensureObserver(): IntersectionObserver {
  * Accroche une chambre au canevas d'un nœud. Lève une erreur si WebGL n'est pas disponible (le nœud garde alors son
  * portrait en 2D).
  */
-export function mountRoom(target: HTMLCanvasElement, character: AgentCharacter, room: AgentRoom): RoomHandle {
+export function mountRoom(
+  target: HTMLCanvasElement,
+  character: AgentCharacter,
+  room: AgentRoom,
+  options: { readonly inset?: boolean } = {}
+): RoomHandle {
   ensureRenderer()
   const ctx = target.getContext('2d')
   if (ctx === null) throw new Error('Canvas 2D indisponible.')
   const entry: Entry = {
-    scene: new RoomScene(character, room, reducedMotion()),
+    scene: new RoomScene(character, room, reducedMotion(), options.inset ?? true),
     target,
     ctx,
     visible: true,

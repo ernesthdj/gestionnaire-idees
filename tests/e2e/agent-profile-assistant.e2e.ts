@@ -56,10 +56,22 @@ describe('créer un profil d’agent avec Claude (T019, e2e)', () => {
     await reveal.getByRole('button', { name: 'Discuter avec lui' }).click()
     const chat = reveal.getByRole('region', { name: /^Conversation/ })
     await chat.waitFor()
-    await chat.getByLabel('Message à Claude').fill('Présente-toi.')
-    await chat.getByRole('button', { name: 'Envoyer' }).click()
-    await chat.getByText(/il me reste à relire le diff/).waitFor({ timeout: 15_000 })
-    await run.shot('t022-03-tete-a-tete')
+    // En visio (L1o D22) : bandeau d'appel sur la chambre ; la fenêtre a une taille fixe, la conversation défile.
+    await reveal.getByText('En visio avec Chef qualité').waitFor()
+    const height = (await reveal.boundingBox())?.height ?? 0
+    for (const message of ['Présente-toi.', 'Et tes skills ?', 'Comment tu vérifies une fusion ?']) {
+      await chat.getByLabel('Message à Claude').fill(message)
+      await chat.getByRole('button', { name: 'Envoyer' }).click()
+      if (message === 'Présente-toi.') {
+        await page.waitForTimeout(400)
+        await run.shot('t022-03-visio-sous-titres')
+      }
+      await expect.poll(() => chat.getByRole('button', { name: 'Envoyer' }).count(), { timeout: 15_000 }).toBe(1)
+      await chat.getByLabel('Message à Claude').waitFor()
+      await page.waitForTimeout(600)
+    }
+    expect((await reveal.boundingBox())?.height).toBe(height)
+    await run.shot('t022-04-tete-a-tete')
     await reveal.getByRole('button', { name: 'Fermer la fenêtre de Chef qualité' }).click()
     await reveal.waitFor({ state: 'detached' })
     // Depuis la liste : la même fenêtre, sans fête.
