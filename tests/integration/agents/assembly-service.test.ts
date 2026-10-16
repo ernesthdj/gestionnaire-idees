@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   AssemblyService,
+  boxesOf,
   type AssemblyNode,
   type SketchStore
 } from '../../../src/main/application/agents/AssemblyService'
@@ -418,5 +419,41 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(() => serviceWith(undefined).saveSketch(sketch)).toThrowError(/introuvable/)
     service.clearSketch(NODE_ID)
     expect(service.sketches()).toEqual([])
+  })
+})
+
+describe('cases cochées à la fusion (L1o D23, D25)', () => {
+  const base: AssemblyNode = {
+    genesisId: 'g1',
+    kind: 'lot',
+    title: 'Lot',
+    content: null,
+    sheet: '',
+    projectDir: 'C:/p',
+    projectName: 'demo',
+    lotFile: 'docs/TACHES-TRI.md',
+    lotTasks: [
+      { id: 'T001', key: 'a', text: 'Trier', done: false },
+      { id: 'T002', key: 'b', text: 'Filtrer', done: false },
+      { id: 'T003', key: 'c', text: 'Chercher', done: true }
+    ]
+  }
+
+  it('should_check_the_planned_open_tasks_of_a_lot_or_all_of_them_without_a_plan', () => {
+    const plan = { steps: [{ task: 'T002', agents: ['Thor'], waits: [] }], rhythm: null }
+    expect(boxesOf(base, plan)).toEqual([{ path: 'docs/TACHES-TRI.md', key: 'b' }])
+    expect(boxesOf(base, undefined).map((box) => box.key)).toEqual(['a', 'b'])
+    expect(boxesOf({ ...base, box: { path: 'x.md', key: 'k' } }, plan)).toEqual([{ path: 'x.md', key: 'k' }])
+    const withoutFile: AssemblyNode = {
+      genesisId: 'g1',
+      kind: 'lot',
+      title: 'Lot',
+      content: null,
+      sheet: '',
+      projectDir: 'C:/p',
+      projectName: 'demo',
+      ...(base.lotTasks === undefined ? {} : { lotTasks: base.lotTasks })
+    }
+    expect(boxesOf(withoutFile, plan)).toEqual([])
   })
 })

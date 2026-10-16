@@ -1368,7 +1368,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         projectDir: genesis.projectDir,
         projectName: genesis.title,
         ...(host.box === undefined ? {} : { box: host.box }),
-        ...(host.lotTasks === undefined ? {} : { lotTasks: host.lotTasks })
+        ...(host.lotTasks === undefined ? {} : { lotTasks: host.lotTasks }),
+        ...(host.lotFile === undefined ? {} : { lotFile: host.lotFile })
       }
     },
     // Travail livré (L1o D13) : la chambre de l'agent s'enrichit (la carte relit les profils sur `assembly:changed`).

@@ -321,8 +321,8 @@ export function workflowTree(entry: WorkflowEntry, genesisId: string): WorkflowT
       ...(view.tree.complete === node.key ? { complete: true } : {}),
       origin: described.context.doc,
       ...(node.status === 'abandoned' ? { abandoned: true as const } : {}),
-      // Tout est fait : replié d'office (la carte reste lisible) ; mentalyas le déplie, son choix est gardé.
-      foldedByDefault: node.total > 0 && node.done === node.total
+      // Jamais replié d'office (spec 032 D20) : seul mentalyas replie un rond, son choix est gardé.
+      foldedByDefault: false
     })
     for (const child of node.children) add(child, key, described.context)
   }

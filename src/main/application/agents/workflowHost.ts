@@ -24,6 +24,8 @@ export interface WorkflowHost {
   readonly box?: TaskBox
   /** Tâches d'un lot ou d'un fichier de tâches, dans l'ordre : le PO les cadre toutes (L1o D25). */
   readonly lotTasks?: readonly LotTask[]
+  /** Fichier où vivent ces tâches : on y coche, on n'en crée pas d'autre. */
+  readonly lotFile?: string
 }
 
 /** Une tâche d'un fichier de tâches : son chemin dans le projet et sa clé (`parseTaskFile`). */
@@ -148,7 +150,8 @@ export function workflowHost(view: WorkflowView, nodeId: string): WorkflowHost |
                 file.path,
                 ...docsOfFile(view, file.path)
               ]),
-              lotTasks: lotOf(fileTasks(file))
+              lotTasks: lotOf(fileTasks(file)),
+              lotFile: file.path
             }
       }
       case 'tgroup': {
@@ -163,7 +166,8 @@ export function workflowHost(view: WorkflowView, nodeId: string): WorkflowHost |
                 [file.path, ...docsOfFile(view, file.path)],
                 [`Lot de ${file.path}.`]
               ),
-              lotTasks: lotOf(groupTasks(group))
+              lotTasks: lotOf(groupTasks(group)),
+              lotFile: file.path
             }
           }
         }

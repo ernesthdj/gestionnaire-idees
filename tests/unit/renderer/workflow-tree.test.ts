@@ -142,16 +142,14 @@ describe('workflowTree (spec 032)', () => {
     )
   })
 
-  it('should_fold_the_rounds_where_everything_is_done_unless_mentalyas_opened_them', () => {
+  it('should_never_fold_a_done_round_by_itself_and_keep_the_fold_chosen_by_mentalyas', () => {
+    // Spec 032 D20 : une fusion qui coche les dernières tâches ne referme plus le lot sous les yeux de mentalyas.
     const tree = workflowTree({ view: view(SPECS, DOCS) }, G)
-    const visible = new Set(tree.visible.map((item) => item.key))
-    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '020'))?.collapsed).toBe(true)
-    expect(visible.has(workflowKey(G, 'task', '020', 'T001'))).toBe(false)
-    expect(visible.has(workflowKey(G, 'story', '017', '1'))).toBe(true)
-    expect(visible.has(workflowKey(G, 'task', '017', 'T001'))).toBe(false)
-    const opened = workflowTree({ view: view(SPECS, DOCS, [], { [workflowKey(G, 'spec', '020')]: false }) }, G)
-    // Ouvert par mentalyas : ses ronds apparaissent (eux-mêmes repliés tant qu'il ne les ouvre pas).
-    expect(opened.visible.some((item) => item.key === workflowKey(G, 'story', '020', '1'))).toBe(true)
+    expect(tree.items.find((item) => item.key === workflowKey(G, 'spec', '020'))?.collapsed).toBe(false)
+    expect(tree.visible.some((item) => item.key === workflowKey(G, 'story', '020', '1'))).toBe(true)
+    const folded = workflowTree({ view: view(SPECS, DOCS, [], { [workflowKey(G, 'spec', '020')]: true }) }, G)
+    expect(folded.items.find((item) => item.key === workflowKey(G, 'spec', '020'))?.collapsed).toBe(true)
+    expect(folded.visible.some((item) => item.key === workflowKey(G, 'story', '020', '1'))).toBe(false)
   })
 
   it('should_draw_a_task_file_under_its_round_as_sketches_while_the_brainstorm_is_not_complete', () => {

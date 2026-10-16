@@ -56,7 +56,7 @@ const names = (text: string): string[] =>
 
 const rhythmOf = (text: string): LotRhythm | null => {
   const plain = text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-  if (plain.includes('tout')) return 'tout'
+  if (plain.includes('tout') || plain.includes('chaine') || plain.includes('enchain')) return 'tout'
   if (plain.includes('une')) return 'une-a-une'
   return null
 }
@@ -94,11 +94,17 @@ export function parseLotPlan(spec: string): LotPlan {
 }
 
 /** Consigne donnée au PO connecté à un lot : spec par tâche, aiguillage et conseil de rythme (lus par `parseLotPlan`). */
-export function lotInstructions(tasks: readonly LotTask[]): string {
+export function lotInstructions(tasks: readonly LotTask[], file?: string): string {
   const open = tasks.map((task, index) => ({ task, label: lotLabel(task, index) })).filter(({ task }) => !task.done)
   return [
     `Ce nœud est un LOT de ${open.length} tâche(s) à faire, dans cet ordre :`,
     ...open.map(({ task, label }) => `- ${label} · ${task.text}`),
+    ...(file === undefined
+      ? []
+      : [
+          `Ces tâches vivent dans ${file} : ne crée AUCUN autre fichier de tâches. Les agents cochent leurs cases dans ce fichier (« - [x] »), et la fusion coche celles du lot.`,
+          'Pour compléter un brainstorm, écris dans le document d’où vient le lot (voir « À lire d’abord »), pas dans un nouveau dossier.'
+        ]),
     '',
     'Rédige la spec du LOT entier (ta réponse EST la spec) : une section « ## <repère> — <titre> » par tâche à faire, avec ses critères d’acceptation (Étant donné / Quand / Alors), ce qui est hors périmètre et sa complexité (basse, moyenne ou haute).',
     'Choisis UNE équipe pour tout le lot (lignes RECOMMANDÉ: et SUGGÉRÉ: ci-dessous) : chaque agent n’intervient que dans les tâches où tu le places.',

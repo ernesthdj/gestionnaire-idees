@@ -585,7 +585,8 @@ export function ProgressionView({
       for (const node of pathTo(data.tree, treeKey)) {
         const nodeKey = roundNodeKey(genesisId, node.key)
         if (nodeKey === null) continue
-        const collapsed = data.folded[nodeKey] ?? (node.total > 0 && node.done === node.total)
+        // Même règle que le Workflow (spec 032 D20) : replié seulement par mentalyas.
+        const collapsed = data.folded[nodeKey] ?? false
         if (collapsed) fold(nodeKey, false)
       }
       arriveInWorkflow(key)

@@ -48,6 +48,11 @@ describe('spec de lot du PO (L1o D25, T021)', () => {
     expect(parseLotPlan('# Spec\n\nRECOMMANDÉ: Développeur — ok\n')).toEqual({ steps: [], rhythm: null })
     expect(parseLotPlan('RYTHME: tout le lot').rhythm).toEqual({ mode: 'tout', reason: '' })
     expect(parseLotPlan('RYTHME: au feeling — ?').rhythm).toBeNull()
+    // Le PO de Bike_cycle a écrit « à la chaîne » (2026-10-17) : c'est enchaîner tout le lot.
+    expect(parseLotPlan('RYTHME: à la chaîne, Thor puis QA — rien à relire').rhythm).toEqual({
+      mode: 'tout',
+      reason: 'rien à relire'
+    })
   })
 
   it('should_list_only_the_open_tasks_with_their_label_when_instructing_the_po', () => {
@@ -63,6 +68,9 @@ describe('spec de lot du PO (L1o D25, T021)', () => {
     expect(text).toContain('AIGUILLAGE:')
     expect(text).toContain('RYTHME:')
     expect(lotLabel({ id: '' }, 0)).toBe('#1')
+    // Le fichier du lot est nommé : on y coche, on n'en crée pas d'autre (retour du lot de Bike_cycle, 2026-10-17).
+    const named = lotInstructions([{ id: 'T001', key: 'a', text: 'Trier', done: false }], 'docs/TACHES-TRI.md')
+    expect(named).toContain('Ces tâches vivent dans docs/TACHES-TRI.md : ne crée AUCUN autre fichier de tâches.')
   })
 })
 

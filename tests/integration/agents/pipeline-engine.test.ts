@@ -391,8 +391,8 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
       const key = parseTaskFile('TACHES-TRI.md', '# Tri\n\n## Lot\n\n- [ ] T001 Trier\n').lots[0]?.tasks[0]?.key ?? ''
       const engine = engineWith(writer)
       expect((await engine.run(diamond())).completed).toBe(true)
-      const approval = await engine.approve(diamond(), { path: 'TACHES-TRI.md', key })
-      expect(approval).toMatchObject({ merged: true, checked: true })
+      const approval = await engine.approve(diamond(), [{ path: 'TACHES-TRI.md', key }])
+      expect(approval).toMatchObject({ merged: true, checked: 1 })
       expect((await git(['show', 'main:TACHES-TRI.md'])).output).toContain('- [x] T001 Trier')
       expect((await git(['log', '-1', '--format=%s', 'main'])).output).toContain('T010 faite')
       expect((await git(['status', '--porcelain'])).output).toBe('')
@@ -403,6 +403,27 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
       )
       expect(cleaned.kept).toEqual([])
       expect((await git(['branch', '--list', 'agents/*'])).output.trim()).toBe('')
+    })
+
+    it('should_check_every_task_of_a_lot_in_its_own_file_in_one_commit', async () => {
+      // L1o D25 : la fusion d'un lot coche ses tâches dans le fichier du lot (jamais dans un doublon).
+      const text = '# Tri\n\n## Lot\n\n- [ ] T001 Trier\n- [~] T002 Filtrer\n- [x] T003 Chercher\n'
+      writeFileSync(join(project, 'TACHES-TRI.md'), text)
+      await git(['add', 'TACHES-TRI.md'])
+      await git(['commit', '-m', 'docs: tâches'])
+      const keys = parseTaskFile('TACHES-TRI.md', text).lots[0]?.tasks.map((task) => task.key ?? '') ?? []
+      const engine = engineWith(writer)
+      expect((await engine.run(diamond())).completed).toBe(true)
+      const approval = await engine.approve(
+        diamond(),
+        keys.map((key) => ({ path: 'TACHES-TRI.md', key }))
+      )
+      // T003 était déjà cochée : deux cases de plus.
+      expect(approval).toMatchObject({ merged: true, checked: 2 })
+      const after = (await git(['show', 'main:TACHES-TRI.md'])).output
+      expect(after).toContain('- [x] T001 Trier')
+      expect(after).toContain('- [x] T002 Filtrer')
+      expect((await git(['log', '-1', '--format=%s', 'main'])).output).toContain('T010 · 2 tâches faites')
     })
 
     it('should_keep_an_agent_branch_that_the_base_does_not_contain_when_cleaning', async () => {

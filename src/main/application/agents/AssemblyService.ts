@@ -1,4 +1,4 @@
-import type { LotPlan, LotTask } from '@shared/agents/lotPlan'
+import { lotLabel, type LotPlan, type LotTask } from '@shared/agents/lotPlan'
 import { isValidTaskId } from '@shared/agents/documents'
 import type { AgentWorkEvent, AgentWorkListener } from './PipelineEngine'
 import {
@@ -31,6 +31,8 @@ export interface AssemblyNode {
   readonly box?: TaskBox
   /** Tâches d'un lot ou d'un fichier de tâches (L1o D25). */
   readonly lotTasks?: readonly LotTask[]
+  /** Fichier de ces tâches : la fusion y coche celles du plan. */
+  readonly lotFile?: string
 }
 
 /** Le planificateur, vu par le service (`PipelineEngine` en vrai). */
@@ -45,7 +47,7 @@ export interface AssemblyEngine {
     onProgress?: ProgressListener,
     onWork?: AgentWorkListener
   ): Promise<AssemblyRunResult>
-  approve(assembly: Assembly, box?: TaskBox): Promise<ApprovalResult>
+  approve(assembly: Assembly, boxes?: readonly TaskBox[]): Promise<ApprovalResult>
   cleanup?(assembly: Assembly): Promise<CleanupResult>
 }
 
@@ -114,6 +116,21 @@ export function briefFor(node: AssemblyNode, task: string | undefined): string {
   if (task !== undefined && task.trim() !== '') parts.push('', 'Tâche demandée :', task.trim())
   const brief = parts.join('\n')
   return brief.length > BRIEF_MAX ? `${brief.slice(0, BRIEF_MAX)}\n[contexte coupé]` : brief
+}
+
+/**
+ * Cases cochées à la fusion (L1o D23, D25) : celle de la tâche du nœud ; pour un lot, celles des tâches à faire que le
+ * plan du PO aiguille (toutes, s'il n'a pas aiguillé), dans le fichier du lot. Pur.
+ */
+export function boxesOf(node: AssemblyNode, plan: LotPlan | undefined): TaskBox[] {
+  if (node.box !== undefined) return [node.box]
+  const { lotFile, lotTasks } = node
+  if (lotFile === undefined || lotTasks === undefined) return []
+  const planned = new Set((plan?.steps ?? []).map((step) => step.task))
+  return lotTasks
+    .map((task, index) => ({ task, label: lotLabel(task, index) }))
+    .filter(({ task, label }) => !task.done && task.key !== '' && (planned.size === 0 || planned.has(label)))
+    .map(({ task }) => ({ path: lotFile, key: task.key }))
 }
 
 /**
@@ -322,7 +339,7 @@ export class AssemblyService {
     if (run.approving) throw new AppError('CONFLICT', 'La fusion est déjà en cours.')
     run.approving = true
     try {
-      const approval = await run.engine.approve(run.assembly, run.node.box)
+      const approval = await run.engine.approve(run.assembly, boxesOf(run.node, run.result?.plan))
       run.approval = approval
       if (approval.merged) this.credit(run)
       this.deps.emit(genesisId, taskId)
@@ -401,7 +418,8 @@ export class AssemblyService {
       agents: request.agents,
       links: request.links,
       ...(request.baseBranch === undefined ? {} : { baseBranch: request.baseBranch }),
-      ...(node.lotTasks === undefined || node.lotTasks.length === 0 ? {} : { lot: node.lotTasks })
+      ...(node.lotTasks === undefined || node.lotTasks.length === 0 ? {} : { lot: node.lotTasks }),
+      ...(node.lotFile === undefined ? {} : { lotFile: node.lotFile })
     }
     // Un moteur par projet : c'est lui qui fait passer les commandes git une à une ; deux tâches lancées en même temps
     // sur le même dépôt se disputeraient sinon ses verrous (worktrees, références).

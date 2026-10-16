@@ -122,10 +122,11 @@ describe('vue Workflow sur la carte (spec 023 US1, spec 032 lot 2)', () => {
     })
     expect(after.nodes.some((node) => node.id === 'module-core')).toBe(false)
     const labels = after.nodes.filter((node) => node.type === 'workflow').map((node) => node.ariaLabel)
-    // Une user story toute faite est repliée ; le carré à faire en premier porte « bosser ici ».
+    // Une user story toute faite reste dépliée (spec 032 D20) ; le carré à faire en premier porte « bosser ici ».
     expect(labels).toEqual([
       'Rond 001 · Démo 001, brainstorm 100 %, 2 sur 3 tâches',
       'Rond US1 — Histoire 1, brainstorm 100 %, 1 sur 1 tâches',
+      'Carré T001 · T001, faite, contexte 100 %',
       'Rond US2 — Histoire 2, brainstorm 100 %, 1 sur 2 tâches',
       'Carré T002 · T002, faite, contexte 100 %',
       'Carré T003 · T003, à faire, contexte 100 %, bosser ici',

@@ -49,6 +49,8 @@ export interface Assembly {
   readonly baseBranch?: string
   /** Connecté à un lot (L1o D25) : ses tâches ; le PO écrit alors la spec du lot entier. */
   readonly lot?: readonly LotTask[]
+  /** Fichier où vivent les tâches du lot : on y coche, on n'en crée pas d'autre. */
+  readonly lotFile?: string
 }
 
 /** Agents attendus par chacun (liens entrants), dans l'ordre de l'assemblage. */
@@ -352,8 +354,8 @@ export interface ApprovalResult {
   readonly baseBranch: string
   readonly commit?: string
   readonly message?: string
-  /** La fusion a coché la case de la tâche dans son fichier de tâches (L1o D23). */
-  readonly checked?: boolean
+  /** Nombre de cases de tâches cochées par la fusion dans leur fichier (L1o D23, D25). */
+  readonly checked?: number
 }
 
 /** Rangement après la fusion (L1o D23) : branches d'agents supprimées, et celles gardées (non fusionnées). */

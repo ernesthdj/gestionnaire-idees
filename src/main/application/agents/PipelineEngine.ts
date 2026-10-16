@@ -365,10 +365,10 @@ export class PipelineEngine {
   /**
    * Accord unique de mentalyas (L1o D11) : les branches finales de l'assemblage (celles que personne n'attend) sont
    * fusionnées dans un worktree temporaire partant de la base, puis la base avance d'un seul coup. Un conflit, ou une
-   * copie de travail modifiée sur la base, arrête tout sans rien changer. `box` : la tâche du nœud, cochée dans le même
-   * worktree (L1o D23) ; la base avance d'un seul coup, case comprise.
+   * copie de travail modifiée sur la base, arrête tout sans rien changer. `boxes` : les tâches du nœud (la sienne, ou
+   * celles d'un lot), cochées dans le même worktree (L1o D23, D25) ; la base avance d'un seul coup, cases comprises.
    */
-  async approve(assembly: Assembly, box?: TaskBox): Promise<ApprovalResult> {
+  async approve(assembly: Assembly, boxes: readonly TaskBox[] = []): Promise<ApprovalResult> {
     const { taskId } = assembly
     this.checked(assembly)
     const baseBranch = await this.baseOf(assembly)
@@ -404,7 +404,7 @@ export class PipelineEngine {
         return refused(`la fusion de ${branch} est en conflit : ${merged.output}`)
       }
     }
-    const checked = box === undefined ? false : await this.checkBox(fusion, box, taskId)
+    const checked = boxes.length === 0 ? 0 : await this.checkBoxes(fusion, boxes, taskId)
     const sha = (await this.git(['-C', fusion, 'rev-parse', 'HEAD'])).output.trim()
     await drop()
     // La base avance : par la copie de travail si elle y est (avance rapide seulement), sinon par sa référence.
@@ -422,26 +422,37 @@ export class PipelineEngine {
   }
 
   /**
-   * Coche la case de la tâche dans le worktree de fusion et la commite (L1o D23). Rien si la tâche est introuvable ou
-   * déjà cochée (par un agent) ; un commit refusé (hook) remet le fichier tel quel.
+   * Coche les cases des tâches dans le worktree de fusion, en un commit (L1o D23, D25) ; rend le nombre de cases
+   * cochées. Une tâche introuvable ou déjà cochée (par un agent) est passée ; un commit refusé (hook) remet les fichiers
+   * tels quels et rend 0.
    */
-  private async checkBox(fusion: string, box: TaskBox, taskId: string): Promise<boolean> {
-    const file = resolve(fusion, box.path)
-    const inside = relative(fusion, file)
-    if (inside === '' || inside.startsWith('..') || isAbsolute(inside) || !existsSync(file)) return false
-    const text = readFileSync(file, 'utf8')
-    const next = checkTask(box.path, text, box.key)
-    if (next === null) return false
-    writeFileSync(file, next)
-    const added = await this.git(['-C', fusion, 'add', '--', inside])
-    const committed =
-      added.code === 0
-        ? await this.git(['-C', fusion, 'commit', '-m', `docs(agents): ${taskId} faite (accord de mentalyas)`])
-        : added
-    if (committed.code === 0) return true
-    await this.git(['-C', fusion, 'reset', '--quiet', '--', inside])
-    await this.git(['-C', fusion, 'checkout', '--', inside])
-    return false
+  private async checkBoxes(fusion: string, boxes: readonly TaskBox[], taskId: string): Promise<number> {
+    const texts = new Map<string, { readonly inside: string; text: string }>()
+    let count = 0
+    for (const box of boxes) {
+      const file = resolve(fusion, box.path)
+      const inside = relative(fusion, file)
+      if (inside === '' || inside.startsWith('..') || isAbsolute(inside) || !existsSync(file)) continue
+      const entry = texts.get(file) ?? { inside, text: readFileSync(file, 'utf8') }
+      const next = checkTask(box.path, entry.text, box.key)
+      if (next === null) continue
+      entry.text = next
+      texts.set(file, entry)
+      count += 1
+    }
+    if (count === 0) return 0
+    for (const [file, entry] of texts) writeFileSync(file, entry.text)
+    const paths = [...texts.values()].map((entry) => entry.inside)
+    const added = await this.git(['-C', fusion, 'add', '--', ...paths])
+    const message =
+      count === 1
+        ? `docs(agents): ${taskId} faite (accord de mentalyas)`
+        : `docs(agents): ${taskId} · ${count} tâches faites (accord de mentalyas)`
+    const committed = added.code === 0 ? await this.git(['-C', fusion, 'commit', '-m', message]) : added
+    if (committed.code === 0) return count
+    await this.git(['-C', fusion, 'reset', '--quiet', '--', ...paths])
+    await this.git(['-C', fusion, 'checkout', '--', ...paths])
+    return 0
   }
 
   /**
@@ -774,7 +785,7 @@ export class PipelineEngine {
         '',
         assembly.lot === undefined
           ? 'Rédige la spec de cette tâche (objectif, critères d’acceptation, hors périmètre). Ta réponse EST la spec.'
-          : lotInstructions(assembly.lot),
+          : lotInstructions(assembly.lot, assembly.lotFile),
         '',
         'Profils d’agents existants :',
         profileCatalog(this.deps.profiles()),

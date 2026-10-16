@@ -371,7 +371,7 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
           {run?.approval === undefined ? null : (
             <p role="status" className={run.approval.merged ? 'text-pro' : 'text-con'}>
               {run.approval.merged
-                ? `Fusionné sur ${run.approval.baseBranch}${run.approval.commit === undefined ? '' : ` (${run.approval.commit.slice(0, 7)})`}.${run.approval.checked === true ? ' Tâche cochée.' : ''}`
+                ? `Fusionné sur ${run.approval.baseBranch}${run.approval.commit === undefined ? '' : ` (${run.approval.commit.slice(0, 7)})`}.${checkedText(run.approval.checked)}`
                 : `Fusion refusée : ${run.approval.message ?? 'raison inconnue'}.`}
             </p>
           )}
@@ -670,3 +670,7 @@ function MoveTeam({
     </div>
   )
 }
+
+/** Cases cochées par la fusion (L1o D23, D25). */
+const checkedText = (count: number | undefined): string =>
+  count === undefined || count === 0 ? '' : count === 1 ? ' Tâche cochée.' : ` ${count} tâches cochées.`

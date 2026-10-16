@@ -2744,3 +2744,17 @@ unitaires et e2e `agents-map`.
 session Claude neuve (seule la fiche du nœud est rejointe, pas l'ancien échange) et efface les messages affichés ; le
 rapport de l'agent reste dans « Mission et rapport ».
 **Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map`.
+
+### [2026-10-17 01:36] FIX — lot fusionné : tâches cochées dans leur fichier, mission qui l'impose, plus de repli automatique (L1o D25, spec 032 D20)
+**Fichiers :** `workflowHost.ts` (`lotFile`), `AssemblyService.ts` (`boxesOf` : cases du lot d'après le plan du PO),
+`PipelineEngine.ts` (`checkBoxes` : toutes les cases en un commit ; mission du lot), `lotPlan.ts` (fichier nommé dans la
+mission, « à la chaîne » = tout le lot), `pipeline.ts` (`checked` = nombre), `AgentsTabContent.tsx` (« N tâches
+cochées »), `workflowTree.ts` et `ProgressionView.tsx` (plus de repli d'office), spec 032 D20 ; tests.
+**Quoi :** revue du premier lot complet de Bike_cycle (code propre, 204/204 et 92/92 relancés à part) : le PO avait
+recréé les tâches du lot dans un nouveau fichier (`TACHES-Code-utile-en-local.md`) et Thor y avait coché ; l'original
+(`TACHES-Architecture.md`) restait à 0/3 après la fusion. La mission d'un lot nomme maintenant son fichier et interdit
+d'en créer un autre ; la fusion d'un lot coche ses tâches dans ce fichier. Retour de mentalyas : la coche refermait les
+lots (repli d'office des ronds tout faits, Q2) : supprimé.
+**Bike_cycle (hors de ce dépôt) :** T005–T007 cochées dans `TACHES-Architecture.md`, doublon supprimé, brainstorm rangé
+dans `docs/brainstormer/` avec son vrai parent (non commité, accord attendu).
+**Vérifié :** typecheck, lint, Prettier, 2 480 tests ; e2e `agents-map`, `agents-lot`, `workflow-task-files`.
