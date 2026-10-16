@@ -76,7 +76,7 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
   ): AssemblyService =>
     new AssemblyService({
       sketches: sketchStore,
-      node: (id) => (id === NODE_ID ? found : undefined),
+      node: (id) => (id === NODE_ID || id === OTHER_ID ? found : undefined),
       refusal: () => refusal,
       engineFor: ({ projectDir, projectName }) => {
         engines += 1
@@ -100,6 +100,8 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     })
 
   const NODE_ID = '11111111-1111-4111-8111-111111111111'
+  /** Une autre tâche du même projet (L1o D24). */
+  const OTHER_ID = '22222222-2222-4222-8222-222222222222'
   const alone: AssemblyRequest = {
     nodeId: NODE_ID,
     taskId: 'T020',
@@ -196,6 +198,35 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     })
     await expect(serviceWith(node()).start({ ...alone, taskId: '../x' })).rejects.toMatchObject({ code: 'VALIDATION' })
     expect(sessions).toHaveLength(0)
+  })
+
+  it('should_move_the_team_to_another_task_without_what_belonged_to_the_old_one', () => {
+    // L1o D24 : agents (profils, places) et liens suivent ; demande, part et zone restent à l'ancienne tâche.
+    const service = serviceWith(node())
+    service.saveSketch({
+      ...alone,
+      agents: [
+        { id: 'po', profileId: 'po', task: 'Cadrer le tri', zone: ['docs'], place: { x: 10, y: 20 } },
+        { id: 'back', profileId: 'back', zone: ['src'] }
+      ],
+      links: [{ from: 'po', to: 'back' }]
+    })
+    const moved = service.moveSketch(NODE_ID, OTHER_ID, 'T021')
+    expect(moved).toEqual({
+      nodeId: OTHER_ID,
+      genesisId: moved.genesisId,
+      taskId: 'T021',
+      agents: [
+        { id: 'po', profileId: 'po', place: { x: 10, y: 20 } },
+        { id: 'back', profileId: 'back' }
+      ],
+      links: [{ from: 'po', to: 'back' }]
+    })
+    expect(service.sketches().map((sketch) => sketch.nodeId)).toEqual([OTHER_ID])
+    // Plus d'équipe à déplacer ; une tâche qui a déjà des agents refuse l'équipe.
+    expect(() => service.moveSketch(NODE_ID, OTHER_ID, 'T022')).toThrow(/Aucune équipe/)
+    service.saveSketch(alone)
+    expect(() => service.moveSketch(NODE_ID, OTHER_ID, 'T022')).toThrow(/déjà des agents/)
   })
 
   it('should_refuse_an_invalid_assembly_before_launching_anything', async () => {

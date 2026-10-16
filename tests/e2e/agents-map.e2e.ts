@@ -14,6 +14,7 @@ import { DEMO_PROJECT, freshProfile, launchApp, settled, type LaunchedApp } from
  */
 const GENESIS = 'Projet démo : application de notes'
 const TASK = 'Trier la liste par date'
+const NEXT_TASK = 'Trier aussi par titre'
 
 /** Un brainstorm complet et son fichier de tâches, commités : la tâche est un carré du Workflow (spec 032 Q10). */
 function withTaskFile(repo: string): void {
@@ -22,7 +23,10 @@ function withTaskFile(repo: string): void {
     join(repo, 'docs', 'brainstorm', 'L1-tri.md'),
     '# L1 — Tri\n\n**Maturité** : complet · **Tâches** : docs/TACHES-TRI.md\n'
   )
-  writeFileSync(join(repo, 'docs', 'TACHES-TRI.md'), `# Tâches — Tri\n\n## Lot 1\n\n- [ ] T001 ${TASK} (src/a.ts)\n`)
+  writeFileSync(
+    join(repo, 'docs', 'TACHES-TRI.md'),
+    `# Tâches — Tri\n\n## Lot 1\n\n- [ ] T001 ${TASK} (src/a.ts)\n- [ ] T002 ${NEXT_TASK} (src/a.ts)\n`
+  )
   execFileSync('git', ['add', 'docs/brainstorm/L1-tri.md', 'docs/TACHES-TRI.md'], { cwd: repo })
   execFileSync('git', ['commit', '-q', '-m', 'docs: tâches du tri'], { cwd: repo })
 }
@@ -197,5 +201,17 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await repo.getByRole('button', { name: /^Passer sur agents\/.*\/qualite$/ }).waitFor()
     await run.shot('021-branches-des-agents')
     await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
+
+    // L1o D24 : l'équipe passe à la tâche suivante ; le volet suit, l'ancienne tâche n'a plus d'agents.
+    await panel.getByRole('tab', { name: /T001/ }).click()
+    await tab.getByRole('button', { name: 'Déplacer l’équipe…' }).click()
+    await expect.poll(() => tab.getByRole('combobox', { name: 'Vers quelle tâche ?' }).textContent()).toContain('T002')
+    await run.shot('t024-01-deplacer-equipe')
+    await tab.getByRole('button', { name: 'Déplacer', exact: true }).click()
+    await panel.getByRole('tab', { name: /T002/ }).waitFor()
+    await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
+    await page.getByRole('button', { name: 'Tout afficher' }).click()
+    await page.waitForTimeout(800)
+    await run.shot('t024-02-equipe-deplacee')
   })
 })

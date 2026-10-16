@@ -2674,3 +2674,12 @@ plus, puis propose de pousser (volet Dépôt) et de ranger les branches des agen
 d'enchaîner la tâche suivante est notée en piste ouverte (A déplacer l'équipe, B équipe suggérée, C file du lot).
 **Vérifié :** typecheck, lint, Prettier, 2 454 tests ; e2e `agents-map` (`- [x] T001` sur main ; capture
 `t006-04-fusionne`).
+
+### [2026-10-17 00:04] FEAT — déplacer l'équipe vers une autre tâche (L1o D24)
+**Fichiers :** `AssemblyService.ts` (`moveSketch`), `assemblyHandlers.ts` + `channels.ts` (`assembly:sketchMove`),
+`useAssemblies.ts` (`move`), `AgentsTabContent.tsx` (« Déplacer l'équipe… ») ; tests d'intégration et e2e
+`agents-map` (scénario à deux tâches).
+**Quoi :** piste A retenue par mentalyas pour enchaîner : l'équipe d'une tâche passe à une autre tâche du Workflow du
+projet (la prochaine en tête ; ni faites, ni déjà équipées). Agents, places et liens suivent ; demande, part et zone
+restent à l'ancienne tâche ; nouvel identifiant de tâche, visios neuves.
+**Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `agents-map` (captures `t024-01`, `t024-02`).

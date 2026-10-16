@@ -56,6 +56,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'assembly:cancel',
   'assembly:approve',
   'assembly:cleanup',
+  'assembly:sketchMove',
   'assembly:list',
   'assembly:sketches',
   'assembly:sketchSave',

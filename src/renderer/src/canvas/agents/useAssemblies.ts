@@ -5,7 +5,7 @@ import type { AgentProfileView } from '@shared/agents/profile'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
 import { useUiStore } from '../../app/uiStore'
 import { call, IpcFailure } from '../../lib/ipc'
-import { removeAgent } from './sketchEdit'
+import { defaultTaskId, removeAgent } from './sketchEdit'
 
 const NONE: readonly never[] = []
 
@@ -49,6 +49,7 @@ const requestOf = (sketch: AssemblySketchView, baseBranch?: string): Record<stri
 export function useAssemblyActions(): {
   readonly save: (sketch: AssemblySketchView) => Promise<boolean>
   readonly clear: (nodeId: string) => Promise<boolean>
+  readonly move: (fromNodeId: string, toNodeId: string) => Promise<boolean>
   /** Renvoie un agent (il quitte ce nœud) ; le dernier parti, le croquis du nœud est effacé. */
   readonly dismiss: (sketch: AssemblySketchView, agentId: string) => Promise<boolean>
   readonly warnings: (sketch: AssemblySketchView, baseBranch?: string) => Promise<string[] | null>
@@ -81,6 +82,11 @@ export function useAssemblyActions(): {
       clear: async (nodeId) =>
         (await attempt(() => call('assembly:sketchClear', { nodeId }), 'Les agents n’ont pas pu être retirés.')) !==
         null,
+      move: async (from, to) =>
+        (await attempt(
+          () => call('assembly:sketchMove', { from, to, taskId: defaultTaskId(to) }),
+          'L’équipe n’a pas pu être déplacée.'
+        )) !== null,
       dismiss: async (sketch, agentId) => {
         const next = removeAgent(agentId)(sketch)
         return (

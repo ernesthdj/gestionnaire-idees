@@ -1,11 +1,14 @@
+import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { PASS_NATURE_LABELS, UNCOMMITTED_MARK, type AssemblyAgent, type CleanupResult } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
+import type { WorkflowView } from '@shared/ipc/workflow'
 import { Markdown } from '../../chat/Markdown'
 import { Button } from '../../components/atoms/Button'
 import { call, IpcFailure } from '../../lib/ipc'
-import { useSidePanel, type AgentsTab } from '../side/sidePanelStore'
+import { agentsTitle, useSidePanel, type AgentsTab } from '../side/sidePanelStore'
+import { workflowTree } from '../workflow/workflowTree'
 import { AGENT_VISUAL_LABELS, assemblyProgress, runOf, visualOf } from './agentGraph'
 import {
   addAgent,
@@ -319,6 +322,9 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
                 <Button onClick={() => setPending(null)}>Annuler</Button>
               </>
             )}
+            {running || sketch === undefined || sketch.agents.length === 0 ? null : (
+              <MoveTeam sketch={sketch} disabled={busy} />
+            )}
             {running || sketch === undefined ? null : (
               <Button
                 variant="danger"
@@ -559,5 +565,98 @@ function AgentDetail({
         )}
       </div>
     </section>
+  )
+}
+
+/**
+ * « Déplacer l'équipe… » (L1o D24) : les tâches du Workflow du projet, la prochaine en tête ; ni les tâches faites, ni
+ * celles qui ont déjà des agents. L'équipe y part avec ses agents et ses liens, le volet suit.
+ */
+function MoveTeam({
+  sketch,
+  disabled
+}: {
+  readonly sketch: AssemblySketchView
+  readonly disabled: boolean
+}): React.JSX.Element {
+  const selectId = useId()
+  const [open, setOpen] = useState(false)
+  const [target, setTarget] = useState('')
+  const { sketches } = useAssemblyData()
+  const actions = useAssemblyActions()
+  const openAgents = useSidePanel((state) => state.openAgents)
+  const view = useQuery({
+    queryKey: ['workflow', sketch.genesisId],
+    queryFn: () => call<WorkflowView>('workflow:read', { genesisId: sketch.genesisId }),
+    enabled: open
+  })
+  const busy = new Set(sketches.filter((entry) => entry.agents.length > 0).map((entry) => entry.nodeId))
+  const tasks =
+    view.data === undefined
+      ? []
+      : workflowTree({ view: view.data }, sketch.genesisId)
+          .items.filter(
+            (item) =>
+              item.key.split(':')[2] === 'ttask' &&
+              item.status !== 'done' &&
+              item.key !== sketch.nodeId &&
+              !busy.has(item.key)
+          )
+          .sort((a, b) => Number(b.next === true) - Number(a.next === true))
+  const chosen = tasks.find((item) => item.key === target) ?? tasks[0]
+  const move = async (): Promise<void> => {
+    if (chosen === undefined) return
+    if (await actions.move(sketch.nodeId, chosen.key)) {
+      setOpen(false)
+      openAgents({
+        nodeId: chosen.key,
+        genesisId: sketch.genesisId,
+        title: agentsTitle(chosen.title),
+        kindLabel: 'Agents'
+      })
+    }
+  }
+  if (!open) {
+    return (
+      <Button disabled={disabled} onClick={() => setOpen(true)}>
+        Déplacer l’équipe…
+      </Button>
+    )
+  }
+  return (
+    <div className="w-full space-y-2 rounded-md border border-content-muted/30 p-2">
+      <label htmlFor={selectId} className="block font-medium">
+        Vers quelle tâche ?
+      </label>
+      {view.isLoading ? (
+        <p className="text-content-muted">Lecture du Workflow…</p>
+      ) : tasks.length === 0 ? (
+        <p className="text-content-muted">Aucune autre tâche à faire sans agents dans ce projet.</p>
+      ) : (
+        <select
+          id={selectId}
+          className="w-full rounded-md border border-content-muted/40 bg-surface px-2 py-1"
+          value={chosen?.key ?? ''}
+          onChange={(event) => setTarget(event.target.value)}
+        >
+          {tasks.map((item) => (
+            <option key={item.key} value={item.key}>
+              {item.next === true ? '▶ ' : ''}
+              {item.title}
+            </option>
+          ))}
+        </select>
+      )}
+      <p className="text-content-muted">
+        Les agents et leurs liens suivent ; ce qui était demandé, la part et la zone de chacun restent à l’ancienne
+        tâche.
+      </p>
+      <div className="flex gap-2">
+        <Button variant="primary" disabled={disabled || chosen === undefined} onClick={() => void move()}>
+          Déplacer
+        </Button>
+        <Button onClick={() => setOpen(false)}>Annuler</Button>
+      </div>
+    </div>
   )
 }

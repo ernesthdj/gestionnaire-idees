@@ -32,5 +32,12 @@
 
 - [~] T019 Créer un profil d’agent avec Claude : conversation et fiche côte à côte, skills choisis par Claude, brouillons des skills manquants sur accord (D15)
 - [~] T020 Peaufiner les skills d’un agent en visio : il propose d’ajouter ou de retirer (Accepter / Refuser dans le volet), brouillons à installer depuis le volet (D16)
-- [ ] T007 Étendre à un module entier : le PO répartit les sous-nœuds dont la doc est prête entre les agents connectés
+- [ ] T007 Étendre à un module entier : le PO répartit les sous-nœuds dont la doc est prête entre les agents connectés (remplacé par le lot 5, D25)
 - [x] T008 Personnages évolutifs des agents : chambre-cube 3D posée librement sur la carte, personnage tiré du profil, chambre enrichie par le travail livré, clic = visio et conversation avec l’agent (D13)
+
+## Lot 5 — Le PO cadre un lot, l'équipe l'enchaîne (D25)
+
+- [ ] T021 Spec de lot : PO connecté à un lot ou un fichier de tâches ; une section par tâche (critères, complexité) ; une ligne d'aiguillage par tâche (agents, qui attend qui) et un conseil de rythme justifié, lus par l'app
+- [ ] T022 Équipe du lot recommandée dans la visio du PO : cartes « Connecter ‹profil› » et « Créer ‹agent› » (création préremplie puis fenêtre de l'agent) ; rien sans clic
+- [ ] T023 Aiguillage automatique : agents et liens de chaque tâche tirés du plan du PO, modifiables dans « Qui attend qui » (le choix de mentalyas prime)
+- [ ] T024 Enchaînement : « Une à une » (accord de fusion après chaque tâche) ou « Tout le lot » (branche d'intégration du lot, un accord final) ; chaque tâche cochée à la fusion

@@ -15,6 +15,7 @@ export interface AssemblyRoutesDeps {
   sketches(genesisId?: string): AssemblySketchView[]
   saveSketch(request: Omit<AssemblyRequest, 'baseBranch'>): AssemblySketchView
   clearSketch(nodeId: string): void
+  moveSketch(fromNodeId: string, toNodeId: string, taskId: string): AssemblySketchView
 }
 
 /** Nœud de la vue Workflow auquel les agents sont connectés (L1o D14) : sa clé de carte `wf:<genesis>:<sorte>:…`. */
@@ -118,6 +119,12 @@ export function createAssemblyRoutes(
       channel: 'assembly:approve',
       input: z.strictObject({ genesisId: z.uuid(), taskId: TaskId, confirm: z.literal(true) }),
       handler: async ({ genesisId, taskId }) => deps.approve(genesisId, taskId)
+    }),
+    // L'équipe passe à une autre tâche du Workflow (L1o D24).
+    defineRoute({
+      channel: 'assembly:sketchMove',
+      input: z.strictObject({ from: HostId, to: HostId, taskId: TaskId }),
+      handler: async ({ from, to, taskId }) => deps.moveSketch(from, to, taskId)
     }),
     // Après la fusion (L1o D23) : supprime les branches des agents que la base contient.
     defineRoute({

@@ -272,3 +272,31 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   - **B. Équipe suggérée** : sur une tâche sans agents, l'app propose l'assemblage d'une tâche voisine déjà réussie,
     ou celui que le PO a recommandé (`RECOMMANDÉ:`), à accepter en un clic.
   - **C. File du lot** : l'équipe enchaîne les tâches d'un lot une à une, chacune avec son accord de fusion.
+
+### D24 — Déplacer l'équipe vers une autre tâche (2026-10-16, piste A retenue)
+- mentalyas retient la piste A : une équipe qui a fini une tâche passe à une autre d'un geste.
+- Dans le volet Agents d'une tâche, **« Déplacer l'équipe… »** (hors travail en cours) propose les tâches du Workflow
+  du même projet, la prochaine (« Bosser ici ») en tête ; les tâches faites ou qui ont déjà des agents n'y sont pas.
+- L'équipe arrive sur la nouvelle tâche avec ses agents (profils, places sur la carte) et ses liens « attend » ; ce qui
+  appartient à l'ancienne tâche est laissé : ce qui était demandé, la part et la zone de chaque agent. Nouvel
+  identifiant de tâche (nouvelles branches), conversations de visio neuves (elles sont par nœud), passes remises à zéro.
+- L'ancienne tâche n'a plus d'agents ; son travail fusionné reste dans l'historique git.
+- Les pistes B (équipe suggérée) et C (file du lot) restent ouvertes.
+
+### D25 — Le PO cadre un lot entier, l'équipe l'enchaîne (2026-10-17)
+- Demande de mentalyas : un PO connecté au nœud d'où viennent les tâches (un lot, ou un fichier de tâches) cadre
+  **toutes** les tâches, définit **d'avance l'équipe du lot**, et les agents interviennent quand le PO l'a prévu.
+- **Spec de lot** : une section par tâche (critères d'acceptation, complexité), et pour chacune une ligne lue par
+  l'app qui dit quels agents interviennent et qui attend qui (l'**aiguillage**).
+- **L'équipe du lot**, recommandée par le PO **dans sa visio** : des cartes « Connecter ‹profil› » (profil existant) et
+  « Créer ‹agent› » (agent spécifique qui manque : rôle, consignes et skills préremplis, puis la fenêtre de l'agent,
+  D22). Rien ne se connecte ni ne se crée sans le clic de mentalyas.
+- **Aiguillage automatique** : à chaque tâche, les agents et leurs liens « attend » viennent du plan du PO ;
+  mentalyas peut les changer dans « Qui attend qui » (son choix prime sur le plan).
+- **Rythme, au choix de mentalyas** :
+  - **Une à une** : l'accord de fusion après chaque tâche (D11, D23), puis la tâche suivante part ;
+  - **Tout le lot** : chaque tâche validée par le QA s'ajoute à une branche d'intégration du lot, un seul accord à la
+    fin ; chaque tâche se coche à la fusion.
+  - Le PO **conseille** un rythme selon la complexité des tâches (« enchaîner » ou « une à une, plus minutieux »),
+    avec sa raison ; mentalyas décide.
+- Remplace T007 (« étendre à un module entier »).

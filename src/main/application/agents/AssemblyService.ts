@@ -213,6 +213,40 @@ export class AssemblyService {
     return sketch
   }
 
+  /**
+   * Déplace l'équipe d'un nœud vers une autre tâche du même projet (L1o D24) : agents (profils, places) et liens
+   * suivent ; ce qui appartenait à l'ancienne tâche (demande, part et zone de chaque agent) reste derrière. Refusé
+   * pendant le travail, ou si la tâche visée a déjà des agents.
+   */
+  moveSketch(fromNodeId: string, toNodeId: string, taskId: string): AssemblySketchView {
+    if (!isValidTaskId(taskId)) throw new AppError('VALIDATION', 'Identifiant de tâche invalide.')
+    if (fromNodeId === toNodeId) throw new AppError('VALIDATION', 'L’équipe est déjà sur cette tâche.')
+    const from = this.deps.sketches.list().find((sketch) => sketch.nodeId === fromNodeId)
+    if (from === undefined || from.agents.length === 0) throw new AppError('NOT_FOUND', 'Aucune équipe sur ce nœud.')
+    if (this.runs.get(this.key(from.genesisId, from.taskId))?.state === 'running') {
+      throw new AppError('CONFLICT', 'L’équipe travaille : arrête-la avant de la déplacer.')
+    }
+    const target = this.deps.node(toNodeId)
+    if (target === undefined) throw new AppError('NOT_FOUND', 'Tâche introuvable.')
+    if (target.genesisId !== from.genesisId) throw new AppError('VALIDATION', 'L’équipe reste dans son projet.')
+    const taken = this.deps.sketches.list(target.genesisId).find((sketch) => sketch.nodeId === toNodeId)
+    if (taken !== undefined && taken.agents.length > 0) {
+      throw new AppError('CONFLICT', 'Cette tâche a déjà des agents.')
+    }
+    const moved = this.saveSketch({
+      nodeId: toNodeId,
+      taskId,
+      agents: from.agents.map(({ id, profileId, place }) => ({
+        id,
+        profileId,
+        ...(place === undefined ? {} : { place })
+      })),
+      links: from.links
+    })
+    this.deps.sketches.remove(fromNodeId)
+    return moved
+  }
+
   /** Retire le croquis d'un nœud : ses agents disparaissent de la carte. */
   clearSketch(nodeId: string): void {
     this.deps.sketches.remove(nodeId)
