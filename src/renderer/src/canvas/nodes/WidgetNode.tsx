@@ -3,6 +3,7 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { BLOCK_LIMITS } from '@shared/ipc/canvas'
 import { WIDGET_PROMPT_MAX_CHARS, type WidgetBuild, type WidgetView } from '@shared/ipc/widgets'
 import { useEffectiveSettings } from '../../app/useAppSettings'
+import { useUiStore } from '../../app/uiStore'
 import { AiThinking } from '../../widgets/AiThinking'
 import { CodeView } from '../../widgets/CodeView'
 import { useWidget, type WidgetActions } from '../../widgets/useWidget'
@@ -12,8 +13,22 @@ import { useWidgetIo, useWidgetReview } from '../../widgets/useWidgetIo'
 import { resolvedScheme, widgetFrameUrl } from '../../widgets/widgetFrame'
 import type { WidgetNodeType } from '../buildGraph'
 import { useBlockActions } from '../useBlockActions'
+import { useFarZoom } from '../zoomLevels'
 
 const LIMITS = BLOCK_LIMITS.widget
+/** Côté de la tuile d'un widget replié (grille de 8 px). */
+export const WIDGET_TILE = 128
+
+/** Logo d'un widget replié : un écran, pour dire qu'un affichage dort dedans. */
+function ScreenIcon(): React.JSX.Element {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 48 40" className="h-10 w-12 text-accent">
+      <rect x="2" y="2" width="44" height="28" rx="4" fill="none" stroke="currentColor" strokeWidth="3" />
+      <path d="M18 13l-5 4 5 4M30 13l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M16 38h16M24 30v8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
 /** Conversation avec Claude : dernière réponse visible, historique dépliable, demande (Entrée envoie). */
 function Chat({ view, actions }: { readonly view: WidgetView | undefined; readonly actions: WidgetActions }) {
   const fieldId = useId()
@@ -149,6 +164,58 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
   // Un outil sans code n'a encore rien à revoir : la revue vient avec sa première version.
   const toReview = current !== null && inputCount > 0 && io.state.data?.approved === false
   const title = current?.title ?? 'Widget IA'
+  // Replié (demande de mentalyas, 2026-10-17) : une tuile à la place du widget ; le cadre isolé n'est plus monté, il ne
+  // consomme plus rien. Gardé avec la vue du canevas.
+  const collapsed = useUiStore((state) => state.collapsedWidgets.includes(id))
+  const toggleWidget = useUiStore((state) => state.toggleWidget)
+  // Vue lointaine : le widget dort à sa taille (logo et titre), son cadre n'est plus monté ; il se réveille au zoom.
+  const far = useFarZoom()
+
+  if (far && !collapsed && !full) {
+    return (
+      <section
+        aria-label={`Widget en veille : ${title}`}
+        className="flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-content-muted/40 bg-surface p-4 text-content"
+      >
+        <span className="flex scale-[3] items-center justify-center">
+          <ScreenIcon />
+        </span>
+        <span className="mt-8 line-clamp-2 w-full text-center text-3xl font-semibold">{title}</span>
+        <Handle type="target" position={Position.Left} isConnectableStart={false} className="io-target" />
+      </section>
+    )
+  }
+
+  if (collapsed) {
+    return (
+      <section
+        aria-label={`Widget replié : ${title}`}
+        onDoubleClick={() => toggleWidget(id)}
+        className="flex h-full w-full cursor-grab flex-col items-center justify-center gap-2 rounded-xl border border-content-muted/40 bg-surface p-2 text-content shadow-lg active:cursor-grabbing"
+      >
+        <ScreenIcon />
+        <span className="line-clamp-2 w-full text-center text-xs leading-4 font-semibold" title={title}>
+          {title}
+        </span>
+        <button
+          type="button"
+          onClick={() => toggleWidget(id)}
+          title="Déplier le widget (ou double-clic sur la tuile)"
+          className="nodrag h-6 rounded-md border border-accent px-2 text-xs font-medium text-accent hover:bg-surface-raised"
+        >
+          Déplier
+        </button>
+        <Handle
+          type="target"
+          position={Position.Left}
+          isConnectableStart={false}
+          className="io-target"
+          title="Tire un lien d’une idée jusqu’ici pour la brancher sur ce widget"
+        />
+      </section>
+    )
+  }
+
   const frameOf = (className: string): React.JSX.Element | null =>
     current === null ? null : (
       <iframe
@@ -244,6 +311,15 @@ export function WidgetNode({ id, selected, dragging }: NodeProps<WidgetNodeType>
               {inputCount}
             </button>
           )}
+          <button
+            type="button"
+            aria-label="Replier le widget"
+            title="Replier en tuile : il reste sur la carte sans rien consommer"
+            onClick={() => toggleWidget(id)}
+            className="nodrag flex h-7 w-7 items-center justify-center rounded-md hover:bg-surface"
+          >
+            <span aria-hidden="true">▁</span>
+          </button>
           <button
             type="button"
             aria-label="Supprimer le widget"

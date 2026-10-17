@@ -172,5 +172,7 @@ describe('Project Manager (spec 024 US1, US3)', () => {
       ['wf:g:task:1', 3]
     ])
     expect(cardsOf(null)).toEqual({ cards: [], activeId: null })
+    // Widgets repliés : gardés avec la vue, sans doublon.
+    expect(viewStateOf({}, [], null, new Set(), {}, ['w1', 'w1', 'w2']).collapsedWidgets).toEqual(['w1', 'w2'])
   })
 })

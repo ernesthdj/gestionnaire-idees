@@ -643,3 +643,20 @@
 .react-flow__background.canvas-sober circle {
   fill: var(--canvas-dot);
 }
+
+/*
+ * Repixelisation dynamique (demande de mentalyas, 2026-10-17). Pendant un zoom ou un déplacement, la carte est une
+ * seule image que le navigateur agrandit (rapide, un peu floue) ; elle est redessinée nette 150 ms après le geste.
+ */
+[data-moving='on'] .react-flow__viewport {
+  will-change: transform;
+}
+/* Vue lointaine (sous `FAR_ZOOM`) : rien de ce qui ne se voit plus à cette taille ne tourne ni ne se recompose. */
+[data-zoom='far'] .react-flow__node,
+[data-zoom='far'] .react-flow__node *,
+[data-zoom='far'] .react-flow__edge * {
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}

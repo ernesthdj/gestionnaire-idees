@@ -63,6 +63,9 @@ interface UiState {
   /** Lecture de la Progression de chaque projet (spec 032 D12) ; absente : l'arbre qui pousse. */
   readonly progressionReadings: Readonly<Record<string, ProgressionReading>>
   setProgressionReading(genesisId: string, reading: ProgressionReading): void
+  /** Widgets repliés en tuile (leur cadre n'est plus monté) ; gardés avec la vue du canevas. */
+  readonly collapsedWidgets: readonly string[]
+  toggleWidget(blockId: string): void
   /**
    * Arrivée dans le Workflow depuis la Progression (spec 032 Q8) : le rond (clé de la carte) et ses carrés sont surlignés
    * quelques secondes ; `null` : rien. `nonce` distingue deux arrivées sur le même rond.
@@ -153,6 +156,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
           : { anomalies: opened.anomalies, journal: opened.journal },
       structureViews: state?.structureViews ?? {},
       progressionReadings: state?.progressionReadings ?? {},
+      collapsedWidgets: state?.collapsedWidgets ?? [],
       viewport: state?.viewport ?? null,
       restoredViewport: state?.viewport ?? null,
       explorerMarks: null,
@@ -166,6 +170,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set((current) => ({
       structureViews: state?.structureViews ?? current.structureViews,
       progressionReadings: state?.progressionReadings ?? current.progressionReadings,
+      collapsedWidgets: state?.collapsedWidgets ?? current.collapsedWidgets,
       viewport: state?.viewport ?? current.viewport,
       restoredViewport: state?.viewport ?? null,
       canvasEpoch: current.canvasEpoch + 1
@@ -226,6 +231,13 @@ export const useUiStore = create<UiState>()((set, get) => ({
   foldPanel: (folded) => set({ panelFolded: folded }),
   setProgressionReading: (genesisId, reading) =>
     set((state) => ({ progressionReadings: { ...state.progressionReadings, [genesisId]: reading } })),
+  collapsedWidgets: [],
+  toggleWidget: (blockId) =>
+    set((state) => ({
+      collapsedWidgets: state.collapsedWidgets.includes(blockId)
+        ? state.collapsedWidgets.filter((id) => id !== blockId)
+        : [...state.collapsedWidgets, blockId]
+    })),
   analysisLinks: false,
   chatDrafts: {},
   seedChatDraft: (neuronId, text) => set((state) => ({ chatDrafts: { ...state.chatDrafts, [neuronId]: text } })),

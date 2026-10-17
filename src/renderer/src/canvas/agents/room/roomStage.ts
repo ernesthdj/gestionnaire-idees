@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { AgentCharacter, AgentRoom } from '../character/mint'
 import { RoomScene, type RoomActivity } from './RoomScene'
+import { mapRoomsPaused, onMapRoomsPause } from './roomPause'
 
 /**
  * Scène partagée des chambres d'agents (T008, L1o D13) : un seul contexte WebGL pour toute la carte. Chaque chambre
@@ -12,6 +13,22 @@ import { RoomScene, type RoomActivity } from './RoomScene'
 /** Nombre de chambres redessinées à chaque image : au-delà, elles se partagent les images à tour de rôle. */
 const PER_TICK = 4
 const FRAME_MS = 33
+/** Densité la plus fine : au-delà, le gain ne se voit plus et le tampon coûte cher. */
+const MAX_RATIO = 3
+/** Côté le plus long du tampon d'une chambre, en pixels de l'écran. */
+const MAX_BUFFER = 2048
+
+/**
+ * Densité de rendu d'une chambre : celle de l'écran multipliée par le zoom de la carte (le nœud est mis à l'échelle
+ * par une transformation CSS, que `clientWidth` ignore : dessinée à sa taille de mise en page, la chambre zoomée était
+ * floue). Arrondie au quart pour ne pas réallouer le tampon à chaque image d'un zoom.
+ */
+function ratioFor(target: HTMLCanvasElement, w: number, h: number): number {
+  const shown = target.getBoundingClientRect().width
+  const zoom = shown > 0 ? shown / w : 1
+  const wanted = Math.min(MAX_RATIO, (window.devicePixelRatio || 1) * zoom, MAX_BUFFER / Math.max(w, h))
+  return Math.max(1, Math.ceil(wanted * 4) / 4)
+}
 
 export interface RoomHandle {
   setActivity(activity: RoomActivity): void
@@ -40,11 +57,17 @@ const byTarget = new Map<Element, Entry>()
 let cursor = 0
 let frame = 0
 let lastTick = 0
+// Carte en vue lointaine : ses chambres gardent leur dernière image (celles d'une fenêtre d'agent continuent) ; au
+// retour, elles se redessinent.
+onMapRoomsPause((paused) => {
+  if (!paused) for (const entry of entries) entry.dirty = true
+})
+
+const onMap = (entry: Entry): boolean => entry.target.closest('.react-flow__viewport') !== null
 
 function ensureRenderer(): THREE.WebGLRenderer {
   if (renderer !== null) return renderer
   const created = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  created.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1))
   created.shadowMap.enabled = true
   created.shadowMap.type = THREE.PCFSoftShadowMap
   created.shadowMap.autoUpdate = false
@@ -58,11 +81,13 @@ function draw(entry: Entry, t: number): void {
   const w = entry.target.clientWidth
   const h = entry.target.clientHeight
   if (w === 0 || h === 0) return
-  const ratio = r.getPixelRatio()
+  // Le renderer reste en densité 1 et reçoit la taille en pixels de l'écran : deux chambres à des zooms différents se
+  // partagent son tampon, qui ne fait que grandir (changer sa densité le réallouerait à chaque image).
+  const ratio = ratioFor(entry.target, w, h)
   const pw = Math.round(w * ratio)
   const ph = Math.round(h * ratio)
   const size = r.getSize(new THREE.Vector2())
-  if (size.x < w || size.y < h) r.setSize(Math.max(size.x, w), Math.max(size.y, h), false)
+  if (size.x < pw || size.y < ph) r.setSize(Math.max(size.x, pw), Math.max(size.y, ph), false)
   if (entry.target.width !== pw || entry.target.height !== ph) {
     entry.target.width = pw
     entry.target.height = ph
@@ -70,7 +95,7 @@ function draw(entry: Entry, t: number): void {
   const dt = Math.min(0.05, entry.last === 0 ? 0 : (t - entry.last) / 1000)
   entry.last = t
   entry.scene.update(t, dt)
-  entry.scene.render(r, w, h)
+  entry.scene.render(r, pw, ph)
   // Le dessin WebGL est en bas à gauche du tampon : on n'en copie que la part de cette chambre.
   const bufferHeight = r.domElement.height
   entry.ctx.clearRect(0, 0, pw, ph)
@@ -83,7 +108,9 @@ function tick(t: number): void {
   if (document.hidden || t - lastTick < FRAME_MS) return
   lastTick = t
   const reduced = reducedMotion()
-  const due = [...entries].filter((entry) => entry.visible && (!reduced || entry.dirty))
+  const due = [...entries].filter(
+    (entry) => entry.visible && (!reduced || entry.dirty) && !(mapRoomsPaused() && onMap(entry))
+  )
   if (due.length === 0) return
   const count = Math.min(PER_TICK, due.length)
   for (let i = 0; i < count; i++) {

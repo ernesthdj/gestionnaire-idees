@@ -174,4 +174,33 @@ describe('wireframe dans un widget relié à un nœud (spec 026, e2e)', () => {
       .getByText('Demande de devis · Erreur')
       .waitFor({ timeout: 30_000 })
   })
+
+  it('should_fold_the_widget_into_a_tile_without_its_frame_and_keep_it_folded_after_a_restart', async () => {
+    // Demande de mentalyas (2026-10-17) : un widget replié reste sur la carte en tuile, son cadre ne tourne plus.
+    const widget = run.page.getByRole('region', { name: /^Widget IA/ })
+    await settled(widget.getByRole('button', { name: 'Replier le widget' }))
+    await widget.getByRole('button', { name: 'Replier le widget' }).click()
+    const tile = run.page.getByRole('region', { name: 'Widget replié : Écrans réglables' })
+    await tile.waitFor()
+    expect(await run.page.locator('iframe[title="Écrans réglables"]').count()).toBe(0)
+    // Son panneau de réglages se cache avec lui.
+    await run.page.getByRole('region', { name: 'Réglages · Écrans réglables' }).waitFor({ state: 'detached' })
+    const box = await settled(tile)
+    expect(Math.round(box.width)).toBeLessThan(200)
+    await run.shot('026-06-widget-replie')
+
+    await run.page.waitForTimeout(1500)
+    await run.close()
+    run = await launchApp({ ...ENV, GI_E2E_KEEP: '1' })
+    await run.page.getByRole('button', { name: 'Ouvrir Projet démo : application de notes' }).click()
+    const again = run.page.getByRole('region', { name: 'Widget replié : Écrans réglables' })
+    await again.waitFor({ timeout: 30_000 })
+    await settled(again.getByRole('button', { name: 'Déplier' }))
+    await again.getByRole('button', { name: 'Déplier' }).click()
+    await run.page
+      .frameLocator('iframe[title="Écrans réglables"]')
+      .getByText('Demande de devis · Erreur')
+      .waitFor({ timeout: 30_000 })
+    await run.page.getByRole('region', { name: 'Réglages · Écrans réglables' }).waitFor()
+  })
 })

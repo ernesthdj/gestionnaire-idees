@@ -83,6 +83,8 @@ export const WidgetPoserInput = z.strictObject({
   ts: z.string().min(1).max(100_000),
   resume: z.string().trim().min(1).max(500),
   source: Id.optional(),
+  /** Nœud du Workflow d'un projet lié, par un repère lisible (spec 026 D10) : `T004`, titre de lot, chemin, `spec 017`. */
+  noeud: z.string().trim().min(1).max(300).optional(),
   parties: z.array(z.enum(INPUT_PARTS)).max(INPUT_PARTS.length).optional()
 })
 export type WidgetPoserInput = z.infer<typeof WidgetPoserInput>
@@ -355,8 +357,12 @@ export const MCP_TOOLS = {
   },
   widget_poser: {
     description:
-      'Pose un widget dont tu fournis le code (html, css, ts ; API `gi`), relié éventuellement à une idée ou à une ' +
-      'étape de plan (source = son id ; une étape transmet son contexte complet : identité, fiche, chemin, sous-étapes et annexes). ' +
+      'Pose un widget dont tu fournis le code (html, css, ts ; API `gi`), relié à ce qu’il illustre. Projet lié : ' +
+      '`noeud` = un nœud du Workflow désigné par un repère lisible — une tâche (`T004`, ou `T004 docs/TACHES-X.md` si ' +
+      'deux fichiers l’ont), un lot ou un sous-lot par son titre, un fichier de tâches par son chemin, `spec 017`, ' +
+      '`017 US2` ; sans `source` ni `noeud`, depuis la conversation d’un nœud du Workflow ou la visio d’un agent, il se ' +
+      'relie à CE nœud (jamais au genesis). Sinon `source` = id d’une idée, d’une étape de plan ou d’un élément de carte ' +
+      'de structure. Un repère inconnu ou ambigu renvoie la liste des nœuds possibles. ' +
       "Il arrive « À revoir » : il ne reçoit aucune donnée avant l'autorisation de mentalyas.",
     input: WidgetPoserInput,
     writes: true

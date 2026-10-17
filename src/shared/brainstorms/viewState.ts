@@ -9,7 +9,7 @@ import { z } from 'zod'
 const finite = z.number().finite()
 const id = z.string().min(1).max(200)
 
-export const VIEW_STATE_LIMITS = { cards: 20, genesis: 500, bytes: 256 * 1024 } as const
+export const VIEW_STATE_LIMITS = { cards: 20, genesis: 500, widgets: 200, bytes: 256 * 1024 } as const
 
 /** Lectures d'une carte de projet lié (spec 017 D20, spec 023). */
 export const STRUCTURE_VIEWS = ['workflow', 'progression', 'architecture'] as const
@@ -30,6 +30,8 @@ export const ViewStateSchema = z.strictObject({
     .record(id, z.enum(PROGRESSION_READINGS))
     .refine((readings) => Object.keys(readings).length <= VIEW_STATE_LIMITS.genesis, 'Trop de lectures')
     .optional(),
+  /** Widgets repliés en tuile : leur cadre n'est plus monté (économie de ressources) ; absent avant le repli. */
+  collapsedWidgets: z.array(id).max(VIEW_STATE_LIMITS.widgets).optional(),
   openCards: z
     .array(
       z.strictObject({

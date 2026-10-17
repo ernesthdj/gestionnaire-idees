@@ -7,7 +7,7 @@ import {
   type MapEnd
 } from '@shared/ipc/canvas'
 import type { TreeView } from '@shared/ipc/neurons'
-import type { InputPart } from '@shared/ipc/widgetIo'
+import type { InputPart, InputSourceKind } from '@shared/ipc/widgetIo'
 import { defaultParts, partsFor } from '../../domain/widgets/inputParts'
 import type { ToolResult } from '@shared/mcp/protocol'
 import {
@@ -23,6 +23,7 @@ import { AppError } from '../../domain/errors'
 import { resolveBatch, type ExistingKind, type ResolvedRef } from '../../domain/mcp/batch'
 import { McpToolError } from '../../domain/mcp/errors'
 import type { McpCaller } from '../../domain/mcp/caller'
+import type { WorkflowRefResult } from '../../domain/widgets/workflowRef'
 import { layoutBatch, NOTE_WIDTH, noteHeight, type LayoutItem, type Rect } from '../../domain/mcp/layout'
 import type { BlockRepository } from '../../infrastructure/db/repositories/BlockRepository'
 import type { ChangeEntry } from '../../infrastructure/db/repositories/changeLog'
@@ -48,13 +49,22 @@ export interface MapServiceDeps {
   readonly selection: SelectionStore
   /** Crée la version d'un widget à partir du code fourni (validation et transpilation de la spec 004). */
   readonly widgetFromCode: (blockId: string, code: WidgetPoserInput) => void
-  /** Branche une idée ou une étape de plan sur un widget avec les parties lues (spec 005, 015) ; renvoie l'identifiant du branchement. */
+  /**
+   * Branche une source sur un widget avec les parties lues (spec 005, 015 ; élément et nœud du Workflow : tout leur
+   * contexte, spec 023 D24) ; renvoie l'identifiant du branchement.
+   */
   readonly connectSource: (
     blockId: string,
-    sourceKind: 'idea' | 'plan_step',
+    sourceKind: Exclude<InputSourceKind, 'step'>,
     sourceId: string,
     parts: readonly InputPart[]
   ) => string
+  /** Nœud du Workflow d'une conversation (conversation d'un nœud, visio d'un agent) : un widget s'y relie (D10). */
+  readonly conversationNode?: (neuronId: string) => { readonly genesisId: string; readonly key: string } | undefined
+  /** Genesis du projet d'une conversation, pour y chercher un nœud du Workflow. */
+  readonly conversationGenesis?: (neuronId: string) => string | undefined
+  /** Nœud du Workflow d'un projet désigné par un repère lisible (spec 026 D10). */
+  readonly workflowRef?: (genesisId: string, ref: string) => WorkflowRefResult
   /** Classement local d'une idée posée par Claude, après la transaction. */
   readonly categorize?: (rootId: string) => void
   readonly emit: (event: MapChangedEvent) => void
@@ -139,7 +149,7 @@ export class MapService {
       case 'retirer':
         return this.retire(args as RetirerInput)
       case 'widget_poser':
-        return this.poseWidget(args as WidgetPoserInput)
+        return this.poseWidget(args as WidgetPoserInput, caller)
     }
   }
 
@@ -646,25 +656,76 @@ export class MapService {
     }
   }
 
-  private poseWidget(input: WidgetPoserInput): ToolResult {
+  /**
+   * Nœud du Workflow où relier un widget (spec 026 D10) : celui que `noeud` désigne, sinon celui de la conversation ;
+   * `undefined` hors d'un projet lié. Un repère inconnu ou ambigu est une erreur qui liste les nœuds possibles.
+   */
+  private workflowTarget(
+    universe: Universe,
+    ref: string | undefined,
+    caller: McpCaller | undefined
+  ): { readonly key: string; readonly genesisId: string } | undefined {
+    const neuronId = caller?.neuronId ?? null
+    if (ref === undefined) return neuronId === null ? undefined : this.deps.conversationNode?.(neuronId)
+    const linked = universe.view.ideas.filter((idea) => idea.linkedProject === true)
+    const genesisId = ref.startsWith('wf:')
+      ? ref.split(':')[1]
+      : ((neuronId === null ? undefined : this.deps.conversationGenesis?.(neuronId)) ??
+        (linked.length === 1 ? linked[0]?.id : undefined))
+    if (genesisId === undefined || this.deps.workflowRef === undefined) {
+      throw new McpToolError(
+        'LOT_INVALIDE',
+        'noeud : aucun projet lié identifié (ouvre la conversation dans le projet, ou passe par `source`).'
+      )
+    }
+    const found = this.deps.workflowRef(genesisId, ref)
+    if (found.key === null) {
+      throw new McpToolError(
+        'INTROUVABLE',
+        `noeud « ${ref} » ${found.reason === 'ambigu' ? 'désigne plusieurs nœuds' : 'ne désigne aucun nœud'} du ` +
+          `Workflow. Précise avec l’un de ceux-ci :\n- ${found.candidates.join('\n- ')}`
+      )
+    }
+    return { key: found.key, genesisId }
+  }
+
+  private poseWidget(input: WidgetPoserInput, caller?: McpCaller): ToolResult {
     const universe = this.universe()
+    if (input.source !== undefined && input.noeud !== undefined) {
+      throw new McpToolError('LOT_INVALIDE', 'source ou noeud : un seul des deux.')
+    }
+    // Élément d'une carte de structure (spec 023 D24) : tout son contexte, le widget près de son genesis.
+    const element =
+      input.source === undefined ? undefined : universe.view.elements.find((entry) => entry.id === input.source)
     // Une étape de plan (spec 015) se branche comme une idée ; le widget se pose près de son genesis.
     const step = input.source === undefined ? undefined : universe.view.steps.find((entry) => entry.id === input.source)
+    const flow = input.source === undefined ? this.workflowTarget(universe, input.noeud, caller) : undefined
     const source =
-      input.source === undefined
-        ? undefined
-        : step === undefined
-          ? this.require(universe, input.source)
-          : this.require(universe, step.genesisId)
+      element !== undefined
+        ? this.require(universe, element.genesisId)
+        : flow !== undefined
+          ? this.require(universe, flow.genesisId)
+          : input.source === undefined
+            ? undefined
+            : step === undefined
+              ? this.require(universe, input.source)
+              : this.require(universe, step.genesisId)
     if (source !== undefined && source.kind !== 'idea') {
-      throw new McpToolError('LOT_INVALIDE', 'source : seule une idée ou une étape de plan se branche sur un widget.')
+      throw new McpToolError(
+        'LOT_INVALIDE',
+        'source : une idée, une étape de plan ou un élément de carte de structure (ou `noeud` pour le Workflow).'
+      )
     }
-    const connection =
-      source === undefined
-        ? undefined
-        : step === undefined
-          ? { kind: 'idea' as const, id: source.idea.id }
-          : { kind: 'plan_step' as const, id: step.id }
+    const connection: { readonly kind: Exclude<InputSourceKind, 'step'>; readonly id: string } | undefined =
+      element !== undefined
+        ? { kind: 'element', id: element.id }
+        : flow !== undefined
+          ? { kind: 'workflow', id: flow.key }
+          : source === undefined
+            ? undefined
+            : step === undefined
+              ? { kind: 'idea', id: source.idea.id }
+              : { kind: 'plan_step', id: step.id }
     const size = BLOCK_DEFAULT_SIZES.widget
     const anchor = source === undefined ? null : this.rectOf(source)
     const layout = layoutBatch({

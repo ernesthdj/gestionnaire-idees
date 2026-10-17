@@ -86,6 +86,18 @@ describe('pont MCP — service de la carte', () => {
       widgetFromCode: (blockId, code) => widgets.createFromCode(blockId, code),
       connectSource: (blockId, sourceKind, sourceId, parts) =>
         widgetIoRepository.insertInput({ blockId, sourceKind, sourceId, parts }).id,
+      // Spec 026 D10 : la conversation « chat-tache » est celle d'un nœud du Workflow du genesis.
+      conversationNode: (neuronId) =>
+        neuronId === 'chat-tache' ? { genesisId: ideaId, key: `wf:${ideaId}:ttask:t004` } : undefined,
+      conversationGenesis: (neuronId) => (neuronId.startsWith('chat-') ? ideaId : undefined),
+      workflowRef: (genesisId, ref) =>
+        ref === 'Rappels J+3'
+          ? { key: `wf:${genesisId}:tgroup:rappels`, label: 'lot « Rappels J+3 »' }
+          : {
+              key: null,
+              reason: 'ambigu',
+              candidates: ['T004 (docs/TACHES-A.md) · Écran', 'T004 (docs/TACHES-B.md) · Forme']
+            },
       emit: (event) => events.push(event)
     })
     ideaId = (await t.neurons.create({ text: 'Organiser le mariage de Léa', position: { x: 0, y: 0 } })).id
@@ -324,6 +336,39 @@ describe('pont MCP — service de la carte', () => {
       })
       const [input] = io.state((result.data as { id: string }).id).inputs
       expect(input).toMatchObject({ sourceKind: 'plan_step', sourceId: stepId, parts: ['sheet', 'path'] })
+    })
+
+    it('should_connect_the_widget_to_a_workflow_node_named_by_a_readable_ref_or_to_the_conversation_node', () => {
+      // Spec 026 D10 : un lot par son titre ; sans repère, le nœud de la conversation, jamais le genesis.
+      const code = { titre: 'Rappels', html: '<main></main>', css: '', ts: 'gi.onInputs(() => {})', resume: 'Maquette' }
+      const named = map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse({ ...code, noeud: 'Rappels J+3' }), {
+        neuronId: 'chat-visio'
+      })
+      expect(io.state((named.data as { id: string }).id).inputs[0]).toMatchObject({
+        sourceKind: 'workflow',
+        sourceId: `wf:${ideaId}:tgroup:rappels`
+      })
+      const own = map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse(code), { neuronId: 'chat-tache' })
+      expect(io.state((own.data as { id: string }).id).inputs[0]).toMatchObject({
+        sourceKind: 'workflow',
+        sourceId: `wf:${ideaId}:ttask:t004`
+      })
+    })
+
+    it('should_list_the_candidates_when_the_ref_is_ambiguous_and_refuse_source_with_noeud', () => {
+      const code = { titre: 'X', html: '<main></main>', css: '', ts: 'gi.onInputs(() => {})', resume: 'X' }
+      let message = ''
+      try {
+        map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse({ ...code, noeud: 'T004' }), {
+          neuronId: 'chat-visio'
+        })
+      } catch (error) {
+        if (error instanceof McpToolError) message = `${error.code} ${error.message}`
+      }
+      expect(message).toContain('INTROUVABLE')
+      expect(message).toContain('T004 (docs/TACHES-B.md) · Forme')
+      expect(failure('widget_poser', { ...code, source: ideaId, noeud: 'Rappels J+3' }).code).toBe('LOT_INVALIDE')
+      expect(view().blocks).toHaveLength(0)
     })
 
     it('should_create_nothing_when_the_code_is_refused', () => {

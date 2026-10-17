@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { parseViewState, type StructureView } from '@shared/brainstorms/viewState'
 import { readSheet, sheetMarkdown } from './domain/conversation/sheet'
 import { elementInput, workflowInput } from './domain/widgets/structureInputs'
+import { resolveWorkflowRef } from './domain/widgets/workflowRef'
 import { checkGitUrl } from '@shared/reprise/gitUrl'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -785,6 +786,39 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
     widgetFromCode: (blockId, code) => widgets.createFromCode(blockId, code),
     connectSource: (blockId, sourceKind, sourceId, parts) =>
       widgetIoRepository.insertInput({ blockId, sourceKind, sourceId, parts }).id,
+    // Widget relié au nœud du Workflow d'une conversation (spec 026 D10) : celle du nœud, ou la visio d'un agent
+    // connecté à ce nœud ; jamais un projet « Local uniquement », ni un nœud qui n'existe plus.
+    conversationNode: (neuronId) => {
+      const neuron = conversationRepository.neuron(neuronId)
+      if (neuron === undefined || neuron.genesisId === null || neuron.elementKey === null) return undefined
+      if (confidentiality.isLocalGenesis(neuron.genesisId)) return undefined
+      const key =
+        neuron.kind === 'workflow_chat'
+          ? neuron.elementKey
+          : neuron.kind === 'agent_chat'
+            ? parseAgentChatKey(neuron.elementKey)?.hostId
+            : undefined
+      if (key === undefined || !key.startsWith('wf:')) return undefined
+      try {
+        return workflowInput(workflow.readSync(neuron.genesisId), key) === undefined
+          ? undefined
+          : { genesisId: neuron.genesisId, key }
+      } catch {
+        return undefined
+      }
+    },
+    conversationGenesis: (neuronId) => {
+      const neuron = conversationRepository.neuron(neuronId)
+      return neuron === undefined ? undefined : (neuron.genesisId ?? neuron.rootId ?? neuron.id)
+    },
+    workflowRef: (genesisId, ref) => {
+      if (confidentiality.isLocalGenesis(genesisId)) return { key: null, reason: 'inconnu', candidates: [] }
+      try {
+        return resolveWorkflowRef(workflow.readSync(genesisId), ref)
+      } catch {
+        return { key: null, reason: 'inconnu', candidates: [] }
+      }
+    },
     categorize: (rootId) => neurons.categorizeInBackground(rootId),
     emit: (event) => broadcast('map:changed', event)
   })

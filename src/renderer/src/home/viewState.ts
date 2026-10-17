@@ -16,13 +16,15 @@ export function viewStateOf(
   cards: readonly OpenCard[],
   viewport: ViewState['viewport'],
   chatKeys: ReadonlySet<string> = new Set(),
-  progressionReadings: NonNullable<ViewState['progressionReadings']> = {}
+  progressionReadings: NonNullable<ViewState['progressionReadings']> = {},
+  collapsedWidgets: readonly string[] = []
 ): ViewState {
   return {
     ...EMPTY_VIEW_STATE,
     viewport,
     structureViews: Object.fromEntries(Object.entries(structureViews).slice(0, VIEW_STATE_LIMITS.genesis)),
     progressionReadings: Object.fromEntries(Object.entries(progressionReadings).slice(0, VIEW_STATE_LIMITS.genesis)),
+    collapsedWidgets: [...new Set(collapsedWidgets)].slice(0, VIEW_STATE_LIMITS.widgets),
     openCards: [...cards]
       .sort((a, b) => a.z - b.z)
       .slice(-VIEW_STATE_LIMITS.cards)

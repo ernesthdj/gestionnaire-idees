@@ -146,6 +146,24 @@ describe('boîte à outils de la carte (spec 004)', () => {
     expect(useUiStore.getState().toast?.undoBatchId).toBe('b1')
   })
 
+  it('should_fold_a_widget_into_a_tile_without_its_frame_then_unfold_it_when_asked', async () => {
+    // Demande de mentalyas (2026-10-17) : un widget replié reste sur la carte en tuile, sans cadre qui tourne.
+    useUiStore.setState({ collapsedWidgets: [] })
+    const user = userEvent.setup()
+    const { container } = renderCanvas({
+      ...canvasView(),
+      blocks: [block({ id: WIDGET_ID, kind: 'widget', text: null, width: 480, height: 360 })]
+    })
+    await user.click(await screen.findByRole('button', { name: 'Replier le widget' }))
+    const tile = await screen.findByRole('region', { name: 'Widget replié : Widget IA' })
+    expect(useUiStore.getState().collapsedWidgets).toEqual([WIDGET_ID])
+    expect(container.querySelector('iframe')).toBeNull()
+    await expectNoAxeViolations(container)
+    await user.click(within(tile).getByRole('button', { name: 'Déplier' }))
+    expect(await screen.findByRole('region', { name: 'Widget IA' })).toBeDefined()
+    expect(useUiStore.getState().collapsedWidgets).toEqual([])
+  })
+
   it('should_have_no_accessibility_violation_with_the_tools_open', async () => {
     const { container } = renderCanvas({ ...canvasView(), blocks: [block({})] })
     fireEvent.contextMenu(await pane(), { clientX: 300, clientY: 200 })

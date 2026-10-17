@@ -50,7 +50,9 @@ import { useWidgetReview, widgetIoKey } from '../widgets/useWidgetIo'
 import type { WidgetIoStateView } from '@shared/ipc/widgetIo'
 import { ResultNode } from './nodes/ResultNode'
 import { SettingsNode } from './nodes/SettingsNode'
-import { WidgetNode } from './nodes/WidgetNode'
+import { WIDGET_TILE, WidgetNode } from './nodes/WidgetNode'
+import { useFarZoom } from './zoomLevels'
+import { pauseMapRooms } from './agents/room/roomPause'
 import { ContextMenu, ToolMenu, type MenuItem, type Tool } from './ToolMenu'
 import { flushViewState } from '../home/useBrainstorms'
 import { STRUCTURE_VIEWS, type StructureView } from '@shared/brainstorms/viewState'
@@ -144,6 +146,8 @@ type MapNode = CanvasNode
 
 /** Durée de la surbrillance d'arrivée dans le Workflow (spec 032 Q8). */
 const ARRIVAL_MS = 5000
+/** Délai après un zoom ou un déplacement avant de redessiner la carte nette (repixelisation). */
+const SETTLE_MS = 150
 
 /** Nœuds Workflow du rond `key` et de tout ce qui pend sous lui, marqués `className` (arrivée depuis la Progression). */
 function markArrival(nodes: readonly MapNode[], key: string, className: string): MapNode[] {
@@ -266,6 +270,7 @@ function CanvasInner(): React.JSX.Element {
   const settings = useEffectiveSettings()
   const reduced = useReducedMotionPreference(settings.motion)
   const structureViews = useUiStore((state) => state.structureViews)
+  const collapsedWidgets = useUiStore((state) => state.collapsedWidgets)
   const panelFolded = useUiStore((state) => state.panelFolded)
   const foldPanel = useUiStore((state) => state.foldPanel)
   const analysisLinks = useUiStore((state) => state.analysisLinks)
@@ -291,6 +296,13 @@ function CanvasInner(): React.JSX.Element {
   const [draft, setDraft] = useState<{ at: Point; position: Point } | null>(null)
   const [filter, setFilter] = useState<CanvasFilterInput>({})
   const [interacting, setInteracting] = useState(false)
+  // Repixelisation dynamique (demande de mentalyas, 2026-10-17) : pendant un zoom ou un déplacement, la carte n'est
+  // qu'une image que le navigateur agrandit (rapide, un peu floue) ; elle est redessinée nette un instant après.
+  const [moving, setMoving] = useState(false)
+  const settleTimer = useRef(0)
+  useEffect(() => () => window.clearTimeout(settleTimer.current), [])
+  const far = useFarZoom()
+  useEffect(() => pauseMapRooms(far), [far])
   // Un lien est en train d'être tiré : les widgets entiers l'acceptent, leurs iframes ne captent plus la souris.
   const [connecting, setConnecting] = useState(false)
   const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } } | null>(null)
@@ -420,8 +432,17 @@ function CanvasInner(): React.JSX.Element {
     const bars = built.nodes.filter((node) => node.type === 'structureBar')
     const bar = bars.find((node) => node.id === `structure-bar-${projectGenesisId ?? ''}`) ?? bars[0]
     const shown = bar === undefined ? built.nodes : built.nodes.filter((node) => node !== bar)
+    // Un widget replié n'occupe que sa tuile ; sa taille dépliée reste dans le bloc (`data.block`). Son panneau de
+    // réglages, qui ne réglerait plus rien, se cache avec lui (et revient au dépliage).
+    const tiled = shown.map((node) =>
+      node.type === 'widget' && collapsedWidgets.includes(node.id)
+        ? { ...node, width: WIDGET_TILE, height: WIDGET_TILE }
+        : node.type === 'widgetSettings' && collapsedWidgets.includes(node.data.block.sourceBlockId ?? '')
+          ? { ...node, hidden: true }
+          : node
+    )
     const marked =
-      arrival === null ? shown : markArrival(shown, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
+      arrival === null ? tiled : markArrival(tiled, arrival.key, reduced ? 'wf-arrived-still' : 'wf-arrived')
     // Les agents sont connectés aux nœuds du Workflow (L1o D14) ; un nœud caché (replié, autre vue) les cache.
     const hosts = new Map<string, { x: number; y: number; title: string }>()
     for (const node of marked) {
@@ -462,6 +483,7 @@ function CanvasInner(): React.JSX.Element {
     bornId,
     openIds,
     structureViews,
+    collapsedWidgets,
     transposed,
     analysisLinks,
     workflows,
@@ -1040,6 +1062,8 @@ function CanvasInner(): React.JSX.Element {
             reduced ? 'off' : driftActive(reduced, interacting || cards.length > 0 || glide === 'on') ? 'on' : 'paused'
           }
           data-glide={glide}
+          data-moving={moving ? 'on' : undefined}
+          data-zoom={far ? 'far' : undefined}
           data-connecting={connecting ? 'true' : undefined}
           data-structure-focus={focused.length > 0 ? 'on' : 'off'}
           onKeyDownCapture={onKeyDownCapture}
@@ -1118,9 +1142,15 @@ function CanvasInner(): React.JSX.Element {
               ariaLabelConfig={ARIA_LABELS}
               colorMode={colorSchemeOf(settings.theme)}
               proOptions={{ hideAttribution: true }}
-              onMoveStart={() => setInteracting(true)}
+              onMoveStart={() => {
+                setInteracting(true)
+                window.clearTimeout(settleTimer.current)
+                setMoving(true)
+              }}
               onMoveEnd={(_event, viewport) => {
                 setInteracting(false)
+                window.clearTimeout(settleTimer.current)
+                settleTimer.current = window.setTimeout(() => setMoving(false), SETTLE_MS)
                 useUiStore.getState().setViewport(viewport)
               }}
               // Un clic sur un nœud ouvre sa carte de détails (spec 022 D5, D15), un nouveau clic la referme ; on attend un
@@ -1236,10 +1266,12 @@ function CanvasInner(): React.JSX.Element {
                 // Lâché : il reste épinglé à cette place, sans déplacer les autres.
                 physics.pin(node.id, node.position)
                 if (node.type !== undefined && BLOCK_TYPES.has(node.type)) {
+                  // Un widget replié garde sa taille dépliée : seule sa place change.
+                  const folded = node.type === 'widget' && collapsedWidgets.includes(node.id)
                   void blockActions.save(node.id, {
                     ...node.position,
-                    width: node.width ?? node.measured?.width ?? 0,
-                    height: node.height ?? node.measured?.height ?? 0
+                    width: folded ? node.data.block.width : (node.width ?? node.measured?.width ?? 0),
+                    height: folded ? node.data.block.height : (node.height ?? node.measured?.height ?? 0)
                   })
                   return
                 }
