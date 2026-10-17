@@ -521,7 +521,9 @@ export class AssemblyService {
       ...(request.baseBranch === undefined ? {} : { baseBranch: request.baseBranch }),
       ...(node.lotTasks === undefined || node.lotTasks.length === 0 ? {} : { lot: node.lotTasks }),
       ...(node.lotFile === undefined ? {} : { lotFile: node.lotFile }),
-      hostId: request.nodeId
+      hostId: request.nodeId,
+      // Commandes déjà validées pour ce projet (L2-pipeline-optimal D2) : sans Architecte, ce sont elles qui tournent.
+      checks: this.deps.checks?.validated(node.genesisId) ?? []
     }
     // Un moteur par projet : c'est lui qui fait passer les commandes git une à une ; deux tâches lancées en même temps
     // sur le même dépôt se disputeraient sinon ses verrous (worktrees, références).

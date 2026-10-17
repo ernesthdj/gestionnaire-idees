@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { isValidTaskId } from '@shared/agents/documents'
 import {
@@ -24,6 +24,7 @@ import {
   type AssemblyAgent,
   type AssemblyRunResult,
   type ChecksAsker,
+  type CheckRun,
   type CleanupResult,
   type PassIndex,
   type PassNature,
@@ -109,6 +110,11 @@ export interface PipelineEngineDeps {
   readonly runSession: AgentSessionRunner
   /** Neurone de la visio d'un agent sur un nœud : son identité sur le pont du Brainstormer (L2-pipeline-optimal D11). */
   readonly agentNeuron?: (hostId: string, agentId: string) => string | undefined
+  /**
+   * Lance une commande de vérification validée dans le worktree d'un agent, sans shell (L2-pipeline-optimal D2, T002) ;
+   * absente : aucune vérification.
+   */
+  readonly runCheck?: (cwd: string, command: string, signal?: AbortSignal) => Promise<CheckRun>
   readonly git: GitPort
   readonly projectDir: string
   /** Dossier des worktrees des agents, hors du projet (`<racine>/<tâche>/<agent>`). */
@@ -199,6 +205,9 @@ const progressOf = (outcome: Outcome): AgentProgress => {
   }
 }
 
+/** Rôles qui codent : après leur passe, l'app lance les vérifications (L2-pipeline-optimal D2, T002). */
+const DEVELOPER_ROLES: ReadonlySet<string> = new Set(['backend', 'frontend', 'autre'])
+
 /** Qui renvoie au PO : le QA (L1o D8) ou l'Architecte qui a trouvé un trou dans la spec (L2-pipeline-optimal D1). */
 type FeedbackSource = 'qa' | 'architecte'
 
@@ -216,6 +225,8 @@ interface Turn {
   readonly feedbackFrom?: FeedbackSource
   /** Validation des commandes de vérification par mentalyas, après le contrat de l'Architecte (D2). */
   readonly askChecks?: ChecksAsker
+  /** Commandes de vérification en vigueur pour cette tâche (D2, T002). */
+  readonly checksOf: () => readonly string[]
   /** Session de la passe précédente de cet agent : reprise, il garde son raisonnement (L2-pipeline-optimal D3). */
   readonly previousSession?: string
   readonly signal: AbortSignal | undefined
@@ -308,6 +319,17 @@ export class PipelineEngine {
     const { taskId } = assembly
     const profileOf = this.checked(assembly)
     const baseBranch = await this.baseOf(assembly)
+    // Commandes lancées après chaque développeur (L2-pipeline-optimal D2) : celles du projet, puis celles du contrat
+    // une fois validées par mentalyas.
+    let checks: readonly string[] = assembly.checks ?? []
+    const validate: ChecksAsker | undefined =
+      askChecks === undefined
+        ? undefined
+        : async (commands) => {
+            const decision = await askChecks(commands)
+            if (decision.approved) checks = decision.commands
+            return decision
+          }
     const journal = (message: string): void =>
       this.deps.documentsFor(this.deps.projectDir).appendJournal({
         at: Date.now(),
@@ -358,7 +380,8 @@ export class PipelineEngine {
         passes,
         feedback,
         ...(feedbackFrom === undefined ? {} : { feedbackFrom }),
-        ...(askChecks === undefined ? {} : { askChecks }),
+        ...(validate === undefined ? {} : { askChecks: validate }),
+        checksOf: () => checks,
         progress,
         work
       })
@@ -607,6 +630,8 @@ export class PipelineEngine {
     /** Qui renvoie au PO : le QA (travail à reprendre) ou l'Architecte (trou dans la spec, L2-pipeline-optimal D1). */
     readonly feedbackFrom?: FeedbackSource
     readonly askChecks?: ChecksAsker
+    /** Commandes de vérification en vigueur, lues au moment où un développeur finit (D2). */
+    readonly checksOf: () => readonly string[]
     readonly progress: ProgressListener
     readonly work: AgentWorkListener
   }): Promise<void> {
@@ -675,6 +700,7 @@ export class PipelineEngine {
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
           ...(input.feedbackFrom === undefined ? {} : { feedbackFrom: input.feedbackFrom }),
           ...(input.askChecks === undefined ? {} : { askChecks: input.askChecks }),
+          checksOf: input.checksOf,
           ...(previous === undefined ? {} : { previousSession: previous }),
           signal,
           work: input.work
@@ -702,6 +728,43 @@ export class PipelineEngine {
     }
   }
 
+  /**
+   * Le temps des vérifications, le worktree d'un agent voit les dépendances installées du projet (L2-pipeline-optimal
+   * T002) : un worktree neuf n'a pas de `node_modules`. Une jonction (Windows) ou un lien vers celui du projet, posé
+   * seulement si git l'ignore (jamais commité), et retiré aussitôt après : ni le commit ni la suppression du worktree
+   * ne le parcourent.
+   */
+  private async withProjectModules<T>(worktree: string, work: () => Promise<T>): Promise<T> {
+    const source = join(this.deps.projectDir, 'node_modules')
+    const link = join(worktree, 'node_modules')
+    let linked = false
+    if (existsSync(source) && !existsSync(link)) {
+      // La barre finale : le dossier n'existe pas encore, git doit le savoir dossier (motif « node_modules/ »).
+      const ignored = await this.git(['-C', worktree, 'check-ignore', '-q', 'node_modules/'])
+      if (ignored.code === 0) {
+        try {
+          symlinkSync(source, link, 'junction')
+          linked = true
+        } catch {
+          // Sans lien, les commandes tournent quand même : leur échec le dira.
+        }
+      }
+    }
+    try {
+      return await work()
+    } finally {
+      // `rmdir` sur une jonction (`unlink` sur un lien) retire le lien seul, jamais ce qu'il vise.
+      if (linked) {
+        try {
+          if (process.platform === 'win32') rmdirSync(link)
+          else unlinkSync(link)
+        } catch {
+          // Le lien resté sera vu par `git status` (fichiers hors du commit) : l'agent s'arrête, rien n'est perdu.
+        }
+      }
+    }
+  }
+
   /** Une commande git à la fois : deux worktrees ajoutés ou deux commits en même temps se disputeraient les verrous. */
   private git(args: readonly string[]): ReturnType<GitPort> {
     const next = this.gitQueue.then(() => this.deps.git(args))
@@ -717,7 +780,7 @@ export class PipelineEngine {
     const worktree = join(this.deps.worktreeRoot, taskId, agent.id)
     let index: PassIndex = { pass: turn.pass, nature: turn.nature }
     // Consommation de la passe (L2-pipeline-optimal D10) : connue une fois la session finie, jointe au résultat.
-    const measured: { usage?: PassUsage } = {}
+    const measured: { usage?: PassUsage; checks?: readonly CheckRun[] } = {}
     const head = (): AgentRunResult => ({
       agentId: agent.id,
       role: profile.role,
@@ -725,7 +788,8 @@ export class PipelineEngine {
       index,
       branch,
       status: 'done',
-      ...(measured.usage === undefined ? {} : { usage: measured.usage })
+      ...(measured.usage === undefined ? {} : { usage: measured.usage }),
+      ...(measured.checks === undefined ? {} : { checks: measured.checks })
     })
     // Le worktree d'un agent arrêté reste en place, pour voir où il en était.
     const fail = (reason: AgentStopReason, message: string, sessionId?: string, kept = true): Outcome => {
@@ -852,6 +916,29 @@ export class PipelineEngine {
       questions = contract.questions
       commands = contract.commands
     } else documents.writeReport(taskId, { id: agent.id, role: profile.role }, result.text, index)
+
+    // Vérifications par l'app après un développeur (L2-pipeline-optimal D2, T002) : dans son worktree, avant son
+    // commit, les commandes validées par mentalyas, une à une.
+    const toCheck = DEVELOPER_ROLES.has(profile.role) && this.deps.runCheck !== undefined ? turn.checksOf() : []
+    if (toCheck.length > 0 && !aborted()) {
+      const runCheck = this.deps.runCheck as NonNullable<PipelineEngineDeps['runCheck']>
+      const runs = await this.withProjectModules(worktree, async () => {
+        const done: CheckRun[] = []
+        for (const command of toCheck) {
+          if (aborted()) break
+          done.push(await runCheck(worktree, command, signal))
+        }
+        return done
+      })
+      measured.checks = runs
+      const green = runs.filter((check) => check.ok).length
+      documents.appendJournal({
+        at: Date.now(),
+        taskId,
+        role: profile.role,
+        message: `Vérifications de ${agent.id} (passe ${index.pass}) : ${green}/${runs.length} vertes.`
+      })
+    }
 
     // Fichiers ajoutés par leur nom (jamais `git add -A`), hooks gardés (jamais `--no-verify`).
     const changed = await inTree(['diff', '--name-only', '-z', '--no-renames', 'HEAD'])

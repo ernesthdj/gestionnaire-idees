@@ -3041,3 +3041,22 @@ découpée en programme + arguments pour T002.
 Architecte, carte avec ses deux commandes (captures `t001-01`, `t001-02`), « Refuser » arrête l'assemblage.
 **Limite :** pendant l'attente, l'Architecte s'affiche « au travail » (puis « en erreur » après un refus) : son état
 ne dit pas encore « attend ta décision ».
+
+### [2026-10-17 12:56] FEAT — l'app lance les vérifications après chaque développeur (L2-pipeline-optimal D2, T002)
+**Fichiers :** `src/main/infrastructure/process/CheckCommandRunner.ts` (nouveau : `resolveCheck`, `runCheckCommand`),
+`PipelineEngine.ts` (`runCheck`, `checksOf`, `withProjectModules`, `DEVELOPER_ROLES`), `shared/agents/pipeline.ts`
+(`CheckRun`, `checks` du résultat et de l'assemblage), `AssemblyService.ts` (commandes déjà validées du projet),
+`bootstrap.ts` ; tests `check-command-runner`, `pipeline-engine`.
+**Quoi :** après la passe d'un développeur (backend, frontend, autre), avant son commit, l'app lance une à une les
+commandes validées (celles du contrat validé, sinon celles déjà validées pour le projet) dans son worktree ; résultat
+(vert / rouge, code, fin de sortie, durée) joint à son résultat et noté au journal du pipeline. Aucune relance encore
+(boucle rapide : T004), aucun affichage (T005).
+**Sans shell :** `npm` / `npx` par `node` + `npm-cli.js` / `npx-cli.js`, `node` par son exécutable, les autres en
+`.exe` dans les dossiers absolus du PATH ; un `.cmd` est refusé (« passe par npm run »), un chemin aussi. Délai
+10 min, sortie bornée, 50 dernières lignes gardées.
+**Pièges évités :** (1) un worktree neuf n'a pas de `node_modules` : jonction vers celui du projet le temps des
+vérifications, posée seulement si git l'ignore (`check-ignore node_modules/` : la barre finale, sinon le motif
+« node_modules/ » ne s'applique pas à un dossier encore absent), retirée par `rmdir` (le lien seul) avant le commit et
+la suppression du worktree ; testé : la cible reste intacte, rien n'est commité. (2) Sous Windows, un processus tué
+tient son dossier un instant : on attend sa fermeture (5 s au plus) avant de rendre la main.
+**Vérifié :** typecheck, lint, Prettier, 2 534 tests (lanceur réel : vert, rouge, npm par node, introuvable, délai).

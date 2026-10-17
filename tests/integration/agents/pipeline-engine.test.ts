@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -252,6 +252,80 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     expect(seen[4]?.prompt).toContain('Ta zone de travail : src/tri.ts.')
     expect(seen[4]?.prompt).not.toContain('src/autre.ts')
     expect(await filesOf('agents/T033/back')).toContain('docs/pipeline/T033/contrat.md')
+  })
+
+  it('should_run_the_checks_after_a_developer_with_the_project_modules_linked_then_unlinked', async () => {
+    // L2-pipeline-optimal D2 (T002) : vérifications dans le worktree, avant le commit ; node_modules du projet visible
+    // le temps des vérifications (jonction), jamais commité, et jamais touché par le retrait du lien.
+    writeFileSync(join(project, '.gitignore'), 'node_modules/\n')
+    await git(['add', '.gitignore'])
+    await git(['commit', '-m', 'ignore'])
+    mkdirSync(join(project, 'node_modules', 'outil'), { recursive: true })
+    writeFileSync(join(project, 'node_modules', 'outil', 'marque.txt'), 'installé\n')
+    const seen: { command: string; modules: boolean }[] = []
+    const engine = new PipelineEngine({
+      profiles: () => PROFILES,
+      runSession: writer,
+      git,
+      projectDir: project,
+      worktreeRoot: join(root, 'worktrees'),
+      documentsFor: (dir) =>
+        new PipelineDocuments({ projectDir: dir, profileDir: join(root, 'profil'), projectName: 'demo' }),
+      runCheck: async (cwd, command) => {
+        seen.push({ command, modules: existsSync(join(cwd, 'node_modules', 'outil', 'marque.txt')) })
+        return {
+          command,
+          ok: command !== 'npm run lint',
+          exitCode: command === 'npm run lint' ? 1 : 0,
+          tail: '',
+          durationMs: 5
+        }
+      }
+    })
+    const result = await engine.run({
+      taskId: 'T040',
+      brief: 'Écrire',
+      agents: [{ id: 'back', profileId: 'back' }],
+      links: [],
+      checks: ['npm test', 'npm run lint']
+    })
+    expect(seen).toEqual([
+      { command: 'npm test', modules: true },
+      { command: 'npm run lint', modules: true }
+    ])
+    expect(result.agents[0]?.checks?.map((check) => check.ok)).toEqual([true, false])
+    // Le lien est retiré, ce qu'il visait reste ; rien de node_modules dans la branche ; le worktree est rangé.
+    expect(readFileSync(join(project, 'node_modules', 'outil', 'marque.txt'), 'utf8')).toBe('installé\n')
+    expect(await filesOf('agents/T040/back')).not.toContain('node_modules')
+    expect(result.agents[0]?.worktree).toBeUndefined()
+    expect(existsSync(join(root, 'worktrees', 'T040', 'back'))).toBe(false)
+  })
+
+  it('should_not_link_the_project_modules_when_git_would_not_ignore_them', async () => {
+    mkdirSync(join(project, 'node_modules'), { recursive: true })
+    writeFileSync(join(project, 'node_modules', 'marque.txt'), 'x\n')
+    const modules: boolean[] = []
+    const engine = new PipelineEngine({
+      profiles: () => PROFILES,
+      runSession: writer,
+      git,
+      projectDir: project,
+      worktreeRoot: join(root, 'worktrees'),
+      documentsFor: (dir) =>
+        new PipelineDocuments({ projectDir: dir, profileDir: join(root, 'profil'), projectName: 'demo' }),
+      runCheck: async (cwd, command) => {
+        modules.push(existsSync(join(cwd, 'node_modules')))
+        return { command, ok: true, exitCode: 0, tail: '', durationMs: 1 }
+      }
+    })
+    await engine.run({
+      taskId: 'T041',
+      brief: 'X',
+      agents: [{ id: 'back', profileId: 'back' }],
+      links: [],
+      checks: ['npm test']
+    })
+    expect(modules).toEqual([false])
   })
 
   it('should_warn_about_uncommitted_files_that_the_agents_will_not_see', async () => {

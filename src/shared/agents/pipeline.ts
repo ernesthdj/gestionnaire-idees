@@ -53,6 +53,11 @@ export interface Assembly {
   readonly lotFile?: string
   /** Nœud de la carte où l'équipe est connectée : il donne aux agents leur identité sur le pont (L2-pipeline-optimal D11). */
   readonly hostId?: string
+  /**
+   * Commandes de vérification déjà validées pour ce projet (L2-pipeline-optimal D2) : lancées après chaque développeur
+   * quand il n'y a pas d'Architecte ; celles d'un contrat validé les remplacent.
+   */
+  readonly checks?: readonly string[]
 }
 
 /** Agents attendus par chacun (liens entrants), dans l'ordre de l'assemblage. */
@@ -325,6 +330,19 @@ export interface AgentRunResult {
   readonly stopped?: { readonly reason: AgentStopReason; readonly message: string }
   /** Consommation de sa dernière passe (L2-pipeline-optimal D10), si sa session a tourné. */
   readonly usage?: PassUsage
+  /** Vérifications lancées par l'app après sa dernière passe (L2-pipeline-optimal D2, T002). */
+  readonly checks?: readonly CheckRun[]
+}
+
+/** Une commande de vérification lancée par l'app dans le worktree d'un agent (L2-pipeline-optimal D2, T002). */
+export interface CheckRun {
+  readonly command: string
+  readonly ok: boolean
+  /** Code de sortie ; `null` : pas lancée, arrêtée (délai, annulation) ou introuvable. */
+  readonly exitCode: number | null
+  /** Fin de la sortie (≤ 50 lignes) ou la raison de l'échec ; vide si verte. */
+  readonly tail: string
+  readonly durationMs: number
 }
 
 /**

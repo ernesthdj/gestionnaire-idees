@@ -147,6 +147,7 @@ import { createProjectRoutes } from './ipc/projectHandlers'
 import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
 import { CheckCommandsStore } from './infrastructure/projects/CheckCommandsStore'
+import { runCheckCommand } from './infrastructure/process/CheckCommandRunner'
 import { createMapUpdateRoutes, createStructureRoutes } from './ipc/structureHandlers'
 import { MapUpdateService } from './application/structure/MapUpdateService'
 import { RunService } from './application/run/RunService'
@@ -1455,6 +1456,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       new PipelineEngine({
         profiles: () => agentProfiles.list(),
         runSession: agentSessions,
+        // Vérifications validées par mentalyas, lancées sans shell après chaque développeur (L2-pipeline-optimal T002).
+        runCheck: (cwd, command, signal) => runCheckCommand(cwd, command, signal),
         agentNeuron: (hostId, agentId) => {
           try {
             return agentChats.open(hostId, agentId).neuronId
