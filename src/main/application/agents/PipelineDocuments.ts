@@ -25,6 +25,7 @@ import {
 } from '@shared/agents/pipeline'
 import { AGENT_ROLES, type AgentRole } from '@shared/agents/profile'
 import { parseLotPlan } from '@shared/agents/lotPlan'
+import { CONTRACT_OWNER_ROLE, parseContract, type PipelineContract } from '@shared/agents/contract'
 import { parseSpecAgents } from '@shared/agents/recommendation'
 import { AppError } from '../../domain/errors'
 
@@ -49,6 +50,7 @@ export interface PipelineDocumentsDeps {
 }
 
 const SPEC_HEADER = /^<!-- pipeline:spec signee-par=(\S+) version=(\d+) le=(\d+) -->\n/
+const CONTRACT_HEADER = /^<!-- pipeline:contrat signe-par=(\S+) version=(\d+) le=(\d+) -->\n/
 const REPORT_HEADER =
   /^<!-- pipeline:rapport role=(\S+) agent=(\S+) passe=(\d+) nature=(\S+) spec=(\d+|-) le=(\d+) -->\n/
 const CONDENSED = /^- ~ (.+) · (\S+) : (\d+) entrées, jusqu'au (\S+)$/
@@ -188,6 +190,33 @@ export class PipelineDocuments {
       agents: parseSpecAgents(content),
       plan: parseLotPlan(content)
     }
+  }
+
+  /** Contrat de la tâche (L2-pipeline-optimal D1) : seul l'Architecte l'écrit ; chaque écriture, version suivante. */
+  writeContract(taskId: string, role: AgentRole, content: string): PipelineContract {
+    if (role !== CONTRACT_OWNER_ROLE) {
+      throw new AppError('FORBIDDEN', 'Seul l’Architecte peut écrire ou modifier le contrat d’une tâche.')
+    }
+    const text = this.checkContent(content)
+    const signedAt = this.now()
+    const version = (this.readContract(taskId)?.version ?? 0) + 1
+    this.write(
+      join(this.taskDir(taskId), 'contrat.md'),
+      `<!-- pipeline:contrat signe-par=${role} version=${version} le=${signedAt} -->\n${text}\n`
+    )
+    this.appendJournal({ at: signedAt, taskId, role, message: `Contrat v${version} signé.` })
+    return { taskId, version, signedAt, content: text, ...parseContract(text) }
+  }
+
+  readContract(taskId: string): PipelineContract | undefined {
+    const file = join(this.taskDir(taskId), 'contrat.md')
+    if (!existsSync(file)) return undefined
+    const raw = readDocument(file)
+    const head = CONTRACT_HEADER.exec(raw)
+    // Un contrat sans signature (édité à la main) n'est pas un contrat signé.
+    if (head === null || head[1] !== CONTRACT_OWNER_ROLE) return undefined
+    const content = raw.slice(head[0].length).trim()
+    return { taskId, version: Number(head[2]), signedAt: Number(head[3]), content, ...parseContract(content) }
   }
 
   private reportPath(taskId: string, agentId: string): string {

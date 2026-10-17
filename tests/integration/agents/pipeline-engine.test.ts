@@ -27,7 +27,13 @@ const profile = (id: string, role: AgentRole): AgentProfileView => ({
   delivered: 0
 })
 
-const PROFILES = [profile('po', 'po'), profile('back', 'backend'), profile('front', 'frontend'), profile('qa', 'qa')]
+const PROFILES = [
+  profile('po', 'po'),
+  profile('archi', 'architecte'),
+  profile('back', 'backend'),
+  profile('front', 'frontend'),
+  profile('qa', 'qa')
+]
 
 /** PO → back et PO → front (en parallèle), puis back → qa et front → qa. */
 const diamond = (taskId = 'T010'): Assembly => ({
@@ -202,6 +208,50 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     expect(seen[0]?.bridgeNeuronId).toBe('visio-wf:g:ttask:t1-back')
     await engine.run({ taskId: 'T032', brief: 'X', agents: [{ id: 'back', profileId: 'back' }], links: [] })
     expect(seen[1]?.bridgeNeuronId).toBeUndefined()
+  })
+
+  it('should_have_the_architect_ask_the_po_then_freeze_a_contract_that_the_developer_follows', async () => {
+    // L2-pipeline-optimal D1 (T006) : PO → Architecte → back → QA ; une question au PO suspend le développeur.
+    const seen: AgentSessionRequest[] = []
+    let architectRuns = 0
+    const result = await engineWith(async (request) => {
+      seen.push(request)
+      const { role } = request.profile
+      if (role === 'architecte') {
+        architectRuns += 1
+        return architectRuns === 1
+          ? { ok: true, text: 'Il me manque un point.\nQUESTION_PO: le tri est-il stable ?' }
+          : { ok: true, text: '## Contrat\nTri stable par date.\nZONE: back | src/tri.ts\nVERIFICATION: npm test' }
+      }
+      if (role === 'po') return { ok: true, text: architectRuns === 0 ? 'Spec v1 : trier.' : 'Spec v2 : tri stable.' }
+      return writer(request)
+    }).run({
+      taskId: 'T033',
+      brief: 'Trier',
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'archi', profileId: 'archi' },
+        { id: 'back', profileId: 'back', zone: ['src/autre.ts'] },
+        { id: 'qa', profileId: 'qa' }
+      ],
+      links: [
+        { from: 'po', to: 'archi' },
+        { from: 'archi', to: 'back' },
+        { from: 'back', to: 'qa' }
+      ]
+    })
+    expect(result.completed).toBe(true)
+    const roles = seen.map((request) => request.profile.role)
+    // L'Architecte demande, le PO amende (sans désigner d'agents), l'Architecte reprend, puis le développeur et le QA.
+    expect(roles).toEqual(['po', 'architecte', 'po', 'architecte', 'backend', 'qa'])
+    expect(seen[2]?.prompt).toContain('le tri est-il stable ?')
+    expect(seen[2]?.prompt).not.toContain('AGENTS:')
+    expect(seen[3]?.prompt).toContain('Ton contrat précédent (v1)')
+    // Le développeur reçoit le contrat et la zone fixée par l'Architecte (qui remplace la sienne).
+    expect(seen[4]?.prompt).toContain('Contrat de l’Architecte (v2)')
+    expect(seen[4]?.prompt).toContain('Ta zone de travail : src/tri.ts.')
+    expect(seen[4]?.prompt).not.toContain('src/autre.ts')
+    expect(await filesOf('agents/T033/back')).toContain('docs/pipeline/T033/contrat.md')
   })
 
   it('should_warn_about_uncommitted_files_that_the_agents_will_not_see', async () => {

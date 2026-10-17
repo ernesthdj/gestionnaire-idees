@@ -3007,3 +3007,18 @@ commité, profil fictif, modèle léger) : `carte_lire` répond (« 1 idée sur 
 message prévu.
 **Limite :** un agent en mode « Libre » a un shell : il pourrait lire le secret du pont dans le profil et ouvrir son
 propre relais sans la marque. Le mode « Libre » reste réservé aux agents de confiance (avertissement à l'assemblage).
+
+### [2026-10-17 12:22] FEAT — l'Architecte fige un contrat avant le départ des développeurs (L2-pipeline-optimal D1, T006)
+**Fichiers :** `src/shared/agents/contract.ts` (nouveau : `parseContract`, `contractInstructions`), `PipelineDocuments.ts`
+(`writeContract` réservé à l'Architecte, `readContract`), `PipelineEngine.ts` (contrat écrit, question au PO qui
+suspend les développeurs, amendement du PO, repasse de l'Architecte ; contrat et zone donnés aux développeurs et au
+QA), `shared/agents/pipeline.ts` (`spec-question`) ; tests `contract`, `pipeline-documents`, `pipeline-engine`.
+**Quoi :** l'Architecte rend son contrat (décisions, contrat, interfaces figées, fichiers par agent, risques, matrice
+critère → vérification) dans `docs/pipeline/<tâche>/contrat.md`, signé et versionné, qui voyage avec sa branche. Lignes
+lues par l'app : `ZONE: <agent> | <chemins>` (remplace la zone saisie à la main), `VERIFICATION: <commande>` (pour
+T001), `QUESTION_PO: <question>` : les développeurs ne partent pas, le PO amende la spec (sans désigner d'agents),
+l'Architecte reprend son contrat, puis les développeurs partent.
+**Vérifié :** typecheck, lint, Prettier, 2 520 tests ; vrais agents (test ponctuel non commité, modèle léger, dépôt git
+temporaire) : PO → Architecte → back jusqu'au bout ; contrat avec matrice, `ZONE: back | src/liste.ts, src/liste.test.ts`
+et `VERIFICATION: npm test`.
+**Reste :** l'aiguillage technique (qui attend qui) par l'Architecte : T019.

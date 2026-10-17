@@ -29,6 +29,7 @@ import {
   type PassUsage,
   type ProgressListener
 } from '@shared/agents/pipeline'
+import { contractInstructions, parseContract } from '@shared/agents/contract'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
 import { lotInstructions, type LotPlan } from '@shared/agents/lotPlan'
 import { SPEC_AGENTS_INSTRUCTIONS, profileCatalog } from '@shared/agents/recommendation'
@@ -197,6 +198,9 @@ const progressOf = (outcome: Outcome): AgentProgress => {
   }
 }
 
+/** Qui renvoie au PO : le QA (L1o D8) ou l'Architecte qui a trouvé un trou dans la spec (L2-pipeline-optimal D1). */
+type FeedbackSource = 'qa' | 'architecte'
+
 /** Ce qu'il faut pour lancer un tour : l'assemblage, l'agent, sa passe, et les retours du QA pour le PO. */
 interface Turn {
   readonly assembly: Assembly
@@ -208,6 +212,7 @@ interface Turn {
   readonly pass: number
   readonly nature: PassNature
   readonly feedback?: string
+  readonly feedbackFrom?: FeedbackSource
   /** Session de la passe précédente de cet agent : reprise, il garde son raisonnement (L2-pipeline-optimal D3). */
   readonly previousSession?: string
   readonly signal: AbortSignal | undefined
@@ -225,7 +230,7 @@ const missionFor = (turn: Turn, index: PassIndex): string => {
       ? 'Tu travailles seul sur cette tâche, dans ton propre dossier (un worktree git), sur ta branche.'
       : 'Tu travailles dans ton propre dossier (un worktree git), sur ta branche ; d’autres agents peuvent travailler en même temps sur leur part.',
     'Ne fais aucun commit : l’app enregistre ton travail à la fin de ton tour.',
-    'Les documents de la tâche sont dans docs/pipeline/ : tu les lis, tu ne modifies jamais spec.md.',
+    'Les documents de la tâche sont dans docs/pipeline/ : tu les lis, tu ne modifies jamais spec.md ni contrat.md.',
     // Rangement que la vue Workflow sait lire (L1o D20) : sinon le document n'apparaît pas sur la carte.
     'Si tu écris un brainstorm : docs/brainstorm/L<niveau><lettre>-<sujet>.md (ex. L1d-code-local.md), avec sous le ' +
       'titre « **Parent** : <document> · **Maturité** : insuffisant | suffisant | complet · **Tâches** : ' +
@@ -333,8 +338,24 @@ export class PipelineEngine {
       const plan = assembly.lot === undefined ? undefined : this.plans.get(taskId)
       return { taskId, completed, rounds, agents, ...(plan === undefined ? {} : { plan }) }
     }
-    const runPlan = async (plan: ReadonlyMap<string, PassNature>, feedback?: string): Promise<boolean> => {
-      await this.schedule({ assembly, plan, profileOf, baseBranch, signal, latest, passes, feedback, progress, work })
+    const runPlan = async (
+      plan: ReadonlyMap<string, PassNature>,
+      feedback?: string,
+      feedbackFrom?: FeedbackSource
+    ): Promise<boolean> => {
+      await this.schedule({
+        assembly,
+        plan,
+        profileOf,
+        baseBranch,
+        signal,
+        latest,
+        passes,
+        feedback,
+        ...(feedbackFrom === undefined ? {} : { feedbackFrom }),
+        progress,
+        work
+      })
       return [...plan.keys()].every((id) => latest.get(id)?.result.status === 'done')
     }
 
@@ -342,7 +363,25 @@ export class PipelineEngine {
     const po = assembly.agents.find((agent) => profileOf(agent.id).role === 'po')
     let plan = new Map<string, PassNature>(assembly.agents.map((agent) => [agent.id, 'initiale']))
     for (let round = 1; ; round++) {
-      if (!(await runPlan(plan))) return finish(false, round)
+      if (!(await runPlan(plan))) {
+        // Trou dans la spec (L2-pipeline-optimal D1) : l'Architecte a posé ses questions, les développeurs attendent ;
+        // le PO amende la spec, l'Architecte reprend, puis ceux qui en dépendent partent.
+        const asking = [...plan.keys()].filter((id) => latest.get(id)?.result.stopped?.reason === 'spec-question')
+        if (asking.length === 0 || po === undefined || asking.includes(po.id)) return finish(false, round)
+        const questions = asking.flatMap((id) => parseContract(latest.get(id)?.report ?? '').questions)
+        journal(`Tour ${round} : l’Architecte demande au PO (${questions.length} question(s)).`)
+        const amended = await runPlan(
+          new Map([[po.id, 'correction']]),
+          questions.map((question) => `- ${question}`).join('\n'),
+          'architecte'
+        )
+        if (!amended) return finish(false, round + 1)
+        plan = new Map(asking.map((id) => [id, 'repasse'] as const))
+        for (const id of [...downstreamOf(assembly, asking), ...qaIds]) {
+          if (!plan.has(id)) plan.set(id, passes.has(id) ? 'repasse' : 'initiale')
+        }
+        continue
+      }
 
       // Verdict de chaque QA (L1o D8) : tous valident, ou le travail repart par le PO.
       const renvois: string[] = []
@@ -559,6 +598,8 @@ export class PipelineEngine {
     readonly latest: Map<string, Outcome>
     readonly passes: Map<string, number>
     readonly feedback: string | undefined
+    /** Qui renvoie au PO : le QA (travail à reprendre) ou l'Architecte (trou dans la spec, L2-pipeline-optimal D1). */
+    readonly feedbackFrom?: FeedbackSource
     readonly progress: ProgressListener
     readonly work: AgentWorkListener
   }): Promise<void> {
@@ -625,6 +666,7 @@ export class PipelineEngine {
           pass,
           nature,
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
+          ...(input.feedbackFrom === undefined ? {} : { feedbackFrom: input.feedbackFrom }),
           ...(previous === undefined ? {} : { previousSession: previous }),
           signal,
           work: input.work
@@ -791,8 +833,12 @@ export class PipelineEngine {
         )
       }
     }
-    // Le PO signe la spec ; les autres rendent un rapport, dans le worktree : ils voyagent avec la branche.
+    // Le PO signe la spec, l'Architecte le contrat (L2-pipeline-optimal D1) ; les autres rendent un rapport, dans le
+    // worktree : ils voyagent avec la branche.
+    let questions: readonly string[] = []
     if (profile.role === 'po') this.plans.set(taskId, documents.writeSpec(taskId, 'po', result.text).plan)
+    else if (profile.role === 'architecte')
+      questions = documents.writeContract(taskId, 'architecte', result.text).questions
     else documents.writeReport(taskId, { id: agent.id, role: profile.role }, result.text, index)
 
     // Fichiers ajoutés par leur nom (jamais `git add -A`), hooks gardés (jamais `--no-verify`).
@@ -819,12 +865,24 @@ export class PipelineEngine {
     }
     const sha = await inTree(['rev-parse', 'HEAD'])
     const removed = await this.git(['worktree', 'remove', worktree])
+    // Questions au PO : le contrat attend une spec amendée ; ceux qui attendent l'Architecte ne partent pas (D1).
+    const asked =
+      questions.length === 0
+        ? {}
+        : {
+            status: 'failed' as const,
+            stopped: {
+              reason: 'spec-question' as const,
+              message: `l’Architecte attend une réponse du PO (${questions.length} question(s)).`
+            }
+          }
     return {
       result: {
         ...head(),
         sessionId,
         ...(sha.code === 0 ? { commit: sha.output.trim() } : {}),
-        ...(removed.code === 0 ? {} : { worktree })
+        ...(removed.code === 0 ? {} : { worktree }),
+        ...asked
       },
       report: result.text
     }
@@ -838,7 +896,24 @@ export class PipelineEngine {
     const { assembly, agent, profile } = turn
     const own = agent.task?.trim() ?? ''
     const parts: string[] = []
-    if (profile.role === 'po' && turn.feedback !== undefined && spec !== undefined) {
+    const contract = documents.readContract(assembly.taskId)
+    if (
+      profile.role === 'po' &&
+      turn.feedbackFrom === 'architecte' &&
+      turn.feedback !== undefined &&
+      spec !== undefined
+    ) {
+      // Trou dans la spec (L2-pipeline-optimal D1) : le PO amende, l'Architecte reprendra ; personne n'est désigné.
+      parts.push(
+        `Spec actuelle de la tâche ${assembly.taskId} (v${spec.version}) :`,
+        spec.content,
+        '',
+        'L’Architecte a trouvé un trou dans la spec et ne peut pas décider sans ta réponse :',
+        turn.feedback,
+        '',
+        `Amende la spec pour y répondre : elle remplace la v${spec.version} (garde tout ce qui ne change pas, et les lignes « RECOMMANDÉ: », « SUGGÉRÉ: », « AIGUILLAGE: », « RYTHME: » s’il y en a). Ta réponse EST la spec.`
+      )
+    } else if (profile.role === 'po' && turn.feedback !== undefined && spec !== undefined) {
       const others = assembly.agents
         .filter((a) => a.id !== agent.id)
         .map((a) => a.id)
@@ -871,10 +946,28 @@ export class PipelineEngine {
         '',
         SPEC_AGENTS_INSTRUCTIONS
       )
+    } else if (profile.role === 'architecte' && spec !== undefined) {
+      // L'Architecte décide le comment (L2-pipeline-optimal D1) : contrat figé avant le départ des développeurs.
+      const roles = new Map(this.deps.profiles().map((p) => [p.id, p.role] as const))
+      parts.push(`Spec signée de la tâche ${assembly.taskId} (v${spec.version}) :`, spec.content)
+      if (contract !== undefined) {
+        parts.push(
+          '',
+          `Ton contrat précédent (v${contract.version}) : reprends-le d’après cette spec.`,
+          contract.content
+        )
+      }
+      parts.push(
+        '',
+        contractInstructions(assembly.agents.map((a) => ({ id: a.id, role: roles.get(a.profileId) ?? 'autre' })))
+      )
     } else if (spec === undefined) {
       parts.push(`Tâche ${assembly.taskId} :`, assembly.brief.trim())
     } else {
       parts.push(`Spec signée de la tâche ${assembly.taskId} (v${spec.version}) :`, spec.content)
+      if (contract !== undefined) {
+        parts.push('', `Contrat de l’Architecte (v${contract.version}) : tu t’y tiens.`, contract.content)
+      }
       const reports = documents.listReports(assembly.taskId).filter((report) => report.agentId !== agent.id)
       if (reports.length > 0) {
         parts.push('', 'Rapports des agents dont tu reprends le travail :')
@@ -885,20 +978,19 @@ export class PipelineEngine {
       }
     }
     if (own !== '') parts.push('', 'Ta part :', own)
-    if (agent.zone !== undefined && agent.zone.length > 0) {
-      parts.push(
-        '',
-        `Ta zone de travail : ${agent.zone.join(', ')}. Reste dedans : d’autres agents travaillent ailleurs.`
-      )
+    // La zone fixée par l'Architecte remplace celle saisie à la main (L2-pipeline-optimal D1, CA2.3).
+    const zone = contract?.zones.find((entry) => entry.agent === agent.id)?.paths ?? agent.zone
+    if (zone !== undefined && zone.length > 0 && profile.role !== 'architecte') {
+      parts.push('', `Ta zone de travail : ${zone.join(', ')}. Reste dedans : d’autres agents travaillent ailleurs.`)
     }
     if (profile.role === 'qa') {
       parts.push(
         '',
-        `Vérifie le travail contre la spec et la branche « ${turn.baseBranch} » : critères d’acceptation, tests, régressions.`,
+        `Vérifie le travail contre la spec${contract === undefined ? '' : ', le contrat'} et la branche « ${turn.baseBranch} » : critères d’acceptation, tests, régressions.`,
         'Si tu trouves des erreurs, documente-les : à qui elles reviennent, comment les reproduire.',
         'Termine ton rapport par UNE dernière ligne : « VERDICT: VALIDE » (prêt pour l’accord de mentalyas) ou « VERDICT: RENVOI » (le PO reprendra la spec).'
       )
-    } else if (profile.role !== 'po') {
+    } else if (profile.role !== 'po' && profile.role !== 'architecte') {
       parts.push('', 'Fais ta part, puis rends ton rapport.')
     }
     return parts.join('\n')

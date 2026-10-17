@@ -295,6 +295,8 @@ export type AgentStopReason =
   | 'po-no-designation'
   /** Ses écritures ont été refusées (mode de permission du profil) et il n'a rien changé (L1o D20). */
   | 'permission-denied'
+  /** L'Architecte a trouvé un trou dans la spec : il attend que le PO l'amende (L2-pipeline-optimal D1). */
+  | 'spec-question'
 
 export interface AgentRunResult {
   readonly agentId: string

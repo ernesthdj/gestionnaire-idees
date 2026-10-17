@@ -36,6 +36,23 @@ describe('documents du pipeline', () => {
     expect(second).toMatchObject({ version: 2, content: 'Version 2' })
   })
 
+  it('should_let_only_the_architect_write_the_contract_and_read_its_app_lines', () => {
+    // L2-pipeline-optimal D1 (T006) : contrat signé par l'Architecte, version suivante à chaque réécriture.
+    for (const role of ['po', 'backend', 'qa'] as const) {
+      expect(() => docs.writeContract('T002', role, 'Je réécris le contrat')).toThrow(/Architecte/)
+    }
+    expect(docs.readContract('T002')).toBeUndefined()
+    docs.writeContract('T002', 'architecte', 'Version 1')
+    const second = docs.writeContract('T002', 'architecte', 'Version 2\nZONE: back | src/a.ts\nVERIFICATION: npm test')
+    expect(docs.readContract('T002')).toEqual(second)
+    expect(second).toMatchObject({
+      version: 2,
+      zones: [{ agent: 'back', paths: ['src/a.ts'] }],
+      commands: ['npm test'],
+      questions: []
+    })
+  })
+
   it('should_reject_task_ids_that_escape_the_pipeline_folder', () => {
     expect(() => docs.writeSpec('../x', 'po', 'a')).toThrow(/invalide/)
     expect(() => docs.writeReport('a/b', { id: 'qa', role: 'qa' }, 'a', FIRST)).toThrow(/invalide/)

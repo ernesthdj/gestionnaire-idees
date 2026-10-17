@@ -12,7 +12,8 @@
 
 ## Lot 2 — Contrat et intégration
 
-- [ ] T006 Étape Architecte : `contrat.md` (format `archi-contrat`), zones et aiguillage technique, renvoi au PO si la spec a un trou (D1, CA2.1–CA2.3) · agent : backend · dépend de : rien
+- [x] T006 Étape Architecte : `contrat.md` (format `archi-contrat`), zones, commandes de vérification proposées, renvoi au PO si la spec a un trou (D1, CA2.1–CA2.3) · agent : backend · dépend de : rien
+- [ ] T019 Aiguillage technique par l'Architecte : qui attend qui entre les développeurs, lu dans le contrat (« ATTEND: »), à la place de celui du PO ; le PO ne fait plus que proposer l'équipe (D1) · agent : backend · dépend de : T006
 - [ ] T007 Branche d'intégration d'une tâche : fusion des développeurs verts, vérifications sur le résultat fusionné, échec renvoyé au bon développeur (D4, CA3.1) · agent : backend · dépend de : T002
 - [ ] T008 Conflit de fusion résolu par le développeur en conflit (session reprise, diff de l'autre côté), Architecte en recours (D4, CA3.2) · agent : backend · dépend de : T003, T007
 
