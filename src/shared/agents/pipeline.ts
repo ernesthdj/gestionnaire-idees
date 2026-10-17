@@ -297,6 +297,15 @@ export type AgentStopReason =
   | 'permission-denied'
   /** L'Architecte a trouvé un trou dans la spec : il attend que le PO l'amende (L2-pipeline-optimal D1). */
   | 'spec-question'
+  /** mentalyas a refusé les commandes de vérification du contrat : les développeurs ne partent pas (D2). */
+  | 'checks-refused'
+
+/** Décision de mentalyas sur les commandes de vérification d'un contrat (L2-pipeline-optimal D2, T001). */
+export type ChecksDecision =
+  { readonly approved: true; readonly commands: readonly string[] } | { readonly approved: false }
+
+/** Demande à mentalyas de valider des commandes de vérification ; l'assemblage attend sa réponse. */
+export type ChecksAsker = (commands: readonly string[]) => Promise<ChecksDecision>
 
 export interface AgentRunResult {
   readonly agentId: string

@@ -21,6 +21,7 @@ import {
   type SketchEdit
 } from './sketchEdit'
 import { LotRouting } from './LotRouting'
+import { ChecksCard } from './ChecksCard'
 import { moveTargets } from './teamTargets'
 import { useAssemblyActions, useAssemblyData } from './useAssemblies'
 
@@ -282,6 +283,17 @@ export function AgentsTabContent({ tab }: { readonly tab: AgentsTab }): React.JS
                       : ' — arrêté, sans validation.'}
               </p>
             </div>
+          )}
+          {run?.checks === undefined ? null : (
+            <ChecksCard
+              key={run.checks.map((check) => check.command).join('\n')}
+              checks={run.checks}
+              busy={busy}
+              onDecide={(approved, commands) => {
+                setBusy(true)
+                void actions.decideChecks(run.genesisId, run.taskId, approved, commands).finally(() => setBusy(false))
+              }}
+            />
           )}
           {running ? null : (
             <div>

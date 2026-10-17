@@ -1,3 +1,4 @@
+import { CHECK_COMMANDS_MAX, parseCheckCommand, unvalidated } from '@shared/agents/checks'
 import { lotGroups, lotLabel, routeLot, type LotPlan, type LotTask } from '@shared/agents/lotPlan'
 import { isValidTaskId } from '@shared/agents/documents'
 import type { AgentWorkEvent, AgentWorkListener } from './PipelineEngine'
@@ -9,6 +10,8 @@ import {
   type AssemblyAgent,
   type AssemblyLink,
   type AssemblyRunResult,
+  type ChecksAsker,
+  type ChecksDecision,
   type CleanupResult,
   type ProgressListener
 } from '@shared/agents/pipeline'
@@ -45,7 +48,8 @@ export interface AssemblyEngine {
     assembly: Assembly,
     signal?: AbortSignal,
     onProgress?: ProgressListener,
-    onWork?: AgentWorkListener
+    onWork?: AgentWorkListener,
+    askChecks?: ChecksAsker
   ): Promise<AssemblyRunResult>
   approve(assembly: Assembly, boxes?: readonly TaskBox[]): Promise<ApprovalResult>
   cleanup?(assembly: Assembly): Promise<CleanupResult>
@@ -75,6 +79,11 @@ export interface AssemblyServiceDeps {
   readonly workLog?: (hostId: string, agentId: string, event: AgentWorkEvent) => void
   /** Travail livré (L1o D13) : crédite les profils des agents d'un assemblage validé, puis fusionné. */
   readonly credit?: (profileIds: readonly string[]) => void
+  /** Commandes de vérification validées par mentalyas, par projet (L2-pipeline-optimal D2). */
+  readonly checks?: {
+    validated(genesisId: string): string[]
+    save(genesisId: string, commands: readonly string[]): void
+  }
   readonly now?: () => number
 }
 
@@ -108,6 +117,8 @@ interface Run {
   approval?: ApprovalResult
   error?: string
   approving: boolean
+  /** Commandes de vérification du contrat en attente de la décision de mentalyas (L2-pipeline-optimal D2). */
+  pendingChecks?: { readonly commands: readonly string[]; readonly resolve: (decision: ChecksDecision) => void }
 }
 
 /** Mission écrite à partir du nœud (L1o D1 : le PO inspecte le contexte ; D12 : l'agent seul lit la tâche et le contexte). */
@@ -189,7 +200,8 @@ export class AssemblyService {
           this.apply(run, event)
           this.deps.emit(node.genesisId, assembly.taskId)
         },
-        (agentId, event) => this.deps.workLog?.(request.nodeId, agentId, event)
+        (agentId, event) => this.deps.workLog?.(request.nodeId, agentId, event),
+        (commands) => this.askChecks(run, commands)
       )
       .then((result) => {
         run.result = result
@@ -368,6 +380,53 @@ export class AssemblyService {
       throw new AppError('NOT_FOUND', `Aucun assemblage en cours pour la tâche ${taskId}.`)
     }
     run.controller.abort()
+    // Une validation en attente tombe avec l'assemblage : les développeurs ne partiront pas.
+    run.pendingChecks?.resolve({ approved: false })
+    delete run.pendingChecks
+  }
+
+  /**
+   * Commandes de vérification du contrat (L2-pipeline-optimal D2, T001) : déjà validées pour ce projet, elles passent ;
+   * sinon l'assemblage attend la décision de mentalyas (carte dans l'onglet Agents).
+   */
+  private askChecks(run: Run, commands: readonly string[]): Promise<ChecksDecision> {
+    const known = this.deps.checks?.validated(run.node.genesisId) ?? []
+    if (unvalidated(commands, known).length === 0) return Promise.resolve({ approved: true, commands })
+    return new Promise((resolve) => {
+      run.pendingChecks = { commands, resolve }
+      this.deps.emit(run.node.genesisId, run.assembly.taskId)
+    })
+  }
+
+  /** Décision de mentalyas sur les commandes : validées (telles quelles ou modifiées) et gardées, ou refusées. */
+  decideChecks(
+    genesisId: string,
+    taskId: string,
+    decision: { readonly approved: boolean; readonly commands?: readonly string[] }
+  ): AssemblyRunView {
+    const run = this.runs.get(this.key(genesisId, taskId))
+    const pending = run?.pendingChecks
+    if (run === undefined || pending === undefined) {
+      throw new AppError('NOT_FOUND', 'Aucune commande de vérification en attente pour cette tâche.')
+    }
+    if (decision.approved) {
+      const commands = (decision.commands ?? pending.commands).map((command) => command.trim()).filter((c) => c !== '')
+      if (commands.length === 0) throw new AppError('VALIDATION', 'Garde au moins une commande, ou refuse.')
+      if (commands.length > CHECK_COMMANDS_MAX) {
+        throw new AppError('VALIDATION', `Au plus ${CHECK_COMMANDS_MAX} commandes.`)
+      }
+      for (const command of commands) {
+        const parsed = parseCheckCommand(command)
+        if (!parsed.ok) throw new AppError('VALIDATION', `« ${command} » : ${parsed.reason}.`)
+      }
+      this.deps.checks?.save(genesisId, commands)
+      pending.resolve({ approved: true, commands })
+    } else {
+      pending.resolve({ approved: false })
+    }
+    delete run.pendingChecks
+    this.deps.emit(genesisId, taskId)
+    return this.view(run)
   }
 
   /** Accord unique de mentalyas (L1o D11) : fusionne l'assemblage validé sur la branche de base. */
@@ -493,6 +552,14 @@ export class AssemblyService {
       ),
       ...(run.result === undefined ? {} : { result: run.result }),
       ...(run.approval === undefined ? {} : { approval: run.approval }),
+      ...(run.pendingChecks === undefined
+        ? {}
+        : {
+            checks: run.pendingChecks.commands.map((command) => {
+              const parsed = parseCheckCommand(command)
+              return { command, problem: parsed.ok ? null : parsed.reason }
+            })
+          }),
       ...(run.error === undefined ? {} : { error: run.error })
     }
   }

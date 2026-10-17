@@ -3022,3 +3022,22 @@ l'Architecte reprend son contrat, puis les développeurs partent.
 temporaire) : PO → Architecte → back jusqu'au bout ; contrat avec matrice, `ZONE: back | src/liste.ts, src/liste.test.ts`
 et `VERIFICATION: npm test`.
 **Reste :** l'aiguillage technique (qui attend qui) par l'Architecte : T019.
+
+### [2026-10-17 12:40] FEAT — mentalyas valide les commandes de vérification du contrat (L2-pipeline-optimal D2, T001)
+**Fichiers :** `src/shared/agents/checks.ts` (nouveau : `parseCheckCommand` sans shell, `unvalidated`),
+`src/main/infrastructure/projects/CheckCommandsStore.ts` (nouveau : `<profil>/agent-checks/<genesis>.json`),
+`shared/agents/pipeline.ts` (`ChecksDecision`, `ChecksAsker`, `checks-refused`), `PipelineEngine.ts` (pause après le
+contrat), `AssemblyService.ts` (`askChecks`, `decideChecks`, `checks` de la vue), `assemblyHandlers.ts` + canal
+`assembly:checks`, `bootstrap.ts`, `ChecksCard.tsx` (nouveau), `AgentsTabContent.tsx`, `useAssemblies.ts` ; tests
+`checks`, `assembly-service`, `checks-card`. Corrigé en route : `prefer-const` sur le relevé de T015 (`measured`).
+**Quoi :** quand le contrat de l'Architecte propose des commandes encore jamais validées pour ce projet, l'assemblage
+attend : carte « Commandes de vérification » dans l'onglet Agents (liste exacte, Valider / Modifier une par ligne /
+Refuser). Validées : gardées pour le projet, plus redemandées. Refusées : l'Architecte s'arrête (« checks-refused »),
+les développeurs ne partent pas. Annuler l'assemblage refuse la demande en attente.
+**Garde :** une commande qu'un shell interpréterait (`| & ; < > $` accent grave, barre oblique inverse, saut de ligne) ou
+qui lance un interpréteur (cmd, powershell, bash…) est refusée d'office, côté interface, IPC et service ; elle est
+découpée en programme + arguments pour T002.
+**Vérifié :** typecheck, lint, Prettier, 2 527 tests ; vrais agents (e2e ponctuel non commité, modèle léger) : PO →
+Architecte, carte avec ses deux commandes (captures `t001-01`, `t001-02`), « Refuser » arrête l'assemblage.
+**Limite :** pendant l'attente, l'Architecte s'affiche « au travail » (puis « en erreur » après un refus) : son état
+ne dit pas encore « attend ta décision ».

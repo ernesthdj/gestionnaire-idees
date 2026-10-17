@@ -146,6 +146,7 @@ import { ToolFileReader } from './application/conversation/ToolFileReader'
 import { createProjectRoutes } from './ipc/projectHandlers'
 import { ProjectService } from './application/projects/ProjectService'
 import { runGit } from './infrastructure/projects/GitCli'
+import { CheckCommandsStore } from './infrastructure/projects/CheckCommandsStore'
 import { createMapUpdateRoutes, createStructureRoutes } from './ipc/structureHandlers'
 import { MapUpdateService } from './application/structure/MapUpdateService'
 import { RunService } from './application/run/RunService'
@@ -1401,6 +1402,8 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   })
   const assemblies = new AssemblyService({
     sketches: assemblySketches,
+    // Commandes de vérification validées par mentalyas, par projet (L2-pipeline-optimal D2).
+    checks: new CheckCommandsStore(join(dataDir, 'agent-checks')),
     moveChats: (genesisId, from, to) => void workflowChatRepository.moveHost(genesisId, from, to),
     // Les agents se connectent aux nœuds de la vue Workflow (L1o D14) : leur contexte se lit dans les fichiers du projet.
     node: (nodeId) => {

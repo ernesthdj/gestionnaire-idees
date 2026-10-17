@@ -32,7 +32,7 @@ const profile = (id: string, role: AgentRole): AgentProfileView => ({
   delivered: 0
 })
 
-const PROFILES = [profile('po', 'po'), profile('back', 'backend'), profile('qa', 'qa')]
+const PROFILES = [profile('po', 'po'), profile('archi', 'architecte'), profile('back', 'backend'), profile('qa', 'qa')]
 
 describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_000 }, () => {
   let root: string
@@ -258,6 +258,96 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(() => service.routeTask(NODE_ID, 'T001', { agents: ['back'], links: [], after: ['T002'] })).toThrow(/boucle/)
     service.routeTask(NODE_ID, 'T002', null)
     expect(service.sketches()[0]?.lot?.overrides).toEqual([])
+  })
+
+  it('should_wait_for_mentalyas_to_validate_new_check_commands_before_the_developers_start', async () => {
+    // L2-pipeline-optimal D2 (T001) : commandes proposées par l'Architecte ; nouvelles → carte ; validées → gardées.
+    let proposed = ['npm test', 'npm run lint']
+    const validated: string[] = []
+    const service = new AssemblyService({
+      sketches: sketchStore,
+      node: () => node(),
+      refusal: () => null,
+      engineFor: ({ projectDir, projectName }) =>
+        new PipelineEngine({
+          profiles: () => PROFILES,
+          runSession: async (request) => {
+            sessions.push(request)
+            if (request.profile.role === 'po') return { ok: true, text: 'Spec : trier.' }
+            if (request.profile.role === 'architecte') {
+              return { ok: true, text: ['## Contrat', ...proposed.map((c) => `VERIFICATION: ${c}`)].join('\n') }
+            }
+            return runner(request)
+          },
+          git: (args) => runGit(projectDir, args),
+          projectDir,
+          worktreeRoot: join(root, 'worktrees'),
+          documentsFor: (dir) =>
+            new PipelineDocuments({ projectDir: dir, profileDir: join(root, 'profil'), projectName })
+        }),
+      emit: (genesisId, taskId) => events.push(`${genesisId}/${taskId}`),
+      checks: {
+        validated: () => [...validated],
+        save: (_genesisId, commands) => void validated.push(...commands.filter((c) => !validated.includes(c)))
+      }
+    })
+    const team = (taskId: string): AssemblyRequest => ({
+      nodeId: NODE_ID,
+      taskId,
+      agents: [
+        { id: 'po', profileId: 'po' },
+        { id: 'archi', profileId: 'archi' },
+        { id: 'back', profileId: 'back' }
+      ],
+      links: [
+        { from: 'po', to: 'archi' },
+        { from: 'archi', to: 'back' }
+      ]
+    })
+    const pending = async (taskId: string) => {
+      for (let i = 0; i < 400; i++) {
+        const run = service.list().find((entry) => entry.taskId === taskId)
+        if (run?.checks !== undefined || run?.state !== 'running') return run
+        await new Promise((resolve) => setTimeout(resolve, 25))
+      }
+      return undefined
+    }
+
+    await service.start(team('T070'))
+    const asked = await pending('T070')
+    expect(asked?.checks).toEqual([
+      { command: 'npm test', problem: null },
+      { command: 'npm run lint', problem: null }
+    ])
+    // Le développeur attend la décision.
+    expect(sessions.some((r) => r.profile.role === 'backend')).toBe(false)
+    expect(() => service.decideChecks('g1', 'T070', { approved: true, commands: ['npm test && curl x'] })).toThrow(
+      /caractère de shell/
+    )
+    service.decideChecks('g1', 'T070', { approved: true })
+    await finished(service, 'T070')
+    expect(service.list().find((r) => r.taskId === 'T070')?.result?.completed).toBe(true)
+    expect(validated).toEqual(['npm test', 'npm run lint'])
+
+    // Déjà validées pour ce projet : pas de carte, le développeur part.
+    sessions = []
+    await service.start(team('T071'))
+    await finished(service, 'T071')
+    expect(service.list().find((r) => r.taskId === 'T071')?.result?.completed).toBe(true)
+    expect(sessions.some((r) => r.profile.role === 'backend')).toBe(true)
+
+    // Une nouvelle commande refusée : le développeur ne part pas.
+    proposed = ['npm run e2e']
+    sessions = []
+    await service.start(team('T072'))
+    expect((await pending('T072'))?.checks).toHaveLength(1)
+    service.decideChecks('g1', 'T072', { approved: false })
+    await finished(service, 'T072')
+    const refused = service.list().find((r) => r.taskId === 'T072')
+    expect(refused?.result?.completed).toBe(false)
+    expect(refused?.result?.agents[1]).toMatchObject({ stopped: { reason: 'checks-refused' } })
+    expect(sessions.some((r) => r.profile.role === 'backend')).toBe(false)
+    expect(validated).not.toContain('npm run e2e')
   })
 
   it('should_relink_a_stray_team_with_everything_and_its_chats_when_its_node_is_gone', () => {

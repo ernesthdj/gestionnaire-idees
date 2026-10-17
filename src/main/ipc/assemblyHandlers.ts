@@ -1,3 +1,4 @@
+import { CHECK_COMMAND_MAX, CHECK_COMMANDS_MAX } from '@shared/agents/checks'
 import { z } from 'zod'
 import type { ApprovalResult, AssemblyLink, CleanupResult } from '@shared/agents/pipeline'
 import type { AssemblyRunView, AssemblySketchView } from '@shared/ipc/assemblies'
@@ -9,6 +10,12 @@ export interface AssemblyRoutesDeps {
   warnings(request: AssemblyRequest): Promise<string[]>
   start(request: AssemblyRequest): Promise<AssemblyRunView>
   cancel(genesisId: string, taskId: string): void
+  /** Commandes de vérification du contrat validées (ou modifiées) ou refusées par mentalyas (L2-pipeline-optimal D2). */
+  decideChecks(
+    genesisId: string,
+    taskId: string,
+    decision: { readonly approved: boolean; readonly commands?: readonly string[] }
+  ): AssemblyRunView
   approve(genesisId: string, taskId: string): Promise<ApprovalResult>
   cleanup(genesisId: string, taskId: string): Promise<CleanupResult>
   list(genesisId?: string): AssemblyRunView[]
@@ -120,6 +127,18 @@ export function createAssemblyRoutes(
         deps.cancel(genesisId, taskId)
         return {}
       }
+    }),
+    // Commandes de vérification proposées par l'Architecte (L2-pipeline-optimal D2, T001) : rien ne part sans ce clic.
+    defineRoute({
+      channel: 'assembly:checks',
+      input: z.strictObject({
+        genesisId: z.uuid(),
+        taskId: TaskId,
+        approved: z.boolean(),
+        commands: z.array(z.string().max(CHECK_COMMAND_MAX)).max(CHECK_COMMANDS_MAX).optional()
+      }),
+      handler: async ({ genesisId, taskId, approved, commands }) =>
+        deps.decideChecks(genesisId, taskId, { approved, ...(commands === undefined ? {} : { commands }) })
     }),
     defineRoute({
       channel: 'assembly:approve',

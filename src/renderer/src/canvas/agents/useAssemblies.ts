@@ -59,6 +59,13 @@ export function useAssemblyActions(): {
   readonly start: (sketch: AssemblySketchView, baseBranch?: string) => Promise<boolean>
   readonly cancel: (genesisId: string, taskId: string) => Promise<boolean>
   readonly approve: (genesisId: string, taskId: string) => Promise<ApprovalResult | null>
+  /** Commandes de vérification du contrat (L2-pipeline-optimal D2) : validées (modifiées ou non) ou refusées. */
+  readonly decideChecks: (
+    genesisId: string,
+    taskId: string,
+    approved: boolean,
+    commands?: readonly string[]
+  ) => Promise<boolean>
 } {
   const client = useQueryClient()
   const showToast = useUiStore((state) => state.showToast)
@@ -129,7 +136,18 @@ export function useAssemblyActions(): {
         attempt(
           () => call<ApprovalResult>('assembly:approve', { genesisId, taskId, confirm: true }),
           'La fusion n’a pas pu être faite.'
-        )
+        ),
+      decideChecks: async (genesisId, taskId, approved, commands) =>
+        (await attempt(
+          () =>
+            call('assembly:checks', {
+              genesisId,
+              taskId,
+              approved,
+              ...(commands === undefined ? {} : { commands: [...commands] })
+            }),
+          'La décision sur les commandes n’a pas pu être enregistrée.'
+        )) !== null
     }),
     [attempt]
   )

@@ -23,6 +23,7 @@ import {
   type Assembly,
   type AssemblyAgent,
   type AssemblyRunResult,
+  type ChecksAsker,
   type CleanupResult,
   type PassIndex,
   type PassNature,
@@ -213,6 +214,8 @@ interface Turn {
   readonly nature: PassNature
   readonly feedback?: string
   readonly feedbackFrom?: FeedbackSource
+  /** Validation des commandes de vérification par mentalyas, après le contrat de l'Architecte (D2). */
+  readonly askChecks?: ChecksAsker
   /** Session de la passe précédente de cet agent : reprise, il garde son raisonnement (L2-pipeline-optimal D3). */
   readonly previousSession?: string
   readonly signal: AbortSignal | undefined
@@ -298,7 +301,9 @@ export class PipelineEngine {
     assembly: Assembly,
     signal?: AbortSignal,
     onProgress?: ProgressListener,
-    onWork?: AgentWorkListener
+    onWork?: AgentWorkListener,
+    /** Validation par mentalyas des commandes de vérification du contrat (L2-pipeline-optimal D2) ; absente : aucune. */
+    askChecks?: ChecksAsker
   ): Promise<AssemblyRunResult> {
     const { taskId } = assembly
     const profileOf = this.checked(assembly)
@@ -353,6 +358,7 @@ export class PipelineEngine {
         passes,
         feedback,
         ...(feedbackFrom === undefined ? {} : { feedbackFrom }),
+        ...(askChecks === undefined ? {} : { askChecks }),
         progress,
         work
       })
@@ -600,6 +606,7 @@ export class PipelineEngine {
     readonly feedback: string | undefined
     /** Qui renvoie au PO : le QA (travail à reprendre) ou l'Architecte (trou dans la spec, L2-pipeline-optimal D1). */
     readonly feedbackFrom?: FeedbackSource
+    readonly askChecks?: ChecksAsker
     readonly progress: ProgressListener
     readonly work: AgentWorkListener
   }): Promise<void> {
@@ -667,6 +674,7 @@ export class PipelineEngine {
           nature,
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
           ...(input.feedbackFrom === undefined ? {} : { feedbackFrom: input.feedbackFrom }),
+          ...(input.askChecks === undefined ? {} : { askChecks: input.askChecks }),
           ...(previous === undefined ? {} : { previousSession: previous }),
           signal,
           work: input.work
@@ -709,7 +717,7 @@ export class PipelineEngine {
     const worktree = join(this.deps.worktreeRoot, taskId, agent.id)
     let index: PassIndex = { pass: turn.pass, nature: turn.nature }
     // Consommation de la passe (L2-pipeline-optimal D10) : connue une fois la session finie, jointe au résultat.
-    let usage: PassUsage | undefined
+    const measured: { usage?: PassUsage } = {}
     const head = (): AgentRunResult => ({
       agentId: agent.id,
       role: profile.role,
@@ -717,7 +725,7 @@ export class PipelineEngine {
       index,
       branch,
       status: 'done',
-      ...(usage === undefined ? {} : { usage })
+      ...(measured.usage === undefined ? {} : { usage: measured.usage })
     })
     // Le worktree d'un agent arrêté reste en place, pour voir où il en était.
     const fail = (reason: AgentStopReason, message: string, sessionId?: string, kept = true): Outcome => {
@@ -797,8 +805,9 @@ export class PipelineEngine {
       sessionId = (this.deps.newSessionId ?? randomUUID)()
       result = await session(sessionId, false)
     }
-    usage = consumed.usage()
+    const usage = consumed.usage()
     if (usage !== undefined) {
+      measured.usage = usage
       documents.appendUsage({
         at: Date.now(),
         taskId,
@@ -836,10 +845,13 @@ export class PipelineEngine {
     // Le PO signe la spec, l'Architecte le contrat (L2-pipeline-optimal D1) ; les autres rendent un rapport, dans le
     // worktree : ils voyagent avec la branche.
     let questions: readonly string[] = []
+    let commands: readonly string[] = []
     if (profile.role === 'po') this.plans.set(taskId, documents.writeSpec(taskId, 'po', result.text).plan)
-    else if (profile.role === 'architecte')
-      questions = documents.writeContract(taskId, 'architecte', result.text).questions
-    else documents.writeReport(taskId, { id: agent.id, role: profile.role }, result.text, index)
+    else if (profile.role === 'architecte') {
+      const contract = documents.writeContract(taskId, 'architecte', result.text)
+      questions = contract.questions
+      commands = contract.commands
+    } else documents.writeReport(taskId, { id: agent.id, role: profile.role }, result.text, index)
 
     // Fichiers ajoutés par leur nom (jamais `git add -A`), hooks gardés (jamais `--no-verify`).
     const changed = await inTree(['diff', '--name-only', '-z', '--no-renames', 'HEAD'])
@@ -866,16 +878,29 @@ export class PipelineEngine {
     const sha = await inTree(['rev-parse', 'HEAD'])
     const removed = await this.git(['worktree', 'remove', worktree])
     // Questions au PO : le contrat attend une spec amendée ; ceux qui attendent l'Architecte ne partent pas (D1).
+    // Sinon, mentalyas valide les commandes de vérification proposées avant le départ des développeurs (D2).
+    const decision =
+      questions.length === 0 && commands.length > 0 && turn.askChecks !== undefined && !aborted()
+        ? await turn.askChecks(commands)
+        : undefined
     const asked =
-      questions.length === 0
-        ? {}
-        : {
+      questions.length > 0
+        ? {
             status: 'failed' as const,
             stopped: {
               reason: 'spec-question' as const,
               message: `l’Architecte attend une réponse du PO (${questions.length} question(s)).`
             }
           }
+        : decision?.approved === false
+          ? {
+              status: 'failed' as const,
+              stopped: {
+                reason: 'checks-refused' as const,
+                message: 'commandes de vérification refusées par mentalyas : les développeurs ne partent pas.'
+              }
+            }
+          : {}
     return {
       result: {
         ...head(),

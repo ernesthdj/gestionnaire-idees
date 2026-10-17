@@ -69,6 +69,11 @@ export interface AssemblyRunView {
   readonly approval?: ApprovalResult
   /** Erreur inattendue du moteur (état `failed`). */
   readonly error?: string
+  /**
+   * Commandes de vérification du contrat qui attendent la décision de mentalyas (L2-pipeline-optimal D2) ; `problem` :
+   * la raison d'un refus d'office (caractère de shell…).
+   */
+  readonly checks?: readonly { readonly command: string; readonly problem: string | null }[]
 }
 
 /** Agent posé libre sur la carte d'un projet (L1o D26) : appelé depuis le tiroir, pas encore relié à un nœud. */

@@ -4,7 +4,7 @@
 
 ## Lot 1 — Vérifier par des faits
 
-- [ ] T001 Commandes de vérification écrites par l'Architecte dans son contrat ; carte de validation par mentalyas (Valider / Modifier / Refuser) avant le départ des développeurs ; gardées avec le projet (D2, CA1.0) · agent : backend + frontend · dépend de : T006
+- [x] T001 Commandes de vérification écrites par l'Architecte dans son contrat ; carte de validation par mentalyas (Valider / Modifier / Refuser) avant le départ des développeurs ; gardées avec le projet (D2, CA1.0) · agent : backend + frontend · dépend de : T006
 - [ ] T002 Lancer les vérifications dans le worktree d'un agent après sa passe : sans shell, par chemin, délai et sortie bornés ; résultat gardé avec la passe (D2, CA1.1, CA1.4) · agent : backend · dépend de : T001
 - [x] T003 Reprise de session d'un agent d'un tour à l'autre (`--resume`), vérifiée avec `--setting-sources ""` (D3) · agent : backend · dépend de : rien
 - [ ] T004 Boucle rapide sans plafond : vérification rouge → le même développeur repart avec le log, dans sa session reprise (D3, CA1.2, CA1.3) · agent : backend · dépend de : T002, T003
