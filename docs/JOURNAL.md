@@ -3060,3 +3060,8 @@ vérifications, posée seulement si git l'ignore (`check-ignore node_modules/` :
 la suppression du worktree ; testé : la cible reste intacte, rien n'est commité. (2) Sous Windows, un processus tué
 tient son dossier un instant : on attend sa fermeture (5 s au plus) avant de rendre la main.
 **Vérifié :** typecheck, lint, Prettier, 2 534 tests (lanceur réel : vert, rouge, npm par node, introuvable, délai).
+
+### [2026-10-17 13:16] SESSION — End
+**Resume :** session du 17/10 (08:47–13:16). Agents : T019 et T020 vérifiées avec le vrai Claude ; L1o D28 (agents et tâches d'un lot en parallèle, T031, T032) ; brainstorm complet du pipeline en cinq phases (L2-pipeline-optimal, D1–D12, 19 tâches) puis T003 (reprise de session), T015 (relevé de consommation), T014 (sessions d'agent sans connecteurs claude.ai, pont du Brainstormer filtré côté serveur : faille corrigée), T006 (contrat de l'Architecte), T001 (validation des commandes de vérification), T002 (vérifications lancées sans shell, jonction node_modules). Carte : installer un skill au clic droit, visio aérée, chambres nettes au zoom, widgets repliables, reliés au bon nœud et posés à côté, repixelisation au dézoom.
+**Branche :** main
+**Commits pushes :** 12
