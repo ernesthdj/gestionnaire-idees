@@ -47,6 +47,10 @@ export type StreamEvent =
       readonly text: string
       readonly sessionId: string | null
       readonly usage: TurnUsage
+      /** Coût indicatif en dollars, nombre de tours de la session et durée, quand le CLI les rend (L2-pipeline-optimal D10). */
+      readonly costUsd: number | null
+      readonly turns: number | null
+      readonly durationMs: number | null
     }
 
 /** Part utilisée (0–1) d'une fenêtre de l'abonnement et sa remise à zéro (secondes depuis 1970). */
@@ -170,7 +174,10 @@ export function parseStreamLine(line: string): StreamEvent[] {
             outputTokens: num(usage['output_tokens']) ?? 0,
             cacheReadTokens: num(usage['cache_read_input_tokens']) ?? 0,
             cacheWriteTokens: num(usage['cache_creation_input_tokens']) ?? 0
-          }
+          },
+          costUsd: num(value['total_cost_usd']),
+          turns: num(value['num_turns']),
+          durationMs: num(value['duration_ms'])
         }
       ]
     }

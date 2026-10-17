@@ -2952,3 +2952,29 @@ la jauge) avant « complet ».
 **Fichiers :** `docs/brainstorm/L2-pipeline-optimal.md`, `docs/TACHES-PIPELINE.md`.
 **Quoi :** seuils de la jauge validés par mentalyas (part de la jauge des 5 h, relatifs à la médiane du rôle, fixes au
 départ) ; maturité « complet » ; les 18 tâches ne sont plus des ébauches.
+
+### [2026-10-17 11:35] FEAT — un agent reprend sa session d'une passe à l'autre (L2-pipeline-optimal D3, T003)
+**Fichiers :** `src/main/application/agents/PipelineEngine.ts` (`previousSession` du tour, reprise, repli sur une
+session neuve), `src/main/infrastructure/claude/AgentSession.ts` (`--resume`, `missingSession`) ; tests
+`pipeline-engine`, `agent-session`.
+**Quoi :** une correction, une repasse ou la réécriture du PO reprend la session de la passe précédente du même agent
+(`--resume <id>`) au lieu d'en ouvrir une neuve : il garde son raisonnement et son contexte. Si Claude Code ne connaît
+plus la session (effacée, autre poste), la même passe repart dans une session neuve.
+**Vérifié à la main avant de coder (`claude -p`, modèle léger) :** session créée, dossier supprimé puis recréé au même
+chemin (comme le worktree d'un agent entre deux passes), `--resume` avec `--setting-sources ""` : l'agent retrouve le
+mot retenu, même identifiant. Session inconnue : `num_turns: 0`, `errors: ["No conversation found…"]`.
+**Vérifié :** typecheck, lint, Prettier, tests (`pipeline-engine` : reprise du PO et du développeur, repli).
+
+### [2026-10-17 11:41] FEAT — relevé de consommation de chaque passe d'agent (L2-pipeline-optimal D10, T015)
+**Fichiers :** `src/main/domain/conversation/streamEvents.ts` (`costUsd`, `turns`, `durationMs` du résultat),
+`src/shared/agents/pipeline.ts` (`PassUsage`, `UsageRecord`, `usage` d'`AgentRunResult`), `PipelineEngine.ts`
+(`usageOf`, relevé joint au résultat et écrit), `PipelineDocuments.ts` (`usageFile`, `appendUsage`, `readUsage`
+revalidé par Zod), `bootstrap.ts` (`<profil>/agent-usage/<genesis>.jsonl`) ; tests `pipeline-engine`,
+`stream-sheet-context`.
+**Quoi :** chaque passe garde ses tokens (entrée, sortie, cache lu et écrit), son coût indicatif, ses tours, ses outils
+appelés, sa durée et la jauge des 5 h au début et à la fin ; joint au résultat de l'agent et ajouté au relevé du projet
+(une ligne JSON par passe, hors du dépôt), que l'historique (T017) et la jauge (T016) liront.
+**Vérifié :** typecheck, lint, Prettier, 2 512 tests ; flux d'une vraie session `claude -p` (modèle léger) :
+`rate_limit_event` avec `five_hour` et `seven_day`, `total_cost_usd`, `num_turns`, `duration_ms` et `usage` présents.
+**Limite :** l'écart de jauge d'une passe compte aussi ce que consomment, au même moment, les autres agents et
+conversations.

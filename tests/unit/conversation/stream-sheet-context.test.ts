@@ -55,7 +55,30 @@ describe('flux stream-json du CLI', () => {
     ])
     expect(
       parseStreamLine(line({ type: 'result', subtype: 'success', is_error: false, result: 'Salut', session_id: 's1' }))
-    ).toMatchObject([{ kind: 'result', ok: true, text: 'Salut', sessionId: 's1', usage: { inputTokens: 0 } }])
+    ).toMatchObject([
+      {
+        kind: 'result',
+        ok: true,
+        text: 'Salut',
+        sessionId: 's1',
+        usage: { inputTokens: 0 },
+        costUsd: null,
+        turns: null
+      }
+    ])
+    // L2-pipeline-optimal D10 : coût indicatif, tours et durée de la session, quand le CLI les rend.
+    expect(
+      parseStreamLine(
+        line({
+          type: 'result',
+          subtype: 'success',
+          result: 'Ok',
+          total_cost_usd: 0.42,
+          num_turns: 6,
+          duration_ms: 15000
+        })
+      )
+    ).toMatchObject([{ kind: 'result', costUsd: 0.42, turns: 6, durationMs: 15000 }])
     expect(parseStreamLine(line({ type: 'result', subtype: 'error_during_execution', is_error: true }))).toEqual([
       expect.objectContaining({ kind: 'result', ok: false, text: 'La conversation a échoué.', sessionId: null })
     ])

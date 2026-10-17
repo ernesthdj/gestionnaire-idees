@@ -1459,7 +1459,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
             projectDir: dir,
             projectName,
             profileDir: dataDir,
-            projectJournalFile: join(dataDir, 'agent-journals', `${genesisId}.md`)
+            projectJournalFile: join(dataDir, 'agent-journals', `${genesisId}.md`),
+            // Relevé de consommation des passes (L2-pipeline-optimal D10), hors du dépôt.
+            usageFile: join(dataDir, 'agent-usage', `${genesisId}.jsonl`)
           })
       }),
     emit: (genesisId, taskId) => broadcast('assembly:changed', { genesisId, taskId })

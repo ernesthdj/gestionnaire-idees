@@ -7,6 +7,8 @@ import { isSkillName } from '../../domain/skills/paths'
 import { runProcess, type RunProcess } from '../ai/ClaudeCliProvider'
 
 const SESSION_TIMEOUT_MS = 30 * 60_000
+/** Début du message de Claude Code quand une session à reprendre n'existe pas (vérifié sur `claude -p --resume`). */
+const NO_SESSION = 'No conversation found'
 
 /** Nom du plugin qui porte les skills d'un agent : Claude les voit sous `agent-skills:<nom>`. */
 export const AGENT_SKILLS_PLUGIN = 'agent-skills'
@@ -44,6 +46,8 @@ export function writeSkillsPlugin(root: string, skills: readonly AgentSkillSourc
 /** Arguments fixes d'une session d'agent (`claude -p`) : rien ne vient du texte de la tâche. */
 export function agentSessionArgs(input: {
   readonly sessionId: string
+  /** Reprendre la session `sessionId` (passe suivante du même agent) au lieu d'en créer une. */
+  readonly resume?: boolean
   readonly model: string
   readonly effort: string
   readonly permissionMode: string
@@ -56,7 +60,9 @@ export function agentSessionArgs(input: {
     '--output-format',
     'stream-json',
     '--verbose',
-    '--session-id',
+    // Reprise (L2-pipeline-optimal D3) : l'agent retrouve son raisonnement ; vérifié avec `--setting-sources ""`, même
+    // quand son worktree a été supprimé puis recréé au même chemin entre deux passes.
+    input.resume === true ? '--resume' : '--session-id',
     input.sessionId,
     '--model',
     input.model,
@@ -101,6 +107,7 @@ export const createAgentSessionRunner =
       command,
       args: agentSessionArgs({
         sessionId: request.sessionId,
+        ...(request.resume === true ? { resume: true } : {}),
         model: request.profile.model,
         effort: request.profile.effort,
         permissionMode: request.profile.permissionMode,
@@ -130,9 +137,26 @@ export const createAgentSessionRunner =
       .at(-1)
     if (line === undefined) return { ok: false, text: '', error: 'Réponse illisible de Claude Code.' }
     try {
-      const json = JSON.parse(line) as { is_error?: boolean; subtype?: string; result?: string }
+      const json = JSON.parse(line) as {
+        is_error?: boolean
+        subtype?: string
+        result?: string
+        num_turns?: number
+        errors?: unknown
+      }
       if (json.is_error === true || (json.subtype !== undefined && json.subtype !== 'success')) {
-        return { ok: false, text: '', error: json.result ?? 'La session a échoué.' }
+        // Reprise d'une session inconnue de Claude Code : rien n'a tourné, le moteur en ouvre une neuve.
+        const missing =
+          request.resume === true &&
+          json.num_turns === 0 &&
+          Array.isArray(json.errors) &&
+          json.errors.some((entry) => typeof entry === 'string' && entry.startsWith(NO_SESSION))
+        return {
+          ok: false,
+          text: '',
+          error: json.result ?? 'La session a échoué.',
+          ...(missing ? { missingSession: true } : {})
+        }
       }
       return { ok: true, text: json.result ?? '' }
     } catch {

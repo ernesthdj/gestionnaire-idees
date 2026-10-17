@@ -26,6 +26,7 @@ import {
   type CleanupResult,
   type PassIndex,
   type PassNature,
+  type PassUsage,
   type ProgressListener
 } from '@shared/agents/pipeline'
 import { AGENT_PERMISSION_LABELS, AGENT_ROLE_LABELS, type AgentProfileView } from '@shared/agents/profile'
@@ -41,6 +42,8 @@ import type { PipelineDocuments } from './PipelineDocuments'
 export interface AgentSessionRequest {
   readonly profile: AgentProfileView
   readonly sessionId: string
+  /** La session `sessionId` existe déjà (passe précédente du même agent) : elle est reprise (L2-pipeline-optimal D3). */
+  readonly resume?: boolean
   readonly cwd: string
   readonly systemPrompt: string
   readonly prompt: string
@@ -88,6 +91,8 @@ export interface AgentSessionResult {
   readonly ok: boolean
   readonly text: string
   readonly error?: string
+  /** Reprise demandée sur une session que Claude Code ne connaît pas (effacée, autre poste) : rien n'a tourné. */
+  readonly missingSession?: boolean
 }
 
 export type AgentSessionRunner = (request: AgentSessionRequest) => Promise<AgentSessionResult>
@@ -134,6 +139,39 @@ export function refusalsOf(): { see(event: StreamEvent): void; count(): number }
   }
 }
 
+/**
+ * Consommation d'une passe (L2-pipeline-optimal D10, T015), lue dans le flux de sa session : outils appelés, jauge des
+ * 5 h au premier et au dernier relevé, et le résultat final (tokens, coût, tours, durée). Sans résultat, rien.
+ */
+export function usageOf(): { see(event: StreamEvent): void; usage(): PassUsage | undefined } {
+  let tools = 0
+  let start: number | null = null
+  let end: number | null = null
+  let last: Extract<StreamEvent, { kind: 'result' }> | undefined
+  return {
+    see: (event) => {
+      if (event.kind === 'tool') tools += 1
+      if (event.kind === 'quota' && event.fiveHour !== null) {
+        start ??= event.fiveHour.utilization
+        end = event.fiveHour.utilization
+      }
+      if (event.kind === 'result') last = event
+    },
+    usage: () =>
+      last === undefined
+        ? undefined
+        : {
+            ...last.usage,
+            costUsd: last.costUsd,
+            turns: last.turns,
+            tools,
+            durationMs: last.durationMs,
+            fiveHourStart: start,
+            fiveHourEnd: end
+          }
+  }
+}
+
 /** Dossier du worktree temporaire de la fusion : `_` n'ouvre jamais un identifiant d'agent. */
 const FUSION_DIR = '_fusion'
 
@@ -166,6 +204,8 @@ interface Turn {
   readonly pass: number
   readonly nature: PassNature
   readonly feedback?: string
+  /** Session de la passe précédente de cet agent : reprise, il garde son raisonnement (L2-pipeline-optimal D3). */
+  readonly previousSession?: string
   readonly signal: AbortSignal | undefined
   readonly work: AgentWorkListener
 }
@@ -570,6 +610,8 @@ export class PipelineEngine {
         if (!waits.every((id) => doneBefore(id) || settled.has(id))) continue
         const pass = (passes.get(agent.id) ?? 0) + 1
         passes.set(agent.id, pass)
+        // Une passe après la première reprend la session de la précédente (L2-pipeline-optimal D3).
+        const previous = latest.get(agent.id)?.result.sessionId
         const turn: Turn = {
           assembly,
           agent,
@@ -579,6 +621,7 @@ export class PipelineEngine {
           pass,
           nature,
           ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
+          ...(previous === undefined ? {} : { previousSession: previous }),
           signal,
           work: input.work
         }
@@ -619,13 +662,16 @@ export class PipelineEngine {
     const branch = agentBranch(taskId, agent.id)
     const worktree = join(this.deps.worktreeRoot, taskId, agent.id)
     let index: PassIndex = { pass: turn.pass, nature: turn.nature }
+    // Consommation de la passe (L2-pipeline-optimal D10) : connue une fois la session finie, jointe au résultat.
+    let usage: PassUsage | undefined
     const head = (): AgentRunResult => ({
       agentId: agent.id,
       role: profile.role,
       profileName: profile.name,
       index,
       branch,
-      status: 'done'
+      status: 'done',
+      ...(usage === undefined ? {} : { usage })
     })
     // Le worktree d'un agent arrêté reste en place, pour voir où il en était.
     const fail = (reason: AgentStopReason, message: string, sessionId?: string, kept = true): Outcome => {
@@ -674,22 +720,47 @@ export class PipelineEngine {
     index = { ...index, ...(specVersion === undefined ? {} : { specVersion }) }
     if (aborted()) return fail('cancelled', 'annulé par mentalyas.')
 
-    const sessionId = (this.deps.newSessionId ?? randomUUID)()
     turn.work(agent.id, { kind: 'start', pass: index.pass, nature: index.nature, worktree })
     // Écritures et commandes refusées pendant la session (mode de permission du profil, L1o D20).
     const refused = refusalsOf()
-    const result = await this.deps.runSession({
-      profile,
-      sessionId,
-      cwd: worktree,
-      systemPrompt: [missionFor(turn, index), profile.instructions].filter((t) => t.trim() !== '').join('\n\n'),
-      prompt: this.promptFor(turn, documents, spec),
-      onEvent: (event) => {
-        refused.see(event)
-        turn.work(agent.id, { kind: 'stream', event, worktree })
-      },
-      ...(signal === undefined ? {} : { signal })
-    })
+    const consumed = usageOf()
+    const session = (id: string, resume: boolean): Promise<AgentSessionResult> =>
+      this.deps.runSession({
+        profile,
+        sessionId: id,
+        ...(resume ? { resume: true } : {}),
+        cwd: worktree,
+        systemPrompt: [missionFor(turn, index), profile.instructions].filter((t) => t.trim() !== '').join('\n\n'),
+        prompt: this.promptFor(turn, documents, spec),
+        onEvent: (event) => {
+          refused.see(event)
+          consumed.see(event)
+          turn.work(agent.id, { kind: 'stream', event, worktree })
+        },
+        ...(signal === undefined ? {} : { signal })
+      })
+    // Passe suivante : l'agent reprend sa session (L2-pipeline-optimal D3) ; si Claude Code ne la connaît plus (effacée,
+    // autre poste), une session neuve prend le relais.
+    let sessionId = turn.previousSession ?? (this.deps.newSessionId ?? randomUUID)()
+    let result = await session(sessionId, turn.previousSession !== undefined)
+    if (result.missingSession === true && !aborted()) {
+      sessionId = (this.deps.newSessionId ?? randomUUID)()
+      result = await session(sessionId, false)
+    }
+    usage = consumed.usage()
+    if (usage !== undefined) {
+      documents.appendUsage({
+        at: Date.now(),
+        taskId,
+        agentId: agent.id,
+        role: profile.role,
+        profileId: profile.id,
+        pass: index.pass,
+        nature: index.nature,
+        ok: result.ok,
+        usage
+      })
+    }
     turn.work(agent.id, {
       kind: 'end',
       ok: result.ok && result.text.trim() !== '',

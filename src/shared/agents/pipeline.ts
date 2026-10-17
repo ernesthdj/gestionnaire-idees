@@ -310,6 +310,43 @@ export interface AgentRunResult {
   /** Verdict d'un QA à sa dernière passe. */
   readonly verdict?: QaVerdict
   readonly stopped?: { readonly reason: AgentStopReason; readonly message: string }
+  /** Consommation de sa dernière passe (L2-pipeline-optimal D10), si sa session a tourné. */
+  readonly usage?: PassUsage
+}
+
+/**
+ * Consommation d'une passe d'agent (L2-pipeline-optimal D10, T015), lue dans le flux de sa session. La jauge des 5 h
+ * est relevée au début et à la fin de la passe : avec des agents en parallèle, l'écart compte aussi leur consommation.
+ */
+export interface PassUsage {
+  readonly inputTokens: number
+  readonly outputTokens: number
+  readonly cacheReadTokens: number
+  readonly cacheWriteTokens: number
+  /** Coût indicatif en dollars (tarif public ; l'abonnement ne le facture pas). */
+  readonly costUsd: number | null
+  /** Tours de la session (appels au modèle). */
+  readonly turns: number | null
+  /** Outils appelés pendant la passe. */
+  readonly tools: number
+  readonly durationMs: number | null
+  /** Part utilisée (0–1) de la jauge des 5 h au premier et au dernier relevé de la passe ; `null` sans relevé. */
+  readonly fiveHourStart: number | null
+  readonly fiveHourEnd: number | null
+}
+
+/** Une passe dans le relevé de consommation d'un projet (L2-pipeline-optimal D10) : qui, quoi, combien. */
+export interface UsageRecord {
+  readonly at: number
+  readonly taskId: string
+  readonly agentId: string
+  readonly role: AgentRole
+  readonly profileId: string
+  readonly pass: number
+  readonly nature: PassNature
+  /** La session a rendu un rapport. */
+  readonly ok: boolean
+  readonly usage: PassUsage
 }
 
 /**

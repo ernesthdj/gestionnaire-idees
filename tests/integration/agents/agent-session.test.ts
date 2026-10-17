@@ -100,6 +100,20 @@ describe('skills transmis à la session d’un agent (L1o D6, T010)', () => {
     expect(args[args.indexOf('--setting-sources') + 1]).toBe('')
   })
 
+  it('should_flag_a_missing_session_only_when_a_resume_finds_no_conversation', async () => {
+    // Réponse réelle de `claude -p --resume <id inconnu>` (relevée le 2026-10-17), réduite à ce qui compte.
+    const missing = JSON.stringify({
+      type: 'result',
+      subtype: 'error_during_execution',
+      is_error: true,
+      num_turns: 0,
+      errors: ['No conversation found with session ID: session-1']
+    })
+    const run: RunProcess = async () => ({ code: 0, stdout: missing, stderr: '', timedOut: false })
+    expect(await runnerWith(run)({ ...request([]), resume: true })).toMatchObject({ ok: false, missingSession: true })
+    expect((await runnerWith(run)(request([]))).missingSession).toBeUndefined()
+  })
+
   it('should_remove_the_plugin_when_the_session_fails', async () => {
     const result = await runnerWith(async () => ({ code: 1, stdout: '', stderr: 'boom', timedOut: true }))(
       request(['perso:journal'])
@@ -131,6 +145,18 @@ describe('skills transmis à la session d’un agent (L1o D6, T010)', () => {
     })
     expect(args).toContain('--allow-dangerously-skip-permissions')
     expect(args).not.toContain('--plugin-dir')
+    // L2-pipeline-optimal D3 : une passe suivante reprend sa session au lieu d'en créer une.
+    expect(args[args.indexOf('--session-id') + 1]).toBe('s')
+    const resumed = agentSessionArgs({
+      sessionId: 's',
+      resume: true,
+      model: 'm',
+      effort: 'high',
+      permissionMode: 'default',
+      systemPrompt: 'sp'
+    })
+    expect(resumed[resumed.indexOf('--resume') + 1]).toBe('s')
+    expect(resumed).not.toContain('--session-id')
     // Flux continu (L1o D18) : ce que fait l'agent arrive au fil de l'eau.
     expect(args[args.indexOf('--output-format') + 1]).toBe('stream-json')
     expect(args).toContain('--verbose')

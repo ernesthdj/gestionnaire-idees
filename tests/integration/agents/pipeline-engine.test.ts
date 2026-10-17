@@ -90,7 +90,8 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
           projectDir: dir,
           profileDir: join(root, 'profil'),
           projectName: 'demo',
-          projectJournalFile: join(root, 'profil', 'journal-demo.md')
+          projectJournalFile: join(root, 'profil', 'journal-demo.md'),
+          usageFile: join(root, 'profil', 'usage.jsonl')
         }),
       newSessionId: () => `session-${++n}`
     })
@@ -113,6 +114,66 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     expect(result.completed).toBe(false)
     expect(result.agents[0]).toMatchObject({ status: 'failed', stopped: { reason: 'permission-denied' } })
     expect(result.agents[0]?.stopped?.message).toContain('1 écriture(s) ou commande(s) refusée(s)')
+  })
+
+  it('should_record_what_a_pass_consumed_with_the_result_and_in_the_project_usage_log', async () => {
+    // L2-pipeline-optimal D10 (T015) : relevé lu dans le flux de la session, joint au résultat et gardé hors du dépôt.
+    const quota = (utilization: number) =>
+      ({
+        kind: 'quota',
+        status: 'allowed',
+        utilization: null,
+        resetsAt: null,
+        fiveHour: { utilization, resetsAt: null },
+        sevenDay: null
+      }) as const
+    const result = await engineWith(async (request) => {
+      request.onEvent?.(quota(0.1))
+      request.onEvent?.({ kind: 'tool', name: 'Read', id: 'r1', input: { file_path: 'README.md' } })
+      request.onEvent?.({ kind: 'tool', name: 'Write', id: 'w1', input: { file_path: 'a.txt' } })
+      request.onEvent?.(quota(0.14))
+      request.onEvent?.({
+        kind: 'result',
+        ok: true,
+        text: 'Fait',
+        sessionId: request.sessionId,
+        usage: { inputTokens: 1200, outputTokens: 300, cacheReadTokens: 5000, cacheWriteTokens: 800 },
+        costUsd: 0.42,
+        turns: 6,
+        durationMs: 15000
+      })
+      return writer(request)
+    }).run({ taskId: 'T030', brief: 'Écrire a', agents: [{ id: 'back', profileId: 'back' }], links: [] })
+    const expected = {
+      inputTokens: 1200,
+      outputTokens: 300,
+      cacheReadTokens: 5000,
+      cacheWriteTokens: 800,
+      costUsd: 0.42,
+      turns: 6,
+      tools: 2,
+      durationMs: 15000,
+      fiveHourStart: 0.1,
+      fiveHourEnd: 0.14
+    }
+    expect(result.agents[0]?.usage).toEqual(expected)
+    const log = new PipelineDocuments({
+      projectDir: project,
+      profileDir: join(root, 'profil'),
+      projectName: 'demo',
+      usageFile: join(root, 'profil', 'usage.jsonl')
+    }).readUsage('T030')
+    expect(log).toHaveLength(1)
+    expect(log[0]).toMatchObject({
+      agentId: 'back',
+      role: 'backend',
+      pass: 1,
+      nature: 'initiale',
+      ok: true,
+      usage: expected
+    })
+    // Rien dans le dépôt : le relevé vit dans le profil.
+    expect(await filesOf('agents/T030/back')).not.toContain('usage')
   })
 
   it('should_warn_about_uncommitted_files_that_the_agents_will_not_see', async () => {
@@ -318,9 +379,31 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
       const backAgain = seen.filter((r) => r.profile.id === 'back')[1]
       expect(backAgain?.systemPrompt).toContain('Passe 2 : correction d’une erreur relevée par le QA, spec v2.')
       expect(backAgain?.prompt).toContain('(v2)')
+      // L2-pipeline-optimal D3 : une passe suivante reprend la session de la précédente, la première n'en reprend pas.
+      const backFirst = seen.filter((r) => r.profile.id === 'back')[0]
+      expect(backFirst?.resume).toBeUndefined()
+      expect(backAgain).toMatchObject({ resume: true, sessionId: backFirst?.sessionId })
+      expect(poAgain?.resume).toBe(true)
       expect(seen.filter((r) => r.profile.id === 'front')).toHaveLength(1)
       const log = (await git(['log', '--format=%s', 'agents/T010/back'])).output
       expect(log).toContain('chore(agents): T010 · back · passe 2 (correction, spec v2)')
+    })
+
+    it('should_open_a_fresh_session_when_claude_code_no_longer_knows_the_one_to_resume', async () => {
+      const seen: AgentSessionRequest[] = []
+      const inner = sendBackOnce('AGENTS: back=correction', seen)
+      const result = await engineWith(async (request) =>
+        request.resume === true && request.profile.id === 'back'
+          ? { ok: false, text: '', error: 'No conversation found', missingSession: true }
+          : inner(request)
+      ).run(diamond())
+      expect(result.completed).toBe(true)
+      // Reprise refusée, puis la même passe dans une session neuve.
+      const backRuns = seen.filter((r) => r.profile.id === 'back')
+      expect(backRuns).toHaveLength(2)
+      expect(backRuns[1]?.resume).toBeUndefined()
+      expect(backRuns[1]?.sessionId).not.toBe(backRuns[0]?.sessionId)
+      expect(result.agents[1]).toMatchObject({ status: 'done', sessionId: backRuns[1]?.sessionId })
     })
 
     it('should_rerun_the_agents_depending_on_a_designated_one_as_a_repasse', async () => {

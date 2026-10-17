@@ -6,7 +6,7 @@
 
 - [ ] T001 Commandes de vérification écrites par l'Architecte dans son contrat ; carte de validation par mentalyas (Valider / Modifier / Refuser) avant le départ des développeurs ; gardées avec le projet (D2, CA1.0) · agent : backend + frontend · dépend de : T006
 - [ ] T002 Lancer les vérifications dans le worktree d'un agent après sa passe : sans shell, par chemin, délai et sortie bornés ; résultat gardé avec la passe (D2, CA1.1, CA1.4) · agent : backend · dépend de : T001
-- [ ] T003 Reprise de session d'un agent d'un tour à l'autre (`--resume`), vérifiée avec `--setting-sources ""` (D3) · agent : backend · dépend de : rien
+- [x] T003 Reprise de session d'un agent d'un tour à l'autre (`--resume`), vérifiée avec `--setting-sources ""` (D3) · agent : backend · dépend de : rien
 - [ ] T004 Boucle rapide sans plafond : vérification rouge → le même développeur repart avec le log, dans sa session reprise (D3, CA1.2, CA1.3) · agent : backend · dépend de : T002, T003
 - [ ] T005 [visuel] Résultats des vérifications dans la visio de l'agent et dans « Travail » (D2) · agent : frontend · dépend de : T002
 
@@ -30,7 +30,7 @@
 
 ## Lot 5 — Consommation et bilan
 
-- [ ] T015 Relevé par passe : tokens (entrée, sortie, cache), coût indicatif, durée, tours, outils, raison du tour, tirés du flux de la session (D10) · agent : backend · dépend de : rien
+- [x] T015 Relevé par passe : tokens (entrée, sortie, cache), coût indicatif, durée, tours, outils, raison du tour, tirés du flux de la session (D10) · agent : backend · dépend de : rien
 - [ ] T016 [visuel] Jauge animée vert / jaune / orange / rouge par boucle, tâche et lot, seuils relatifs à la médiane du rôle (D12) : chambre de l'agent, visio, suivi du lot (D10, CA8.1) · agent : frontend · dépend de : T015
 - [ ] T017 Historique archivé par lot et par tâche, consultable après exécution : quoi, où, pourquoi (D10, CA8.2) · agent : backend + frontend · dépend de : T015
 - [ ] T018 Bilan d'un lot par Claude : améliorations du pipeline et des agents en cartes Accepter / Refuser (D10, CA8.3) · agent : backend + frontend · dépend de : T017

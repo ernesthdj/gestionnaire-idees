@@ -15,7 +15,14 @@ import {
   type PipelineReport,
   type PipelineSpec
 } from '@shared/agents/documents'
-import { PASS_NATURES, isValidAgentId, type PassIndex, type PassNature } from '@shared/agents/pipeline'
+import { z } from 'zod'
+import {
+  PASS_NATURES,
+  isValidAgentId,
+  type PassIndex,
+  type PassNature,
+  type UsageRecord
+} from '@shared/agents/pipeline'
 import { AGENT_ROLES, type AgentRole } from '@shared/agents/profile'
 import { parseLotPlan } from '@shared/agents/lotPlan'
 import { parseSpecAgents } from '@shared/agents/recommendation'
@@ -33,6 +40,11 @@ export interface PipelineDocumentsDeps {
    * moteur le place hors du dépôt : deux branches qui l'allongent en parallèle se fusionneraient en conflit.
    */
   readonly projectJournalFile?: string
+  /**
+   * Relevé de consommation du projet (L2-pipeline-optimal D10), une passe par ligne JSON ; hors du dépôt, dans le profil.
+   * Absent : la consommation n'est pas gardée.
+   */
+  readonly usageFile?: string
   readonly now?: () => number
 }
 
@@ -41,6 +53,32 @@ const REPORT_HEADER =
   /^<!-- pipeline:rapport role=(\S+) agent=(\S+) passe=(\d+) nature=(\S+) spec=(\d+|-) le=(\d+) -->\n/
 const CONDENSED = /^- ~ (.+) · (\S+) : (\d+) entrées, jusqu'au (\S+)$/
 const ENTRY = /^- (\S+) · (.+) · (\S+) · (\S+) · (.*)$/
+
+const count = z.number().finite().nonnegative()
+const maybe = z.number().finite().nullable()
+/** Une ligne du relevé de consommation, revalidée à la lecture (le fichier vit hors de l'app). */
+const UsageRecordSchema = z.object({
+  at: count,
+  taskId: z.string().refine(isValidTaskId),
+  agentId: z.string().refine(isValidAgentId),
+  role: z.enum(AGENT_ROLES),
+  profileId: z.string().min(1).max(100),
+  pass: z.number().int().positive(),
+  nature: z.enum(PASS_NATURES),
+  ok: z.boolean(),
+  usage: z.object({
+    inputTokens: count,
+    outputTokens: count,
+    cacheReadTokens: count,
+    cacheWriteTokens: count,
+    costUsd: maybe,
+    turns: maybe,
+    tools: count,
+    durationMs: maybe,
+    fiveHourStart: maybe,
+    fiveHourEnd: maybe
+  })
+})
 
 const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim().slice(0, JOURNAL_MESSAGE_MAX)
 
@@ -215,6 +253,35 @@ export class PipelineDocuments {
     if (!existsSync(projectFile)) writeFileSync(projectFile, '# Journal du pipeline\n\n', 'utf8')
     appendFileSync(projectFile, `- ${date} · ${entry.taskId} · ${entry.role} · ${message}\n`, 'utf8')
     this.appendGlobal(`- ${date} · ${project} · ${entry.taskId} · ${entry.role} · ${message}`)
+  }
+
+  /** Ajoute une passe au relevé de consommation du projet (L2-pipeline-optimal D10, T015). */
+  appendUsage(record: UsageRecord): void {
+    const file = this.deps.usageFile
+    if (file === undefined) return
+    if (!isValidTaskId(record.taskId) || !isValidAgentId(record.agentId)) {
+      throw new AppError('VALIDATION', 'Relevé de consommation invalide.')
+    }
+    mkdirSync(dirname(file), { recursive: true })
+    appendFileSync(file, `${JSON.stringify(record)}\n`, 'utf8')
+  }
+
+  /** Relevé de consommation du projet (d'une tâche, ou tout), dans l'ordre ; une ligne illisible est ignorée. */
+  readUsage(taskId?: string): UsageRecord[] {
+    const file = this.deps.usageFile
+    if (file === undefined || !existsSync(file)) return []
+    return readFileSync(file, 'utf8')
+      .split('\n')
+      .flatMap((line): UsageRecord[] => {
+        if (line.trim() === '') return []
+        try {
+          const parsed = UsageRecordSchema.safeParse(JSON.parse(line))
+          return parsed.success ? [parsed.data] : []
+        } catch {
+          return []
+        }
+      })
+      .filter((record) => taskId === undefined || record.taskId === taskId)
   }
 
   private projectJournalFile(): string {
