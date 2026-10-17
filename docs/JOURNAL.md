@@ -2788,3 +2788,136 @@ par un heredoc avec des barres obliques inverses (règle déjà connue : outil d
 **Resume :** session du 14 au 17/10 : agents assemblés (L1o D13 à D27) — chambres 3D, visio et tête-à-tête, fenêtre de l'agent, profils avec Claude, fusion qui coche les tâches, déplacer et rattacher une équipe, tiroir d'agents ; le PO cadre un lot (spec de lot, aiguillage) ; outil agents_lire (lot 6) ; nouvelle conversation avec un agent ; volet de conversation retravaillé ; plus de repli automatique ; identifiants de tâches stables. Revue du premier lot complet de Bike_cycle.
 **Branche :** main
 **Commits pushes :** 28
+
+### [2026-10-17 08:51] TEST — T019 vérifiée avec le vrai Claude (L1o D15)
+**Fichiers :** `docs/TACHES-AGENTS.md` (T019 cochée).
+**Quoi :** le seul point resté ouvert le 16/10 (« appel réel de `agent_profil_proposer` ») : test e2e ponctuel, non
+commité, sur le profil fictif `gestionnaire-idees-e2e`, sans `GI_E2E_CLAUDE_REPLY` (vrai `claude -p`, relais MCP de
+l'app). Une demande « agent QA, lecture seule, Sonnet » : Claude appelle `agents_lire`, `skills_lire` puis
+`agent_profil_proposer` ; la fiche se remplit (nom, rôle QA, consignes, « Demander avant d'écrire », Sonnet 5.5, effort
+élevé), chaque champ marqué ✦, le pourquoi en tête de fiche. ~20 s.
+**Remarque :** l'en-tête « Profil d'agent / Claude remplit la fiche à côté ; tu valides » se replie mot à mot à côté des
+jauges quand la conversation est étroite (cosmétique, non corrigé).
+
+### [2026-10-17 08:58] TEST — T020 vérifiée avec le vrai Claude (L1o D16)
+**Fichiers :** `docs/TACHES-AGENTS.md` (T020 cochée).
+**Quoi :** même méthode que T019 (test ponctuel non commité, profil fictif e2e, vrai `claude -p`). Profil « Scribe »
+créé à la main, « Discuter avec lui », demande d'ajouter le skill `journal` : l'agent appelle `skills_lire` puis
+`agent_skills_proposer` ; la carte « ✦ Ajouter journal » arrive avec son pourquoi, Accepter / Refuser ; « Accepter »
+retire la carte et affiche « Skills de « Scribe » mis à jour ». ~40 s.
+
+### [2026-10-17 09:27] FEAT — installer un skill au clic droit (page Skills, spec 020)
+**Fichiers :** `src/renderer/src/skills/SkillNodeMenu.tsx` (nouveau : `installMenuItems`, `SkillNodeMenu`),
+`SkillsPage.tsx` (`installTarget`, `onNodeContextMenu`) ; test `tests/unit/renderer/skill-node-menu.test.tsx`.
+**Quoi :** demande express de mentalyas : clic droit sur un nœud installable de l'arbre, « Installer » ou « Voir les
+différences » / « Ouvrir la fiche ». Nœuds installables : brouillon d'un nouveau skill (fantôme), skill qui a un
+brouillon en attente, skill de la bibliothèque (audité par Claude s'il ne l'a pas été, mis en brouillon puis installé).
+Les autres nœuds n'ont pas de menu. Installation annulable (toast « Annuler »), comme depuis le volet.
+**Garde-fous :** un skill de la bibliothèque s'installe **sans ses scripts** (les autoriser reste dans sa fiche) ; un
+skill « dangereux » n'a que « Ouvrir la fiche » (déverrouillage dans la fiche) ; un skill modifié sur le disque depuis
+son brouillon n'est jamais remplacé d'ici (`DISK_CHANGED`) : son volet s'ouvre sur les différences, comme pour un
+verdict changé par l'audit.
+**Vérifié :** typecheck, lint, Prettier, 2 492 tests. Pas d'e2e : le profil e2e lit les vrais skills de
+`~/.claude/skills`, une installation y écrirait pour de bon.
+
+### [2026-10-17 09:32] FEAT — le PO fait travailler en même temps ce qui peut l'être (L1o D28, T031)
+**Fichiers :** `src/shared/agents/lotPlan.ts` (consigne de `lotInstructions`, `stagesOf` nouveau),
+`src/renderer/src/canvas/agents/LotRouting.tsx` (étages et légende) ; tests `tests/unit/agents/lot-plan.test.ts`,
+`tests/unit/renderer/lot-routing.test.tsx`.
+**Quoi :** demande de mentalyas : des agents dont les travaux ne se complètent pas doivent pouvoir travailler en même
+temps, sur décision du PO. Le moteur le permettait déjà (T011 : non reliés = en parallèle) ; la consigne du PO disait
+seulement « le QA attend ceux qui codent », et le PO chaînait tout par réflexe. Elle dit maintenant : en même temps
+sauf attente écrite, « A attend B » seulement si A a besoin du résultat de B, le QA attend tous ceux qui codent.
+L'aiguillage montre chaque tâche en étages (« Front ∥ Back → QA » ; un agent est à l'étage qui suit le plus tardif de
+ceux qu'il attend), avec la légende « ∥ en même temps · → à la suite ».
+**Vérifié :** typecheck, lint, Prettier, tests unitaires et renderer ; e2e `agents-lot` (captures `t023-01`, `t023-02`).
+**Suite :** T032 (dépendances entre tâches d'un lot), puis T024 (lancement du lot).
+
+### [2026-10-17 09:44] FEAT — dépendances entre les tâches d'un lot (L1o D28, T032)
+**Fichiers :** `src/shared/agents/lotPlan.ts` (4e champ « après » de `AIGUILLAGE:`, consigne, `after` /
+`unknownAfter` de `routeLot`, `lotGroups`, étages communs `layered`), `AssemblyService.routeTask` (dépendances
+retouchées, refus d'une tâche hors du plan, d'elle-même ou d'une boucle), `assemblyHandlers.ts` (`after` dans
+`assembly:lotRoute`), `AssemblySketchRepository.ts` (`after` lu, vide par défaut pour un plan d'avant D28),
+`LotRouting.tsx` (« Ordre des tâches : T001 ∥ T003 → T002 », « après … », dépendances inconnues et boucles
+signalées, cases « après Txxx » dans la retouche, grisées si elles fermaient une boucle) ; tests unitaires, renderer,
+d'intégration (`assembly-service`, `pipeline-engine`, `migrations`).
+**Quoi :** le PO écrit « AIGUILLAGE: T002 | Front, QA | QA attend Front | après T001 » ; une tâche sans « après » part
+avec les autres. Une dépendance absente du plan ou en boucle est ignorée et signalée, jamais bloquante ; la retouche de
+mentalyas prime (une retouche sans « after », d'avant D28, garde celles du plan).
+**Vérifié :** typecheck, lint, Prettier, 2 500 tests ; e2e `agents-lot`.
+**Reste :** l'exécution (T024) : les groupes de tâches ne sont pas encore lancés, seul l'aiguillage est lu et affiché.
+
+### [2026-10-17 09:50] FIX — volet de visio et tête-à-tête aérés (L1o D13, D22)
+**Fichiers :** `src/renderer/src/chat/ChatPanel.tsx` (option `compact` : sans en-tête, mode et modèle sous le
+champ), `canvas/agents/AgentVisioPanel.tsx` (en-tête en deux lignes, « Mission et rapport » en bouton qui déplie une
+zone à défilement propre, plus de « × » en double de « Raccrocher »), `AgentRevealDialog.tsx` (même conversation
+compacte), `RestartChat.tsx` et boutons du volet en `Button` (au lieu de `card-button`, fait pour les cartes :
+`flex: 1`, sans marge, le texte débordait), `VisioSkills.tsx` (cartes séparées par un trait), `agents.css` (volet
+416 × 600 px, un seul défilement) ; e2e `agents-map` (sélecteurs).
+**Retour de mentalyas :** la conversation de la visio était « étouffante, pas organisée, pas aérée ».
+**Erreur corrigée :** deux défilements imbriqués (le cadre `.agent-visio-chat` en `overflow-y: auto` autour d'une
+conversation qui défile déjà) ; badge de confidentialité, explorateur, mode et modèle avant les messages.
+**Vérifié :** typecheck ; e2e `agents-map` et `agent-profile-assistant` (captures `t008-03`, `t008-04`, `t022-04`).
+
+### [2026-10-17 09:53] FIX — chambres d'agents nettes quand la carte est zoomée (L1o D13)
+**Fichiers :** `src/renderer/src/canvas/agents/room/roomStage.ts` (`ratioFor`, renderer en densité 1).
+**Retour de mentalyas :** « mon bloc agent est en faible résolution sur la vue chambre ».
+**Cause :** la chambre était dessinée à sa taille de mise en page (`clientWidth`, 256 px), densité plafonnée à 1,5 ;
+le zoom de la carte (transformation CSS) l'agrandissait ensuite : floue dès qu'on zoome.
+**Correction :** densité = celle de l'écran × zoom réel (`getBoundingClientRect` / `clientWidth`), arrondie au quart,
+plafonnée à 3 et à 2 048 px de côté ; le renderer partagé reste en densité 1 et reçoit la taille en pixels de l'écran
+(deux chambres à des zooms différents ne réallouent pas son tampon à chaque image).
+**Vérifié :** typecheck ; mesure e2e ponctuelle (non commitée) : zoom ×2, tampon 512 px pour 512 px affichés (256 avant).
+**Limite :** en mouvement réduit, une chambre n'est redessinée qu'à un changement d'état : après un zoom, elle reste
+floue jusque-là.
+
+### [2026-10-17 10:03] FEAT — replier un widget en tuile (spec 026 D9)
+**Fichiers :** `src/shared/brainstorms/viewState.ts` (`collapsedWidgets`, ≤ 200), `home/viewState.ts`,
+`home/useBrainstorms.ts`, `app/uiStore.ts` (`collapsedWidgets`, `toggleWidget`), `canvas/nodes/WidgetNode.tsx`
+(tuile `WIDGET_TILE` de 128 px avec logo d'écran, bouton « Replier »), `canvas/IdeasCanvas.tsx` (taille de la tuile,
+panneau de réglages caché, taille dépliée gardée au glisser) ; spec 026 (D9) ; tests `canvas-tools`,
+`project-manager`, e2e `widget-wireframe` (capture `026-06`, repli gardé après redémarrage).
+**Demande de mentalyas :** les cadres posés sur la carte consomment ; les replier en un bloc avec un logo, visibles,
+dépliés au besoin.
+**Choix :** gardé dans l'état de vue du canevas (pas de migration : c'est une préférence d'affichage, comme les cartes
+ouvertes) ; le cadre n'est pas masqué mais démonté (rien ne tourne).
+**Piège évité :** l'enregistrement au glisser prenait la taille du nœud : il aurait écrit 128 × 128 comme taille du
+widget ; replié, il garde la taille du bloc.
+**Vérifié :** typecheck, lint, Prettier, 2 501 tests ; e2e `widget-wireframe` (5/5 ; une première passe a échoué sur
+le zoom du plein écran, 0,5 au lieu de 1 : instable, déjà là avant, à surveiller).
+
+### [2026-10-17 10:14] FEAT — un widget posé par Claude se relie au nœud voulu (spec 026 D10)
+**Fichiers :** `src/main/domain/widgets/workflowRef.ts` (nouveau : `workflowRefs`, `resolveWorkflowRef`),
+`src/shared/mcp/tools.ts` (`noeud` de `widget_poser`, description), `MapService.ts` (`workflowTarget`, élément de
+structure, nœud du Workflow), `bootstrap.ts` (`conversationNode`, `conversationGenesis`, `workflowRef`) ; spec 026
+(D10) ; tests `tests/unit/widgets/workflow-ref.test.ts`, `tests/integration/mcp/map-service.test.ts`.
+**Retour de mentalyas :** « mes agents n'arrivent pas à relier les iframes aux nœuds que je veux, le iframe se lie
+d'office au genesis ».
+**Cause :** `widget_poser` n'acceptait qu'une idée ou une étape de plan (UUID) ; les nœuds du Workflow ont une clé
+`wf:…` qu'aucun outil ne montre : Claude se rabattait sur le genesis.
+**Vérifié :** typecheck, lint, Prettier, 2 506 tests ; vrai Claude (e2e ponctuel non commité, profil fictif) : dans la
+conversation de T001, un widget sans repère → `ttask` de T001, un widget avec `noeud: "Lot 1"` → `tgroup` du lot.
+**Limites :** le widget se pose près du genesis (le processus principal ne connaît pas les positions des nœuds du
+Workflow, calculées par l'interface) : il peut recouvrir des nœuds. Un agent d'assemblage (session `claude -p` sans
+conversation sur la carte) doit nommer le nœud ; le projet est trouvé seul s'il n'y en a qu'un de lié sur la carte.
+Les documents de brainstorm (ronds) ne se branchent pas sur un widget, même à la main.
+
+### [2026-10-17 10:25] PERF — repixelisation au zoom et vue lointaine de la carte
+**Fichiers :** `src/renderer/src/canvas/zoomLevels.ts` (nouveau : `FAR_ZOOM` = 0,4, `useFarZoom`),
+`canvas/agents/room/roomPause.ts` (nouveau, sans dépendance), `room/roomStage.ts` (chambres de la carte figées),
+`canvas/IdeasCanvas.tsx` (`data-moving`, `data-zoom`), `canvas/canvas.css`, `canvas/nodes/WidgetNode.tsx` (widget en
+veille).
+**Demande de mentalyas :** une astuce de « repixelisation dynamique » au dézoom : ralentissements visuels quand il
+dézoome fort sur la cartographie.
+**Quoi :** (1) pendant un zoom ou un déplacement, `will-change: transform` sur la vue : le navigateur agrandit une
+image au lieu de redessiner chaque nœud ; redessinée nette 150 ms après le geste. (2) Sous le zoom 0,4 (textes
+illisibles) : animations, transitions, halos et ombres coupés dans les nœuds et liens ; chambres de la carte figées
+sur leur dernière image (pas celles d'une fenêtre d'agent) ; widgets en veille à leur taille, cadre démonté, réveillés
+au zoom. `useFarZoom` ne redessine qu'au franchissement du seuil.
+**Mesure (e2e ponctuel non commité, app construite, 96 nœuds du Workflow, 3 chambres, zoom 0,2, déplacement puis
+allers-retours de zoom) :** image moyenne 12,2 → 8,4 ms, 95e percentile 35 → 14–21 ms, images > 50 ms 1 → 0 (une passe
+avant, deux après). Le seul déplacement était déjà fluide (7 ms) : c'est le geste de zoom qui coûtait.
+**Non mesuré :** une carte avec des widgets qui tournent, et `npm run dev` (React en mode développement, plus lent).
+**Vérifié :** typecheck, lint, Prettier, 2 506 tests ; e2e `widget-wireframe`, `agents-map`, `workflow-task-files`
+(11/11 ; une passe enchaînée a échoué sur le zoom du plein écran du widget et sur un widget de `workflow-task-files` :
+instables, verts seuls puis enchaînés).

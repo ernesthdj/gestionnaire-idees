@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useUiStore } from '../../app/uiStore'
+import { Button } from '../../components/atoms/Button'
 import { call, IpcFailure } from '../../lib/ipc'
 
 /**
@@ -33,26 +34,25 @@ export function RestartChat({
   }
   if (!asking) {
     return (
-      <button
-        type="button"
-        className="card-button card-button-ghost"
+      <Button
+        className="px-3 whitespace-nowrap"
         disabled={disabled}
         title={disabled ? 'L’agent répond : attends la fin du tour.' : 'Repartir d’une conversation neuve'}
         onClick={() => setAsking(true)}
       >
-        Nouvelle conversation
-      </button>
+        <span aria-hidden="true">↺ </span>Nouvelle conversation
+      </Button>
     )
   }
   return (
     <span role="alert" className="flex flex-wrap items-center gap-2 text-xs">
       Effacer cette conversation et repartir de zéro ?
-      <button type="button" className="card-button card-button-primary" disabled={busy} onClick={() => void restart()}>
+      <Button variant="primary" className="px-3" disabled={busy} onClick={() => void restart()}>
         Repartir
-      </button>
-      <button type="button" className="card-button card-button-ghost" onClick={() => setAsking(false)}>
+      </Button>
+      <Button className="px-3" onClick={() => setAsking(false)}>
         Garder
-      </button>
+      </Button>
     </span>
   )
 }

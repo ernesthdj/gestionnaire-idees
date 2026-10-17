@@ -90,7 +90,10 @@ export function SkillsCards({
   const { proposals, drafts, nameOf } = skills
   if (proposals.length === 0 && drafts.length === 0) return null
   return (
-    <ul className="max-h-40 space-y-2 overflow-y-auto px-4 text-sm" aria-label="Skills proposés en visio">
+    <ul
+      className="max-h-40 shrink-0 space-y-2 overflow-y-auto border-b border-content-muted/20 px-4 py-3 text-sm"
+      aria-label="Skills proposés en visio"
+    >
       {proposals.map((proposal, index) => (
         <li key={`p-${index}`} className="rounded-md border border-accent/40 bg-surface-raised p-2">
           <p>

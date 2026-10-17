@@ -182,7 +182,10 @@ export function AgentRevealDialog({
                 </div>
               )}
               <SkillsCards skills={skills} onOpenDraft={setDraftOpen} />
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              {/* Un seul défilement : celui des messages (la conversation tient la hauteur, le champ reste en bas). */}
+              <div
+                className={`flex min-h-0 flex-1 flex-col ${draftOpen === null ? 'overflow-hidden' : 'overflow-y-auto'}`}
+              >
                 {draftOpen !== null ? (
                   <DraftPanel draftId={draftOpen} onDone={() => setDraftOpen(null)} />
                 ) : chat.data !== undefined ? (
@@ -191,6 +194,7 @@ export function AgentRevealDialog({
                     neuronId={chat.data.neuronId}
                     onClose={() => setChatting(false)}
                     onActivity={onActivity}
+                    compact
                   />
                 ) : chat.error !== null ? (
                   <p role="alert" className="p-4 text-con">

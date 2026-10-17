@@ -1,4 +1,4 @@
-import { lotLabel, type LotPlan, type LotTask } from '@shared/agents/lotPlan'
+import { lotGroups, lotLabel, routeLot, type LotPlan, type LotTask } from '@shared/agents/lotPlan'
 import { isValidTaskId } from '@shared/agents/documents'
 import type { AgentWorkEvent, AgentWorkListener } from './PipelineEngine'
 import {
@@ -303,7 +303,11 @@ export class AssemblyService {
   routeTask(
     nodeId: string,
     task: string,
-    route: { readonly agents: readonly string[]; readonly links: readonly AssemblyLink[] } | null
+    route: {
+      readonly agents: readonly string[]
+      readonly links: readonly AssemblyLink[]
+      readonly after?: readonly string[]
+    } | null
   ): AssemblySketchView {
     const sketch = this.sketchOf(nodeId)
     if (sketch?.lot === undefined) throw new AppError('NOT_FOUND', 'Ce nœud n’a pas de plan de lot.')
@@ -319,7 +323,20 @@ export class AssemblyService {
       }
       const error = structureError({ taskId: sketch.taskId, brief: '', agents, links: route.links })
       if (error !== null) throw new AppError('VALIDATION', error)
-      overrides = [...others, { task, agents: agents.map((agent) => agent.id), links: route.links }]
+      const after = route.after === undefined ? undefined : [...new Set(route.after)]
+      if (after !== undefined) {
+        const planned = new Set(sketch.lot.plan.steps.map((step) => step.task))
+        const unknown = after.find((entry) => entry === task || !planned.has(entry))
+        if (unknown !== undefined) throw new AppError('VALIDATION', `« ${unknown} » n’est pas une autre tâche du lot.`)
+        const draft = { plan: sketch.lot.plan, overrides: [...others, { task, agents: [], links: [], after }] }
+        if (lotGroups(routeLot(draft, [])).cycles.length > 0) {
+          throw new AppError('VALIDATION', 'Ces dépendances forment une boucle : une tâche s’attendrait elle-même.')
+        }
+      }
+      overrides = [
+        ...others,
+        { task, agents: agents.map((agent) => agent.id), links: route.links, ...(after === undefined ? {} : { after }) }
+      ]
     }
     const next: AssemblySketchView = { ...sketch, lot: { plan: sketch.lot.plan, overrides } }
     this.deps.sketches.save(next)

@@ -307,7 +307,10 @@ describe('migrations du modèle de neurones', () => {
       lot
     }
     repository.save(sketch)
-    expect(repository.list('g')).toEqual([sketch])
+    // Un plan d'avant L1o D28 se relit sans dépendance entre tâches.
+    expect(repository.list('g')).toEqual([
+      { ...sketch, lot: { ...lot, plan: { ...lot.plan, steps: [{ ...lot.plan.steps[0], after: [] }] } } }
+    ])
     handle.db.run(sql.raw('UPDATE assembly_sketches SET lot = \'{"plan":1}\''))
     expect(repository.list('g')[0]?.lot).toBeUndefined()
     runDown('0055_sketch_lot')

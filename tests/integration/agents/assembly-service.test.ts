@@ -244,6 +244,18 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(service.sketches()[0]?.lot?.overrides).toEqual([{ task: 'T002', agents: ['back'], links: [] }])
     expect(() => service.routeTask(NODE_ID, 'T009', null)).toThrow(/pas dans le plan/)
     expect(() => service.routeTask(NODE_ID, 'T001', { agents: ['inconnu'], links: [] })).toThrow(/au moins un agent/)
+    // L1o D28 (T032) : T002 après T001 ; une tâche hors du plan, elle-même ou une boucle sont refusées.
+    service.routeTask(NODE_ID, 'T002', { agents: ['back'], links: [], after: ['T001'] })
+    expect(service.sketches()[0]?.lot?.overrides).toEqual([
+      { task: 'T002', agents: ['back'], links: [], after: ['T001'] }
+    ])
+    expect(() => service.routeTask(NODE_ID, 'T002', { agents: ['back'], links: [], after: ['T009'] })).toThrow(
+      /pas une autre tâche du lot/
+    )
+    expect(() => service.routeTask(NODE_ID, 'T002', { agents: ['back'], links: [], after: ['T002'] })).toThrow(
+      /pas une autre tâche du lot/
+    )
+    expect(() => service.routeTask(NODE_ID, 'T001', { agents: ['back'], links: [], after: ['T002'] })).toThrow(/boucle/)
     service.routeTask(NODE_ID, 'T002', null)
     expect(service.sketches()[0]?.lot?.overrides).toEqual([])
   })

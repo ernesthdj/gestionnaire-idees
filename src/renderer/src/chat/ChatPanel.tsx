@@ -391,7 +391,8 @@ export function ChatPanel({
   neuronId,
   onClose,
   draftKey = neuronId,
-  onActivity
+  onActivity,
+  compact = false
 }: {
   readonly neuronId: string
   readonly onClose: () => void
@@ -399,6 +400,11 @@ export function ChatPanel({
   readonly draftKey?: string
   /** Visio d'un agent (L1o D13) : Claude répond-il, et ce qu'il dit déjà (sous-titres, bouche qui bouge). */
   readonly onActivity?: (busy: boolean, partial: string) => void
+  /**
+   * Visio d'un agent : pas d'en-tête (le volet porte déjà le nom de l'agent), les messages prennent la place, le mode et
+   * le modèle passent sous le champ.
+   */
+  readonly compact?: boolean
 }): React.JSX.Element {
   const chat = useChat(neuronId)
   useEffect(() => onActivity?.(chat.busy, chat.partial), [onActivity, chat.busy, chat.partial])
@@ -469,6 +475,56 @@ export function ChatPanel({
     void chat.send(text)
   }
 
+  // Mode de permission et modèle : dans l'en-tête, ou sous le champ en visio (`compact`).
+  const settings = (
+    <div className="flex flex-wrap items-center gap-2">
+      {chat.role === 'skills' ? null : (
+        <>
+          <label className="sr-only" htmlFor={`${fieldId}-mode`}>
+            Mode de permission de cette conversation
+          </label>
+          <select
+            id={`${fieldId}-mode`}
+            value={chat.permissionMode}
+            disabled={chat.loading}
+            onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
+            title="Mode de permission : ce que Claude peut faire sans te demander"
+            className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
+              // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
+              chat.permissionMode === 'bypassPermissions'
+                ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
+                : 'border-content-muted/40'
+            }`}
+          >
+            {PERMISSION_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+      <label className="sr-only" htmlFor={`${fieldId}-model`}>
+        Modèle de cette conversation
+      </label>
+      <select
+        id={`${fieldId}-model`}
+        value={chat.modelChoice ?? ''}
+        disabled={chat.busy || chat.loading}
+        onChange={(event) => void chat.setModel(event.target.value === '' ? null : event.target.value)}
+        title="Modèle de cette conversation"
+        className="h-8 max-w-44 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
+      >
+        <option value="">Défaut ({SHORT_MODEL_NAMES[chat.model] ?? chat.model})</option>
+        {CLAUDE_MODELS.map((model) => (
+          <option key={model} value={model}>
+            {SHORT_MODEL_NAMES[model] ?? model}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+
   return (
     <section
       aria-label={`Conversation : ${chat.title}`}
@@ -486,233 +542,192 @@ export function ChatPanel({
           <ElementFileReader elementId={neuronId} path={reading} onBack={() => setReading(null)} />
         </div>
       )}
-      <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-3">
-        {/* En visio (L1o D13), le volet de l'agent porte déjà son nom et « Raccrocher ». */}
-        <div className={`flex items-start gap-2${onActivity === undefined ? '' : ' sr-only'}`}>
-          <div className="min-w-0 flex-1">
-            {heading.kind === null && heading.maturity === null ? null : (
-              <p className="mb-1 flex flex-wrap items-center gap-1 text-xs">
-                {heading.kind === null ? null : (
-                  <span className="rounded-full bg-surface-raised px-2 py-0.5 text-content-muted">{heading.kind}</span>
-                )}
-                {heading.maturity === null ? null : (
-                  <span className={`rounded-full px-2 py-0.5 font-medium ${maturityTone(heading.maturity)}`}>
-                    Brainstorm {heading.maturity}
-                  </span>
-                )}
-              </p>
-            )}
-            <h2 className="line-clamp-2 text-base leading-snug font-semibold" title={chat.title}>
-              {heading.name}
-            </h2>
-            {chat.role === 'workflow' ? null : (
-              <p className="text-xs text-content-muted">
-                {chat.agentProfile === true
-                  ? 'Claude remplit la fiche à côté ; tu valides'
-                  : chat.role === 'skills'
-                    ? 'Conversation Skills · Claude ne dépose que des brouillons'
-                    : chat.role === 'element'
-                      ? `${chat.elementType ?? 'Élément'} du projet`
-                      : chat.role === 'step'
-                        ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
-                        : chat.folder === null
-                          ? 'Genesis'
-                          : 'Projet'}
-                {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
-              </p>
-            )}
-          </div>
-          {/* La consommation, en pastille à côté de la fermeture ; le détail au clic. */}
-          {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
-          <button
-            type="button"
-            aria-label="Fermer la conversation"
-            onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-surface-raised"
-          >
-            ×
-          </button>
-        </div>
-        <div className="min-w-0">
-          {chat.reprise === null ? null : (
-            <div className="mt-1 flex flex-wrap items-start gap-2">
-              <ConfidentialityBadge
-                genesisId={chat.reprise.genesisId}
-                level={chat.reprise.confidentiality}
-                onChanged={chat.setConfidentiality}
-              />
-              {/*
-               * Explorateur en second plan (spec 017 D12) : la carte de Claude est la vue principale ; il n'est mis en
-               * avant qu'en « Local uniquement », où il reste la seule vue (il ne transmet rien à Claude).
-               */}
-              <button
-                type="button"
-                onClick={() => openExplorer(chat.reprise?.genesisId ?? neuronId)}
-                title="Détail du code par dossiers, fichiers et symboles"
-                className={
-                  localOnly
-                    ? 'rounded-md bg-accent px-2 py-0.5 text-xs text-surface'
-                    : 'px-1 py-0.5 text-xs text-content-muted underline hover:text-content'
-                }
-              >
-                Ouvrir l’explorateur
-              </button>
-            </div>
-          )}
-          {chat.role === 'skills' ? null : (
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-              {chat.projectFolder === null || chat.projectFolder === chat.folder ? null : (
-                <span
-                  className="rounded-full bg-surface-raised px-2 py-0.5"
-                  title="Projet du canevas : Claude y a toujours accès"
-                >
-                  Projet : {chat.projectFolder}
-                </span>
+      {compact ? null : (
+        <header className="flex flex-col gap-2 border-b border-content-muted/20 px-4 py-3">
+          {/* En visio (L1o D13), le volet de l'agent porte déjà son nom et « Raccrocher ». */}
+          <div className={`flex items-start gap-2${onActivity === undefined ? '' : ' sr-only'}`}>
+            <div className="min-w-0 flex-1">
+              {heading.kind === null && heading.maturity === null ? null : (
+                <p className="mb-1 flex flex-wrap items-center gap-1 text-xs">
+                  {heading.kind === null ? null : (
+                    <span className="rounded-full bg-surface-raised px-2 py-0.5 text-content-muted">
+                      {heading.kind}
+                    </span>
+                  )}
+                  {heading.maturity === null ? null : (
+                    <span className={`rounded-full px-2 py-0.5 font-medium ${maturityTone(heading.maturity)}`}>
+                      Brainstorm {heading.maturity}
+                    </span>
+                  )}
+                </p>
               )}
-              {chat.role !== 'genesis' ? null : chat.folder === null ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setProjectForm(true)}
-                    disabled={chat.busy || projectForm}
-                    className={`rounded-md px-2 py-0.5 disabled:opacity-50 ${
-                      brainstormed
-                        ? 'bg-accent text-surface'
-                        : 'border border-accent text-accent hover:bg-surface-raised'
-                    }`}
-                  >
-                    Faire de ce genesis un projet
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void chat.linkFolder()}
-                    disabled={chat.busy}
-                    className="underline disabled:opacity-50"
-                  >
-                    Lier un dossier existant…
-                  </button>
-                </>
-              ) : (
-                <>
+              <h2 className="line-clamp-2 text-base leading-snug font-semibold" title={chat.title}>
+                {heading.name}
+              </h2>
+              {chat.role === 'workflow' ? null : (
+                <p className="text-xs text-content-muted">
+                  {chat.agentProfile === true
+                    ? 'Claude remplit la fiche à côté ; tu valides'
+                    : chat.role === 'skills'
+                      ? 'Conversation Skills · Claude ne dépose que des brouillons'
+                      : chat.role === 'element'
+                        ? `${chat.elementType ?? 'Élément'} du projet`
+                        : chat.role === 'step'
+                          ? `Étape ${chat.stepLabel ?? ''} du plan d’attaque`
+                          : chat.folder === null
+                            ? 'Genesis'
+                            : 'Projet'}
+                  {chat.maturity === null ? '' : ` · maturité : ${MATURITY_LABELS[chat.maturity] ?? chat.maturity}`}
+                </p>
+              )}
+            </div>
+            {/* La consommation, en pastille à côté de la fermeture ; le détail au clic. */}
+            {chat.usage === null ? null : <UsageMeter usage={chat.usage} />}
+            <button
+              type="button"
+              aria-label="Fermer la conversation"
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-surface-raised"
+            >
+              ×
+            </button>
+          </div>
+          <div className="min-w-0">
+            {chat.reprise === null ? null : (
+              <div className="mt-1 flex flex-wrap items-start gap-2">
+                <ConfidentialityBadge
+                  genesisId={chat.reprise.genesisId}
+                  level={chat.reprise.confidentiality}
+                  onChanged={chat.setConfidentiality}
+                />
+                {/*
+                 * Explorateur en second plan (spec 017 D12) : la carte de Claude est la vue principale ; il n'est mis en
+                 * avant qu'en « Local uniquement », où il reste la seule vue (il ne transmet rien à Claude).
+                 */}
+                <button
+                  type="button"
+                  onClick={() => openExplorer(chat.reprise?.genesisId ?? neuronId)}
+                  title="Détail du code par dossiers, fichiers et symboles"
+                  className={
+                    localOnly
+                      ? 'rounded-md bg-accent px-2 py-0.5 text-xs text-surface'
+                      : 'px-1 py-0.5 text-xs text-content-muted underline hover:text-content'
+                  }
+                >
+                  Ouvrir l’explorateur
+                </button>
+              </div>
+            )}
+            {chat.role === 'skills' ? null : (
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                {chat.projectFolder === null || chat.projectFolder === chat.folder ? null : (
                   <span
                     className="rounded-full bg-surface-raised px-2 py-0.5"
-                    title="Dossier de travail de cette conversation"
+                    title="Projet du canevas : Claude y a toujours accès"
                   >
-                    Dossier : {chat.folder}
-                    {chat.git ? ' · git' : ''}
+                    Projet : {chat.projectFolder}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => void chat.linkFolder()}
-                    disabled={chat.busy}
-                    className="underline disabled:opacity-50"
-                  >
-                    Changer
-                  </button>
-                  {chat.git ? null : (
+                )}
+                {chat.role !== 'genesis' ? null : chat.folder === null ? (
+                  <>
                     <button
                       type="button"
-                      onClick={() => void chat.initGit()}
-                      disabled={chat.busy}
-                      className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                      onClick={() => setProjectForm(true)}
+                      disabled={chat.busy || projectForm}
+                      className={`rounded-md px-2 py-0.5 disabled:opacity-50 ${
+                        brainstormed
+                          ? 'bg-accent text-surface'
+                          : 'border border-accent text-accent hover:bg-surface-raised'
+                      }`}
                     >
-                      Initialiser git
+                      Faire de ce genesis un projet
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => void chat.linkFolder()}
+                      disabled={chat.busy}
+                      className="underline disabled:opacity-50"
+                    >
+                      Lier un dossier existant…
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className="rounded-full bg-surface-raised px-2 py-0.5"
+                      title="Dossier de travail de cette conversation"
+                    >
+                      Dossier : {chat.folder}
+                      {chat.git ? ' · git' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void chat.linkFolder()}
+                      disabled={chat.busy}
+                      className="underline disabled:opacity-50"
+                    >
+                      Changer
+                    </button>
+                    {chat.git ? null : (
+                      <button
+                        type="button"
+                        onClick={() => void chat.initGit()}
+                        disabled={chat.busy}
+                        className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                      >
+                        Initialiser git
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // L'orbe de l'idée montre la cartographie en cours, puis terminée (spec 022).
+                        useMapping.getState().start(neuronId)
+                        void chat.send(MAP_MESSAGE)
+                      }}
+                      disabled={chat.busy || localOnly}
+                      className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
+                    >
+                      Cartographier ce projet
+                    </button>
+                  </>
+                )}
+                {chat.role === 'element' || chat.role === 'workflow' ? null : (
                   <button
                     type="button"
-                    onClick={() => {
-                      // L'orbe de l'idée montre la cartographie en cours, puis terminée (spec 022).
-                      useMapping.getState().start(neuronId)
-                      void chat.send(MAP_MESSAGE)
-                    }}
+                    onClick={() => void chat.send(PLAN_MESSAGE)}
                     disabled={chat.busy || localOnly}
-                    className="rounded-md bg-accent px-2 py-0.5 text-surface disabled:opacity-50"
+                    className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
                   >
-                    Cartographier ce projet
+                    Proposer un plan d’attaque
                   </button>
-                </>
-              )}
-              {chat.role === 'element' || chat.role === 'workflow' ? null : (
-                <button
-                  type="button"
-                  onClick={() => void chat.send(PLAN_MESSAGE)}
-                  disabled={chat.busy || localOnly}
-                  className="rounded-md border border-accent px-2 py-0.5 text-accent hover:bg-surface-raised disabled:opacity-50"
-                >
-                  Proposer un plan d’attaque
-                </button>
-              )}
-              {chat.role === 'element' || chat.role === 'workflow' ? null : (
-                <button
-                  type="button"
-                  onClick={() => void chat.send(DOC_MESSAGE)}
-                  disabled={chat.busy || localOnly}
-                  className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
-                >
-                  Rédiger un document
-                </button>
-              )}
-              {chat.role === 'step' ? (
-                <button
-                  type="button"
-                  onClick={() => void chat.send(FINAL_MESSAGE)}
-                  disabled={chat.busy || localOnly}
-                  className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
-                >
-                  Proposer l’action finale
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {chat.role === 'skills' ? null : (
-            <>
-              <label className="sr-only" htmlFor={`${fieldId}-mode`}>
-                Mode de permission de cette conversation
-              </label>
-              <select
-                id={`${fieldId}-mode`}
-                value={chat.permissionMode}
-                disabled={chat.loading}
-                onChange={(event) => void chat.setPermissionMode(event.target.value as PermissionMode)}
-                title="Mode de permission : ce que Claude peut faire sans te demander"
-                className={`h-8 max-w-44 rounded-md border bg-surface px-1 text-xs ${
-                  // Libre se voit d'un coup d'œil : aucune demande ne sera posée.
-                  chat.permissionMode === 'bypassPermissions'
-                    ? 'border-red-500 font-semibold text-red-700 dark:text-red-400'
-                    : 'border-content-muted/40'
-                }`}
-              >
-                {PERMISSION_MODES.map((mode) => (
-                  <option key={mode} value={mode}>
-                    {mode === 'bypassPermissions' ? `⚠ ${MODE_LABELS[mode]}` : MODE_LABELS[mode]}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          <label className="sr-only" htmlFor={`${fieldId}-model`}>
-            Modèle de cette conversation
-          </label>
-          <select
-            id={`${fieldId}-model`}
-            value={chat.modelChoice ?? ''}
-            disabled={chat.busy || chat.loading}
-            onChange={(event) => void chat.setModel(event.target.value === '' ? null : event.target.value)}
-            title="Modèle de cette conversation"
-            className="h-8 max-w-44 rounded-md border border-content-muted/40 bg-surface px-1 text-xs"
-          >
-            <option value="">Défaut ({SHORT_MODEL_NAMES[chat.model] ?? chat.model})</option>
-            {CLAUDE_MODELS.map((model) => (
-              <option key={model} value={model}>
-                {SHORT_MODEL_NAMES[model] ?? model}
-              </option>
-            ))}
-          </select>
-        </div>
-      </header>
+                )}
+                {chat.role === 'element' || chat.role === 'workflow' ? null : (
+                  <button
+                    type="button"
+                    onClick={() => void chat.send(DOC_MESSAGE)}
+                    disabled={chat.busy || localOnly}
+                    className="rounded-md border border-content-muted/40 px-2 py-0.5 hover:bg-surface-raised disabled:opacity-50"
+                  >
+                    Rédiger un document
+                  </button>
+                )}
+                {chat.role === 'step' ? (
+                  <button
+                    type="button"
+                    onClick={() => void chat.send(FINAL_MESSAGE)}
+                    disabled={chat.busy || localOnly}
+                    className="rounded-md border border-action px-2 py-0.5 text-action hover:bg-surface-raised disabled:opacity-50"
+                  >
+                    Proposer l’action finale
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+          {settings}
+        </header>
+      )}
 
       {projectForm && chat.role === 'genesis' && chat.folder === null ? (
         <ProjectForm
@@ -933,6 +948,7 @@ export function ChatPanel({
           </Button>
         </motion.form>
       )}
+      {compact && !localOnly ? <div className="px-3 pb-3">{settings}</div> : null}
     </section>
   )
 }

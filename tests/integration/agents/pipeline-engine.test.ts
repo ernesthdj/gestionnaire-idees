@@ -204,7 +204,7 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     // La spec signée est commitée sur la branche du PO.
     const signed = (await git(['show', `${agentBranch('T050', 'po')}:docs/pipeline/T050/spec.md`])).output
     expect(parseLotPlan(signed)).toEqual({
-      steps: [{ task: 'T001', agents: ['Agent back'], waits: [] }],
+      steps: [{ task: 'T001', agents: ['Agent back'], waits: [], after: [] }],
       rhythm: { mode: 'tout', reason: 'deux tris simples' }
     })
   })

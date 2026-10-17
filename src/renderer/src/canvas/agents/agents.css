@@ -105,10 +105,9 @@
 .agent-visio-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 384px;
-  height: 520px;
-  max-height: 70vh;
+  width: 416px;
+  height: 600px;
+  max-height: 80vh;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, var(--color-content-muted) 30%, transparent);
@@ -122,10 +121,12 @@
   max-height: 86vh;
 }
 .agent-visio-chat {
+  /* Un seul défilement, celui des messages : la conversation tient la hauteur restante, le champ reste en bas. */
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
-  border-top: 1px solid color-mix(in oklab, var(--color-content-muted) 20%, transparent);
+  overflow: hidden;
 }
 
 /* Sous-titres de la visio : ce que l'agent répond, en bas de l'image. */

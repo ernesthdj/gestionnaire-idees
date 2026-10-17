@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PASS_NATURE_LABELS } from '@shared/agents/pipeline'
 import { AGENT_ROLE_LABELS } from '@shared/agents/profile'
 import { ChatPanel } from '../../chat/ChatPanel'
+import { Button } from '../../components/atoms/Button'
 import { Markdown } from '../../chat/Markdown'
 import { call, IpcFailure } from '../../lib/ipc'
 import { agentsTitle, useSidePanel } from '../side/sidePanelStore'
@@ -46,6 +47,9 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
   const [draftOpen, setDraftOpen] = useState<string | null>(null)
   // Agrandir le volet (demande de mentalyas, 2026-10-17) : un brouillon ou une longue réponse s'y lit en entier.
   const [wide, setWide] = useState(false)
+  // Mission et rapport : repliés, la conversation garde la place.
+  const [missionOpen, setMissionOpen] = useState(false)
+  const missionId = useId()
   // Nouvelle conversation : le chat repart d'une vue neuve (sa clé change).
   const [round, setRound] = useState(0)
   const talking = useVisio((state) => state.talking)
@@ -89,97 +93,106 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
       className={`agent-visio-panel nodrag nowheel${wide ? ' agent-visio-panel-wide' : ''}`}
       aria-label={`Visio avec ${data.name}`}
     >
-      <header className="flex items-start justify-between gap-2 px-4 pt-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold">{data.name}</h3>
-          <p className="text-xs text-content-muted">
-            {profile === undefined ? 'Profil supprimé' : `${AGENT_ROLE_LABELS[profile.role]} · ${profile.model}`}
-            {' · '}
-            <span className="font-medium text-content">{AGENT_VISUAL_LABELS[visual]}</span>
-            {live?.pass === undefined
-              ? null
-              : ` — passe ${live.pass}${live.nature === undefined ? '' : ` (${PASS_NATURE_LABELS[live.nature]})`}`}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
+      {/* En-tête : qui, où il en est, et les gestes sur l'appel ; une ligne d'outils en dessous. */}
+      <header className="border-b border-content-muted/20 px-4 pt-4 pb-3">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold">{data.name}</h3>
+            <p className="mt-1 text-xs text-content-muted">
+              {profile === undefined ? 'Profil supprimé' : `${AGENT_ROLE_LABELS[profile.role]} · ${profile.model}`}
+              {' · '}
+              <span className="font-medium text-content">{AGENT_VISUAL_LABELS[visual]}</span>
+              {live?.pass === undefined
+                ? null
+                : ` — passe ${live.pass}${live.nature === undefined ? '' : ` (${PASS_NATURE_LABELS[live.nature]})`}`}
+            </p>
+          </div>
           <button
             type="button"
             aria-pressed={wide}
             title={wide ? 'Revenir à la taille normale' : 'Agrandir le volet'}
-            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-surface-raised"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-surface-raised"
             onClick={() => setWide((value) => !value)}
           >
             <span aria-hidden="true">{wide ? '⤡' : '⤢'}</span>
             <span className="sr-only">Agrandir le volet</span>
           </button>
-          <button type="button" className="card-button card-button-ghost" onClick={close}>
+          <Button className="shrink-0 px-3" title="Échap" onClick={close}>
             Raccrocher
-          </button>
-          <button
-            type="button"
-            aria-label="Raccrocher et fermer le volet"
-            title="Fermer (Échap)"
-            onClick={close}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-surface-raised"
+          </Button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            aria-expanded={missionOpen}
+            aria-controls={missionId}
+            className="px-3 whitespace-nowrap"
+            onClick={() => setMissionOpen((value) => !value)}
           >
-            ×
-          </button>
+            Mission et rapport <span aria-hidden="true">{missionOpen ? '▴' : '▾'}</span>
+          </Button>
+          <span className="flex-1" />
+          {chat.data === undefined ? null : (
+            <RestartChat
+              neuronId={chat.data.neuronId}
+              disabled={talking}
+              onDone={() => {
+                setDraftOpen(null)
+                setRound((value) => value + 1)
+              }}
+            />
+          )}
         </div>
       </header>
       {live?.message === undefined ? null : (
-        <p role="alert" className="px-4 text-sm text-con">
+        <p role="alert" className="border-b border-content-muted/20 px-4 py-2 text-sm text-con">
           {live.message}
         </p>
       )}
-      {chat.data === undefined ? null : (
-        <div className="px-4">
-          <RestartChat
-            neuronId={chat.data.neuronId}
-            disabled={talking}
-            onDone={() => {
-              setDraftOpen(null)
-              setRound((value) => value + 1)
-            }}
-          />
+      {!missionOpen ? null : (
+        <div
+          id={missionId}
+          className="max-h-[45%] shrink-0 space-y-3 overflow-y-auto border-b border-content-muted/20 bg-surface-raised/40 px-4 py-3 text-sm"
+        >
+          {agent === undefined || sketch === undefined ? null : (
+            <section aria-label="Mission">
+              <h4 className="mb-1 text-xs font-semibold text-content-muted uppercase">Mission</h4>
+              <p>{missionOf(agent, sketch.agents.length === 1)}</p>
+            </section>
+          )}
+          <section aria-label="Dernier rapport">
+            <h4 className="mb-1 text-xs font-semibold text-content-muted uppercase">Dernier rapport</h4>
+            {live?.report === undefined ? (
+              <p className="text-content-muted">Pas encore de rapport : il arrive quand l’agent a fini sa passe.</p>
+            ) : (
+              <Markdown text={live.report} />
+            )}
+          </section>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              className="px-3"
+              onClick={() =>
+                openAgents({
+                  nodeId: data.hostId,
+                  genesisId: data.genesisId,
+                  title: agentsTitle(data.hostTitle),
+                  kindLabel: 'Agents',
+                  agentId: data.agentId
+                })
+              }
+            >
+              Gérer l’assemblage
+            </Button>
+            <Button
+              className="px-3"
+              disabled={running || sketch === undefined}
+              title={running ? 'L’assemblage travaille : arrête-le d’abord.' : undefined}
+              onClick={() => void dismiss()}
+            >
+              Renvoyer l’agent
+            </Button>
+          </div>
         </div>
       )}
-      <details className="px-4 text-sm">
-        <summary className="cursor-pointer font-medium">Mission et rapport</summary>
-        {agent === undefined || sketch === undefined ? null : (
-          <p className="mt-2 rounded-md bg-surface-raised p-2">{missionOf(agent, sketch.agents.length === 1)}</p>
-        )}
-        {live?.report === undefined ? (
-          <p className="mt-2 text-content-muted">Pas encore de rapport : il arrive quand l’agent a fini sa passe.</p>
-        ) : (
-          <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-content-muted/20 p-2">
-            <Markdown text={live.report} />
-          </div>
-        )}
-        <button
-          type="button"
-          className="card-button card-button-ghost mt-2"
-          onClick={() =>
-            openAgents({
-              nodeId: data.hostId,
-              genesisId: data.genesisId,
-              title: agentsTitle(data.hostTitle),
-              kindLabel: 'Agents',
-              agentId: data.agentId
-            })
-          }
-        >
-          Gérer l’assemblage
-        </button>
-        <button
-          type="button"
-          className="card-button card-button-ghost mt-2 ml-2"
-          disabled={running || sketch === undefined}
-          title={running ? 'L’assemblage travaille : arrête-le d’abord.' : undefined}
-          onClick={() => void dismiss()}
-        >
-          Renvoyer l’agent
-        </button>
-      </details>
       <SkillsCards skills={skills} onOpenDraft={setDraftOpen} />
       <div className="agent-visio-chat">
         {draftOpen !== null ? (
@@ -190,6 +203,7 @@ export function AgentVisioPanel({ data }: { readonly data: AgentNodeData }): Rea
             neuronId={chat.data.neuronId}
             onClose={close}
             onActivity={onActivity}
+            compact
           />
         ) : chat.error !== null ? (
           <p role="alert" className="p-4 text-sm text-con">

@@ -148,10 +148,10 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await restart.click()
     await visio.getByRole('button', { name: 'Repartir' }).click()
     await expect.poll(() => visio.getByText('Où en es-tu ?').count()).toBe(0)
-    await visio.getByText('Mission et rapport').click()
+    await visio.getByRole('button', { name: /^Mission et rapport/ }).click()
     await visio.getByRole('button', { name: 'Gérer l’assemblage' }).click()
     await tab.getByRole('region', { name: 'Agent developpeur' }).waitFor()
-    await visio.getByRole('button', { name: 'Raccrocher et fermer le volet' }).click()
+    await visio.getByRole('button', { name: 'Raccrocher', exact: true }).click()
     await visio.waitFor({ state: 'detached' })
     await page.getByRole('button', { name: 'Tout afficher' }).click()
 

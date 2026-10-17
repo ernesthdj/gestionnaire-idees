@@ -21,12 +21,16 @@ const Lot = z.object({
       z.object({
         task: z.string(),
         agents: z.array(z.string()),
-        waits: z.array(z.object({ agent: z.string(), after: z.string() }))
+        waits: z.array(z.object({ agent: z.string(), after: z.string() })),
+        // Plans enregistrés avant L1o D28 : aucune dépendance entre tâches.
+        after: z.array(z.string()).default([])
       })
     ),
     rhythm: z.object({ mode: z.enum(['une-a-une', 'tout']), reason: z.string() }).nullable()
   }),
-  overrides: z.array(z.object({ task: z.string(), agents: z.array(z.string()), links: Links }))
+  overrides: z.array(
+    z.object({ task: z.string(), agents: z.array(z.string()), links: Links, after: z.array(z.string()).optional() })
+  )
 })
 
 /**

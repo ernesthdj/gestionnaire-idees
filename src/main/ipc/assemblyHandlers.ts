@@ -135,7 +135,9 @@ export function createAssemblyRoutes(
         route: z
           .strictObject({
             agents: z.array(AgentId).min(1).max(20),
-            links: z.array(z.strictObject({ from: AgentId, to: AgentId })).max(100)
+            links: z.array(z.strictObject({ from: AgentId, to: AgentId })).max(100),
+            // Tâches dont celle-ci dépend (L1o D28).
+            after: z.array(z.string().min(1).max(80)).max(60).optional()
           })
           .nullable()
       }),

@@ -320,3 +320,23 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
   plus invisible. Le tiroir « Appeler un agent » la montre en tête, « Équipes à rattacher », avec ses agents et
   « Rattacher à… » une tâche du Workflow. Elle y garde ses agents, leurs liens **et leurs conversations** (contrairement
   à « Déplacer l'équipe », D24, qui repart d'une visio neuve : ici c'est la même tâche, retrouvée).
+
+### D28 — Le PO dit ce qui tourne en même temps (2026-10-17, complète D25)
+- Demande de mentalyas : des agents dont les travaux ne se complètent pas devraient travailler **en même temps**, et
+  pas seulement les uns après les autres ; c'est le PO qui le décide. Seul le QA attend que tous aient fini.
+- **Dans une tâche** : le moteur le permet déjà (T011 : non reliés = en parallèle, chacun dans son worktree). Ce qui
+  manque, c'est la consigne : le PO n'écrit « A attend B » que si A a besoin du résultat de B ; deux agents dont les
+  travaux ne se touchent pas n'attendent que lui ; le QA attend tous ceux qui codent. « Qui attend qui » montre les
+  groupes (« Front ∥ Back → QA »). Garde-fou : deux agents en parallèle sur la même zone déclarée sont signalés (D4).
+- **Entre les tâches d'un lot** : la ligne d'aiguillage dit aussi de quelles tâches une tâche dépend
+  (`AIGUILLAGE: T003 | Back, QA | QA attend Back | après T002`). Une tâche sans « après » part avec les autres ; les
+  tâches indépendantes forment un **groupe** qui tourne ensemble, chaque tâche avec ses branches et ses worktrees.
+- **Un QA par tâche** (choix de mentalyas) : chaque tâche a son QA, qui attend ses agents ; un renvoi ne repart que
+  sur la tâche fautive, sans bloquer les autres du groupe.
+- **Rythme** (D25), choix de mentalyas :
+  - **Une à une → groupe par groupe** : les tâches d'un groupe partent ensemble, un accord de fusion pour chacune ; le
+    groupe suivant part quand tout le groupe est fusionné.
+  - **Tout le lot** : chaque tâche validée par son QA s'ajoute à la branche d'intégration du lot dès qu'elle est prête
+    (et que les tâches dont elle dépend y sont) ; un seul accord à la fin.
+- Une dépendance qui nomme une tâche absente du plan, ou qui forme une boucle, est ignorée et signalée (jamais une
+  erreur qui arrête le lot) ; le choix de mentalyas dans « Qui attend qui » prime, comme pour les agents (D25).
