@@ -2921,3 +2921,34 @@ avant, deux après). Le seul déplacement était déjà fluide (7 ms) : c'est le
 **Vérifié :** typecheck, lint, Prettier, 2 506 tests ; e2e `widget-wireframe`, `agents-map`, `workflow-task-files`
 (11/11 ; une passe enchaînée a échoué sur le zoom du plein écran du widget et sur un widget de `workflow-task-files` :
 instables, verts seuls puis enchaînés).
+
+### [2026-10-17 10:58] FEAT — un widget posé par Claude arrive à côté de son nœud (spec 026 D11)
+**Fichiers :** `src/shared/ipc/mcp.ts` (`widget` de `MapChangedPayload`, `WidgetPlacement`), `MapService.ts`
+(événement), `app/uiStore.ts` (`widgetPlacements`), `app/useMainEvents.ts`, `canvas/widgetPlacement.ts` (nouveau :
+`besideAnchor`), `canvas/IdeasCanvas.tsx` ; spec 026 (D11) ; tests `widget-placement`, `map-service`.
+**Demande de mentalyas :** le widget se posait près du genesis, sur les nœuds du Workflow.
+**Choix :** la place d'un nœud du Workflow dépend de l'interface (repli, « Réorganiser », place du genesis) : le main
+annonce le widget et son nœud, l'interface le pose à droite du nœud en évitant les autres, puis l'enregistre.
+**Vérifié :** vrai Claude (e2e ponctuel non commité) : widget sans repère posé depuis la conversation de T001, arrivé
+à droite de T001, hors des autres nœuds.
+
+### [2026-10-17 11:18] DOCS — brainstorm du pipeline en cinq phases (L2-pipeline-optimal)
+**Fichiers :** `docs/brainstorm/L2-pipeline-optimal.md` (nouveau), `docs/TACHES-PIPELINE.md` (nouveau, 14 ébauches),
+`docs/TACHES-AGENTS.md` (T024 reprise par T013).
+**Quoi :** analyse du pipeline actuel (forces, 10 faiblesses) et workflow proposé par mentalyas, retenu avec trois
+corrections : pas d'agent « Git Manager » (intégration faite par l'app), vérifications lancées par l'app avec boucle
+rapide vers le développeur (plafond, reprise de session), fusion sur `main` toujours par mentalyas. D1 à D9, 7 user
+stories. Maturité « suffisant » : 5 questions ouvertes (§ 8).
+
+### [2026-10-17 11:26] DOCS — pipeline en cinq phases : réponses de mentalyas (L2-pipeline-optimal D2, D3, D4, D6, D10, D11)
+**Fichiers :** `docs/brainstorm/L2-pipeline-optimal.md`, `docs/TACHES-PIPELINE.md` (lot 5 : T015–T018).
+**Quoi :** boucle rapide sans plafond, mais consommation visible (jauge vert / jaune / orange / rouge), archivée par lot
+et bilan par Claude (D10) ; commandes de vérification écrites par l'Architecte, validées par mentalyas au départ (D2) ;
+conflit résolu par le développeur en conflit dans sa session reprise, Architecte en recours (D4, tranché par Claude) ;
+QA toujours présent (D6) ; accès MCP choisi pour les agents, avec leur identité (D11). Reste la question 6 (seuils de
+la jauge) avant « complet ».
+
+### [2026-10-17 11:29] DOCS — pipeline en cinq phases complet (L2-pipeline-optimal D12)
+**Fichiers :** `docs/brainstorm/L2-pipeline-optimal.md`, `docs/TACHES-PIPELINE.md`.
+**Quoi :** seuils de la jauge validés par mentalyas (part de la jauge des 5 h, relatifs à la médiane du rôle, fixes au
+départ) ; maturité « complet » ; les 18 tâches ne sont plus des ébauches.
