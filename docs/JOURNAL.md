@@ -2783,3 +2783,8 @@ empreinte est reporté au premier passage. Une équipe dont le nœud a disparu e
 par un heredoc avec des barres obliques inverses (règle déjà connue : outil d'édition pour tout code qui en contient).
 **Vérifié :** typecheck, lint, Prettier, 2 487 tests ; e2e `agents-map` (capture `t027-01-equipe-a-rattacher`),
 `agents-lot`, `workflow-task-files`.
+
+### [2026-10-17 02:15] SESSION — End
+**Resume :** session du 14 au 17/10 : agents assemblés (L1o D13 à D27) — chambres 3D, visio et tête-à-tête, fenêtre de l'agent, profils avec Claude, fusion qui coche les tâches, déplacer et rattacher une équipe, tiroir d'agents ; le PO cadre un lot (spec de lot, aiguillage) ; outil agents_lire (lot 6) ; nouvelle conversation avec un agent ; volet de conversation retravaillé ; plus de repli automatique ; identifiants de tâches stables. Revue du premier lot complet de Bike_cycle.
+**Branche :** main
+**Commits pushes :** 28
