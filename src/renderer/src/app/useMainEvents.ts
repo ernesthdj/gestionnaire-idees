@@ -73,6 +73,10 @@ export function useMainEvents(): void {
     unsubscribes.push(
       window.api.on('map:changed', (payload) => {
         if (isMapChanged(payload)) {
+          const { widget } = payload
+          if (typeof widget?.blockId === 'string' && typeof widget.anchorId === 'string') {
+            useUiStore.getState().placeWidget({ blockId: widget.blockId, anchorId: widget.anchorId })
+          }
           showToast(payload.summary, {
             batchId: payload.batchId,
             undoneText: 'Annulé : la carte revient à l’état d’avant.'

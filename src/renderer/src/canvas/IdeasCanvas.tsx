@@ -52,6 +52,7 @@ import { ResultNode } from './nodes/ResultNode'
 import { SettingsNode } from './nodes/SettingsNode'
 import { WIDGET_TILE, WidgetNode } from './nodes/WidgetNode'
 import { useFarZoom } from './zoomLevels'
+import { besideAnchor, type CenteredBox } from './widgetPlacement'
 import { pauseMapRooms } from './agents/room/roomPause'
 import { ContextMenu, ToolMenu, type MenuItem, type Tool } from './ToolMenu'
 import { flushViewState } from '../home/useBrainstorms'
@@ -505,6 +506,28 @@ function CanvasInner(): React.JSX.Element {
   }, [arrival, endArrival])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<MapNode>(graph.nodes)
+
+  // Widget posé par Claude et relié à un nœud dont seule la carte connaît la place (spec 026 D11) : posé à côté de ce
+  // nœud dès que les deux sont là. Nœud replié ou dans une autre vue : le widget reste près du genesis.
+  const widgetPlacements = useUiStore((state) => state.widgetPlacements)
+  useEffect(() => {
+    const boxOf = (node: MapNode): CenteredBox => ({
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width ?? node.width ?? 0,
+      height: node.measured?.height ?? node.height ?? 0
+    })
+    for (const placement of widgetPlacements) {
+      const widget = nodes.find((node) => node.id === placement.blockId)
+      if (widget === undefined || !('block' in widget.data)) continue
+      useUiStore.getState().widgetPlaced(placement.blockId)
+      const anchor = nodes.find((node) => node.id === placement.anchorId && node.hidden !== true)
+      if (anchor === undefined) continue
+      const size = { width: widget.data.block.width, height: widget.data.block.height }
+      const others = nodes.filter((node) => node.id !== widget.id && node.hidden !== true).map(boxOf)
+      void blockActions.save(widget.id, { ...besideAnchor(boxOf(anchor), size, others), ...size })
+    }
+  }, [widgetPlacements, nodes, blockActions])
 
   // Liens d'une carte de structure selon le focus (spec 017 D15) : l'élément survolé, sinon celui de la carte active.
   const [hoveredElement, setHoveredElement] = useState<string | null>(null)

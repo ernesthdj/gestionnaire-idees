@@ -348,6 +348,11 @@ describe('pont MCP — service de la carte', () => {
         sourceKind: 'workflow',
         sourceId: `wf:${ideaId}:tgroup:rappels`
       })
+      // Spec 026 D11 : l'interface le pose à côté du nœud, qu'elle seule sait placer.
+      expect(events.at(-1)?.widget).toEqual({
+        blockId: (named.data as { id: string }).id,
+        anchorId: `wf:${ideaId}:tgroup:rappels`
+      })
       const own = map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse(code), { neuronId: 'chat-tache' })
       expect(io.state((own.data as { id: string }).id).inputs[0]).toMatchObject({
         sourceKind: 'workflow',

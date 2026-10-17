@@ -10,6 +10,7 @@ import type { TreeView } from '@shared/ipc/neurons'
 import type { InputPart, InputSourceKind } from '@shared/ipc/widgetIo'
 import { defaultParts, partsFor } from '../../domain/widgets/inputParts'
 import type { ToolResult } from '@shared/mcp/protocol'
+import type { MapChangedPayload } from '@shared/ipc/mcp'
 import {
   MCP_LIMITS,
   type DessinerInput,
@@ -32,11 +33,7 @@ import type { NeuronRepository } from '../../infrastructure/db/repositories/Neur
 import type { SelectionStore } from './SelectionStore'
 
 /** Écriture de Claude appliquée : la fenêtre principale rafraîchit la carte et propose « Annuler » (FR-014). */
-export interface MapChangedEvent {
-  readonly batchId: string
-  readonly summary: string
-  readonly count: number
-}
+export type MapChangedEvent = MapChangedPayload
 
 export interface MapServiceDeps {
   /** Carte telle que l'interface la voit (idées, blocs, liens). */
@@ -763,7 +760,14 @@ export class MapService {
       if (error instanceof AppError) throw new McpToolError('CODE_REFUSE', error.message)
       throw error
     }
-    this.deps.emit({ batchId, summary: 'Claude : 1 widget', count: 1 })
+    // Relié à un nœud dont seule l'interface connaît la place : elle pose le widget à côté (spec 026 D11).
+    const placeBeside = connection !== undefined && connection.kind !== 'idea'
+    this.deps.emit({
+      batchId,
+      summary: 'Claude : 1 widget',
+      count: 1,
+      ...(placeBeside ? { widget: { blockId, anchorId: connection.id } } : {})
+    })
     return {
       text: `Widget posé : ${blockId}, « À revoir » — il ne reçoit aucune donnée avant l’autorisation de mentalyas.`,
       data: { id: blockId, lot: batchId, etat: 'a_revoir' }

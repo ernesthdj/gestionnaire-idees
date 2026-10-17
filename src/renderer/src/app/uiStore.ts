@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { NavigateEvent, Section } from '@shared/ipc/app'
 import type { BrainstormOpenView, BrainstormView, HubAnomaly } from '@shared/ipc/brainstorms'
 import type { ViewState } from '@shared/brainstorms/viewState'
+import type { WidgetPlacement } from '@shared/ipc/mcp'
 import { useCards } from '../canvas/cards/cardsStore'
 import { cardsOf, chatTabsOf } from '../home/viewState'
 import { deliverableNodeId, ghostNodeId } from '../canvas/planLayout'
@@ -66,6 +67,10 @@ interface UiState {
   /** Widgets repliés en tuile (leur cadre n'est plus monté) ; gardés avec la vue du canevas. */
   readonly collapsedWidgets: readonly string[]
   toggleWidget(blockId: string): void
+  /** Widgets posés par Claude à placer à côté de leur nœud dès qu'il est sur la carte (spec 026 D11). */
+  readonly widgetPlacements: readonly WidgetPlacement[]
+  placeWidget(placement: WidgetPlacement): void
+  widgetPlaced(blockId: string): void
   /**
    * Arrivée dans le Workflow depuis la Progression (spec 032 Q8) : le rond (clé de la carte) et ses carrés sont surlignés
    * quelques secondes ; `null` : rien. `nonce` distingue deux arrivées sur le même rond.
@@ -231,6 +236,13 @@ export const useUiStore = create<UiState>()((set, get) => ({
   foldPanel: (folded) => set({ panelFolded: folded }),
   setProgressionReading: (genesisId, reading) =>
     set((state) => ({ progressionReadings: { ...state.progressionReadings, [genesisId]: reading } })),
+  widgetPlacements: [],
+  placeWidget: (placement) =>
+    set((state) => ({
+      widgetPlacements: [...state.widgetPlacements.filter((entry) => entry.blockId !== placement.blockId), placement]
+    })),
+  widgetPlaced: (blockId) =>
+    set((state) => ({ widgetPlacements: state.widgetPlacements.filter((entry) => entry.blockId !== blockId) })),
   collapsedWidgets: [],
   toggleWidget: (blockId) =>
     set((state) => ({
