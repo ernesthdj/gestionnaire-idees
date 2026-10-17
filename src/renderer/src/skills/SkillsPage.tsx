@@ -48,6 +48,7 @@ import { AgentProfilesPanel } from './AgentProfilesPanel'
 import { DraftPanel } from './DraftPanel'
 import { ImportDialog } from './ImportDialog'
 import { LibraryRepoPanel, LibrarySkillPanel, repoLabel } from './LibraryPanel'
+import { SkillNodeMenu, type InstallTarget } from './SkillNodeMenu'
 import { SkillConversation, SkillPanel } from './SkillPanel'
 import { layoutTree, type TreeGroup } from './skillTree'
 
@@ -330,6 +331,12 @@ function SkillsTree(): React.JSX.Element {
   const [search, setSearch] = useState('')
   const [pluginsOpen, setPluginsOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  /** Clic droit sur un nœud installable : « Installer » sans passer par le volet. */
+  const [menu, setMenu] = useState<{
+    readonly id: string
+    readonly at: { readonly x: number; readonly y: number }
+    readonly target: InstallTarget
+  } | null>(null)
   const [agentsOpen, setAgentsOpen] = useState(false)
   // Création accompagnée d’un profil (L1o D15) : la conversation et la fiche côte à côte, le panneau s’élargit.
   const [assisted, setAssisted] = useState(false)
@@ -400,6 +407,21 @@ function SkillsTree(): React.JSX.Element {
   const select = (id: string): void => {
     setSelectedId(id)
     if (id.startsWith(REPO_PREFIX)) toggleRepo(id.slice(REPO_PREFIX.length), true)
+  }
+  /** Ce qu'un nœud permet d'installer : son brouillon (nouveau ou modifié) ou le skill de la bibliothèque ; sinon rien. */
+  const installTarget = (id: string): InstallTarget | undefined => {
+    if (id.startsWith(GHOST_PREFIX)) {
+      const draft = ghosts.find((candidate) => `${GHOST_PREFIX}${candidate.id}` === id)
+      return draft === undefined ? undefined : { kind: 'draft', draftId: draft.id, name: draft.name }
+    }
+    if (id.startsWith(LIB_PREFIX)) {
+      const skill = library
+        .flatMap((repo) => repo.skills)
+        .find((candidate) => `${LIB_PREFIX}${candidate.candidateId}` === id)
+      return skill === undefined ? undefined : { kind: 'library', skill }
+    }
+    const draft = (drafts.data ?? []).find((candidate) => !candidate.isNew && candidate.skillId === id)
+    return draft === undefined ? undefined : { kind: 'draft', draftId: draft.id, name: draft.name }
   }
   const librarySize = library.reduce((total, repo) => total + repo.skills.length, 0)
 
@@ -510,6 +532,12 @@ function SkillsTree(): React.JSX.Element {
                 if (id !== null && id !== undefined && selectable(id)) select(id)
               }}
               onPaneClick={() => setSelectedId(null)}
+              onNodeContextMenu={(event, node) => {
+                const target = installTarget(node.id)
+                if (target === undefined) return
+                event.preventDefault()
+                setMenu({ id: node.id, at: { x: event.clientX, y: event.clientY }, target })
+              }}
             >
               <Background />
               <Controls showInteractive={false} />
@@ -517,6 +545,17 @@ function SkillsTree(): React.JSX.Element {
           )}
         </div>
       </div>
+      {menu === null ? null : (
+        <SkillNodeMenu
+          at={menu.at}
+          target={menu.target}
+          onOpen={(draftId) =>
+            select(menu.target.kind === 'library' && draftId !== undefined ? `${GHOST_PREFIX}${draftId}` : menu.id)
+          }
+          onInstalled={setSelectedId}
+          onClose={() => setMenu(null)}
+        />
+      )}
       <aside
         className={`min-w-0 border-l border-content-muted/20 bg-surface ${
           agentsOpen && assisted ? 'basis-[62%]' : 'basis-[38%]'
