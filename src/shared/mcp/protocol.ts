@@ -17,7 +17,9 @@ export const HelloFrame = z.strictObject({
   hello: z.literal(PROTOCOL_VERSION),
   token: z.string().regex(/^[0-9a-f]{64}$/),
   /** Neurone de la conversation qui a lancé ce relais (spec 008) ; absent pour un CLI externe. */
-  neuron: z.uuid().optional()
+  neuron: z.uuid().optional(),
+  /** Lancé par l'app pour une session d'agent du pipeline (L2-pipeline-optimal D11) : outils restreints. */
+  pipeline: z.literal(true).optional()
 })
 export type HelloFrame = z.infer<typeof HelloFrame>
 

@@ -51,6 +51,8 @@ export interface Assembly {
   readonly lot?: readonly LotTask[]
   /** Fichier où vivent les tâches du lot : on y coche, on n'en crée pas d'autre. */
   readonly lotFile?: string
+  /** Nœud de la carte où l'équipe est connectée : il donne aux agents leur identité sur le pont (L2-pipeline-optimal D11). */
+  readonly hostId?: string
 }
 
 /** Agents attendus par chacun (liens entrants), dans l'ordre de l'assemblage. */

@@ -117,7 +117,10 @@ export class PipeServer {
             return
           }
           authenticated = true
-          caller = { neuronId: hello.data.neuron ?? null }
+          caller = {
+            neuronId: hello.data.neuron ?? null,
+            ...(hello.data.pipeline === true ? { pipeline: true } : {})
+          }
           socket.write(`${JSON.stringify({ ok: true } satisfies HelloReply)}\n`)
           continue
         }

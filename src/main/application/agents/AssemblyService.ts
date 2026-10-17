@@ -461,7 +461,8 @@ export class AssemblyService {
       links: request.links,
       ...(request.baseBranch === undefined ? {} : { baseBranch: request.baseBranch }),
       ...(node.lotTasks === undefined || node.lotTasks.length === 0 ? {} : { lot: node.lotTasks }),
-      ...(node.lotFile === undefined ? {} : { lotFile: node.lotFile })
+      ...(node.lotFile === undefined ? {} : { lotFile: node.lotFile }),
+      hostId: request.nodeId
     }
     // Un moteur par projet : c'est lui qui fait passer les commandes git une à une ; deux tâches lancées en même temps
     // sur le même dépôt se disputeraient sinon ses verrous (worktrees, références).

@@ -40,6 +40,21 @@ const SKILLS_CHAT_TOOLS: ReadonlySet<McpToolName> = new Set([
   'ecriture_avant'
 ])
 
+/**
+ * Outils ouverts à une session d'agent du pipeline (L2-pipeline-optimal D11) : lire la carte, les agents, le code et les
+ * documents ; poser un widget relié à sa tâche. Rien d'autre n'écrit sur la carte.
+ */
+const PIPELINE_AGENT_TOOLS: ReadonlySet<McpToolName> = new Set([
+  'etat',
+  'carte_lire',
+  'noeud_lire',
+  'structure_lire',
+  'code_graphe_lire',
+  'document_lire',
+  'agents_lire',
+  'widget_poser'
+])
+
 /** Aiguillage des outils du pont : carte (spec 007) ou neurone de la conversation (spec 008). */
 export function createToolHandler(
   map: Pick<MapService, 'handle'>,
@@ -64,6 +79,12 @@ export function createToolHandler(
   agents?: Pick<AgentTools, 'read'>
 ): (tool: McpToolName, args: unknown, caller: McpCaller) => ToolResult | Promise<ToolResult> {
   return (tool, args, caller) => {
+    if (caller.pipeline === true && !PIPELINE_AGENT_TOOLS.has(tool)) {
+      throw new McpToolError(
+        'NON_MODIFIABLE',
+        `Un agent du pipeline lit la carte, les agents, le code et les documents, et pose un widget relié à sa tâche : ${tool} ne lui est pas ouvert.`
+      )
+    }
     if (caller.neuronId !== null && skills?.isSkillsChat(caller.neuronId) === true && !SKILLS_CHAT_TOOLS.has(tool)) {
       throw new McpToolError(
         'NON_MODIFIABLE',

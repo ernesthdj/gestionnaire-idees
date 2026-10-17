@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { connect, type Socket } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { McpToolError } from '../../../src/main/domain/mcp/errors'
+import type { McpCaller } from '../../../src/main/domain/mcp/caller'
 import { PipeServer } from '../../../src/main/infrastructure/mcp/PipeServer'
 import type { LogRecord } from '../../../src/main/infrastructure/logging/logger'
 import { createLogger } from '../../../src/main/infrastructure/logging/logger'
@@ -54,6 +55,7 @@ describe('canal du pont MCP', () => {
   let server: PipeServer
   let records: LogRecord[]
   const calls: string[] = []
+  const callers: McpCaller[] = []
 
   const open = (): Promise<TestClient> =>
     new Promise((resolve, reject) => {
@@ -72,14 +74,16 @@ describe('canal du pont MCP', () => {
     pipeName = `\\\\.\\pipe\\gi-mcp-test-${randomUUID()}`
     records = []
     calls.length = 0
+    callers.length = 0
     server = new PipeServer({
       pipeName,
       matchesToken: (candidate) => candidate === TOKEN,
       logger: createLogger((record) => records.push(record)),
       maxClients: 2,
       helloTimeoutMs: 200,
-      handle: (tool, args) => {
+      handle: (tool, args, caller) => {
         calls.push(tool)
+        callers.push(caller)
         if (tool === 'noeud_lire') throw new McpToolError('INTROUVABLE', 'Élément introuvable')
         if (tool === 'retirer') throw new Error('panne secrète contenu-privé')
         return { text: `ok ${tool} ${JSON.stringify(args)}` }
@@ -96,6 +100,20 @@ describe('canal du pont MCP', () => {
     client.send({ id: 1, tool: 'etat', args: {} })
     await client.until(2)
     expect(client.lines[1]).toEqual({ id: 1, ok: true, result: { text: 'ok etat {}' } })
+  })
+
+  it('should_mark_the_caller_as_a_pipeline_agent_when_its_relay_says_so', async () => {
+    // L2-pipeline-optimal D11 : le relais d'une session d'agent du pipeline le dit dans son accueil.
+    const client = await open()
+    client.send({ hello: 'gi-mcp/1', token: TOKEN, pipeline: true })
+    await client.until(1)
+    client.send({ id: 1, tool: 'etat', args: {} })
+    await client.until(2)
+    expect(callers.at(-1)).toEqual({ neuronId: null, pipeline: true })
+    const plain = await authenticated()
+    plain.send({ id: 2, tool: 'etat', args: {} })
+    await plain.until(2)
+    expect(callers.at(-1)).toEqual({ neuronId: null })
   })
 
   it('should_refuse_and_close_when_the_secret_is_wrong', async () => {

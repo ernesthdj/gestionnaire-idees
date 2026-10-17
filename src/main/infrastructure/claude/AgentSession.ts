@@ -45,6 +45,35 @@ export function writeSkillsPlugin(root: string, skills: readonly AgentSkillSourc
   return root
 }
 
+/** Pont du Brainstormer d'une session d'agent : le relais de l'app et le neurone de la visio de l'agent (son identité). */
+export interface AgentBridge {
+  readonly electronPath: string
+  readonly relayPath: string
+  readonly profileDir: string
+  readonly neuronId: string
+}
+
+/**
+ * Configuration MCP d'un agent du pipeline (L2-pipeline-optimal D11) : le seul pont du Brainstormer, marqué « pipeline »
+ * pour que l'app ne lui ouvre que la lecture et le widget de sa tâche.
+ */
+export const bridgeConfig = (bridge: AgentBridge): string =>
+  JSON.stringify({
+    mcpServers: {
+      brainstormer: {
+        type: 'stdio',
+        command: bridge.electronPath,
+        args: [bridge.relayPath],
+        env: {
+          ELECTRON_RUN_AS_NODE: '1',
+          GI_PROFILE_DIR: bridge.profileDir,
+          GI_NEURON_ID: bridge.neuronId,
+          GI_AGENT_PIPELINE: '1'
+        }
+      }
+    }
+  })
+
 /** Arguments fixes d'une session d'agent (`claude -p`) : rien ne vient du texte de la tâche. */
 export function agentSessionArgs(input: {
   readonly sessionId: string
@@ -55,6 +84,8 @@ export function agentSessionArgs(input: {
   readonly permissionMode: string
   readonly systemPrompt: string
   readonly pluginDir?: string
+  /** Pont du Brainstormer de l'agent (L2-pipeline-optimal D11) ; absent : aucun serveur MCP. */
+  readonly bridge?: AgentBridge
 }): string[] {
   return [
     '-p',
@@ -77,7 +108,9 @@ export function agentSessionArgs(input: {
     // mentalyas (Gmail, Docs, Canva…), joignables par un agent en mode « Libre » qui lirait une consigne piégée.
     '--strict-mcp-config',
     '--mcp-config',
-    NO_MCP_SERVERS,
+    input.bridge === undefined ? NO_MCP_SERVERS : bridgeConfig(input.bridge),
+    // Les outils du pont passent sans demande : le serveur de l'app ne lui en ouvre que quelques-uns (D11).
+    ...(input.bridge === undefined ? [] : ['--allowedTools', 'mcp__brainstormer']),
     '--permission-mode',
     input.permissionMode,
     ...(input.permissionMode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
@@ -96,6 +129,8 @@ export interface AgentSessionOptions {
     readonly resolve: (skillId: string) => AgentSkillSource | null
     readonly workDir: string
   }
+  /** Relais du Brainstormer (L2-pipeline-optimal D11) ; absent : les agents n'ont aucun serveur MCP. */
+  readonly relay?: Omit<AgentBridge, 'neuronId'>
 }
 
 /** Lance une session `claude -p` par agent : la mission arrive par l'entrée standard, le rapport est le champ `result`. */
@@ -119,7 +154,10 @@ export const createAgentSessionRunner =
         effort: request.profile.effort,
         permissionMode: request.profile.permissionMode,
         systemPrompt: request.systemPrompt,
-        ...(pluginDir === undefined ? {} : { pluginDir })
+        ...(pluginDir === undefined ? {} : { pluginDir }),
+        ...(options.relay === undefined || request.bridgeNeuronId === undefined
+          ? {}
+          : { bridge: { ...options.relay, neuronId: request.bridgeNeuronId } })
       }),
       cwd: request.cwd,
       stdin: request.prompt,

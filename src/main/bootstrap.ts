@@ -1375,7 +1375,9 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
         return dir === null ? null : { name: skillId.split(':').at(-1) ?? '', dir }
       },
       workDir: join(dataDir, 'agent-skills')
-    }
+    },
+    // Pont du Brainstormer des agents (L2-pipeline-optimal D11) : outils de lecture et widget de leur tâche.
+    relay: { electronPath: process.execPath, relayPath, profileDir: dataDir }
   })
   // Agents posés libres sur la carte d'un projet, en attente d'un lien vers un nœud (L1o D26).
   const agentBench = new AgentBench({
@@ -1450,6 +1452,13 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
       new PipelineEngine({
         profiles: () => agentProfiles.list(),
         runSession: agentSessions,
+        agentNeuron: (hostId, agentId) => {
+          try {
+            return agentChats.open(hostId, agentId).neuronId
+          } catch {
+            return undefined
+          }
+        },
         // Les hooks du projet tournent (jamais `--no-verify`) : une minute de marge pour un commit.
         git: (args) => runGit(projectDir, args, 120_000),
         projectDir,

@@ -360,6 +360,20 @@ describe('pont MCP — service de la carte', () => {
       })
     })
 
+    it('should_let_a_pipeline_agent_link_a_widget_to_its_own_task_only', () => {
+      // L2-pipeline-optimal D11 : pas de source ni de noeud ; le widget va au nœud de sa visio.
+      const code = { titre: 'X', html: '<main></main>', css: '', ts: 'gi.onInputs(() => {})', resume: 'X' }
+      const agent = { neuronId: 'chat-tache', pipeline: true }
+      expect(() =>
+        map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse({ ...code, noeud: 'Rappels J+3' }), agent)
+      ).toThrow(expect.objectContaining({ code: 'LOT_INVALIDE' }))
+      const own = map.handle('widget_poser', MCP_TOOLS.widget_poser.input.parse(code), agent)
+      expect(io.state((own.data as { id: string }).id).inputs[0]).toMatchObject({
+        sourceKind: 'workflow',
+        sourceId: `wf:${ideaId}:ttask:t004`
+      })
+    })
+
     it('should_list_the_candidates_when_the_ref_is_ambiguous_and_refuse_source_with_noeud', () => {
       const code = { titre: 'X', html: '<main></main>', css: '', ts: 'gi.onInputs(() => {})', resume: 'X' }
       let message = ''

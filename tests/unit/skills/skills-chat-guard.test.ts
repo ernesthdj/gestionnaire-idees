@@ -83,4 +83,17 @@ describe('conversations Skills sans écriture (spec 020 analyse H1)', () => {
     expect(profiles.propose).toHaveBeenCalledWith({ nom: 'Chef QA' }, 'skills')
     expect(handle('etat', {}, { neuronId: 'autre' })).toEqual({ text: 'carte' })
   })
+
+  it('should_open_only_reading_and_the_task_widget_to_a_pipeline_agent', () => {
+    // L2-pipeline-optimal D11 : une session d'agent du pipeline lit et pose le widget de sa tâche, rien d'autre.
+    const map = { handle: vi.fn(() => ({ text: 'carte' })) }
+    const handle = createToolHandler(...([map, {}, {}, {}, {}, {}] as unknown as HandlerArgs))
+    const agent = { neuronId: 'visio', pipeline: true }
+    for (const tool of ['dessiner', 'retirer', 'fiche_ecrire', 'structure_dessiner', 'skill_brouillon'] as const) {
+      expect(() => handle(tool, {}, agent)).toThrow(expect.objectContaining({ code: 'NON_MODIFIABLE' }))
+    }
+    expect(map.handle).not.toHaveBeenCalled()
+    expect(handle('carte_lire', {}, agent)).toEqual({ text: 'carte' })
+    expect(handle('widget_poser', {}, agent)).toEqual({ text: 'carte' })
+  })
 })

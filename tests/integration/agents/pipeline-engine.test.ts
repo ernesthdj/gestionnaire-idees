@@ -176,6 +176,34 @@ describe('planificateur d’assemblage (L1o, T011–T012, T016–T018)', { timeo
     expect(await filesOf('agents/T030/back')).not.toContain('usage')
   })
 
+  it('should_give_each_agent_its_visio_identity_on_the_bridge_when_the_team_has_a_node', async () => {
+    // L2-pipeline-optimal D11 : l'identité de l'agent sur le pont est la visio de l'agent sur le nœud de l'équipe.
+    const seen: AgentSessionRequest[] = []
+    const engine = new PipelineEngine({
+      profiles: () => PROFILES,
+      runSession: async (request) => {
+        seen.push(request)
+        return writer(request)
+      },
+      git,
+      projectDir: project,
+      worktreeRoot: join(root, 'worktrees'),
+      documentsFor: (dir) =>
+        new PipelineDocuments({ projectDir: dir, profileDir: join(root, 'profil'), projectName: 'demo' }),
+      agentNeuron: (hostId, agentId) => `visio-${hostId}-${agentId}`
+    })
+    await engine.run({
+      taskId: 'T031',
+      brief: 'X',
+      agents: [{ id: 'back', profileId: 'back' }],
+      links: [],
+      hostId: 'wf:g:ttask:t1'
+    })
+    expect(seen[0]?.bridgeNeuronId).toBe('visio-wf:g:ttask:t1-back')
+    await engine.run({ taskId: 'T032', brief: 'X', agents: [{ id: 'back', profileId: 'back' }], links: [] })
+    expect(seen[1]?.bridgeNeuronId).toBeUndefined()
+  })
+
   it('should_warn_about_uncommitted_files_that_the_agents_will_not_see', async () => {
     const engine = engineWith(writer)
     expect(await engine.uncommittedWarning()).toBeNull()

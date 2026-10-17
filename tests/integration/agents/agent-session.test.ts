@@ -148,6 +148,21 @@ describe('skills transmis à la session d’un agent (L1o D6, T010)', () => {
     // L2-pipeline-optimal D11 (T014) : aucun serveur MCP, ni les connecteurs claude.ai de mentalyas (Gmail, Docs…).
     expect(args).toContain('--strict-mcp-config')
     expect(JSON.parse(args[args.indexOf('--mcp-config') + 1] ?? '')).toEqual({ mcpServers: {} })
+    // D11 : avec un pont, seul le Brainstormer, marqué « pipeline », avec l'identité de l'agent ; ses outils passent.
+    const bridged = agentSessionArgs({
+      sessionId: 's',
+      model: 'm',
+      effort: 'high',
+      permissionMode: 'default',
+      systemPrompt: 'sp',
+      bridge: { electronPath: 'C:/app/electron.exe', relayPath: 'C:/app/relay.js', profileDir: 'C:/p', neuronId: 'n1' }
+    })
+    const config = JSON.parse(bridged[bridged.indexOf('--mcp-config') + 1] ?? '') as {
+      mcpServers: Record<string, { env: Record<string, string> }>
+    }
+    expect(Object.keys(config.mcpServers)).toEqual(['brainstormer'])
+    expect(config.mcpServers['brainstormer']?.env).toMatchObject({ GI_NEURON_ID: 'n1', GI_AGENT_PIPELINE: '1' })
+    expect(bridged[bridged.indexOf('--allowedTools') + 1]).toBe('mcp__brainstormer')
     // L2-pipeline-optimal D3 : une passe suivante reprend sa session au lieu d'en créer une.
     expect(args[args.indexOf('--session-id') + 1]).toBe('s')
     const resumed = agentSessionArgs({

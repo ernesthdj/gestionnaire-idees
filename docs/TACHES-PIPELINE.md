@@ -26,7 +26,7 @@
 ## Lot 4 — Lancer un lot
 
 - [ ] T013 Un lot dans ce pipeline : sous-assemblage par tâche, groupes sans limite, un agent sur plusieurs tâches, rythme « une à une » / « tout le lot » (D8, CA7.1, CA7.2 ; remplace T024 de TACHES-AGENTS) · agent : backend + frontend · dépend de : T004, T007, T009
-- [ ] T014 Sessions d'agent : vérifier ce qu'elles chargent, puis `--strict-mcp-config` avec le seul pont du Brainstormer, identité de l'agent, outils choisis (D11) · agent : backend · dépend de : rien
+- [x] T014 Sessions d'agent : vérifier ce qu'elles chargent, puis `--strict-mcp-config` avec le seul pont du Brainstormer, identité de l'agent, outils choisis (D11) · agent : backend · dépend de : rien
 
 ## Lot 5 — Consommation et bilan
 

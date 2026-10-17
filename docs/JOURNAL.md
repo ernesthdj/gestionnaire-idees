@@ -2990,3 +2990,20 @@ de consignes) aurait pu envoyer un e-mail ou modifier des documents de mentalyas
 serveur MCP, 28 outils. Les deux autres lanceurs (`ConversationService`, `ClaudeCliProvider`) l'avaient déjà.
 **Reste (T014 étape 2) :** rouvrir le seul pont du Brainstormer, avec l'identité de l'agent et des outils filtrés côté
 serveur (D11).
+
+### [2026-10-17 12:10] SECURITY — un agent du pipeline n'a que le pont du Brainstormer, filtré (L2-pipeline-optimal D11, T014)
+**Fichiers :** `src/shared/mcp/protocol.ts` (`pipeline` de l'accueil), `src/mcp-relay/relay.ts` (`GI_AGENT_PIPELINE`),
+`src/main/infrastructure/mcp/PipeServer.ts`, `src/main/domain/mcp/caller.ts` (`pipeline`), `toolHandler.ts`
+(`PIPELINE_AGENT_TOOLS`), `MapService.ts` (widget de sa tâche seulement), `AgentSession.ts` (`bridgeConfig`,
+`relay`, `--allowedTools mcp__brainstormer`), `PipelineEngine.ts` (`agentNeuron`, `bridgeNeuronId`),
+`shared/agents/pipeline.ts` (`hostId`), `AssemblyService.ts`, `bootstrap.ts` ; tests `pipe-server`,
+`skills-chat-guard`, `agent-session`, `pipeline-engine`, `map-service`.
+**Quoi :** la session d'un agent reçoit le seul pont du Brainstormer, avec l'identité de sa visio sur le nœud de
+l'équipe et la marque « pipeline » dans l'accueil du relais. Le serveur ne lui ouvre que `etat`, `carte_lire`,
+`noeud_lire`, `structure_lire`, `code_graphe_lire`, `document_lire`, `agents_lire` et `widget_poser` sans source ni
+noeud (relié à sa tâche, spec 026 D10). Le filtre est côté serveur : la session ne peut pas l'élargir.
+**Vérifié :** typecheck, lint, Prettier, 2 516 tests ; e2e `agents-map`, `agents-lot` ; vrai agent (e2e ponctuel non
+commité, profil fictif, modèle léger) : `carte_lire` répond (« 1 idée sur la carte »), `dessiner` est refusé avec le
+message prévu.
+**Limite :** un agent en mode « Libre » a un shell : il pourrait lire le secret du pont dans le profil et ouvrir son
+propre relais sans la marque. Le mode « Libre » reste réservé aux agents de confiance (avertissement à l'assemblage).

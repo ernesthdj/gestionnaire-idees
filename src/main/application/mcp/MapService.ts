@@ -691,6 +691,10 @@ export class MapService {
     if (input.source !== undefined && input.noeud !== undefined) {
       throw new McpToolError('LOT_INVALIDE', 'source ou noeud : un seul des deux.')
     }
+    // Un agent du pipeline (L2-pipeline-optimal D11) relie un widget à sa tâche seulement.
+    if (caller?.pipeline === true && (input.source !== undefined || input.noeud !== undefined)) {
+      throw new McpToolError('LOT_INVALIDE', 'Un agent relie un widget à sa tâche : sans source ni noeud.')
+    }
     // Élément d'une carte de structure (spec 023 D24) : tout son contexte, le widget près de son genesis.
     const element =
       input.source === undefined ? undefined : universe.view.elements.find((entry) => entry.id === input.source)

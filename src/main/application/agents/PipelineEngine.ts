@@ -44,6 +44,8 @@ export interface AgentSessionRequest {
   readonly sessionId: string
   /** La session `sessionId` existe déjà (passe précédente du même agent) : elle est reprise (L2-pipeline-optimal D3). */
   readonly resume?: boolean
+  /** Neurone de la visio de l'agent : son identité sur le pont du Brainstormer (L2-pipeline-optimal D11). */
+  readonly bridgeNeuronId?: string
   readonly cwd: string
   readonly systemPrompt: string
   readonly prompt: string
@@ -103,6 +105,8 @@ export type GitPort = (args: readonly string[]) => Promise<{ readonly code: numb
 export interface PipelineEngineDeps {
   readonly profiles: () => readonly AgentProfileView[]
   readonly runSession: AgentSessionRunner
+  /** Neurone de la visio d'un agent sur un nœud : son identité sur le pont du Brainstormer (L2-pipeline-optimal D11). */
+  readonly agentNeuron?: (hostId: string, agentId: string) => string | undefined
   readonly git: GitPort
   readonly projectDir: string
   /** Dossier des worktrees des agents, hors du projet (`<racine>/<tâche>/<agent>`). */
@@ -724,11 +728,15 @@ export class PipelineEngine {
     // Écritures et commandes refusées pendant la session (mode de permission du profil, L1o D20).
     const refused = refusalsOf()
     const consumed = usageOf()
+    // Identité de l'agent sur le pont (L2-pipeline-optimal D11) : la visio de l'agent sur le nœud de l'équipe.
+    const bridgeNeuronId =
+      assembly.hostId === undefined ? undefined : this.deps.agentNeuron?.(assembly.hostId, agent.id)
     const session = (id: string, resume: boolean): Promise<AgentSessionResult> =>
       this.deps.runSession({
         profile,
         sessionId: id,
         ...(resume ? { resume: true } : {}),
+        ...(bridgeNeuronId === undefined ? {} : { bridgeNeuronId }),
         cwd: worktree,
         systemPrompt: [missionFor(turn, index), profile.instructions].filter((t) => t.trim() !== '').join('\n\n'),
         prompt: this.promptFor(turn, documents, spec),
