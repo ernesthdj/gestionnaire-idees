@@ -127,19 +127,19 @@ produit** : aujourd'hui, une démonstration de tout ce qu'on peut faire, plus qu
 
 ## Décisions prises le 2026-10-13
 
-- [x] **Usage réel** : quatre usages gardés : carte + conversation Claude, piloter un projet, reprendre un projet
+- ✔ **Usage réel** : quatre usages gardés : carte + conversation Claude, piloter un projet, reprendre un projet
       existant, widgets et wireframes.
-- [x] **Gel des fonctionnalités** jusqu'à : carte de Bike_cycle qui montre l'avancement + e2e stables (noté dans
+- ✔ **Gel des fonctionnalités** jusqu'à : carte de Bike_cycle qui montre l'avancement + e2e stables (noté dans
       `CLAUDE.md`).
-- [x] **Tri des specs** (une par une) : 021 « Git et GitHub » gardée, en pause jusqu'à la fin du gel et recentrée
+- ✔ **Tri des specs** (une par une) : 021 « Git et GitHub » gardée, en pause jusqu'à la fin du gel et recentrée
       (commit, pull et push par Claude depuis le Brainstormer) ; 005, 011, 012, 013, 014, 015, 019, 022 redeviennent
       des idées ; 024 livrée (US1–US5), lot 7 abandonné ; 028 abandonnée (code retiré le 2026-11-12 s'il n'a pas
       resservi) ; 029 abandonnée, code sur la branche `archive/029-scenes-accueil`. 004, 008, 010, 016, 020 étaient
       finies : statut réaligné.
-- [x] **Code mort** : Ollama sert encore (projets « Local uniquement », résumés Workflow, widgets) et
+- ✔ **Code mort** : Ollama sert encore (projets « Local uniquement », résumés Workflow, widgets) et
       l'anonymisation sert à l'import de contexte : gardés. Les tables d'archive de l'ancien moteur seront retirées
       dans un chantier à part après le gel (plan à valider : la migration efface des données).
-- [x] **Fin de session allégée** : skill `/hub` modifié, avec un graphe au plus une fois par semaine (`/hub end --graph`
+- ✔ **Fin de session allégée** : skill `/hub` modifié, avec un graphe au plus une fois par semaine (`/hub end --graph`
       pour le forcer) et le cours seulement après confirmation.
-- [x] **Réaligner** : statuts des specs, `CLAUDE.md` (Microsoft Graph + MSAL retirés de la stack : absents du code).
-- [x] **Besoin d'origine** : abandonné ; la description du projet est mise à jour (`CLAUDE.md`, registre `/hub`, GitHub).
+- ✔ **Réaligner** : statuts des specs, `CLAUDE.md` (Microsoft Graph + MSAL retirés de la stack : absents du code).
+- ✔ **Besoin d'origine** : abandonné ; la description du projet est mise à jour (`CLAUDE.md`, registre `/hub`, GitHub).
