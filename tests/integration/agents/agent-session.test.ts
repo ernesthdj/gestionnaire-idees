@@ -145,6 +145,9 @@ describe('skills transmis à la session d’un agent (L1o D6, T010)', () => {
     })
     expect(args).toContain('--allow-dangerously-skip-permissions')
     expect(args).not.toContain('--plugin-dir')
+    // L2-pipeline-optimal D11 (T014) : aucun serveur MCP, ni les connecteurs claude.ai de mentalyas (Gmail, Docs…).
+    expect(args).toContain('--strict-mcp-config')
+    expect(JSON.parse(args[args.indexOf('--mcp-config') + 1] ?? '')).toEqual({ mcpServers: {} })
     // L2-pipeline-optimal D3 : une passe suivante reprend sa session au lieu d'en créer une.
     expect(args[args.indexOf('--session-id') + 1]).toBe('s')
     const resumed = agentSessionArgs({

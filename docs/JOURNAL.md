@@ -2978,3 +2978,15 @@ appelés, sa durée et la jauge des 5 h au début et à la fin ; joint au résul
 `rate_limit_event` avec `five_hour` et `seven_day`, `total_cost_usd`, `num_turns`, `duration_ms` et `usage` présents.
 **Limite :** l'écart de jauge d'une passe compte aussi ce que consomment, au même moment, les autres agents et
 conversations.
+
+### [2026-10-17 11:47] SECURITY — les sessions d'agent ne chargent plus les connecteurs claude.ai (L2-pipeline-optimal D11, T014 étape 1)
+**Fichiers :** `src/main/infrastructure/claude/AgentSession.ts` (`--strict-mcp-config`, configuration MCP vide) ;
+test `agent-session`.
+**Faille :** une session d'agent (`claude -p` du pipeline) n'avait pas `--strict-mcp-config` : elle chargeait les
+connecteurs claude.ai du compte (vérifié par l'événement `init` : Gmail et Claude Docs et Canva connectés, Figma, Drive
+et Calendar en attente ; 111 outils). Un agent en mode « Libre » qui lirait une consigne piégée dans un dépôt (injection
+de consignes) aurait pu envoyer un e-mail ou modifier des documents de mentalyas.
+**Correction :** `--strict-mcp-config --mcp-config {"mcpServers":{}}` : vérifié sur une vraie session, plus aucun
+serveur MCP, 28 outils. Les deux autres lanceurs (`ConversationService`, `ClaudeCliProvider`) l'avaient déjà.
+**Reste (T014 étape 2) :** rouvrir le seul pont du Brainstormer, avec l'identité de l'agent et des outils filtrés côté
+serveur (D11).

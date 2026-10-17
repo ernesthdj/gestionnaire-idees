@@ -9,6 +9,8 @@ import { runProcess, type RunProcess } from '../ai/ClaudeCliProvider'
 const SESSION_TIMEOUT_MS = 30 * 60_000
 /** Début du message de Claude Code quand une session à reprendre n'existe pas (vérifié sur `claude -p --resume`). */
 const NO_SESSION = 'No conversation found'
+/** Configuration MCP vide : avec `--strict-mcp-config`, aucun serveur ni connecteur n'est chargé (vérifié le 2026-10-17). */
+const NO_MCP_SERVERS = JSON.stringify({ mcpServers: {} })
 
 /** Nom du plugin qui porte les skills d'un agent : Claude les voit sous `agent-skills:<nom>`. */
 export const AGENT_SKILLS_PLUGIN = 'agent-skills'
@@ -71,6 +73,11 @@ export function agentSessionArgs(input: {
     // Ni hooks ni réglages de l'utilisateur ou du projet : le CLAUDE.md du projet est lu par l'agent, pas chargé d'office.
     '--setting-sources',
     '',
+    // Aucun serveur MCP (L2-pipeline-optimal D11, T014) : sans cela, la session chargeait les connecteurs claude.ai de
+    // mentalyas (Gmail, Docs, Canva…), joignables par un agent en mode « Libre » qui lirait une consigne piégée.
+    '--strict-mcp-config',
+    '--mcp-config',
+    NO_MCP_SERVERS,
     '--permission-mode',
     input.permissionMode,
     ...(input.permissionMode === 'bypassPermissions' ? ['--allow-dangerously-skip-permissions'] : []),
