@@ -51,6 +51,7 @@ export function useAssemblyActions(): {
   readonly save: (sketch: AssemblySketchView) => Promise<boolean>
   readonly clear: (nodeId: string) => Promise<boolean>
   readonly move: (fromNodeId: string, toNodeId: string) => Promise<boolean>
+  readonly relink: (fromNodeId: string, toNodeId: string) => Promise<boolean>
   readonly route: (nodeId: string, task: string, route: Omit<LotRoute, 'task'> | null) => Promise<boolean>
   /** Renvoie un agent (il quitte ce nœud) ; le dernier parti, le croquis du nœud est effacé. */
   readonly dismiss: (sketch: AssemblySketchView, agentId: string) => Promise<boolean>
@@ -89,6 +90,9 @@ export function useAssemblyActions(): {
           () => call('assembly:sketchMove', { from, to, taskId: defaultTaskId(to) }),
           'L’équipe n’a pas pu être déplacée.'
         )) !== null,
+      relink: async (from, to) =>
+        (await attempt(() => call('assembly:sketchRelink', { from, to }), 'L’équipe n’a pas pu être rattachée.')) !==
+        null,
       route: async (nodeId, task, route) =>
         (await attempt(
           () => call('assembly:lotRoute', { nodeId, task, route }),

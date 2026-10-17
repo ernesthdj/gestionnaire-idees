@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -227,5 +227,34 @@ describe('agents en nœuds du canevas (T006, e2e)', () => {
     await page.getByRole('button', { name: 'Tout afficher' }).click()
     await page.waitForTimeout(800)
     await run.shot('t024-02-equipe-deplacee')
+
+    // Spec 032 D21 : le PO réécrit la ligne de T002 en travaillant ; l'équipe reste sur sa tâche.
+    const tasksFile = join(projectRepo, 'docs', 'TACHES-TRI.md')
+    const original = readFileSync(tasksFile, 'utf8')
+    writeFileSync(
+      tasksFile,
+      original.replace(
+        `- [ ] T002 ${NEXT_TASK} (src/a.ts)`,
+        `- [~] T002 ${NEXT_TASK} (src/a.ts) · spec : x.md · agent : Développeur`
+      )
+    )
+    await page.getByRole('button', { name: 'Relire', exact: true }).click()
+    await page.waitForTimeout(1500)
+    await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
+    expect(await page.getByRole('region', { name: 'Équipes à rattacher' }).count()).toBe(0)
+
+    // L1o D27 : la tâche disparaît ; l'équipe est signalée et se rattache, avec ses conversations.
+    // La fusion a réécrit le fichier par git : ses fins de ligne peuvent être `\r\n`.
+    writeFileSync(tasksFile, original.replace(/^- \[ \] T002 .*\r?\n/m, ''))
+    await page.getByRole('button', { name: 'Relire', exact: true }).click()
+    const strays = page.getByRole('region', { name: 'Équipes à rattacher' })
+    await strays.waitFor({ timeout: 15_000 })
+    await expect.poll(() => page.locator('.agent-node').count()).toBe(0)
+    await strays.getByRole('button', { name: /Rattacher…/ }).click()
+    await run.shot('t027-01-equipe-a-rattacher')
+    await strays.getByRole('button', { name: 'Rattacher', exact: true }).click()
+    await strays.waitFor({ state: 'detached', timeout: 15_000 })
+    await expect.poll(() => page.locator('.agent-node').count()).toBe(2)
+    writeFileSync(tasksFile, original)
   })
 })

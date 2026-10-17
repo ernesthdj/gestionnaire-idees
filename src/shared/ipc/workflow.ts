@@ -27,8 +27,13 @@ export interface TaskView {
   readonly id: string
   readonly done: boolean
   readonly state: TaskState
-  /** Clé stable d'une tâche d'un fichier de tâches (D20) ; absente dans un `tasks.md` (clé tirée de `id`). */
+  /**
+   * Clé stable d'une tâche d'un fichier de tâches (D20) ; absente dans un `tasks.md` (clé tirée de `id`). Tâche
+   * numérotée : son fichier et son numéro, quel que soit son texte (spec 032 D21) ; sinon l'empreinte de son texte.
+   */
   readonly key?: string
+  /** Ancienne clé (empreinte du texte) d'une tâche numérotée : ce qui y était accroché est reporté (spec 032 D21). */
+  readonly legacyKey?: string
   /** Numéro de la user story (`[US2]` → 2) ; `null` pour une tâche du socle. */
   readonly story: number | null
   /** Description, sans case ni étiquettes. */

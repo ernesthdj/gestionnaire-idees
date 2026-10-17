@@ -63,6 +63,8 @@ export interface AssemblyServiceDeps {
   readonly node: (nodeId: string) => AssemblyNode | undefined
   /** Raison pour laquelle on ne lance pas d'agent sur ce projet (« Local uniquement »…), ou `null`. */
   readonly refusal: (genesisId: string) => string | null
+  /** Les conversations du nœud et de ses agents suivent une équipe rattachée (L1o D27). */
+  readonly moveChats?: (genesisId: string, fromNodeId: string, toNodeId: string) => void
   readonly engineFor: (project: {
     readonly genesisId: string
     readonly projectDir: string
@@ -269,6 +271,29 @@ export class AssemblyService {
     })
     this.deps.sketches.remove(fromNodeId)
     return moved
+  }
+
+  /**
+   * Rattache une équipe dont le nœud a disparu à une tâche du Workflow (L1o D27) : c'est la même équipe, retrouvée ;
+   * tout la suit (identifiant de tâche, demande, parts, zones, plan du lot) et ses conversations aussi. Refusé si le
+   * nœud d'origine existe encore (c'est alors « Déplacer l'équipe », D24) ou si la tâche visée a déjà des agents.
+   */
+  relinkSketch(fromNodeId: string, toNodeId: string): AssemblySketchView {
+    const from = this.sketchOf(fromNodeId)
+    if (from === undefined || from.agents.length === 0) throw new AppError('NOT_FOUND', 'Aucune équipe à rattacher.')
+    if (this.deps.node(fromNodeId) !== undefined) {
+      throw new AppError('CONFLICT', 'Le nœud de cette équipe existe encore : déplace-la plutôt.')
+    }
+    const target = this.deps.node(toNodeId)
+    if (target === undefined) throw new AppError('NOT_FOUND', 'Tâche introuvable.')
+    if (target.genesisId !== from.genesisId) throw new AppError('VALIDATION', 'L’équipe reste dans son projet.')
+    const taken = this.sketchOf(toNodeId)
+    if (taken !== undefined && taken.agents.length > 0) throw new AppError('CONFLICT', 'Cette tâche a déjà des agents.')
+    const relinked: AssemblySketchView = { ...from, nodeId: toNodeId }
+    this.deps.sketches.save(relinked)
+    this.deps.sketches.remove(fromNodeId)
+    this.deps.moveChats?.(from.genesisId, fromNodeId, toNodeId)
+    return relinked
   }
 
   /**

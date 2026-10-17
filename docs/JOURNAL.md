@@ -2766,3 +2766,20 @@ d'accueil ; champ qui grandit jusqu'à 8 lignes), `UsageMeter.tsx` (jauges en pa
 clic, au lieu d'une bande qui doublait la barre du haut) ; test `chat-panel`.
 **Quoi :** capture de mentalyas : « améliore l'aspect de ce volet, c'est pas propre ».
 **Vérifié :** typecheck, lint, Prettier, suite complète ; e2e `workflow-task-files` (capture `032-lot2-02-bosser-ici`).
+
+### [2026-10-17 02:13] FIX — l'agent disparaissait du Workflow quand sa tâche était réécrite (spec 032 D21, L1o D27)
+**Fichiers :** `parseTaskFile.ts` (clé d'une tâche numérotée = fichier + numéro ; `legacyKey` = ancienne empreinte),
+`workflow.ts` (`legacyKey`), `WorkflowService.ts` (`onTaskKeys`), `AssemblySketchRepository.ts` (`moveNode`),
+`WorkflowChatRepository.ts` (`keysOf`, `moveHost`), `bootstrap.ts` (report des équipes et conversations),
+`AssemblyService.ts` (`relinkSketch`), route `assembly:sketchRelink`, `teamTargets.ts` et `StrayTeams.tsx` (nouveaux :
+bandeau « équipe qui a perdu sa tâche » et « Rattacher »), `AgentsTabContent.tsx` (cibles factorisées) ; tests unitaires,
+d'intégration et e2e `agents-map`.
+**Quoi :** bug signalé par mentalyas : en travaillant, son PO a réécrit la ligne de T002 (spec, agent, fin) ; la clé
+de la tâche (empreinte du texte) a changé, l'équipe est restée accrochée à l'ancienne et a disparu de la carte.
+Désormais une tâche numérotée garde sa clé (texte, état, lot peuvent changer) ; ce qui était accroché à l'ancienne
+empreinte est reporté au premier passage. Une équipe dont le nœud a disparu est signalée par un bandeau et se rattache
+à une tâche avec ses agents, ses liens et ses conversations.
+**Corrigé en route :** l'e2e cherchait `\n` dans un fichier réécrit par git en `\r\n` ; et un correctif de test passé
+par un heredoc avec des barres obliques inverses (règle déjà connue : outil d'édition pour tout code qui en contient).
+**Vérifié :** typecheck, lint, Prettier, 2 487 tests ; e2e `agents-map` (capture `t027-01-equipe-a-rattacher`),
+`agents-lot`, `workflow-task-files`.

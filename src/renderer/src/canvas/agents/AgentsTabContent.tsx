@@ -8,7 +8,6 @@ import { Markdown } from '../../chat/Markdown'
 import { Button } from '../../components/atoms/Button'
 import { call, IpcFailure } from '../../lib/ipc'
 import { agentsTitle, useSidePanel, type AgentsTab } from '../side/sidePanelStore'
-import { workflowTree } from '../workflow/workflowTree'
 import { AGENT_VISUAL_LABELS, assemblyProgress, runOf, visualOf } from './agentGraph'
 import {
   addAgent,
@@ -22,6 +21,7 @@ import {
   type SketchEdit
 } from './sketchEdit'
 import { LotRouting } from './LotRouting'
+import { moveTargets } from './teamTargets'
 import { useAssemblyActions, useAssemblyData } from './useAssemblies'
 
 const FIELD = 'h-8 w-full rounded-md border border-content-muted/30 bg-surface px-2 text-sm'
@@ -600,19 +600,7 @@ function MoveTeam({
     queryFn: () => call<WorkflowView>('workflow:read', { genesisId: sketch.genesisId }),
     enabled: open
   })
-  const busy = new Set(sketches.filter((entry) => entry.agents.length > 0).map((entry) => entry.nodeId))
-  const tasks =
-    view.data === undefined
-      ? []
-      : workflowTree({ view: view.data }, sketch.genesisId)
-          .items.filter(
-            (item) =>
-              item.key.split(':')[2] === 'ttask' &&
-              item.status !== 'done' &&
-              item.key !== sketch.nodeId &&
-              !busy.has(item.key)
-          )
-          .sort((a, b) => Number(b.next === true) - Number(a.next === true))
+  const tasks = view.data === undefined ? [] : moveTargets(view.data, sketch.genesisId, sketches, sketch.nodeId)
   const chosen = tasks.find((item) => item.key === target) ?? tasks[0]
   const move = async (): Promise<void> => {
     if (chosen === undefined) return

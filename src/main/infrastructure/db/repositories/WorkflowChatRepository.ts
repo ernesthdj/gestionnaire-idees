@@ -29,6 +29,48 @@ export class WorkflowChatRepository {
       .get()?.id
   }
 
+  /** Clés des conversations cachées d'un projet (nœuds du Workflow et agents). */
+  keysOf(genesisId: string): Set<string> {
+    return new Set(
+      this.db
+        .select({ key: neurons.elementKey })
+        .from(neurons)
+        .where(eq(neurons.genesisId, genesisId))
+        .all()
+        .flatMap((row) => (row.key === null ? [] : [row.key]))
+    )
+  }
+
+  /**
+   * Le nœud a changé de clé (spec 032 D21, L1o D27) : sa conversation, et celles des agents qui y étaient connectés
+   * (`agent:<agent>:<nœud>`), le suivent. Une conversation déjà posée sur la nouvelle clé n'est jamais écrasée.
+   */
+  moveHost(genesisId: string, from: string, to: string): number {
+    const rows = this.db
+      .select({ id: neurons.id, key: neurons.elementKey, kind: neurons.kind })
+      .from(neurons)
+      .where(eq(neurons.genesisId, genesisId))
+      .all()
+    const taken = new Set(rows.map((row) => row.key))
+    let moved = 0
+    for (const row of rows) {
+      if (row.key === null || (row.kind !== 'workflow_chat' && row.kind !== 'agent_chat')) continue
+      const next =
+        row.kind === 'workflow_chat'
+          ? row.key === from
+            ? to
+            : null
+          : row.key.startsWith('agent:') && row.key.endsWith(`:${from}`)
+            ? `${row.key.slice(0, row.key.length - from.length)}${to}`
+            : null
+      if (next === null || taken.has(next)) continue
+      this.db.update(neurons).set({ elementKey: next }).where(eq(neurons.id, row.id)).run()
+      taken.add(next)
+      moved += 1
+    }
+    return moved
+  }
+
   /** Toutes les conversations de nœuds Workflow : où poser le dossier de chacune sur la carte (spec 028). */
   chats(): { readonly id: string; readonly genesisId: string; readonly key: string }[] {
     return this.db

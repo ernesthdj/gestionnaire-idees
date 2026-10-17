@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowChats } from '../../../src/main/application/workflow/WorkflowChats'
 import { WorkflowService } from '../../../src/main/application/workflow/WorkflowService'
 import { NeuronRepository } from '../../../src/main/infrastructure/db/repositories/NeuronRepository'
+import { AssemblySketchRepository } from '../../../src/main/infrastructure/db/repositories/AssemblySketchRepository'
 import { WorkflowChatRepository } from '../../../src/main/infrastructure/db/repositories/WorkflowChatRepository'
 import {
   WorkflowFoldRepository,
@@ -60,6 +61,20 @@ describe('vue Workflow d’un projet lié (spec 023)', () => {
   })
 
   afterEach(() => rmSync(base, { recursive: true, force: true }))
+
+  it('should_report_the_former_key_of_each_numbered_task_so_its_team_follows_it', async () => {
+    // Spec 032 D21 : ce qui était accroché à l'empreinte du texte passe sur la clé du numéro.
+    const moved: { from: string; to: string }[] = []
+    service = new WorkflowService({
+      neuron: (id) => (id === genesis ? { state: 'hatched', projectDir } : undefined),
+      folds: { get: () => folds },
+      onTaskKeys: (_genesisId, pairs) => moved.push(...pairs)
+    })
+    write('docs/TACHES-TRI.md', '# Tri\n\n## Lot\n\n- [ ] T001 Trier\n- [ ] Sans numéro\n')
+    const view = await service.read(genesis)
+    const task = view.taskFiles[0]?.lots[0]?.tasks[0]
+    expect(moved).toEqual([{ from: task?.legacyKey, to: task?.key }])
+  })
 
   it('should_read_statuses_counters_stories_and_brainstorm_when_the_project_follows_our_method', async () => {
     write('specs/001-carte-demo/spec.md', SPEC_ACTIVE)
@@ -268,5 +283,45 @@ describe('conversations des nœuds Workflow (spec 023 D6)', () => {
     const roots = new NeuronRepository(t.handle.db).canvasRoots().map((root) => root.id)
     expect(roots).toContain(genesis)
     expect(roots).not.toContain(first.neuronId)
+  })
+})
+
+describe('report des liens d’une tâche qui change de clé (spec 032 D21, L1o D27)', () => {
+  let t: NeuronHarness
+  beforeEach(() => {
+    t = createNeuronHarness()
+  })
+  afterEach(() => t.dispose())
+
+  it('should_move_the_node_chat_the_agent_chats_and_the_team_without_overwriting_a_taken_key', async () => {
+    const genesis = (await t.neurons.create({ text: 'Projet lié' })).id
+    const chats = new WorkflowChatRepository(t.handle.db)
+    const sketches = new AssemblySketchRepository(t.handle.db)
+    const from = `wf:${genesis}:ttask:fabc-1234`
+    const to = `wf:${genesis}:ttask:fabc-T002`
+    chats.insert({ id: randomUUID(), genesisId: genesis, key: from, title: 'T002' })
+    chats.insert({ id: randomUUID(), genesisId: genesis, key: `agent:po:${from}`, title: 'PO', kind: 'agent_chat' })
+    sketches.save({
+      nodeId: from,
+      genesisId: genesis,
+      taskId: 'T-1',
+      agents: [{ id: 'po', profileId: 'p' }],
+      links: []
+    })
+    expect(chats.moveHost(genesis, from, to)).toBe(2)
+    expect(chats.chatOf(genesis, to)).toBeDefined()
+    expect(chats.chatOf(genesis, `agent:po:${to}`, 'agent_chat')).toBeDefined()
+    expect(chats.keysOf(genesis).has(from)).toBe(false)
+    expect(sketches.moveNode(from, to)).toBe(true)
+    expect(sketches.list(genesis).map((sketch) => sketch.nodeId)).toEqual([to])
+    // La nouvelle clé a déjà une équipe : rien n'est écrasé.
+    sketches.save({
+      nodeId: from,
+      genesisId: genesis,
+      taskId: 'T-2',
+      agents: [{ id: 'qa', profileId: 'q' }],
+      links: []
+    })
+    expect(sketches.moveNode(from, to)).toBe(false)
   })
 })

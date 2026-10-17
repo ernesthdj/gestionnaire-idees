@@ -85,6 +85,22 @@ export class AssemblySketchRepository implements SketchStore {
       .run()
   }
 
+  /** Le nœud a changé de clé (spec 032 D21) : son équipe le suit, si la nouvelle clé n'en a pas déjà une. */
+  moveNode(from: string, to: string): boolean {
+    const target = this.db
+      .select({ id: assemblySketches.nodeId })
+      .from(assemblySketches)
+      .where(eq(assemblySketches.nodeId, to))
+      .get()
+    if (target !== undefined) return false
+    const result = this.db
+      .update(assemblySketches)
+      .set({ nodeId: to, updatedAt: Date.now() })
+      .where(eq(assemblySketches.nodeId, from))
+      .run()
+    return result.changes > 0
+  }
+
   remove(nodeId: string): void {
     this.db.delete(assemblySketches).where(eq(assemblySketches.nodeId, nodeId)).run()
   }

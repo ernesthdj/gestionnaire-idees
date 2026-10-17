@@ -2,7 +2,14 @@ import { existsSync, readdirSync, realpathSync } from 'node:fs'
 import { access, readdir, realpath } from 'node:fs/promises'
 import { isAbsolute, join, relative } from 'node:path'
 import type { CodeLang } from '@shared/ipc/reprise'
-import type { SpecView, TaskFileView, TaskView, WorkflowFileView, WorkflowView } from '@shared/ipc/workflow'
+import type {
+  SpecView,
+  TaskFileView,
+  TaskGroupView,
+  TaskView,
+  WorkflowFileView,
+  WorkflowView
+} from '@shared/ipc/workflow'
 import { AppError } from '../../domain/errors'
 import { langOf } from '../../domain/reprise/fileFilter'
 import { brainstormDocs, brainstormLevel } from '../../domain/workflow/brainstorm'
@@ -19,6 +26,8 @@ export interface WorkflowDeps {
   readonly neuron: (id: string) => Pick<ConversationNeuron, 'state' | 'projectDir'> | undefined
   readonly folds: { get(genesisId: string): Record<string, boolean> }
   readonly now?: () => Date
+  /** Clés de tâches numérotées changées (spec 032 D21) : ancienne → nouvelle, pour reporter équipes et conversations. */
+  readonly onTaskKeys?: (genesisId: string, moved: readonly { readonly from: string; readonly to: string }[]) => void
 }
 
 /** Fichiers de méthode lisibles dans une carte Workflow, en plus des chemins cités par les tâches. */
@@ -66,6 +75,8 @@ interface Parts {
  * Les canaux IPC lisent le disque en asynchrone et en parallèle (le processus principal n'est jamais bloqué) ;
  * `readSync` reste pour les entrées de widgets, assemblées en synchrone.
  */
+const groupTasks = (group: TaskGroupView): TaskView[] => [...group.tasks, ...group.groups.flatMap(groupTasks)]
+
 export class WorkflowService {
   constructor(private readonly deps: WorkflowDeps) {}
 
@@ -104,6 +115,13 @@ export class WorkflowService {
   }
 
   private view(genesisId: string, parts: Parts, missingFiles: string[]): WorkflowView {
+    // Spec 032 D21 : ce qui était accroché à l'ancienne clé d'une tâche numérotée passe sur la nouvelle.
+    const moved = parts.taskFiles.flatMap((file) =>
+      [...file.tasks, ...file.lots.flatMap(groupTasks)].flatMap((task) =>
+        task.legacyKey === undefined || task.key === undefined ? [] : [{ from: task.legacyKey, to: task.key }]
+      )
+    )
+    if (moved.length > 0) this.deps.onTaskKeys?.(genesisId, moved)
     return {
       genesisId,
       ...parts,

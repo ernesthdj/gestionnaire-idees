@@ -35,6 +35,7 @@ interface Draft {
 export function parseTaskFile(path: string, text: string, onTask?: (key: string, line: number) => void): TaskFileView {
   const fileKey = `f${fnv(path)}`
   const keys = new Keys()
+  const ids = new Keys()
   const root: Draft = { key: fileKey, title: '', tasks: [], groups: [] }
   let title: string | null = null
   let lot: Draft | null = null
@@ -76,11 +77,15 @@ export function parseTaskFile(path: string, text: string, onTask?: (key: string,
     const description = raw.slice(id === '' ? 0 : (TASK_ID.exec(raw)?.[0].length ?? 0)).trim()
     const owner = group ?? lot ?? root
     const state = taskState(box[1] ?? ' ')
-    const key = keys.next(`${owner.key}-`, description)
+    // Spec 032 D21 : une tâche numérotée est identifiée par son fichier et son numéro (son texte peut changer) ;
+    // l'empreinte de son texte reste calculée pour reporter ce qui y était accroché.
+    const legacyKey = keys.next(`${owner.key}-`, description)
+    const key = id === '' ? legacyKey : ids.unique(`${fileKey}-${id}`)
     onTask?.(key, index)
     owner.tasks.push({
       id,
       key,
+      ...(key === legacyKey ? {} : { legacyKey }),
       done: state === 'done',
       state,
       story: null,
@@ -143,7 +148,11 @@ class Keys {
   private readonly seen = new Map<string, number>()
 
   next(prefix: string, text: string): string {
-    const base = `${prefix}${fnv(text)}`
+    return this.unique(`${prefix}${fnv(text)}`)
+  }
+
+  /** Clé donnée telle quelle (numéro de tâche), suffixée si elle revient. */
+  unique(base: string): string {
     const rank = (this.seen.get(base) ?? 0) + 1
     this.seen.set(base, rank)
     return rank === 1 ? base : `${base}.${rank}`

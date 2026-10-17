@@ -57,6 +57,7 @@ export const MAIN_WINDOW_CHANNELS = [
   'assembly:approve',
   'assembly:cleanup',
   'assembly:sketchMove',
+  'assembly:sketchRelink',
   'assembly:lotRoute',
   'bench:list',
   'bench:place',

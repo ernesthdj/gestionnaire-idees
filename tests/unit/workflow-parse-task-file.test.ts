@@ -105,3 +105,30 @@ describe('cocher une tâche à la fusion (L1o D23)', () => {
     expect(checkTask('docs/TACHES-X.md', FILE, 'inconnue')).toBeNull()
   })
 })
+
+describe('clé stable d’une tâche numérotée (spec 032 D21)', () => {
+  const keyOf = (text: string, id: string): string | undefined =>
+    [
+      ...parseTaskFile('docs/TACHES-X.md', text).tasks,
+      ...parseTaskFile('docs/TACHES-X.md', text).lots.flatMap((lot) => lot.tasks)
+    ].find((task) => task.id === id)?.key
+
+  it('should_keep_the_key_of_a_numbered_task_when_its_text_state_or_lot_changes', () => {
+    const before = keyOf('# T\n\n## Lot 1\n\n- [ ] T002 Tâche planifiée\n', 'T002')
+    // Le PO de Bike_cycle a réécrit la ligne en travaillant : la clé ne bouge pas.
+    expect(keyOf('# T\n\n## Lot 1\n\n- [~] T002 Tâche planifiée (spec : x.md) · agent : Thor\n', 'T002')).toBe(before)
+    expect(keyOf('# T\n\n## Autre lot\n\n- [x] T002 Autre texte\n', 'T002')).toBe(before)
+  })
+
+  it('should_give_the_former_text_key_as_legacy_and_keep_the_text_key_for_unnumbered_tasks', () => {
+    const file = parseTaskFile('docs/TACHES-X.md', '# T\n\n## Lot\n\n- [ ] T002 Trier\n- [ ] Sans numéro\n')
+    const [numbered, plain] = file.lots[0]?.tasks ?? []
+    expect(numbered?.legacyKey).toBeDefined()
+    expect(numbered?.legacyKey).not.toBe(numbered?.key)
+    expect(plain?.legacyKey).toBeUndefined()
+    // Deux tâches au même numéro restent distinctes.
+    const twice = parseTaskFile('docs/TACHES-X.md', '# T\n\n## Lot\n\n- [ ] T002 A\n- [ ] T002 B\n')
+    const keys = twice.lots[0]?.tasks.map((task) => task.key)
+    expect(new Set(keys).size).toBe(2)
+  })
+})

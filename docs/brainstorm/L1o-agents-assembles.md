@@ -312,3 +312,11 @@ assemblage de plusieurs agents aussi. Rien n'est figé : ni ordre, ni nombre d'a
     l'état libre ; un agent libre se retire au clic droit ;
   - **sur un nœud** : un **clic** sur une carte connecte l'agent à ce nœud, directement.
 - « Gérer les agents… » reste dans le clic droit d'un nœud.
+
+### D27 — Une équipe dont le nœud a disparu se rattache (2026-10-17)
+- Bug signalé par mentalyas : en plein travail, son PO a disparu du Workflow ; le PO avait réécrit la ligne de sa tâche,
+  qui a changé d'identifiant (corrigé par la spec 032 D21 pour les tâches numérotées).
+- Filet de sécurité : une équipe dont le nœud n'existe plus (tâche supprimée, renommée sans numéro, lot renommé) n'est
+  plus invisible. Le tiroir « Appeler un agent » la montre en tête, « Équipes à rattacher », avec ses agents et
+  « Rattacher à… » une tâche du Workflow. Elle y garde ses agents, leurs liens **et leurs conversations** (contrairement
+  à « Déplacer l'équipe », D24, qui repart d'une visio neuve : ici c'est la même tâche, retrouvée).

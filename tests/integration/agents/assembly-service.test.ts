@@ -248,6 +248,37 @@ describe('agents connectés à un nœud (T005, L1o D1 et D12)', { timeout: 60_00
     expect(service.sketches()[0]?.lot?.overrides).toEqual([])
   })
 
+  it('should_relink_a_stray_team_with_everything_and_its_chats_when_its_node_is_gone', () => {
+    // L1o D27 : le nœud d'origine n'existe plus ; l'équipe revient entière, conversations comprises.
+    const GONE = '33333333-3333-4333-8333-333333333333'
+    const moved: string[] = []
+    const service = new AssemblyService({
+      sketches: sketchStore,
+      node: (id) => (id === OTHER_ID ? node() : undefined),
+      refusal: () => null,
+      engineFor: () => {
+        throw new Error('aucun lancement ici')
+      },
+      emit: () => undefined,
+      moveChats: (_genesisId, from, to) => moved.push(`${from}→${to}`)
+    })
+    const team = {
+      nodeId: GONE,
+      genesisId: 'g1',
+      taskId: 'T070',
+      task: 'Trier',
+      agents: [{ id: 'po', profileId: 'po', zone: ['docs'] }],
+      links: []
+    }
+    stored.set(GONE, team)
+    expect(service.relinkSketch(GONE, OTHER_ID)).toEqual({ ...team, nodeId: OTHER_ID })
+    expect(stored.has(GONE)).toBe(false)
+    expect(moved).toEqual([`${GONE}→${OTHER_ID}`])
+    // Un nœud qui existe encore se déplace (D24), il ne se rattache pas.
+    stored.set(GONE, team)
+    expect(() => service.relinkSketch(OTHER_ID, GONE)).toThrow()
+  })
+
   it('should_move_the_team_to_another_task_without_what_belonged_to_the_old_one', () => {
     // L1o D24 : agents (profils, places) et liens suivent ; demande, part et zone restent à l'ancienne tâche.
     const service = serviceWith(node())

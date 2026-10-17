@@ -596,7 +596,26 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   })
   // Vue Workflow (spec 023) : specs et tâches lues en lecture seule dans le dossier du projet lié.
   const workflowFolds = new WorkflowFoldRepository(database.db)
-  const workflow = new WorkflowService({ neuron: (id) => conversationRepository.neuron(id), folds: workflowFolds })
+  const workflow = new WorkflowService({
+    neuron: (id) => conversationRepository.neuron(id),
+    folds: workflowFolds,
+    // Spec 032 D21 : une tâche numérotée a changé de clé ; son équipe et ses conversations la suivent.
+    onTaskKeys: (genesisId, moved) => {
+      // Un seul relevé de ce qui est accroché au projet ; seules les anciennes clés présentes sont reportées.
+      const hosts = new Set(assemblySketches.list(genesisId).map((sketch) => sketch.nodeId))
+      const chats = [...workflowChatRepository.keysOf(genesisId)]
+      let changed = false
+      for (const { from, to } of moved) {
+        const fromHost = `wf:${genesisId}:ttask:${from}`
+        const toHost = `wf:${genesisId}:ttask:${to}`
+        if (hosts.has(fromHost) && assemblySketches.moveNode(fromHost, toHost)) changed = true
+        if (chats.some((key) => key === fromHost || key.endsWith(`:${fromHost}`))) {
+          if (workflowChatRepository.moveHost(genesisId, fromHost, toHost) > 0) changed = true
+        }
+      }
+      if (changed) broadcast('assembly:changed', { genesisId, taskId: null })
+    }
+  })
   // Git et GitHub (spec 021) : un seul exécuteur sûr, une file d'écriture par projet, le dépôt d'un genesis vérifié.
   const gitRunner = new GitRunner({
     emptyHooksDir: join(dataDir, 'git-empty-hooks'),
@@ -1346,6 +1365,7 @@ export function bootstrap(shell: ShellPort, options: BootstrapOptions = {}): App
   })
   const assemblies = new AssemblyService({
     sketches: assemblySketches,
+    moveChats: (genesisId, from, to) => void workflowChatRepository.moveHost(genesisId, from, to),
     // Les agents se connectent aux nœuds de la vue Workflow (L1o D14) : leur contexte se lit dans les fichiers du projet.
     node: (nodeId) => {
       const genesisId = workflowHostGenesis(nodeId)

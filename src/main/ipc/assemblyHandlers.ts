@@ -16,6 +16,7 @@ export interface AssemblyRoutesDeps {
   saveSketch(request: Omit<AssemblyRequest, 'baseBranch'>): AssemblySketchView
   clearSketch(nodeId: string): void
   moveSketch(fromNodeId: string, toNodeId: string, taskId: string): AssemblySketchView
+  relinkSketch(fromNodeId: string, toNodeId: string): AssemblySketchView
   routeTask(
     nodeId: string,
     task: string,
@@ -139,6 +140,12 @@ export function createAssemblyRoutes(
           .nullable()
       }),
       handler: async ({ nodeId, task, route }) => deps.routeTask(nodeId, task, route)
+    }),
+    // Une équipe dont le nœud a disparu retrouve une tâche, avec ses conversations (L1o D27).
+    defineRoute({
+      channel: 'assembly:sketchRelink',
+      input: z.strictObject({ from: HostId, to: HostId }),
+      handler: async ({ from, to }) => deps.relinkSketch(from, to)
     }),
     // L'équipe passe à une autre tâche du Workflow (L1o D24).
     defineRoute({

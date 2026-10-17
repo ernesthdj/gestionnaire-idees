@@ -399,3 +399,42 @@
   font-weight: 600;
   color: var(--color-accent);
 }
+
+/* Équipes dont le nœud a disparu (L1o D27) : un bandeau en haut de la carte, déplié pour les rattacher. */
+.stray-teams {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 20;
+  width: min(440px, calc(100% - 32px));
+  transform: translateX(-50%);
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-idea) 60%, transparent);
+  background: var(--color-surface);
+  color: var(--color-content);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  font-size: 13px;
+}
+.stray-teams-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-weight: 600;
+  text-align: left;
+}
+.stray-teams-head > span:first-child {
+  color: var(--color-idea);
+}
+.stray-teams-action {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--color-accent);
+}
+.stray-teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 12px;
+}

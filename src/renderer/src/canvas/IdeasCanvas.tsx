@@ -82,6 +82,8 @@ import {
 import { AgentTray, AGENT_DRAG_TYPE } from './agents/AgentTray'
 import { BenchAgentNode } from './agents/BenchAgentNode'
 import { useBench } from './agents/useBench'
+import { StrayTeams } from './agents/StrayTeams'
+import { relinkTargets, strayTeams } from './agents/teamTargets'
 import { addAgent, addLink, emptySketch, placeAgent } from './agents/sketchEdit'
 import { useVisio } from './agents/visioStore'
 import { hostsAgents } from './agents/agentsHost'
@@ -382,6 +384,23 @@ function CanvasInner(): React.JSX.Element {
   // La barre des vues monte dans la barre fine (spec 033 D10) ; les autres genesis gardent la leur.
   const projectGenesisId = useUiStore((state) => state.brainstorm?.genesisId ?? null)
   const bench = useBench(projectGenesisId)
+  // Équipes dont le nœud a disparu du Workflow (L1o D27) : signalées, à rattacher.
+  const projectEntry = projectGenesisId === null ? undefined : workflows[projectGenesisId]
+  const projectWorkflow = projectEntry !== undefined && 'view' in projectEntry ? projectEntry.view : undefined
+  const strays = useMemo(
+    () =>
+      projectWorkflow === undefined || projectGenesisId === null
+        ? []
+        : strayTeams(projectWorkflow, projectGenesisId, assemblyData.sketches),
+    [projectWorkflow, projectGenesisId, assemblyData.sketches]
+  )
+  const strayTargets = useMemo(
+    () =>
+      projectWorkflow === undefined || projectGenesisId === null || strays.length === 0
+        ? []
+        : relinkTargets(projectWorkflow, projectGenesisId, assemblyData.sketches),
+    [projectWorkflow, projectGenesisId, assemblyData.sketches, strays.length]
+  )
   const graph = useMemo((): { nodes: MapNode[]; edges: MapEdge[]; headerBar: StructureBarData | null } => {
     if (view === undefined || layout === null) return { nodes: [], edges: [], headerBar: null }
     // Positions en cours du moteur (à jour après un glisser), recalculées quand la physique se stabilise.
@@ -1354,6 +1373,12 @@ function CanvasInner(): React.JSX.Element {
               onClose={closeAgentsMenu}
             />
           )}
+          <StrayTeams
+            teams={strays}
+            targets={strayTargets}
+            profiles={assemblyData.profiles}
+            onRelink={(team, to) => assemblyActions.relink(team.nodeId, to)}
+          />
           {tray === null ? null : (
             <AgentTray
               at={tray.at}
